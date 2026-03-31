@@ -1,8 +1,8 @@
 # Agentic AI Development Workflow Specification
 
-**Version:** 1.0.0
+**Version:** 0.1.0-alpha.1
 **Status:** Reference specification
-**Purpose:** This document fully describes a specification-first, constraint-governed agentic AI development workflow. It is intended to be given to an AI agent to scaffold and govern any new software project, regardless of domain.
+**Purpose:** This document fully describes a specification-first, constraint-governed agentic AI development workflow. It is intended to be given to an AI agent to scaffold and govern any new project — software, firmware, FPGA/RTL, embedded Linux, or hardware — regardless of domain.
 
 ---
 
@@ -38,19 +38,31 @@ Every project governed by this workflow MUST contain the following files at the 
 
 ### 2.1 AGENTS.md (repository root)
 
-The primary behavioral control document for all agents operating in the repository. It defines:
+The primary behavioral control document for all agents operating in the repository. AGENTS.md MUST be kept small and focused (~100–150 lines). It defines:
 
-- the workflow loop
-- session lifecycle prompts
-- environment requirements
-- hard rules and stop conditions
-- platform expectations
-- verification standards
-- acceptance criteria
-- context window management rules
-- agent role boundaries
+- project identity, platforms, and tech stack
+- a file registry pointing to all governance documents
+- quick command reference
+- project-type-specific rules
 
 **AGENTS.md is the highest-authority document.** If any other document conflicts with AGENTS.md, AGENTS.md wins.
+
+### 2.1.1 Modular governance documents (docs/governance/)
+
+Detailed governance rules are split into focused, referenceable documents under `docs/governance/`. AGENTS.md explicitly delegates to these files, and they inherit its authority level. This modular split is RECOMMENDED for all projects and REQUIRED when a monolithic AGENTS.md would exceed ~200 lines.
+
+| File | Content | Load timing |
+| ---- | ------- | ----------- |
+| `docs/governance/rules.md` | Hard rules, stop conditions | Every session start |
+| `docs/governance/workflow.md` | Session lifecycle, proposal format, ledger format | Every session start |
+| `docs/governance/roles.md` | Agent role definition, behavioral rules | Every session start |
+| `docs/governance/context-budget.md` | Context window management, credit optimization | Every session start |
+| `docs/governance/verification.md` | Verification standards, acceptance criteria | When performing verification |
+| `docs/governance/drift-metrics.md` | Drift detection, feedback loops, health signals | On `audit` command or session start |
+
+Agents read AGENTS.md in full on every session. The governance docs listed with "Every session start" timing are read immediately after. Other governance docs are loaded on demand when the task requires them. This lazy-loading approach minimizes credit consumption (see Section 25).
+
+For small projects where all governance fits in ~200 lines, a single monolithic AGENTS.md containing all rules inline is acceptable.
 
 ### 2.2 LEDGER.md (repository root or docs/)
 
@@ -94,16 +106,18 @@ Test cases linked to requirements. Each test references one or more requirements
 
 When documents conflict, precedence is resolved top-down:
 
-1. **AGENTS.md** — behavioral rules, hard constraints, stop conditions (highest)
+1. **AGENTS.md + docs/governance/*** — behavioral rules, hard constraints, stop conditions (highest). Governance docs inherit AGENTS.md's authority because AGENTS.md explicitly delegates to them.
 2. **README.md** — project intent and scope
 3. **docs/REQUIREMENTS.md** — what the system must do
 4. **docs/architecture.md** — how the system is structured
 5. **docs/TEST_SPEC.md** — how the system is verified
-6. **LEDGER.md** — what has been done and what remains (lowest, but sole authority for session state)
+6. **LEDGER.md** — what has been done and what remains (sole authority for session state)
 7. **docs/workflow.md** — how work proceeds
 8. **docs/services.md** — platform-specific startup/service behavior
 
 If a requirement contradicts the architecture, the requirement wins. If AGENTS.md contradicts a requirement, AGENTS.md wins.
+
+**Derivation vs. conflict resolution:** Requirements are derived from architecture (Section 15), meaning architecture is the *source* for requirements. However, once a requirement is accepted, it outranks architecture in the hierarchy. If a conflict arises between an accepted requirement and the architecture, the requirement wins — and the architecture must be updated to align. This is not circular: architecture informs what requirements *should* exist, but requirements govern what the system *must* do.
 
 ---
 
@@ -117,7 +131,7 @@ Trigger: fresh conversation targeting the repository.
 
 ```
 Load AGENTS.md, README.md, docs/architecture.md, docs/workflow.md,
-docs/services.md, docs/REQUIREMENTS.md, docs/TEST_SPEC.md, and LEDGER.md.
+docs/services.md (if it exists), docs/REQUIREMENTS.md, docs/TEST_SPEC.md, and LEDGER.md.
 
 Output:
 1. Current system understanding
@@ -216,6 +230,7 @@ Files touched: <explicit list of files created, modified, or deleted>
 Checks:       <what verification will be performed>
 Risks:        <what could go wrong or what is uncertain>
 Rollback:     <how to undo this work if it fails>
+Estimated cost: <low | medium | high — see Section 25>
 Decision request: <what the human must approve before execution>
 ```
 
@@ -240,6 +255,7 @@ What was done:
 Files changed:
 Checks run:
 Results:
+Token estimate: <low | medium | high>
 Open TODOs:
 Risks:
 Next step:
@@ -250,7 +266,7 @@ Rules:
 - "What was done" must describe only actual outcomes, not intentions
 - "Checks run" must list actual checks performed, or explicitly state "none"
 - "Results" must report pass/fail/unknown — never claim success without evidence
-- "Open TODOs" must be complete — this is the canonical TODO list
+- "Open TODOs" must be complete — this is the canonical TODO list. Use `- [ ]` for incomplete items and `- [x]` for completed items.
 - "Next step" is the recommended starting point for the next session
 
 ---
@@ -307,6 +323,9 @@ Every file creation, modification, or deletion must be traceable to a proposal a
 
 ### H8 — Documentation is implementation
 Architecture-affecting changes MUST update relevant docs in the same work cycle. Documentation must not lag behind implementation.
+
+### H9 — Execution timeout required
+All agent-invoked commands MUST have a timeout. No command may run indefinitely. If a command hangs, it must be killed, recorded in the ledger, and escalated after one retry. See Section 27.
 
 ---
 
@@ -424,7 +443,11 @@ scripts/
   setup.sh      # Linux/macOS setup
   run.ps1       # Windows run
   run.sh        # Linux/macOS run
+  exec.ps1      # (recommended) Windows command runner with timeout/logging
+  exec.sh       # (recommended) POSIX command runner with timeout/logging
 ```
+
+The `exec.*` scripts are optional but strongly recommended. They wrap all external tool invocations with timeout enforcement, exit code capture, and log output. When exec scripts exist, agents MUST use them for all external commands. See Section 27 for the execution safety protocol.
 
 Setup scripts must:
 - Create virtual environments
@@ -492,6 +515,8 @@ REQ-<COMPONENT>-<NUMBER>
 Components:
   BE    = Backend
   FE    = Frontend
+  CLI   = CLI entrypoint and argument parsing
+  CMD   = CLI subcommand behavior
   TRAY  = Tray application
   SVC   = Service/startup layer
   API   = API boundary
@@ -500,6 +525,23 @@ Components:
   SEC   = Security
   XP    = Cross-platform
   INT   = Integration/boundary
+  RTL   = RTL/HDL design (FPGA)
+  SIM   = Simulation/testbench (FPGA)
+  SYN   = Synthesis (FPGA)
+  IMPL  = Implementation/place-and-route (FPGA)
+  BSP   = Board support package (embedded Linux)
+  IMG   = Image generation (embedded Linux)
+  PKG   = Package/recipe (embedded Linux)
+  DTS   = Device tree (embedded Linux)
+  KRN   = Kernel configuration (embedded Linux)
+  SCH   = Schematic (PCB)
+  PCB   = PCB layout
+  BOM   = Bill of materials (PCB)
+  FAB   = Fabrication output (PCB)
+  MCAD  = Mechanical/enclosure (PCB)
+
+This list is extensible. Projects may define additional component codes
+as needed, documented in their REQUIREMENTS.md naming convention section.
 ```
 
 ### Requirement format
@@ -574,7 +616,7 @@ TEST-<COMPONENT>-<NUMBER>
 
 ## 17. Project Type Schemas
 
-Different project types require different governance emphasis. The core workflow (Sections 1–12) applies to ALL project types. The following schemas define additional structure per type.
+Different project types require different governance emphasis. The core workflow (Sections 1–12) applies to ALL project types. The following schemas define additional structure per type. Project types 17.1–17.4 cover software. Types 17.5–17.8 cover hardware, FPGA, embedded Linux, and PCB domains.
 
 ### 17.1 Python backend + web frontend
 
@@ -697,6 +739,11 @@ Additional governance:
 │  └─ <package>/
 ├─ tests/
 ├─ examples/
+├─ scripts/
+│  ├─ setup.ps1
+│  ├─ setup.sh
+│  ├─ run.ps1
+│  └─ run.sh
 └─ pyproject.toml
 ```
 
@@ -708,7 +755,7 @@ Additional governance:
 
 ### 17.5 Embedded / hardware project
 
-Same core structure, plus:
+All project types include the governance files from Section 2 and the required scripts from Section 13.2. This type adds:
 
 ```
 ├─ hardware/
@@ -731,11 +778,108 @@ Additional governance:
 - Target hardware connectivity and deployment documented in AGENTS.md
 - Build verification (source ↔ deployed) is mandatory before testing
 
+### 17.6 FPGA / RTL project
+
+All project types include the governance files from Section 2 and the required scripts from Section 13.2. This type adds:
+
+```
+├─ rtl/
+│  ├─ src/
+│  ├─ testbenches/
+│  └─ sims/
+├─ constraints/
+│  ├─ timing/
+│  └─ physical/
+├─ ip_cores/
+├─ docs/
+│  └─ hw-interfaces.md
+├─ .work/
+│  ├─ synth/
+│  ├─ impl/
+│  ├─ bitstreams/
+│  └─ logs/
+├─ shell.ps1
+└─ shell.sh
+```
+
+Additional governance:
+- Shell wrappers are mandatory for all Vivado/Quartus/EDA tool invocations
+- Constraint files (`.xdc`, `.sdc`, etc.) are governance artifacts — changes require proposals
+- Verification vocabulary is: syntax/lint → simulation → synthesis → implementation/place-and-route → timing closure → bitstream
+- Timing closure is a formal milestone, not an implicit side effect of the build
+- `.work/` contains all generated artifacts — never at repo root
+- Tool invocations MUST use batch/non-interactive modes only
+
+### 17.7 Yocto / embedded Linux BSP project
+
+All project types include the governance files from Section 2 and the required scripts from Section 13.2. This type adds:
+
+```
+├─ meta-<project>/
+│  ├─ conf/
+│  ├─ recipes-bsp/
+│  ├─ recipes-core/
+│  └─ recipes-kernel/
+├─ kas/
+│  ├─ distro.yml
+│  └─ board.yml
+├─ configs/
+│  ├─ machine/
+│  └─ distro/
+├─ docs/
+│  └─ bsp-guide.md
+├─ .work/
+│  ├─ downloads/
+│  ├─ sstate-cache/
+│  ├─ tmp/
+│  └─ logs/
+├─ shell.ps1
+└─ shell.sh
+```
+
+Additional governance:
+- KAS YAML files are governance artifacts — changes require proposals
+- Machine and distro configurations must be documented in architecture.md
+- Verification vocabulary is: layer compatibility → bitbake build → image generation → target boot test → package validation
+- Build durations may be long; proposals must state expected build time and artifact size
+- Shared state and download caches belong under `.work/` when the project manages them locally
+- Host/environment assumptions must be documented explicitly due to cross-build complexity
+
+### 17.8 PCB / hardware design project
+
+All project types include the governance files from Section 2 and the required scripts from Section 13.2. This type adds:
+
+```
+├─ schematics/
+├─ layout/
+├─ bom/
+├─ fabrication/
+├─ 3d-models/
+├─ docs/
+│  └─ hw-spec.md
+├─ .work/
+│  ├─ exports/
+│  ├─ drc/
+│  └─ logs/
+├─ shell.ps1
+└─ shell.sh
+```
+
+Additional governance:
+- BOM files are governance artifacts — changes require proposals
+- Schematic review is a formal gate before layout work begins
+- Verification vocabulary is: ERC → DRC → BOM validation → 3D clearance/fit check → fabrication output review
+- ECAD-MCAD synchronization points must be documented in workflow.md
+- Generated Gerbers, pick-and-place files, 3D exports, and manufacturing outputs belong under `.work/` or `fabrication/` — not at repo root
+- Mechanical constraints and enclosure assumptions must be documented explicitly
+
 ---
 
 ## 18. Scaffold Bootstrap Procedure
 
 When an agent is asked to scaffold a new project using this workflow:
+
+**Note:** The bootstrap procedure is exempt from the proposal requirement (H2). The human's request to scaffold a project serves as implicit approval. The first formal proposal is produced at Step 6, after the scaffold is complete.
 
 ### Step 1: Gather inputs
 - Project name
@@ -754,7 +898,13 @@ When an agent is asked to scaffold a new project using this workflow:
 - Initialize git repository
 
 ### Step 3: Create governance files
-- **AGENTS.md** — copy/adapt Sections 1–12 of this specification, plus project-specific rules
+- **AGENTS.md** — focused hub (~100–150 lines): project identity, platform, tech stack, file registry pointing to `docs/governance/*`, quick command reference, and project-type-specific rules from the relevant Section 17 subsection.
+- **docs/governance/rules.md** — hard rules (H1–H9) and stop conditions, adapted from Sections 8–9
+- **docs/governance/workflow.md** — session lifecycle, proposal format, ledger format, adapted from Sections 4–6
+- **docs/governance/roles.md** — agent role definition and behavioral rules, adapted from Section 7
+- **docs/governance/context-budget.md** — context window management and credit optimization, adapted from Sections 10 and 25
+- **docs/governance/verification.md** — verification and acceptance standards, adapted from Sections 11–12
+- **docs/governance/drift-metrics.md** — drift detection and feedback loop protocol, adapted from Section 26
 - **README.md** — project overview, architecture summary, component descriptions, structure, goals, status
 - **LEDGER.md** — bootstrap entry recording the scaffold creation
 - **docs/architecture.md** — component model, boundaries, interfaces, platform expectations, runtime modes
@@ -778,11 +928,11 @@ What was done: Repository structure, governance docs, bootstrap scripts created
 Files changed: (list all created files)
 Checks run: directory structure verified, governance files present, scripts executable
 Results: scaffold complete, no runtime code yet
-Open TODOs:
+Open TODOs: (adapt to selected project type — omit items that do not apply)
 - [ ] Extend architecture with concrete interface specifications
 - [ ] Define formal requirements
 - [ ] Define test specifications
-- [ ] Implement backend scaffold
+- [ ] Implement primary code scaffold (e.g., backend, CLI entrypoint, library API)
 - [ ] Implement frontend scaffold (if applicable)
 - [ ] Implement service/startup integration (if applicable)
 Risks: technology decisions not yet finalized
@@ -870,6 +1020,8 @@ The following behaviors are explicitly forbidden:
 8. **Context window waste** — reading entire large files when only a section is needed
 9. **Orphaned files** — creating temporary, status, or session files outside the ledger
 10. **Undocumented technology choices** — using a framework or tool without a recorded decision
+11. **Hung processes** — invoking commands without timeouts, launching GUI tools, triggering interactive prompts, or running commands that open pagers
+12. **Credit waste** — re-reading unchanged files, reading entire files for one line, verbose confirmations that echo back file contents, redundant proposals
 
 ---
 
@@ -884,6 +1036,7 @@ Agents should recognize these short commands from the human:
 | `save`   | Write ledger entry (Section 4.3) |
 | `commit` | Prepare git commit (Section 4.4) |
 | `sync`   | Pull latest changes (Section 4.5)|
+| `audit`  | Run drift/health checks (Section 26)|
 
 ---
 
@@ -904,4 +1057,340 @@ Use this checklist to audit compliance:
 - Are cross-platform impacts stated for platform-sensitive work?
 - Is the documentation current with the implementation?
 
+### Drift and health metrics (see Section 26 for details)
+- Is the requirements ↔ tests ↔ architecture consistency score 100%?
+- Are there stale TODOs open for more than 5 sessions?
+- Is LEDGER.md under ~500 lines (or has it been archived)?
+- Are governance files within their size thresholds?
+- Do the last 5 ledger entries all have proposals, verification, and next steps?
+- Has documentation been updated as recently as the code it describes?
+
 If any answer is "no," that is a defect to be addressed before continuing.
+
+---
+
+## 24. Modular AGENTS.md Architecture
+
+This workflow supports two governance layouts:
+
+1. **Monolithic** — a single `AGENTS.md` containing all governance inline
+2. **Modular** — a focused `AGENTS.md` hub plus delegated governance documents under `docs/governance/`
+
+The modular layout is RECOMMENDED for all projects and REQUIRED when a monolithic `AGENTS.md` would exceed ~200 lines.
+
+### 24.1 Design goals
+
+The modular layout exists to:
+- reduce context consumption
+- improve instruction discoverability
+- make authority boundaries explicit
+- let agents load only the governance documents needed for the current task
+
+### 24.2 Required structure for modular projects
+
+```
+AGENTS.md
+docs/
+  governance/
+    rules.md
+    workflow.md
+    roles.md
+    context-budget.md
+    verification.md
+    drift-metrics.md
+```
+
+### 24.3 AGENTS.md responsibilities
+
+In the modular layout, AGENTS.md MUST remain small and focused. It should contain:
+- project identity and purpose
+- target platforms
+- primary language/runtime
+- project type
+- quick command reference
+- governance file registry
+- project-type-specific rules
+
+AGENTS.md MUST NOT duplicate large blocks of rules that live in `docs/governance/*`.
+
+### 24.4 Governance document responsibilities
+
+- `rules.md` — hard rules and stop conditions
+- `workflow.md` — session lifecycle, proposal format, ledger format
+- `roles.md` — role boundaries and behavioral rules
+- `context-budget.md` — context loading rules and credit optimization protocol
+- `verification.md` — verification, acceptance, and audit standards
+- `drift-metrics.md` — health signals, drift detection, and corrective actions
+
+### 24.5 Authority
+
+AGENTS.md remains the highest-authority document. Governance docs inherit that authority because AGENTS.md explicitly delegates to them. If a governance document contradicts AGENTS.md, AGENTS.md wins.
+
+---
+
+## 25. Credit and Token Optimization
+
+Agent workflows must be optimized for the least amount of credit use consistent with correctness.
+
+### 25.1 Core principle
+
+Credits are spent on:
+- loading context
+- making tool calls
+- producing verbose responses
+- rerunning expensive checks
+
+Treat unnecessary credit consumption as a process defect.
+
+### 25.2 Estimated cost field
+
+Every proposal MUST include:
+
+`Estimated cost: low | medium | high`
+
+Guidance:
+- **low** — docs-only work, single-file edits, small scaffolds
+- **medium** — multi-file implementation, routine refactors, standard test runs
+- **high** — architecture changes, large builds, FPGA implementation, Yocto image builds, broad audits
+
+### 25.3 Token estimate field
+
+Every ledger entry MUST include:
+
+`Token estimate: low | medium | high`
+
+This is an estimate of actual session cost, useful for identifying wasteful task patterns over time.
+
+### 25.4 Lazy loading protocol
+
+On session start, agents SHOULD load only:
+- `AGENTS.md`
+- `docs/governance/rules.md`
+- `docs/governance/context-budget.md`
+- recent `LEDGER.md`
+
+Load these on demand:
+- `docs/governance/workflow.md` when preparing proposals or ledger entries
+- `docs/governance/roles.md` when role boundaries are relevant
+- `docs/governance/verification.md` when testing, auditing, or accepting work
+- `docs/governance/drift-metrics.md` when running `audit` or diagnosing process health
+
+### 25.5 Response economy rules
+
+Agents MUST:
+- summarize rather than echo file contents
+- avoid repeating proposal contents after creation
+- batch file reads and writes
+- prefer grep/semantic search over full-file reads
+- avoid long explanatory prose unless the human requests it
+- provide only the evidence needed to support a conclusion
+
+Agents MUST NOT:
+- quote large sections of unchanged files
+- restate rules already in AGENTS.md unless needed for clarification
+- produce “status theater” messages that add no new information
+
+### 25.6 Efficient verification order
+
+Run the cheapest checks first:
+1. static validation / lint / syntax
+2. type checks / unit tests
+3. integration tests
+4. expensive builds / hardware flows / long-running checks
+
+If a cheaper check fails, fix that before running more expensive checks unless there is a specific reason not to.
+
+### 25.7 Credit-waste anti-patterns
+
+Examples of waste:
+- re-reading unchanged governance files
+- reading entire files for one symbol or line
+- verbose confirmations of obvious actions
+- repeating the full plan after creating it
+- running broad test suites before syntax/lint passes
+- performing duplicate searches for the same concept
+
+---
+
+## 26. Drift Detection and Feedback Loops
+
+Specifications, rules, documentation, and agent behavior drift over time. This workflow includes health signals and corrective actions to detect and address that drift.
+
+### 26.1 Health signals
+
+Agents SHOULD evaluate these signals on `audit`, and MAY evaluate them at session start for large or long-running projects.
+
+#### Consistency score
+
+Check:
+- every requirement has at least one test
+- every test maps to at least one requirement
+- architecture supports all accepted requirements
+
+Target: **100%**
+
+#### Ledger health
+
+Check:
+- every entry has all required fields
+- open TODOs are accurate
+- stale TODOs are identified (open for more than 5 sessions)
+- no completed TODO remains listed as open
+
+#### Documentation currency
+
+Check:
+- architecture reflects implementation
+- README reflects current structure and status
+- requirements/tests reflect the accepted architecture
+
+#### Governance size health
+
+Check:
+- AGENTS.md remains within target size
+- governance docs remain focused
+- LEDGER.md remains under manageable size (~500 lines) or has been archived
+
+#### Rule compliance
+
+Check the most recent ledger entries:
+- was a proposal present?
+- was verification recorded?
+- was a next step recorded?
+- was scope respected?
+
+### 26.2 Drift response protocol
+
+If a health signal fails:
+
+1. Report the failure explicitly
+2. Reference the exact files/sections involved
+3. Record the issue in the current ledger entry under Risks
+4. Recommend the smallest bounded corrective task
+
+### 26.3 Ledger compression
+
+When `LEDGER.md` exceeds ~500 lines:
+- archive older entries into `docs/ledger-archive.md`
+- keep a short summary block at the top of `LEDGER.md`
+- retain only recent entries and active TODOs in `LEDGER.md`
+
+The archive MUST preserve history. No information is deleted.
+
+### 26.4 Audit command
+
+The `audit` command runs the health checks above and reports:
+- pass/fail per signal
+- a summary score or status
+- recommended corrective tasks
+
+### 26.5 Feedback loop priority
+
+When drift is detected, correct the cheapest root cause first:
+1. compress/optimize context
+2. update stale docs
+3. remove or split oversized governance files
+4. strengthen rules or load order
+5. revise workflow if the same failure repeats
+
+---
+
+## 27. Execution Safety and Timeout Protection
+
+Agents must not launch commands that hang indefinitely or require the human to kill them manually.
+
+### 27.1 Timeout requirement
+
+All agent-invoked commands MUST have a timeout.
+
+Default guidance:
+- read/query commands: ~10 seconds
+- lint/typecheck/tests: ~30 seconds
+- normal builds: ~120 seconds
+- long hardware flows: explicit higher timeout stated in the proposal
+
+### 27.2 Non-interactive execution
+
+Agents MUST use non-interactive flags whenever available, for example:
+- `--no-input`
+- `--yes`
+- `--batch`
+- `--non-interactive`
+- `--no-pager`
+
+Agents MUST NOT intentionally launch:
+- GUI tools
+- pagers
+- interactive REPLs
+- commands that block on credentials or prompts
+
+### 27.3 Timeout handling protocol
+
+If a command exceeds its timeout, the agent MUST:
+1. kill the process tree
+2. record the timeout in the ledger
+3. retry at most once if there is a clear reason
+4. escalate to the human if the retry also times out
+
+### 27.4 Shim / wrapper execution layer
+
+Projects SHOULD provide:
+
+```
+scripts/exec.ps1
+scripts/exec.sh
+```
+
+These scripts are the canonical command runners and should:
+- enforce timeouts
+- capture stdout/stderr
+- log exit codes
+- kill child processes on timeout
+- normalize tool invocation behavior
+
+When `exec.*` scripts exist, agents MUST use them for all external commands.
+
+### 27.5 Shell wrapper and env shim guidance
+
+For toolchains prone to hanging or polluting the environment (e.g., Vivado, Quartus, Yocto shells), projects SHOULD use:
+- `shell.ps1` / `shell.sh` for environment setup
+- `exec.ps1` / `exec.sh` for bounded command execution
+
+This shim layer isolates environment setup from command execution and reduces the risk of agents hanging their own shell context.
+
+### 27.6 Known hung-process patterns
+
+Examples:
+- Vivado GUI mode instead of batch mode
+- Python REPL instead of script execution
+- git commands that trigger auth prompts
+- commands that open pagers or full-screen UIs
+- watch-mode test runners unless explicitly requested
+
+These are forbidden unless the human explicitly requests an interactive session.
+
+---
+
+## 28. Multi-Agent Coordination
+
+When multiple agents work on the same project, the ledger becomes the coordination surface.
+
+### 28.1 Agent identity
+
+Ledger entries SHOULD record the agent name or role responsible for the work. This makes concurrent work traceable.
+
+### 28.2 Scope isolation
+
+Each agent MUST stay within its approved proposal scope. Agents must not edit files outside their bounded task unless they stop and re-propose.
+
+### 28.3 Conflict detection
+
+Before executing a task, an agent SHOULD check whether files in scope have changed since the last relevant ledger entry. If they have, the agent must re-evaluate the proposal before continuing.
+
+### 28.4 Test separation
+
+When practical, implementation and test-writing should occur in separate sessions or by separate agents. This reduces the risk of writing tests that merely mirror the implementation instead of validating the contract.
+
+### 28.5 Shared rules
+
+All agents in the project read the same governance files. No agent may operate under a private or divergent rule set without explicit human approval and documentation.
