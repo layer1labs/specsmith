@@ -64,6 +64,16 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
         except ValueError:
             pass  # Unknown adapter — skip silently
 
+    # VCS platform CI/CD, dependency, and security configs
+    if config.vcs_platform:
+        try:
+            from specsmith.vcs import get_platform
+
+            platform = get_platform(config.vcs_platform)
+            created.extend(platform.generate_all(config, target))
+        except ValueError:
+            pass  # Unknown platform — skip silently
+
     # Git init
     if config.git_init:
         subprocess.run(  # noqa: S603

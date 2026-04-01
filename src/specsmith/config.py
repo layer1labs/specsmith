@@ -53,6 +53,12 @@ class ProjectConfig(BaseModel):
     exec_shims: bool = Field(default=True, description="Include exec.ps1/exec.sh timeout shims")
     git_init: bool = Field(default=True, description="Initialize git repository")
 
+    # VCS platform
+    vcs_platform: str = Field(
+        default="github",
+        description="VCS platform (github, gitlab, bitbucket)",
+    )
+
     # Agent integrations
     integrations: list[str] = Field(
         default=["agents-md"],

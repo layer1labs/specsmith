@@ -12,12 +12,23 @@ ADAPTER_REGISTRY: dict[str, type[AgentAdapter]] = {}
 
 def _load_adapters() -> None:
     """Populate the adapter registry."""
+    from specsmith.integrations.aider import AiderAdapter
     from specsmith.integrations.claude_code import ClaudeCodeAdapter
     from specsmith.integrations.copilot import CopilotAdapter
     from specsmith.integrations.cursor import CursorAdapter
+    from specsmith.integrations.gemini import GeminiAdapter
     from specsmith.integrations.warp import WarpAdapter
+    from specsmith.integrations.windsurf import WindsurfAdapter
 
-    for cls in (WarpAdapter, ClaudeCodeAdapter, CursorAdapter, CopilotAdapter):
+    for cls in (
+        WarpAdapter,
+        ClaudeCodeAdapter,
+        CursorAdapter,
+        CopilotAdapter,
+        GeminiAdapter,
+        WindsurfAdapter,
+        AiderAdapter,
+    ):
         ADAPTER_REGISTRY[cls().name] = cls
 
 
