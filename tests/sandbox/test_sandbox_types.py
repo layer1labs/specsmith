@@ -175,6 +175,144 @@ class TestConfigInheritance:
         assert (project / ".gitlab-ci.yml").exists()
 
 
+class TestLegalComplianceScaffold:
+    """Scaffold a legal-compliance project and verify domain content."""
+
+    def test_legal_scaffold(self, tmp_path: Path) -> None:
+        config = {
+            "name": "acme-compliance",
+            "type": "legal-compliance",
+            "platforms": ["windows", "linux"],
+            "language": "markdown",
+            "vcs_platform": "github",
+            "git_init": False,
+        }
+        cfg_path = tmp_path / "scaffold.yml"
+        with open(cfg_path, "w") as f:
+            yaml.dump(config, f)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["init", "--config", str(cfg_path), "--output-dir", str(tmp_path), "--no-git"],
+        )
+        assert result.exit_code == 0
+
+        project = tmp_path / "acme-compliance"
+
+        # Legal-specific directories
+        assert (project / "contracts" / ".gitkeep").exists()
+        assert (project / "policies" / ".gitkeep").exists()
+        assert (project / "evidence" / ".gitkeep").exists()
+        assert (project / "audit-trail" / ".gitkeep").exists()
+
+        # Legal-specific requirements
+        reqs = (project / "docs" / "REQUIREMENTS.md").read_text(encoding="utf-8")
+        assert "REQ-CTR-001" in reqs
+        assert "REQ-REG-001" in reqs
+
+        # Legal-specific test spec
+        tests = (project / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        assert "TEST-CTR-001" in tests
+
+        # Legal AGENTS.md rules
+        agents = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "regulatory" in agents.lower() or "compliance" in agents.lower()
+
+        # Verification has compliance tool
+        v = (project / "docs" / "governance" / "verification.md").read_text(encoding="utf-8")
+        assert "regulation-ref-check" in v
+
+
+class TestBusinessPlanScaffold:
+    """Scaffold a business-plan project and verify domain content."""
+
+    def test_business_scaffold(self, tmp_path: Path) -> None:
+        config = {
+            "name": "acme-plan",
+            "type": "business-plan",
+            "platforms": ["windows"],
+            "language": "markdown",
+            "vcs_platform": "github",
+            "git_init": False,
+        }
+        cfg_path = tmp_path / "scaffold.yml"
+        with open(cfg_path, "w") as f:
+            yaml.dump(config, f)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["init", "--config", str(cfg_path), "--output-dir", str(tmp_path), "--no-git"],
+        )
+        assert result.exit_code == 0
+
+        project = tmp_path / "acme-plan"
+
+        # Business-specific directories
+        assert (project / "plan" / ".gitkeep").exists()
+        assert (project / "financials" / ".gitkeep").exists()
+        assert (project / "market-research" / ".gitkeep").exists()
+
+        # Business-specific requirements
+        reqs = (project / "docs" / "REQUIREMENTS.md").read_text(encoding="utf-8")
+        assert "REQ-EXEC-001" in reqs
+        assert "REQ-FIN-001" in reqs
+
+        # Business AGENTS.md rules
+        agents = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "financial" in agents.lower() or "stakeholder" in agents.lower()
+
+
+class TestAPISpecScaffold:
+    """Scaffold an api-specification project and verify domain content."""
+
+    def test_api_spec_scaffold(self, tmp_path: Path) -> None:
+        config = {
+            "name": "acme-api",
+            "type": "api-specification",
+            "platforms": ["linux"],
+            "language": "openapi",
+            "vcs_platform": "github",
+            "git_init": False,
+        }
+        cfg_path = tmp_path / "scaffold.yml"
+        with open(cfg_path, "w") as f:
+            yaml.dump(config, f)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["init", "--config", str(cfg_path), "--output-dir", str(tmp_path), "--no-git"],
+        )
+        assert result.exit_code == 0
+
+        project = tmp_path / "acme-api"
+
+        # API-specific directories
+        assert (project / "specs" / ".gitkeep").exists()
+        assert (project / "schemas" / ".gitkeep").exists()
+        assert (project / "examples" / ".gitkeep").exists()
+        assert (project / "generated" / ".gitkeep").exists()
+
+        # API-specific requirements
+        reqs = (project / "docs" / "REQUIREMENTS.md").read_text(encoding="utf-8")
+        assert "REQ-API-001" in reqs
+        assert "REQ-AUTH-001" in reqs
+
+        # API-specific test spec
+        tests = (project / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        assert "TEST-API-001" in tests
+
+        # CI has spectral
+        ci = (project / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        assert "spectral" in ci
+
+        # AGENTS.md has API rules
+        agents = (project / "AGENTS.md").read_text(encoding="utf-8")
+        assert "api" in agents.lower() or "spectral" in agents.lower()
+
+
 class TestExportCommand:
     """Test specsmith export generates a compliance report."""
 

@@ -1,6 +1,7 @@
 # specsmith
 
 [![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
+[![Docs](https://readthedocs.org/projects/specsmith/badge/?version=latest)](https://specsmith.readthedocs.io/en/latest/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 

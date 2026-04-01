@@ -81,7 +81,7 @@ class ProjectConfig(BaseModel):
         description="Target platforms",
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.1.0-alpha.3", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.1.0-alpha.4", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
