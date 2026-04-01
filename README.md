@@ -2,164 +2,95 @@
 
 [![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
 [![Docs](https://readthedocs.org/projects/specsmith/badge/?version=latest)](https://specsmith.readthedocs.io/en/latest/)
+[![PyPI](https://img.shields.io/pypi/v/specsmith.svg)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Forge governed project scaffolds from the Agentic AI Development Workflow Specification.
+**Governed project scaffolds for AI-assisted development.**
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
 
 ---
 
-## What is specsmith?
+## The Problem
 
-`specsmith` is a CLI tool that generates full project scaffolds with built-in AI agent governance. It creates the file structure, CI/CD pipelines, governance documents, and agent integration files that AI coding assistants need to work within a structured, auditable workflow.
+AI coding agents are powerful but unstructured. Without governance, they skip verification, lose context between sessions, and produce inconsistent results. specsmith generates the governance layer — the rules, verification tools, CI pipelines, and documentation — that makes AI-assisted development auditable and repeatable.
 
-Every scaffolded project follows the closed-loop workflow: **propose → check → execute → verify → record**.
+## What specsmith Does
+
+**For new projects:** `specsmith init` generates a complete project scaffold with governance files, CI/CD, verification tools, and agent integration files tailored to your project type.
+
+**For existing projects:** `specsmith import` detects your project's language, build system, and test framework, then generates governance overlay files without modifying your source code. Existing files are preserved.
+
+**For ongoing governance:** `specsmith audit` checks health, `specsmith export` generates compliance reports, `specsmith doctor` verifies your tools are installed.
+
+Every governed project follows the closed-loop workflow: **propose → check → execute → verify → record**.
 
 ## Install
 
 ```bash
-pip install specsmith
-```
-
-From source:
-
-```bash
-git clone https://github.com/BitConcepts/specsmith.git
-cd specsmith
-pip install -e ".[dev]"
+pip install --pre specsmith
 ```
 
 ## Quick Start
 
 ```bash
-# Interactive scaffold
-specsmith init
-
-# From config file
-specsmith init --config scaffold.yml --no-git
-
-# Guided scaffold with architecture definition
-specsmith init --guided
-
-# Import an existing project (generate governance overlay)
-specsmith import --project-dir ./my-existing-project
-specsmith import --project-dir ./my-existing-project --force
-
-# Health checks on an existing governed project
-specsmith audit --project-dir ./my-project
-specsmith validate --project-dir ./my-project
-
-# Ledger maintenance
-specsmith compress --project-dir ./my-project
-
-# Upgrade governance to newer spec version
-specsmith upgrade --spec-version 0.2.0 --project-dir ./my-project
-
-# VCS platform status (CI, alerts, PRs)
-specsmith status --project-dir ./my-project
-
-# Compare governance files against templates
-specsmith diff --project-dir ./my-project
+specsmith init                                     # New project (interactive)
+specsmith init --config scaffold.yml               # New project (from config)
+specsmith import --project-dir ./my-project        # Adopt existing project
+specsmith audit --project-dir ./my-project         # Health check
+specsmith export --project-dir ./my-project        # Compliance report
+specsmith doctor --project-dir ./my-project        # Tool check
 ```
 
-## Commands
+## 30 Project Types
 
-| Command | Description |
-|---------|-------------|
-| `specsmith init` | Scaffold a new governed project (interactive or YAML-driven) |
-| `specsmith init --guided` | Scaffold with interactive architecture definition (REQ/TEST stub generation) |
-| `specsmith import` | Import an existing project and generate governance overlay |
-| `specsmith audit [--fix]` | Drift detection and health checks; `--fix` auto-repairs missing files and oversized ledgers |
-| `specsmith validate` | Governance consistency (scaffold.yml, AGENTS.md refs, REQ uniqueness, arch↔req linkage) |
-| `specsmith compress` | Archive old ledger entries to `docs/ledger-archive.md` |
-| `specsmith upgrade` | Re-render governance files for a new spec version |
-| `specsmith status` | Show CI status, dependency alerts, and open PRs from VCS platform CLI |
-| `specsmith diff` | Compare governance files against what spec templates would generate |
+**Software:** Python, Rust, Go, C/C++, .NET, JS/TS, mobile, monorepo, microservices, DevOps/IaC, data/ML, browser extensions.
 
-## Project Types (30)
+**Hardware:** FPGA/RTL, Yocto BSP, PCB design, embedded systems.
 
-Software: Python (CLI, library, backend+frontend), Rust (CLI, library), Go, C/C++, .NET, JS/TS (web, fullstack, browser extension), mobile, monorepo, microservices, DevOps/IaC, data/ML.
+**Documents:** Technical specifications, user manuals, research papers, API specifications, requirements management.
 
-Hardware: FPGA/RTL, Yocto BSP, PCB, embedded.
+**Business/Legal:** Business plans, patent applications, legal/compliance frameworks.
 
-Document: technical specs, user manuals, research papers, API specifications, requirements management.
+Each type gets: tool-aware CI (correct lint/test/security/build tools), domain-specific directory structure, governance rules in AGENTS.md, and pre-populated requirements and test stubs.
 
-Business/Legal: business plans, patent applications, legal/compliance.
+## 11 CLI Commands
 
-Each type gets tool-aware CI, domain-specific directory structure, governance rules, and template starters. See [full project types reference](https://specsmith.readthedocs.io/en/latest/project-types/).
+| Command | Purpose |
+|---------|---------|
+| `init` | Scaffold a new governed project |
+| `import` | Adopt an existing project (merge mode) |
+| `audit` | Drift detection and health checks (`--fix` to auto-repair) |
+| `validate` | Governance file consistency checks |
+| `compress` | Archive old ledger entries |
+| `upgrade` | Update governance to new spec version |
+| `status` | CI/PR/alert status from VCS platform |
+| `diff` | Compare governance against templates |
+| `export` | Compliance report with REQ↔TEST coverage |
+| `doctor` | Check if verification tools are installed |
 
-## Agent Integrations
+## 7 Agent Integrations
 
-specsmith generates agent-specific governance files so AI assistants understand your project's rules:
+AGENTS.md (cross-platform standard), Warp/Oz, Claude Code, GitHub Copilot, Cursor, Gemini CLI, Windsurf, Aider.
 
-| Agent | Generated File |
-|-------|---------------|
-| **AGENTS.md** (cross-tool standard) | `AGENTS.md` (always) |
-| Warp / Oz | `.warp/skills/SKILL.md` |
-| Claude Code | `CLAUDE.md` |
-| GitHub Copilot | `.github/copilot-instructions.md` |
-| Cursor | `.cursor/rules/governance.mdc` |
-| Gemini CLI | `GEMINI.md` |
-| Windsurf | `.windsurfrules` |
-| Aider | `.aider.conf.yml` |
+## 3 VCS Platforms
 
-## VCS Platform Support
-
-CI configs are **tool-aware** — generated from the verification tool registry per project type.
-
-| Platform | CLI | CI Config | Dependency Mgmt | Security |
-|----------|-----|-----------|-----------------|----------|
-| **GitHub** | `gh` | GitHub Actions | Dependabot (pip/cargo/gomod/npm/nuget) | Tool-specific per type |
-| **GitLab** | `glab` | `.gitlab-ci.yml` | Renovate | Tool-specific per type |
-| **Bitbucket** | `bb` | Bitbucket Pipelines | Renovate | Tool-specific per type |
-
-## Branching Strategy
-
-Configure one of three branching strategies per project:
-
-- **gitflow** (default) — `main` + `develop` + feature/release/hotfix branches
-- **trunk-based** — single `main` with short-lived feature branches
-- **github-flow** — `main` + feature branches with PR-based workflow
-
-Branch protection (required reviews, CI checks, no force push) is configurable.
-
-## Configuration
-
-Projects are configured via `scaffold.yml`:
-
-```yaml
-name: my-project
-type: cli-python
-platforms: [windows, linux, macos]
-language: python
-vcs_platform: github
-branching_strategy: gitflow
-require_pr_reviews: true
-required_approvals: 1
-require_ci_pass: true
-integrations: [agents-md, warp, claude-code]
-```
-
-| `specsmith export` | Generate compliance report (REQ coverage, audit summary, tool status) |
+GitHub Actions, GitLab CI, Bitbucket Pipelines — all with tool-aware CI generated from the verification tool registry. Dependabot/Renovate configured per language ecosystem.
 
 ## Documentation
 
-Full documentation: [specsmith.readthedocs.io](https://specsmith.readthedocs.io)
+**[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full user manual with tutorials, command reference, project type details, tool registry, governance model, troubleshooting.
 
-## Specification
+## Links
 
-See [`docs/AGENT-WORKFLOW-SPEC.md`](docs/AGENT-WORKFLOW-SPEC.md) for the complete workflow specification.
-
-## Development
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+- [PyPI](https://pypi.org/project/specsmith/)
+- [Documentation](https://specsmith.readthedocs.io)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Specification](docs/AGENT-WORKFLOW-SPEC.md)
+- [Security](SECURITY.md)
 
 ## License
 
-MIT — Copyright (c) 2026 BitConcepts, LLC. See [LICENSE](LICENSE).
+MIT — Copyright (c) 2026 BitConcepts, LLC.
