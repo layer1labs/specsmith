@@ -79,7 +79,8 @@ specsmith diff --project-dir ./my-project
 
 ## Project Types
 
-specsmith supports 20 project types, each with type-specific directory structures, CI tooling, and governance rules:
+specsmith supports 30 project types, each with type-specific directory structures, CI tooling, and governance rules.
+See [full project types reference](https://specsmith.readthedocs.io/project-types/) for details.
 
 | # | Type | Spec Section | Verification Tools |
 |---|------|-------------|--------------------|
@@ -103,6 +104,16 @@ specsmith supports 20 project types, each with type-specific directory structure
 | 18 | DevOps / IaC | 17.18 | tflint, ansible-lint, tfsec, checkov |
 | 19 | Data / ML pipeline | 17.19 | ruff, mypy, pytest, pip-audit |
 | 20 | Microservices | 17.20 | ruff, eslint, pytest, jest, docker compose |
+| 21 | Technical specification | 17.21 | vale, markdownlint, cspell, pandoc |
+| 22 | User manual / documentation | 17.22 | vale, markdownlint, cspell, sphinx |
+| 23 | Research paper / white paper | 17.23 | vale, cspell, chktex, pdflatex |
+| 24 | Business plan / proposal | 17.24 | vale, cspell, prettier, pandoc |
+| 25 | Patent application | 17.25 | vale, cspell, pandoc, claim-ref-check |
+| 26 | Legal / compliance | 17.26 | vale, cspell, pandoc, regulation-ref-check |
+| 27 | Requirements management | 17.27 | vale, markdownlint, req-trace |
+| 28 | API specification | 17.28 | spectral, buf lint, schemathesis |
+| 29 | Monorepo (multi-package) | 17.29 | eslint, ruff, nx/turbo, npm audit |
+| 30 | Browser extension | 17.30 | eslint, web-ext lint, tsc, vitest |
 
 ## Agent Integrations
 
@@ -155,6 +166,12 @@ required_approvals: 1
 require_ci_pass: true
 integrations: [agents-md, warp, claude-code]
 ```
+
+| `specsmith export` | Generate compliance report (REQ coverage, audit summary, tool status) |
+
+## Documentation
+
+Full documentation: [specsmith.readthedocs.io](https://specsmith.readthedocs.io)
 
 ## Specification
 

@@ -24,6 +24,15 @@
 - {{ project.language | capitalize }} (virtual environment required)
 - No system-package dependencies
 
+{% if tools.lint or tools.test %}
+## Verification Tools
+
+{% if tools.lint %}**Lint:** {{ tools.lint | join(', ') }}{% endif %}
+{% if tools.test %}**Test:** {{ tools.test | join(', ') }}{% endif %}
+{% if tools.build %}**Build:** {{ tools.build | join(', ') }}{% endif %}
+{% if tools.security %}**Security:** {{ tools.security | join(', ') }}{% endif %}
+{% endif %}
+
 ## Technology Decisions
 
 No technology decisions have been finalized beyond:

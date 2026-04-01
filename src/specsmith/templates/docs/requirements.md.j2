@@ -10,6 +10,116 @@
 REQ-<COMPONENT>-<NUMBER>
 ```
 
+{% if project.type.value == 'patent-application' %}
+Component codes: CLM (claims), SPEC (specification), FIG (figures), PA (prior art), CORR (correspondence).
+
+---
+
+## Requirements
+
+### REQ-CLM-001
+- **Status**: Draft
+- **Description**: Independent claims must be self-contained and define the invention completely
+
+### REQ-SPEC-001
+- **Status**: Draft
+- **Description**: Specification must enable a person of ordinary skill to make and use the invention
+
+### REQ-FIG-001
+- **Status**: Draft
+- **Description**: All figures must be numbered and referenced in the specification
+
+{% elif project.type.value == 'legal-compliance' %}
+Component codes: CTR (contracts), POL (policies), REG (regulatory), AUD (audit).
+
+---
+
+## Requirements
+
+### REQ-CTR-001
+- **Status**: Draft
+- **Description**: All contracts must include version tracking and approval signatures
+
+### REQ-REG-001
+- **Status**: Draft
+- **Description**: Regulatory references must include jurisdiction and effective date
+
+{% elif project.type.value == 'business-plan' %}
+Component codes: MKT (market analysis), FIN (financials), OPS (operations), EXEC (executive summary).
+
+---
+
+## Requirements
+
+### REQ-EXEC-001
+- **Status**: Draft
+- **Description**: Executive summary must be self-contained (max 2 pages)
+
+### REQ-FIN-001
+- **Status**: Draft
+- **Description**: Financial projections must cite assumptions with sources
+
+{% elif project.type.value in ('spec-document', 'user-manual') %}
+Component codes: DOC (document structure), REF (references), FIG (figures).
+
+---
+
+## Requirements
+
+### REQ-DOC-001
+- **Status**: Draft
+- **Description**: All sections must use precise, testable language
+
+### REQ-REF-001
+- **Status**: Draft
+- **Description**: All cross-references must be validated before publication
+
+{% elif project.type.value == 'research-paper' %}
+Component codes: ABS (abstract), LIT (literature review), MTH (methodology), RES (results), DIS (discussion).
+
+---
+
+## Requirements
+
+### REQ-LIT-001
+- **Status**: Draft
+- **Description**: All citations must resolve to entries in the bibliography
+
+### REQ-MTH-001
+- **Status**: Draft
+- **Description**: Methodology must be reproducible from description alone
+
+{% elif project.type.value == 'api-specification' %}
+Component codes: API (endpoints/services), SCH (schemas), AUTH (authentication), ERR (error handling).
+
+---
+
+## Requirements
+
+### REQ-API-001
+- **Status**: Draft
+- **Description**: All endpoints must have request/response schemas defined
+
+### REQ-AUTH-001
+- **Status**: Draft
+- **Description**: Authentication mechanism must be documented with examples
+
+{% elif project.type.value == 'requirements-mgmt' %}
+Component codes: REQ (requirements), TRC (traceability), BAS (baselines).
+
+---
+
+## Requirements
+
+### REQ-TRC-001
+- **Status**: Draft
+- **Description**: Every requirement must trace forward to at least one test
+
+### REQ-BAS-001
+- **Status**: Draft
+- **Description**: Baseline snapshots must be taken at each milestone
+
+{% else %}
 *Component codes to be defined based on project architecture.*
 
 ---
@@ -17,3 +127,4 @@ REQ-<COMPONENT>-<NUMBER>
 ## Requirements
 
 *To be defined after architecture review.*
+{% endif %}

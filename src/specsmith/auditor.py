@@ -443,4 +443,28 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
             if compress_result.archived_entries > 0:
                 fixed.append(compress_result.message)
 
+        # Generate missing CI config from tool registry
+        elif result.name == "tool-ci-config" and not result.passed:
+            scaffold_path = root / "scaffold.yml"
+            if scaffold_path.exists():
+                import yaml
+
+                from specsmith.config import ProjectConfig
+
+                try:
+                    with open(scaffold_path) as f:
+                        raw = yaml.safe_load(f)
+                    config = ProjectConfig(**raw)
+                    if config.vcs_platform:
+                        from specsmith.vcs import get_platform
+
+                        platform = get_platform(config.vcs_platform)
+                        platform.generate_all(config, root)
+                        fixed.append(
+                            f"Generated {config.vcs_platform} CI config "
+                            f"with tools for {config.type.value}"
+                        )
+                except Exception:  # noqa: BLE001
+                    pass  # Best-effort
+
     return fixed

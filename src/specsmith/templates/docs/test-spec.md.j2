@@ -6,4 +6,37 @@
 
 ## Tests
 
+{% if project.type.value == 'patent-application' %}
+### TEST-CLM-001
+- **Covers**: REQ-CLM-001
+- **Description**: Verify independent claims do not reference other claims
+
+### TEST-SPEC-001
+- **Covers**: REQ-SPEC-001
+- **Description**: Verify all claim terms appear in the specification
+
+### TEST-FIG-001
+- **Covers**: REQ-FIG-001
+- **Description**: Verify all figures are referenced in the specification text
+
+{% elif project.type.value == 'legal-compliance' %}
+### TEST-CTR-001
+- **Covers**: REQ-CTR-001
+- **Description**: Verify contracts have version metadata and signature blocks
+
+### TEST-REG-001
+- **Covers**: REQ-REG-001
+- **Description**: Verify regulatory references include jurisdiction and date
+
+{% elif project.type.value == 'api-specification' %}
+### TEST-API-001
+- **Covers**: REQ-API-001
+- **Description**: Validate all endpoints have request/response schemas (spectral lint)
+
+### TEST-AUTH-001
+- **Covers**: REQ-AUTH-001
+- **Description**: Verify authentication examples are functional
+
+{% else %}
 *To be defined after requirements are established.*
+{% endif %}

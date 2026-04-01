@@ -381,6 +381,34 @@ def diff(project_dir: str) -> None:
             console.print(f"  [yellow]~[/yellow] {name} — differs from template")
 
 
+@main.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    default=None,
+    help="Write report to file instead of stdout.",
+)
+def export(project_dir: str, output: str | None) -> None:
+    """Generate a compliance and coverage report."""
+    from specsmith.exporter import run_export
+
+    root = Path(project_dir).resolve()
+    report = run_export(root)
+
+    if output:
+        out_path = Path(output)
+        out_path.write_text(report, encoding="utf-8")
+        console.print(f"[bold green]Report written to {out_path}[/bold green]")
+    else:
+        console.print(report)
+
+
 @main.command(name="import")
 @click.option(
     "--project-dir",
@@ -389,7 +417,8 @@ def diff(project_dir: str) -> None:
     help="Project root directory to import.",
 )
 @click.option("--force", is_flag=True, default=False, help="Overwrite existing governance files.")
-def import_project(project_dir: str, force: bool) -> None:
+@click.option("--guided", is_flag=True, default=False, help="Run guided architecture after import.")
+def import_project(project_dir: str, force: bool, guided: bool) -> None:
     """Import an existing project and generate governance overlay."""
     from specsmith.importer import detect_project, generate_import_config, generate_overlay
 
@@ -437,6 +466,14 @@ def import_project(project_dir: str, force: bool) -> None:
         with open(config_out, "w") as fh:
             yaml.dump(config.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
         console.print("  [green]\u2713[/green] scaffold.yml")
+
+    # Guided architecture definition after import
+    if guided:
+        guided_files = _run_guided_architecture(config, root)
+        for path in guided_files:
+            rel = path.relative_to(root)
+            console.print(f"  [green]\u2713[/green] {rel} (guided)")
+        created.extend(guided_files)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
     console.print('Open this project in your AI agent and type [bold]"start"[/bold].')

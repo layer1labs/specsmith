@@ -126,9 +126,7 @@ def _create_realistic_python_project(root: Path) -> None:
     )
 
     # --- README (but NO AGENTS.md or governance) ---
-    (root / "README.md").write_text(
-        "# taskctl\n\nA task management CLI.\n", encoding="utf-8"
-    )
+    (root / "README.md").write_text("# taskctl\n\nA task management CLI.\n", encoding="utf-8")
 
     # --- GitHub CI ---
     wf = root / ".github" / "workflows"
@@ -242,9 +240,7 @@ class TestSandboxImport:
         (root / "AGENTS.md").write_text("# Custom governance\n", encoding="utf-8")
 
         runner = CliRunner()
-        runner.invoke(
-            main, ["import", "--project-dir", str(root), "--force"], input="y\n"
-        )
+        runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
 
         # AGENTS.md SHOULD have been overwritten
         new_content = (root / "AGENTS.md").read_text(encoding="utf-8")

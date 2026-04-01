@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **30 project types** (up from 20): added spec-document, user-manual, research-paper, business-plan, patent-application, legal-compliance, requirements-mgmt, api-specification, monorepo, browser-extension.
+- **`specsmith export`**: generate compliance reports with REQ↔TEST coverage matrix, audit summary, tool status, and governance file inventory. Supports `--output` to save to file.
+- **`specsmith import --guided`**: run guided architecture definition after importing an existing project.
+- **Auditor auto-fix for CI configs**: `audit --fix` now generates missing CI configs from the tool registry.
+- **Domain-specific templates**: patent applications get claim/spec/figure requirements and tests; legal projects get contract/regulatory starters; business plans get exec summary/financials starters; research papers get citation/methodology starters; API specs get endpoint/auth starters.
+- **PyPI publishing**: release workflow now publishes to PyPI via trusted publishing (OIDC).
+- **Read the Docs site**: comprehensive documentation at specsmith.readthedocs.io with 10 pages covering all commands, 30 types, tool registry, importing, configuration, governance, export, and contributing.
+- **CI metadata for document languages**: markdown (pandoc), latex (texlive), openapi (node/spectral), protobuf.
+- **Sandbox integration tests**: patent-application scaffold, Rust CLI scaffold, config inheritance, and export command tests.
+- **110 tests** across 15 test files, all passing.
+
 ## [0.1.0-alpha.2] - 2026-04-01
 
 ### Added

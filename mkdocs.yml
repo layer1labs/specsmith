@@ -1,0 +1,48 @@
+site_name: specsmith
+site_description: Forge governed project scaffolds from the Agentic AI Development Workflow Specification.
+site_url: https://specsmith.readthedocs.io
+repo_url: https://github.com/BitConcepts/specsmith
+repo_name: BitConcepts/specsmith
+edit_uri: edit/main/docs/site/
+
+docs_dir: docs/site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - search.suggest
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - CLI Commands: commands.md
+  - Project Types: project-types.md
+  - Tool Registry: tool-registry.md
+  - Importing Projects: importing.md
+  - Configuration: configuration.md
+  - Governance Model: governance.md
+  - Export & Compliance: export.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - tables
+  - admonitions
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+  - toc:
+      permalink: true

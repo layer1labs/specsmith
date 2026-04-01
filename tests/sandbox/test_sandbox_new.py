@@ -49,8 +49,10 @@ class TestSandboxNew:
             main,
             [
                 "init",
-                "--config", str(config_path),
-                "--output-dir", str(output_dir),
+                "--config",
+                str(config_path),
+                "--output-dir",
+                str(output_dir),
                 "--no-git",
             ],
         )
@@ -69,8 +71,14 @@ class TestSandboxNew:
 
         # Modular governance
         gov = project / "docs" / "governance"
-        for f in ["rules.md", "workflow.md", "roles.md", "context-budget.md",
-                   "verification.md", "drift-metrics.md"]:
+        for f in [
+            "rules.md",
+            "workflow.md",
+            "roles.md",
+            "context-budget.md",
+            "verification.md",
+            "drift-metrics.md",
+        ]:
             assert (gov / f).exists(), f"Missing governance file: {f}"
 
         # Project docs
@@ -185,7 +193,9 @@ class TestSandboxNew:
 
         # Compare key files
         for rel in [
-            "AGENTS.md", "LEDGER.md", ".gitignore",
+            "AGENTS.md",
+            "LEDGER.md",
+            ".gitignore",
             "docs/governance/rules.md",
             "docs/governance/verification.md",
             "pyproject.toml",
