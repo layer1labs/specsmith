@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **specsmith CLI tool** (`specsmith init`): interactive or YAML-driven project scaffold generation with Jinja2 templates, pydantic config validation, and 8 project types.
+- **`specsmith audit`**: drift detection and health checks — governance file existence, REQ↔TEST coverage, ledger size/staleness, context bloat thresholds.
+- **`specsmith validate`**: governance consistency checks — scaffold.yml validation, AGENTS.md reference integrity, requirement ID uniqueness, architecture↔requirements linkage.
+- **`specsmith compress`**: ledger archival — moves old entries to `docs/ledger-archive.md`, keeps configurable recent entries.
+- **`specsmith upgrade`**: re-renders governance files from templates when spec version bumps.
+- **Agent integration adapters**: Warp/Oz (`.warp/skills/SKILL.md`), Claude Code (`CLAUDE.md`), Cursor (`.cursor/rules/governance.mdc`), GitHub Copilot (`.github/copilot-instructions.md`), with adapter registry.
+- **36 tests** covering config, scaffolder, auditor, validator, compressor, and all integration adapters.
+- **GitHub Actions CI**: lint (ruff), typecheck (mypy --strict), test (pytest, 3 OS × 3 Python), security audit (pip-audit).
+- **Release workflow**: tag-triggered build (sdist + wheel) → GitHub Release artifacts (no PyPI yet).
+- **Dependabot** for pip and GitHub Actions dependencies.
+- **Pre-commit config**: ruff lint/format, trailing whitespace, YAML/TOML checks.
+- **Docker local CI**: `Dockerfile.test` + `docker-compose.test.yml` for containerized lint/typecheck/test.
+- Formal `docs/REQUIREMENTS.md` (37 requirements) and `docs/TEST_SPEC.md` (30 test cases) for specsmith itself.
+
 ## [0.1.0-alpha.1] - 2026-03-31
 
 ### Added

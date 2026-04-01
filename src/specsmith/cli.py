@@ -74,8 +74,8 @@ def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
     console.print(f"\n[bold]Scaffolding [cyan]{cfg.name}[/cyan] ({cfg.type_label})...[/bold]\n")
     created_files = scaffold_project(cfg, target)
 
-    for f in created_files:
-        rel = f.relative_to(target)
+    for created in created_files:
+        rel = created.relative_to(target)
         console.print(f"  [green]✓[/green] {rel}")
 
     console.print(
@@ -85,8 +85,8 @@ def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
 
     # Save config as scaffold.yml for re-runs and upgrades
     config_out = target / "scaffold.yml"
-    with open(config_out, "w") as f:
-        yaml.dump(cfg.model_dump(mode="json"), f, default_flow_style=False, sort_keys=False)
+    with open(config_out, "w") as fh:
+        yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
 
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
