@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -50,7 +50,7 @@ jobs:
     # Skip gracefully if pypi environment is not configured yet
     continue-on-error: true
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
