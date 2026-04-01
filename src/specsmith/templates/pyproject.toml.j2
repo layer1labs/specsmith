@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "{{ project.name }}"
+version = "0.1.0"
+description = "{{ project.description if project.description else project.type_label + ' — scaffold only.' }}"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+{% if project.type.value == 'cli-python' %}
+
+[project.scripts]
+{{ project.package_name }} = "{{ project.package_name }}.cli:main"
+{% endif %}
+
+[tool.setuptools.packages.find]
+where = ["src"]

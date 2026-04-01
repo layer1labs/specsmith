@@ -1,0 +1,49 @@
+# Hard Rules and Stop Conditions
+
+## Hard Rules
+
+These rules are non-negotiable. Violation of any hard rule is a stop condition.
+
+### H1 — Ledger required
+No ledger entry = work not done.
+
+### H2 — Proposal required
+No proposal = no execution.
+
+### H3 — Cross-platform awareness
+All work must consider every target platform ({{ project.platform_names | join(', ') }}). If a platform is unsupported or deferred, that must be stated explicitly.
+
+### H4 — Environment isolation
+No system-dependent assumptions. Virtual environments required. No reliance on global interpreters or system packages.
+
+### H5 — Explicit startup
+No hidden service logic. All startup behavior must be documented and inspectable.
+
+### H6 — No silent scope expansion
+If the task grows beyond the proposal, stop and re-propose.
+
+### H7 — No undocumented state changes
+Every file creation, modification, or deletion must be traceable to a proposal and recorded in the ledger.
+
+### H8 — Documentation is implementation
+Architecture-affecting changes MUST update relevant docs in the same work cycle.
+
+### H9 — Execution timeout required
+All agent-invoked commands MUST have a timeout. No command may run indefinitely. If a command hangs, it must be killed, recorded in the ledger, and escalated after one retry.
+
+---
+
+## Stop Conditions
+
+Agents MUST stop and request clarification if ANY of the following are true:
+
+- Missing inputs (files, context, or dependencies not available)
+- Unclear state (ledger is inconsistent or missing)
+- Undocumented platform assumptions
+- No proposal has been approved
+- No ledger path exists (LEDGER.md missing or unwritable)
+- Requirement-without-test detected
+- Test-without-requirement detected
+- Architecture contradicts requirements
+- Proposed work would violate a hard rule
+- Proposed work would silently expand scope

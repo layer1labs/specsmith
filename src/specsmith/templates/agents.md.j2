@@ -1,0 +1,82 @@
+# {{ project.name }} — Agent Governance
+
+**Project:** {{ project.name }}
+**Type:** {{ project.type_label }} — Section {{ project.section_ref }}
+**Platforms:** {{ project.platform_names | join(', ') }}
+**Spec version:** {{ project.spec_version }}
+
+---
+
+## Governance File Registry
+
+This project uses the modular governance layout. Read this file in full on every session. Load governance docs per the timing column.
+
+| File | Content | Load timing |
+| ---- | ------- | ----------- |
+| `docs/governance/rules.md` | Hard rules H1–H9, stop conditions | Every session start |
+| `docs/governance/workflow.md` | Session lifecycle, proposal format, ledger format | Every session start |
+| `docs/governance/roles.md` | Agent role boundaries, behavioral rules | Every session start |
+| `docs/governance/context-budget.md` | Context management, credit optimization | Every session start |
+| `docs/governance/verification.md` | Verification standards, acceptance criteria | When performing verification |
+| `docs/governance/drift-metrics.md` | Drift detection, feedback loops, health signals | On `audit` or session start |
+
+Other project documents:
+
+| File | Content |
+| ---- | ------- |
+| `README.md` | Project overview, structure, goals, status |
+| `LEDGER.md` | Append-only work record (sole authority for session state) |
+| `docs/architecture.md` | Components, boundaries, interfaces, platform expectations |
+| `docs/workflow.md` | Work loop, milestones, PR expectations |
+| `docs/REQUIREMENTS.md` | Formal, numbered, testable requirements |
+| `docs/TEST_SPEC.md` | Test cases linked to requirements |
+
+---
+
+## Authority Hierarchy
+
+1. **AGENTS.md + docs/governance/*** — highest (governance docs inherit this file's authority)
+2. **README.md** — project intent and scope
+3. **docs/REQUIREMENTS.md** — what the system must do
+4. **docs/architecture.md** — how the system is structured
+5. **docs/TEST_SPEC.md** — how the system is verified
+6. **LEDGER.md** — sole authority for session state
+7. **docs/workflow.md** — how work proceeds
+
+---
+
+## Project-Specific Rules
+{% if project.type.value == 'cli-python' %}
+- CLI must have `--help` for all commands
+- Exit codes must be documented and tested
+- No services.md unless daemon/background modes are added
+- Cross-platform rules apply to all file path and process behavior
+{% elif project.type.value == 'fpga-rtl' %}
+- Shell wrappers are mandatory for all Vivado/Quartus/EDA tool invocations
+- Constraint files (.xdc, .sdc) are governance artifacts — changes require proposals
+- Tool invocations MUST use batch/non-interactive modes only
+- Timing closure is a formal milestone
+{% elif project.type.value == 'yocto-bsp' %}
+- KAS YAML files are governance artifacts — changes require proposals
+- Machine/distro configs must be documented in architecture.md
+- Build durations must be stated in proposals
+{% elif project.type.value == 'pcb-hardware' %}
+- BOM files are governance artifacts — changes require proposals
+- Schematic review is a formal gate before layout
+- ECAD-MCAD sync points must be documented in workflow.md
+{% else %}
+- Cross-platform rules apply to all file path and process behavior
+{% endif %}
+
+---
+
+## Quick Command Reference
+
+| Command  | Meaning                          |
+| -------- | -------------------------------- |
+| `start`  | New session                      |
+| `resume` | Resume from ledger               |
+| `save`   | Write ledger entry               |
+| `commit` | Prepare git commit               |
+| `sync`   | Pull latest changes              |
+| `audit`  | Run drift/health checks          |

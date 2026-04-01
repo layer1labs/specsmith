@@ -1,0 +1,17 @@
+# {{ project.name }} — Windows Setup
+$ErrorActionPreference = "Stop"
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$VenvDir = Join-Path $ProjectRoot ".venv"
+
+Write-Host "{{ project.name }} setup (Windows)"
+$python = Get-Command python -ErrorAction SilentlyContinue
+if (-not $python) { Write-Error "Python not found. Install Python 3.10+."; exit 1 }
+
+if (-not (Test-Path $VenvDir)) {
+    Write-Host "Creating virtual environment..."
+    python -m venv $VenvDir
+}
+
+& "$VenvDir\Scripts\Activate.ps1"
+pip install -e $ProjectRoot
+Write-Host "Setup complete."

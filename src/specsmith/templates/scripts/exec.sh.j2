@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# {{ project.name }} — Command Execution Shim (POSIX)
+# Usage: ./scripts/exec.sh <timeout_seconds> <command...>
+set -uo pipefail
+
+TIMEOUT_SECONDS="${1:?Usage: exec.sh <timeout_seconds> <command...>}"
+shift
+COMMAND="$*"
+
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LOG_DIR="$PROJECT_ROOT/.work/logs"
+mkdir -p "$LOG_DIR"
+
+echo "[exec] Command : $COMMAND"
+echo "[exec] Timeout : ${TIMEOUT_SECONDS}s"
+
+START_TIME=$(date +%s)
+if command -v timeout &>/dev/null; then
+    timeout "$TIMEOUT_SECONDS" bash -c "$COMMAND"
+    EXIT_CODE=$?
+else
+    bash -c "$COMMAND" &
+    PID=$!
+    ( sleep "$TIMEOUT_SECONDS" && kill -9 "$PID" 2>/dev/null ) &
+    WATCHDOG=$!
+    wait "$PID" 2>/dev/null
+    EXIT_CODE=$?
+    kill "$WATCHDOG" 2>/dev/null
+    wait "$WATCHDOG" 2>/dev/null
+fi
+
+DURATION=$(( $(date +%s) - START_TIME ))
+if [ "$EXIT_CODE" -eq 124 ] || [ "$EXIT_CODE" -eq 137 ]; then
+    echo "[exec] TIMEOUT after ${TIMEOUT_SECONDS}s"
+    exit 124
+fi
+echo "[exec] $([ $EXIT_CODE -eq 0 ] && echo OK || echo FAILED) (${DURATION}s) — exit code $EXIT_CODE"
+exit "$EXIT_CODE"

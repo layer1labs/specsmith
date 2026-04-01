@@ -1,0 +1,8 @@
+# {{ project.name }} — Windows Run
+$ErrorActionPreference = "Stop"
+$VenvDir = Join-Path (Split-Path -Parent $PSScriptRoot) ".venv"
+if (-not (Test-Path "$VenvDir\Scripts\Activate.ps1")) {
+    Write-Error "Virtual environment not found. Run scripts\setup.ps1 first."; exit 1
+}
+& "$VenvDir\Scripts\Activate.ps1"
+{{ project.package_name }} @args

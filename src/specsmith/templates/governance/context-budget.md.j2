@@ -1,0 +1,50 @@
+# Context Window Management and Credit Optimization
+
+## Core principle
+Treat unnecessary credit consumption as a process defect.
+
+## Session load protocol (lazy loading)
+On session start, load only:
+- `AGENTS.md` (in full)
+- `docs/governance/rules.md`
+- `docs/governance/context-budget.md`
+- Last ~300 lines of `LEDGER.md`
+
+Load on demand:
+- `docs/governance/workflow.md` — when preparing proposals or ledger entries
+- `docs/governance/roles.md` — when role boundaries are relevant
+- `docs/governance/verification.md` — when testing or accepting work
+- `docs/governance/drift-metrics.md` — when running `audit`
+- `docs/REQUIREMENTS.md` — first ~200 lines, expand by section
+- `docs/TEST_SPEC.md` — first ~200 lines, expand by section
+- `docs/architecture.md` — first ~40 lines, expand by section
+
+## During a session
+- NEVER re-read a file already in context unless modified since last read
+- Use line ranges for files > ~200 lines
+- Prefer grep/semantic search over reading entire files
+- Batch file reads into a single call
+- Summarize rather than echo file contents
+- Do not repeat proposals after creating them
+
+## Conversation summarization recovery
+If the conversation is summarized or truncated, re-read AGENTS.md in full before any further actions.
+
+## Response economy
+- No echoing file contents back
+- No repeating proposal content after creation
+- No "status theater" messages that add no information
+- Provide only evidence needed to support conclusions
+
+## Efficient verification order
+1. Static validation / lint / syntax (cheapest)
+2. Type checks / unit tests
+3. Integration tests
+4. Expensive builds / hardware flows (most expensive)
+
+If a cheaper check fails, fix that before running more expensive checks.
+
+## Cost tiers
+- **low** — docs-only, single-file edits, small scaffolds
+- **medium** — multi-file implementation, routine refactors, standard test runs
+- **high** — architecture changes, large builds, broad audits

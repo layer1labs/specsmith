@@ -1,0 +1,30 @@
+# {{ project.name }} — Architecture
+
+**Status:** Draft — scaffold only, no runtime code yet.
+
+---
+
+## Overview
+
+{{ project.name }} is a {{ project.type_label }} project targeting {{ project.platform_names | join(', ') }}.
+
+## Components
+
+*To be defined after architecture review.*
+
+## Boundaries
+
+*To be defined after architecture review.*
+
+## Platform Expectations
+
+{% for p in project.platform_names %}
+- {{ p }}
+{% endfor %}
+- {{ project.language | capitalize }} (virtual environment required)
+- No system-package dependencies
+
+## Technology Decisions
+
+No technology decisions have been finalized beyond:
+- Language: {{ project.language | capitalize }} (given by project type)

@@ -1,0 +1,38 @@
+# {{ project.name }} — Command Execution Shim (Windows)
+# Wraps external commands with timeout enforcement, logging, and exit code capture.
+# Usage: .\scripts\exec.ps1 -Command "<command>" [-TimeoutSeconds <int>]
+
+param(
+    [Parameter(Mandatory=$true)][string]$Command,
+    [int]$TimeoutSeconds = 120,
+    [string]$WorkDir = (Split-Path -Parent $PSScriptRoot)
+)
+
+$ErrorActionPreference = "Stop"
+$timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+$logDir = Join-Path $WorkDir ".work\logs"
+if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
+$logFile = Join-Path $logDir "exec_$timestamp.log"
+
+Write-Host "[exec] Command : $Command"
+Write-Host "[exec] Timeout : ${TimeoutSeconds}s"
+
+$startTime = Get-Date
+$process = Start-Process -FilePath "pwsh" -ArgumentList "-NoProfile", "-Command", $Command `
+    -WorkingDirectory $WorkDir -NoNewWindow -PassThru `
+    -RedirectStandardOutput "$logFile.stdout" -RedirectStandardError "$logFile.stderr"
+
+$exited = $process.WaitForExit($TimeoutSeconds * 1000)
+
+if (-not $exited) {
+    Write-Host "[exec] TIMEOUT — killing process tree"
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq $process.Id } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    exit 124
+}
+
+$exitCode = $process.ExitCode
+$duration = [math]::Round(((Get-Date) - $startTime).TotalSeconds, 1)
+Write-Host "[exec] $(if ($exitCode -eq 0) { 'OK' } else { 'FAILED' }) (${duration}s) — exit code $exitCode"
+exit $exitCode
