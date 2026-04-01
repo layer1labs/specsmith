@@ -41,7 +41,7 @@ class TestCLIVersion:
         result = runner.invoke(main, ["--version"])
         assert result.exit_code == 0
         assert "specsmith" in result.output
-        assert "0.1.2" in result.output
+        assert "0.1.3" in result.output
 
 
 class TestCLIInit:
@@ -100,7 +100,7 @@ class TestCLIUpgrade:
         target = _scaffold_governed(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.1.2"]
+            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.1.3"]
         )
         assert result.exit_code == 0
         assert "Already at spec version" in result.output
