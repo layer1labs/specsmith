@@ -71,18 +71,18 @@ class TestSandboxNew:
         # Modular governance
         gov = project / "docs" / "governance"
         for f in [
-            "rules.md",
-            "workflow.md",
-            "roles.md",
-            "context-budget.md",
-            "verification.md",
-            "drift-metrics.md",
+            "RULES.md",
+            "WORKFLOW.md",
+            "ROLES.md",
+            "CONTEXT-BUDGET.md",
+            "VERIFICATION.md",
+            "DRIFT-METRICS.md",
         ]:
             assert (gov / f).exists(), f"Missing governance file: {f}"
 
         # Project docs
-        assert (project / "docs" / "architecture.md").exists()
-        assert (project / "docs" / "workflow.md").exists()
+        assert (project / "docs" / "ARCHITECTURE.md").exists()
+        assert (project / "docs" / "WORKFLOW.md").exists()
         assert (project / "docs" / "REQUIREMENTS.md").exists()
         assert (project / "docs" / "TEST_SPEC.md").exists()
 

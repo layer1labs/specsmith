@@ -57,7 +57,7 @@ class TestPatentApplicationScaffold:
         assert "TEST-CLM-001" in tests
 
         # Verification.md has patent tools
-        verification = (project / "docs" / "governance" / "verification.md").read_text(
+        verification = (project / "docs" / "governance" / "VERIFICATION.md").read_text(
             encoding="utf-8"
         )
         assert "vale" in verification
@@ -113,7 +113,7 @@ class TestRustCLIScaffold:
         assert "clippy" in agents.lower() or "cargo" in agents.lower()
 
         # Verification tools
-        v = (project / "docs" / "governance" / "verification.md").read_text(encoding="utf-8")
+        v = (project / "docs" / "governance" / "VERIFICATION.md").read_text(encoding="utf-8")
         assert "cargo clippy" in v
         assert "cargo test" in v
 
@@ -219,7 +219,7 @@ class TestLegalComplianceScaffold:
         assert "regulatory" in agents.lower() or "compliance" in agents.lower()
 
         # Verification has compliance tool
-        v = (project / "docs" / "governance" / "verification.md").read_text(encoding="utf-8")
+        v = (project / "docs" / "governance" / "VERIFICATION.md").read_text(encoding="utf-8")
         assert "regulation-ref-check" in v
 
 
