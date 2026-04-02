@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-04-02
+
+### Fixed
+- **Upgrade auto-fixes AGENTS.md references**: when `upgrade` renames governance files (lowercase→uppercase), it now rewrites path references in AGENTS.md, CLAUDE.md, GEMINI.md, SKILL.md, and all agent config files automatically.
+- **Alternate path detection**: auditor and upgrader now find LEDGER.md at `docs/LEDGER.md` and architecture docs in subdirectories (e.g. `docs/architecture/`). No more false "missing" reports or duplicate stub creation.
+- **Case-insensitive architecture check**: `docs/ARCHITECTURE.md` recommended check now works regardless of filename casing.
+- **CI-gated dev releases**: dev-release workflow now runs full test suite (ruff check+format, mypy, pytest) before PyPI publish.
+
 ## [0.2.1] - 2026-04-02
 
 ### Added
@@ -186,7 +194,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/BitConcepts/specsmith/compare/v0.1.2...v0.1.3
