@@ -391,6 +391,48 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
     return results
 
 
+def check_type_mismatch(root: Path) -> list[AuditResult]:
+    """Check if scaffold.yml type matches actual detected project type."""
+    results: list[AuditResult] = []
+    scaffold_path = root / "scaffold.yml"
+    if not scaffold_path.exists():
+        return results
+
+    import yaml
+
+    from specsmith.config import ProjectConfig
+    from specsmith.importer import detect_project
+
+    try:
+        with open(scaffold_path) as f:
+            raw = yaml.safe_load(f)
+        config = ProjectConfig(**raw)
+        detected = detect_project(root)
+        if detected.inferred_type and detected.inferred_type != config.type:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=False,
+                    message=(
+                        f"scaffold.yml type is {config.type.value} but detected "
+                        f"{detected.inferred_type.value} from project files"
+                    ),
+                )
+            )
+        else:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=f"Project type {config.type.value} matches detected structure",
+                )
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
+    return results
+
+
 def run_audit(root: Path) -> AuditReport:
     """Run all audit checks and return a report."""
     report = AuditReport()
@@ -399,6 +441,7 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_ledger_health(root))
     report.results.extend(check_context_size(root))
     report.results.extend(check_tool_configuration(root))
+    report.results.extend(check_type_mismatch(root))
     return report
 
 

@@ -588,5 +588,96 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     return created
 
 
+@main.command()
+@click.argument("version")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def release(version: str, project_dir: str) -> None:
+    """Bump version in all locations and scan for stale refs."""
+    from specsmith.releaser import bump_version, scan_stale_refs
+
+    root = Path(project_dir).resolve()
+
+    console.print(f"[bold]Bumping to {version}[/bold]\n")
+    updated = bump_version(root, version)
+    for f in updated:
+        console.print(f"  [green]\u2713[/green] {f}")
+
+    console.print("\n[bold]Scanning for stale references...[/bold]\n")
+    issues = scan_stale_refs(root, version)
+    if issues:
+        for issue in issues:
+            console.print(f"  [yellow]\u26a0[/yellow] {issue}")
+        console.print(f"\n[bold yellow]{len(issues)} issue(s) found.[/bold yellow]")
+    else:
+        console.print("  No stale references found.")
+
+    console.print(
+        f"\n[bold]Next steps:[/bold]\n"
+        f"  1. Update CHANGELOG.md with [{version}] section\n"
+        f"  2. git add -A && git commit -m 'release: v{version}'\n"
+        f"  3. git checkout main && git merge develop\n"
+        f"  4. git tag -a v{version} -m 'v{version}'\n"
+        f"  5. git push origin main develop --tags"
+    )
+
+
+@main.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def apply(project_dir: str) -> None:
+    """Regenerate CI and agent files from current scaffold.yml."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+
+    if not scaffold_path.exists():
+        console.print("[red]No scaffold.yml found.[/red]")
+        raise SystemExit(1)
+
+    with open(scaffold_path) as f:
+        raw = yaml.safe_load(f)
+
+    config = ProjectConfig(**raw)
+    created: list[Path] = []
+
+    # Regenerate VCS platform files
+    if config.vcs_platform:
+        from specsmith.vcs import get_platform
+
+        try:
+            platform = get_platform(config.vcs_platform)
+            created.extend(platform.generate_all(config, root))
+        except ValueError:
+            pass
+
+    # Regenerate agent integration files
+    for integration_name in config.integrations:
+        if integration_name == "agents-md":
+            continue
+        try:
+            from specsmith.integrations import get_adapter
+
+            adapter = get_adapter(integration_name)
+            created.extend(adapter.generate(config, root))
+        except ValueError:
+            pass
+
+    if created:
+        for path in created:
+            rel = path.relative_to(root)
+            console.print(f"  [green]\u2713[/green] {rel}")
+        console.print(f"\n[bold green]{len(created)} file(s) regenerated.[/bold green]")
+    else:
+        console.print("[yellow]Nothing to regenerate.[/yellow]")
+
+
 if __name__ == "__main__":
     main()

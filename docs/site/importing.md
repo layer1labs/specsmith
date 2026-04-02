@@ -81,3 +81,22 @@ Without `--force`, existing files are never overwritten. With `--force`, all gov
 ## Using `--guided`
 
 After the overlay is generated, `--guided` runs an interactive architecture session: you name your components, and specsmith generates richer REQUIREMENTS.md (two REQs per component) and TEST_SPEC.md (linked tests) and architecture.md (component descriptions).
+
+## Branch-Based Import (Recommended)
+
+The safest way to adopt specsmith governance on an existing project is on a new branch, so you can review all generated files in a PR before merging:
+
+```bash
+cd my-project
+git checkout -b specsmith-governance
+specsmith import --project-dir .
+git add -A
+git commit -m "feat: add specsmith governance overlay"
+gh pr create --base main --title "Add specsmith governance"
+```
+
+This lets you:
+- Review every generated file in the PR diff
+- Verify `specsmith audit` passes before merging
+- Get team approval on the governance structure
+- Roll back easily if anything looks wrong
