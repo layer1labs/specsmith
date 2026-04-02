@@ -80,6 +80,12 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
         except ValueError:
             pass  # Unknown platform — skip silently
 
+    # Initialize credit tracking with unlimited budget
+    from specsmith.credits import CreditBudget, save_budget
+
+    save_budget(target, CreditBudget())  # unlimited by default
+    created.append(target / ".specsmith" / "credit-budget.json")
+
     # Git init
     if config.git_init:
         subprocess.run(  # noqa: S603

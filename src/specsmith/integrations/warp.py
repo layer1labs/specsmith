@@ -84,10 +84,19 @@ When user says `session-end`: run `specsmith session-end --project-dir .`
 ## Verification
 Before marking any task complete, run: {verify_line}
 
+## Credit Tracking
+After completing tasks, record token usage:
+```
+specsmith credits record --model <model> --provider <provider> \
+  --tokens-in <N> --tokens-out <N> --task "<desc>"
+```
+Check budget: `specsmith credits summary`
+
 ## Rules
 - Proposals before changes (no exceptions)
 - Verify before recording completion
 - Use execution shims (`scripts/exec.cmd` / `scripts/exec.sh`) for external commands
 - Keep AGENTS.md under 200 lines
 - Record every session in the ledger
+- Record credit usage at session end
 """

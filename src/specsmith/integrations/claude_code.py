@@ -78,4 +78,10 @@ When user says `sync`: run `specsmith sync --project-dir .`
 When user says `pr`: run `specsmith pr --project-dir .`
 When user says `audit`: run `specsmith audit --project-dir .`
 When user says `session-end`: run `specsmith session-end --project-dir .`
+
+## Credit Tracking
+At session end, record token usage:
+`specsmith credits record --model <model> --provider anthropic \
+  --tokens-in <N> --tokens-out <N> --task "<desc>"`
+Check budget: `specsmith credits summary`
 """

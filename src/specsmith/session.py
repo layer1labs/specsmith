@@ -127,4 +127,27 @@ def run_session_end(root: Path) -> SessionReport:
             SessionCheck(name="audit", status="warn", message="Could not run audit")
         )
 
+    # Credit spend summary for this session
+    try:
+        from specsmith.credits import get_summary
+
+        cs = get_summary(root)
+        if cs.entry_count > 0:
+            report.checks.append(
+                SessionCheck(
+                    name="credits",
+                    status="ok",
+                    message=(
+                        f"Credits: ${cs.total_cost_usd:.4f} total, "
+                        f"{cs.session_count} session(s)"
+                    ),
+                )
+            )
+            for alert in cs.alerts:
+                report.checks.append(
+                    SessionCheck(name="credit-alert", status="warn", message=alert)
+                )
+    except Exception:  # noqa: BLE001
+        pass  # Credits not configured — skip silently
+
     return report

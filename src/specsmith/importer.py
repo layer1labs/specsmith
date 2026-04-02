@@ -168,6 +168,7 @@ def detect_project(root: Path) -> DetectionResult:
         ".ruff_cache",
         ".mypy_cache",
         ".work",
+        ".specsmith",
         "build",
         "dist",
         "target",
@@ -1116,6 +1117,14 @@ def generate_overlay(
             )
             agents_path.write_text(hub, encoding="utf-8")
             created.append(agents_path)
+
+    # Initialize credit tracking with unlimited budget
+    specsmith_dir = target / ".specsmith"
+    if not specsmith_dir.exists():
+        from specsmith.credits import CreditBudget, save_budget
+
+        save_budget(target, CreditBudget())  # unlimited by default
+        created.append(target / ".specsmith" / "credit-budget.json")
 
     # --- CI config (merge: only create if no CI detected) ---
     if not result.existing_ci and result.vcs_platform:
