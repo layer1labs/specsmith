@@ -147,13 +147,39 @@ Other project documents:
 
 ---
 
+## Session Lifecycle
+
+### Start Protocol
+1. `specsmith sync` — pull latest changes
+2. `specsmith update --check` — verify specsmith is current
+3. Check branch: verify you're on the correct branch for the task
+4. Read AGENTS.md, LEDGER.md — load governance and session state
+5. Propose next task
+
+### During Work
+- After each task: `save` → `specsmith commit` (if verification passes)
+- Propose commit after successful verification + ledger save
+- Batch pushes: push after milestones, not every commit
+- Refuse to work on main directly (use feature branches)
+
+### End Protocol
+1. `specsmith session-end` — run checklist
+2. Commit any uncommitted work
+3. Push all unpushed commits
+4. If feature complete: propose PR
+
 ## Quick Command Reference
 
-| Command  | Meaning                          |
-| -------- | -------------------------------- |
-| `start`  | New session                      |
-| `resume` | Resume from ledger               |
-| `save`   | Write ledger entry               |
-| `commit` | Prepare git commit               |
-| `sync`   | Pull latest changes              |
-| `audit`  | Run drift/health checks          |
+| Command        | Meaning                                        |
+| -------------- | ---------------------------------------------- |
+| `start`        | New session (sync + update check + branch check) |
+| `resume`       | Resume from ledger                             |
+| `save`         | Write ledger entry                             |
+| `commit`       | `specsmith commit` (audit + commit)            |
+| `push`         | `specsmith push` (with safety checks)          |
+| `sync`         | `specsmith sync` (pull + conflict warning)     |
+| `audit`        | `specsmith audit`                              |
+| `branch`       | `specsmith branch create`                      |
+| `pr`           | `specsmith pr` (create PR with governance)     |
+| `update`       | `specsmith update` (check + install + migrate) |
+| `session-end`  | `specsmith session-end` (end checklist)        |

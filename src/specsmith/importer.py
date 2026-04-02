@@ -564,22 +564,15 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
             "3. Execute\n4. Verify\n5. Record in ledger\n"
         ),
         "roles": (
-            "# Roles\n\n"
-            "- **Human**: Approves proposals\n"
-            "- **Agent**: Proposes and executes\n"
+            "# Roles\n\n- **Human**: Approves proposals\n- **Agent**: Proposes and executes\n"
         ),
         "context-budget": (
-            "# Context Budget\n\n"
-            "Keep governance files small. Lazy-load per task.\n"
+            "# Context Budget\n\nKeep governance files small. Lazy-load per task.\n"
         ),
         "verification": (
-            "# Verification\n\n"
-            "Run verification tools before marking tasks complete.\n"
+            "# Verification\n\nRun verification tools before marking tasks complete.\n"
         ),
-        "drift-metrics": (
-            "# Drift Metrics\n\n"
-            "Use `specsmith audit` to check governance health.\n"
-        ),
+        "drift-metrics": ("# Drift Metrics\n\nUse `specsmith audit` to check governance health.\n"),
     }
 
     agents_path = root / "AGENTS.md"
@@ -612,9 +605,7 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
     # Rules: look for HARD RULES, STOP CONDITIONS, ACCEPTANCE STANDARD
     rules_parts: list[str] = ["# Rules\n"]
     for key in sections:
-        if any(
-            kw in key for kw in ("hard rule", "stop condition", "acceptance", "forbidden")
-        ):
+        if any(kw in key for kw in ("hard rule", "stop condition", "acceptance", "forbidden")):
             rules_parts.append(f"## {key.title()}\n")
             rules_parts.append(sections[key])
             rules_parts.append("")
@@ -627,9 +618,15 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
         if any(
             kw in key
             for kw in (
-                "session", "lifecycle", "quick command", "ledger",
-                "new session", "resume session", "save session",
-                "git commit", "git update",
+                "session",
+                "lifecycle",
+                "quick command",
+                "ledger",
+                "new session",
+                "resume session",
+                "save session",
+                "git commit",
+                "git update",
             )
         ):
             wf_parts.append(f"## {key.title()}\n")
@@ -661,9 +658,7 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
     # Verification: VERIFICATION MINIMUM, CONFLICT AND CONSISTENCY
     ver_parts: list[str] = ["# Verification\n"]
     for key in sections:
-        if any(
-            kw in key for kw in ("verification", "conflict", "consistency")
-        ):
+        if any(kw in key for kw in ("verification", "conflict", "consistency")):
             ver_parts.append(f"## {key.title()}\n")
             ver_parts.append(sections[key])
             ver_parts.append("")
@@ -676,8 +671,11 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
         if any(
             kw in key
             for kw in (
-                "environment", "platform", "shell wrapper",
-                "bootstrap", "scripts",
+                "environment",
+                "platform",
+                "shell wrapper",
+                "bootstrap",
+                "scripts",
             )
         ):
             drift_parts.append(f"## {key.title()}\n")

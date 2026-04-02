@@ -67,8 +67,15 @@ Never modify code without a proposal in the ledger first.
 ## Verification
 Before marking any task complete, run: {verify_line}
 
-## Health commands
-- `specsmith audit` — drift and health checks
-- `specsmith validate` — governance consistency
-- `specsmith compress` — archive old ledger entries
+## Session Start
+Before any work, run: `specsmith update --check --project-dir .`
+If outdated, run: `specsmith update --yes`
+
+## Commands
+When user says `commit`: run `specsmith commit --project-dir .`
+When user says `push`: run `specsmith push --project-dir .`
+When user says `sync`: run `specsmith sync --project-dir .`
+When user says `pr`: run `specsmith pr --project-dir .`
+When user says `audit`: run `specsmith audit --project-dir .`
+When user says `session-end`: run `specsmith session-end --project-dir .`
 """

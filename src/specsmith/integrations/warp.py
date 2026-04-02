@@ -69,10 +69,17 @@ All changes follow: **propose → check → execute → verify → record**.
 - `docs/TEST_SPEC.md` — test specifications
 - `docs/architecture.md` — system architecture
 
+## Session Start
+Before any work, run: `specsmith update --check --project-dir .`
+If outdated, run: `specsmith update --yes`
+
 ## Commands
-- `specsmith audit` — run health checks
-- `specsmith validate` — check governance consistency
-- `specsmith compress` — archive old ledger entries
+When user says `commit`: run `specsmith commit --project-dir .`
+When user says `push`: run `specsmith push --project-dir .`
+When user says `sync`: run `specsmith sync --project-dir .`
+When user says `pr`: run `specsmith pr --project-dir .`
+When user says `audit`: run `specsmith audit --project-dir .`
+When user says `session-end`: run `specsmith session-end --project-dir .`
 
 ## Verification
 Before marking any task complete, run: {verify_line}

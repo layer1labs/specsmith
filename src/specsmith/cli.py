@@ -1022,6 +1022,233 @@ def apply(project_dir: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# VCS commands
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="commit")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--message", "-m", default="", help="Override commit message.")
+@click.option("--no-audit", is_flag=True, default=False, help="Skip pre-commit audit.")
+@click.option("--auto-push", is_flag=True, default=False, help="Push after commit.")
+def commit_cmd(project_dir: str, message: str, no_audit: bool, auto_push: bool) -> None:
+    """Stage, audit, and commit with governance-aware message."""
+    from specsmith.vcs_commands import (
+        has_uncommitted_changes,
+        is_ledger_modified_since_last_commit,
+        run_commit,
+    )
+
+    root = Path(project_dir).resolve()
+
+    if not has_uncommitted_changes(root):
+        console.print("[yellow]Nothing to commit.[/yellow]")
+        return
+
+    if not is_ledger_modified_since_last_commit(root):
+        console.print("[yellow]\u26a0 LEDGER.md not updated since last commit.[/yellow]")
+        if not click.confirm("Commit anyway?", default=False):
+            return
+
+    if not no_audit:
+        from specsmith.auditor import run_audit
+
+        report = run_audit(root)
+        if not report.healthy:
+            console.print(f"[yellow]\u26a0 Audit: {report.failed} issue(s)[/yellow]")
+
+    result = run_commit(root, message=message, auto_push=auto_push)
+    if result.success:
+        console.print(f"[green]\u2713[/green] {result.message}")
+    else:
+        console.print(f"[red]\u2717[/red] {result.message}")
+
+
+@main.command(name="push")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--force", is_flag=True, default=False, help="Override safety checks.")
+def push_cmd(project_dir: str, force: bool) -> None:
+    """Push current branch with safety checks."""
+    from specsmith.vcs_commands import run_push
+
+    result = run_push(Path(project_dir).resolve(), force=force)
+    if result.success:
+        console.print(f"[green]\u2713[/green] {result.message}")
+    else:
+        console.print(f"[red]\u2717[/red] {result.message}")
+
+
+@main.group(name="branch")
+def branch_group() -> None:
+    """Branch management."""
+
+
+@branch_group.command(name="create")
+@click.argument("name")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def branch_create(name: str, project_dir: str) -> None:
+    """Create a branch following the branching strategy."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+    strategy = "gitflow"
+    main_branch = "main"
+    if scaffold_path.exists():
+        with open(scaffold_path) as f:
+            raw = yaml.safe_load(f) or {}
+        strategy = raw.get("branching_strategy", "gitflow")
+        main_branch = raw.get("default_branch", "main")
+
+    from specsmith.vcs_commands import create_branch
+
+    result = create_branch(root, name, strategy=strategy, main_branch=main_branch)
+    if result.success:
+        console.print(f"[green]\u2713[/green] {result.message}")
+    else:
+        console.print(f"[red]\u2717[/red] {result.message}")
+
+
+@branch_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def branch_list(project_dir: str) -> None:
+    """List branches with strategy context."""
+    from specsmith.vcs_commands import list_branches
+
+    branches = list_branches(Path(project_dir).resolve())
+    for b in branches:
+        marker = "*" if b["current"] else " "
+        role = f" ({b['role']})" if b["role"] else ""
+        console.print(f"  {marker} {b['name']}{role}")
+
+
+main.add_command(branch_group)
+
+
+@main.command(name="pr")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--title", default="", help="PR title.")
+@click.option("--draft", is_flag=True, default=False, help="Create as draft.")
+def pr_cmd(project_dir: str, title: str, draft: bool) -> None:
+    """Create a PR with governance context."""
+    from specsmith.exporter import run_export
+    from specsmith.vcs_commands import create_pr
+
+    root = Path(project_dir).resolve()
+    summary = run_export(root)[:2000]  # Cap for PR body
+    result = create_pr(root, title=title, draft=draft, governance_summary=summary)
+    if result.success:
+        console.print(f"[green]\u2713[/green] {result.message}")
+    else:
+        console.print(f"[red]\u2717[/red] {result.message}")
+
+
+@main.command(name="sync")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def sync_cmd(project_dir: str) -> None:
+    """Pull latest and check for governance conflicts."""
+    from specsmith.vcs_commands import run_sync
+
+    result = run_sync(Path(project_dir).resolve())
+    if result.success:
+        console.print(f"[green]\u2713[/green] {result.message}")
+    else:
+        console.print(f"[red]\u2717[/red] {result.message}")
+
+
+# ---------------------------------------------------------------------------
+# Update and migration
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="update")
+@click.option("--check", "check_only", is_flag=True, default=False, help="Check only.")
+@click.option("--yes", "auto_yes", is_flag=True, default=False, help="Skip confirmation.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
+    """Check for updates and optionally install + migrate."""
+    from specsmith.updater import (
+        check_latest_version,
+        needs_migration,
+        run_migration,
+        run_self_update,
+    )
+
+    current, latest = check_latest_version()
+    if not latest:
+        console.print("[yellow]Could not reach PyPI.[/yellow]")
+        return
+
+    if current == latest:
+        console.print(f"[green]\u2713[/green] specsmith {current} is up to date.")
+    else:
+        console.print(f"  Current: {current}")
+        console.print(f"  Latest:  {latest}")
+
+        if check_only:
+            console.print("[yellow]Update available.[/yellow] Run: specsmith update")
+            return
+
+        if auto_yes or click.confirm(f"Update to {latest}?", default=True):
+            success, msg = run_self_update()
+            if success:
+                console.print(f"[green]\u2713[/green] Updated to {latest}")
+            else:
+                console.print(f"[red]\u2717[/red] Update failed: {msg}")
+                return
+
+    # Check project migration
+    root = Path(project_dir).resolve()
+    if needs_migration(root):
+        console.print("\n[yellow]Project needs migration.[/yellow]")
+        if auto_yes or click.confirm("Run migrate-project?", default=True):
+            actions = run_migration(root)
+            for a in actions:
+                console.print(f"  [green]\u2713[/green] {a}")
+
+
+@main.command(name="migrate-project")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--dry-run", is_flag=True, default=False, help="Show changes without writing.")
+def migrate_project_cmd(project_dir: str, dry_run: bool) -> None:
+    """Migrate project to current specsmith version."""
+    from specsmith.updater import run_migration
+
+    root = Path(project_dir).resolve()
+    actions = run_migration(root, dry_run=dry_run)
+    prefix = "[dim](dry run)[/dim] " if dry_run else ""
+    for a in actions:
+        console.print(f"  {prefix}{a}")
+
+
+@main.command(name="session-end")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def session_end_cmd(project_dir: str) -> None:
+    """Run session-end checklist."""
+    from specsmith.session import run_session_end
+
+    root = Path(project_dir).resolve()
+    report = run_session_end(root)
+
+    console.print("[bold]Session End Checklist[/bold]\n")
+    for check in report.checks:
+        if check.status == "ok":
+            console.print(f"  [green]\u2713[/green] {check.message}")
+        elif check.status == "warn":
+            console.print(f"  [yellow]\u26a0[/yellow] {check.message}")
+        else:
+            console.print(f"  [red]\u2717[/red] {check.message}")
+
+    console.print()
+    if report.action_count > 0:
+        console.print(
+            f"[bold red]{report.action_count} action(s) needed before ending session.[/bold red]"
+        )
+    elif report.warn_count > 0:
+        console.print(f"[bold yellow]{report.warn_count} warning(s).[/bold yellow]")
+    else:
+        console.print("[bold green]Session clean. Ready to end.[/bold green]")
+
+
+# ---------------------------------------------------------------------------
 # Plugin system
 # ---------------------------------------------------------------------------
 
