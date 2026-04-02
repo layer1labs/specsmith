@@ -160,13 +160,15 @@ Install: `pip install specsmith`
 ### Dev Releases (develop branch)
 Every push to `develop` triggers the dev-release workflow:
 
-1. **Calculates** dev version: `X.Y.Z.devN` (N = commits since last tag)
+1. **Calculates** dev version: `X.Y.(Z+1).devN` where Z is the current patch and N is commits since last tag
 2. **Builds** sdist + wheel with dev version
 3. **Publishes to PyPI** as a pre-release
 
+Example: if stable is `0.1.3`, dev builds are `0.1.4.dev1`, `0.1.4.dev2`, etc.
+
 Install: `pip install --pre specsmith`
 
-Dev releases let users test features before they ship in a stable release. The `.devN` suffix ensures they sort before the next stable version.
+Dev releases let users test features before they ship in a stable release. The next-patch `.devN` suffix ensures they sort correctly between stable versions.
 
 ## Lessons Learned
 

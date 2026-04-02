@@ -60,7 +60,9 @@ Before every release:
 - **NEVER push tags from develop.** The stable release workflow publishes to PyPI — only main branch releases are allowed.
 - All feature work happens on develop. Stable releases merge develop → main first, then tag on main.
 - **Dev releases are automatic.** Every push to develop triggers `.devN` pre-release to PyPI.
-- Dev releases use `X.Y.Z.devN` version suffix and require `pip install --pre` to install.
+- Dev releases use `X.Y.(Z+1).devN` version suffix — always the NEXT patch version, not the current.
+- Example: if stable is `0.1.3`, dev builds are `0.1.4.dev1`, `0.1.4.dev2`, etc.
+- Install dev builds: `pip install --pre specsmith`
 
 ## Rule
 
