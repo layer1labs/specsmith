@@ -47,16 +47,42 @@ _LEGACY_RENAMES: list[tuple[str, str]] = [
 ]
 
 
+def _get_env_and_ctx(
+    config: ProjectConfig,
+) -> tuple[Environment, dict[str, object]]:
+    """Create Jinja env and template context from config."""
+    from specsmith.tools import get_tools
+
+    env = Environment(
+        loader=PackageLoader("specsmith", "templates"),
+        autoescape=select_autoescape([]),
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+    ctx: dict[str, object] = {
+        "project": config,
+        "today": date.today().isoformat(),
+        "package_name": config.package_name,
+        "tools": get_tools(config),
+    }
+    return env, ctx
+
+
 def run_upgrade(
     root: Path,
     *,
     target_version: str | None = None,
+    full: bool = False,
 ) -> UpgradeResult:
     """Upgrade governance files to a newer spec version.
 
     Args:
         root: Project root directory.
         target_version: Target spec version. If None, uses the current specsmith version.
+        full: If True, also regenerate exec shims, agent integrations, CI configs,
+              and create missing community/RTD files. Safe: never overwrites
+              AGENTS.md, LEDGER.md, REQUIREMENTS.md, TEST_SPEC.md, or user docs.
 
     Returns:
         UpgradeResult with details of the operation.
@@ -79,41 +105,22 @@ def run_upgrade(
     new_version = target_version or __version__
     old_version = config.spec_version
 
-    if old_version == new_version:
+    # For --full, allow syncing even when version matches
+    if old_version == new_version and not full:
         return UpgradeResult(message=f"Already at spec version {new_version}. Nothing to upgrade.")
 
-    # Update config
     config.spec_version = new_version
-
-    env = Environment(
-        loader=PackageLoader("specsmith", "templates"),
-        autoescape=select_autoescape([]),
-        keep_trailing_newline=True,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-
-    from specsmith.tools import get_tools
-
-    ctx = {
-        "project": config,
-        "today": date.today().isoformat(),
-        "package_name": config.package_name,
-        "tools": get_tools(config),
-    }
+    env, ctx = _get_env_and_ctx(config)
 
     result = UpgradeResult()
 
     # Migrate legacy lowercase filenames to uppercase
     _migrate_legacy_filenames(root, result)
 
+    # Regenerate governance templates (always overwritten — they're spec-managed)
     for template_name, output_rel in _GOVERNANCE_TEMPLATES:
         output_path = root / output_rel
-
-        if not output_path.exists():
-            result.skipped_files.append(output_rel)
-            continue
-
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         tmpl = env.get_template(template_name)
         content = tmpl.render(**ctx)
         output_path.write_text(content, encoding="utf-8")
@@ -133,12 +140,113 @@ def run_upgrade(
         save_budget(root, CreditBudget())
         result.updated_files.append(".specsmith/credit-budget.json")
 
+    # Full sync: regenerate shims, CI, agent files, create missing community files
+    if full:
+        result.updated_files.extend(_sync_full(root, config, env, ctx))
+
     result.message = (
         f"Upgraded from {old_version} to {new_version}. "
         f"{len(result.updated_files)} files updated, {len(result.skipped_files)} skipped."
     )
 
     return result
+
+
+# Files that are NEVER overwritten by --full sync (user-owned content)
+_USER_OWNED: set[str] = {
+    "AGENTS.md",
+    "LEDGER.md",
+    "README.md",
+    "docs/REQUIREMENTS.md",
+    "docs/TEST_SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/WORKFLOW.md",
+}
+
+
+def _sync_full(
+    root: Path,
+    config: ProjectConfig,
+    env: Environment,
+    ctx: dict[str, object],
+) -> list[str]:
+    """Full sync: regenerate infrastructure files, create missing community files.
+
+    Safe rules:
+    - User-owned docs (AGENTS.md, LEDGER.md, etc.) are NEVER touched
+    - Exec shims are ALWAYS regenerated (they carry security/abort logic)
+    - CI configs are regenerated (tool-aware, reflects current specsmith version)
+    - Agent integrations are regenerated
+    - Community/RTD files are created only if missing
+    """
+    synced: list[str] = []
+
+    from specsmith.scaffolder import _build_community_files
+
+    # 1. Exec shims — always regenerate (carries PID tracking / abort fixes)
+    shim_templates = [
+        ("scripts/exec.cmd.j2", "scripts/exec.cmd"),
+        ("scripts/exec.sh.j2", "scripts/exec.sh"),
+        ("scripts/setup.cmd.j2", "scripts/setup.cmd"),
+        ("scripts/setup.sh.j2", "scripts/setup.sh"),
+        ("scripts/run.cmd.j2", "scripts/run.cmd"),
+        ("scripts/run.sh.j2", "scripts/run.sh"),
+    ]
+    for tmpl_name, output_rel in shim_templates:
+        out = root / output_rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        tmpl = env.get_template(tmpl_name)
+        out.write_text(tmpl.render(**ctx), encoding="utf-8")
+        synced.append(output_rel)
+
+    # 2. Agent integrations — regenerate
+    for integration_name in config.integrations:
+        if integration_name == "agents-md":
+            continue
+        try:
+            from specsmith.integrations import get_adapter
+
+            adapter = get_adapter(integration_name)
+            files = adapter.generate(config, root)
+            for f in files:
+                synced.append(str(f.relative_to(root)))
+        except ValueError:
+            pass
+
+    # 3. VCS CI configs — regenerate
+    if config.vcs_platform:
+        try:
+            from specsmith.vcs import get_platform
+
+            platform = get_platform(config.vcs_platform)
+            files = platform.generate_all(config, root)
+            for f in files:
+                synced.append(str(f.relative_to(root)))
+        except ValueError:
+            pass
+
+    # 4. Community files — create only if missing
+    for tmpl_name, output_rel in _build_community_files(config):
+        out = root / output_rel
+        if not out.exists():
+            out.parent.mkdir(parents=True, exist_ok=True)
+            tmpl = env.get_template(tmpl_name)
+            out.write_text(tmpl.render(**ctx), encoding="utf-8")
+            synced.append(f"{output_rel} (created)")
+
+    # 5. Config files — create only if missing (.editorconfig, .gitattributes)
+    config_templates = [
+        ("editorconfig.j2", ".editorconfig"),
+        ("gitattributes.j2", ".gitattributes"),
+    ]
+    for tmpl_name, output_rel in config_templates:
+        out = root / output_rel
+        if not out.exists():
+            tmpl = env.get_template(tmpl_name)
+            out.write_text(tmpl.render(**ctx), encoding="utf-8")
+            synced.append(f"{output_rel} (created)")
+
+    return synced
 
 
 def _migrate_legacy_filenames(root: Path, result: UpgradeResult) -> None:

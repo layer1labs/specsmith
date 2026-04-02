@@ -291,12 +291,23 @@ def compress(project_dir: str, threshold: int, keep_recent: int) -> None:
     default=".",
     help="Project root directory.",
 )
-def upgrade(spec_version: str | None, project_dir: str) -> None:
-    """Update governance files to match a newer spec version."""
+@click.option(
+    "--full",
+    is_flag=True,
+    default=False,
+    help="Full sync: also regenerate exec shims, CI, agent files, create missing community files.",
+)
+def upgrade(spec_version: str | None, project_dir: str, full: bool) -> None:
+    """Update governance files to match a newer spec version.
+
+    With --full: also regenerates exec shims (PID tracking), CI configs,
+    agent integrations, and creates missing community files. Safe: never
+    overwrites AGENTS.md, LEDGER.md, or user documentation.
+    """
     from specsmith.upgrader import run_upgrade
 
     root = Path(project_dir).resolve()
-    result = run_upgrade(root, target_version=spec_version)
+    result = run_upgrade(root, target_version=spec_version, full=full)
     console.print(result.message)
 
     if result.updated_files:

@@ -144,7 +144,7 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
         ProjectType.BACKEND_FRONTEND,
         ProjectType.BACKEND_FRONTEND_TRAY,
     ):
-        files.append(("pyproject.toml.j2", "pyproject.toml"))
+        files.append(("python/pyproject.toml.j2", "pyproject.toml"))
         files.append(("python/init.py.j2", f"src/{config.package_name}/__init__.py"))
         if config.type == ProjectType.CLI_PYTHON:
             files.append(("python/cli.py.j2", f"src/{config.package_name}/cli.py"))
