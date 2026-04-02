@@ -30,7 +30,7 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 
 !!! note "Documentation Versions"
     **Stable:** [specsmith.readthedocs.io/en/stable/](https://specsmith.readthedocs.io/en/stable/) — matches `pip install specsmith`
-    **Dev:** [specsmith.readthedocs.io/en/develop/](https://specsmith.readthedocs.io/en/develop/) — matches `pip install --pre specsmith`
+    **Dev (latest):** [specsmith.readthedocs.io/en/latest/](https://specsmith.readthedocs.io/en/latest/) — matches `pip install --pre specsmith`
 
 ## Quick Start
 
