@@ -56,10 +56,11 @@ Before every release:
 
 ## Branch Protection
 
-- **NEVER tag a release on develop.** Tags must only be created on main.
-- **NEVER push tags from develop.** The release workflow publishes to PyPI — only main branch releases are allowed.
-- All feature work happens on develop. Releases merge develop → main first, then tag on main.
-- The release workflow has an `if:` guard but this is a process rule, not just a technical one.
+- **NEVER tag a stable release on develop.** Tags must only be created on main.
+- **NEVER push tags from develop.** The stable release workflow publishes to PyPI — only main branch releases are allowed.
+- All feature work happens on develop. Stable releases merge develop → main first, then tag on main.
+- **Dev releases are automatic.** Every push to develop triggers `.devN` pre-release to PyPI.
+- Dev releases use `X.Y.Z.devN` version suffix and require `pip install --pre` to install.
 
 ## Rule
 

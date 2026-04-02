@@ -148,11 +148,25 @@ After pushing the tag:
 
 ## Automated Publishing
 
+### Stable Releases (main branch)
 When a tag matching `v*` is pushed to `main`, the release workflow automatically:
 
 1. **Builds** sdist + wheel
 2. **Publishes to PyPI** via OIDC trusted publishing (no tokens needed)
 3. **Creates GitHub Release** with auto-generated notes and artifacts
+
+Install: `pip install specsmith`
+
+### Dev Releases (develop branch)
+Every push to `develop` triggers the dev-release workflow:
+
+1. **Calculates** dev version: `X.Y.Z.devN` (N = commits since last tag)
+2. **Builds** sdist + wheel with dev version
+3. **Publishes to PyPI** as a pre-release
+
+Install: `pip install --pre specsmith`
+
+Dev releases let users test features before they ship in a stable release. The `.devN` suffix ensures they sort before the next stable version.
 
 ## Lessons Learned
 
