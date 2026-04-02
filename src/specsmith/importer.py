@@ -997,73 +997,67 @@ def generate_overlay(
     existing_reqs = list(target.glob("docs/**/REQUIREMENTS*")) + list(
         target.glob("docs/**/requirements*")
     )
-    if existing_reqs and not force:
-        pass  # Preserve existing requirements doc
-    else:
+    if not (existing_reqs and not force):
         reqs = "# Requirements\n\nRequirements auto-generated from project detection.\n\n"
-    for module in result.modules:
-        mu = module.upper().replace(" ", "-")
-        reqs += (
-            f"## REQ-{mu}-001\n"
-            f"- **Component**: {module}\n"
-            f"- **Status**: Draft\n"
-            f"- **Description**: [Describe requirements for {module}]\n\n"
-        )
-    if result.build_system:
-        reqs += (
-            "## REQ-BUILD-001\n"
-            f"- **Build system**: {result.build_system}\n"
-            "- **Status**: Draft\n"
-            f"- **Description**: Project builds successfully with {result.build_system}\n\n"
-        )
+        for module in result.modules:
+            mu = module.upper().replace(" ", "-")
+            reqs += (
+                f"## REQ-{mu}-001\n"
+                f"- **Component**: {module}\n"
+                f"- **Status**: Draft\n"
+                f"- **Description**: [Describe requirements for {module}]\n\n"
+            )
+        if result.build_system:
+            reqs += (
+                "## REQ-BUILD-001\n"
+                f"- **Build system**: {result.build_system}\n"
+                "- **Status**: Draft\n"
+                f"- **Description**: Project builds successfully with {result.build_system}\n\n"
+            )
         _write("docs/REQUIREMENTS.md", reqs)
 
     # docs/TEST_SPEC.md — skip if project already has one
     existing_tests = list(target.glob("docs/**/TEST_SPEC*")) + list(
         target.glob("docs/**/test_spec*")
     )
-    if existing_tests and not force:
-        pass  # Preserve existing test spec
-    else:
+    if not (existing_tests and not force):
         tests = "# Test Specification\n\nTests auto-generated from project detection.\n\n"
-    for i, test_file in enumerate(result.test_files[:20], 1):
-        tests += f"## TEST-{i:03d}\n- **File**: {test_file}\n- **Status**: Detected\n"
-        for module in result.modules:
-            if module in test_file:
-                tests += f"- **Requirement**: REQ-{module.upper()}-001\n"
-                break
-        tests += "\n"
+        for i, test_file in enumerate(result.test_files[:20], 1):
+            tests += f"## TEST-{i:03d}\n- **File**: {test_file}\n- **Status**: Detected\n"
+            for module in result.modules:
+                if module in test_file:
+                    tests += f"- **Requirement**: REQ-{module.upper()}-001\n"
+                    break
+            tests += "\n"
         _write("docs/TEST_SPEC.md", tests)
 
     # docs/architecture.md — skip if project has architecture doc anywhere under docs/
     existing_arch = list(target.glob("docs/**/architecture*")) + list(
         target.glob("docs/**/ARCHITECTURE*")
     )
-    if existing_arch and not force:
-        pass  # Preserve existing architecture doc
-    else:
+    if not (existing_arch and not force):
         arch = (
-        f"# Architecture — {name}\n\n"
-        "Architecture auto-generated from project detection.\n\n"
-        "## Overview\n"
-        f"- **Languages**: {lang_display}\n"
-        f"- **Build system**: {result.build_system or 'not detected'}\n"
-        f"- **Test framework**: {result.test_framework or 'not detected'}\n\n"
-    )
-    if result.modules:
-        arch += "## Modules\n"
-        for module in result.modules:
-            arch += f"- **{module}**: [Describe module purpose]\n"
-        arch += "\n"
-    if result.entry_points:
-        arch += "## Entry Points\n"
-        for ep in result.entry_points:
-            arch += f"- `{ep}`\n"
-        arch += "\n"
-    if result.languages:
-        arch += "## Language Distribution\n"
-        for lang_name, count in sorted(result.languages.items(), key=lambda x: -x[1]):
-            arch += f"- {lang_name}: {count} files\n"
+            f"# Architecture — {name}\n\n"
+            "Architecture auto-generated from project detection.\n\n"
+            "## Overview\n"
+            f"- **Languages**: {lang_display}\n"
+            f"- **Build system**: {result.build_system or 'not detected'}\n"
+            f"- **Test framework**: {result.test_framework or 'not detected'}\n\n"
+        )
+        if result.modules:
+            arch += "## Modules\n"
+            for module in result.modules:
+                arch += f"- **{module}**: [Describe module purpose]\n"
+            arch += "\n"
+        if result.entry_points:
+            arch += "## Entry Points\n"
+            for ep in result.entry_points:
+                arch += f"- `{ep}`\n"
+            arch += "\n"
+        if result.languages:
+            arch += "## Language Distribution\n"
+            for lang_name, count in sorted(result.languages.items(), key=lambda x: -x[1]):
+                arch += f"- {lang_name}: {count} files\n"
         _write("docs/architecture.md", arch)
 
     # --- Modular governance files ---

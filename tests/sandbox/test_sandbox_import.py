@@ -279,3 +279,68 @@ class TestSandboxImport:
 
         # Results should be identical (idempotent)
         assert first_agents == second_agents
+
+    def test_import_preserves_existing_project_docs(self, tmp_path: Path) -> None:
+        """Import skips stubs when project has existing docs."""
+        root = tmp_path / "taskctl"
+        root.mkdir()
+        _create_realistic_python_project(root)
+
+        # Pre-create existing project docs (as a real project would have)
+        docs = root / "docs"
+        docs.mkdir(exist_ok=True)
+        (docs / "REQUIREMENTS.md").write_text(
+            "# Existing Requirements\n\n## REQ-CUSTOM-001\nReal requirement.\n",
+            encoding="utf-8",
+        )
+        (docs / "TEST_SPEC.md").write_text(
+            "# Existing Tests\n\n## TEST-CUSTOM-001\nReal test.\n",
+            encoding="utf-8",
+        )
+        arch_dir = docs / "architecture"
+        arch_dir.mkdir()
+        (arch_dir / "DESIGN.md").write_text(
+            "# Existing Architecture\nReal architecture doc.\n",
+            encoding="utf-8",
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["import", "--project-dir", str(root)], input="y\n")
+        assert result.exit_code == 0, f"Import failed: {result.output}"
+
+        # Existing docs should NOT have been overwritten with stubs
+        reqs = (docs / "REQUIREMENTS.md").read_text(encoding="utf-8")
+        assert "REQ-CUSTOM-001" in reqs  # Original content preserved
+        assert "auto-generated" not in reqs.lower()  # Not replaced with stub
+
+        tests_content = (docs / "TEST_SPEC.md").read_text(encoding="utf-8")
+        assert "TEST-CUSTOM-001" in tests_content
+
+        # architecture.md stub should NOT have been created (existing arch doc found)
+        assert not (docs / "architecture.md").exists()
+
+        # But governance files and scaffold.yml should still be created
+        assert (root / "scaffold.yml").exists()
+        assert (root / "LEDGER.md").exists()
+        assert (root / "docs" / "governance" / "rules.md").exists()
+
+    def test_import_force_overwrites_existing_docs(self, tmp_path: Path) -> None:
+        """Import with --force replaces existing docs with generated stubs."""
+        root = tmp_path / "taskctl"
+        root.mkdir()
+        _create_realistic_python_project(root)
+
+        docs = root / "docs"
+        docs.mkdir(exist_ok=True)
+        (docs / "REQUIREMENTS.md").write_text(
+            "# Existing Requirements\n", encoding="utf-8"
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["import", "--project-dir", str(root), "--force"], input="y\n"
+        )
+        assert result.exit_code == 0
+
+        reqs = (docs / "REQUIREMENTS.md").read_text(encoding="utf-8")
+        assert "auto-generated" in reqs.lower()  # Replaced with stub
