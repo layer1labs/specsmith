@@ -481,6 +481,19 @@ def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -
         console.print(f"  Existing governance: {', '.join(result.existing_governance)}")
     if result.test_files:
         console.print(f"  Test files: {len(result.test_files)}")
+    if result.dependencies:
+        console.print(f"  Dependencies: {len(result.dependencies)}")
+    if result.readme_summary:
+        console.print(f"  README: {result.readme_summary[:80]}...")
+    if result.detected_ci_tools:
+        tools_str = ", ".join(
+            f"{cat}: {'/'.join(t)}" for cat, t in result.detected_ci_tools.items()
+        )
+        console.print(f"  CI tools: {tools_str}")
+    if result.ci_tool_gaps:
+        console.print(f"  [yellow]CI gaps: {', '.join(result.ci_tool_gaps)}[/yellow]")
+    if result.git_contributors:
+        console.print(f"  Contributors: {len(result.git_contributors)}")
     console.print()
 
     if dry_run:

@@ -113,6 +113,13 @@ class DetectionResult:
     modules: list[str] = field(default_factory=list)
     test_files: list[str] = field(default_factory=list)
     entry_points: list[str] = field(default_factory=list)
+    # Deep analysis fields
+    detected_ci_tools: dict[str, list[str]] = field(default_factory=dict)
+    ci_tool_gaps: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
+    readme_summary: str = ""
+    git_recent_commits: list[str] = field(default_factory=list)
+    git_contributors: list[str] = field(default_factory=list)
 
 
 def _detect_vcs_from_remote(remote_url: str) -> str:
@@ -270,6 +277,35 @@ def detect_project(root: Path) -> DetectionResult:
     # Infer project type
     result.inferred_type = _infer_type(result)
 
+    # Deep analysis: CI tools, dependencies, README, git history
+    result.detected_ci_tools = _parse_ci_tools(root)
+    result.dependencies = _parse_dependencies(root)
+    result.readme_summary = _extract_readme_summary(root)
+    if result.has_git:
+        result.git_recent_commits = _extract_git_commits(root)
+        result.git_contributors = _extract_git_contributors(root)
+
+    # CI tool gap analysis
+    if result.detected_ci_tools and result.inferred_type:
+        from specsmith.tools import list_tools_for_type
+
+        expected = list_tools_for_type(result.inferred_type)
+        for cmd in expected.lint[:1]:
+            tool = cmd.split()[0]
+            ci_all = " ".join(t for tools in result.detected_ci_tools.values() for t in tools)
+            if tool not in ci_all:
+                result.ci_tool_gaps.append(f"lint: {tool}")
+        for cmd in expected.test[:1]:
+            tool = cmd.split()[0]
+            ci_all = " ".join(t for tools in result.detected_ci_tools.values() for t in tools)
+            if tool not in ci_all:
+                result.ci_tool_gaps.append(f"test: {tool}")
+        for cmd in expected.security[:1]:
+            tool = cmd.split()[0]
+            ci_all = " ".join(t for tools in result.detected_ci_tools.values() for t in tools)
+            if tool not in ci_all:
+                result.ci_tool_gaps.append(f"security: {tool}")
+
     return result
 
 
@@ -346,6 +382,167 @@ def _detect_entry_points(root: Path, language: str) -> list[str]:
         for match in root.glob(pattern):
             entries.append(str(match.relative_to(root)))
     return entries
+
+
+# ---------------------------------------------------------------------------
+# Deep analysis helpers
+# ---------------------------------------------------------------------------
+
+# Tool name → ToolSet category mapping for CI parsing
+_TOOL_CATEGORY: dict[str, str] = {
+    "ruff": "lint",
+    "eslint": "lint",
+    "clippy": "lint",
+    "vale": "lint",
+    "clang-tidy": "lint",
+    "golangci-lint": "lint",
+    "tflint": "lint",
+    "mypy": "typecheck",
+    "tsc": "typecheck",
+    "cppcheck": "typecheck",
+    "pytest": "test",
+    "jest": "test",
+    "vitest": "test",
+    "cargo test": "test",
+    "go test": "test",
+    "ctest": "test",
+    "pip-audit": "security",
+    "npm audit": "security",
+    "cargo audit": "security",
+    "govulncheck": "security",
+    "tfsec": "security",
+    "checkov": "security",
+}
+
+
+def _parse_ci_tools(root: Path) -> dict[str, list[str]]:
+    """Parse CI config files and extract tool commands by category."""
+    tools: dict[str, list[str]] = {}
+    ci_files: list[Path] = []
+
+    # GitHub Actions
+    wf_dir = root / ".github" / "workflows"
+    if wf_dir.exists():
+        ci_files.extend(wf_dir.glob("*.yml"))
+        ci_files.extend(wf_dir.glob("*.yaml"))
+    # GitLab
+    gl = root / ".gitlab-ci.yml"
+    if gl.exists():
+        ci_files.append(gl)
+    # Bitbucket
+    bb = root / "bitbucket-pipelines.yml"
+    if bb.exists():
+        ci_files.append(bb)
+
+    for ci_file in ci_files:
+        try:
+            content = ci_file.read_text(encoding="utf-8")
+            for tool_name, category in _TOOL_CATEGORY.items():
+                if tool_name in content:
+                    tools.setdefault(category, [])
+                    if tool_name not in tools[category]:
+                        tools[category].append(tool_name)
+        except Exception:  # noqa: BLE001
+            continue
+
+    return tools
+
+
+def _parse_dependencies(root: Path) -> list[str]:
+    """Extract dependency names from build config files."""
+    deps: list[str] = []
+
+    # Python: pyproject.toml (check root and subdirs)
+    for pyproject in [root / "pyproject.toml", *root.glob("*/pyproject.toml")]:
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text(encoding="utf-8")
+                # Simple extraction: lines matching '"package>=version"'
+                import re
+
+                for m in re.findall(r'"([a-zA-Z][a-zA-Z0-9_-]*)(?:[><=!]|\[)', content):
+                    if m not in deps and m not in ("python",):
+                        deps.append(m)
+            except Exception:  # noqa: BLE001
+                continue
+
+    # Node: package.json
+    for pkg_json in [root / "package.json", *root.glob("*/package.json")]:
+        if pkg_json.exists():
+            try:
+                import json
+
+                data = json.loads(pkg_json.read_text(encoding="utf-8"))
+                for section in ("dependencies", "devDependencies"):
+                    for name in data.get(section, {}):
+                        if name not in deps:
+                            deps.append(name)
+            except Exception:  # noqa: BLE001
+                continue
+
+    return deps[:50]  # Cap for readability
+
+
+def _extract_readme_summary(root: Path) -> str:
+    """Extract first heading + first paragraph from README.md."""
+    readme = root / "README.md"
+    if not readme.exists():
+        return ""
+    try:
+        lines = readme.read_text(encoding="utf-8").splitlines()
+        summary_parts: list[str] = []
+        found_heading = False
+        for line in lines:
+            if line.startswith("#") and not found_heading:
+                found_heading = True
+                continue
+            if found_heading:
+                stripped = line.strip()
+                if not stripped:
+                    if summary_parts:
+                        break
+                    continue
+                if stripped.startswith("#"):
+                    break
+                # Skip badges
+                if stripped.startswith("[!") or stripped.startswith("[!["):
+                    continue
+                summary_parts.append(stripped)
+        return " ".join(summary_parts)[:500]
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _extract_git_commits(root: Path) -> list[str]:
+    """Get recent git commit messages."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "log", "--oneline", "-20"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return [ln.strip() for ln in result.stdout.strip().splitlines() if ln.strip()]
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return []
+
+
+def _extract_git_contributors(root: Path) -> list[str]:
+    """Get contributor list from git history."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "shortlog", "-sn", "--no-merges", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return [ln.strip() for ln in result.stdout.strip().splitlines()[:10] if ln.strip()]
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return []
 
 
 def _infer_type(result: DetectionResult) -> ProjectType:

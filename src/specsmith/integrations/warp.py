@@ -31,11 +31,24 @@ class WarpAdapter(AgentAdapter):
         return [skill_path]
 
     def _render_skill(self, config: ProjectConfig) -> str:
+        from specsmith.tools import get_tools
+
+        tools = get_tools(config)
+        tool_cmds = []
+        if tools.lint:
+            tool_cmds.append(tools.lint[0])
+        if tools.test:
+            tool_cmds.append(tools.test[0])
+        if tools.typecheck:
+            tool_cmds.append(tools.typecheck[0])
+        verify_line = ", ".join(tool_cmds) if tool_cmds else "project-specific tools"
+
         return f"""# {config.name} — Governed Project Skill
 
 ## Context
 This project follows the Agentic AI Development Workflow Specification (v{config.spec_version}).
 Project type: {config.type_label} (Section {config.section_ref}).
+Description: {config.description or "See README.md"}.
 
 ## Session Start
 1. Read `AGENTS.md` — the governance hub
@@ -60,6 +73,9 @@ All changes follow: **propose → check → execute → verify → record**.
 - `specsmith audit` — run health checks
 - `specsmith validate` — check governance consistency
 - `specsmith compress` — archive old ledger entries
+
+## Verification
+Before marking any task complete, run: {verify_line}
 
 ## Rules
 - Proposals before changes (no exceptions)
