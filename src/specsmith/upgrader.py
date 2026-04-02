@@ -255,8 +255,12 @@ def _migrate_legacy_filenames(root: Path, result: UpgradeResult) -> None:
     Handles both case-sensitive (Linux) and case-insensitive (Windows/macOS)
     filesystems. On case-insensitive FS, uses a two-step rename via a
     temporary name to avoid conflicts.
+
+    Also updates references in AGENTS.md so the hub links stay valid.
     """
     import shutil
+
+    renamed: list[tuple[str, str]] = []
 
     for old_rel, new_rel in _LEGACY_RENAMES:
         old_path = root / old_rel
@@ -276,4 +280,41 @@ def _migrate_legacy_filenames(root: Path, result: UpgradeResult) -> None:
             shutil.move(str(old_path), str(new_path))
         else:
             continue  # Both exist as truly separate files — skip
+        renamed.append((old_rel, new_rel))
         result.updated_files.append(f"{old_rel} → {new_rel}")
+
+    # Update references in user-owned docs that point to renamed files
+    if renamed:
+        _update_references(root, renamed, result)
+
+
+def _update_references(
+    root: Path,
+    renames: list[tuple[str, str]],
+    result: UpgradeResult,
+) -> None:
+    """Rewrite old paths to new paths in AGENTS.md and other hub files.
+
+    Only performs safe string replacement of exact path references.
+    """
+    docs_to_patch = [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "GEMINI.md",
+        ".warp/skills/SKILL.md",
+        ".cursor/rules/governance.mdc",
+        ".windsurfrules",
+        ".aider.conf.yml",
+    ]
+
+    for doc_name in docs_to_patch:
+        doc_path = root / doc_name
+        if not doc_path.exists():
+            continue
+        content = doc_path.read_text(encoding="utf-8")
+        original = content
+        for old_rel, new_rel in renames:
+            content = content.replace(old_rel, new_rel)
+        if content != original:
+            doc_path.write_text(content, encoding="utf-8")
+            result.updated_files.append(f"{doc_name} (references updated)")
