@@ -92,15 +92,21 @@ git branch -d hotfix/description
 git push origin main develop --tags
 ```
 
-## Version Locations (5 places)
+## Version Locations
 
-Every release must update version in ALL of these:
+The version has a **single source of truth**: `pyproject.toml`.
 
-1. `pyproject.toml` → `version = "X.Y.Z"`
-2. `src/specsmith/__init__.py` → `__version__ = "X.Y.Z"`
-3. `src/specsmith/config.py` → `spec_version` Field default
-4. `tests/test_smoke.py` → version assertion
-5. `tests/test_cli.py` → version output assertion + upgrade test version
+All other code reads it dynamically via `importlib.metadata.version()`.
+
+| File | How version is obtained |
+|------|------------------------|
+| `pyproject.toml` | **Source of truth** — `version = "X.Y.Z"` |
+| `src/specsmith/__init__.py` | `importlib.metadata.version("specsmith")` at runtime |
+| `src/specsmith/config.py` | `spec_version` default (for new scaffolds) |
+| `docs/site/*.md` | `{{ version }}` replaced by MkDocs hook at build time |
+| Tests | Compare against `importlib.metadata.version()` |
+
+When releasing, `specsmith release X.Y.Z` updates `pyproject.toml` and `config.py`.
 
 ## CHANGELOG Format
 

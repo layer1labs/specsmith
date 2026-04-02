@@ -2,4 +2,10 @@
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
 """specsmith — Forge governed project scaffolds."""
 
-__version__ = "0.1.3"
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
+try:
+    __version__: str = _pkg_version("specsmith")
+except PackageNotFoundError:  # running from source without install
+    __version__ = "0.0.0.dev0"

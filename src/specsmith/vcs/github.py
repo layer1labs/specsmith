@@ -107,6 +107,82 @@ class GitHubPlatform(VCSPlatform):
         """List code scanning alerts."""
         return self.run_command(["code-scanning", "alert", "list"])
 
+    def generate_dev_release_config(self, config: ProjectConfig, target: Path) -> list[Path]:
+        """Generate dev-release workflow for gitflow Python projects."""
+        if config.language != "python":
+            return []
+        wf_dir = target / ".github" / "workflows"
+        wf_dir.mkdir(parents=True, exist_ok=True)
+        path = wf_dir / "dev-release.yml"
+        develop = config.develop_branch or "develop"
+        path.write_text(
+            f"""name: Dev Release
+
+on:
+  push:
+    branches: [{develop}]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dev-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Set dev version
+        run: |
+          BASE=$(grep 'version = ' pyproject.toml | head -1 | sed 's/version = "\\(.*\\)"/\1/')
+          MAJOR=$(echo $BASE | cut -d. -f1)
+          MINOR=$(echo $BASE | cut -d. -f2)
+          PATCH=$(echo $BASE | cut -d. -f3)
+          NP=$((PATCH + 1))
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~100)
+          NC=$(git rev-list --count HEAD ^$TAG 2>/dev/null || echo 0)
+          DV="${{MAJOR}}.${{MINOR}}.${{NP}}.dev${{NC}}"
+          echo "DEV_VERSION=${{DV}}" >> $GITHUB_ENV
+          sed -i "s/version = \"${{BASE}}\"/version = \"${{DV}}\"/" pyproject.toml
+          echo "Building version: ${{DV}}"
+
+      - run: python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dev-dist
+          path: dist/
+
+  pypi-dev-publish:
+    needs: dev-build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dev-dist
+          path: dist/
+      - name: Publish dev release to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+""",
+            encoding="utf-8",
+        )
+        return [path]
+
     def _render_ci(self, config: ProjectConfig) -> str:
         tools = get_tools(config)
         meta = LANG_CI_META.get(config.language, {})

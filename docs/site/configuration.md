@@ -14,7 +14,7 @@ type: cli-python                    # Required — one of 30 project types
 platforms: [windows, linux, macos]  # Target platforms
 language: python                    # Primary language/runtime
 description: "Short description"    # Optional project description
-spec_version: 0.1.3                 # Spec version (auto-managed by upgrade)
+spec_version: "{{ version }}"               # Spec version (auto-managed by upgrade)
 
 # VCS and branching
 vcs_platform: github                # github, gitlab, bitbucket, or "" (none)

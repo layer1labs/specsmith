@@ -57,12 +57,18 @@ class VCSPlatform(ABC):
     def generate_security_config(self, config: ProjectConfig, target: Path) -> list[Path]:
         """Generate security scanning config."""
 
+    def generate_dev_release_config(self, config: ProjectConfig, target: Path) -> list[Path]:
+        """Generate dev-release workflow for gitflow projects. Override in subclasses."""
+        return []
+
     def generate_all(self, config: ProjectConfig, target: Path) -> list[Path]:
         """Generate all platform-specific files."""
         created: list[Path] = []
         created.extend(self.generate_ci_config(config, target))
         created.extend(self.generate_dependency_config(config, target))
         created.extend(self.generate_security_config(config, target))
+        if config.branching_strategy == "gitflow":
+            created.extend(self.generate_dev_release_config(config, target))
         return created
 
     def is_cli_available(self) -> bool:

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Dynamic versioning**: `__version__` now reads from `importlib.metadata` at runtime instead of hardcoded strings. Docs use `{{ version }}` placeholders resolved by MkDocs hook. Tests are version-agnostic.
+- **Dev-release workflow for managed projects** (#35): `specsmith init` with gitflow + GitHub + Python now generates `.github/workflows/dev-release.yml`.
+- **No-hardcoded-versions rule** (H10): governance template and WARP rule enforce `pyproject.toml` as single version source of truth.
+- **Separate PyPI badges**: README shows both stable (blue) and dev (orange) version badges.
+
+### Changed
+- RTD default version set to `stable`, default branch set to `develop` (`latest` now builds from develop).
+- Docs version references use dynamic `{{ version }}` instead of hardcoded strings.
+- `init.py.j2` template for managed projects uses `importlib.metadata` pattern.
+
 ## [0.1.3] - 2026-04-01
 
 ### Fixed

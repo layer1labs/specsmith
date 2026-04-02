@@ -10,7 +10,7 @@ from pathlib import Path
 # The 5 files that must be updated for every release
 _VERSION_FILES: list[tuple[str, str]] = [
     ("pyproject.toml", r'version = "[^"]*"'),
-    ("src/specsmith/__init__.py", r'__version__ = "[^"]*"'),
+    ("src/specsmith/__init__.py", r'__version__ = "[^"]*"'),  # fallback value
     ("src/specsmith/config.py", r'default="[^"]*", description="Spec version'),
     ("tests/test_smoke.py", r'__version__ == "[^"]*"'),
     ("tests/test_cli.py", r'"[0-9]+\.[0-9]+\.[0-9]+[^"]*" in result\.output'),

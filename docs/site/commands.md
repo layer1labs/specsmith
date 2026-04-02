@@ -161,5 +161,5 @@ See [Doctor](doctor.md) for details.
 
 ```bash
 specsmith --version
-# specsmith, version 0.1.3
+# specsmith, version {{ version }}
 ```

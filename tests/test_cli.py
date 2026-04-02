@@ -10,7 +10,7 @@ import yaml
 from click.testing import CliRunner
 
 from specsmith.cli import main
-from specsmith.config import ProjectType
+from specsmith.config import ProjectConfig, ProjectType
 from specsmith.scaffolder import scaffold_project
 
 
@@ -37,11 +37,13 @@ def _scaffold_governed(tmp_path: Path) -> Path:
 
 class TestCLIVersion:
     def test_version_flag(self) -> None:
+        from specsmith import __version__
+
         runner = CliRunner()
         result = runner.invoke(main, ["--version"])
         assert result.exit_code == 0
         assert "specsmith" in result.output
-        assert "0.1.3" in result.output
+        assert __version__ in result.output
 
 
 class TestCLIInit:
@@ -98,9 +100,13 @@ class TestCLICompress:
 class TestCLIUpgrade:
     def test_upgrade_already_current(self, tmp_path: Path) -> None:
         target = _scaffold_governed(tmp_path)
+        config = ProjectConfig(
+            name="test-cli-project", type=ProjectType.CLI_PYTHON, language="python"
+        )
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.1.3"]
+            main,
+            ["upgrade", "--project-dir", str(target), "--spec-version", config.spec_version],
         )
         assert result.exit_code == 0
         assert "Already at spec version" in result.output

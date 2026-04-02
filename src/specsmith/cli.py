@@ -1172,15 +1172,15 @@ def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
         run_self_update,
     )
 
-    current, latest = check_latest_version()
+    current, latest, channel = check_latest_version()
     if not latest:
         console.print("[yellow]Could not reach PyPI.[/yellow]")
         return
 
     if current == latest:
-        console.print(f"[green]\u2713[/green] specsmith {current} is up to date.")
+        console.print(f"[green]\u2713[/green] specsmith {current} is up to date ({channel}).")
     else:
-        console.print(f"  Current: {current}")
+        console.print(f"  Current: {current} ({channel})")
         console.print(f"  Latest:  {latest}")
 
         if check_only:
@@ -1188,7 +1188,7 @@ def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
             return
 
         if auto_yes or click.confirm(f"Update to {latest}?", default=True):
-            success, msg = run_self_update()
+            success, msg = run_self_update(channel=channel)
             if success:
                 console.print(f"[green]\u2713[/green] Updated to {latest}")
             else:

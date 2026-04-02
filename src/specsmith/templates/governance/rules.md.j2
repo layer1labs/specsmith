@@ -31,6 +31,9 @@ Architecture-affecting changes MUST update relevant docs in the same work cycle.
 ### H9 — Execution timeout required
 All agent-invoked commands MUST have a timeout. No command may run indefinitely. If a command hangs, it must be killed, recorded in the ledger, and escalated after one retry.
 
+### H10 — No hardcoded versions
+Version strings MUST NOT be hardcoded in documentation, tests, or source code outside of `pyproject.toml`. Use `importlib.metadata.version()` at runtime. Use `{{ "{{ version }}" }}` placeholders in documentation resolved at build time.
+
 ---
 
 ## Stop Conditions

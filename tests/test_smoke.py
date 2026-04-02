@@ -2,15 +2,17 @@
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
 """Smoke tests for specsmith."""
 
+from importlib.metadata import version as _pkg_version
+
 from specsmith import __version__
 from specsmith.config import Platform, ProjectConfig, ProjectType
 
 
 def test_version():
-    """Version string is set."""
-
-
-assert __version__ == "0.1.3"
+    """Version string matches installed package metadata."""
+    expected = _pkg_version("specsmith")
+    assert __version__ == expected
+    assert __version__  # not empty
 
 
 def test_config_defaults():
