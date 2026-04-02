@@ -361,12 +361,23 @@ def status(project_dir: str) -> None:
     default=".",
     help="Project root directory.",
 )
-def diff(project_dir: str) -> None:
+@click.option(
+    "--html", "html_output", type=click.Path(), default=None, help="Generate HTML diff report."
+)
+def diff(project_dir: str, html_output: str | None) -> None:
     """Compare governance files against spec templates."""
     from specsmith.differ import run_diff
 
     root = Path(project_dir).resolve()
     results = run_diff(root)
+
+    if html_output:
+        from specsmith.differ import run_diff_html
+
+        html = run_diff_html(root)
+        Path(html_output).write_text(html, encoding="utf-8")
+        console.print(f"[bold green]HTML diff written to {html_output}[/bold green]")
+        return
 
     if not results:
         console.print("[bold green]All governance files match templates.[/bold green]")
@@ -374,11 +385,11 @@ def diff(project_dir: str) -> None:
 
     for name, status in results:
         if status == "match":
-            console.print(f"  [green]✓[/green] {name}")
+            console.print(f"  [green]\u2713[/green] {name}")
         elif status == "missing":
-            console.print(f"  [red]✗[/red] {name} — missing")
+            console.print(f"  [red]\u2717[/red] {name} \u2014 missing")
         else:
-            console.print(f"  [yellow]~[/yellow] {name} — differs from template")
+            console.print(f"  [yellow]~[/yellow] {name} \u2014 differs from template")
 
 
 @main.command()
@@ -630,6 +641,129 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     created.append(arch_path)
 
     return created
+
+
+# ---------------------------------------------------------------------------
+# Ledger subcommands
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def ledger() -> None:
+    """Manage the change ledger."""
+
+
+@ledger.command(name="add")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--type", "entry_type", default="task", help="Entry type (task, feature, fix, etc.)")
+@click.option("--author", default="agent")
+@click.option("--reqs", default="", help="Affected REQ IDs (comma-separated).")
+@click.argument("description")
+def ledger_add(project_dir: str, entry_type: str, author: str, reqs: str, description: str) -> None:
+    """Add a structured entry to LEDGER.md."""
+    from specsmith.ledger import add_entry
+
+    root = Path(project_dir).resolve()
+    entry = add_entry(
+        root, description=description, entry_type=entry_type, author=author, reqs=reqs
+    )
+    console.print(f"[green]Added:[/green] {entry.splitlines()[0]}")
+
+
+@ledger.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--since", default="", help="Show entries since date (YYYY-MM-DD).")
+def ledger_list(project_dir: str, since: str) -> None:
+    """List ledger entries."""
+    from specsmith.ledger import list_entries
+
+    root = Path(project_dir).resolve()
+    entries = list_entries(root, since=since)
+    if not entries:
+        console.print("[yellow]No entries found.[/yellow]")
+        return
+    for e in entries:
+        heading = e.get("heading", "")
+        status = e.get("status", "")
+        console.print(f"  {heading}" + (f" [{status}]" if status else ""))
+
+
+@ledger.command(name="stats")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def ledger_stats(project_dir: str) -> None:
+    """Show ledger statistics."""
+    from specsmith.ledger import get_stats
+
+    root = Path(project_dir).resolve()
+    stats = get_stats(root)
+    console.print(f"  Entries: {stats['total_entries']}")
+    authors = stats.get("authors", {})
+    if isinstance(authors, dict):
+        for name, count in authors.items():
+            console.print(f"  {name}: {count} entries")
+
+
+main.add_command(ledger)
+
+
+# ---------------------------------------------------------------------------
+# Migrate command
+# ---------------------------------------------------------------------------
+
+
+@main.command()
+@click.option("--to", "new_type", required=True, help="Target project type.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def migrate(new_type: str, project_dir: str) -> None:
+    """Change the project type and regenerate type-dependent files."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+
+    if not scaffold_path.exists():
+        console.print("[red]No scaffold.yml found.[/red]")
+        raise SystemExit(1)
+
+    with open(scaffold_path) as f:
+        raw = yaml.safe_load(f)
+
+    old_type = raw.get("type", "unknown")
+    raw["type"] = new_type
+
+    # Validate new type
+    try:
+        config = ProjectConfig(**raw)
+    except Exception as e:
+        console.print(f"[red]Invalid type '{new_type}': {e}[/red]")
+        raise SystemExit(1) from e
+
+    # Save updated scaffold.yml
+    with open(scaffold_path, "w") as f:
+        yaml.dump(raw, f, default_flow_style=False, sort_keys=False)
+    console.print(f"  [green]\u2713[/green] scaffold.yml: {old_type} \u2192 {new_type}")
+
+    # Add missing directories for new type
+    from specsmith.scaffolder import _get_empty_dirs
+
+    for empty_dir in _get_empty_dirs(config, root):
+        gitkeep = empty_dir / ".gitkeep"
+        if not gitkeep.exists():
+            gitkeep.parent.mkdir(parents=True, exist_ok=True)
+            gitkeep.write_text("", encoding="utf-8")
+            console.print(f"  [green]\u2713[/green] {empty_dir.relative_to(root)}/")
+
+    # Regenerate CI + agent files
+    from specsmith.cli import apply as apply_cmd
+
+    ctx = click.Context(apply_cmd, info_name="apply")
+    ctx.invoke(apply_cmd, project_dir=project_dir)
+
+    # Ledger entry
+    from specsmith.ledger import add_entry
+
+    add_entry(
+        root, description=f"Migrated type: {old_type} \u2192 {new_type}", entry_type="migration"
+    )
+    console.print(f"\n[bold green]Migrated to {config.type_label}.[/bold green]")
 
 
 @main.command()
