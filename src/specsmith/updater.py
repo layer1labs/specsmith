@@ -10,11 +10,25 @@ from pathlib import Path
 from specsmith import __version__
 
 
-def check_latest_version() -> tuple[str, str]:
+def get_update_channel() -> str:
+    """Determine update channel from installed version.
+
+    Returns 'dev' if current version has .dev suffix, else 'stable'.
+    """
+    return "dev" if ".dev" in __version__ else "stable"
+
+
+def check_latest_version(
+    *, channel: str = "",
+) -> tuple[str, str, str]:
     """Check PyPI for the latest specsmith version.
 
-    Returns (current_version, latest_version).
+    Returns (current_version, latest_version, channel).
+    Channel is auto-detected from installed version if not specified.
     """
+    if not channel:
+        channel = get_update_channel()
+
     latest = ""
     try:
         import json
@@ -23,25 +37,43 @@ def check_latest_version() -> tuple[str, str]:
         url = "https://pypi.org/pypi/specsmith/json"
         resp = urllib.request.urlopen(url, timeout=10)  # noqa: S310
         data = json.loads(resp.read())
-        latest = data["info"]["version"]
+
+        if channel == "dev":
+            # Find highest version including pre-releases
+            all_versions = sorted(data["releases"].keys())
+            if all_versions:
+                latest = all_versions[-1]
+        else:
+            # Stable: use the default (non-pre) version
+            latest = data["info"]["version"]
     except Exception:  # noqa: BLE001
         pass
-    return __version__, latest
+    return __version__, latest, channel
 
 
 def is_outdated() -> bool:
     """Check if current specsmith is outdated."""
-    current, latest = check_latest_version()
+    current, latest, _channel = check_latest_version()
     if not latest:
         return False
     return current != latest
 
 
-def run_self_update() -> tuple[bool, str]:
-    """Update specsmith via pip."""
+def run_self_update(*, channel: str = "") -> tuple[bool, str]:
+    """Update specsmith via pip.
+
+    Uses --pre flag for dev channel.
+    """
+    if not channel:
+        channel = get_update_channel()
+
+    cmd = ["pip", "install", "--upgrade", "specsmith"]
+    if channel == "dev":
+        cmd.insert(2, "--pre")
+
     try:
         result = subprocess.run(
-            ["pip", "install", "--upgrade", "specsmith"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=120,
