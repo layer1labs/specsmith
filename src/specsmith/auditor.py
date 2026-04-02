@@ -127,8 +127,8 @@ def check_governance_files(root: Path) -> list[AuditResult]:
     for f in RECOMMENDED_FILES:
         path = root / f
         found = path.exists()
-        # For architecture.md, also search subdirectories (e.g. docs/architecture/*.md)
-        if not found and "architecture" in f:
+        # For ARCHITECTURE.md, also search subdirectories (e.g. docs/architecture/*.md)
+        if not found and "architecture" in f.lower():
             found = (
                 bool(
                     list((root / "docs").glob("**/architecture*"))
