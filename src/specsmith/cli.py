@@ -454,7 +454,10 @@ def export(project_dir: str, output: str | None) -> None:
 )
 @click.option("--force", is_flag=True, default=False, help="Overwrite existing governance files.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture after import.")
-def import_project(project_dir: str, force: bool, guided: bool) -> None:
+@click.option(
+    "--dry-run", is_flag=True, default=False, help="Show what would be done without writing."
+)
+def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -> None:
     """Import an existing project and generate governance overlay."""
     from specsmith.importer import detect_project, generate_import_config, generate_overlay
 
@@ -476,7 +479,35 @@ def import_project(project_dir: str, force: bool, guided: bool) -> None:
         console.print(f"  Modules: {', '.join(result.modules)}")
     if result.existing_governance:
         console.print(f"  Existing governance: {', '.join(result.existing_governance)}")
+    if result.test_files:
+        console.print(f"  Test files: {len(result.test_files)}")
     console.print()
+
+    if dry_run:
+        console.print("[bold]Dry run — no files will be written.[/bold]\n")
+        overlay_files = [
+            "AGENTS.md",
+            "LEDGER.md",
+            "docs/REQUIREMENTS.md",
+            "docs/TEST_SPEC.md",
+            "docs/architecture.md",
+            "scaffold.yml",
+            "docs/governance/rules.md",
+            "docs/governance/workflow.md",
+            "docs/governance/roles.md",
+            "docs/governance/context-budget.md",
+            "docs/governance/verification.md",
+            "docs/governance/drift-metrics.md",
+        ]
+        for f in overlay_files:
+            exists = (root / f).exists()
+            action = "SKIP (exists)" if exists and not force else "CREATE"
+            icon = "[yellow]—[/yellow]" if exists and not force else "[green]\u2713[/green]"
+            console.print(f"  {icon} {action:14s} {f}")
+        ci_msg = "SKIP (CI exists)" if result.existing_ci else "GENERATE"
+        ci_icon = "[yellow]\u2014[/yellow]" if result.existing_ci else "[green]\u2713[/green]"
+        console.print(f"  {ci_icon} {ci_msg:14s} CI config")
+        return
 
     # Allow override
     if not click.confirm("Proceed with these settings?", default=True):
@@ -624,6 +655,77 @@ def release(version: str, project_dir: str) -> None:
         f"  4. git tag -a v{version} -m 'v{version}'\n"
         f"  5. git push origin main develop --tags"
     )
+
+
+@main.command(name="verify-release")
+def verify_release() -> None:
+    """Check PyPI, RTD, and GitHub release status after a release."""
+    import subprocess
+    import urllib.request
+
+    from specsmith import __version__
+
+    console.print(f"[bold]Verifying release v{__version__}[/bold]\n")
+    checks_passed = 0
+    checks_failed = 0
+
+    # PyPI
+    try:
+        url = "https://pypi.org/pypi/specsmith/json"
+        resp = urllib.request.urlopen(url, timeout=10)  # noqa: S310
+        import json
+
+        data = json.loads(resp.read())
+        pypi_version = data["info"]["version"]
+        if pypi_version == __version__:
+            console.print(f"  [green]\u2713[/green] PyPI: v{pypi_version}")
+            checks_passed += 1
+        else:
+            console.print(f"  [red]\u2717[/red] PyPI: v{pypi_version} (expected {__version__})")
+            checks_failed += 1
+    except Exception:  # noqa: BLE001
+        console.print("  [red]\u2717[/red] PyPI: could not reach pypi.org")
+        checks_failed += 1
+
+    # RTD
+    try:
+        resp = urllib.request.urlopen(  # noqa: S310
+            "https://specsmith.readthedocs.io/en/latest/", timeout=10
+        )
+        if resp.status == 200:
+            console.print("  [green]\u2713[/green] RTD: site is live")
+            checks_passed += 1
+        else:
+            console.print(f"  [red]\u2717[/red] RTD: status {resp.status}")
+            checks_failed += 1
+    except Exception:  # noqa: BLE001
+        console.print("  [red]\u2717[/red] RTD: could not reach readthedocs.io")
+        checks_failed += 1
+
+    # GitHub release
+    try:
+        result = subprocess.run(
+            ["gh", "release", "view", f"v{__version__}", "--json", "tagName"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            console.print(f"  [green]\u2713[/green] GitHub Release: v{__version__}")
+            checks_passed += 1
+        else:
+            console.print(f"  [red]\u2717[/red] GitHub Release: v{__version__} not found")
+            checks_failed += 1
+    except Exception:  # noqa: BLE001
+        console.print("  [yellow]\u2014[/yellow] GitHub Release: gh CLI not available")
+
+    console.print()
+    if checks_failed == 0:
+        console.print(f"[bold green]All {checks_passed} checks passed.[/bold green]")
+    else:
+        console.print(
+            f"[bold red]{checks_failed} check(s) failed.[/bold red] {checks_passed} passed."
+        )
 
 
 @main.command()
