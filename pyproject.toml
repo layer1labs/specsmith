@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.2.2"
+version = "0.2.3"
 description = "Forge governed project scaffolds from the Agentic AI Development Workflow Specification."
 readme = "README.md"
 license = {text = "MIT"}
