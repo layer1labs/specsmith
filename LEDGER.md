@@ -40,6 +40,80 @@ Estimated cost: high
 - [x] Expand CLI runner test coverage
 - [x] Self-host governance (this file)
 
+## Session 2026-04-05 — AEE epistemic layer, agentic client, CI/CD, meta-governance
+
+**Status:** Complete
+**Branch:** develop
+**Spec version:** 0.3.0 (switched from 0.3.0a1 → X.Y.Z.devN scheme)
+
+### What was done
+
+**Applied Epistemic Engineering (AEE) — core implementation:**
+- `src/epistemic/` standalone library (7 modules, zero deps): BeliefArtifact, StressTester, FailureModeGraph, RecoveryOperator, CertaintyEngine, TraceVault, AEESession. `from epistemic import AEESession` works in any Python 3.10+ project.
+- `src/specsmith/epistemic/` shim re-exporting from `epistemic` (backward compat)
+- `src/specsmith/trace.py` — STP-inspired SHA-256 audit chain
+- `ledger.py` — CryptoAuditChain (tamper-evident ledger entries)
+- 8 new CLI commands: stress-test, epistemic-audit, belief-graph, trace seal/verify/log, integrate
+- H13 hard rule (Epistemic Boundaries Required) in governance templates
+- 4 new governance templates: epistemic-axioms, belief-registry, failure-modes, uncertainty-map
+- 3 new project types: epistemic-pipeline, knowledge-engineering, aee-research
+- 33 project types total (up from 30)
+- 25 new tests, all passing
+
+**Agentic client (`src/specsmith/agent/`):**
+- `specsmith run` — AEE-integrated REPL (Anthropic, OpenAI, Gemini, Ollama; all optional extras)
+- 20 specsmith commands as native LLM tools with epistemic contracts
+- HookRegistry: H13 enforcement, ledger hints, context budget warning
+- SKILL.md loader with domain priority
+- Built-in profiles: planner, verifier, epistemic-auditor
+
+**Issue resolutions (all closed):**
+- #52: CreditBudget.enforcement_mode soft|hard, specsmith credits check
+- #37: specsmith auth set/list/remove/check (OS keyring > file; tokens never logged)
+- #17: specsmith workspace init/audit/export (workspace.yml multi-project)
+- #16: specsmith watch (polling daemon, LEDGER.md staleness alerts)
+- #10: specsmith patent search/prior-art (USPTO ODP API)
+- #18: governance templates marketplace (deferred, plugin system is the foundation)
+
+**CI/CD fixes:**
+- 5 rounds of CI fixes: ruff SIM violations, mypy errors (auth.py, trace.py, runner.py, cli.py), test count assertions, sandbox upgrade test
+- Dev-release workflow: RTD token validation, HTTP status logging, develop/latest build triggers
+- RTD “latest”: PATCH /versions/latest/ with identifier=develop (HTTP 204) — root fix confirmed
+- PyPI badge: removed dev badge (shields.io couldn’t show .devN reliably)
+- v0.3.0a1 GitHub release/tag deleted; versioning changed to X.Y.Z.devN
+
+**Meta-governance bootstrapping:**
+- `scaffold.yml` created for specsmith itself (hand-crafted, enable_epistemic: true)
+- west-env: specsmith import run, 14 governance files generated, spec_version 0.3.0, committed
+
+**Documentation:**
+- docs/site/aee-primer.md — 10-part comprehensive AEE guide
+- docs/site/epistemic-library.md — standalone library API reference + glossa-lab examples
+- docs/site/agent-client.md — specsmith run reference
+- docs/site/index.md — AEE-first homepage
+- README.md, AGENTS.md, mkdocs.yml, CHANGELOG.md all updated
+- ECC reference cloned: C:\Users\trist\Development\BitConcepts\everything-claude-code
+
+### Verification
+- 25 new epistemic tests (all pass)
+- ruff check + format: clean
+- mypy strict: clean (0 errors in 62 files)
+- CI: green (all 4 jobs pass)
+- 0 open GitHub issues
+- 0 security/dependabot alerts
+
+### Open TODOs
+- [ ] RTD latest: verify homepage shows AEE content after version identifier fix
+- [ ] Yank 0.3.0a1 from PyPI (optional — pip install --pre gets 0.3.0a1 until 0.3.0 releases)
+- [ ] glossa-lab: adopt epistemic library (AEESession for decipherment hypotheses)
+- [ ] scaffolder.py: render epistemic templates for epistemic project types (foundation done, rendering hook pending)
+- [ ] Release 0.3.0 stable when ready (merge develop → main, tag v0.3.0)
+
+### Next step
+Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separately, run specsmith import on cpac and cpsc-engine-python to extend governance to the full BitConcepts portfolio.
+
+---
+
 ## Session 2026-04-02 — v0.2.0→v0.2.2 release cycle
 
 **Status:** Complete
@@ -69,3 +143,9 @@ Estimated cost: high
 - [ ] #37: Secure API key management
 - [ ] #10: USPTO/MCP patent integration
 - [ ] #17: Multi-project workspace management
+
+## 2026-04-05T15:25 — specsmith migration: 0.3.0 → 0.3.0a1.dev8
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `5a6995207163ba49...`
