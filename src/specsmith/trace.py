@@ -110,7 +110,7 @@ class SealRecord:
             entry_hash=str(d["entry_hash"]),
             timestamp=str(d["timestamp"]),
             author=str(d.get("author", "specsmith")),
-            artifact_ids=list(d.get("artifact_ids", [])),  # type: ignore[arg-type]
+            artifact_ids=[str(x) for x in d.get("artifact_ids", [])],
         )
 
 

@@ -324,7 +324,7 @@ class AgentRunner:
         if self._stream and not silent:
             # Stream the response
             accumulated = ""
-            for token in self._provider.stream(messages, tools=self._tools):
+            for token in self._provider.stream(messages, tools=self._tools):  # type: ignore[union-attr]
                 if token.text:
                     self._print(token.text, end="", flush=True)
                     accumulated += token.text
@@ -333,14 +333,14 @@ class AgentRunner:
             # Re-call non-streaming for tool detection (some providers don't support tool streaming)
             # For now, do a second call if we didn't get tool calls
             if not accumulated.strip():
-                return self._provider.complete(messages, tools=self._tools)
+                return self._provider.complete(messages, tools=self._tools)  # type: ignore[union-attr]
             # Return a synthetic response with the streamed content
             return CompletionResponse(
                 content=accumulated,
-                model=self._provider.model,
+                model=self._provider.model,  # type: ignore[union-attr]
             )
         else:
-            response = self._provider.complete(messages, tools=self._tools)
+            response: CompletionResponse = self._provider.complete(messages, tools=self._tools)  # type: ignore[union-attr]
             if not silent and response.content:
                 self._print(response.content)
             return response

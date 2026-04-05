@@ -144,4 +144,5 @@ class OllamaProvider:
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-            return json.loads(resp.read())
+            result: dict[str, Any] = json.loads(resp.read())
+            return result

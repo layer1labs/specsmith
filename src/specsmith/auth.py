@@ -84,9 +84,9 @@ def get_token(platform: str) -> str | None:
         return token
 
     # 2. OS keyring
-    token = _keyring_get(platform)
-    if token:
-        return token
+    keyring_token = _keyring_get(platform)
+    if keyring_token:
+        return keyring_token
 
     # 3. File fallback
     return _file_get(platform)
@@ -158,31 +158,31 @@ def check_required(platforms: list[str]) -> dict[str, bool]:
 
 def _keyring_get(platform: str) -> str | None:
     try:
-        import keyring  # type: ignore[import-untyped]
+        import keyring  # type: ignore[import]
 
-        value = keyring.get_password(_KEYRING_SERVICE, platform)
-        return value or None
-    except (ImportError, Exception):  # noqa: BLE001
+        value = keyring.get_password(_KEYRING_SERVICE, platform)  # type: ignore[no-any-return]
+        return str(value) if value else None
+    except Exception:  # noqa: BLE001
         return None
 
 
 def _keyring_set(platform: str, token: str) -> bool:
     try:
-        import keyring  # type: ignore[import-untyped]
+        import keyring  # type: ignore[import]
 
-        keyring.set_password(_KEYRING_SERVICE, platform, token)
+        keyring.set_password(_KEYRING_SERVICE, platform, token)  # type: ignore[no-untyped-call]
         return True
-    except (ImportError, Exception):  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 
 def _keyring_delete(platform: str) -> bool:
     try:
-        import keyring  # type: ignore[import-untyped]
+        import keyring  # type: ignore[import]
 
-        keyring.delete_password(_KEYRING_SERVICE, platform)
+        keyring.delete_password(_KEYRING_SERVICE, platform)  # type: ignore[no-untyped-call]
         return True
-    except (ImportError, Exception):  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         return False
 
 

@@ -2183,7 +2183,7 @@ def belief_graph_cmd(project_dir: str, output_format: str, component: str) -> No
         console.print(graph.render_mermaid())
     else:
         console.print(f"[bold]Belief Graph[/bold] — {len(artifacts)} artifacts\n")
-        by_comp: dict[str, list] = {}
+        by_comp: dict[str, list[object]] = {}
         for a in artifacts:
             by_comp.setdefault(a.component or "OTHER", []).append(a)
 
