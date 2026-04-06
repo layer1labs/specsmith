@@ -2,36 +2,36 @@
 
 ## Overview
 
-specsmith is a CLI tool (Python) targeting Windows, Linux, macOS. It generates governed project scaffolds with AI agent governance files, CI/CD pipelines, and verification tool configurations.
+specsmith is an Applied Epistemic Engineering (AEE) toolkit targeting Windows, Linux, macOS. It scaffolds epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance. Supports 33 project types (see REQ-CFG-002).
 
 ## Components
 
 ### CLI (`cli.py`)
-Entry point. Click-based command group with 50+ commands including all original scaffold/governance commands plus: `stress-test`, `epistemic-audit`, `belief-graph`, `trace seal/verify/log`, `integrate`, `run`, `agent providers/tools/skills`.
+Entry point. Click-based command group with 50+ commands (see REQ-CLI-001 through REQ-CLI-013). Includes: scaffold/governance commands, AEE commands (`stress-test`, `epistemic-audit`, `belief-graph`, `trace`, `integrate`), agentic client (`run`, `agent`), and extended commands (`auth`, `workspace`, `watch`, `patent`).
 
 ### Config (`config.py`)
-Pydantic model validating scaffold.yml. 33 project types enum (added: `epistemic-pipeline`, `knowledge-engineering`, `aee-research`), platform enum, type labels, section refs. New fields: `enable_epistemic`, `epistemic_threshold`, `enable_trace_vault`.
+Pydantic model validating scaffold.yml (see REQ-CFG-001). 33 project types enum (see REQ-CFG-002), platform enum, type labels, section refs. AEE fields: `enable_epistemic`, `epistemic_threshold`, `enable_trace_vault`.
 
 ### Scaffolder (`scaffolder.py`)
-Jinja2 template renderer. Generates governance files, project structure, scripts. Delegates to VCS platforms and agent integrations.
+Jinja2 template renderer (see REQ-SCF-001 through REQ-SCF-006). Generates governance files, project structure, scripts. Delegates to VCS platforms and agent integrations. Epistemic governance templates for AEE project types (see REQ-SCF-EPI-001).
 
 ### Tool Registry (`tools.py`)
-Data structure mapping project types to verification tools (lint, typecheck, test, security, build, format, compliance). CI metadata per language.
+Data structure mapping 33 project types to verification tools (see REQ-TLR-001 through REQ-TLR-004). CI metadata per language (see REQ-TLR-002).
 
 ### Importer (`importer.py`)
-Detection engine: walks directories, detects language/build/test/CI/governance. Infers ProjectType. Generates overlay files.
+Detection engine: walks directories, detects language/build/test/CI/governance (see REQ-IMP-001 through REQ-IMP-006). Infers ProjectType. Generates overlay files with cross-linked TEST/REQ stubs (see REQ-IMP-007).
 
 ### Exporter (`exporter.py`)
-Generates compliance reports: REQ coverage matrix, audit summary, tool status, governance inventory.
+Generates compliance reports: REQ coverage matrix, audit summary, tool status, governance inventory (see REQ-EXP-001 through REQ-EXP-005).
 
 ### Auditor (`auditor.py`)
-Health checks: file existence, REQ↔TEST coverage, ledger health, governance size, tool configuration.
+Health checks: file existence, REQ↔TEST coverage (see REQ-AUD-001 through REQ-AUD-008), ledger health, governance size, tool configuration, trace chain integrity.
 
 ### VCS Platforms (`vcs/`)
-GitHub, GitLab, Bitbucket integrations. Tool-aware CI config generation, dependency management, status checks.
+GitHub, GitLab, Bitbucket integrations (see REQ-VCS-001 through REQ-VCS-004). Tool-aware CI config generation, dependency management, status checks.
 
 ### Agent Integrations (`integrations/`)
-7 adapters: Warp, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
+7 adapters: Warp, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider (see REQ-INT-001 through REQ-INT-005).
 
 ## Epistemic Layer (`src/epistemic/` + `src/specsmith/agent/`)
 

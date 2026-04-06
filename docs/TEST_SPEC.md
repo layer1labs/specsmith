@@ -352,3 +352,189 @@
   Covers: REQ-AGT-007
 - **TEST-AGT-004**: `HookRegistry` fires H13 warning when AEE tool called
   Covers: REQ-AGT-008, REQ-AGT-009
+- **TEST-AGT-005**: `specsmith run --task` executes single task and returns output
+  Covers: REQ-AGT-002
+- **TEST-AGT-006**: `specsmith run` auto-detects provider from SPECSMITH_PROVIDER env var
+  Covers: REQ-AGT-004
+- **TEST-AGT-007**: All provider extras are optional; no error if not installed
+  Covers: REQ-AGT-005
+- **TEST-AGT-008**: `specsmith agent providers` lists provider status
+  Covers: REQ-AGT-010
+
+### Certainty Engine (additional)
+
+- **TEST-CRT-006**: `CertaintyEngine` threshold is configurable via constructor
+  Covers: REQ-CRT-005
+
+### Trace Vault (additional)
+
+- **TEST-TRC-004**: `CryptoAuditChain` stores entry_hash in ledger-chain.txt
+  Covers: REQ-TRC-003
+- **TEST-TRC-005**: `specsmith trace seal` creates SealRecord in .specsmith/trace.jsonl
+  Covers: REQ-TRC-005
+
+### epistemic Library (additional)
+
+- **TEST-EPI-005**: `epistemic` package has `py.typed` marker file
+  Covers: REQ-EPI-007
+
+### Failure-Mode Graph (additional)
+
+- **TEST-FMG-006**: `FailureModeGraph` builds edges from `BeliefArtifact.inferential_links`
+  Covers: REQ-FMG-005
+
+### Recovery Operator
+
+- **TEST-RCV-001**: `RecoveryOperator.propose()` returns list sorted by severity
+  Covers: REQ-RCV-001, REQ-RCV-003
+- **TEST-RCV-002**: `RecoveryProposal` objects are not auto-applied
+  Covers: REQ-RCV-002
+- **TEST-RCV-003**: `RecoveryOperator` generates proposals for Logic Knots
+  Covers: REQ-RCV-004
+- **TEST-RCV-004**: `format_proposals()` returns human-readable string
+  Covers: REQ-RCV-001
+
+### Auth (#37)
+
+- **TEST-AUTH-001**: `specsmith auth set <platform>` stores token without logging value
+  Covers: REQ-AUTH-001, REQ-AUTH-006
+- **TEST-AUTH-002**: `specsmith auth list` shows masked token, not plaintext
+  Covers: REQ-AUTH-002
+- **TEST-AUTH-003**: `specsmith auth remove <platform>` deletes stored credential
+  Covers: REQ-AUTH-003
+- **TEST-AUTH-004**: `specsmith auth check` reports which platforms have tokens
+  Covers: REQ-AUTH-004
+- **TEST-AUTH-005**: `get_token()` checks env var first, keyring second, file third
+  Covers: REQ-AUTH-005
+- **TEST-AUTH-006**: Token value is never returned in CLI output
+  Covers: REQ-AUTH-006
+
+### Workspace (#17)
+
+- **TEST-WRK-001**: `specsmith workspace init` creates workspace.yml
+  Covers: REQ-WRK-001
+- **TEST-WRK-002**: `specsmith workspace audit` runs audit across all projects
+  Covers: REQ-WRK-002
+- **TEST-WRK-003**: `specsmith workspace export` generates combined report
+  Covers: REQ-WRK-003
+- **TEST-WRK-004**: workspace.yml supports projects list with org-level defaults
+  Covers: REQ-WRK-004
+
+### Watch (#16)
+
+- **TEST-WCH-001**: `specsmith watch` polls project directory and detects drift
+  Covers: REQ-WCH-001
+- **TEST-WCH-002**: watch alerts when LEDGER.md mtime < code file mtime
+  Covers: REQ-WCH-002
+- **TEST-WCH-003**: watch uses polling fallback when watchdog not installed
+  Covers: REQ-WCH-003
+
+### Patent (#10)
+
+- **TEST-PAT-001**: `specsmith patent search` calls USPTO ODP API and returns results
+  Covers: REQ-PAT-001
+- **TEST-PAT-002**: `specsmith patent prior-art` extracts key terms and builds query
+  Covers: REQ-PAT-002
+- **TEST-PAT-003**: Patent commands raise RuntimeError without USPTO_API_KEY
+  Covers: REQ-PAT-003
+- **TEST-PAT-004**: `save_prior_art_report()` writes markdown to prior-art/ directory
+  Covers: REQ-PAT-004
+
+### Auto-Update
+
+- **TEST-AUP-001**: `_maybe_prompt_project_update` checks scaffold.yml spec_version
+  Covers: REQ-AUP-001
+- **TEST-AUP-002**: auto-update prompt offered when spec_version < installed version
+  Covers: REQ-AUP-002
+- **TEST-AUP-003**: SPECSMITH_NO_AUTO_UPDATE=1 suppresses the prompt
+  Covers: REQ-AUP-003
+- **TEST-AUP-004**: auto-update skips meta-commands (update, migrate-project)
+  Covers: REQ-AUP-004
+
+### Credit Hard Cap (#52)
+
+- **TEST-CHC-001**: `CreditBudget.enforcement_mode` field defaults to 'soft'
+  Covers: REQ-CHC-001
+- **TEST-CHC-002**: `specsmith credits check` shows spend vs budget with bar
+  Covers: REQ-CHC-002
+- **TEST-CHC-003**: Hard cap exits with code 2 when monthly cap exceeded
+  Covers: REQ-CHC-003
+- **TEST-CHC-004**: `specsmith credits budget --enforcement hard` sets hard mode
+  Covers: REQ-CHC-004
+
+### Scaffolder Epistemic
+
+- **TEST-SCF-EPI-001**: `specsmith init` with epistemic-pipeline renders epistemic templates
+  Covers: REQ-SCF-EPI-001
+- **TEST-SCF-EPI-002**: `enable_epistemic=true` in scaffold.yml adds epistemic governance
+  Covers: REQ-SCF-EPI-002
+- **TEST-SCF-EPI-003**: epistemic project types get domain-specific directory structures
+  Covers: REQ-SCF-EPI-003
+
+### Architecture Generation
+
+- **TEST-ARC-001**: `specsmith architect` scans modules and language distribution
+  Covers: REQ-ARC-001
+- **TEST-ARC-002**: `specsmith architect` prompts for components in interactive mode
+  Covers: REQ-ARC-002
+- **TEST-ARC-003**: `specsmith architect --non-interactive` generates without prompts
+  Covers: REQ-ARC-003
+- **TEST-ARC-004**: `specsmith audit --fix` generates architecture.md from scan
+  Covers: REQ-ARC-004
+
+### Credits
+
+- **TEST-CRD-001**: `specsmith credits record` stores entry with model/tokens/cost
+  Covers: REQ-CRD-001
+- **TEST-CRD-002**: `specsmith credits summary` shows aggregate by model and provider
+  Covers: REQ-CRD-002
+- **TEST-CRD-003**: `specsmith credits report` generates markdown report
+  Covers: REQ-CRD-003
+- **TEST-CRD-004**: `specsmith credits analyze` detects inefficiency and waste
+  Covers: REQ-CRD-004
+- **TEST-CRD-005**: `specsmith credits budget` configures cap and watermarks
+  Covers: REQ-CRD-005
+- **TEST-CRD-006**: credit tracking auto-initialized on init with unlimited budget
+  Covers: REQ-CRD-006
+- **TEST-CRD-007**: `.specsmith/` is gitignored in generated projects
+  Covers: REQ-CRD-007
+- **TEST-CRD-008**: session-end checklist includes credit summary
+  Covers: REQ-CRD-008
+- **TEST-CRD-009**: Warp and Claude adapters include credit recording instructions
+  Covers: REQ-CRD-009
+
+### Self-Update
+
+- **TEST-SLF-001**: `specsmith self-update` detects stable vs dev channel from version
+  Covers: REQ-SLF-001
+- **TEST-SLF-002**: `specsmith self-update --channel dev` forces dev channel
+  Covers: REQ-SLF-002
+- **TEST-SLF-003**: `specsmith self-update --version X.Y.Z` pins specific version
+  Covers: REQ-SLF-003
+
+### Templates
+
+- **TEST-TPL-005**: .gitattributes template includes type-specific patterns for 33 project types
+  Covers: REQ-TPL-005
+- **TEST-TPL-006**: .gitignore template includes type-specific patterns for 33 project types
+  Covers: REQ-TPL-006
+- **TEST-TPL-007**: .editorconfig template includes type-specific indent/EOL settings
+  Covers: REQ-TPL-007
+- **TEST-TPL-008**: Yocto language detection includes .bbclass, .inc, .dts, .dtsi
+  Covers: REQ-TPL-008
+
+### Migration
+
+- **TEST-UPD-009**: `specsmith update --yes` installs without confirmation
+  Covers: REQ-UPD-002
+- **TEST-UPD-010**: `specsmith update` triggers migrate-project after successful update
+  Covers: REQ-UPD-003
+- **TEST-UPD-011**: `specsmith migrate-project` preserves existing REQs and ledger entries
+  Covers: REQ-UPD-006
+
+### Workflow Logic (additional)
+
+- **TEST-WFL-009**: `specsmith update --check` runs at session start and proposes update
+  Covers: REQ-WFL-007
+- **TEST-WFL-010**: `specsmith session-end` reports unpushed commits and dirty files
+  Covers: REQ-WFL-008

@@ -45,12 +45,11 @@ and local Ollama models.
 
 ## Governance
 This project follows its own specification. See:
-- [Rules](docs/governance/rules.md) — hard rules and stop conditions
-- [Workflow](docs/governance/workflow.md) — session lifecycle
-- [Roles](docs/governance/roles.md) — agent role boundaries
-- [Context budget](docs/governance/context-budget.md) — token optimization
-- [Verification](docs/governance/verification.md) — acceptance criteria
-- [Drift metrics](docs/governance/drift-metrics.md) — health signals
+- [Agent Workflow Specification](docs/AGENT-WORKFLOW-SPEC.md) — the full spec (H1–H13, session lifecycle, proposal format, ledger format)
+- [Epistemic Axioms](docs/governance/epistemic-axioms.md) — AEE axioms applied to specsmith
+
+Note: modular governance files are not generated for specsmith's own repo since
+AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if needed.
 
 ## Tech Stack
 - CLI: click

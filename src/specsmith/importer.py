@@ -947,11 +947,20 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         if result.readme_summary
         else f"Imported {result.primary_language or 'project'} library"
     )
+    # Write the installed specsmith version as spec_version so the generated
+    # scaffold.yml immediately matches the tool and the auto-update prompt
+    # never fires unnecessarily on first use.
+    try:
+        from specsmith import __version__ as _installed_ver
+        spec_version = _installed_ver
+    except Exception:  # noqa: BLE001
+        spec_version = "0.3.0"  # safe fallback
     return ProjectConfig(
         name=result.root.name,
         type=result.inferred_type or ProjectType.CLI_PYTHON,
         platforms=[Platform.WINDOWS, Platform.LINUX, Platform.MACOS],
         language=result.primary_language or "python",
+        spec_version=spec_version,
         description=description,
         git_init=False,  # Already has git
         vcs_platform=result.vcs_platform,
