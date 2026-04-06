@@ -113,8 +113,8 @@ module = [
     "anthropic.*",
     "openai",
     "openai.*",
-    "google.generativeai",
-    "google.generativeai.*",
+    "google",
+    "google.*",
     "keyring",
     "keyring.*",
 ]
