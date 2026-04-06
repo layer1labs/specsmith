@@ -320,26 +320,23 @@ class AgentRunner:
         return final_response
 
     def _call_provider(self, messages: list[Message], silent: bool = False) -> CompletionResponse:
-        """Call the LLM provider, streaming if enabled."""
-        provider: Any = self._provider  # provider is typed as Any at runtime for flexibility
-        if self._stream and not silent:
-            # Stream the response
+        """Call the LLM provider, streaming if enabled.
+
+        Streaming is disabled when tools are registered because the streaming
+        path cannot reliably capture tool_call blocks from the response.
+        Non-streaming is always used for tool-bearing turns.
+        """
+        provider: Any = self._provider
+        use_stream = self._stream and not silent and not self._tools
+        if use_stream:
             accumulated = ""
-            for token in provider.stream(messages, tools=self._tools):
+            for token in provider.stream(messages, tools=None):
                 if token.text:
                     self._print(token.text, end="", flush=True)
                     accumulated += token.text
                 if token.is_final:
                     self._print()
-            # Re-call non-streaming for tool detection (some providers don't support tool streaming)
-            # For now, do a second call if we didn't get tool calls
-            if not accumulated.strip():
-                return cast(CompletionResponse, provider.complete(messages, tools=self._tools))
-            # Return a synthetic response with the streamed content
-            return CompletionResponse(
-                content=accumulated,
-                model=str(provider.model),
-            )
+            return CompletionResponse(content=accumulated, model=str(provider.model))
         else:
             response = cast(CompletionResponse, provider.complete(messages, tools=self._tools))
             if not silent and response.content:

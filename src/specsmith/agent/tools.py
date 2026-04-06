@@ -16,6 +16,10 @@ Tool categories:
 
 from __future__ import annotations
 
+import fnmatch
+import os
+import platform
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -316,6 +320,100 @@ def build_tool_registry(project_dir: str = ".") -> list[Tool]:
             ],
             handler=lambda path, lines="": _read_file_handler(pd, path, lines),
         ),
+        # ----------------------------------------------------------------
+        # File system write tools
+        # ----------------------------------------------------------------
+        Tool(
+            name="write_file",
+            description=(
+                "Write content to a file (creates or overwrites). "
+                "Use for editing source code, docs, config files, etc. "
+                "Path is relative to project root."
+            ),
+            params=[
+                ToolParam("path", "File path relative to project root"),
+                ToolParam("content", "Full content to write to the file"),
+            ],
+            handler=lambda path, content: _write_file_handler(pd, path, content),
+        ),
+        Tool(
+            name="list_dir",
+            description=(
+                "List files and directories. Shows names, sizes, and types. "
+                "Use to explore project structure before reading files."
+            ),
+            params=[
+                ToolParam(
+                    "path",
+                    "Directory path relative to project root (default: root)",
+                    required=False,
+                ),
+                ToolParam(
+                    "pattern",
+                    "Glob pattern to filter (e.g. '*.py', '*.md')",
+                    required=False,
+                ),
+            ],
+            handler=lambda path=".", pattern="": _list_dir_handler(pd, path, pattern),
+        ),
+        Tool(
+            name="grep_files",
+            description=(
+                "Search for a regex pattern across files in the project. "
+                "Returns matching lines with file:line references. "
+                "Essential for finding where things are defined or used."
+            ),
+            params=[
+                ToolParam("pattern", "Regex pattern to search for"),
+                ToolParam(
+                    "path",
+                    "Directory or file to search (relative to root, default: root)",
+                    required=False,
+                ),
+                ToolParam(
+                    "glob",
+                    "File glob filter e.g. '*.py' (default: all text files)",
+                    required=False,
+                ),
+                ToolParam(
+                    "ignore_case",
+                    "'true' for case-insensitive search",
+                    required=False,
+                ),
+            ],
+            handler=lambda pattern, path=".", glob="", ignore_case="false": _grep_handler(
+                pd, pattern, path, glob, ignore_case
+            ),
+        ),
+        # ----------------------------------------------------------------
+        # Shell execution — the most powerful tool
+        # ----------------------------------------------------------------
+        Tool(
+            name="run_command",
+            description=(
+                "Execute a shell command in the project directory and return stdout+stderr. "
+                "Use for: running tests (pytest), linting (ruff), building, git operations, "
+                "installing packages, checking file contents with CLI tools, anything. "
+                "Cross-platform: automatically uses PowerShell on Windows, bash on Linux/macOS. "
+                "Commands run with a 120-second timeout."
+            ),
+            params=[
+                ToolParam("command", "The shell command to execute"),
+                ToolParam(
+                    "working_dir",
+                    "Working directory relative to project root (default: root)",
+                    required=False,
+                ),
+                ToolParam(
+                    "timeout",
+                    "Timeout in seconds (default 120, max 300)",
+                    required=False,
+                ),
+            ],
+            handler=lambda command, working_dir=".", timeout="120": _run_command_handler(
+                pd, command, working_dir, timeout
+            ),
+        ),
     ]
 
     return tools
@@ -346,6 +444,208 @@ def _read_file_handler(project_dir: str, path: str, lines: str = "") -> str:
         if len(content) > 8000:
             content = content[:8000] + "\n...(truncated at 8000 chars, file has more)"
         return content
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {e}"
+
+
+def _write_file_handler(project_dir: str, path: str, content: str) -> str:
+    """Write content to a file within the project directory."""
+    root = Path(project_dir).resolve()
+    target = (root / path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return f"[ERROR] Path '{path}' is outside the project directory"
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        size = len(content.encode("utf-8"))
+        lines = content.count("\n") + 1
+        return f"Written: {path} ({lines} lines, {size} bytes)"
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {e}"
+
+
+def _list_dir_handler(project_dir: str, path: str = ".", pattern: str = "") -> str:
+    """List directory contents within the project."""
+    root = Path(project_dir).resolve()
+    target = (root / path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return f"[ERROR] Path '{path}' is outside the project directory"
+    if not target.exists():
+        return f"[NOT FOUND] {path}"
+    if not target.is_dir():
+        return f"[NOT A DIR] {path}"
+    try:
+        entries = sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+        lines = []
+        for entry in entries:
+            if pattern and not fnmatch.fnmatch(entry.name, pattern):
+                continue
+            if entry.is_dir():
+                lines.append(f"  {'DIR':>6}  {entry.name}/")
+            else:
+                size = entry.stat().st_size
+                size_str = f"{size:,}" if size < 1_000_000 else f"{size // 1024:,}K"
+                lines.append(f"  {size_str:>6}  {entry.name}")
+        header = f"{path}/" if not path.endswith("/") else path
+        return f"{header}\n" + "\n".join(lines) if lines else f"{header} (empty)"
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {e}"
+
+
+def _grep_handler(
+    project_dir: str,
+    pattern: str,
+    path: str = ".",
+    glob: str = "",
+    ignore_case: str = "false",
+) -> str:
+    """Search for a regex pattern in files within the project."""
+    root = Path(project_dir).resolve()
+    target = (root / path).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return f"[ERROR] Path '{path}' is outside the project directory"
+
+    flags = re.IGNORECASE if ignore_case.lower() == "true" else 0
+    try:
+        compiled = re.compile(pattern, flags)
+    except re.error as e:
+        return f"[ERROR] Invalid regex: {e}"
+
+    _TEXT_EXTENSIONS = {
+        ".py",
+        ".md",
+        ".txt",
+        ".yml",
+        ".yaml",
+        ".toml",
+        ".json",
+        ".js",
+        ".ts",
+        ".html",
+        ".css",
+        ".sh",
+        ".ps1",
+        ".cmd",
+        ".bat",
+        ".rs",
+        ".go",
+        ".c",
+        ".cpp",
+        ".h",
+        ".java",
+        ".rb",
+        ".php",
+        ".tf",
+        ".ini",
+        ".cfg",
+        ".conf",
+    }
+    _SKIP_DIRS = {".git", "__pycache__", ".venv", "node_modules", ".mypy_cache", "dist", "build"}
+
+    results: list[str] = []
+    files_searched = 0
+
+    def search_file(fp: Path) -> None:
+        nonlocal files_searched
+        if glob and not fnmatch.fnmatch(fp.name, glob):
+            return
+        if not glob and fp.suffix.lower() not in _TEXT_EXTENSIONS:
+            return
+        try:
+            text = fp.read_text(encoding="utf-8", errors="ignore")
+            files_searched += 1
+            rel = fp.relative_to(root)
+            for i, line in enumerate(text.splitlines(), 1):
+                if compiled.search(line):
+                    results.append(f"{rel}:{i}: {line.rstrip()}")
+                    if len(results) >= 200:
+                        return
+        except Exception:  # noqa: BLE001
+            pass
+
+    if target.is_file():
+        search_file(target)
+    else:
+        for dirpath, dirnames, filenames in os.walk(target):
+            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+            for fname in sorted(filenames):
+                search_file(Path(dirpath) / fname)
+                if len(results) >= 200:
+                    break
+            if len(results) >= 200:
+                break
+
+    if not results:
+        return f"No matches for '{pattern}' in {files_searched} file(s) searched."
+    summary = f"{len(results)} match(es) across {files_searched} file(s):"
+    if len(results) >= 200:
+        summary += " (truncated at 200)"
+    return summary + "\n" + "\n".join(results)
+
+
+def _run_command_handler(
+    project_dir: str,
+    command: str,
+    working_dir: str = ".",
+    timeout: str = "120",
+) -> str:
+    """Execute a shell command and return combined stdout+stderr."""
+    root = Path(project_dir).resolve()
+    cwd = (root / working_dir).resolve()
+    try:
+        cwd.relative_to(root)
+    except ValueError:
+        return f"[ERROR] working_dir '{working_dir}' is outside the project directory"
+
+    try:
+        timeout_secs = min(int(timeout), 300)
+    except (ValueError, TypeError):
+        timeout_secs = 120
+
+    # Choose shell based on platform
+    is_windows = platform.system() == "Windows"
+    if is_windows:
+        shell_cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", command]
+    else:
+        shell_cmd = ["bash", "-c", command]
+
+    try:
+        result = subprocess.run(
+            shell_cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(cwd),
+            timeout=timeout_secs,
+        )
+        output = (result.stdout + result.stderr).strip()
+        exit_info = f"[exit {result.returncode}]" if result.returncode != 0 else "[exit 0]"
+        if len(output) > 12000:
+            output = output[:12000] + f"\n...(truncated, {len(output)} total chars)"
+        return f"{exit_info}\n{output}" if output else exit_info
+    except subprocess.TimeoutExpired:
+        return f"[TIMEOUT] Command exceeded {timeout_secs}s"
+    except FileNotFoundError:
+        # Shell not found (e.g. bash on Windows) — fall back
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                cwd=str(cwd),
+                timeout=timeout_secs,
+                shell=True,  # noqa: S602
+            )
+            output = (result.stdout + result.stderr).strip()
+            rc = result.returncode
+            return f"[exit {rc}]\n{output}" if output else f"[exit {rc}]"
+        except Exception as e2:  # noqa: BLE001
+            return f"[ERROR] {e2}"
     except Exception as e:  # noqa: BLE001
         return f"[ERROR] {e}"
 

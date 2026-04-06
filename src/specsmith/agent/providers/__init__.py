@@ -37,7 +37,7 @@ def get_provider(
     """Get a configured LLM provider.
 
     Args:
-        provider_name: "anthropic", "openai", "gemini", "ollama", or None (auto-detect)
+        provider_name: "anthropic", "openai", "gemini", "mistral", "ollama", or None (auto-detect)
         model: specific model name, or None (use tier default)
         tier: ModelTier.FAST / BALANCED / POWERFUL
         base_url: override API base URL (for OpenAI-compatible proxies)
@@ -76,6 +76,13 @@ def get_provider(
             model=resolved_model or "gemini-2.5-pro",
             api_key=api_key or os.environ.get("GOOGLE_API_KEY", ""),
         )
+    elif provider_name == "mistral":
+        from specsmith.agent.providers.mistral import MistralProvider
+
+        return MistralProvider(
+            model=resolved_model or "mistral-large-latest",
+            api_key=api_key or os.environ.get("MISTRAL_API_KEY", ""),
+        )
     elif provider_name == "ollama":
         from specsmith.agent.providers.ollama import OllamaProvider
 
@@ -85,7 +92,7 @@ def get_provider(
         )
     else:
         raise ValueError(
-            f"Unknown provider '{provider_name}'. Valid: anthropic, openai, gemini, ollama"
+            f"Unknown provider '{provider_name}'. Valid: anthropic, openai, gemini, mistral, ollama"
         )
 
 
@@ -101,6 +108,8 @@ def _auto_detect_provider() -> str:
         return "openai"
     if os.environ.get("GOOGLE_API_KEY"):
         return "gemini"
+    if os.environ.get("MISTRAL_API_KEY"):
+        return "mistral"
 
     # Try Ollama (no API key needed)
     import urllib.request
@@ -126,6 +135,7 @@ def list_providers() -> list[dict[str, str]]:
         ("anthropic", "ANTHROPIC_API_KEY"),
         ("openai", "OPENAI_API_KEY"),
         ("gemini", "GOOGLE_API_KEY"),
+        ("mistral", "MISTRAL_API_KEY"),
         ("ollama", ""),
     ]:
         if name == "ollama":

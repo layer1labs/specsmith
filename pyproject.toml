@@ -55,9 +55,10 @@ docs = [
     "mkdocs-material>=9.5",
 ]
 # LLM provider extras for specsmith run (agentic client)
-anthopic = ["anthropic>=0.56"]
+anthropic = ["anthropic>=0.56"]
 openai = ["openai>=1.0"]
 gemini = ["google-generativeai>=0.8"]
+mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.ai
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
 # Convenience bundle: everything
