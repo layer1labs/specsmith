@@ -14,6 +14,8 @@ import urllib.request
 from collections.abc import Iterator
 from typing import Any
 
+import os
+
 from specsmith.agent.core import (
     CompletionResponse,
     Message,
@@ -23,7 +25,12 @@ from specsmith.agent.core import (
 
 
 class OllamaProvider:
-    """Ollama local LLM provider. Works with llama3.3, qwen2.5, phi4, etc."""
+    """Ollama local LLM provider. Works with llama3.3, qwen2.5, phi4, etc.
+
+    Context length (num_ctx) is controlled by the SPECSMITH_OLLAMA_NUM_CTX
+    environment variable. Default 4096; set higher for larger context windows.
+    The VS Code extension auto-detects GPU VRAM and sets this appropriately.
+    """
 
     provider_name = "ollama"
 
@@ -34,6 +41,8 @@ class OllamaProvider:
     ) -> None:
         self.model = model
         self._base_url = base_url.rstrip("/")
+        # Context window size: env var, default 4096
+        self._num_ctx: int = int(os.environ.get("SPECSMITH_OLLAMA_NUM_CTX", "4096"))
 
     def is_available(self) -> bool:
         try:
@@ -60,7 +69,7 @@ class OllamaProvider:
             "model": self.model,
             "messages": [m.to_dict() for m in messages],
             "stream": False,
-            "options": {"num_predict": max_tokens},
+            "options": {"num_predict": max_tokens, "num_ctx": self._num_ctx},
         }
         data = self._post("/api/chat", payload)
         content = data.get("message", {}).get("content", "")
