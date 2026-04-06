@@ -42,6 +42,7 @@ from specsmith.agent.core import (
     ToolResult,
 )
 from specsmith.agent.hooks import HookContext, HookRegistry, HookTrigger
+from specsmith.agent.optimizer import OptimizationConfig, OptimizationEngine
 from specsmith.agent.skills import Skill, format_skills_context, load_skills
 from specsmith.agent.tools import build_tool_registry, get_tool_by_name
 
@@ -181,6 +182,8 @@ class AgentRunner:
         tier: ModelTier = ModelTier.BALANCED,
         stream: bool = True,
         max_tool_iterations: int = 10,
+        optimize: bool = False,
+        optimization_config: OptimizationConfig | None = None,
     ) -> None:
         self.project_dir = str(Path(project_dir).resolve())
         self._provider_name = provider_name
@@ -195,6 +198,16 @@ class AgentRunner:
         self._skills: list[Skill] = load_skills(Path(self.project_dir))
         self._hooks = HookRegistry()
         self._system_prompt = ""
+
+        # Token / credit optimization engine (opt-in)
+        self._optimizer: OptimizationEngine | None = (
+            OptimizationEngine(
+                config=optimization_config or OptimizationConfig(),
+                project_dir=self.project_dir,
+            )
+            if optimize
+            else None
+        )
 
     def _ensure_provider(self) -> None:
         """Lazy-initialize the LLM provider."""
@@ -320,14 +333,36 @@ class AgentRunner:
         return final_response
 
     def _call_provider(self, messages: list[Message], silent: bool = False) -> CompletionResponse:
-        """Call the LLM provider, streaming if enabled.
+        """Call the LLM provider with optimization engine pre/post hooks.
 
-        Streaming is disabled when tools are registered because the streaming
-        path cannot reliably capture tool_call blocks from the response.
-        Non-streaming is always used for tool-bearing turns.
+        Streaming is disabled when tools are registered (streaming drops tool_call blocks).
+        When an OptimizationEngine is active, pre_call() may return a cache hit
+        or transform messages/model/tools before the actual provider call.
         """
         provider: Any = self._provider
-        use_stream = self._stream and not silent and not self._tools
+        tools = self._tools
+        model = str(provider.model)
+        provider_name = str(getattr(provider, "provider_name", ""))
+
+        # ── Optimization pre-call ────────────────────────────────────────────
+        hint = None
+        if self._optimizer is not None:
+            hint = self._optimizer.pre_call(messages, tools, model, provider_name)
+            if hint.cache_hit:
+                # Serve from cache — no API call needed
+                if not silent and hint.cached_response:
+                    self._print(f"[cache] {hint.cached_response[:60]}...")
+                return CompletionResponse(
+                    content=hint.cached_response,
+                    model=model,
+                )
+            # Apply routing: switch model if engine suggests cheaper tier
+            if hint.model and hint.model != model:
+                provider.model = hint.model
+            messages = hint.messages
+            tools = hint.tools
+
+        use_stream = self._stream and not silent and not tools
         if use_stream:
             accumulated = ""
             for token in provider.stream(messages, tools=None):
@@ -336,12 +371,28 @@ class AgentRunner:
                     accumulated += token.text
                 if token.is_final:
                     self._print()
-            return CompletionResponse(content=accumulated, model=str(provider.model))
+            response = CompletionResponse(content=accumulated, model=str(provider.model))
         else:
-            response = cast(CompletionResponse, provider.complete(messages, tools=self._tools))
+            response = cast(CompletionResponse, provider.complete(messages, tools=tools))
             if not silent and response.content:
                 self._print(response.content)
-            return response
+
+        # ── Optimization post-call ───────────────────────────────────────────
+        if self._optimizer is not None and hint is not None:
+            self._optimizer.post_call(
+                hint,
+                response=response.content or "",
+                in_tokens=response.input_tokens,
+                out_tokens=response.output_tokens,
+                cost_usd=response.estimated_cost_usd,
+                provider=provider_name,
+                model=str(provider.model),
+            )
+            # Restore original model for next call
+            if hint.original_model:
+                provider.model = hint.original_model
+
+        return response
 
     def _execute_tool_calls(
         self, tool_calls: list[dict[str, Any]], silent: bool = False

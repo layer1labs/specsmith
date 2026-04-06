@@ -539,6 +539,35 @@
 - **TEST-WFL-010**: `specsmith session-end` reports unpushed commits and dirty files
   Covers: REQ-WFL-008
 
+### Token & Credit Optimization
+
+- **TEST-OPT-001**: `TokenEstimator.estimate()` returns positive int for non-empty text; GPT-4 uses 0.25 tokens/char ratio
+  Covers: REQ-OPT-001
+- **TEST-OPT-002**: `TokenEstimator.estimate_cost()` returns expected USD for known token counts and provider
+  Covers: REQ-OPT-001
+- **TEST-OPT-003**: `ResponseCache.get()` returns None on cold cache; returns response string on warm hit
+  Covers: REQ-OPT-002
+- **TEST-OPT-004**: `ResponseCache` records tokens_saved and cost_saved on cache hit
+  Covers: REQ-OPT-002
+- **TEST-OPT-005**: `ResponseCache` expires entries after TTL seconds
+  Covers: REQ-OPT-003
+- **TEST-OPT-006**: `ContextManager.trim()` returns fewer messages when total tokens exceed max_tokens
+  Covers: REQ-OPT-004
+- **TEST-OPT-007**: `ContextManager.trim()` always preserves system message
+  Covers: REQ-OPT-004
+- **TEST-OPT-008**: `ContextManager.needs_summarization()` returns True when history exceeds summarize_threshold
+  Covers: REQ-OPT-005
+- **TEST-OPT-009**: `ModelRouter.classify()` returns FAST for short/simple inputs, POWERFUL for code/architecture keywords
+  Covers: REQ-OPT-006
+- **TEST-OPT-010**: `ModelRouter.suggest_model()` returns haiku/mini/flash for FAST tier per provider
+  Covers: REQ-OPT-007
+- **TEST-OPT-011**: `ToolFilter.select()` returns subset of tools; governance tools ranked higher for audit-related tasks
+  Covers: REQ-OPT-008
+- **TEST-OPT-012**: `OptimizationEngine.pre_call()` returns cache hit and skips model call when response is cached
+  Covers: REQ-OPT-009
+- **TEST-OPT-013**: `OptimizationReport` accumulates correct cache_hits and tokens_saved across multiple calls
+  Covers: REQ-OPT-010
+
 ### GUI Workbench
 
 - **TEST-GUI-001**: `specsmith gui` command is registered and exits cleanly when PySide6 not installed

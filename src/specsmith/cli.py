@@ -1948,6 +1948,13 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
 @click.option(
     "--no-stream", "no_stream", is_flag=True, default=False, help="Disable streaming output."
 )
+@click.option(
+    "--optimize",
+    "optimize",
+    is_flag=True,
+    default=False,
+    help="Enable token optimization (caching, routing, context trim, tool filtering).",
+)
 def run_cmd(
     project_dir: str,
     task: str,
@@ -1955,6 +1962,7 @@ def run_cmd(
     model: str | None,
     tier: str,
     no_stream: bool,
+    optimize: bool,
 ) -> None:
     """Start the AEE-integrated agentic client REPL.
 
@@ -1985,12 +1993,16 @@ def run_cmd(
             model=model,
             tier=tier_map[tier],
             stream=not no_stream,
+            optimize=optimize,
         )
         if task:
             result = runner.run_task(task)
             console.print(result)
         else:
             runner.run_interactive()
+        if optimize and runner._optimizer:
+            report = runner._optimizer.report()
+            console.print(f"\n[dim]{report.summary()}[/dim]")
     except Exception as e:  # noqa: BLE001
         console.print(f"[red]{e}[/red]")
         console.print(
@@ -2918,6 +2930,118 @@ def credits_check_cmd(project_dir: str) -> None:
 
     for alert in summary.alerts:
         console.print(f"  [yellow]\u26a0[/yellow] {alert}")
+
+
+# ---------------------------------------------------------------------------
+# Token Optimization
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="optimize")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default="anthropic",
+    help="Provider to estimate savings for (anthropic, openai, gemini, mistral).",
+)
+@click.option(
+    "--model",
+    default="",
+    help="Model to estimate savings for (default: provider default).",
+)
+def optimize_cmd(project_dir: str, provider_name: str, model: str) -> None:
+    """Analyse token usage and estimate monthly credit savings.
+
+    Reads .specsmith/credits.json usage history, applies optimization
+    model, and prints a report with projected savings and recommendations.
+
+    Strategies modelled: response caching (30-70%), model routing (40-60%),
+    context trimming (20%), prompt caching (50-90% on Anthropic).
+    """
+    from specsmith.agent.optimizer import (
+        ComplexityTier,
+        ModelRouter,
+        estimate_session_savings,
+    )
+    from specsmith.credits import get_summary
+
+    root = Path(project_dir).resolve()
+    summary = get_summary(root)
+
+    # Derive session-level averages from credit history
+    sessions = max(1, summary.session_count)
+    total_in = summary.total_tokens_in or 1000
+    total_out = summary.total_tokens_out or 300
+    avg_in = total_in // sessions
+    avg_out = total_out // sessions
+
+    # Pick best model name
+    router = ModelRouter()
+    resolved_model = model or router.suggest_model(provider_name, ComplexityTier.BALANCED)
+
+    est = estimate_session_savings(
+        provider=provider_name,
+        model=resolved_model,
+        total_calls=sessions,
+        avg_input_tokens=avg_in,
+        avg_output_tokens=avg_out,
+    )
+
+    console.print("\n[bold]Token & Credit Optimization Report[/bold]\n")
+    console.print(f"  Provider:            {provider_name} / {resolved_model}")
+    console.print(f"  Sessions analysed:   {sessions}")
+    console.print(f"  Avg input tokens:    {avg_in:,}")
+    console.print(f"  Avg output tokens:   {avg_out:,}")
+    console.print()
+    console.print(f"  Baseline / month:    [yellow]${est['baseline_usd']:.2f}[/yellow]")
+    console.print()
+    console.print("  [bold]Projected savings:[/bold]")
+    console.print(
+        f"    Response caching (30%+ hit rate):  [green]+${est['cache_savings_usd']:.2f}/mo[/green]"
+    )
+    routing_val = est["routing_savings_usd"]
+    console.print(f"    Model routing (40% FAST tasks):    [green]+${routing_val:.2f}/mo[/green]")
+    console.print(
+        f"    Context trimming (~20% reduction): [green]+${est['trim_savings_usd']:.2f}/mo[/green]"
+    )
+    if provider_name == "anthropic":
+        prompt_cache_savings = est["baseline_usd"] * 0.45  # 90% on cached reads, ~50% of calls
+        console.print(
+            f"    Anthropic prompt caching (90%):    [green]+${prompt_cache_savings:.2f}/mo[/green]"
+        )
+        est["total_savings_usd"] = round(est["total_savings_usd"] + prompt_cache_savings, 2)
+        est["savings_pct"] = min(
+            95, round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1)
+        )
+
+    console.print()
+    console.print(
+        f"  [bold green]Total estimated saving:  "
+        f"${est['total_savings_usd']:.2f}/mo ({est['savings_pct']:.0f}%)[/bold green]"
+    )
+
+    # Recommendations
+    console.print("\n[bold]Recommendations:[/bold]")
+    console.print("  1. Run specsmith with --optimize flag: [bold]specsmith run --optimize[/bold]")
+    console.print("  2. Anthropic users get 90% discount on cached system prompts (auto-enabled).")
+    console.print(
+        "  3. Use [bold]specsmith run --provider anthropic --model claude-haiku-4-5[/bold]"
+        " for simple governance queries."
+    )
+    console.print(
+        "  4. Run [bold]/clear[/bold] every 20-30 turns to reset context and avoid "
+        "compounding history costs."
+    )
+    console.print(
+        "  5. Batch tool calls where possible — one audit + validate + doctor costs less"
+        " than three separate calls."
+    )
 
 
 # ---------------------------------------------------------------------------

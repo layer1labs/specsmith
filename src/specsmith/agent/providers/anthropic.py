@@ -21,13 +21,24 @@ from specsmith.agent.core import (
 
 
 class AnthropicProvider:
-    """Anthropic Claude provider. Supports claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5."""
+    """Anthropic Claude provider. Supports claude-opus-4-5, claude-sonnet-4-5, claude-haiku-4-5.
+
+    Set ``prompt_caching=True`` (default) to add ``cache_control: {"type": "ephemeral"}``
+    to the system message, enabling Anthropic\'s 50-90% cached-read discount on
+    repeated system-prompt tokens.
+    """
 
     provider_name = "anthropic"
 
-    def __init__(self, model: str = "claude-sonnet-4-5", api_key: str = "") -> None:
+    def __init__(
+        self,
+        model: str = "claude-sonnet-4-5",
+        api_key: str = "",
+        prompt_caching: bool = True,
+    ) -> None:
         self.model = model
         self._api_key = api_key
+        self._prompt_caching = prompt_caching
         self._client: Any = None
         self._ensure_client()
 
@@ -69,7 +80,19 @@ class AnthropicProvider:
             "messages": filtered,
         }
         if system_msg:
-            kwargs["system"] = system_msg
+            # Prompt caching: mark system prompt as cacheable.
+            # Anthropic charges only 0.1x the base input price for cache reads
+            # (90% discount), making this the single highest-ROI optimisation.
+            if self._prompt_caching:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_msg,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+            else:
+                kwargs["system"] = system_msg
         if tools:
             kwargs["tools"] = [t.to_anthropic_schema() for t in tools]
 
@@ -118,7 +141,16 @@ class AnthropicProvider:
             "messages": filtered,
         }
         if system_msg:
-            kwargs["system"] = system_msg
+            if self._prompt_caching:
+                kwargs["system"] = [
+                    {
+                        "type": "text",
+                        "text": system_msg,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
+            else:
+                kwargs["system"] = system_msg
         if tools:
             kwargs["tools"] = [t.to_anthropic_schema() for t in tools]
 

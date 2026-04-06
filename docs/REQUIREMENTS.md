@@ -306,6 +306,22 @@
 - **REQ-SCF-EPI-002**: `enable_epistemic=true` adds epistemic governance to any project type
 - **REQ-SCF-EPI-003**: Epistemic project types get domain-specific directory structures
 
+## Token & Credit Optimization
+
+- **REQ-OPT-001**: `TokenEstimator` estimates token count from text using per-model character ratios, and estimates cost in USD from token counts and provider pricing tables
+- **REQ-OPT-002**: `ResponseCache` stores LLM responses keyed by SHA-256 hash of (provider, model, serialised messages); returns cached response on hit and records savings
+- **REQ-OPT-003**: `ResponseCache` supports configurable TTL (default 1 h) and optional JSON persistence to `.specsmith/response-cache.json`
+- **REQ-OPT-004**: `ContextManager.trim()` implements a sliding window that drops oldest non-system messages when total estimated tokens exceed `context_max_tokens`
+- **REQ-OPT-005**: `ContextManager` triggers a summarisation recommendation when history token count exceeds `summarize_threshold`
+- **REQ-OPT-006**: `ModelRouter.classify()` assigns a complexity tier (FAST/BALANCED/POWERFUL) to a user message using keyword and length heuristics, with no external API call
+- **REQ-OPT-007**: `ModelRouter.suggest_model()` returns the cheapest default model for a given (provider, tier) pair from a built-in pricing table
+- **REQ-OPT-008**: `ToolFilter.select()` scores available tools against task text and returns only the top-N relevant tools, reducing tool-schema token overhead
+- **REQ-OPT-009**: `OptimizationEngine.pre_call()` applies caching, context trim, model routing, and tool filtering before each LLM call; returns transformed messages, selected model, and an `OptimizationHint`
+- **REQ-OPT-010**: `OptimizationEngine.post_call()` records tokens saved, cache hit/miss, and model routing decision to running `OptimizationReport`
+- **REQ-OPT-011**: `AnthropicProvider` adds `cache_control: {"type": "ephemeral"}` to the system message when `prompt_caching=True`, enabling Anthropic’s 90% cached-read discount
+- **REQ-OPT-012**: `specsmith optimize` CLI command reads `.specsmith/` usage data and emits an `OptimizationReport` with concrete recommendations and projected monthly savings
+- **REQ-OPT-013**: `OptimizationConfig` is serialisable and can be embedded in `scaffold.yml` under `optimization:` to persist settings per project
+
 ## GUI Workbench
 
 - **REQ-GUI-001**: `specsmith gui` launches a cross-platform Qt6 desktop workbench (Windows, Linux, macOS)
