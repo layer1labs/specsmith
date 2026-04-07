@@ -5,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![VS Code Extension](https://img.shields.io/badge/VS%20Code-AEE%20Workbench-4ec9b0?logo=visualstudiocode)](https://github.com/BitConcepts/specsmith-vscode)
 
 **Applied Epistemic Engineering toolkit for AI-assisted development.**
 
@@ -73,6 +74,27 @@ works in any Python 3.10+ project (research, compliance, AI alignment, etc.).
 GPT, Gemini, and local Ollama models, with skills, hooks, and tool loops.
 
 Every governed project follows: **propose → check → execute → verify → record**.
+
+## VS Code Extension
+
+The **specsmith AEE Workbench** VS Code extension brings the full specsmith workflow into your editor:
+
+- **Multi-tab agent sessions** — one independent agent process per project, running in your right-side panel
+- **Live model listing** — fetches current models from Anthropic, OpenAI, Gemini, Mistral, and local Ollama with GPU-aware context sizing
+- **Ollama integration** — browse catalog, download models with progress, GPU VRAM detection, task-based model suggestions
+- **Governance Panel** (`Ctrl+Shift+G`) — scaffold.yml form editor, governance file status, quick actions (audit/validate/doctor), AI prompt palette
+- **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain) via VS Code SecretStorage
+- **Projects sidebar** — full file tree + governance docs for each project, right-click to open agent session
+- **Chat history** — session history saved to `.specsmith/chat/`, replayed on re-open
+
+```
+# In VS Code: Ctrl+Shift+P → specsmith: New Agent Session
+# Panel is on the right side (View → Open Secondary Side Bar)
+```
+
+**[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+
+---
 
 ## Install
 
