@@ -64,7 +64,7 @@ class ProjectType(str, Enum):
 
 
 class Platform(str, Enum):
-    """Target platforms."""
+    """Target platforms (kept for backward compatibility; ProjectConfig now uses list[str])."""
 
     WINDOWS = "windows"
     LINUX = "linux"
@@ -91,9 +91,15 @@ class ProjectConfig(BaseModel):
         default=ProjectType.CLI_PYTHON.value,
         description="Project type. Should match a ProjectType value.",
     )
-    platforms: list[Platform] = Field(
-        default=[Platform.WINDOWS, Platform.LINUX, Platform.MACOS],
-        description="Target platforms",
+    # str instead of Platform enum so FPGA/embedded/cloud targets (e.g. 'embedded',
+    # 'amd-fpga', 'wasm') don't crash pydantic validation. The Platform enum is kept
+    # for backward-compatible imports; use its .value strings as defaults.
+    platforms: list[str] = Field(
+        default=["windows", "linux", "macos"],
+        description=(
+            "Target build platforms. Standard: windows, linux, macos. "
+            "Domain-specific: embedded, cloud, wasm, amd-fpga, intel-fpga, lattice-fpga, etc."
+        ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
     spec_version: str = Field(default="0.3.0", description="Spec version to scaffold from")
@@ -238,7 +244,11 @@ class ProjectConfig(BaseModel):
     @property
     def platform_names(self) -> list[str]:
         """Human-readable platform names."""
-        return [p.value.capitalize() if p != Platform.MACOS else "macOS" for p in self.platforms]
+        def _label(p: str) -> str:
+            if p.lower() == "macos":
+                return "macOS"
+            return p.replace("-", " ").title()
+        return [_label(str(p)) for p in self.platforms]
 
     @property
     def is_epistemic_type(self) -> bool:
