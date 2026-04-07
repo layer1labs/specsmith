@@ -163,6 +163,30 @@ class AgentRunner:
         result = runner.run_task("run audit and fix any issues")
     """
 
+    # Model tier defaults (April 2026) — auto-selected per provider
+    _TIER_MODELS: dict[str, dict[str, str]] = {
+        "anthropic": {
+            "fast": "claude-haiku-4-5",
+            "balanced": "claude-sonnet-4-6",
+            "powerful":  "claude-opus-4-6",
+        },
+        "openai": {
+            "fast": "gpt-4o-mini",
+            "balanced": "gpt-4o",
+            "powerful":  "o4-mini",
+        },
+        "gemini": {
+            "fast": "gemini-2.5-flash",
+            "balanced": "gemini-2.5-flash",
+            "powerful":  "gemini-3.1-pro-preview",
+        },
+        "ollama": {
+            "fast": "llama3.2:latest",
+            "balanced": "qwen3:14b",
+            "powerful":  "qwen3:32b",
+        },
+    }
+
     QUICK_COMMANDS = {
         "start": "Run session start protocol: sync, load AGENTS.md, read last LEDGER.md entries",
         "resume": "Resume from last LEDGER.md entry — summarize state and propose next task",

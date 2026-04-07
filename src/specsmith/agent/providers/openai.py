@@ -21,8 +21,19 @@ from specsmith.agent.core import (
 )
 
 
+def _is_o_series(model: str) -> bool:
+    """Return True for OpenAI o-series reasoning models (o1, o3, o4, o3-mini, o4-mini …).
+
+    These models:
+    - Use the ``developer`` role instead of ``system`` for instructions.
+    - Accept ``max_completion_tokens`` (preferred over the deprecated ``max_tokens``).
+    """
+    import re
+    return bool(re.match(r"o[0-9]", model.lower()))
+
+
 class OpenAIProvider:
-    """OpenAI-compatible provider. Supports GPT-4o, O3, and any compatible API."""
+    """OpenAI-compatible provider. Supports GPT-4o, o-series, and any compatible API."""
 
     provider_name = "openai"
 
@@ -59,17 +70,33 @@ class OpenAIProvider:
         except ImportError:
             return False
 
+    def _adapt_messages(
+        self, messages: list[Message]
+    ) -> list[dict[str, Any]]:
+        """Convert messages to API format, mapping system→developer for o-series."""
+        from specsmith.agent.core import Role
+        adapted: list[dict[str, Any]] = []
+        for m in messages:
+            d = m.to_dict()
+            # o1+ models use 'developer' role for system instructions
+            if m.role == Role.SYSTEM and _is_o_series(self.model):
+                d = {**d, "role": "developer"}
+            adapted.append(d)
+        return adapted
+
     def complete(
         self,
         messages: list[Message],
         tools: list[Tool] | None = None,
         max_tokens: int = 4096,
     ) -> CompletionResponse:
-        msgs = [m.to_dict() for m in messages]
+        msgs = self._adapt_messages(messages)
+        # o-series: use max_completion_tokens (includes reasoning tokens)
+        token_key = "max_completion_tokens" if _is_o_series(self.model) else "max_tokens"
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": msgs,
-            "max_tokens": max_tokens,
+            token_key: max_tokens,
         }
         if tools:
             kwargs["tools"] = [t.to_openai_schema() for t in tools]
@@ -108,11 +135,12 @@ class OpenAIProvider:
         tools: list[Tool] | None = None,
         max_tokens: int = 4096,
     ) -> Iterator[StreamToken]:
-        msgs = [m.to_dict() for m in messages]
+        msgs = self._adapt_messages(messages)
+        token_key = "max_completion_tokens" if _is_o_series(self.model) else "max_tokens"
         kwargs: dict[str, Any] = {
             "model": self.model,
             "messages": msgs,
-            "max_tokens": max_tokens,
+            token_key: max_tokens,
             "stream": True,
         }
         if tools:

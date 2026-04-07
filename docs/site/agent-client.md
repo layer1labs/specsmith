@@ -50,9 +50,16 @@ Use `--tier` to select models by capability:
 
 | Tier | Anthropic | OpenAI | Gemini | Ollama |
 |------|-----------|--------|--------|--------|
-| `fast` | claude-haiku-4-5 | gpt-4o-mini | gemini-2.5-flash | llama3.2:3b |
-| `balanced` (default) | claude-sonnet-4-5 | gpt-4o | gemini-2.5-pro | qwen2.5:14b |
-| `powerful` | claude-opus-4-5 | o3 | gemini-2.5-ultra | qwen2.5:72b |
+| `fast` | claude-haiku-4-5 | gpt-4o-mini | gemini-2.5-flash | llama3.2:latest |
+| `balanced` (default) | claude-sonnet-4-6 | gpt-4o | gemini-2.5-flash | qwen3:14b |
+| `powerful` | claude-opus-4-6 | o4-mini | gemini-3.1-pro-preview | qwen3:32b |
+
+!!! note "Gemini 2.0 Flash deprecation"
+    `gemini-2.0-flash` is being **shut down June 1, 2026**. Migrate to `gemini-2.5-flash` or `gemini-3-flash-preview`.
+
+!!! note "OpenAI o-series"
+    o-series models (o1, o3, o4-mini) use `developer` role instead of `system` role for instructions.
+    specsmith handles this automatically.
 
 From ECC's guidance: use `fast` for routine tasks (ledger entries, doc updates), `balanced` for most coding, `powerful` for architecture decisions and Logic Knot resolution.
 

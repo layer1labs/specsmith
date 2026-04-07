@@ -39,6 +39,7 @@ class CatalogEntry:
 
 
 CATALOG: list[CatalogEntry] = [
+    # ── Tiny (< 3 GB VRAM) ────────────────────────────────────────────────────
     CatalogEntry(
         id="llama3.2:latest",
         name="Llama 3.2 3B",
@@ -50,6 +51,17 @@ CATALOG: list[CatalogEntry] = [
         notes="Tiny & fast, minimal VRAM",
     ),
     CatalogEntry(
+        id="gemma3:4b",
+        name="Gemma 3 4B",
+        vram_gb=3.0,
+        size_gb=3.3,
+        ctx_k=128,
+        tier="Tiny",
+        best_for=["chat", "analysis"],
+        notes="Google Gemma 3, 128K ctx, vision capable",
+    ),
+    # ── Balanced (4–8 GB VRAM) ──────────────────────────────────────────────
+    CatalogEntry(
         id="mistral:latest",
         name="Mistral 7B",
         vram_gb=4.5,
@@ -60,14 +72,14 @@ CATALOG: list[CatalogEntry] = [
         notes="Fast general-purpose",
     ),
     CatalogEntry(
-        id="qwen2.5:7b",
-        name="Qwen 2.5 7B",
+        id="qwen3:7b",
+        name="Qwen 3 7B",
         vram_gb=5.0,
-        size_gb=4.7,
-        ctx_k=32,
+        size_gb=4.9,
+        ctx_k=128,
         tier="Balanced",
         best_for=["coding", "analysis", "requirements"],
-        notes="Best 7B for technical work",
+        notes="Qwen 3 — latest generation, 128K ctx, tool calling",
     ),
     CatalogEntry(
         id="qwen2.5-coder:7b-instruct",
@@ -79,6 +91,7 @@ CATALOG: list[CatalogEntry] = [
         best_for=["code generation", "debugging"],
         notes="Specialized coder model",
     ),
+    # ── Capable (8–12 GB VRAM) ───────────────────────────────────────────────
     CatalogEntry(
         id="gemma3:12b",
         name="Gemma 3 12B",
@@ -87,7 +100,17 @@ CATALOG: list[CatalogEntry] = [
         ctx_k=128,
         tier="Capable",
         best_for=["general", "analysis"],
-        notes="Google open model, 128K ctx",
+        notes="Google Gemma 3, 128K ctx, vision capable",
+    ),
+    CatalogEntry(
+        id="qwen3:14b",
+        name="Qwen 3 14B",
+        vram_gb=9.0,
+        size_gb=9.3,
+        ctx_k=128,
+        tier="Capable",
+        best_for=["coding", "requirements engineering", "analysis"],
+        notes="Qwen 3 — best 14B, 128K ctx, tool calling, AEE workflows",
     ),
     CatalogEntry(
         id="phi4:latest",
@@ -107,7 +130,7 @@ CATALOG: list[CatalogEntry] = [
         ctx_k=32,
         tier="Capable",
         best_for=["coding", "requirements engineering"],
-        notes="Best for AEE workflows",
+        notes="Qwen 2.5 — previous generation, 32K ctx",
     ),
     CatalogEntry(
         id="deepseek-coder-v2:latest",
@@ -117,17 +140,38 @@ CATALOG: list[CatalogEntry] = [
         ctx_k=128,
         tier="Capable",
         best_for=["code generation", "code review"],
-        notes="Top local coding model",
+        notes="Top local coding model, 128K ctx",
+    ),
+    # ── Powerful (16+ GB VRAM) ────────────────────────────────────────────────
+    CatalogEntry(
+        id="qwen3:32b",
+        name="Qwen 3 32B",
+        vram_gb=20.0,
+        size_gb=19.8,
+        ctx_k=128,
+        tier="Powerful",
+        best_for=["complex reasoning", "architecture", "requirements"],
+        notes="Qwen 3 32B — top local quality, 128K ctx",
     ),
     CatalogEntry(
-        id="qwen2.5:32b",
-        name="Qwen 2.5 32B",
-        vram_gb=20.0,
-        size_gb=19.0,
-        ctx_k=32,
+        id="gemma3:27b",
+        name="Gemma 3 27B",
+        vram_gb=18.0,
+        size_gb=16.9,
+        ctx_k=128,
         tier="Powerful",
-        best_for=["complex reasoning", "architecture"],
-        notes="Best quality (high VRAM)",
+        best_for=["general", "analysis", "complex reasoning"],
+        notes="Google Gemma 3 27B, vision capable, 128K ctx",
+    ),
+    CatalogEntry(
+        id="llama3.3:70b",
+        name="Llama 3.3 70B",
+        vram_gb=42.0,
+        size_gb=39.0,
+        ctx_k=128,
+        tier="Powerful",
+        best_for=["complex reasoning", "architecture", "chat"],
+        notes="Llama 3.3 70B — requires high-end GPU (40+ GB VRAM)",
     ),
 ]
 
@@ -259,9 +303,14 @@ def get_installed_models_detail() -> list[dict]:
 
 
 def delete_model(model_id: str) -> bool:
-    """Delete an installed model via the Ollama API. Returns True on success."""
+    """Delete an installed model via the Ollama API. Returns True on success.
+
+    API: DELETE /api/delete   body: {"model": "<name>"}
+    Note: Ollama API uses the field ``model`` (not ``name``) in the request body.
+    """
     import urllib.error
-    payload = json.dumps({"name": model_id}).encode()
+    # Ollama API uses 'model' (not 'name') in the delete request body
+    payload = json.dumps({"model": model_id}).encode()
     req = urllib.request.Request(  # noqa: S310
         f"{OLLAMA_API}/api/delete",
         data=payload,

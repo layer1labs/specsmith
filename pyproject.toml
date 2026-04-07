@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.3.3"
+version = "0.3.4"
 description = "Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines."
 readme = "README.md"
 license = "MIT"
@@ -57,7 +57,10 @@ docs = [
 # LLM provider extras for specsmith run (agentic client)
 anthropic = ["anthropic>=0.56"]
 openai = ["openai>=1.0"]
-gemini = ["google-generativeai>=0.8"]
+# gemini: supports both the new google-genai SDK (GA May 2025, recommended)
+# and the legacy google-generativeai SDK (deprecated Nov 2025, fallback).
+# The provider auto-detects which is installed.
+gemini = ["google-genai>=1.0"]
 mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.ai
 gui = ["PySide6>=6.6"]
 # Install all optional LLM providers
