@@ -3106,6 +3106,175 @@ main.add_command(patent_group)
 
 
 # ---------------------------------------------------------------------------
+# Ollama — local model management
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="ollama")
+def ollama_group() -> None:
+    """Manage Ollama local LLM models."""
+
+
+@ollama_group.command(name="list")
+def ollama_list_cmd() -> None:
+    """List locally installed Ollama models."""
+    from specsmith.ollama_cmds import get_installed_models, is_running
+
+    if not is_running():
+        console.print("[red]\u2717[/red] Ollama is not running. Start it with: [bold]ollama serve[/bold]")
+        raise SystemExit(1)
+
+    models = get_installed_models()
+    if not models:
+        console.print("[yellow]No models installed.[/yellow] Pull one with: specsmith ollama pull <model>")
+        return
+
+    console.print(f"[bold]Installed Ollama Models[/bold] ({len(models)})\n")
+    for m in models:
+        console.print(f"  [green]\u2713[/green] {m}")
+
+
+@ollama_group.command(name="available")
+@click.option("--task", default="", help="Filter by task type (code, requirements, architecture, chat, analysis, reasoning).")
+def ollama_available_cmd(task: str) -> None:
+    """Show models available to download from the curated catalog."""
+    from specsmith.ollama_cmds import CATALOG, get_installed_models, get_vram_gb, recommend_models
+
+    vram = get_vram_gb()
+    installed = set(get_installed_models())
+    recs = recommend_models(vram_gb=vram, task=task)
+
+    header = "[bold]Available Ollama Models[/bold]"
+    if task:
+        header += f" (task: {task})"
+    if vram > 0:
+        header += f" [dim]— GPU VRAM: {vram:.1f} GB[/dim]"
+    else:
+        header += " [dim]— no GPU detected (CPU mode)[/dim]"
+    console.print(header + "\n")
+
+    # Show catalog entries that fit VRAM budget
+    for e in recs:
+        is_inst = any(m.startswith(e.id.split(":")[0]) or m == e.id for m in installed)
+        status = "[green]installed[/green]" if is_inst else f"[dim]{e.size_gb}GB — pull to install[/dim]"
+        console.print(
+            f"  {('[bold]' + e.tier + '[/bold]'):30s}  {e.name:28s}  {status}"
+        )
+        console.print(f"  [dim]{'':<30s}  {', '.join(e.best_for[:2]):<28s}  {e.notes}[/dim]")
+        console.print()
+
+    if not recs:
+        console.print("[yellow]No models fit within the detected VRAM budget.[/yellow]")
+        console.print("Use a smaller model or run on CPU (all models listed without GPU).")
+
+    console.print(f"[dim]Pull a model: specsmith ollama pull <model-id>[/dim]")
+
+
+@ollama_group.command(name="gpu")
+def ollama_gpu_cmd() -> None:
+    """Detect GPU and available VRAM."""
+    from specsmith.ollama_cmds import get_vram_gb
+
+    vram = get_vram_gb()
+    if vram > 0:
+        console.print(f"[green]\u2713[/green] GPU detected — [bold]{vram:.1f} GB[/bold] VRAM available")
+        # Tier suggestions
+        if vram >= 20:
+            console.print("  Tier: [bold]Powerful[/bold] — all models supported (Qwen 2.5 32B+)")
+        elif vram >= 9:
+            console.print("  Tier: [bold]Capable[/bold] — 14B models (Phi-4, Qwen 14B, Gemma 12B)")
+        elif vram >= 5:
+            console.print("  Tier: [bold]Balanced[/bold] — 7B models (Qwen 7B, Mistral, Coder 7B)")
+        else:
+            console.print("  Tier: [bold]Tiny[/bold] — small models only (Llama 3.2 3B)")
+    else:
+        console.print("[yellow]\u2014[/yellow] No GPU detected — models will run on CPU (slow)")
+        console.print("  Recommend: llama3.2:latest or mistral:latest for CPU use")
+
+
+@ollama_group.command(name="pull")
+@click.argument("model_id")
+def ollama_pull_cmd(model_id: str) -> None:
+    """Download a model via Ollama (streams progress).
+
+    MODEL_ID: Ollama model tag, e.g. qwen2.5:14b
+
+    Examples:\n
+      specsmith ollama pull qwen2.5:14b\n
+      specsmith ollama pull phi4:latest
+    """
+    from specsmith.ollama_cmds import is_running, pull_model
+
+    if not is_running():
+        console.print(
+            "[red]\u2717[/red] Ollama is not running.\n"
+            "  Start it: [bold]ollama serve[/bold]\n"
+            "  Or open the Ollama desktop app."
+        )
+        raise SystemExit(1)
+
+    console.print(f"[bold]Pulling[/bold] {model_id} …")
+    last_status = ""
+    for chunk in pull_model(model_id):
+        status = chunk.get("status", "")
+        if chunk.get("status") == "error":
+            console.print(f"[red]\u2717 {chunk.get('message', 'unknown error')}[/red]")
+            raise SystemExit(1)
+        completed = chunk.get("completed", 0)
+        total = chunk.get("total", 0)
+        if total and completed:
+            pct = int(completed / total * 100)
+            mb = completed // (1024 * 1024)
+            total_mb = total // (1024 * 1024)
+            line = f"  {status}: {pct}% ({mb}/{total_mb} MB)"
+        elif status and status != last_status:
+            line = f"  {status}"
+        else:
+            continue
+        last_status = status
+        console.print(line)
+
+    console.print(f"[green]\u2713[/green] {model_id} ready.")
+
+
+@ollama_group.command(name="suggest")
+@click.argument("task", type=click.Choice(["code", "requirements", "architecture", "chat", "analysis", "reasoning"]))
+def ollama_suggest_cmd(task: str) -> None:
+    """Suggest the best installed Ollama models for a task.
+
+    TASK: code | requirements | architecture | chat | analysis | reasoning
+    """
+    from specsmith.ollama_cmds import get_installed_models, get_vram_gb, recommend_models
+
+    vram = get_vram_gb()
+    installed = set(get_installed_models())
+    recs = recommend_models(vram_gb=vram, task=task)
+
+    inst_recs = [e for e in recs if any(m.startswith(e.id.split(":")[0]) or m == e.id for m in installed)]
+    not_inst  = [e for e in recs if e not in inst_recs]
+
+    console.print(f"[bold]Model Suggestions[/bold] for task: [bold]{task}[/bold]\n")
+
+    if inst_recs:
+        console.print("[green]Ready to use:[/green]")
+        for e in inst_recs[:3]:
+            console.print(f"  [green]\u2713[/green] {e.name:28s} {e.notes}")
+        console.print()
+
+    if not_inst:
+        console.print("[dim]Available to download:[/dim]")
+        for e in not_inst[:3]:
+            console.print(f"  [dim]\u21d3[/dim] {e.name:28s} {e.size_gb}GB — specsmith ollama pull {e.id}")
+
+    if not inst_recs and not not_inst:
+        console.print("[yellow]No matching models found.[/yellow]")
+        console.print(f"  Run [bold]specsmith ollama available --task {task}[/bold] to see options.")
+
+
+main.add_command(ollama_group)
+
+
+# ---------------------------------------------------------------------------
 # Credits check + hard cap (#52)
 # ---------------------------------------------------------------------------
 
