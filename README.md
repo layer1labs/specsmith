@@ -1,6 +1,7 @@
 # specsmith
 
 [![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=github)](https://github.com/sponsors/BitConcepts)
 [![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
@@ -143,6 +144,17 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 - **Auto-open** — Settings panel always opens alongside every new session; never a blank pane
 
 **[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+
+---
+
+## Supporting specsmith
+
+If specsmith is saving you time or helping your team ship better software, please consider:
+
+- **[Sponsoring BitConcepts](https://github.com/sponsors/BitConcepts)** — directly funds development
+- **Starring** [specsmith](https://github.com/BitConcepts/specsmith) and [specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode) on GitHub
+- **Reporting bugs** and **requesting features** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues)
+- **Contributing** — see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 

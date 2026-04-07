@@ -58,7 +58,30 @@ When adding a new project type:
 4. Add tool entries to `tools.py` (`_TOOL_REGISTRY`)
 5. Add CI metadata to `tools.py` (`LANG_CI_META`) if the language is new
 6. Add type-specific rules to `templates/agents.md.j2`
-7. Add tests for the new type
+7. Add type→tool-key mapping in `toolrules.py` (`_TYPE_TOOL_KEYS`)
+8. Add install commands in `tool_installer.py` (`KNOWN_TOOLS`) for any new tools
+9. Add tests for the new type
+
+## Execution Profiles
+
+The four built-in profiles (`safe`, `standard`, `open`, `admin`) live in `profiles.py`.
+To change what commands are allowed by default in the `standard` profile, edit
+`_STANDARD_ALLOWED_COMMANDS` / `_STANDARD_BLOCKED_COMMANDS` / `_STANDARD_BLOCKED_PATTERNS`.
+New profiles can be added to the `PROFILES` dict — they will be available via `scaffold.yml`
+`execution_profile` and in the VS Code Settings panel.
+
+## Tool Rules
+
+Curated AI context rules live in `toolrules.py` (`TOOL_RULES` dict).
+Each entry is a markdown bullet-list injected into the agent system prompt.
+When adding rules for a new tool:
+1. Add an entry to `TOOL_RULES` keyed by the tool executable name.
+2. Add the key to `_FPGA_CHIP_TO_KEY` if it's an FPGA chip name (as used in `fpga_tools:`).
+3. Update `_TYPE_TOOL_KEYS` to include it for relevant project types.
+
+## Supporting the Project
+
+Star the repo, report issues, and consider [sponsoring BitConcepts](https://github.com/sponsors/BitConcepts).
 
 ## Importing Existing Projects
 

@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.1.x   | ✅ Current |
+| 0.3.x   | ✅ Current |
+| 0.2.x   | ⚠ Security fixes only |
+| < 0.2.0 | ❌ No longer supported |
 
 ## Reporting a Vulnerability
 
@@ -18,7 +20,9 @@ If you discover a security vulnerability in specsmith, please report it responsi
    - Potential impact
    - Suggested fix (if any)
 
-We will acknowledge receipt within 48 hours and aim to provide a fix or mitigation within 7 days for critical issues.
+We will acknowledge receipt within **48 hours** and aim to provide a fix or mitigation within **7 days** for critical issues.
+
+You may also use [GitHub's private security advisory](https://github.com/BitConcepts/specsmith/security/advisories/new) workflow.
 
 ## Scope
 
