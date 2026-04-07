@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "{{ project.description if project.description else project.type_label + ' — scaffold only.' }}"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-{% if project.type.value == 'cli-python' %}
+{% if project.type == 'cli-python' %}
 
 [project.scripts]
 {{ project.package_name }} = "{{ project.package_name }}.cli:main"

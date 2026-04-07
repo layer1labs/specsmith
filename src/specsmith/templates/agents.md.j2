@@ -58,98 +58,98 @@ Other project documents:
 ---
 
 ## Project-Specific Rules
-{% if project.type.value == 'cli-python' %}
+{% if project.type == 'cli-python' %}
 - CLI must have `--help` for all commands
 - Exit codes must be documented and tested
 - No services.md unless daemon/background modes are added
 - Cross-platform rules apply to all file path and process behavior
-{% elif project.type.value == 'fpga-rtl' %}
+{% elif project.type == 'fpga-rtl' %}
 - Shell wrappers are mandatory for all Vivado/Quartus/EDA tool invocations
 - Constraint files (.xdc, .sdc) are governance artifacts — changes require proposals
 - Tool invocations MUST use batch/non-interactive modes only
 - Timing closure is a formal milestone
-{% elif project.type.value == 'yocto-bsp' %}
+{% elif project.type == 'yocto-bsp' %}
 - KAS YAML files are governance artifacts — changes require proposals
 - Machine/distro configs must be documented in architecture.md
 - Build durations must be stated in proposals
-{% elif project.type.value == 'pcb-hardware' %}
+{% elif project.type == 'pcb-hardware' %}
 - BOM files are governance artifacts — changes require proposals
 - Schematic review is a formal gate before layout
 - ECAD-MCAD sync points must be documented in workflow.md
-{% elif project.type.value in ('cli-rust', 'library-rust') %}
+{% elif project.type in ('cli-rust', 'library-rust') %}
 - `cargo clippy` must pass with no warnings before merge
 - All public APIs must have doc comments
 - `cargo audit` must pass in CI
-{% elif project.type.value in ('cli-go',) %}
+{% elif project.type in ('cli-go',) %}
 - `golangci-lint run` must pass before merge
 - All exported functions must have doc comments
 - `govulncheck` must pass in CI
-{% elif project.type.value in ('cli-c', 'library-c') %}
+{% elif project.type in ('cli-c', 'library-c') %}
 - MISRA-C compliance rules apply where annotated
 - `clang-tidy` and `cppcheck` must pass before merge
 - Memory safety must be verified for all allocations
-{% elif project.type.value == 'web-frontend' %}
+{% elif project.type == 'web-frontend' %}
 - `eslint` and `prettier` must pass before merge
 - All components must have corresponding test files
 - Accessibility (a11y) checks are recommended
-{% elif project.type.value == 'dotnet-app' %}
+{% elif project.type == 'dotnet-app' %}
 - `dotnet format --verify-no-changes` must pass before merge
 - All public APIs must have XML doc comments
-{% elif project.type.value == 'devops-iac' %}
+{% elif project.type == 'devops-iac' %}
 - `tflint` / `ansible-lint` must pass before merge
 - Security scanning (`tfsec` / `checkov`) is mandatory
 - State files must never be committed
-{% elif project.type.value == 'data-ml' %}
+{% elif project.type == 'data-ml' %}
 - Notebooks must be stripped of output before commit (`nbstripout`)
 - Model metrics must be recorded in the ledger
 - Data pipeline tests are mandatory
-{% elif project.type.value == 'microservices' %}
+{% elif project.type == 'microservices' %}
 - Each service must have independent CI and test suites
 - API contracts (OpenAPI / protobuf) are governance artifacts
 - `docker compose build` must succeed before merge
-{% elif project.type.value == 'spec-document' %}
+{% elif project.type == 'spec-document' %}
 - All specification text must use precise, testable language
 - Cross-references must be validated before merge
 - Change proposals must reference exact section numbers
 - Prose linting (`vale`) must pass before merge
-{% elif project.type.value == 'user-manual' %}
+{% elif project.type == 'user-manual' %}
 - All screenshots must be kept current with software releases
 - Link checking (`markdown-link-check`) must pass before merge
 - Spell checking (`cspell`) is mandatory
 - Versioned alongside the product it documents
-{% elif project.type.value == 'research-paper' %}
+{% elif project.type == 'research-paper' %}
 - Citation integrity must be maintained — all `\cite{}` must resolve
 - Data and figures must be reproducible from source
 - LaTeX compilation must produce clean output (no warnings)
-{% elif project.type.value == 'business-plan' %}
+{% elif project.type == 'business-plan' %}
 - Financial projections must cite assumptions and sources
 - Market data must include retrieval dates
 - All changes require stakeholder review
-{% elif project.type.value == 'patent-application' %}
+{% elif project.type == 'patent-application' %}
 - Claims are governance artifacts — ALL changes require proposals
 - Independent claims must be self-contained and not reference other claims
 - Prior art references must be documented with publication dates
 - Figures must be numbered and referenced in the specification
 - Claim dependency chains must be validated (`claim-ref-check`)
-{% elif project.type.value == 'legal-compliance' %}
+{% elif project.type == 'legal-compliance' %}
 - All document changes must be tracked with version history
 - Regulatory references must include jurisdiction and effective date
 - Approval workflows are mandatory before publication
 - Privileged/confidential documents must be marked clearly
-{% elif project.type.value == 'requirements-mgmt' %}
+{% elif project.type == 'requirements-mgmt' %}
 - Every requirement must have a unique ID (REQ-xxx-NNN)
 - Traceability from requirements → tests must be maintained
 - Baseline snapshots must be taken at milestone boundaries
-{% elif project.type.value == 'api-specification' %}
+{% elif project.type == 'api-specification' %}
 - API specs (OpenAPI / protobuf) are governance artifacts
 - Breaking changes require explicit proposals and version bumps
 - Linting (`spectral` / `buf lint`) must pass before merge
 - Generated code must not be manually edited
-{% elif project.type.value == 'monorepo' %}
+{% elif project.type == 'monorepo' %}
 - Each package/service must have independent test suites
 - Shared code changes require impact analysis across consumers
 - Build tool (`nx` / `turbo`) must succeed before merge
-{% elif project.type.value == 'browser-extension' %}
+{% elif project.type == 'browser-extension' %}
 - Manifest permissions must be minimal and documented
 - Content security policy must be explicitly defined
 - `web-ext lint` must pass before merge

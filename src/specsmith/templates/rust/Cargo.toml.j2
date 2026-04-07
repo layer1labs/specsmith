@@ -6,13 +6,13 @@ description = "{{ project.description or project.name }}"
 license = "{{ project.license }}"
 
 [dependencies]
-{% if project.type.value == 'cli-rust' %}
+{% if project.type == 'cli-rust' %}
 clap = { version = "4", features = ["derive"] }
 {% endif %}
 
 [dev-dependencies]
 
-{% if project.type.value == 'cli-rust' %}
+{% if project.type == 'cli-rust' %}
 [[bin]]
 name = "{{ package_name }}"
 path = "src/main.rs"

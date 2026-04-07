@@ -168,7 +168,7 @@ class TestSandboxImport:
         runner = CliRunner()
 
         # ---- Step 1: Run specsmith import ----
-        result = runner.invoke(main, ["import", "--project-dir", str(root)], input="y\n")
+        result = runner.invoke(main, ["import", "--project-dir", str(root), "--yes"])
         assert result.exit_code == 0, f"Import failed: {result.output}"
         assert "Done" in result.output
 
@@ -226,7 +226,7 @@ class TestSandboxImport:
         (root / "AGENTS.md").write_text("# Custom governance\n", encoding="utf-8")
 
         runner = CliRunner()
-        runner.invoke(main, ["import", "--project-dir", str(root)], input="y\n")
+        runner.invoke(main, ["import", "--project-dir", str(root), "--yes"])
 
         # AGENTS.md should NOT have been overwritten
         assert (root / "AGENTS.md").read_text(encoding="utf-8") == "# Custom governance\n"
@@ -240,7 +240,7 @@ class TestSandboxImport:
         (root / "AGENTS.md").write_text("# Custom governance\n", encoding="utf-8")
 
         runner = CliRunner()
-        runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
+        runner.invoke(main, ["import", "--project-dir", str(root), "--force", "--yes"])
 
         # AGENTS.md SHOULD have been overwritten
         new_content = (root / "AGENTS.md").read_text(encoding="utf-8")
@@ -256,10 +256,10 @@ class TestSandboxImport:
         runner = CliRunner()
 
         # First import
-        runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
+        runner.invoke(main, ["import", "--project-dir", str(root), "--force", "--yes"])
         first_agents = (root / "AGENTS.md").read_text(encoding="utf-8")
 
-        # Delete all governance files (simulate clean restart)
+        # Delete all governance files
         for f in ["AGENTS.md", "LEDGER.md", "scaffold.yml", "CONTRIBUTING.md", "SECURITY.md"]:
             p = root / f
             if p.exists():
@@ -280,10 +280,10 @@ class TestSandboxImport:
             shutil.rmtree(specsmith_dir)
 
         # Re-import
-        runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
+        runner.invoke(main, ["import", "--project-dir", str(root), "--force", "--yes"])
         second_agents = (root / "AGENTS.md").read_text(encoding="utf-8")
 
-        # Results should be identical (idempotent)
+        # Results should be identical
         assert first_agents == second_agents
 
     def test_import_preserves_existing_project_docs(self, tmp_path: Path) -> None:
@@ -311,7 +311,7 @@ class TestSandboxImport:
         )
 
         runner = CliRunner()
-        result = runner.invoke(main, ["import", "--project-dir", str(root)], input="y\n")
+        result = runner.invoke(main, ["import", "--project-dir", str(root), "--yes"])
         assert result.exit_code == 0, f"Import failed: {result.output}"
 
         # Existing docs should NOT have been overwritten with stubs
@@ -341,7 +341,7 @@ class TestSandboxImport:
         (docs / "REQUIREMENTS.md").write_text("# Existing Requirements\n", encoding="utf-8")
 
         runner = CliRunner()
-        result = runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
+        result = runner.invoke(main, ["import", "--project-dir", str(root), "--force", "--yes"])
         assert result.exit_code == 0
 
         reqs = (docs / "REQUIREMENTS.md").read_text(encoding="utf-8")

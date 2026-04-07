@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "{{ project.description or project.name }}",
   "license": "{{ project.license }}",
-{% if project.type.value == 'web-frontend' %}
+{% if project.type == 'web-frontend' %}
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -16,7 +16,7 @@
     "eslint": "^9.0.0",
     "vitest": "^3.0.0"
   }
-{% elif project.type.value == 'fullstack-js' %}
+{% elif project.type == 'fullstack-js' %}
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node server/src/index.js",

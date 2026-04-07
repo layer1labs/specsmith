@@ -14,13 +14,13 @@ Open TODOs:
 - [ ] Extend architecture with concrete interface specifications
 - [ ] Define formal requirements
 - [ ] Define test specifications
-{% if project.type.value in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray') %}
+{% if project.type in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray') %}
 - [ ] Implement primary code scaffold
 {% endif %}
-{% if project.type.value in ('backend-frontend', 'backend-frontend-tray') %}
+{% if project.type in ('backend-frontend', 'backend-frontend-tray') %}
 - [ ] Implement frontend scaffold
 {% endif %}
-{% if project.type.value == 'backend-frontend-tray' %}
+{% if project.type == 'backend-frontend-tray' %}
 - [ ] Implement tray scaffold
 {% endif %}
 Risks: technology decisions not yet finalized

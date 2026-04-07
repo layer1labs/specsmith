@@ -159,17 +159,46 @@ def detect_project(root: Path) -> DetectionResult:
             if lang:
                 lang_counter[lang] += 1
 
+    # Config/data/markup formats are common across all projects and
+    # should not count as a project's primary programming language.
+    _LANG_NOISE = {
+        "yaml",
+        "toml",
+        "json",
+        "xml",
+        "markdown",
+        "html",
+        "css",
+        "bibtex",
+        "cmake",
+        "dockerfile",
+        "makefile",
+        "restructuredtext",
+        "asciidoc",
+        "latex",
+        "graphql",
+        "protobuf",
+    }
+
     result.file_count = len(all_files)
     result.languages = dict(lang_counter.most_common())
+
+    # Primary language: first non-noise language in frequency order
     if lang_counter:
-        result.primary_language = lang_counter.most_common(1)[0][0]
+        for lang, _count in lang_counter.most_common():
+            if lang not in _LANG_NOISE:
+                result.primary_language = lang
+                break
+        if not result.primary_language:  # all langs are noise — use top anyway
+            result.primary_language = lang_counter.most_common(1)[0][0]
+
         # Secondary languages: all others above a minimum threshold (5 files or 5%)
         total = sum(lang_counter.values())
         threshold = max(5, int(total * 0.05))
         result.secondary_languages = [
             lang
             for lang, count in lang_counter.most_common()
-            if lang != result.primary_language and count >= threshold
+            if lang != result.primary_language and count >= threshold and lang not in _LANG_NOISE
         ]
 
     # Build system — check root AND first-level subdirectories

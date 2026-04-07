@@ -39,19 +39,19 @@ htmlcov/
 
 # specsmith local data (credits, config)
 .specsmith/
-{% if project.type.value in ('cli-rust', 'library-rust') %}
+{% if project.type in ('cli-rust', 'library-rust') %}
 
 # Rust
 target/
 Cargo.lock
 {% endif %}
-{% if project.type.value in ('cli-go',) %}
+{% if project.type in ('cli-go',) %}
 
 # Go
 bin/
 vendor/
 {% endif %}
-{% if project.type.value in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
+{% if project.type in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
 
 # Node.js
 node_modules/
@@ -59,7 +59,7 @@ node_modules/
 .nuxt/
 *.tsbuildinfo
 {% endif %}
-{% if project.type.value in ('mobile-app',) %}
+{% if project.type in ('mobile-app',) %}
 
 # Mobile / Android / Kotlin
 .gradle/
@@ -68,7 +68,7 @@ local.properties
 *.aab
 *.ipa
 {% endif %}
-{% if project.type.value == 'dotnet-app' %}
+{% if project.type == 'dotnet-app' %}
 
 # .NET
 bin/
@@ -76,7 +76,7 @@ obj/
 *.user
 *.suo
 {% endif %}
-{% if project.type.value == 'pcb-hardware' %}
+{% if project.type == 'pcb-hardware' %}
 
 # KiCad
 *-backups/
@@ -84,7 +84,7 @@ fp-info-cache
 *.kicad_pcb-bak
 *.kicad_sch-bak
 {% endif %}
-{% if project.type.value == 'fpga-rtl' %}
+{% if project.type == 'fpga-rtl' %}
 
 # FPGA
 *.jou
@@ -101,7 +101,7 @@ dfx_runtime.txt
 *.backup.log
 *.backup.jou
 {% endif %}
-{% if project.type.value in ('yocto-bsp', 'embedded-hardware') %}
+{% if project.type in ('yocto-bsp', 'embedded-hardware') %}
 
 # Yocto / Embedded
 twister-out/
@@ -116,7 +116,7 @@ tmp/
 *.tar.gz
 cache/
 {% endif %}
-{% if project.type.value == 'research-paper' %}
+{% if project.type == 'research-paper' %}
 
 # LaTeX
 *.aux
@@ -128,7 +128,7 @@ cache/
 *.fdb_latexmk
 *.synctex.gz
 {% endif %}
-{% if project.type.value == 'devops-iac' %}
+{% if project.type == 'devops-iac' %}
 
 # Terraform / IaC
 .terraform/
@@ -136,7 +136,7 @@ cache/
 *.tfstate.backup
 *.tfvars
 {% endif %}
-{% if project.type.value == 'data-ml' %}
+{% if project.type == 'data-ml' %}
 
 # Data / ML
 .ipynb_checkpoints/
@@ -148,7 +148,7 @@ models/*.h5
 models/*.pt
 *.onnx
 {% endif %}
-{% if project.type.value == 'microservices' %}
+{% if project.type == 'microservices' %}
 
 # Microservices
 .env
@@ -156,20 +156,20 @@ models/*.pt
 !.env.example
 docker-compose.override.yml
 {% endif %}
-{% if project.type.value in ('monorepo',) %}
+{% if project.type in ('monorepo',) %}
 
 # Monorepo
 .turbo/
 .nx/
 {% endif %}
-{% if project.type.value == 'browser-extension' %}
+{% if project.type == 'browser-extension' %}
 
 # Browser Extension
 web-ext-artifacts/
 *.crx
 *.xpi
 {% endif %}
-{% if project.type.value in ('spec-document', 'user-manual') %}
+{% if project.type in ('spec-document', 'user-manual') %}
 
 # Documentation builds
 _site/
@@ -178,14 +178,14 @@ _build/
 .cache/
 public/
 {% endif %}
-{% if project.type.value in ('business-plan', 'legal-compliance', 'patent-application') %}
+{% if project.type in ('business-plan', 'legal-compliance', 'patent-application') %}
 
 # Office / Documents
 ~$*
 *.tmp
 *.bak
 {% endif %}
-{% if project.type.value == 'api-specification' %}
+{% if project.type == 'api-specification' %}
 
 # API / Generated
 generated/

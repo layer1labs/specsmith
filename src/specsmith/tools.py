@@ -243,6 +243,39 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         format=["prettier"],
         security=["npm audit"],
     ),
+    # --- New FPGA vendor-specific types (same tools as generic fpga-rtl) ---
+    ProjectType.FPGA_RTL_AMD: ToolSet(
+        lint=["vsg", "verilator --lint-only"],
+        test=["ghdl", "cocotb", "iverilog"],
+        build=["vivado -mode batch"],  # AMD Vivado
+        format=[],
+    ),
+    ProjectType.FPGA_RTL_INTEL: ToolSet(
+        lint=["vsg", "verilator --lint-only"],
+        test=["ghdl", "cocotb", "iverilog"],
+        build=["quartus_sh --flow compile"],  # Intel/Altera Quartus
+        format=[],
+    ),
+    ProjectType.FPGA_RTL_LATTICE: ToolSet(
+        lint=["vsg", "verilator --lint-only"],
+        test=["ghdl", "cocotb", "iverilog"],
+        build=["diamondc"],  # Lattice Diamond
+        format=[],
+    ),
+    ProjectType.MIXED_FPGA_EMBEDDED: ToolSet(
+        lint=["vsg", "clang-tidy"],
+        typecheck=["cppcheck"],
+        test=["ghdl", "ctest"],
+        build=["vivado -mode batch", "cmake"],
+        format=["clang-format"],
+    ),
+    ProjectType.MIXED_FPGA_FIRMWARE: ToolSet(
+        lint=["vsg", "ruff check"],
+        typecheck=["mypy"],
+        test=["ghdl", "pytest"],
+        build=["vivado -mode batch"],
+        format=["ruff format"],
+    ),
     # --- AEE / Epistemic project types ---
     ProjectType.EPISTEMIC_PIPELINE: ToolSet(
         lint=["ruff check", "specsmith stress-test"],

@@ -8,30 +8,30 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
-{% if project.type.value in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray', 'data-ml') %}
+{% if project.type in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray', 'data-ml') %}
 
 [*.py]
 indent_size = 4
 max_line_length = 100
 {% endif %}
-{% if project.type.value in ('cli-rust', 'library-rust') %}
+{% if project.type in ('cli-rust', 'library-rust') %}
 
 [*.rs]
 indent_size = 4
 max_line_length = 100
 {% endif %}
-{% if project.type.value in ('cli-go',) %}
+{% if project.type in ('cli-go',) %}
 
 [*.go]
 indent_style = tab
 indent_size = 4
 {% endif %}
-{% if project.type.value in ('cli-c', 'library-c', 'embedded-hardware') %}
+{% if project.type in ('cli-c', 'library-c', 'embedded-hardware') %}
 
 [*.{c,h,cpp,hpp}]
 indent_size = 4
 {% endif %}
-{% if project.type.value in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
+{% if project.type in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
 
 [*.{js,ts,jsx,tsx,css,scss,html}]
 indent_size = 2
@@ -39,7 +39,7 @@ indent_size = 2
 [*.json]
 indent_size = 2
 {% endif %}
-{% if project.type.value == 'dotnet-app' %}
+{% if project.type == 'dotnet-app' %}
 
 [*.cs]
 indent_size = 4
@@ -47,7 +47,7 @@ indent_size = 4
 [*.csproj]
 indent_size = 2
 {% endif %}
-{% if project.type.value == 'fpga-rtl' %}
+{% if project.type == 'fpga-rtl' %}
 
 [*.{vhd,vhdl}]
 indent_size = 2
@@ -58,7 +58,7 @@ indent_size = 2
 [*.{xdc,sdc,tcl}]
 indent_size = 2
 {% endif %}
-{% if project.type.value in ('yocto-bsp',) %}
+{% if project.type in ('yocto-bsp',) %}
 
 [*.{bb,bbappend,bbclass,conf}]
 indent_size = 4
@@ -66,12 +66,12 @@ indent_size = 4
 [*.{dts,dtsi}]
 indent_size = 4
 {% endif %}
-{% if project.type.value in ('research-paper',) %}
+{% if project.type in ('research-paper',) %}
 
 [*.{tex,bib}]
 indent_size = 2
 {% endif %}
-{% if project.type.value in ('devops-iac',) %}
+{% if project.type in ('devops-iac',) %}
 
 [*.{tf,hcl,tfvars}]
 indent_size = 2

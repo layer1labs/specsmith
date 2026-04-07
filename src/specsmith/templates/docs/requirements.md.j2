@@ -10,7 +10,7 @@
 REQ-<COMPONENT>-<NUMBER>
 ```
 
-{% if project.type.value == 'patent-application' %}
+{% if project.type == 'patent-application' %}
 Component codes: CLM (claims), SPEC (specification), FIG (figures), PA (prior art), CORR (correspondence).
 
 ---
@@ -29,7 +29,7 @@ Component codes: CLM (claims), SPEC (specification), FIG (figures), PA (prior ar
 - **Status**: Draft
 - **Description**: All figures must be numbered and referenced in the specification
 
-{% elif project.type.value == 'legal-compliance' %}
+{% elif project.type == 'legal-compliance' %}
 Component codes: CTR (contracts), POL (policies), REG (regulatory), AUD (audit).
 
 ---
@@ -44,7 +44,7 @@ Component codes: CTR (contracts), POL (policies), REG (regulatory), AUD (audit).
 - **Status**: Draft
 - **Description**: Regulatory references must include jurisdiction and effective date
 
-{% elif project.type.value == 'business-plan' %}
+{% elif project.type == 'business-plan' %}
 Component codes: MKT (market analysis), FIN (financials), OPS (operations), EXEC (executive summary).
 
 ---
@@ -59,7 +59,7 @@ Component codes: MKT (market analysis), FIN (financials), OPS (operations), EXEC
 - **Status**: Draft
 - **Description**: Financial projections must cite assumptions with sources
 
-{% elif project.type.value in ('spec-document', 'user-manual') %}
+{% elif project.type in ('spec-document', 'user-manual') %}
 Component codes: DOC (document structure), REF (references), FIG (figures).
 
 ---
@@ -74,7 +74,7 @@ Component codes: DOC (document structure), REF (references), FIG (figures).
 - **Status**: Draft
 - **Description**: All cross-references must be validated before publication
 
-{% elif project.type.value == 'research-paper' %}
+{% elif project.type == 'research-paper' %}
 Component codes: ABS (abstract), LIT (literature review), MTH (methodology), RES (results), DIS (discussion).
 
 ---
@@ -89,7 +89,7 @@ Component codes: ABS (abstract), LIT (literature review), MTH (methodology), RES
 - **Status**: Draft
 - **Description**: Methodology must be reproducible from description alone
 
-{% elif project.type.value == 'api-specification' %}
+{% elif project.type == 'api-specification' %}
 Component codes: API (endpoints/services), SCH (schemas), AUTH (authentication), ERR (error handling).
 
 ---
@@ -104,7 +104,7 @@ Component codes: API (endpoints/services), SCH (schemas), AUTH (authentication),
 - **Status**: Draft
 - **Description**: Authentication mechanism must be documented with examples
 
-{% elif project.type.value == 'requirements-mgmt' %}
+{% elif project.type == 'requirements-mgmt' %}
 Component codes: REQ (requirements), TRC (traceability), BAS (baselines).
 
 ---

@@ -22,26 +22,26 @@
 *.bat text eol=crlf
 *.ps1 text eol=crlf
 *.psm1 text eol=crlf
-{% if project.type.value in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray', 'data-ml') %}
+{% if project.type in ('cli-python', 'library-python', 'backend-frontend', 'backend-frontend-tray', 'data-ml') %}
 
 # Python
 *.py text eol=lf
 *.pyi text eol=lf
 *.pyx text eol=lf
 {% endif %}
-{% if project.type.value in ('cli-rust', 'library-rust') %}
+{% if project.type in ('cli-rust', 'library-rust') %}
 
 # Rust
 *.rs text eol=lf
 Cargo.lock text -diff linguist-generated
 {% endif %}
-{% if project.type.value in ('cli-go',) %}
+{% if project.type in ('cli-go',) %}
 
 # Go
 *.go text eol=lf
 go.sum text -diff linguist-generated
 {% endif %}
-{% if project.type.value in ('cli-c', 'library-c', 'embedded-hardware') %}
+{% if project.type in ('cli-c', 'library-c', 'embedded-hardware') %}
 
 # C / C++
 *.c text eol=lf
@@ -53,7 +53,7 @@ go.sum text -diff linguist-generated
 *.so binary
 *.dll binary
 {% endif %}
-{% if project.type.value in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
+{% if project.type in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
 
 # JavaScript / TypeScript
 *.js text eol=lf
@@ -67,7 +67,7 @@ package-lock.json text -diff linguist-generated
 yarn.lock text -diff linguist-generated
 pnpm-lock.yaml text -diff linguist-generated
 {% endif %}
-{% if project.type.value == 'dotnet-app' %}
+{% if project.type == 'dotnet-app' %}
 
 # .NET
 *.cs text eol=lf
@@ -76,7 +76,7 @@ pnpm-lock.yaml text -diff linguist-generated
 *.dll binary
 *.exe binary
 {% endif %}
-{% if project.type.value == 'fpga-rtl' %}
+{% if project.type == 'fpga-rtl' %}
 
 # FPGA / RTL
 *.vhd text eol=lf
@@ -92,7 +92,7 @@ pnpm-lock.yaml text -diff linguist-generated
 *.ltx binary
 *.mmi binary
 {% endif %}
-{% if project.type.value in ('yocto-bsp',) %}
+{% if project.type in ('yocto-bsp',) %}
 
 # Yocto / BitBake
 *.bb text eol=lf
@@ -102,7 +102,7 @@ pnpm-lock.yaml text -diff linguist-generated
 *.dts text eol=lf
 *.dtsi text eol=lf
 {% endif %}
-{% if project.type.value == 'pcb-hardware' %}
+{% if project.type == 'pcb-hardware' %}
 
 # KiCad / PCB
 *.kicad_pcb binary diff
@@ -111,7 +111,7 @@ pnpm-lock.yaml text -diff linguist-generated
 *.step binary
 *.wrl binary
 {% endif %}
-{% if project.type.value == 'research-paper' %}
+{% if project.type == 'research-paper' %}
 
 # LaTeX
 *.tex text eol=lf
@@ -121,13 +121,13 @@ pnpm-lock.yaml text -diff linguist-generated
 *.pdf binary
 *.eps binary
 {% endif %}
-{% if project.type.value == 'api-specification' %}
+{% if project.type == 'api-specification' %}
 
 # API / Protobuf
 *.proto text eol=lf
 *.graphql text eol=lf
 {% endif %}
-{% if project.type.value == 'mobile-app' %}
+{% if project.type == 'mobile-app' %}
 
 # Mobile
 *.swift text eol=lf
@@ -137,7 +137,7 @@ pnpm-lock.yaml text -diff linguist-generated
 *.aab binary
 *.ipa binary
 {% endif %}
-{% if project.type.value == 'devops-iac' %}
+{% if project.type == 'devops-iac' %}
 
 # Terraform / IaC
 *.tf text eol=lf

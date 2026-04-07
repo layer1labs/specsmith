@@ -579,7 +579,17 @@ def export(project_dir: str, output: str | None) -> None:
 @click.option(
     "--dry-run", is_flag=True, default=False, help="Show what would be done without writing."
 )
-def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -> None:
+@click.option(
+    "--yes",
+    "-y",
+    "auto_yes",
+    is_flag=True,
+    default=False,
+    help="Skip confirmation prompt (non-interactive / CI mode).",
+)
+def import_project(
+    project_dir: str, force: bool, guided: bool, dry_run: bool, auto_yes: bool
+) -> None:
     """Import an existing project and generate governance overlay."""
     from specsmith.importer import detect_project, generate_import_config, generate_overlay
 
@@ -647,8 +657,8 @@ def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -
         console.print(f"  {ci_icon} {ci_msg:14s} CI config")
         return
 
-    # Allow override
-    if not click.confirm("Proceed with these settings?", default=True):
+    # Allow override (skip in CI/non-interactive mode via --yes)
+    if not auto_yes and not click.confirm("Proceed with these settings?", default=True):
         console.print("\nProject type:")
         for k, v in PROJECT_TYPE_LABELS.items():
             console.print(f"  {k}. {v}")
