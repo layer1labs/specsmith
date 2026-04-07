@@ -84,7 +84,13 @@ class ProjectConfig(BaseModel):
     )
 
     name: str = Field(description="Project name (used for directory and package name)")
-    type: ProjectType = Field(description="Project type from Section 17")
+    # str (not ProjectType enum) so scaffold.yml files with custom or vendor-specific
+    # types (e.g. 'fpga-rtl-xilinx') don't crash pydantic validation.
+    # Use ProjectType enum values as constants when checking the type.
+    type: str = Field(
+        default=ProjectType.CLI_PYTHON.value,
+        description="Project type. Should match a ProjectType value.",
+    )
     platforms: list[Platform] = Field(
         default=[Platform.WINDOWS, Platform.LINUX, Platform.MACOS],
         description="Target platforms",
@@ -255,15 +261,25 @@ class ProjectConfig(BaseModel):
     @property
     def type_label(self) -> str:
         """Human-readable project type label."""
-        return _TYPE_LABELS.get(self.type, self.type.value)
+        # self.type is now a str; fall back to the type key itself if unknown
+        return _TYPE_LABELS.get(self.type, self.type)
 
     @property
     def section_ref(self) -> str:
         """Spec section reference for this project type."""
         return _SECTION_REFS.get(self.type, "17")
 
+    @property
+    def project_type_enum(self) -> ProjectType | None:
+        """Return the ProjectType enum member, or None if type is unknown/custom."""
+        try:
+            return ProjectType(self.type)
+        except ValueError:
+            return None
 
-_TYPE_LABELS: dict[ProjectType, str] = {
+
+# Keys are str (ProjectType enum values) for compatibility now that config.type is str
+_TYPE_LABELS: dict[str, str] = {
     ProjectType.BACKEND_FRONTEND: "Python backend + web frontend",
     ProjectType.BACKEND_FRONTEND_TRAY: "Python backend + web frontend + tray",
     ProjectType.CLI_PYTHON: "CLI tool (Python)",
@@ -309,7 +325,7 @@ _TYPE_LABELS: dict[ProjectType, str] = {
     ProjectType.AEE_RESEARCH: "AEE research project",
 }
 
-_SECTION_REFS: dict[ProjectType, str] = {
+_SECTION_REFS: dict[str, str] = {
     ProjectType.BACKEND_FRONTEND: "17.1",
     ProjectType.BACKEND_FRONTEND_TRAY: "17.2",
     ProjectType.CLI_PYTHON: "17.3",

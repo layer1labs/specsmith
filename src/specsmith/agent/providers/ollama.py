@@ -23,6 +23,22 @@ from specsmith.agent.core import (
 )
 
 
+def _is_tool_fallback_error(exc: BaseException) -> bool:
+    """Return True when an exception signals that tool calling is not supported.
+
+    Covers HTTP 400 (Bad Request from the OpenAI-compat endpoint), 405 (Method
+    Not Allowed), and error messages that explicitly mention lack of support.
+    """
+    msg = str(exc).lower()
+    return (
+        "400" in msg
+        or "405" in msg
+        or "bad request" in msg
+        or "does not support" in msg
+        or "tool" in msg and "not supported" in msg
+    )
+
+
 class OllamaProvider:
     """Ollama local LLM provider. Works with llama3.3, qwen2.5, phi4, etc.
 
@@ -58,9 +74,16 @@ class OllamaProvider:
         tools: list[Tool] | None = None,
         max_tokens: int = 4096,
     ) -> CompletionResponse:
-        # Use OpenAI-compat endpoint if tools are needed
+        # Use OpenAI-compat endpoint if tools are needed.
+        # Falls back to native mode if the model returns 400 (tool calling not supported).
         if tools:
-            return self._complete_openai_compat(messages, tools, max_tokens)
+            try:
+                return self._complete_openai_compat(messages, tools, max_tokens)
+            except Exception as exc:  # noqa: BLE001
+                if _is_tool_fallback_error(exc):
+                    # Model doesn't support tool calling — retry without tools
+                    return self._complete_native(messages, max_tokens)
+                raise
         return self._complete_native(messages, max_tokens)
 
     def _complete_native(self, messages: list[Message], max_tokens: int) -> CompletionResponse:

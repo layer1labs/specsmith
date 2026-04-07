@@ -124,6 +124,8 @@ H13: All proposals must state their epistemic boundaries. Hidden assumptions are
     )
 
     prompt = f"""You are an AEE-integrated specsmith agent for this project.
+ALWAYS respond in English only, regardless of the user's language or your default language.
+Do not use Chinese, Japanese, Korean, or any other non-English language at any time.
 
 ## Project Governance
 {governance_text}
