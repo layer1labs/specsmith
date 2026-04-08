@@ -26,7 +26,6 @@ from pathlib import Path
 
 from specsmith.agent.core import Tool, ToolParam
 
-
 # Env vars that prevent Rich from using the Windows Console API
 # (LegacyWindowsTerm) when stdout is a captured pipe. Without these, Rich
 # crashes with 'WriteFile failed' / handle errors on every command.
