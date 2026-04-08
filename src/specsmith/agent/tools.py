@@ -31,8 +31,8 @@ from specsmith.agent.core import Tool, ToolParam
 # crashes with 'WriteFile failed' / handle errors on every command.
 _SUBPROCESS_ENV: dict[str, str] = {
     **os.environ,
-    "NO_COLOR": "1",         # Disables Rich colour / Windows console API path
-    "FORCE_COLOR": "0",      # Belt-and-suspenders: also suppress colour
+    "NO_COLOR": "1",  # Disables Rich colour / Windows console API path
+    "FORCE_COLOR": "0",  # Belt-and-suspenders: also suppress colour
     "PYTHONIOENCODING": "utf-8",  # Ensure UTF-8 on pipes regardless of locale
 }
 

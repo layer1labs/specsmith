@@ -244,10 +244,12 @@ class ProjectConfig(BaseModel):
     @property
     def platform_names(self) -> list[str]:
         """Human-readable platform names."""
+
         def _label(p: str) -> str:
             if p.lower() == "macos":
                 return "macOS"
             return p.replace("-", " ").title()
+
         return [_label(str(p)) for p in self.platforms]
 
     @property
