@@ -173,6 +173,25 @@ This applies to Qwen, DeepSeek, LLaMA, Mistral, and EVERY other model.
 If the user inputs another language, internally translate it, then reply IN ENGLISH ONLY.
 VIOLATING THIS RULE IS A CRITICAL ERROR.
 
+## TOOL ERROR RULE — HARD STOP (NEVER TROUBLESHOOT ERRORS):
+When ANY tool returns an error, exception, or non-zero exit code:
+  1. STOP immediately. Do not attempt to fix, diagnose, or retry.
+  2. Say in ONE sentence: what you were doing and what failed.
+     Example: "The audit tool hit an unexpected error and needs to be reported."
+  3. Then say: "Would you like to report this bug?"
+  4. Wait. Do nothing else. The user will decide.
+This tool is not designed to fix itself. Fail fast, report quickly.
+
+## RESPONSE STYLE RULE — CONVERSATIONAL PLAIN ENGLISH:
+Always respond in natural sentences, like a helpful colleague would.
+- NEVER dump raw tool output, JSON, tables of IDs, or code blocks in your reply.
+- Summarize what you found in 1-3 plain sentences.
+- If a command found issues: say how many and what kind.
+- If everything is fine: say so briefly.
+- Details go in the tool result panel; your words give the meaning.
+Example good: "Audit found 3 issues: LEDGER.md is missing and 2 requirements lack tests."
+Example bad: "The tool returned: [\u2717] LEDGER.md MISSING, [\u2717] REQ-001 uncovered..."
+
 You are an AEE-integrated specsmith agent for this project.
 
 ## Project Governance
@@ -281,6 +300,7 @@ class AgentRunner:
         self._skills: list[Skill] = load_skills(Path(self.project_dir))
         self._hooks = HookRegistry()
         self._system_prompt = ""
+        self._hard_stop: bool = False  # set True when a critical tool crash is detected
 
         # Execution profile — loaded from scaffold.yml at session start
         from specsmith import profiles
@@ -379,6 +399,76 @@ class AgentRunner:
         hits = len(self._NON_ASCII_BLOCKS.findall(text))
         return hits > 5 and (hits / max(len(text), 1)) > 0.05
 
+    # ---- Critical error patterns that trigger a hard stop ----
+    _CRITICAL_PATTERNS = re.compile(
+        r"Traceback \(most recent call last\)"
+        r"|\[ERROR\]"
+        r"|UnicodeDecodeError"
+        r"|UnicodeEncodeError"
+        r"|ImportError"
+        r"|ModuleNotFoundError"
+        r"|AttributeError: '"
+        r"|TypeError: unsupported"
+        r"|PermissionError"
+        r"|OSError: "
+        r"|RuntimeError: ",
+        re.IGNORECASE,
+    )
+
+    @staticmethod
+    def _is_critical_error(output: str) -> bool:
+        """Return True if tool output indicates an unexpected crash.
+
+        Normal governance failures (audit issues, missing files) are NOT
+        critical — only Python exceptions and import errors are.
+        """
+        if not output:
+            return False
+        # Non-zero exit alone is expected (e.g. audit found issues).
+        # Only flag when a Python exception signature is present.
+        return AgentRunner._CRITICAL_PATTERNS.search(output) is not None
+
+    def _collect_diagnostics(self, tool_name: str, output: str) -> dict:
+        """Collect diagnostic context for a crash report."""
+        import platform as _platform
+        import sys as _sys
+
+        from specsmith import __version__ as _ver
+
+        project_type = ""
+        try:
+            import yaml as _yaml
+
+            sf = Path(self.project_dir) / "scaffold.yml"
+            if sf.exists():
+                raw = _yaml.safe_load(sf.read_text(encoding="utf-8")) or {}
+                project_type = str(raw.get("type", ""))
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Classify repo: Python exceptions from specsmith module → specsmith CLI
+        # Extension/bridge errors would never reach here (they don’t use this runner)
+        repo = "specsmith"
+
+        # Extract first meaningful error line for the summary
+        summary = output.strip().splitlines()
+        _err_pat = re.compile(r"\w+Error|Exception|RuntimeError")
+        summary_line = next(
+            (ln.strip() for ln in reversed(summary) if _err_pat.match(ln.strip())),
+            summary[0] if summary else "Unknown error",
+        )[:200]
+
+        return {
+            "tool": tool_name,
+            "summary": summary_line,
+            "detail": output[:4000],
+            "specsmith_version": _ver,
+            "python_version": _sys.version.split()[0],
+            "os_info": f"{_platform.system()} {_platform.release()}",
+            "project_type": project_type,
+            "repo": repo,
+        }
+
     def _agent_turn(self, user_input: str, silent: bool = False) -> str:
         """Execute one user→agent turn with tool loop."""
         # Inject a lightweight English-only reminder into every user message.
@@ -443,8 +533,14 @@ class AgentRunner:
                 break
 
             # Process tool calls
+            self._hard_stop = False  # reset before each batch
             tool_results = self._execute_tool_calls(response.tool_calls, silent=silent)
             self._state.tool_calls_made += len(tool_results)
+
+            # Fail fast: a critical tool crash was detected — break immediately
+            # without sending the error back to the LLM (which would try to fix it).
+            if self._hard_stop:
+                break
 
             # Add assistant message with tool calls
             self._state.messages.append(
@@ -543,7 +639,12 @@ class AgentRunner:
     def _execute_tool_calls(
         self, tool_calls: list[dict[str, Any]], silent: bool = False
     ) -> list[ToolResult]:
-        """Execute tool calls and return results."""
+        """Execute tool calls and return results.
+
+        Sets ``self._hard_stop = True`` if any tool produces a critical error
+        (Python exception, import error, etc.) so the caller can break the
+        agentic loop immediately without sending the error to the LLM.
+        """
         from specsmith import profiles as _profiles
 
         results: list[ToolResult] = []
@@ -668,6 +769,22 @@ class AgentRunner:
                 error = True
 
             elapsed = time.time() * 1000 - start_ms
+
+            # ---- Fail-fast: detect critical errors -------------------------
+            # A critical error is an unexpected crash (Python exception, import
+            # failure, etc.) — NOT a normal governance failure (audit issues,
+            # missing files) which the LLM should describe conversationally.
+            if self._is_critical_error(output):
+                self._hard_stop = True
+                diagnostics = self._collect_diagnostics(name, output)
+                if not silent and self._json_events:
+                    self._emit_event(type="tool_crash", **diagnostics)
+                elif not silent:
+                    self._print(
+                        f"\n[CRITICAL ERROR in {name}] "
+                        f"{diagnostics['summary']}\n"
+                        "Session stopped. Please report this bug."
+                    )
 
             if not silent:
                 if self._json_events:
