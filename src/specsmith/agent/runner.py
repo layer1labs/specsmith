@@ -480,6 +480,11 @@ class AgentRunner:
         # Add user message
         self._state.messages.append(Message(role=Role.USER, content=user_input))
 
+        # In json_events mode we defer the llm_chunk emission so we can run the
+        # language check BEFORE the UI sees the text.  Without this, a Thai/Chinese
+        # response would be displayed even when the correction turn later succeeds.
+        _defer_emit = not silent and self._json_events
+
         final_response = ""
         for _iteration in range(self._max_iterations):
             messages_with_system = [
@@ -487,7 +492,9 @@ class AgentRunner:
             ] + self._state.messages
 
             try:
-                response = self._call_provider(messages_with_system, silent=silent)
+                response = self._call_provider(
+                    messages_with_system, silent=silent, defer_emit=_defer_emit
+                )
             except Exception as e:  # noqa: BLE001
                 error_msg = f"[Provider error] {e}"
                 if not silent:
@@ -515,9 +522,12 @@ class AgentRunner:
                 final_response = response.content
 
             if not response.has_tool_calls:
-                # Non-English correction: if response appears to be in another language,
-                # issue a single correction turn rather than showing the wrong-language response.
-                if response.content and self._has_non_english(response.content) and _iteration == 0:
+                # Non-English correction: if the final response is in a non-English
+                # language, silently issue a correction turn instead of surfacing the
+                # bad text.  _defer_emit ensures the UI never sees the Thai/Chinese
+                # content — we only emit llm_chunk once we have an English reply.
+                # The iteration limit acts as a natural loop-break (max_iterations).
+                if response.content and self._has_non_english(response.content):
                     correction = (
                         "[LANG:EN] CRITICAL: Your last response was in a non-English language. "
                         "You MUST respond in English ONLY. Please re-answer in English."
@@ -526,11 +536,21 @@ class AgentRunner:
                         Message(role=Role.ASSISTANT, content=response.content)
                     )
                     self._state.messages.append(Message(role=Role.USER, content=correction))
-                    # Continue the loop to get an English response
+                    # Continue the loop to get an English response (don't emit bad content)
                     continue
+                # Language OK — emit the deferred llm_chunk now
+                if _defer_emit and response.content:
+                    self._emit_event(type="llm_chunk", text=response.content)
                 # Final response — add to history
                 self._state.messages.append(Message(role=Role.ASSISTANT, content=response.content))
                 break
+
+            # Has tool calls — emit any deferred partial text (planning/thinking text
+            # that precedes the tool invocation), but only if it is in English.
+            # Some Qwen/DeepSeek variants emit Thai/Chinese thinking text before tool
+            # calls; silently drop that rather than surfacing it to the UI.
+            if _defer_emit and response.content and not self._has_non_english(response.content):
+                self._emit_event(type="llm_chunk", text=response.content)
 
             # Process tool calls
             self._hard_stop = False  # reset before each batch
@@ -571,12 +591,20 @@ class AgentRunner:
 
         return final_response
 
-    def _call_provider(self, messages: list[Message], silent: bool = False) -> CompletionResponse:
+    def _call_provider(
+        self,
+        messages: list[Message],
+        silent: bool = False,
+        defer_emit: bool = False,
+    ) -> CompletionResponse:
         """Call the LLM provider with optimization engine pre/post hooks.
 
         Streaming is disabled when tools are registered (streaming drops tool_call blocks).
         When an OptimizationEngine is active, pre_call() may return a cache hit
         or transform messages/model/tools before the actual provider call.
+
+        ``defer_emit=True`` suppresses the ``llm_chunk`` event so the caller can
+        validate the response (e.g. language check) before surfacing it to the UI.
         """
         provider: Any = self._provider
         tools = self._tools
@@ -613,7 +641,7 @@ class AgentRunner:
             response = CompletionResponse(content=accumulated, model=str(provider.model))
         else:
             response = cast(CompletionResponse, provider.complete(messages, tools=tools))
-            if not silent and response.content:
+            if not silent and not defer_emit and response.content:
                 if self._json_events:
                     self._emit_event(type="llm_chunk", text=response.content)
                 else:
