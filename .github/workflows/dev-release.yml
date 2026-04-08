@@ -11,6 +11,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Only run from the develop branch — blocks accidental workflow_dispatch from main.
+    if: github.ref == 'refs/heads/develop'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
