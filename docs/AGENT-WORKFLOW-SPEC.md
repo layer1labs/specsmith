@@ -84,9 +84,13 @@ Project overview, architecture summary, component descriptions, repository struc
 
 System architecture: components, boundaries, interfaces, runtime modes, platform expectations, constraints, and design principles.
 
-### 2.5 docs/WORKFLOW.md
+### 2.5 docs/governance/SESSION-PROTOCOL.md
 
-Development workflow: the work loop, proposal rules, PR expectations, cross-platform rules, documentation rules, verification rules, and milestones.
+Session lifecycle: session types (start, resume, save, commit, sync), proposal format, ledger entry format.
+
+### 2.5.1 docs/governance/LIFECYCLE.md
+
+Project lifecycle: the 7 AEE phases (inception → release), readiness gates, phase artifacts.
 
 ### 2.6 docs/services.md (if applicable)
 
@@ -112,7 +116,7 @@ When documents conflict, precedence is resolved top-down:
 4. **docs/ARCHITECTURE.md** — how the system is structured
 5. **docs/TEST_SPEC.md** — how the system is verified
 6. **LEDGER.md** — what has been done and what remains (sole authority for session state)
-7. **docs/WORKFLOW.md** — how work proceeds
+7. **docs/governance/SESSION-PROTOCOL.md** — how sessions work
 8. **docs/services.md** — platform-specific startup/service behavior
 
 If a requirement contradicts the architecture, the requirement wins. If AGENTS.md contradicts a requirement, AGENTS.md wins.

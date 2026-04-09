@@ -46,7 +46,7 @@ and local Ollama models.
 ## Governance
 This project follows its own specification. See:
 - [Agent Workflow Specification](docs/AGENT-WORKFLOW-SPEC.md) — the full spec (H1–H13, session lifecycle, proposal format, ledger format)
-- [Epistemic Axioms](docs/governance/epistemic-axioms.md) — AEE axioms applied to specsmith
+- [Epistemic Axioms](docs/governance/EPISTEMIC-AXIOMS.md) — AEE axioms applied to specsmith
 
 Note: modular governance files are not generated for specsmith's own repo since
 AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if needed.
