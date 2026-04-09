@@ -197,3 +197,9 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 ### Open TODOs
 - [ ] Add action button in VS Code session chat when agent finds a fixable issue
 - [ ] Add VCS status live refresh (currently only at session start)
+
+## 2026-04-09T08:43 — specsmith migration: 0.3.0 → 0.3.6.dev178
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `45890fddd2d61233...`

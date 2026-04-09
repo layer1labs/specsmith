@@ -1,0 +1,12 @@
+{
+  "monthly_cap_usd": 0.0,
+  "alert_threshold_pct": 80,
+  "alert_watermarks_usd": [
+    5.0,
+    10.0,
+    25.0,
+    50.0
+  ],
+  "enabled": true,
+  "enforcement_mode": "soft"
+}

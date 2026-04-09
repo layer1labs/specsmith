@@ -159,12 +159,15 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 
 ## Supporting specsmith
 
-If specsmith is saving you time or helping your team ship better software, please consider:
+specsmith is open source and built by a small team. Every bit of support helps:
 
-- **[Sponsoring BitConcepts](https://github.com/sponsors/BitConcepts)** — directly funds development
-- **Starring** [specsmith](https://github.com/BitConcepts/specsmith) and [specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode) on GitHub
-- **Reporting bugs** and **requesting features** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues)
-- **Contributing** — see [CONTRIBUTING.md](CONTRIBUTING.md)
+- ⭐ **Star** [specsmith](https://github.com/BitConcepts/specsmith) and [specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode) on GitHub
+- 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
+- 🐛 **Report bugs** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues) — even small ones help
+- 💡 **Suggest features** via [GitHub Discussions](https://github.com/BitConcepts/specsmith/discussions) — we read every suggestion
+- 🔧 **Fix bugs and contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md); PRs welcome
+- 📝 **Write about specsmith** — blog posts, tutorials, and talks help the community grow
+- ❤️ **[Sponsor BitConcepts](https://github.com/sponsors/BitConcepts)** — directly funds development
 
 ---
 
@@ -278,6 +281,13 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 - **H13** — Agent tools must declare epistemic contracts (what they claim and what they cannot detect).
 
 ---
+
+## The specsmith Bootstrap
+
+specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
+in this repo to check its governance health. This means every feature we add to specsmith is
+immediately dogfooded on specsmith itself. The [VS Code extension](https://github.com/BitConcepts/specsmith-vscode)
+is developed alongside it as the flagship client.
 
 ## Documentation
 

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -22,9 +22,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install ruff
-      - run: ruff check src/ tests/
-      - run: ruff format --check src/ tests/
+      - run: pip install -e ".[dev]"
+      - run: ruff check
+      - run: ruff format --check .
 
   typecheck:
     runs-on: ubuntu-latest
@@ -62,6 +62,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install pip-audit
       - run: pip install -e .
+      - run: pip install pip-audit
       - run: pip-audit
