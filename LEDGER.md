@@ -155,3 +155,45 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `30255640fa4f54c2...`
+
+---
+
+## Session 2026-04-09 — v0.3.6: VCS awareness, Ollama context, English enforcement hardening
+
+**Status:** Complete
+**Branch:** main
+**Release:** v0.3.6 (stable)
+
+### What changed
+
+**VCS state awareness at session start:**
+- `build_system_prompt()`: runs `git status --short` + `git log --oneline -5` at session
+  creation and embeds the snapshot in the system prompt. Agent knows working-tree state
+  immediately without running tools.
+- `start` quick command rewritten: explicitly steps through git status, git log, AGENTS.md,
+  LEDGER.md; summarizes in 3–4 sentences; proposes next action.
+
+**Ollama context reliability:**
+- `keep_alive: -1` added to all three `/api/chat` call paths (complete, complete-with-tools,
+  stream). Prevents model unloading between turns, eliminating context loss on slow sessions.
+
+**Agent continuity and language fixes:**
+- CONTINUITY RULE added to system prompt: agent must reference prior findings when user
+  sends a follow-up; “I’m not sure what you’re referring to” is a CRITICAL FAILURE.
+- `llm_chunk` event deferred in json_events mode until after `_has_non_english()` check.
+  Non-English responses are now silently corrected before the UI ever renders them.
+- Non-English correction fires on any iteration (not just iteration 0).
+- Non-English partial text before tool calls is silently dropped.
+
+**Windows fixes:**
+- `subprocess.run` in `tools.py` forces `encoding='utf-8'` and `errors='replace'`.
+  Fixes `UnicodeDecodeError` (cp1252) on Windows audit/doctor commands.
+
+### Verification
+- ruff check + format: clean
+- All CI workflows green
+- v0.3.6 tagged and released to PyPI
+
+### Open TODOs
+- [ ] Add action button in VS Code session chat when agent finds a fixable issue
+- [ ] Add VCS status live refresh (currently only at session start)

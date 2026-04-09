@@ -5,10 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.6] — 2026-04-09
 
 ### Added
-- `execution_profile`, `custom_allowed_commands`, `custom_blocked_commands`, `custom_blocked_tools` fields in `scaffold.yml` and `ProjectConfig`.
+- **VCS state in agent system prompt** — `build_system_prompt()` runs `git status --short` and
+  `git log --oneline -5` at session start and embeds the snapshot so the agent immediately knows
+  which files are modified, staged, or untracked without waiting for the first tool call.
+- **Enhanced `start` quick command** — now explicitly runs git status, git log, reads AGENTS.md
+  and LEDGER.md, and summarizes findings in 3–4 sentences before proposing the next action.
+  Provides a full project orientation on every new session.
+- **CONTINUITY RULE in system prompt** — prevents the agent from responding with “I’m not sure
+  what you’re referring to” when the user sends a follow-up like “fix it” or “fix the issue”
+  after the agent just described a finding. Instructs the agent to look back at the conversation
+  history and act immediately.
+
+### Changed
+- **Ollama `keep_alive=-1`** on all `/api/chat` calls (complete, complete-with-tools, stream).
+  Without this, Ollama unloads the model after 5 minutes of inactivity. When it reloads for the
+  next turn it must re-prefill the full context, which under memory pressure causes apparent
+  context loss between slow turns.
+- **Deferred `llm_chunk` emission in json_events mode** (`runner.py`) — the `llm_chunk` event
+  is now held back until after the non-English language check. Previously the Thai/Chinese
+  response was sent to the VS Code extension and rendered before the correction turn could
+  fire. Now the UI only ever sees the English reply.
+- **Non-English correction on any iteration** — removed the `_iteration == 0` guard so the
+  language check and correction turn fire on every agent response, not just the first.
+- **Tool partial-text language filter** — non-English planning blurbs that precede tool calls
+  are silently dropped rather than displayed.
+
+### Fixed
+- **Windows subprocess encoding** — `subprocess.run` calls in `tools.py` now force
+  `encoding='utf-8'` and `errors='replace'`, fixing `UnicodeDecodeError` on Windows when
+  tool output contained non-ASCII characters (cp1252 locale mismatch).
 
 ---
 

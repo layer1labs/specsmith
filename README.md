@@ -65,7 +65,15 @@ and a readiness percentage.
 
 ## Install
 
-**Recommended — global install via [pipx](https://pipx.pypa.io):**
+**Recommended — via the VS Code extension (creates a project-isolated environment):**
+
+1. Install the [specsmith AEE Workbench](https://github.com/BitConcepts/specsmith-vscode) VS Code extension
+2. Open `Ctrl+Shift+,` (⚙ specsmith Settings)
+3. Click **🔒 Create Environment** — creates `~/.specsmith/venv/` with specsmith + your provider packages
+
+The extension uses this environment for all agent sessions and terminal commands.
+
+**Or via pipx (system-wide):**
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
@@ -124,24 +132,26 @@ specsmith phase --project-dir ./my-project
 The **specsmith AEE Workbench** VS Code extension is the flagship client:
 
 ```
-# Install specsmith first, then:
 # VS Code: Ctrl+Shift+P → specsmith: New Agent Session
-# Settings Panel: Ctrl+Shift+G
+# Settings:         Ctrl+Shift+,     (⚙ specsmith Settings — global)
+# Project Settings: Ctrl+Shift+G     (⚙ Project Settings — per-project)
 ```
 
 **Key features:**
-- **6-tab Settings panel** — Project / Tools / Files / Updates / Actions / Execution
-- **Execution profiles** — safe (read-only) / standard / open / admin; custom allow/block command lists stored in `scaffold.yml`
-- **AEE phase indicator** — shows current phase with readiness %, Next Phase button, and phase selector
+- **Dual-panel architecture** — **⚙ specsmith Settings** (global: venv, version, Ollama, system)
+  and **⚙ Project Settings** (per-project: scaffold, tools, files, actions, execution)
+- **Global environment management** — `~/.specsmith/venv/` with Create / Update / Rebuild / Delete;
+  persistent restart banner; Remove System Installs cleanup button
+- **VCS context at session start** — git status + recent commits shown in chat and in system prompt
+- **Execution profiles** — safe / standard / open / admin; custom allow/block command lists
+- **AEE phase indicator** — shows current phase with readiness %, Next Phase button, phase selector
 - **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
 - **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
-- **Ollama integration** — browse curated catalog, download models with progress, task-based suggestions
+- **Ollama integration** — model manager (update/remove/update-all), version check, upgrade
 - **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
 - **Tool installer** — scan installed tools; one-click install via winget/brew/apt for missing tools
-- **Tool rules** — curated AI context rules for 20+ tools (VSG, GHDL, Verilator, ruff, mypy, etc.) auto-injected into agent system prompt
 - **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain)
-- **Update checker** — PyPI version check, Install Update button, release channel selector (stable / pre-release)
-- **Auto-open** — Settings panel always opens alongside every new session; never a blank pane
+- **Update checker** — PyPI version check, auto-checks on panel open, release channel selector
 
 **[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
 
