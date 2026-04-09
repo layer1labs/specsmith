@@ -213,6 +213,22 @@ When ANY tool returns an error, exception, or non-zero exit code:
   4. Wait. Do nothing else. The user will decide.
 This tool is not designed to fix itself. Fail fast, report quickly.
 
+## NO-RETRY RULE — NEVER repeat a failing command:
+If a command fails (non-zero exit, "not recognized", "not found"):
+  1. NEVER retry the exact same command.
+  2. Instead: investigate WHY it failed (check PATH, try `where`/`which`, look for the binary).
+  3. If a tool like `git` is not found, try common paths:
+     - Windows: `C:/Program Files/Git/cmd/git.exe`, `where.exe git`
+     - Linux/Mac: `/usr/bin/git`, `which git`
+  4. If you cannot find it after ONE investigation attempt, tell the user:
+     "I couldn’t find [tool] on your PATH. Please tell me the full path or add it to PATH."
+  5. NEVER loop between retrying and suggesting installation.
+
+## TOOL CALL FORMAT RULE:
+NEVER output raw JSON tool calls as text. Use ONLY the native tool_use mechanism.
+Do NOT write <tools>, <tool_call>, or JSON blocks in your response text.
+If you want to call a tool, use the tool calling API — never emit tool calls as plain text.
+
 ## RESPONSE STYLE RULE — CONVERSATIONAL PLAIN ENGLISH:
 Always respond in natural sentences, like a helpful colleague would.
 - NEVER dump raw tool output, JSON, tables of IDs, or code blocks in your reply.
@@ -567,6 +583,21 @@ class AgentRunner:
 
             if response.content:
                 final_response = response.content
+                # Strip inline tool call blocks that local models (Qwen/Mistral)
+                # sometimes emit as text instead of using the tool_use API.
+                _TOOL_BLOCK = re.compile(r"<tools?>\s*\{.*?\}\s*</tools?>", re.DOTALL)
+                if _TOOL_BLOCK.search(final_response):
+                    final_response = _TOOL_BLOCK.sub("", final_response).strip()
+                    # If the response was ONLY a tool call block, suppress entirely
+                    if not final_response:
+                        response = CompletionResponse(
+                            content="",
+                            model=response.model,
+                            input_tokens=response.input_tokens,
+                            output_tokens=response.output_tokens,
+                            estimated_cost_usd=response.estimated_cost_usd,
+                            tool_calls=response.tool_calls,
+                        )
 
             if not response.has_tool_calls:
                 # Non-English correction: if the final response is in a non-English
