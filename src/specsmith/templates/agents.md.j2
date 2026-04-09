@@ -11,7 +11,7 @@
 > You have just read this file. **Do not ask for confirmation.**
 > Immediately read the following files before doing anything else:
 > 1. `docs/governance/RULES.md`
-> 2. `docs/governance/WORKFLOW.md`
+> 2. `docs/governance/SESSION-PROTOCOL.md`
 > 3. `docs/governance/ROLES.md`
 > 4. `docs/governance/CONTEXT-BUDGET.md`
 >
@@ -26,7 +26,7 @@ This project uses the modular governance layout. Read this file in full on every
 | File | Content | Load timing |
 | ---- | ------- | ----------- |
 | `docs/governance/RULES.md` | Hard rules H1–H9, stop conditions | **AUTO-LOAD** (no prompt) |
-| `docs/governance/WORKFLOW.md` | Session lifecycle, proposal format, ledger format | **AUTO-LOAD** (no prompt) |
+| `docs/governance/SESSION-PROTOCOL.md` | Session lifecycle, proposal format, ledger format | **AUTO-LOAD** (no prompt) |
 | `docs/governance/ROLES.md` | Agent role boundaries, behavioral rules | **AUTO-LOAD** (no prompt) |
 | `docs/governance/CONTEXT-BUDGET.md` | Context management, credit optimization | **AUTO-LOAD** (no prompt) |
 | `docs/governance/VERIFICATION.md` | Verification standards, acceptance criteria | When performing verification |
@@ -45,6 +45,13 @@ Other project documents:
 
 ---
 
+## Current Phase
+
+This project is in the **{{ aee_phase_emoji }} {{ aee_phase_label }}** phase (`{{ aee_phase }}`).
+Focus work on artifacts appropriate for this phase. Run `specsmith phase show` to check readiness.
+
+---
+
 ## Authority Hierarchy
 
 1. **AGENTS.md + docs/governance/*** — highest (governance docs inherit this file's authority)
@@ -181,7 +188,7 @@ Stop condition (H13): P1 requirement with confidence below MEDIUM = work stops.
 ## Session Lifecycle
 
 ### Start Protocol
-1. Load `docs/governance/RULES.md`, `WORKFLOW.md`, `ROLES.md`, `CONTEXT-BUDGET.md` — **already done if you followed the auto-load instruction above**
+1. Load `docs/governance/RULES.md`, `SESSION-PROTOCOL.md`, `LIFECYCLE.md`, `ROLES.md`, `CONTEXT-BUDGET.md` — **already done if you followed the auto-load instruction above**
 2. Read `LEDGER.md` — restore session state
 3. `specsmith sync` — pull latest changes
 4. `specsmith update --check` — verify specsmith is current

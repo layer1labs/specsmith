@@ -184,6 +184,11 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     with open(config_out, "w") as fh:
         yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
 
+    # Ensure AEE phase is set (write_phase appends to scaffold.yml)
+    from specsmith.phase import write_phase
+
+    write_phase(target, "inception")
+
 
 def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
     """Load scaffold.yml, merging parent config if `extends` is set."""
@@ -641,7 +646,8 @@ def import_project(
             "docs/ARCHITECTURE.md",
             "scaffold.yml",
             "docs/governance/RULES.md",
-            "docs/governance/WORKFLOW.md",
+            "docs/governance/SESSION-PROTOCOL.md",
+            "docs/governance/LIFECYCLE.md",
             "docs/governance/ROLES.md",
             "docs/governance/CONTEXT-BUDGET.md",
             "docs/governance/VERIFICATION.md",
@@ -681,6 +687,11 @@ def import_project(
         with open(config_out, "w") as fh:
             yaml.dump(config.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
         console.print("  [green]\u2713[/green] scaffold.yml")
+
+    # Ensure AEE phase is set
+    from specsmith.phase import write_phase
+
+    write_phase(root, "inception")
 
     # Guided architecture definition after import
     if guided:
@@ -3442,14 +3453,26 @@ def phase_status(project_dir: str) -> None:
 
 
 @phase_group.command(name="list")
-def phase_list() -> None:
-    """List all AEE workflow phases in order."""
-    from specsmith.phase import PHASES
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def phase_list(project_dir: str) -> None:
+    """List all AEE lifecycle phases with current position highlighted."""
+    from specsmith.phase import PHASES, read_phase
 
-    console.print("[bold]AEE Workflow Phases[/bold]\n")
+    root = Path(project_dir).resolve()
+    current = read_phase(root)
+
+    console.print("[bold]AEE Project Lifecycle[/bold]\n")
+    console.print(
+        "  inception \u2192 architecture \u2192 requirements \u2192 test_spec "
+        "\u2192 implementation \u2192 verification \u2192 release\n"
+    )
     for i, p in enumerate(PHASES, 1):
-        arrow = " → " if i < len(PHASES) else ""
-        console.print(f"  {i}. {p.emoji} [bold]{p.label}[/bold]  {p.description}{arrow}")
+        marker = "[bold cyan]\u25b6[/bold cyan]" if p.key == current else " "
+        style = "bold cyan" if p.key == current else ""
+        console.print(
+            f"  {marker} {i}. {p.emoji} [{style}]{p.label:<20s}[/{style}] {p.description}"
+        )
+    console.print(f"\n  Current: [bold]{current}[/bold]")
 
 
 main.add_command(phase_group)

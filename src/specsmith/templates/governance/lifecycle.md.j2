@@ -1,0 +1,44 @@
+# Project Lifecycle — AEE Development Phases
+
+This project follows the 7-phase Applied Epistemic Engineering (AEE) development lifecycle. Each phase has readiness checks that must pass before advancing.
+
+**Current phase:** {{ aee_phase_emoji }} **{{ aee_phase_label }}** (`{{ aee_phase }}`)
+
+## Phases
+
+1. 🌱 **Inception** — Governance scaffold, AGENTS.md, project type established
+2. 🏗 **Architecture** — ARCHITECTURE.md written, components defined, key decisions sealed
+3. 📋 **Requirements** — REQUIREMENTS.md populated, stress-tested, equilibrium reached
+4. ✅ **Test Specification** — TEST_SPEC.md covers all P1 requirements, coverage ≥ 80%
+5. ⚙ **Implementation** — Code development loop; audit passes; ledger updated each session
+6. 🔬 **Verification** — Epistemic audit passes threshold; trace vault sealed; export clean
+7. 🚀 **Release** — CHANGELOG updated; release tag created; compliance report filed
+
+## Phase Flow
+
+```
+inception → architecture → requirements → test_spec → implementation → verification → release
+                                                                                        ↓
+                                                                                  (next cycle)
+```
+
+## Advancing Phases
+
+Check readiness: `specsmith phase show`
+Advance to next: `specsmith phase next`
+Force-set phase: `specsmith phase set <phase> --force`
+
+All checks for the current phase must pass before `phase next` will advance.
+Use `--force` to override (e.g. during rapid prototyping).
+
+## Phase Artifacts
+
+Each phase produces specific artifacts:
+
+- **Inception**: `scaffold.yml`, `AGENTS.md`, `LEDGER.md`
+- **Architecture**: `docs/ARCHITECTURE.md`, trace vault seal
+- **Requirements**: `docs/REQUIREMENTS.md`, `docs/TEST_SPEC.md`
+- **Test Specification**: TEST_SPEC.md with ≥ 80% REQ coverage
+- **Implementation**: Code, updated LEDGER.md, passing audit
+- **Verification**: Epistemic audit, trace vault seals, export report
+- **Release**: `CHANGELOG.md`, release tag, compliance report

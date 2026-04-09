@@ -73,7 +73,8 @@ class TestSandboxNew:
         gov = project / "docs" / "governance"
         for f in [
             "RULES.md",
-            "WORKFLOW.md",
+            "SESSION-PROTOCOL.md",
+            "LIFECYCLE.md",
             "ROLES.md",
             "CONTEXT-BUDGET.md",
             "VERIFICATION.md",
@@ -81,9 +82,12 @@ class TestSandboxNew:
         ]:
             assert (gov / f).exists(), f"Missing governance file: {f}"
 
+        # Old WORKFLOW.md should NOT be generated
+        assert not (project / "docs" / "WORKFLOW.md").exists()
+        assert not (gov / "WORKFLOW.md").exists()
+
         # Project docs
         assert (project / "docs" / "ARCHITECTURE.md").exists()
-        assert (project / "docs" / "WORKFLOW.md").exists()
         assert (project / "docs" / "REQUIREMENTS.md").exists()
         assert (project / "docs" / "TEST_SPEC.md").exists()
 
@@ -128,6 +132,7 @@ class TestSandboxNew:
         assert cfg["name"] == "forge-cli"
         assert cfg["type"] == "cli-python"
         assert cfg["vcs_platform"] == "github"
+        assert cfg.get("aee_phase") == "inception"
 
         # ---- Step 8: VERIFICATION.md has tools ----
         verification = (gov / "VERIFICATION.md").read_text(encoding="utf-8")

@@ -185,6 +185,13 @@ class TestSandboxImport:
         assert (root / "docs" / "TEST_SPEC.md").exists()
         assert (root / "docs" / "ARCHITECTURE.md").exists()
 
+        # New governance file names
+        assert (root / "docs" / "governance" / "SESSION-PROTOCOL.md").exists()
+        assert (root / "docs" / "governance" / "LIFECYCLE.md").exists()
+        # Old WORKFLOW.md should not exist
+        assert not (root / "docs" / "governance" / "WORKFLOW.md").exists()
+        assert not (root / "docs" / "WORKFLOW.md").exists()
+
         # ---- Step 4: Verify overlay content ----
         agents = (root / "AGENTS.md").read_text(encoding="utf-8")
         assert "taskctl" in agents

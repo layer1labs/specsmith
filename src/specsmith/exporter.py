@@ -138,7 +138,8 @@ def run_export(root: Path) -> str:
         "docs/TEST_SPEC.md",
         "docs/ARCHITECTURE.md",
         "docs/governance/RULES.md",
-        "docs/governance/WORKFLOW.md",
+        "docs/governance/SESSION-PROTOCOL.md",
+        "docs/governance/LIFECYCLE.md",
         "docs/governance/ROLES.md",
         "docs/governance/VERIFICATION.md",
     ]

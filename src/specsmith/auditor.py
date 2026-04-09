@@ -57,7 +57,8 @@ REQUIRED_FILES = [
 
 GOVERNANCE_FILES = [
     "docs/governance/RULES.md",
-    "docs/governance/WORKFLOW.md",
+    "docs/governance/SESSION-PROTOCOL.md",
+    "docs/governance/LIFECYCLE.md",
     "docs/governance/ROLES.md",
     "docs/governance/CONTEXT-BUDGET.md",
     "docs/governance/VERIFICATION.md",
@@ -331,7 +332,8 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
 _DEFAULT_THRESHOLDS: dict[str, int] = {
     "AGENTS.md": 200,
     "docs/governance/RULES.md": 800,
-    "docs/governance/WORKFLOW.md": 400,
+    "docs/governance/SESSION-PROTOCOL.md": 400,
+    "docs/governance/LIFECYCLE.md": 200,
     "docs/governance/ROLES.md": 300,
     "docs/governance/CONTEXT-BUDGET.md": 300,
     "docs/governance/VERIFICATION.md": 400,
@@ -342,12 +344,12 @@ _DEFAULT_THRESHOLDS: dict[str, int] = {
 _TYPE_THRESHOLD_OVERRIDES: dict[str, dict[str, int]] = {
     "fpga-rtl": {
         "docs/governance/RULES.md": 1000,
-        "docs/governance/WORKFLOW.md": 500,
+        "docs/governance/SESSION-PROTOCOL.md": 500,
         "docs/governance/VERIFICATION.md": 600,
     },
     "yocto-bsp": {
         "docs/governance/RULES.md": 1000,
-        "docs/governance/WORKFLOW.md": 500,
+        "docs/governance/SESSION-PROTOCOL.md": 500,
         "docs/governance/VERIFICATION.md": 500,
     },
     "embedded-hardware": {
@@ -579,6 +581,43 @@ def check_trace_chain_integrity(root: Path) -> list[AuditResult]:
         return []
 
 
+def check_phase_readiness(root: Path) -> list[AuditResult]:
+    """Check AEE phase readiness (advisory — failed checks are warnings)."""
+    results: list[AuditResult] = []
+    scaffold_path = root / "scaffold.yml"
+    if not scaffold_path.exists():
+        return results
+
+    from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase
+
+    phase_key = read_phase(root)
+    phase = PHASE_MAP.get(phase_key)
+    if not phase:
+        return results
+
+    passed, failed = evaluate_phase(phase, root)
+    pct = int(len(passed) / len(phase.checks) * 100) if phase.checks else 100
+
+    if failed:
+        results.append(
+            AuditResult(
+                name="phase-readiness",
+                passed=True,  # advisory — don't fail the audit
+                message=(
+                    f"Phase {phase.emoji} {phase.label}: {pct}% ready "
+                    f"({len(failed)} check(s) remaining: {', '.join(failed[:3])})"
+                ),
+            )
+        )
+    else:
+        msg = f"Phase {phase.emoji} {phase.label}: 100% ready"
+        if phase.next_phase:
+            msg += f" — run `specsmith phase next` to advance to {phase.next_phase}"
+        results.append(AuditResult(name="phase-readiness", passed=True, message=msg))
+
+    return results
+
+
 def run_audit(root: Path) -> AuditReport:
     """Run all audit checks and return a report."""
     report = AuditReport()
@@ -589,6 +628,7 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_tool_configuration(root))
     report.results.extend(check_type_mismatch(root))
     report.results.extend(check_trace_chain_integrity(root))
+    report.results.extend(check_phase_readiness(root))
     return report
 
 

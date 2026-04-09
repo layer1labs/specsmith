@@ -27,7 +27,8 @@ class UpgradeResult:
 # Governance templates that get regenerated on upgrade
 _GOVERNANCE_TEMPLATES: list[tuple[str, str]] = [
     ("governance/rules.md.j2", "docs/governance/RULES.md"),
-    ("governance/workflow.md.j2", "docs/governance/WORKFLOW.md"),
+    ("governance/session-protocol.md.j2", "docs/governance/SESSION-PROTOCOL.md"),
+    ("governance/lifecycle.md.j2", "docs/governance/LIFECYCLE.md"),
     ("governance/roles.md.j2", "docs/governance/ROLES.md"),
     ("governance/context-budget.md.j2", "docs/governance/CONTEXT-BUDGET.md"),
     ("governance/verification.md.j2", "docs/governance/VERIFICATION.md"),
@@ -37,13 +38,13 @@ _GOVERNANCE_TEMPLATES: list[tuple[str, str]] = [
 # Migration: old lowercase filenames → new uppercase filenames
 _LEGACY_RENAMES: list[tuple[str, str]] = [
     ("docs/governance/rules.md", "docs/governance/RULES.md"),
-    ("docs/governance/workflow.md", "docs/governance/WORKFLOW.md"),
+    ("docs/governance/workflow.md", "docs/governance/SESSION-PROTOCOL.md"),
+    ("docs/governance/WORKFLOW.md", "docs/governance/SESSION-PROTOCOL.md"),
     ("docs/governance/roles.md", "docs/governance/ROLES.md"),
     ("docs/governance/context-budget.md", "docs/governance/CONTEXT-BUDGET.md"),
     ("docs/governance/verification.md", "docs/governance/VERIFICATION.md"),
     ("docs/governance/drift-metrics.md", "docs/governance/DRIFT-METRICS.md"),
     ("docs/architecture.md", "docs/ARCHITECTURE.md"),
-    ("docs/workflow.md", "docs/WORKFLOW.md"),
 ]
 
 
@@ -51,6 +52,7 @@ def _get_env_and_ctx(
     config: ProjectConfig,
 ) -> tuple[Environment, dict[str, object]]:
     """Create Jinja env and template context from config."""
+    from specsmith.phase import PHASE_MAP
     from specsmith.tools import get_tools
 
     env = Environment(
@@ -60,11 +62,17 @@ def _get_env_and_ctx(
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    # Phase context defaults — caller (run_upgrade) overrides with actual phase
+    phase_key = "inception"
+    phase_obj = PHASE_MAP[phase_key]
     ctx: dict[str, object] = {
         "project": config,
         "today": date.today().isoformat(),
         "package_name": config.package_name,
         "tools": get_tools(config),
+        "aee_phase": phase_key,
+        "aee_phase_label": phase_obj.label,
+        "aee_phase_emoji": phase_obj.emoji,
     }
     return env, ctx
 
@@ -112,10 +120,25 @@ def run_upgrade(
     config.spec_version = new_version
     env, ctx = _get_env_and_ctx(config)
 
+    # Override phase context with actual project phase
+    from specsmith.phase import PHASE_MAP, read_phase
+
+    phase_key = read_phase(root)
+    phase_obj = PHASE_MAP.get(phase_key, PHASE_MAP["inception"])
+    ctx["aee_phase"] = phase_key
+    ctx["aee_phase_label"] = phase_obj.label
+    ctx["aee_phase_emoji"] = phase_obj.emoji
+
     result = UpgradeResult()
 
-    # Migrate legacy lowercase filenames to uppercase
+    # Migrate legacy filenames (including WORKFLOW.md → SESSION-PROTOCOL.md)
     _migrate_legacy_filenames(root, result)
+
+    # Remove obsolete docs/WORKFLOW.md (replaced by phase system + LIFECYCLE.md)
+    obsolete_workflow = root / "docs" / "WORKFLOW.md"
+    if obsolete_workflow.exists():
+        obsolete_workflow.unlink()
+        result.updated_files.append("docs/WORKFLOW.md (removed — replaced by LIFECYCLE.md)")
 
     # Regenerate governance templates (always overwritten — they're spec-managed)
     for template_name, output_rel in _GOVERNANCE_TEMPLATES:
@@ -160,7 +183,6 @@ _USER_OWNED: set[str] = {
     "docs/REQUIREMENTS.md",
     "docs/TEST_SPEC.md",
     "docs/ARCHITECTURE.md",
-    "docs/WORKFLOW.md",
 }
 
 

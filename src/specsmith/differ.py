@@ -14,7 +14,8 @@ from specsmith.config import ProjectConfig
 
 _GOVERNANCE_FILES: list[tuple[str, str]] = [
     ("governance/rules.md.j2", "docs/governance/RULES.md"),
-    ("governance/workflow.md.j2", "docs/governance/WORKFLOW.md"),
+    ("governance/session-protocol.md.j2", "docs/governance/SESSION-PROTOCOL.md"),
+    ("governance/lifecycle.md.j2", "docs/governance/LIFECYCLE.md"),
     ("governance/roles.md.j2", "docs/governance/ROLES.md"),
     ("governance/context-budget.md.j2", "docs/governance/CONTEXT-BUDGET.md"),
     ("governance/verification.md.j2", "docs/governance/VERIFICATION.md"),
@@ -47,13 +48,19 @@ def run_diff(root: Path) -> list[tuple[str, str]]:
         lstrip_blocks=True,
     )
 
+    from specsmith.phase import PHASE_MAP, read_phase
     from specsmith.tools import get_tools
 
+    phase_key = read_phase(root)
+    phase_obj = PHASE_MAP.get(phase_key, PHASE_MAP["inception"])
     ctx = {
         "project": config,
         "today": date.today().isoformat(),
         "package_name": config.package_name,
         "tools": get_tools(config),
+        "aee_phase": phase_key,
+        "aee_phase_label": phase_obj.label,
+        "aee_phase_emoji": phase_obj.emoji,
     }
 
     results: list[tuple[str, str]] = []
@@ -101,11 +108,18 @@ def run_diff_html(root: Path) -> str:
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    from specsmith.phase import PHASE_MAP, read_phase
+
+    phase_key = read_phase(root)
+    phase_obj = PHASE_MAP.get(phase_key, PHASE_MAP["inception"])
     ctx = {
         "project": config,
         "today": date.today().isoformat(),
         "package_name": config.package_name,
         "tools": get_tools(config),
+        "aee_phase": phase_key,
+        "aee_phase_label": phase_obj.label,
+        "aee_phase_emoji": phase_obj.emoji,
     }
 
     differ = difflib.HtmlDiff(wrapcolumn=80)

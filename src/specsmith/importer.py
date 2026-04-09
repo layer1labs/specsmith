@@ -877,8 +877,8 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
             "H2: All proposals require human approval.\n"
             "H3: The ledger is append-only.\n"
         ),
-        "workflow": (
-            "# Workflow\n\n"
+        "session-protocol": (
+            "# Session Protocol\n\n"
             "1. Propose changes\n2. Get approval\n"
             "3. Execute\n4. Verify\n5. Record in ledger\n"
         ),
@@ -935,7 +935,7 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
     # Classify each section into a governance category
     category_map: list[tuple[str, list[str]]] = [
         ("rules", _RULES_KW),
-        ("workflow", _WORKFLOW_KW),
+        ("session-protocol", _WORKFLOW_KW),
         ("roles", _ROLES_KW),
         ("context-budget", _CTX_KW),
         ("verification", _VERIFY_KW),
@@ -944,7 +944,7 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
 
     buckets: dict[str, list[tuple[str, str]]] = {
         "rules": [],
-        "workflow": [],
+        "session-protocol": [],
         "roles": [],
         "context-budget": [],
         "verification": [],
@@ -1007,7 +1007,7 @@ def _extract_governance_sections(root: Path) -> dict[str, str]:
     # Build output
     titles = {
         "rules": "# Rules",
-        "workflow": "# Workflow",
+        "session-protocol": "# Session Protocol",
         "roles": "# Roles",
         "context-budget": "# Context Budget",
         "verification": "# Verification",
@@ -1279,11 +1279,32 @@ def generate_overlay(
     # Otherwise use generic stubs.
     gov = _extract_governance_sections(target)
     _write("docs/governance/RULES.md", gov["rules"])
-    _write("docs/governance/WORKFLOW.md", gov["workflow"])
+    _write("docs/governance/SESSION-PROTOCOL.md", gov["session-protocol"])
+    _write(
+        "docs/governance/LIFECYCLE.md",
+        "# Project Lifecycle\n\n"
+        "See `specsmith phase show` for current phase readiness.\n"
+        "See `specsmith phase list` for the full AEE lifecycle.\n",
+    )
     _write("docs/governance/ROLES.md", gov["roles"])
     _write("docs/governance/CONTEXT-BUDGET.md", gov["context-budget"])
     _write("docs/governance/VERIFICATION.md", gov["verification"])
     _write("docs/governance/DRIFT-METRICS.md", gov["drift-metrics"])
+
+    # Migrate old WORKFLOW.md files if found
+    import shutil as _shutil
+
+    old_gov_wf = target / "docs" / "governance" / "WORKFLOW.md"
+    new_sp = target / "docs" / "governance" / "SESSION-PROTOCOL.md"
+    if old_gov_wf.exists() and not new_sp.exists():
+        _shutil.move(str(old_gov_wf), str(new_sp))
+        created.append(new_sp)
+    elif old_gov_wf.exists():
+        old_gov_wf.unlink()  # new file already exists, remove old one
+
+    old_doc_wf = target / "docs" / "WORKFLOW.md"
+    if old_doc_wf.exists():
+        old_doc_wf.unlink()  # replaced by LIFECYCLE.md + phase system
 
     # If existing AGENTS.md is oversized, back it up and replace with a hub.
     agents_path = target / "AGENTS.md"
@@ -1306,8 +1327,10 @@ def generate_overlay(
                 "| ---- | ------- | ----------- |\n"
                 "| `docs/governance/RULES.md` | Hard rules, stop conditions, "
                 "project-specific rules | Every session start |\n"
-                "| `docs/governance/WORKFLOW.md` | Session lifecycle, "
+                "| `docs/governance/SESSION-PROTOCOL.md` | Session lifecycle, "
                 "save/push protocol | Every session start |\n"
+                "| `docs/governance/LIFECYCLE.md` | AEE phase lifecycle, "
+                "readiness gates | Every session start |\n"
                 "| `docs/governance/ROLES.md` | Agent role boundaries | "
                 "Every session start |\n"
                 "| `docs/governance/CONTEXT-BUDGET.md` | Context management | "

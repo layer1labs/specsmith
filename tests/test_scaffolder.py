@@ -50,7 +50,8 @@ class TestScaffoldCLIPython:
         # Modular governance
         for gov in (
             "RULES.md",
-            "WORKFLOW.md",
+            "SESSION-PROTOCOL.md",
+            "LIFECYCLE.md",
             "ROLES.md",
             "CONTEXT-BUDGET.md",
             "VERIFICATION.md",

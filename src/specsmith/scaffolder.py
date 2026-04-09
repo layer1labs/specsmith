@@ -11,6 +11,7 @@ from pathlib import Path
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from specsmith.config import ProjectConfig, ProjectType
+from specsmith.phase import PHASE_MAP
 
 
 def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
@@ -29,11 +30,16 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
     from specsmith.tools import get_tools
 
     tools = get_tools(config)
+    phase_key = "inception"  # new projects always start at inception
+    phase_obj = PHASE_MAP[phase_key]
     ctx = {
         "project": config,
         "today": date.today().isoformat(),
         "package_name": config.package_name,
         "tools": tools,
+        "aee_phase": phase_key,
+        "aee_phase_label": phase_obj.label,
+        "aee_phase_emoji": phase_obj.emoji,
     }
 
     created: list[Path] = []
@@ -86,6 +92,11 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
     save_budget(target, CreditBudget())  # unlimited by default
     created.append(target / ".specsmith" / "credit-budget.json")
 
+    # Set initial AEE phase in scaffold.yml
+    from specsmith.phase import write_phase
+
+    write_phase(target, "inception")
+
     # Git init
     if config.git_init:
         subprocess.run(  # noqa: S603
@@ -109,14 +120,14 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
         ("editorconfig.j2", ".editorconfig"),
         # Modular governance
         ("governance/rules.md.j2", "docs/governance/RULES.md"),
-        ("governance/workflow.md.j2", "docs/governance/WORKFLOW.md"),
+        ("governance/session-protocol.md.j2", "docs/governance/SESSION-PROTOCOL.md"),
+        ("governance/lifecycle.md.j2", "docs/governance/LIFECYCLE.md"),
         ("governance/roles.md.j2", "docs/governance/ROLES.md"),
         ("governance/context-budget.md.j2", "docs/governance/CONTEXT-BUDGET.md"),
         ("governance/verification.md.j2", "docs/governance/VERIFICATION.md"),
         ("governance/drift-metrics.md.j2", "docs/governance/DRIFT-METRICS.md"),
         # Project docs
         ("docs/architecture.md.j2", "docs/ARCHITECTURE.md"),
-        ("docs/workflow.md.j2", "docs/WORKFLOW.md"),
         ("docs/requirements.md.j2", "docs/REQUIREMENTS.md"),
         ("docs/test-spec.md.j2", "docs/TEST_SPEC.md"),
         # Scripts

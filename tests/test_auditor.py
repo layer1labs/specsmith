@@ -21,7 +21,8 @@ def governed_project(tmp_path: Path) -> Path:
     gov.mkdir(parents=True)
     for f in (
         "RULES.md",
-        "WORKFLOW.md",
+        "SESSION-PROTOCOL.md",
+        "LIFECYCLE.md",
         "ROLES.md",
         "CONTEXT-BUDGET.md",
         "VERIFICATION.md",
