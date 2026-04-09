@@ -64,6 +64,7 @@ class _AutoUpdateGroup(click.Group):
 
         if not skip:
             _maybe_prompt_project_update()
+            _maybe_notify_pypi_update()
 
         return super().invoke(ctx)
 
@@ -123,6 +124,47 @@ def _maybe_prompt_project_update() -> None:
             )
     except Exception:  # noqa: BLE001
         pass  # Never break the actual command on version check errors
+
+
+def _maybe_notify_pypi_update() -> None:
+    """Check PyPI for a newer specsmith version. Prints one-liner if outdated.
+
+    Runs at most once per shell session (tracked via env var). Uses a 3-second
+    timeout to avoid blocking the CLI. Only checks stable versions.
+    """
+    import os
+
+    session_key = "SPECSMITH_PYPI_CHECKED"
+    if os.environ.get(session_key):
+        return
+    os.environ[session_key] = "1"
+
+    try:
+        import json as _json  # noqa: PLC0415
+        from urllib.request import urlopen  # noqa: PLC0415
+
+        resp = urlopen("https://pypi.org/pypi/specsmith/json", timeout=3)  # noqa: S310
+        data = _json.loads(resp.read())
+        latest = data.get("info", {}).get("version", "")
+        if not latest:
+            return
+
+        # Simple version comparison: split into tuples of ints
+        def _ver(v: str) -> tuple[int, ...]:
+            import re
+
+            clean = re.match(r"(\d+\.\d+\.\d+)", v)
+            return tuple(int(x) for x in clean.group(1).split(".")) if clean else (0,)
+
+        if _ver(latest) > _ver(__version__):
+            console.print(
+                f"  [dim]specsmith [bold]{latest}[/bold] available "
+                f"(you have {__version__}). "
+                f"Run [bold]specsmith self-update[/bold] or "
+                f"[bold]pipx upgrade specsmith[/bold].[/dim]"
+            )
+    except Exception:  # noqa: BLE001
+        pass  # Never block the CLI on network errors
 
 
 @click.group(cls=_AutoUpdateGroup)

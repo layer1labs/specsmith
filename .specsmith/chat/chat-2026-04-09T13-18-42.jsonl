@@ -1,0 +1,2 @@
+{"role":"error","text":"[Apr 9, 09:18:43 AM] Agent process ended (exit code 1) — send a message to restart","ts":"2026-04-09T13:18:43.464Z"}
+{"role":"error","text":"specsmith not responding (tried: \"C:\\Users\\trist\\.specsmith\\venv\\Scripts\\specsmith.exe\")\nTo fix:\n  • Ctrl+Shift+P → specsmith: Install or Upgrade\n  • Or set specsmith.executablePath in VS Code settings\n  • On Windows / pip install path:\n    %LOCALAPPDATA%\\Python\\pythoncore-3.12-64\\Scripts\\specsmith.exe","ts":"2026-04-09T13:19:02.885Z"}
