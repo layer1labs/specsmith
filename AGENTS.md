@@ -2,16 +2,39 @@
 
 ## Identity
 - **Project**: specsmith
-- **Type**: CLI tool (Python) + AEE library — Spec Section 17.3
-- **Spec version**: 0.3.0
+- **Type**: CLI tool (Python) + AEE library + AG2 agent shell — Spec Section 17.3
+- **Spec version**: 0.3.10
 - **Language**: Python 3.10+
 - **Platforms**: Windows, Linux, macOS
+- **Agent layer**: AG2 (`ag2[ollama]`) over Ollama local models
 
 ## Purpose
 Applied Epistemic Engineering toolkit for AI-assisted development. Treats belief systems
 like code: codable, testable, deployable. Co-installs the `epistemic` standalone library.
-Includes an AEE-integrated agentic client (`specsmith run`) supporting Claude, GPT, Gemini,
-and local Ollama models.
+Includes an AEE-integrated agentic client (`specsmith run`) and an AG2-based agent shell
+(`specsmith agent run`) supporting Planner/Builder/Verifier agents over local Ollama models.
+
+## Agent Architecture (AG2 Realignment — April 2026)
+
+The system has four layers:
+
+1. **Product Surface** — specsmith CLI, VS Code plugin, PySide6 GUI, existing REPL
+2. **Agent Layer (AG2)** — Planner/Builder/Verifier agents in `src/specsmith/agents/`
+3. **Model Runtime (Ollama)** — local inference via `OllamaProvider`, structured outputs, tool calling
+4. **Verification Layer** — pytest, VS Code extension tests, traces, golden outputs
+
+Do not collapse these layers into one blob. Each has clear boundaries.
+
+### Agent Roles
+- **Planner**: understands tasks, generates execution plans, outputs breakdown + acceptance criteria
+- **Builder**: makes code/doc changes, wires features, patches defects
+- **Verifier**: runs tests, validates behavior, accepts or rejects changes
+
+### Ollama Policy
+- Ollama is the default local model backend
+- Use structured outputs and tool calling whenever possible
+- Abstract model selection behind config — never hardcode one model
+- Primary orchestration model + optional lighter utility model
 
 ## Quick Commands
 - `pip install -e ".[dev]"` — dev install
@@ -47,27 +70,29 @@ and local Ollama models.
 - `src/specsmith/` — specsmith CLI package
 - `src/epistemic/` — standalone AEE library (canonical location)
 - `src/specsmith/epistemic/` — compatibility shim (re-exports from epistemic)
-- `src/specsmith/agent/` — agentic client (providers, tools, runner, hooks, skills)
+- `src/specsmith/agent/` — existing agentic client (providers, tools, runner, hooks, skills)
 - `src/specsmith/agent/profiles/` — built-in agent profiles (planner, verifier, epistemic-auditor)
+- `src/specsmith/agents/` — **AG2 agent shell** (new — Planner, Builder, Verifier)
+- `src/specsmith/agents/tools/` — AG2 tool surface (filesystem, shell, tests, git, docs, vscode)
+- `src/specsmith/agents/workflows/` — AG2 workflows (analyze_edit_test, bugfix, improve_specsmith)
+- `src/specsmith/agents/runtime/` — Ollama bridge for AG2
+- `src/specsmith/agents/config.py` — AG2 agent config from scaffold.yml
+- `src/specsmith/agents/cli.py` — `specsmith agent run|plan|status|verify` commands
 - `src/specsmith/templates/` — Jinja2 scaffold templates (incl. 4 new epistemic templates)
 - `src/specsmith/integrations/` — agent platform adapters
-- `src/specsmith/commands/` — harness slash command implementations _(planned)_
-- `src/specsmith/operations.py` — typed ProjectOperations (file/git/search) _(planned)_
-- `src/specsmith/instinct.py` — instinct persistence and continuous learning _(planned)_
-- `src/specsmith/memory.py` — cross-session agent memory _(planned)_
-- `src/specsmith/eval/` — EDD eval harness (Task/Trial/Grader/pass@k) _(planned)_
+- `src/specsmith/commands/` — harness slash command implementations _(stub — not yet wired)_
+- `src/specsmith/agents/instinct.py` — instinct persistence and continuous learning _(planned)_
+- `src/specsmith/agents/memory.py` — cross-session agent memory _(planned)_
+- `src/specsmith/agents/eval/` — EDD eval harness (Task/Trial/Grader/pass@k) _(planned)_
+- `src/specsmith/agents/flags.py` — feature flag system for tool schema gating _(planned)_
 - `src/specsmith/server/` — specsmith serve daemon (REST + WebSocket) _(planned)_
-- `src/specsmith/agent/spawner.py` — AgentTool subagent spawning _(planned)_
-- `src/specsmith/agent/orchestrator.py` — orchestrator meta-agent on Ollama _(planned)_
-- `src/specsmith/agent/teams.py` — agent team coordination via filesystem mailbox _(planned)_
-- `src/specsmith/agent/flags.py` — feature flag system for tool schema gating _(planned)_
-- `tests/` — test suite
+- `tests/` — test suite (208 pass, 18 sandbox failures as of 2026-04-20)
+- `docs/baseline-audit.md` — Phase 0 architecture audit
 - `docs/REQUIREMENTS.md` — formal requirements (extended April 2026)
 - `docs/TEST_SPEC.md` — test specifications
 - `docs/ARCHITECTURE.md` — architecture reference (extended April 2026)
 - `docs/governance/` — modular governance docs
 - `docs/AGENT-WORKFLOW-SPEC.md` — the specification itself
-- `C:\Users\trist\Development\BitConcepts\everything-claude-code` — ECC reference (local clone)
 
 ## Governance
 This project follows its own specification. See:
@@ -82,6 +107,8 @@ AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if nee
 - Templates: jinja2
 - Config: pydantic + pyyaml
 - Output: rich
+- Agent shell: AG2 (`ag2[ollama]`)
+- Local LLM: Ollama v0.3+ (stdlib urllib, /api/chat)
 - Lint: ruff
 - Types: mypy (strict)
 - Tests: pytest + pytest-cov
@@ -91,6 +118,23 @@ AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if nee
 - File watching: watchdog _(planned — index refresh)_
 - Service: FastAPI or aiohttp + websockets _(planned — specsmith serve)_
 - IDE: Eclipse Theia + @theia/ai-core _(planned — specsmith-ide repo)_
+
+## Project Rules (AG2 Realignment)
+
+These rules apply to all agents working on this codebase:
+
+1. **Evidence over claims** — do not say "works" unless it is demonstrated with test output
+2. **Small safe steps** — prefer small validated improvements over large speculative rewrites
+3. **Preserve the existing product** — wrap and improve the current system before replacing major pieces
+4. **Tooling first** — a good tool loop beats a clever prompt
+5. **Tests are product** — if the system cannot prove itself, it is not ready to improve itself
+6. **Inspect before editing** — always read the relevant files before proposing changes
+7. **Preserve architectural boundaries** — do not collapse the four layers
+8. **Run the narrowest relevant tests** — after every change, run only the tests that cover it
+9. **Update docs alongside code** — undocumented features are governance violations (H14)
+10. **Use Ollama as default** — local model provider; cloud providers are opt-in
+11. **Keep AG2 shell modular** — tools, agents, workflows, and runtime are separate packages
+12. **Leave clear follow-up tasks** — when work is partial, document what remains
 
 ## Documentation Rule (H14 — Hard Rule)
 
