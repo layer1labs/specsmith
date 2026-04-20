@@ -175,3 +175,59 @@ def verify(project_dir: str, max_turns: int) -> None:
         max_turns=max_turns,
     )
     result.process()
+
+
+@agent.command()
+@click.argument("task")
+@click.option("--project-dir", default=".", help="Project root directory.")
+@click.option("--max-turns", default=6, help="Maximum conversation turns.")
+def improve(task: str, project_dir: str, max_turns: int) -> None:
+    """Run the self-improvement workflow (Plan → Build → Verify → Report)."""
+    try:
+        from autogen import ConversableAgent  # noqa: F401
+    except ImportError:
+        console.print("[red]AG2 is not installed.[/red] Run: pip install ag2[ollama]")
+        raise SystemExit(1)  # noqa: B904
+
+    from specsmith.agents.workflows.improve import run_improvement
+
+    project_dir = str(Path(project_dir).resolve())
+    console.print("\n[bold cyan]specsmith agent improve[/bold cyan]")
+    console.print(f"Task: [bold]{task}[/bold]\n")
+
+    report = run_improvement(task, project_dir, max_turns=max_turns)
+
+    console.print(f"\n[bold]Report:[/bold] {report.summary}")
+    if report.verdict == "ACCEPT":
+        console.print("[bold green]✓ ACCEPTED[/bold green]")
+    elif report.verdict == "REJECT":
+        console.print("[bold red]✗ REJECTED[/bold red]")
+    else:
+        console.print(f"[yellow]Verdict: {report.verdict}[/yellow]")
+
+    if report.follow_up_tasks:
+        console.print("\n[bold]Follow-up tasks:[/bold]")
+        for ft in report.follow_up_tasks:
+            console.print(f"  - {ft}")
+
+    console.print(f"\n[dim]Report saved to .specsmith/agent-reports/{report.task_id}.json[/dim]")
+
+
+@agent.command()
+@click.option("--project-dir", default=".", help="Project root directory.")
+def reports(project_dir: str) -> None:
+    """List recent improvement reports."""
+    from specsmith.agents.reports import list_reports
+
+    all_reports = list_reports(project_dir)
+    if not all_reports:
+        console.print("[yellow]No improvement reports found.[/yellow]")
+        return
+
+    for r in all_reports[:10]:
+        icon = {
+            "accepted": "[green]✓[/green]",
+            "rejected": "[red]✗[/red]",
+            "failed": "[red]![/red]",
+        }.get(r.status, "[yellow]?[/yellow]")
+        console.print(f"  {icon} {r.task_id} — {r.summary}")
