@@ -310,9 +310,83 @@ Begin Phase 1: `operations.py` first (it blocks tool handler refactoring), then 
 - Both repos: develop and main in sync, zero failing workflows
 
 ### Open TODOs (Phase 1 — next)
-- [ ] Implement `src/specsmith/operations.py` — typed ProjectOperations class
-- [ ] Refactor tool handlers in `agent/tools.py` to use ProjectOperations
+- [x] Implement `src/specsmith/operations.py` — typed ProjectOperations class → replaced by AG2 tool surface
+- [x] Refactor tool handlers in `agent/tools.py` → AG2 agents/tools/ replaces this
 - [ ] Populate `src/specsmith/commands/` with priority slash commands
 - [ ] Implement `src/specsmith/instinct.py` — instinct persistence
 - [ ] Implement `src/specsmith/eval/` — EDD harness with pass@k
 - [ ] Merge specsmith-vscode develop → main, tag v0.3.14 stable
+
+---
+
+## Session 2026-04-20 — AG2 Realignment: Phases 0–3
+
+**Status:** Complete
+**Branch:** develop
+**AG2 version:** 0.12.0
+**Ollama model:** qwen2.5:14b
+
+### What changed
+
+**AG2 Realignment — new architecture direction:**
+Replaced the previous incremental roadmap with an AG2-based agent shell over Ollama.
+Four-layer architecture: Product Surface → Agent Layer (AG2) → Model Runtime (Ollama) → Verification Layer.
+Three agent roles: Planner (read-only inspection + planning), Builder (code/doc changes), Verifier (tests + accept/reject).
+
+**Phase 0 — Baseline Audit (docs/baseline-audit.md):**
+- Architecture map: 4 entrypoints (CLI, REPL, GUI, VS Code), service boundaries, provider assumptions
+- Test inventory: 208 pass / 18 fail (stale pip install), ruff clean, mypy clean
+- Gap analysis: 10 ranked gaps (no agent tests, empty commands/, raw subprocess tools)
+- AGENTS.md: updated with AG2 four-layer architecture, 12 project rules
+
+**Phase 1 — System Proof (docs/system-proof.md):**
+- Root cause of 18 failures: stale v0.3.1 pip install vs v0.3.10 source → reinstall fixed all
+- tests/conftest.py: WinError 448 pytest cleanup crash fix for Windows
+- tests/test_agent.py: 23 new tests — tool registry (5), tool handlers (5), system prompt (3), AgentRunner init (2), SessionState (2), meta-commands (2), Ollama integration (4)
+- 249 tests passing, lint clean, mypy clean
+
+**Phase 2 — AG2 Agent Shell (src/specsmith/agents/):**
+- agents/config.py: AgentConfig from scaffold.yml, AG2 LLMConfig dict generation
+- agents/tools/filesystem.py: read_file, write_file, patch_file, list_tree, search_content (pathlib)
+- agents/tools/shell.py: run_project_command (structured exit code + output)
+- agents/tools/git.py: git_status, git_diff, git_changed_files, git_branch_info
+- agents/tools/tests.py: run_unit_tests, summarize_failures
+- agents/roles.py: Planner/Builder/Verifier via AG2 ConversableAgent + Ollama
+- agents/cli.py: specsmith agent run/plan/status/verify commands
+- cli.py: agent command group wired into main CLI
+- pyproject.toml: ag2[ollama] optional dependency added
+- Tested live: Planner calls tools via Ollama, full Plan→Build→Verify pipeline works
+
+**Phase 3 — Self-Improvement Loop:**
+- agents/workflows/improve.py: run_improvement() — inspect → plan → edit → test → report
+- agents/reports.py: ChangeReport dataclass, save/list at .specsmith/agent-reports/
+- agents/cli.py: specsmith agent improve <task>, specsmith agent reports
+
+### Verification
+- 249 tests passing (226 existing + 23 new agent tests)
+- ruff check: clean across all agents/ code
+- mypy: 0 errors in 72 source files
+- AG2 + Ollama live tested: plan, run, and full pipeline all execute successfully
+- Ollama tool calling proven with qwen2.5:14b (text completion + tool calling + provider protocol)
+
+### Files changed (11 new + 5 modified)
+- New: src/specsmith/agents/__init__.py, config.py, roles.py, cli.py, reports.py
+- New: src/specsmith/agents/tools/__init__.py, filesystem.py, shell.py, git.py, tests.py
+- New: src/specsmith/agents/workflows/__init__.py, improve.py
+- New: tests/conftest.py, tests/test_agent.py
+- New: docs/baseline-audit.md, docs/system-proof.md
+- Modified: AGENTS.md, pyproject.toml, src/specsmith/cli.py
+
+### Open TODOs
+- [ ] Phase 4.1: Feature flags (REQ-FLG-001–003)
+- [ ] Phase 4.2: Instinct/learning system (REQ-LRN-001–007)
+- [ ] Phase 4.3: Eval harness (REQ-EDD-001–008)
+- [ ] Phase 4.4: Agent memory persistence (REQ-MEM-001–004)
+- [ ] Phase 4.5: Multi-agent coordination via AG2 GroupChat
+- [ ] Phase 4.6: Server daemon (specsmith serve)
+- [ ] Phase 4.7: Theia IDE (specsmith-ide repo)
+- [ ] Populate src/specsmith/commands/ with slash commands
+- [ ] Merge specsmith-vscode develop → main, tag v0.3.14 stable
+
+### Next step
+specsmith can now improve itself via `specsmith agent improve <task>`. Use it for Phase 4 tasks (feature flags, instinct, eval harness). Review changes before committing.
