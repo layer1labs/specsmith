@@ -335,12 +335,10 @@ class AgentRunner:
     QUICK_COMMANDS = {
         "start": (
             "[RESPOND IN ENGLISH ONLY] "
-            "Run the session start protocol in this order:\n"
-            "1. Run: git status (report staged, modified, and untracked files)\n"
-            "2. Run: git log --oneline -5 (report the 5 most recent commits)\n"
-            "3. Read AGENTS.md (confirm your role and governance rules)\n"
-            "4. Read the last 10 lines of LEDGER.md (confirm current project state)\n"
-            "Summarize findings in 3-4 plain sentences, then propose the most logical next action."
+            "Session ready. Respond with a brief 1-2 sentence greeting confirming you are ready. "
+            "Do NOT run any tools, audits, git commands, or file reads. "
+            "Do NOT output JSON. Just a short natural language greeting. "
+            "The user will tell you what to do next."
         ),
         "resume": (
             "[RESPOND IN ENGLISH ONLY] Resume from last LEDGER.md entry"
