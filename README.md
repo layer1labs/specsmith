@@ -121,9 +121,42 @@ specsmith epistemic-audit --project-dir ./my-project
 # Start the agentic REPL
 specsmith run --project-dir ./my-project
 
+# AG2 agent shell — Planner/Builder/Verifier over Ollama
+specsmith agent status                    # check agent config + Ollama
+specsmith agent plan "add logging"        # plan only (no execution)
+specsmith agent run "fix lint errors"     # full Plan → Build → Verify
+specsmith agent improve "add tests"       # self-improvement with reports
+specsmith agent verify                    # run Verifier on current state
+specsmith agent reports                   # list improvement reports
+
 # Check current AEE workflow phase
 specsmith phase --project-dir ./my-project
 ```
+
+---
+
+## AG2 Agent Shell — Local AI Agents over Ollama
+
+specsmith includes an AG2-based agent shell with three specialized agents:
+
+- **Planner** — inspects repo, generates execution plans with acceptance criteria
+- **Builder** — makes code/doc changes following the plan
+- **Verifier** — runs tests, accepts or rejects changes
+
+All agents run locally on Ollama (default: `qwen2.5:14b`). Zero cloud cost.
+
+```bash
+pip install "specsmith[ag2]"              # install AG2 + Ollama support
+specsmith agent status                    # verify config + Ollama running
+specsmith agent run "fix lint errors"     # Plan → Build → Verify pipeline
+specsmith agent improve "add tests for config.py"  # self-improvement with reports
+```
+
+The agent shell stores structured reports at `.specsmith/agent-reports/` with task ID,
+files changed, test results, verdict (ACCEPT/REJECT), and follow-up tasks.
+
+Configurable per-project in `scaffold.yml` under `agents:` or via the VS Code
+Project Settings → Agent tab.
 
 ---
 
@@ -146,7 +179,10 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 - **Execution profiles** — safe / standard / open / admin; custom allow/block command lists
 - **AEE phase indicator** — shows current phase with readiness %, Next Phase button, phase selector
 - **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
+- **AG2 agent shell** — Planner/Builder/Verifier agents over Ollama in Actions tab
+- **Agent tab** — per-project provider/model/context/iteration config (overrides global defaults)
 - **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
+- **Ollama model catalog** — 16 models, 4 tiers, GPU-aware recommendations, filter by installed/available
 - **Ollama integration** — model manager (update/remove/update-all), version check, upgrade
 - **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
 - **Tool installer** — scan installed tools; one-click install via winget/brew/apt for missing tools
@@ -219,7 +255,7 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
 
-**Agent:** `run` `agent providers/tools/skills`
+**Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills`
 
 **Ollama:** `ollama list/available/gpu/pull/suggest`
 

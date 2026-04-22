@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11] — 2026-04-22
+
+### Added
+- **AG2 agent shell** (`src/specsmith/agents/`) — Planner/Builder/Verifier agents over Ollama.
+  New CLI commands: `specsmith agent run/plan/status/verify/improve/reports`.
+  Uses AG2 v0.12.0 with native Ollama tool calling. Configurable per-project via `scaffold.yml`.
+- **Self-improvement workflow** (`agents/workflows/improve.py`) — `specsmith agent improve <task>`
+  runs Plan→Build→Verify, produces structured ChangeReport at `.specsmith/agent-reports/`.
+- **AG2 tool surface** — 12 typed tools: filesystem (pathlib, no subprocess), shell, git, tests.
+  Replaces the old `operations.py` concept.
+- **Phase 0–3 documentation** — `docs/baseline-audit.md`, `docs/system-proof.md`.
+- **23 new agent tests** (`tests/test_agent.py`) — tool registry, tool handlers, system prompt,
+  AgentRunner init, SessionState, meta-commands, Ollama integration (live).
+- **tests/conftest.py** — WinError 448 pytest cleanup fix for Windows.
+
+### Changed
+- **Ollama timeout** — 120s → 600s for completion, 300s for streaming. Fixes frequent
+  `[Provider error] timed out` in VS Code sessions.
+- **AgentConfig** — `effective_utility_model` (defaults to primary), `effective_max_iterations`
+  (0 = unlimited, maps to 999).
+- **AGENTS.md** — AG2 four-layer architecture, 12 project rules, updated file registry.
+- **pyproject.toml** — `ag2[ollama]` optional dependency added.
+
+---
+
+## [0.3.10] — 2026-04-10
+
+### Fixed
+- No-placeholder-requirements rule added to system prompt (#69).
+
+---
+
 ## [0.3.6] — 2026-04-09
 
 ### Added
