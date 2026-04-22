@@ -120,7 +120,7 @@ def _extract_last_assistant_message(messages: list[dict[str, Any]]) -> str:
     """Get the last assistant message content from a conversation."""
     for msg in reversed(messages):
         if msg.get("role") == "assistant" and msg.get("content"):
-            return msg["content"]
+            return str(msg["content"])
     return ""
 
 

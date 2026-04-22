@@ -11,9 +11,7 @@ Covers:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 import yaml
@@ -21,16 +19,13 @@ import yaml
 from specsmith.agent.core import (
     CompletionResponse,
     Message,
-    ModelTier,
     Role,
     Tool,
     ToolParam,
-    ToolResult,
 )
 from specsmith.agent.runner import AgentRunner, SessionState, build_system_prompt
 from specsmith.agent.skills import load_skills
 from specsmith.agent.tools import build_tool_registry, get_tool_by_name
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -114,7 +109,11 @@ class TestToolHandlers:
         write_file = get_tool_by_name(tools, "write_file")
         assert write_file is not None
         result = write_file.handler(path="test_output.txt", content="hello world")
-        assert "wrote" in result.lower() or "created" in result.lower() or "test_output" in result.lower()
+        assert (
+            "wrote" in result.lower()
+            or "created" in result.lower()
+            or "test_output" in result.lower()
+        )
         assert (governed_project / "test_output.txt").read_text(encoding="utf-8") == "hello world"
 
     def test_run_command_handler(self, governed_project: Path) -> None:

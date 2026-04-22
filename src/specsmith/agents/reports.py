@@ -12,6 +12,7 @@ import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -36,7 +37,7 @@ class ChangeReport:
         default_factory=lambda: datetime.now(tz=timezone.utc).isoformat()
     )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to a JSON-serializable dict (excludes verbose fields)."""
         d = asdict(self)
         # Truncate verbose fields for the summary view

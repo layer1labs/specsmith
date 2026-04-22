@@ -123,6 +123,8 @@ exclude = ["src/specsmith/gui"]
 module = [
     "anthropic",
     "anthropic.*",
+    "autogen",    # AG2 agent shell — optional extra
+    "autogen.*",
     "openai",
     "openai.*",
     "google",
