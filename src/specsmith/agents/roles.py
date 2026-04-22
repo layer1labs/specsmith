@@ -156,8 +156,13 @@ def create_builder(config: AgentConfig, project_dir: str) -> Any:
         human_input_mode="NEVER",
         llm_config=llm_config,
         functions=[
-            _read_file, _write_file, _patch_file, _list_tree,
-            _run_command, _git_status, _git_diff,
+            _read_file,
+            _write_file,
+            _patch_file,
+            _list_tree,
+            _run_command,
+            _git_status,
+            _git_diff,
         ],
     )
     return agent

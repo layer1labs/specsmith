@@ -33,9 +33,7 @@ class ChangeReport:
     tests_failed: int = 0
     summary: str = ""
     follow_up_tasks: list[str] = field(default_factory=list)
-    created: str = field(
-        default_factory=lambda: datetime.now(tz=timezone.utc).isoformat()
-    )
+    created: str = field(default_factory=lambda: datetime.now(tz=timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to a JSON-serializable dict (excludes verbose fields)."""
@@ -69,10 +67,11 @@ def list_reports(project_dir: str = ".") -> list[ChangeReport]:
     for path in sorted(reports_dir.glob("*.json"), reverse=True):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            reports.append(ChangeReport(**{
-                k: v for k, v in data.items()
-                if k in ChangeReport.__dataclass_fields__
-            }))
+            reports.append(
+                ChangeReport(
+                    **{k: v for k, v in data.items() if k in ChangeReport.__dataclass_fields__}
+                )
+            )
         except Exception:  # noqa: BLE001
             pass
     return reports

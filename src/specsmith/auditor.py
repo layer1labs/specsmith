@@ -666,7 +666,7 @@ def check_supplementary_rules(root: Path) -> list[AuditResult]:
                     + (
                         ". Add them to the auto-load registry."
                         if len(unreferenced) <= 5
-                        else f" (+{len(unreferenced)-5} more)"
+                        else f" (+{len(unreferenced) - 5} more)"
                     )
                 ),
                 fixable=True,

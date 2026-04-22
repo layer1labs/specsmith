@@ -135,8 +135,19 @@ def search_content(
 
     _SKIP = {".git", "__pycache__", "node_modules", ".venv", "venv", ".specsmith"}
     _TEXT_EXT = {
-        ".py", ".md", ".txt", ".yml", ".yaml", ".toml",
-        ".json", ".js", ".ts", ".sh", ".cmd", ".cfg", ".ini",
+        ".py",
+        ".md",
+        ".txt",
+        ".yml",
+        ".yaml",
+        ".toml",
+        ".json",
+        ".js",
+        ".ts",
+        ".sh",
+        ".cmd",
+        ".cfg",
+        ".ini",
     }
     try:
         compiled = re.compile(pattern, re.IGNORECASE)

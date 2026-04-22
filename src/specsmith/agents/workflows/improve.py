@@ -104,9 +104,7 @@ def run_improvement(
         report.verdict = "UNCLEAR"
 
     # Extract test results
-    report.tests_run, report.tests_passed, report.tests_failed = (
-        _extract_test_counts(verify_text)
-    )
+    report.tests_run, report.tests_passed, report.tests_failed = _extract_test_counts(verify_text)
 
     # Generate follow-up tasks
     report.follow_up_tasks = _extract_follow_ups(verify_text, build_text)
