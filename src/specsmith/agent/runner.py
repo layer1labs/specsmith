@@ -602,19 +602,25 @@ class AgentRunner:
                 final_response = response.content
                 # Strip inline tool call blocks that local models (Qwen/Mistral)
                 # sometimes emit as text instead of using the tool_use API.
+                # Pattern 1: XML-wrapped tool calls <tool>{...}</tool>
                 _TOOL_BLOCK = re.compile(r"<tools?>\s*\{.*?\}\s*</tools?>", re.DOTALL)
-                if _TOOL_BLOCK.search(final_response):
-                    final_response = _TOOL_BLOCK.sub("", final_response).strip()
-                    # If the response was ONLY a tool call block, suppress entirely
-                    if not final_response:
-                        response = CompletionResponse(
-                            content="",
-                            model=response.model,
-                            input_tokens=response.input_tokens,
-                            output_tokens=response.output_tokens,
-                            estimated_cost_usd=response.estimated_cost_usd,
-                            tool_calls=response.tool_calls,
-                        )
+                # Pattern 2: Bare JSON tool calls {"name":..., "arguments":...}
+                _BARE_TOOL = re.compile(
+                    r'\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}\s*\}',
+                )
+                for pat in (_TOOL_BLOCK, _BARE_TOOL):
+                    if pat.search(final_response):
+                        final_response = pat.sub("", final_response).strip()
+                # If the response was ONLY tool call blocks, suppress entirely
+                if not final_response:
+                    response = CompletionResponse(
+                        content="",
+                        model=response.model,
+                        input_tokens=response.input_tokens,
+                        output_tokens=response.output_tokens,
+                        estimated_cost_usd=response.estimated_cost_usd,
+                        tool_calls=response.tool_calls,
+                    )
 
             if not response.has_tool_calls:
                 # Non-English correction: if the final response is in a non-English
