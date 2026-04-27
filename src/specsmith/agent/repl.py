@@ -112,26 +112,45 @@ def main():
             # REQ-086: gate execution on preflight acceptance.
             if decision.accepted:
                 # REQ-087: drive orchestrator through the bounded-retry harness.
-                # The executor closure is the ONLY place the broker branch is
-                # allowed to call orchestrator.run_task; calling it directly
-                # outside the harness would bypass REQ-014 retry bounds and
-                # REQ-063 stop-and-align escalation.
+                # REQ-091: the executor consumes the structured TaskResult
+                # returned by orchestrator.run_task instead of synthesizing
+                # equilibrium from bool(summary). The closure is still the
+                # ONLY place the broker branch is allowed to call run_task.
                 def _executor(_decision, attempt):
-                    summary = orchestrator.run_task(user_input)
-                    # The orchestrator currently returns a free-form string or
-                    # None. Until the orchestrator emits a structured result
-                    # the broker treats a successful, non-empty response as
-                    # equilibrium with a confidence at the decision target.
-                    confident = bool(summary) if summary is not None else True
+                    task_result = orchestrator.run_task(user_input)
                     return {
-                        "equilibrium": confident,
-                        "confidence": _decision.confidence_target if confident else 0.0,
-                        "summary": summary if isinstance(summary, str) else "",
+                        "equilibrium": task_result.equilibrium,
+                        "confidence": task_result.confidence,
+                        "summary": task_result.summary,
+                        "files_changed": task_result.files_changed,
+                        "test_results": task_result.test_results,
                     }
 
                 result = execute_with_governance(decision, executor=_executor)
                 if not result.success and result.clarifying_question:
                     print(result.clarifying_question)
+
+                # REQ-094: when /why is on, surface a post-run governance
+                # block summarizing the assigned IDs and the harness outcome.
+                if verbose_governance:
+                    why_lines = ["[/why]"]
+                    if decision.work_item_id:
+                        why_lines.append(
+                            f"  work_item_id: {decision.work_item_id}"
+                        )
+                    if decision.requirement_ids:
+                        why_lines.append(
+                            "  requirement_ids: "
+                            + ",".join(decision.requirement_ids)
+                        )
+                    if decision.test_case_ids:
+                        why_lines.append(
+                            "  test_case_ids: "
+                            + ",".join(decision.test_case_ids)
+                        )
+                    why_lines.append(f"  confidence: {result.confidence:.2f}")
+                    why_lines.append(f"  equilibrium: {result.success}")
+                    print("\n".join(why_lines))
             else:
                 print("(no execution \u2014 preflight did not accept this request)")
 

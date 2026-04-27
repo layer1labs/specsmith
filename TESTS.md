@@ -990,3 +990,58 @@
 - **Expected Behavior:** Each file mentions the broker concept, the preflight CLI, the gate, and the `/why` toggle.
 - **Confidence:** 1.0
 
+## TEST-091. Orchestrator.run_task Returns a Structured TaskResult
+- **ID:** TEST-091
+- **Title:** Orchestrator.run_task Returns a Structured TaskResult
+- **Description:** `orchestrator.run_task` must return a `TaskResult` instance whose attributes include `equilibrium`, `confidence`, `summary`, `files_changed`, and `test_results`. The REPL source must consume that result inside the executor closure (`result.equilibrium`, `result.confidence`) rather than computing equilibrium from `bool(summary)`.
+- **Requirement ID:** REQ-091
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** orchestrator module + REPL source
+- **Expected Behavior:** TaskResult dataclass exposes the required fields; REPL source references `result.equilibrium` and `result.confidence`.
+- **Confidence:** 1.0
+
+## TEST-092. specsmith preflight CLI Returns Decision-Specific Exit Codes
+- **ID:** TEST-092
+- **Title:** specsmith preflight CLI Returns Decision-Specific Exit Codes
+- **Description:** Invoking `specsmith preflight` over a tmp project must exit 0 for `accepted` decisions, 2 for `needs_clarification`, and 3 for `blocked`/`rejected`. The JSON payload must continue to be emitted on stdout regardless of exit code.
+- **Requirement ID:** REQ-092
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over isolated tmp_path
+- **Expected Behavior:** Exit code matches the decision; JSON parses on stdout for both 0 and 2 exits.
+- **Confidence:** 1.0
+
+## TEST-093. Accepted preflight Records a Ledger Event
+- **ID:** TEST-093
+- **Title:** Accepted preflight Records a Ledger Event
+- **Description:** When the preflight decision is `accepted` and `LEDGER.md` exists in the tmp project root, invoking the CLI must append a new ledger entry tagged with `REQ-085` and the matched `requirement_ids`. When the decision is `needs_clarification`, the ledger must not gain an entry.
+- **Requirement ID:** REQ-093
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner with seeded LEDGER.md
+- **Expected Behavior:** LEDGER.md grows on accept; LEDGER.md unchanged on needs_clarification.
+- **Confidence:** 1.0
+
+## TEST-094. /why Surfaces Post-Run Governance Block in REPL
+- **ID:** TEST-094
+- **Title:** /why Surfaces Post-Run Governance Block in REPL
+- **Description:** Inspecting the REPL source must show a `[/why]` post-run block guarded by `verbose_governance` after `execute_with_governance` returns; the block must reference `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence`, and `equilibrium`.
+- **Requirement ID:** REQ-094
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** repl module source
+- **Expected Behavior:** Source contains a `[/why]` block guarded by verbose_governance and referencing the required keys.
+- **Confidence:** 1.0
+
+## TEST-095. Nexus Live Smoke Evidence Captured
+- **ID:** TEST-095
+- **Title:** Nexus Live Smoke Evidence Captured
+- **Description:** `.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either a successful live smoke (`ok: true`) or an honest reason the live container could not be reached.
+- **Requirement ID:** REQ-095
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** .specsmith/runs/WI-NEXUS-011/logs.txt
+- **Expected Behavior:** Log file present and non-empty; mentions either ok=true/false from the smoke script.
+- **Confidence:** 1.0
+

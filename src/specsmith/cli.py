@@ -499,6 +499,42 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
     # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
     click.echo(_json.dumps(payload, indent=2))
 
+    # REQ-093: when accepted and LEDGER.md exists, append a `preflight` ledger
+    # event tagged with REQ-085 plus the resolved requirement_ids. Best-effort:
+    # never block the CLI on ledger errors.
+    if decision_str == "accepted" and (root / "LEDGER.md").exists():
+        try:
+            from specsmith.ledger import add_entry
+
+            req_tags = "REQ-085"
+            if requirement_ids:
+                req_tags = "REQ-085," + ",".join(requirement_ids)
+            description = (
+                f"specsmith preflight accepted utterance \"{utterance}\" "
+                f"(work_item_id={work_item_id}, "
+                f"confidence_target={round(confidence_target, 3)})."
+            )
+            add_entry(
+                root,
+                description=description,
+                entry_type="preflight",
+                author="specsmith",
+                reqs=req_tags,
+            )
+        except Exception:  # noqa: BLE001 - ledger writing is best-effort
+            pass
+
+    # REQ-092: decision-specific exit codes so CI / shell wrappers can branch
+    # on intent without parsing the JSON payload.
+    if decision_str == "accepted":
+        return  # exit 0
+    if decision_str == "needs_clarification":
+        raise SystemExit(2)
+    if decision_str in ("blocked", "rejected"):
+        raise SystemExit(3)
+    # Unknown decision values fall through to exit 0 to preserve back-compat.
+    return
+
 
 @main.command(name="clean")
 @click.option(

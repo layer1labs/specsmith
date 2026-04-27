@@ -988,5 +988,60 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-091",
+    "title": "Orchestrator.run_task Returns a Structured TaskResult",
+    "description": "`orchestrator.run_task` must return a `TaskResult` instance whose attributes include `equilibrium`, `confidence`, `summary`, `files_changed`, and `test_results`. The REPL source must consume that result inside the executor closure (`result.equilibrium`, `result.confidence`) rather than computing equilibrium from `bool(summary)`.",
+    "requirement_id": "REQ-091",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-092",
+    "title": "specsmith preflight CLI Returns Decision-Specific Exit Codes",
+    "description": "Invoking `specsmith preflight` over a tmp project must exit 0 for `accepted` decisions, 2 for `needs_clarification`, and 3 for `blocked`/`rejected`. The JSON payload must continue to be emitted on stdout regardless of exit code.",
+    "requirement_id": "REQ-092",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-093",
+    "title": "Accepted preflight Records a Ledger Event",
+    "description": "When the preflight decision is `accepted` and `LEDGER.md` exists in the tmp project root, invoking the CLI must append a new ledger entry tagged with `REQ-085` and the matched `requirement_ids`. When the decision is `needs_clarification`, the ledger must not gain an entry.",
+    "requirement_id": "REQ-093",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-094",
+    "title": "/why Surfaces Post-Run Governance Block in REPL",
+    "description": "Inspecting the REPL source must show a `[/why]` post-run block guarded by `verbose_governance` after `execute_with_governance` returns; the block must reference `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence`, and `equilibrium`.",
+    "requirement_id": "REQ-094",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-095",
+    "title": "Nexus Live Smoke Evidence Captured",
+    "description": "`.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either a successful live smoke (`ok: true`) or an honest reason the live container could not be reached.",
+    "requirement_id": "REQ-095",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
