@@ -1,226 +1,385 @@
-# Architecture — specsmith
+# Architecture — Specsmith Self-Governing AEE System
 
-## Overview
+## 1. Purpose
 
-specsmith is an Applied Epistemic Engineering (AEE) toolkit targeting Windows, Linux, macOS. It scaffolds epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance. Supports 33 project types (see REQ-CFG-002).
+Specsmith is an Applied Epistemic Engineering toolkit and governance engine.
 
-## Components
+It scaffolds epistemically governed projects, records project beliefs, derives requirements, maps requirements to tests, verifies evidence, tracks uncertainty, and records decisions in a tamper-evident ledger.
 
-### CLI (`cli.py`)
-Entry point. Click-based command group with 50+ commands (see REQ-CLI-001 through REQ-CLI-013). Includes: scaffold/governance commands, AEE commands (`stress-test`, `epistemic-audit`, `belief-graph`, `trace`, `integrate`), agentic client (`run`, `agent`), and extended commands (`auth`, `workspace`, `watch`, `patent`).
+Specsmith must be capable of governing its own development.
 
-### Config (`config.py`)
-Pydantic model validating scaffold.yml (see REQ-CFG-001). 33 project types enum (see REQ-CFG-002), platform enum, type labels, section refs. AEE fields: `enable_epistemic`, `epistemic_threshold`, `enable_trace_vault`.
+This repository is being bootstrapped so Specsmith can use its own governance system to manage future changes.
 
-### Scaffolder (`scaffolder.py`)
-Jinja2 template renderer (see REQ-SCF-001 through REQ-SCF-006). Generates governance files, project structure, scripts. Delegates to VCS platforms and agent integrations. Epistemic governance templates for AEE project types (see REQ-SCF-EPI-001).
+## 2. Core Boundary
 
-### Tool Registry (`tools.py`)
-Data structure mapping 33 project types to verification tools (see REQ-TLR-001 through REQ-TLR-004). CI metadata per language (see REQ-TLR-002).
+Specsmith has two major layers:
 
-### Importer (`importer.py`)
-Detection engine: walks directories, detects language/build/test/CI/governance (see REQ-IMP-001 through REQ-IMP-006). Infers ProjectType. Generates overlay files with cross-linked TEST/REQ stubs (see REQ-IMP-007).
+### Governance Layer
 
-### Exporter (`exporter.py`)
-Generates compliance reports: REQ coverage matrix, audit summary, tool status, governance inventory (see REQ-EXP-001 through REQ-EXP-005).
+The governance layer owns:
 
-### Auditor (`auditor.py`)
-Health checks: file existence, REQ↔TEST coverage (see REQ-AUD-001 through REQ-AUD-008), ledger health, governance size, tool configuration, trace chain integrity.
+- `ARCHITECTURE.md`
+- `REQUIREMENTS.md`
+- `TEST_SPEC.md`
+- `LEDGER.md`
+- `.specsmith/requirements.json`
+- `.specsmith/testcases.json`
+- `.specsmith/workitems.json`
+- `.specsmith/ledger.jsonl`
+- `.specsmith/ledger-chain.txt`
 
-### VCS Platforms (`vcs/`)
-GitHub, GitLab, Bitbucket integrations (see REQ-VCS-001 through REQ-VCS-004). Tool-aware CI config generation, dependency management, status checks.
+The governance layer decides:
 
-### Agent Integrations (`integrations/`)
-7 adapters: Warp, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider (see REQ-INT-001 through REQ-INT-005).
+- what the system is supposed to do
+- what requirements exist
+- what tests prove those requirements
+- what work items should be created
+- whether output satisfies the requirements
+- whether epistemic confidence is sufficient
+- whether retry or escalation is needed
 
-## Epistemic Layer (`src/epistemic/` + `src/specsmith/agent/`)
+### Runtime Layer
 
-### `epistemic` package (standalone library, zero deps)
-Co-installed with specsmith. Canonical location for all AEE machinery.
-- **`belief.py`** — `BeliefArtifact` dataclass (propositions, boundary, confidence, status, failure_modes, evidence)
-- **`stress_tester.py`** — `StressTester` applies 8 adversarial challenge categories; emits `FailureMode` records; detects Logic Knots
-- **`failure_graph.py`** — `FailureModeGraph` directed graph; `equilibrium_check()` and `logic_knot_detect()`; Mermaid rendering
-- **`recovery.py`** — `RecoveryOperator` emits bounded `RecoveryProposal` objects; never auto-applies; ranked by severity
-- **`certainty.py`** — `CertaintyEngine` scores C = base × coverage × freshness; weakest-link propagation through inferential links
-- **`session.py`** — `AEESession` facade: `add_belief`, `accept`, `add_evidence`, `run`, `save`, `load`, `seal`
-- **`trace.py`** — `TraceVault` SHA-256 append-only chain; STP-inspired decision sealing
+The runtime layer executes actions through:
 
-### `specsmith.epistemic` (compatibility shim)
-Re-exports all symbols from `epistemic`. Allows `from specsmith.epistemic import BeliefArtifact` for backward compat.
+- Specsmith CLI commands
+- OpenCode sessions
+- agent commands
+- test runners
+- filesystem tools
+- git operations
+- future integrations
 
-### Crypto Audit Chain (`ledger.py`)
-`CryptoAuditChain` stores SHA-256 hashes per ledger entry in `.specsmith/ledger-chain.txt`. Each hash chains to the previous, making the ledger tamper-evident.
+The runtime layer performs work, but governance determines whether the work is valid.
 
-### Agentic Client (`src/specsmith/agent/`)
-- **`core.py`** — `Message`, `Tool`, `CompletionResponse`, `ModelTier`, `BaseProvider` protocol
-- **`providers/`** — Anthropic, OpenAI (+ Ollama via compat), Gemini, Ollama (stdlib-only). All optional extras.
-- **`tools.py`** — 20 specsmith commands as native LLM-callable tools with epistemic contracts
-- **`hooks.py`** — `HookRegistry` with Pre/PostTool, SessionStart, SessionEnd. Built-in H13 check.
-- **`skills.py`** — SKILL.md loader with domain priority order
-- **`runner.py`** — REPL loop, tool execution, streaming, session state, model routing
-- **`profiles/`** — Built-in skill profiles: planner, verifier, epistemic-auditor
+## 3. Existing Specsmith System
 
-## GUI Workbench (`src/specsmith/gui/`)
+Specsmith currently includes:
 
-PySide6 (Qt6) desktop application launched via `specsmith gui` (see REQ-GUI-001 through REQ-GUI-013).
+- Click-based CLI entrypoint
+- scaffold generation
+- governance file generation
+- AEE commands
+- agentic client commands
+- auditor/exporter/importer functionality
+- optional LLM/provider support
+- GUI workbench
+- trace vault and ledger functionality
+- compatibility shim for the standalone `epistemic` package
 
-- **`app.py`** — `QApplication` bootstrap, dark AEE theme (deep-navy/teal/amber), `launch()` entry point
-- **`main_window.py`** — `MainWindow`: `QTabWidget` with new-session dialog, global status bar, menu bar
-- **`session_tab.py`** — per-tab widget: assembles chat view, input bar, token meter, tool panel, provider bar
-- **`worker.py`** — `GUIAgentRunner(AgentRunner)` overrides `_print`/`_call_provider`/`_execute_tool_calls` to emit Qt signals; `AgentWorker(QThread)` runs agent turns off the UI thread
-- **`theme.py`** — QSS stylesheet: `#0d1117` background, teal accents, amber warnings
-- **`widgets/chat_view.py`** — `QTextBrowser` with HTML message rendering per role
-- **`widgets/input_bar.py`** — `QPlainTextEdit` + Send/File/URL buttons + drag-drop accept
-- **`widgets/token_meter.py`** — `QProgressBar` (green→yellow→red at 70%/90%) + cost label
-- **`widgets/tool_panel.py`** — collapsible sidebar with `QToolButton`s per specsmith tool
-- **`widgets/provider_bar.py`** — `QComboBox` for provider and model selection
-- **`widgets/update_checker.py`** — `QThread` that checks PyPI on startup and silently upgrades
+Existing major modules include:
 
-## Verification Tools
+- `cli.py`
+- `config.py`
+- `scaffolder.py`
+- `tools.py`
+- `importer.py`
+- `exporter.py`
+- `auditor.py`
+- `ledger.py`
+- `integrations/`
+- `vcs/`
+- `src/epistemic/`
+- `src/specsmith/agent/`
+- `src/specsmith/gui/`
 
-**Lint:** ruff check
-**Typecheck:** mypy
-**Test:** pytest
-**Security:** pip-audit
-**Format:** ruff format
+## 4. Governance Files
 
----
+Specsmith governance is represented in both human-readable and machine-readable forms.
 
-## Planned Architecture Evolution (April 2026 Roadmap)
+### Human-readable governance files
 
-The following components are planned based on the comprehensive gap analysis and research session of April 10, 2026. They are documented here as architectural commitments before implementation begins. See `docs/REQUIREMENTS.md` for formal requirements.
+- `ARCHITECTURE.md` — canonical architectural source of truth
+- `REQUIREMENTS.md` — declarative requirement list
+- `TEST_SPEC.md` — test specification and requirement-to-test expectations
+- `LEDGER.md` — human-readable audit trail
+
+### Machine-readable governance files
+
+- `.specsmith/requirements.json`
+- `.specsmith/testcases.json`
+- `.specsmith/workitems.json`
+- `.specsmith/ledger.jsonl`
+- `.specsmith/ledger-chain.txt`
+
+Machine-readable files are the bridge between governance documents and agent/tool execution.
+
+## 5. Machine State
+
+Machine state lives under `.specsmith/`.
+
+Current required state files:
+
+- `.specsmith/requirements.json`
+- `.specsmith/testcases.json`
+- `.specsmith/workitems.json`
+- `.specsmith/ledger.jsonl`
+- `.specsmith/ledger-chain.txt`
+
+Planned future state may include:
+
+- `.specsmith/runs/`
+- `.specsmith/evals/`
+- `.specsmith/instincts.json`
+- `.specsmith/teams/`
+- `.specsmith/worktrees/`
+- `.specsmith/agent-memory/`
+
+Machine state must not replace the human-readable governance documents. Both must stay aligned.
+
+## 6. Requirement Flow
+
+Planned behavior:
+
+1. `ARCHITECTURE.md` defines architectural intent.
+2. Specsmith derives requirements from `ARCHITECTURE.md`.
+3. Requirements are written to `REQUIREMENTS.md`.
+4. Structured requirements are written to `.specsmith/requirements.json`.
+5. Requirements are assigned stable IDs.
+6. Requirements are linked to test cases.
+7. Work items are created from accepted requirements or user requests.
+8. Every change is recorded in the ledger.
+
+A requirement must be:
+
+- atomic
+- testable where practical
+- traceable to a source
+- stable across repeated ingestion
+- linked to verification evidence
+
+## 7. Test Case Flow
+
+Planned behavior:
+
+1. Accepted requirements produce or link to test cases.
+2. Test cases are recorded in `TEST_SPEC.md`.
+3. Structured test cases are written to `.specsmith/testcases.json`.
+4. Tests are executed through pytest or other registered tools.
+5. Test results are attached to work items.
+6. Verification evaluates whether tests provide sufficient evidence.
+7. Results are recorded in `LEDGER.md` and `.specsmith/ledger.jsonl`.
+
+Test cases must map back to requirement IDs.
+
+## 8. AEE Verification Flow
+
+AEE verification is Specsmith’s epistemic evaluation layer.
+
+The verification flow includes:
+
+1. Frame — identify the belief, requirement, or work item under evaluation.
+2. Disassemble — break the claim into concrete assertions.
+3. Stress-Test — challenge assertions using tests, evidence, contradictions, and failure modes.
+4. Score — calculate confidence based on coverage, evidence quality, freshness, and failures.
+5. Reconstruct — propose bounded recovery or retry steps.
+6. Seal — record the result in the ledger and trace chain.
+
+Verification must produce more than pass/fail.
+
+It should produce:
+
+- status
+- confidence
+- target confidence
+- equilibrium state
+- failures
+- uncertainties
+- contradictions
+- retry recommendation
+
+Epistemic equilibrium is reached only when confidence meets the target and no blocking contradictions remain.
+
+## 9. OpenCode Integration Boundary
+
+OpenCode is the first external execution environment for this governance model.
+
+OpenCode should:
+
+- execute filesystem operations
+- run shell commands
+- edit code
+- run tests
+- gather diffs
+- provide output evidence
+
+Specsmith should:
+
+- preflight requests
+- map requests to requirements
+- map requirements to tests
+- decide priority
+- verify evidence
+- recommend retries
+- record ledger events
+
+Specsmith core must not depend on OpenCode.
+
+OpenCode-specific behavior must live behind an integration adapter.
+
+## 10. Integration-Agnostic Adapter Model
+
+Specsmith must support future integrations beyond OpenCode.
+
+Potential integrations include:
+
+- OpenCode
+- Cursor
+- Claude Code
+- GitHub Actions
+- VS Code
+- JetBrains
+- Theia-based Specsmith IDE
+- CI/CD systems
+- future project management systems
+
+Core governance logic must remain independent from any one integration.
+
+Adapters translate between the host environment and Specsmith’s standard governance contract.
+
+## 11. AEE / Epistemic Layer
+
+The standalone `epistemic` package is the canonical location for AEE machinery.
+
+Key components include:
+
+- `BeliefArtifact`
+- `StressTester`
+- `FailureModeGraph`
+- `RecoveryOperator`
+- `CertaintyEngine`
+- `AEESession`
+- `TraceVault`
+
+Specsmith re-exports AEE symbols through `specsmith.epistemic` for compatibility.
+
+The verification engine should use AEE concepts rather than simple binary validation.
+
+## 12. Ledger and Trace Chain
+
+Specsmith must maintain a durable audit trail.
+
+Ledger artifacts:
+
+- `LEDGER.md`
+- `.specsmith/ledger.jsonl`
+- `.specsmith/ledger-chain.txt`
+
+The ledger records:
+
+- architecture changes
+- requirement creation
+- test case creation
+- work item creation
+- verification results
+- retry recommendations
+- final status changes
+
+The trace chain must be tamper-evident using chained hashes.
+
+## 13. Planned Architecture Evolution
 
 ### Phase 1 — Core Harness Depth
 
-#### `src/specsmith/operations.py` — Typed Project Operations
-A `ProjectOperations` class providing typed, cross-platform file, git, and search operations. All tool handlers in `agent/tools.py` will be refactored to use this class instead of raw shell strings.
-- File ops via `pathlib`/`stdlib` (no subprocess): `read_file`, `write_file`, `list_dir`, `glob`, `search`
-- Git ops via structured wrappers: `status`, `log`, `diff`, `add`, `commit`, `push`, `create_branch`, `create_pr`
-- All methods return `OperationResult(exit_code, stdout, stderr, elapsed_ms, metadata)`
-- `executor.py`'s `run_tracked()` retained as narrow escape hatch only
+Planned modules:
 
-#### `src/specsmith/commands/` — Harness Commands Surface
-Populates the currently empty `commands/__init__.py` with the full harness slash command set. Commands are registered as REPL meta-commands in `AgentRunner._handle_meta_command()`. Priority set: `/model`, `/tier`, `/spawn`, `/learn`, `/instinct-status`, `/eval define`, `/eval run`, `/hooks-enable`, `/hooks-disable`, `/mcp-list`, `/security-scan`.
+- `src/specsmith/operations.py`
+- `src/specsmith/commands/`
+- `src/specsmith/instinct.py`
+- `src/specsmith/eval/`
 
-#### `src/specsmith/instinct.py` — Continuous Learning / Instinct System
-Persists reusable session patterns as instincts at `.specsmith/instincts.json`.
-- `Instinct` dataclass: `{id, trigger_pattern, content, confidence, project_scope, created, last_used, use_count}`
-- `InstinctRegistry`: load/save/search/promote/demote instincts
-- Session-end hook (`SESSION_END`) calls `InstinctExtractor` to analyze transcript and LEDGER.md for candidate patterns
-- `/learn` promotes a candidate; confidence updated on each application
-- Import/export to `.md` format for cross-project sharing
+Phase 1 goals:
 
-#### `src/specsmith/eval/` — Eval Harness (EDD Framework)
-Implements Eval-Driven Development as a first-class specsmith feature.
-- `task.py`: `Task`, `Trial`, `Transcript`, `Outcome` dataclasses; stored as `.specsmith/evals/{feature}.md`
-- `graders.py`: `CodeGrader` (git-diff + test pass), `ModelGrader` (LLM-as-judge rubric), `HumanFlag`
-- `harness.py`: `EvalHarness` runs k independent trials, computes `pass@k` and `pass^k`
-- `metrics.py`: `PassAtK`, `PassHatK` metric objects with statistical summaries
-- Default grading strategy: git-based outcome (assert files changed + tests pass), not execution-path assertion
+- add typed project operations
+- reduce raw shell usage
+- expose harness slash commands
+- persist reusable session patterns
+- support Eval-Driven Development
 
 ### Phase 2 — Multi-Agent Layer
 
-#### `src/specsmith/agent/spawner.py` — AgentTool / Subagent Spawning
-The single tool that spawns all subagent instances. Modeled on the Claude Code `AgentTool` architecture revealed by the March 2026 source map leak.
-- `SpawnParams`: `{subagent_type, description, prompt, model, run_in_background, isolation, cwd}`
-- `SubagentLifecycle`: manages spawn, wait-for-completion, collect summary, teardown
-- Isolation modes: `none` (shared filesystem), `worktree` (dedicated git worktree at `.specsmith/worktrees/{id}/`)
-- Fires `SUBAGENT_START` hook before spawn (may block); `SUBAGENT_STOP` hook on completion
-- Subagents CANNOT spawn further subagents (prevents recursive nesting)
+Planned modules:
 
-#### `src/specsmith/agent/teams.py` — Agent Team Coordination
-Peer-to-peer multi-agent coordination via filesystem mailbox (no message broker required).
-- Mailbox path: `.specsmith/teams/{team}/mailbox/{agent}.json`
-- `TeamMailbox`: `send(agent, message)`, `receive(agent)`, `broadcast(team, message)`
-- `TeamTaskList`: shared task list at `.specsmith/teams/{team}/tasks.json` with statuses and dependencies
-- `SendMessage` tool: agent-callable tool for peer communication
-- Gated behind `SPECSMITH_AGENT_TEAMS=1` feature flag; cost warning (~7x token multiplier) shown at team creation
+- `src/specsmith/agent/spawner.py`
+- `src/specsmith/agent/teams.py`
+- `src/specsmith/agent/orchestrator.py`
+- `src/specsmith/agent/flags.py`
+- `src/specsmith/memory.py`
 
-#### `src/specsmith/agent/orchestrator.py` — Orchestrator Meta-Agent
-Meta-agent whose sole purpose is orchestration and cost optimization. Runs on a small local Ollama model.
-- `AgentRegistry`: `{type, model, provider, cost_tier, capabilities, avg_latency_ms, confidence}` per agent type
-- `TaskClassifier`: heuristic keyword + length scoring (extends `optimizer.py`'s `ModelRouter`)
-- Emits one structured next-action per turn: `{action, agent_type, model, rationale}`
-- Routes cheap tasks to Ollama workers; complex tasks to cloud providers
-- Post-session self-evaluation updates routing confidence thresholds
+Phase 2 goals:
 
-#### `src/specsmith/agent/flags.py` — Feature Flag System
-Controls tool schema visibility. When a flag is off, the tool definition is not sent to the LLM — the model cannot call or hallucinate gated tools.
-- `FeatureFlags`: loaded from env vars (`SPECSMITH_FLAG_<NAME>=1`) and `scaffold.yml` `agent.flags`
-- `filter_tools_by_flags(tools, flags)`: removes gated tool schemas before LLM call
-- Gated capabilities: `AGENT_TEAMS`, `WORKTREE_ISOLATION`, `KAIROS_DAEMON`, `SECURITY_SCANNER`, `MCP_TOOLS`
+- subagent spawning
+- team coordination
+- orchestrator-worker routing
+- feature-flagged tool schema visibility
+- cross-session memory
 
-#### `src/specsmith/memory.py` — Agent Memory Persistence
-Cross-session agent learning storage.
-- Persists at `.specsmith/agent-memory/{agent_id}/memory.json`
-- Fields: `accumulated_patterns`, `preferred_approaches`, `known_project_facts`, `failure_history`
-- `SESSION_START` hook loads relevant memories and injects into system prompt (token-budget-aware)
-- Compatible with Theia AI's `~/.theia/agent-memory/` convention
+### Phase 3 — Service and IDE
 
-#### New Hook Triggers
-Added to `HookTrigger` enum in `agent/hooks.py`:
-- `SUBAGENT_START` — before subagent spawn (can block)
-- `SUBAGENT_STOP` — on subagent completion with summary
-- `CONTEXT_COMPACT` — before context trimming (custom summarization hook)
-- `EVAL_PASS` / `EVAL_FAIL` — after each eval trial
+Planned modules:
 
-### Phase 3 — Service + IDE
+- `src/specsmith/server/`
+- `specsmith-ide/`
 
-#### `src/specsmith/server/` — Daemon Service
-`specsmith serve` starts a local HTTP+WebSocket server.
-- `server/__init__.py`: FastAPI or aiohttp app bootstrap
-- `server/routes.py`: REST endpoints `/sessions`, `/agents`, `/instincts`, `/evals`, `/index`, `/health`
-- `server/ws.py`: WebSocket handler at `/ws/session/{id}`
-- `EventSink` protocol: `StdoutSink` (current), `WebSocketSink` (service mode)
-- `AgentRunner._emit_event()` refactored to use `EventSink`
+Phase 3 goals:
 
-#### `specsmith-ide/` — Theia-Based IDE (new repo)
-Built on Eclipse Theia 1.68+ with `@theia/ai-core`, `@theia/ai-chat`, `@theia/ai-ide`.
-Specsmith-specific Theia extensions:
-- `@specsmith/ai-agents`: AEE orchestrator, epistemic-auditor, instinct-extraction, eval-designer — as Theia chat agents with `AbstractStreamParsingChatAgent`
-- `@specsmith/epistemic-ui`: belief graph panel (Mermaid rendering), H13 gate workflow panel, ledger browser, instinct registry panel
-- `@specsmith/eval-ui`: eval suite browser, trial runner, pass@k / pass^k dashboard
-- `@specsmith/service-client`: WebSocket client to `specsmith serve`
-Theia provides natively: LLM communication, agent framework, SKILL.md skills system, MCP support, ShellExecutionTool, AI configuration view, agent memory directories. These are NOT reimplemented.
+- local HTTP/WebSocket service
+- Theia-based IDE
+- AEE visual panels
+- eval dashboards
+- ledger browser
+- instinct registry
 
-### Multi-Agent Coordination Patterns
+## 14. Architecture Invariants
 
-Three tiers, modeled on the Claude Code architecture:
+The following invariants must hold:
 
-**Tier 1 — Subagent (hub-and-spoke):**
-- Parent spawns read-only research workers via `AgentTool`
-- Workers return distilled summary; parent never sees full exploration context
-- Workers cannot communicate with siblings
-- Cost: ~3x. Best for: codebase exploration, parallel research, context isolation
+- Specsmith core MUST remain integration-agnostic.
+- OpenCode-specific logic MUST NOT live in core.
+- Governance files MUST remain human-readable.
+- Machine state MUST remain synchronized with governance files.
+- Requirements MUST be traceable to architecture or explicit user input.
+- Test cases MUST map to requirements.
+- Verification MUST use AEE concepts: confidence, uncertainty, contradiction, equilibrium.
+- Retries MUST be bounded.
+- Ledger events MUST be recorded for governance changes.
+- Feature flags MUST remove hidden tool schemas from LLM calls, not merely block execution.
+- Project operations MUST be cross-platform.
+- Eval grading MUST measure outcomes, not execution paths.
+- Instinct extraction MUST be user-reviewed before promotion.
+- Subagents MUST NOT recursively spawn subagents.
+- Filesystem mailbox communication MUST remain simple and debuggable.
+- Orchestration SHOULD prefer local Ollama for routing when possible.
 
-**Tier 2 — Agent Teams (peer-to-peer):**
-- Persistent teammates with independent context windows and full tool access
-- Communicate via filesystem mailbox (simple, debuggable, no infrastructure)
-- Shared task list with statuses and dependencies
-- Cost: ~7x. Best for: full-stack features with cross-layer interdependencies
-- Requires `SPECSMITH_AGENT_TEAMS=1` flag
+## 15. Bootstrap Sequencing Rules
 
-**Tier 3 — Orchestrator-worker:**
-- Orchestrator meta-agent on Ollama classifies tasks and routes to workers
-- Explicit model selection per worker (Ollama for cheap, cloud for complex)
-- Near-zero orchestration cost
-- Best for: automated multi-step pipelines with cost optimization
+Current bootstrap sequence:
 
-### Eval Harness Design Principles
+1. Establish governance files.
+2. Align `ARCHITECTURE.md`.
+3. Derive initial requirements into `REQUIREMENTS.md`.
+4. Write structured requirements to `.specsmith/requirements.json`.
+5. Generate initial test specs.
+6. Write structured test cases to `.specsmith/testcases.json`.
+7. Create work item flow.
+8. Add verification flow.
+9. Record all actions in ledger.
+10. Only then begin deeper implementation changes.
 
-- **EDD (Eval-Driven Development)**: define evals BEFORE writing code. Evals are the unit tests of AI development.
-- **Grade outcomes, not paths**: assert that the git working tree changed correctly and tests pass, not that the agent used a specific sequence of tool calls.
-- **pass@k vs pass^k**: pass@k (any success in k trials) measures capability ceiling; pass^k (all k succeed) measures reliability floor. Choose based on deployment context.
-- **Three grader types**: CodeGrader (deterministic, fast, cheap), ModelGrader (LLM-as-judge, flexible), HumanFlag (gold standard, for calibration).
-- **Capability vs regression**: capability evals start with low pass rates and hill-climb; regression evals target ~100% and run on every change.
+Specsmith must not claim to govern itself until architecture, requirements, test specs, work items, and ledger flow are aligned.
 
-### Architecture Invariants
+## 16. Non-Goals During Bootstrap
 
-- Orchestrator MUST run on local Ollama — never spend cloud credits on routing
-- Subagents MUST be read-only (research) workers — implementation stays in the parent session
-- Filesystem mailbox for all agent communication — no message brokers
-- Feature flags MUST remove tool schemas from LLM calls — not just block execution
-- EventSink abstraction MUST preserve existing JSONL event schema — only transport changes
-- All `ProjectOperations` calls MUST be cross-platform — no platform branches in call sites
-- Instinct extraction MUST be user-reviewed before promotion — never auto-apply instincts
-- Eval grading MUST measure outcomes (git state + test results) — not execution paths
+During bootstrap, do not yet implement:
+
+- full model orchestration
+- full OpenCode plugin runtime
+- cloud database storage
+- GUI changes
+- multi-agent teams
+- daemon service
+- Theia IDE
+- automatic unbounded retries
+- hidden background governance loops
+
+Bootstrap is limited to making Specsmith capable of governing its own future development.

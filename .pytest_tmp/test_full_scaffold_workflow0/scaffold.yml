@@ -1,0 +1,14 @@
+name: forge-cli
+type: cli-python
+platforms:
+- windows
+- linux
+- macos
+language: python
+vcs_platform: github
+branching_strategy: gitflow
+git_init: false
+integrations:
+- agents-md
+- warp
+- claude-code

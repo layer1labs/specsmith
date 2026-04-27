@@ -14,6 +14,7 @@ from rich.console import Console
 from specsmith import __version__
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.scaffolder import scaffold_project
+from specsmith.requirements_parser import parse_architecture_requirements, define_test_cases
 
 console = Console()
 
@@ -219,7 +220,7 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     console.print(
         f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
     )
-    console.print('Open this project in your AI agent and type [bold]"start"[/bold].')
+    console.print('Project scaffolded. Review generated files.')
 
     # Save config as scaffold.yml for re-runs and upgrades
     config_out = target / "scaffold.yml"
@@ -257,16 +258,7 @@ VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "Non
 BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
 BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
 
-INTEGRATION_OPTIONS = [
-    ("agents-md", "AGENTS.md (always included)"),
-    ("warp", "Warp / Oz"),
-    ("claude-code", "Claude Code"),
-    ("copilot", "GitHub Copilot"),
-    ("cursor", "Cursor"),
-    ("gemini", "Gemini CLI"),
-    ("windsurf", "Windsurf"),
-    ("aider", "Aider"),
-]
+
 
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
@@ -303,19 +295,6 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     branch_choice = click.prompt("Select strategy", default="1")
     branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "gitflow")
 
-    # Agent integrations
-    console.print("\nAgent integrations (comma-separated numbers):")
-    for i, (_key, label) in enumerate(INTEGRATION_OPTIONS):
-        console.print(f"  {i + 1}. {label}")
-    int_input = click.prompt("Select integrations", default="1")
-    integrations = ["agents-md"]
-    for idx_str in int_input.split(","):
-        idx = int(idx_str.strip()) - 1
-        if 0 <= idx < len(INTEGRATION_OPTIONS):
-            name_val = INTEGRATION_OPTIONS[idx][0]
-            if name_val not in integrations:
-                integrations.append(name_val)
-
     return ProjectConfig(
         name=name,
         type=project_type,
@@ -325,7 +304,7 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
         git_init=not no_git,
         vcs_platform=vcs_platform,
         branching_strategy=branching_strategy,
-        integrations=integrations,
+        integrations=["agents-md"], # Keep AGENTS.md as a default, non-AI specific integration
     )
 
 
@@ -744,7 +723,7 @@ def import_project(
         created.extend(guided_files)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
-    console.print('Open this project in your AI agent and type [bold]"start"[/bold].')
+    console.print('Governance files generated. Review project configuration.')
 
 
 def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
@@ -878,6 +857,94 @@ def architect(project_dir: str, non_interactive: bool) -> None:
             "are referenced but not merged. Review manually."
         )
     console.print('  [dim]Run "specsmith audit --project-dir ." to verify governance health.[/dim]')
+
+
+@main.command(name="parse-reqs")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    default=None,
+    help="Write parsed requirements to a JSON file instead of stdout.",
+)
+def parse_reqs_cmd(project_dir: str, output: str | None) -> None:
+    """Parse ARCHITECTURE.md for discernable requirements."""
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]Parsing requirements from[/bold] {root / 'docs' / 'ARCHITECTURE.md'}...\n")
+    requirements = parse_architecture_requirements(root)
+
+    if not requirements:
+        console.print("[yellow]No requirements found in ARCHITECTURE.md.[/yellow]")
+        return
+
+    if output:
+        output_path = Path(output)
+        import json
+        output_path.write_text(json.dumps(requirements, indent=2), encoding="utf-8")
+        console.print(f"[bold green]Parsed requirements written to {output_path}[/bold green]")
+    else:
+        for req in requirements:
+            console.print(f"  [cyan]{req['id']}[/cyan] ({req['component']}): {req['description']}")
+        console.print(f"\n[bold green]Found {len(requirements)} requirements.[/bold green]")
+
+
+@main.command(name="generate-tests")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--reqs-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to a JSON file containing requirements (from parse-reqs).",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    default=None,
+    help="Write generated test cases to a JSON file instead of stdout.",
+)
+def generate_tests_cmd(project_dir: str, reqs_file: str | None, output: str | None) -> None:
+    """Generate test cases based on parsed requirements."""
+    root = Path(project_dir).resolve()
+    requirements = []
+
+    if reqs_file:
+        import json
+        reqs_path = Path(reqs_file)
+        requirements = json.loads(reqs_path.read_text(encoding="utf-8"))
+        console.print(f"[bold]Loading requirements from[/bold] {reqs_path}...")
+    else:
+        console.print(f"[bold]Parsing requirements from[/bold] {root / 'docs' / 'ARCHITECTURE.md'}...")
+        requirements = parse_architecture_requirements(root)
+
+    if not requirements:
+        console.print("[yellow]No requirements to generate test cases from.[/yellow]")
+        return
+
+    test_cases = define_test_cases(requirements)
+
+    if not test_cases:
+        console.print("[yellow]No test cases generated.[/yellow]")
+        return
+
+    if output:
+        output_path = Path(output)
+        import json
+        output_path.write_text(json.dumps(test_cases, indent=2), encoding="utf-8")
+        console.print(f"[bold green]Generated test cases written to {output_path}[/bold green]")
+    else:
+        for tc in test_cases:
+            console.print(f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}")
+        console.print(f"\n[bold green]Generated {len(test_cases)} test cases.[/bold green]")
 
 
 # ---------------------------------------------------------------------------
@@ -1237,17 +1304,6 @@ def apply(project_dir: str) -> None:
         except ValueError:
             pass
 
-    # Regenerate agent integration files
-    for integration_name in config.integrations:
-        if integration_name == "agents-md":
-            continue
-        try:
-            from specsmith.integrations import get_adapter
-
-            adapter = get_adapter(integration_name)
-            created.extend(adapter.generate(config, root))
-        except ValueError:
-            pass
 
     if created:
         for path in created:

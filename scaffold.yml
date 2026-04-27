@@ -36,3 +36,6 @@ community_files:
 enable_epistemic: true
 epistemic_threshold: 0.7
 enable_trace_vault: false
+agent_model: qwen2.5-coder:7b-instruct
+agent_num_ctx: 65536
+agents_max_iterations: 10
