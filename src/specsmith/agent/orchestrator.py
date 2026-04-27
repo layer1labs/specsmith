@@ -1,5 +1,6 @@
 import os
-from typing import Dict, Any, List
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 
 try:
     import autogen
@@ -14,6 +15,41 @@ except ImportError:
 from specsmith.agent.tools import AVAILABLE_TOOLS
 
 NEXUS_NAME = "Nexus"
+
+
+@dataclass
+class TaskResult:
+    """Structured outcome of an orchestrator run (REQ-091).
+
+    The Nexus REPL's bounded-retry harness (REQ-087) consumes this directly
+    instead of synthesizing equilibrium from a boolean cast of a free-form
+    summary string. Each field is a contract:
+
+    - ``equilibrium``: True when the orchestrator considers the work done
+      and the verifier did not reject the change set.
+    - ``confidence``: numeric verifier/orchestrator confidence in the result
+      (0.0 - 1.0). Used by ``execute_with_governance`` to compare against the
+      preflight ``confidence_target`` before retrying.
+    - ``summary``: human-readable summary; matches the existing Nexus output
+      contract (REQ-073).
+    - ``files_changed``: paths the orchestrator believes it modified.
+    - ``test_results``: free-form dict (e.g. {"passed": int, "failed": int}).
+    """
+
+    equilibrium: bool = False
+    confidence: float = 0.0
+    summary: str = ""
+    files_changed: List[str] = field(default_factory=list)
+    test_results: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "equilibrium": self.equilibrium,
+            "confidence": self.confidence,
+            "summary": self.summary,
+            "files_changed": list(self.files_changed),
+            "test_results": dict(self.test_results),
+        }
 
 class Orchestrator:
     """Nexus orchestrator: AG2-based local-first agentic development runtime.
@@ -106,15 +142,20 @@ class Orchestrator:
             # Register the actual execution function ONCE on the executor.
             self.executor.register_for_execution(name=tool.__name__)(tool)
 
-    def run_task(self, task: str):
-        """Run a task through the agent orchestration group."""
+    def run_task(self, task: str) -> TaskResult:
+        """Run a task through the agent orchestration group (REQ-091).
+
+        Returns a :class:`TaskResult` so the Nexus REPL's bounded-retry
+        harness can compare ``confidence`` against the preflight target and
+        retry on non-equilibrium outcomes without inventing signal.
+        """
         groupchat = GroupChat(
             agents=[self.human_proxy, self.planner, self.shell_agent, self.code_agent, self.reviewer_agent, self.memory_agent, self.git_agent, self.executor],
             messages=[],
             max_round=50
         )
         manager = GroupChatManager(groupchat=groupchat, llm_config=self.llm_config)
-        
+
         # Format enforcement for the output
         formatting_instructions = """
 You MUST produce your final response in this exact format:
@@ -126,4 +167,83 @@ Test results:
 Next action:
 """
         initial_message = f"Task: {task}\n{formatting_instructions}"
-        self.human_proxy.initiate_chat(manager, message=initial_message)
+        chat_result = self.human_proxy.initiate_chat(manager, message=initial_message)
+
+        return self._build_task_result(chat_result, task)
+
+    def _build_task_result(self, chat_result: Any, task: str) -> TaskResult:
+        """Translate the AG2 chat result into a structured TaskResult.
+
+        AG2's ``initiate_chat`` returns a ``ChatResult`` whose ``summary`` is
+        the last assistant message and whose ``chat_history`` lists every
+        turn. We treat reaching a non-empty summary that includes the
+        ``Next action:`` section as equilibrium per REQ-073, and parse
+        ``Files changed:`` and ``Test results:`` if present. The confidence
+        is conservative (0.85 for a complete contract response, 0.4 for a
+        partial one) and is meant to be replaced by a real verifier signal
+        once one is wired in.
+        """
+        summary = ""
+        if chat_result is not None:
+            summary = getattr(chat_result, "summary", "") or ""
+            if not isinstance(summary, str):
+                summary = str(summary)
+
+        sections = self._parse_output_contract(summary)
+        equilibrium = bool(sections) and "next_action" in sections
+        confidence = 0.85 if equilibrium else (0.4 if summary else 0.0)
+
+        files_changed: List[str] = []
+        files_section = sections.get("files_changed", "")
+        for line in files_section.splitlines():
+            cleaned = line.strip("-* \t")
+            if cleaned and cleaned.lower() != "none":
+                files_changed.append(cleaned)
+
+        test_results: Dict[str, Any] = {}
+        tests_section = sections.get("test_results", "").strip()
+        if tests_section:
+            test_results["raw"] = tests_section
+
+        return TaskResult(
+            equilibrium=equilibrium,
+            confidence=confidence,
+            summary=summary,
+            files_changed=files_changed,
+            test_results=test_results,
+        )
+
+    @staticmethod
+    def _parse_output_contract(text: str) -> Dict[str, str]:
+        """Parse the Nexus output contract sections out of a free-form summary.
+
+        Returns a dict keyed by lowercase, underscore-joined section names
+        (``plan``, ``commands_to_run``, ``files_changed``, ``diff``,
+        ``test_results``, ``next_action``). Missing sections are simply
+        absent; the parser is intentionally tolerant of small format drift.
+        """
+        if not text:
+            return {}
+        canonical = (
+            "Plan:",
+            "Commands to run:",
+            "Files changed:",
+            "Diff:",
+            "Test results:",
+            "Next action:",
+        )
+        lines = text.splitlines()
+        sections: Dict[str, List[str]] = {}
+        current: str | None = None
+        for line in lines:
+            stripped = line.strip()
+            matched = next((s for s in canonical if stripped.startswith(s)), None)
+            if matched:
+                current = matched.rstrip(":").lower().replace(" ", "_")
+                remainder = stripped[len(matched):].strip()
+                sections.setdefault(current, [])
+                if remainder:
+                    sections[current].append(remainder)
+            elif current is not None:
+                sections[current].append(line)
+        return {key: "\n".join(value).strip() for key, value in sections.items()}

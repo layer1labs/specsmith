@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "content": "",
+  "latency_ms": 4078,
+  "error": "transport: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>"
+}
+
+# WI-NEXUS-011 evidence note
+# Captured 2026-04-27 on Windows pwsh (Docker 29.1.3 available, but the vLLM
+# l1-nexus container was not running). The smoke script (REQ-089) returned
+# the structured offline failure shown above. To produce a green live result,
+# run: docker compose up -d l1-nexus && py scripts/nexus_smoke.py.

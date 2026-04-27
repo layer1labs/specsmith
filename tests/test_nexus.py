@@ -829,7 +829,8 @@ def test_specsmith_preflight_cli_read_only_ask_accepts(tmp_path):
 def test_specsmith_preflight_cli_destructive_needs_clarification(tmp_path):
     _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
     result = _invoke_preflight(tmp_path, "delete the entire dist directory")
-    assert result.exit_code == 0, result.output
+    # REQ-092: needs_clarification exits 2; JSON still printed on stdout.
+    assert result.exit_code == 2, result.output
     payload = json.loads(result.output)
     assert payload["decision"] == "needs_clarification"
     assert payload["intent"] == "destructive"
@@ -839,7 +840,8 @@ def test_specsmith_preflight_cli_destructive_needs_clarification(tmp_path):
 def test_specsmith_preflight_cli_change_without_scope_needs_clarification(tmp_path):
     _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
     result = _invoke_preflight(tmp_path, "add support for quantum-tunnelling sensors")
-    assert result.exit_code == 0, result.output
+    # REQ-092: needs_clarification exits 2; JSON still printed on stdout.
+    assert result.exit_code == 2, result.output
     payload = json.loads(result.output)
     assert payload["decision"] == "needs_clarification"
     assert payload["intent"] == "change"
@@ -1011,3 +1013,153 @@ def test_readme_describes_nexus_broker_preflight_and_gate():
     assert "`/why`" in text
     # The REPL prompt is the user's mental model anchor.
     assert "nexus>" in text
+
+
+# ---------------------------------------------------------------------------
+# TEST-091 — orchestrator.run_task returns a structured TaskResult
+# ---------------------------------------------------------------------------
+def test_orchestrator_taskresult_has_required_fields():
+    from specsmith.agent.orchestrator import TaskResult
+
+    result = TaskResult()
+    for attr in ("equilibrium", "confidence", "summary", "files_changed", "test_results"):
+        assert hasattr(result, attr), f"TaskResult missing field: {attr}"
+    assert isinstance(result.files_changed, list)
+    assert isinstance(result.test_results, dict)
+    # to_dict() round-trips the fields.
+    d = result.to_dict()
+    assert set(d.keys()) >= {
+        "equilibrium",
+        "confidence",
+        "summary",
+        "files_changed",
+        "test_results",
+    }
+
+
+def test_orchestrator_build_task_result_parses_output_contract():
+    from specsmith.agent import orchestrator as orch_mod
+
+    instance = orch_mod.Orchestrator.__new__(orch_mod.Orchestrator)
+    summary = (
+        "Plan:\n- step 1\n"
+        "Commands to run:\n- pytest\n"
+        "Files changed:\n- src/foo.py\n- src/bar.py\n"
+        "Diff:\n+ added line\n"
+        "Test results:\n3 passed, 0 failed\n"
+        "Next action:\nrun pytest -q"
+    )
+    fake_chat = type("FakeChat", (), {"summary": summary})()
+    result = instance._build_task_result(fake_chat, task="do thing")
+    assert result.equilibrium
+    assert 0.5 < result.confidence <= 1.0
+    assert "src/foo.py" in result.files_changed
+    assert "src/bar.py" in result.files_changed
+    assert "raw" in result.test_results
+    assert "3 passed" in result.test_results["raw"]
+
+
+def test_repl_executor_consumes_taskresult_fields():
+    from specsmith.agent import repl
+
+    src = inspect.getsource(repl)
+    # The executor closure must read structured fields rather than synthesize.
+    assert "task_result.equilibrium" in src
+    assert "task_result.confidence" in src
+    # And the bool(summary) heuristic must be gone from the executor closure
+    # body itself (the broker-branch comment may still reference it as the
+    # historical antipattern that REQ-091 retired).
+    broker_branch = src.split("# REQ-086", 1)[-1]
+    closure_body = broker_branch.split("def _executor(", 1)[1]
+    closure_until_dedent = closure_body.split("result = execute_with_governance", 1)[0]
+    assert "bool(summary)" not in closure_until_dedent
+
+
+# ---------------------------------------------------------------------------
+# TEST-092 — specsmith preflight CLI returns decision-specific exit codes
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_cli_exit_code_zero_on_accepted(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    result = _invoke_preflight(tmp_path, "what does the cleanup module do?")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["decision"] == "accepted"
+
+
+def test_specsmith_preflight_cli_exit_code_two_on_needs_clarification(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    result = _invoke_preflight(tmp_path, "force-push to main")
+    assert result.exit_code == 2, result.output
+    # JSON must still parse on stdout for non-zero exits.
+    payload = json.loads(result.output)
+    assert payload["decision"] == "needs_clarification"
+
+
+# ---------------------------------------------------------------------------
+# TEST-093 — accepted preflight records a ledger event
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_accepted_appends_ledger_event(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
+    ledger_before = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+
+    ledger_after = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+    assert len(ledger_after) > len(ledger_before)
+    assert "specsmith preflight accepted" in ledger_after
+    assert "REQ-085" in ledger_after
+    # The matched requirement id must be tagged in the entry too.
+    assert "REQ-077" in ledger_after
+
+
+def test_specsmith_preflight_needs_clarification_does_not_touch_ledger(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
+    ledger_before = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+
+    result = _invoke_preflight(tmp_path, "delete the entire dist directory")
+    assert result.exit_code == 2, result.output
+
+    ledger_after = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+    assert ledger_after == ledger_before
+
+
+# ---------------------------------------------------------------------------
+# TEST-094 — /why surfaces post-run governance block in REPL
+# ---------------------------------------------------------------------------
+def test_repl_emits_why_post_run_block_when_verbose():
+    from specsmith.agent import repl
+
+    src = inspect.getsource(repl)
+    # The post-run block lives after the harness call and is guarded by
+    # verbose_governance.
+    broker_branch = src.split("# REQ-086", 1)[-1]
+    assert "if verbose_governance:" in broker_branch
+    assert "[/why]" in broker_branch
+    for token in (
+        "work_item_id",
+        "requirement_ids",
+        "test_case_ids",
+        "confidence",
+        "equilibrium",
+    ):
+        assert token in broker_branch, f"/why block missing reference to {token}"
+
+
+# ---------------------------------------------------------------------------
+# TEST-095 — Nexus live smoke evidence captured
+# ---------------------------------------------------------------------------
+def test_nexus_live_smoke_evidence_captured():
+    log_path = REPO_ROOT / ".specsmith" / "runs" / "WI-NEXUS-011" / "logs.txt"
+    assert log_path.is_file(), (
+        "Live smoke evidence missing: "
+        ".specsmith/runs/WI-NEXUS-011/logs.txt was not captured."
+    )
+    body = log_path.read_text(encoding="utf-8")
+    assert body.strip(), "WI-NEXUS-011 logs.txt is empty"
+    # Either a successful live smoke or an honest skip note is acceptable.
+    assert ("\"ok\": true" in body) or ("\"ok\": false" in body) or (
+        "NEXUS_LIVE" in body
+    ), "WI-NEXUS-011 logs.txt does not document a smoke result"

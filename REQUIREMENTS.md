@@ -630,3 +630,38 @@
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 
+## 91. Orchestrator Must Return a Structured TaskResult
+- **ID:** REQ-091
+- **Title:** Orchestrator Must Return a Structured TaskResult
+- **Description:** `orchestrator.run_task` must return a `TaskResult` dataclass with at least the fields `equilibrium: bool`, `confidence: float`, `summary: str`, `files_changed: list[str]`, and `test_results: dict`. The Nexus REPL's broker branch must consume this dataclass directly when feeding `execute_with_governance` (REQ-087); the broker must not synthesize `equilibrium` from a boolean cast of the summary string.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 92. specsmith preflight CLI Must Use Decision-Specific Exit Codes
+- **ID:** REQ-092
+- **Title:** specsmith preflight CLI Must Use Decision-Specific Exit Codes
+- **Description:** The `specsmith preflight` CLI must exit `0` for `accepted`, `2` for `needs_clarification`, and `3` for `blocked` or `rejected` decisions, so CI pipelines and shell wrappers can branch on intent without parsing the JSON payload. The JSON payload must continue to print on stdout for both success and non-zero exits.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 93. Accepted preflight Must Record a Ledger Event
+- **ID:** REQ-093
+- **Title:** Accepted preflight Must Record a Ledger Event
+- **Description:** When `specsmith preflight` produces an `accepted` decision and `LEDGER.md` exists in the project root, the CLI must append a `preflight` ledger event tagged with `REQ-085` plus the resolved `requirement_ids`. The event must record the utterance, the assigned `work_item_id`, and the `confidence_target`, so every accepted preflight is traceable end-to-end.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 94. /why Must Surface Post-Run Governance in the REPL
+- **ID:** REQ-094
+- **Title:** /why Must Surface Post-Run Governance in the REPL
+- **Description:** When `verbose_governance` is on (toggled by `/why` or `/show-governance`), after the REPL drives `execute_with_governance` for an accepted utterance it must print a single `[/why]` block summarizing the assigned `work_item_id`, the matched `requirement_ids` and `test_case_ids`, the post-run confidence, and whether the bounded-retry harness reached equilibrium. When verbose mode is off, the post-run governance block must not be emitted.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 95. Nexus Live Smoke Run Must Be Reproducible Evidence
+- **ID:** REQ-095
+- **Title:** Nexus Live Smoke Run Must Be Reproducible Evidence
+- **Description:** A live or honestly-skipped invocation of `scripts/nexus_smoke.py` must be captured under `.specsmith/runs/WI-NEXUS-011/logs.txt` so the project ledger preserves at least one reproducible record of the broker -> preflight -> orchestrator -> vLLM end-to-end path (or a documented reason the live container could not be reached in the current environment).
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+

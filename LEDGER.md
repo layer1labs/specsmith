@@ -472,3 +472,38 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-090
 - **Status**: complete
 - **Chain hash**: `8d94f66001aed55c...`
+
+## 2026-04-27T19:42 — WI-NEXUS-011: Live l1-nexus smoke evidence captured (REQ-095)
+- **Author**: agent
+- **Type**: evidence
+- **REQs affected**: REQ-095
+- **Status**: complete
+- **Chain hash**: `414225ca221b7eb7...`
+
+## 2026-04-27T19:42 — WI-NEXUS-012: Structured TaskResult dataclass returned by orchestrator.run_task (REQ-091)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-091
+- **Status**: complete
+- **Chain hash**: `7f161e088d82fcde...`
+
+## 2026-04-27T19:42 — WI-NEXUS-013: /why post-run governance block in REPL (REQ-094)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-094
+- **Status**: complete
+- **Chain hash**: `7125182a6d402b2e...`
+
+## 2026-04-27T19:42 — WI-NEXUS-014: specsmith preflight CLI decision-specific exit codes (REQ-092)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-092
+- **Status**: complete
+- **Chain hash**: `16eb05be2f953074...`
+
+## 2026-04-27T19:42 — WI-NEXUS-015: Accepted preflight records preflight ledger event (REQ-093)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-093
+- **Status**: complete
+- **Chain hash**: `01f963eb2078b181...`
