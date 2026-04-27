@@ -37,7 +37,7 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
     entries: list[dict[str, str]] = []
     candidates: list[Path] = []
 
-    for rel in ["AGENTS.md", "docs/REQUIREMENTS.md", "docs/ARCHITECTURE.md", "docs/TEST_SPEC.md"]:
+    for rel in ["AGENTS.md", "docs/REQUIREMENTS.md", "docs/ARCHITECTURE.md", "docs/TESTS.md"]:
         fp = root / rel
         if fp.exists():
             candidates.append(fp)

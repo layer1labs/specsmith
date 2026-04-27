@@ -396,3 +396,51 @@ specsmith can now improve itself via `specsmith agent improve <task>`. Use it fo
 
 ### Next step
 Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-agent coordination via AG2 GroupChat.
+
+## 2026-04-27T18:06 — specsmith migration: 0.3.8 → 0.3.13
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `5201f75f6e54933f...`
+
+## 2026-04-27T18:07 — Implement Nexus runtime (rename from Warp), fix AG2 executor override warnings, add 12 Nexus REQs/TESTs, add tests/test_nexus.py with 21 passing tests, update ARCHITECTURE.md with Nexus boundary.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-065,REQ-066,REQ-067,REQ-068,REQ-069,REQ-070,REQ-071,REQ-072,REQ-073,REQ-074,REQ-075,REQ-076
+- **Status**: complete
+- **Chain hash**: `ff611e6a7ac0ca62...`
+
+## 2026-04-27T18:14 — WI-NEXUS-002: reconcile machine state JSON (REQ-065..REQ-080), remove stale legacy tests (test_agent.py, test_optimizer.py), add Safe Repository Cleanup boundary + cleanup module + 4 cleanup tests, execute apply cleanup reclaiming 52MB of stale build/cache/archive artifacts. Full suite green: 202 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-003,REQ-077,REQ-078,REQ-079,REQ-080
+- **Status**: complete
+- **Chain hash**: `176531aa559ed8de...`
+
+## 2026-04-27T18:21 — WI-NEXUS-003: add specsmith clean CLI subcommand (REQ-081), add UTF-8 safe console factory and fix Windows cp1252 UnicodeEncodeError in specsmith validate (REQ-082), reconcile machine state to 82 reqs/82 tests, full suite 206 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-081,REQ-082
+- **Status**: complete
+- **Chain hash**: `ac851adc0fd1aca7...`
+
+## 2026-04-27T18:25 — WI-NEXUS-004: rename canonical test-spec governance file from TEST_SPEC.md to TESTS.md across code, docs, ReadTheDocs site, templates, governance, and machine state. Add REQ-083/TEST-083 plus 3 pytest tests guarding against regression. Updated 58 files; full suite green at 209 tests.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-002,REQ-083
+- **Status**: complete
+- **Chain hash**: `e24fb649a8ef5ce1...`
+
+## 2026-04-27T19:09 — WI-NEXUS-005: add Natural-Language Governance Broker (REQ-084). New module specsmith.agent.broker provides classify_intent, infer_scope, run_preflight, narrate_plan, and execute_with_governance. Wired into Nexus REPL as default mode with /why toggle. Hides REQ/TEST/WI tokens by default, bounds retries per REQ-014, escalates with single clarifying question per REQ-063, and never invents governance content. Full suite green: 227 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-014,REQ-063,REQ-084
+- **Status**: complete
+- **Chain hash**: `050373fa73b9b15f...`
+
+## 2026-04-27T19:18 — WI-NEXUS-006: specsmith preflight CLI + Nexus REPL execution gating (REQ-085, REQ-086)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-085,REQ-086
+- **Status**: complete
+- **Chain hash**: `cdc3fb4815489052...`

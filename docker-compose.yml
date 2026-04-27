@@ -1,0 +1,28 @@
+services:
+  l1-nexus:
+    image: vllm/vllm-openai:v0.8.5
+    runtime: nvidia
+    ports:
+      - "8000:8000"
+    environment:
+      - VLLM_API_KEY=${VLLM_API_KEY:-specsmith-local-key}
+      - HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8
+      --served-model-name l1-nexus
+      --gpu-memory-utilization 0.92
+      --max-model-len 16384
+      --trust-remote-code
+      --generation-config vllm
+      --enable-auto-tool-choice
+      --tool-call-parser hermes

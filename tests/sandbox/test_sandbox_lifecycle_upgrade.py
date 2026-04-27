@@ -55,7 +55,7 @@ def _create_old_project(root: Path) -> None:
     )
     (docs / "ARCHITECTURE.md").write_text("# Architecture\nOverview.\n", encoding="utf-8")
     (docs / "REQUIREMENTS.md").write_text("# Requirements\n\n", encoding="utf-8")
-    (docs / "TEST_SPEC.md").write_text("# Tests\n\n", encoding="utf-8")
+    (docs / "TESTS.md").write_text("# Tests\n\n", encoding="utf-8")
 
 
 class TestLifecycleUpgrade:

@@ -15,7 +15,7 @@ untested=[r for r in req_ids if r not in [t['requirement_id'] for t in tests]]
 link_errors=[t['requirement_id'] for t in tests if t['requirement_id'] not in req_ids]
 # Validate markdown contains 64 headings
 headings=0
-with open('TEST_SPEC.md','r',encoding='utf-8') as f:
+with open('TESTS.md','r',encoding='utf-8') as f:
     for line in f:
         if line.startswith('## '):
             headings+=1

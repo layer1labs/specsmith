@@ -65,7 +65,7 @@ Without `--force`, import never overwrites existing files. If you used `--force`
 ## Audit Issues
 
 ### "REQ(s) without test coverage"
-Your REQUIREMENTS.md has requirement IDs (e.g., `REQ-CLI-001`) that don't appear in any `Covers:` line in TEST_SPEC.md. Add `Covers: REQ-CLI-001` references to your test entries.
+Your REQUIREMENTS.md has requirement IDs (e.g., `REQ-CLI-001`) that don't appear in any `Covers:` line in TESTS.md. Add `Covers: REQ-CLI-001` references to your test entries.
 
 ### "CI config missing expected tools"
 Your CI config doesn't reference the tools expected for your project type. Run `specsmith audit --fix` to regenerate CI from the tool registry, or manually add the missing tools.

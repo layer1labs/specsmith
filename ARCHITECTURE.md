@@ -14,7 +14,7 @@ Governance Files
 Governance files include:
 - ARCHITECTURE.md
 - REQUIREMENTS.md
-- TEST_SPEC.md
+- TESTS.md
 - LEDGER.md
 
 Machine State
@@ -57,6 +57,44 @@ Non‑Goals During Bootstrap
 
 IP Evidence, Release, Versioning, Branching, and Documentation Automation
 Specsmith supports IP evidence, automated release, semantic versioning, branching guidance, and documentation syncing.
+
+Nexus Runtime Boundary
+Nexus is the local-first agentic development runtime that executes work approved by Specsmith. Nexus must not own governance and must defer all preflight, requirement mapping, verification, retry decisioning, and ledger writing to Specsmith.
+
+Nexus Components
+- vLLM model server published as `l1-nexus`, configured via `docker-compose.yml`, pinned to `vllm/vllm-openai:v0.8.5`, serving `Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8` with the Hermes tool-call parser.
+- AG2 orchestrator at `src/specsmith/agent/orchestrator.py` providing PlannerAgent, ShellAgent, CodeAgent, ReviewerAgent, MemoryAgent, GitAgent, HumanProxyAgent, and an Executor node.
+- Nexus tooling layer at `src/specsmith/agent/tools.py` exposing `run_shell`, `read_file`, `write_file`, `patch_file`, `list_files`, `grep`, `git_diff`, `git_status`, `run_tests`, `open_url`, `search_docs`, `remember_project_fact`.
+- Safety middleware at `src/specsmith/agent/safety.py` enforcing JSON argument validation, path normalization, unsafe-command blocklist, and human approval prompts for destructive actions.
+- Repository context indexer at `src/specsmith/agent/indexer.py` populating `.repo-index/` with `files.json`, `tags`, `test_commands.json`, `architecture.md`, and `conventions.md`.
+- Nexus REPL at `src/specsmith/agent/repl.py` exposing the slash commands `/plan`, `/ask`, `/fix`, `/test`, `/commit`, `/pr`, `/undo`, `/context`.
+
+Nexus Output Contract
+Every Nexus task response must include the sections: Plan, Commands to run, Files changed, Diff, Test results, Next action.
+
+Nexus Tool Registration Rules
+Each tool's executor function must be registered exactly once with the AG2 executor agent; LLM-side tool signatures may be registered with multiple caller agents. Duplicate executor registration is forbidden because it triggers AG2 override warnings and indicates a governance violation in tool ownership.
+
+Nexus Safety Rules
+The safety middleware must block or require explicit approval for: `rm -r`, `rm -rf`, `rmdir /s`, `git push`, `docker compose down -v`, database migrations, deployment commands, and reads of secret material such as `.env` or credentials files.
+
+Nexus Broker Boundary
+The Nexus broker (`src/specsmith/agent/broker.py`) sits between the user's natural-language input and Specsmith's governance CLI. The broker:
+- Classifies intent (`read_only_ask`, `change`, `release`, `destructive`).
+- Infers affected scope by combining `.repo-index` retrieval with parsed `REQUIREMENTS.md` entries.
+- Treats `specsmith preflight` and `specsmith verify` as the *only* sources of governance decisions; the broker never decides preflight outcomes itself.
+- Renders plain-language plans and outcomes; REQ/TEST/work-item IDs are hidden by default and revealed only on explicit `/why`, `/show-governance`, or `--verbose`.
+- Honors a hard retry budget consistent with REQ-014 and surfaces a single clarifying question on stop-and-align (REQ-063).
+- Never drafts new governance content (REQ/TEST/work-item) without explicit user confirmation; user-facing summaries must be a strict transformation of Specsmith JSON output.
+
+Safe Repository Cleanup Boundary
+Specsmith provides a deterministic safe-cleanup capability that removes only build/cache/temporary artifacts produced by toolchains (compilers, packagers, linters, type-checkers, test runners) and never touches governance, source, or version-controlled history. Cleanup must:
+- Operate within the project root only and never traverse outside it via symlinks.
+- Default to dry-run mode and require an explicit `apply=True` flag (or `--apply` CLI option) to actually delete.
+- Allow only the canonical, hard-coded cleanup target list (no user-supplied paths). The canonical targets are: `__pycache__/` directories anywhere under the repo, `.mypy_cache/`, `.pytest_cache/`, `.pytest_tmp/`, `.ruff_cache/`, `build/`, top-level `dist/` wheels and tarballs that do not match the current package version, `src/*.egg-info/`, top-level archive blobs (`*.zip`, `*.tar`, `*.tar.gz`) that are checked-in build artifacts, ctags `tags` file, transient root-level stub files (`normalized_requirements.json`, `test_cases.md` placeholders).
+- Hard-protected paths that must never be deleted: `.git/`, `.specsmith/`, governance files (`ARCHITECTURE.md`, `REQUIREMENTS.md`, `TESTS.md`, `LEDGER.md`), `pyproject.toml`, `README.md`, `LICENSE`, `CHANGELOG.md`, `src/specsmith/`, `src/epistemic/`, `tests/`, `docs/`, `scripts/`, `.repo-index/`, `.github/`, `.vscode/`, `.warp/`, dotfiles configuring the project (`.editorconfig`, `.gitignore`, `.gitattributes`, `.pre-commit-config.yaml`, `.readthedocs.yaml`).
+- Emit a structured cleanup report (counts of directories, files, and bytes considered/removed; list of skipped items with reasons) suitable for ledger evidence.
+- Be invocable from the Specsmith CLI and from the Nexus runtime via a governed tool.
 
 Integration/Automation
 

@@ -27,7 +27,7 @@ Estimated cost: high
 - `.github/workflows/ci.yml` — lint + typecheck + test matrix + security audit
 - `.github/workflows/release.yml` — tag-triggered build → GitHub Release
 - `docs/REQUIREMENTS.md` — 37 formal requirements
-- `docs/TEST_SPEC.md` — 30 test specifications
+- `docs/TESTS.md` — 30 test specifications
 
 ### Verification
 - 36 tests passing (pytest)

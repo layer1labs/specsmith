@@ -8,7 +8,7 @@ The 7 phases of the AEE development cycle:
   inception     → Governance scaffold, AGENTS.md, project type established
   architecture  → ARCHITECTURE.md written, components defined, key decisions sealed
   requirements  → REQUIREMENTS.md populated, stress-tested, equilibrium reached
-  test_spec     → TEST_SPEC.md covers all P1 requirements, coverage > 80 %
+  test_spec     → TESTS.md covers all P1 requirements, coverage > 80 %
   implementation → Code development loop; audit passes; ledger updated each session
   verification  → Epistemic audit passes threshold; trace vault sealed; export clean
   release       → CHANGELOG updated; release tag created; compliance report filed
@@ -85,11 +85,11 @@ def _req_count(min_count: int) -> Callable[[Path], bool]:
 
 
 def _test_spec_covers_reqs(threshold_pct: int) -> Callable[[Path], bool]:
-    """Check that at least threshold_pct% of REQ IDs appear in TEST_SPEC.md."""
+    """Check that at least threshold_pct% of REQ IDs appear in TESTS.md."""
 
     def _check(root: Path) -> bool:
         candidates_req = ["REQUIREMENTS.md", "docs/REQUIREMENTS.md"]
-        candidates_test = ["docs/TEST_SPEC.md", "TEST_SPEC.md"]
+        candidates_test = ["docs/TESTS.md", "TESTS.md"]
         req_file = next((root / c for c in candidates_req if (root / c).exists()), None)
         test_file = next((root / c for c in candidates_test if (root / c).exists()), None)
         if not req_file or not test_file:
@@ -205,7 +205,7 @@ PHASES: list[Phase] = [
                 _file_exists("REQUIREMENTS.md"),
             ),
             PhaseCheck("At least 5 requirements defined", _req_count(5)),
-            PhaseCheck("TEST_SPEC.md exists", _file_exists("docs/TEST_SPEC.md")),
+            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
             PhaseCheck("REQUIREMENTS.md has content", _file_min_lines("REQUIREMENTS.md", 10)),
         ],
@@ -223,10 +223,10 @@ PHASES: list[Phase] = [
         emoji="✅",
         description="Write test specifications covering all P1 requirements.",
         checks=[
-            PhaseCheck("TEST_SPEC.md exists", _file_exists("docs/TEST_SPEC.md")),
+            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
             PhaseCheck(
-                "TEST_SPEC.md has content",
-                _file_min_lines("docs/TEST_SPEC.md", 15),
+                "TESTS.md has content",
+                _file_min_lines("docs/TESTS.md", 15),
             ),
             PhaseCheck("TEST coverage ≥ 80 %", _test_spec_covers_reqs(80)),
             PhaseCheck("REQUIREMENTS.md has ≥ 5 REQs", _req_count(5)),
@@ -247,7 +247,7 @@ PHASES: list[Phase] = [
         checks=[
             PhaseCheck("LEDGER.md has content", _file_min_lines("LEDGER.md", 10)),
             PhaseCheck("Audit passes", _file_exists("AGENTS.md")),
-            PhaseCheck("TEST_SPEC.md exists", _file_exists("docs/TEST_SPEC.md")),
+            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
             PhaseCheck("REQUIREMENTS.md exists", _req_count(1)),
         ],
         commands=[

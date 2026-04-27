@@ -53,7 +53,7 @@ When making changes that affect user-facing behavior, **always update in the sam
 1. `README.md` — commands, types, features
 2. `docs/site/` — the Read the Docs pages
 3. `CHANGELOG.md` — all notable changes
-4. `docs/REQUIREMENTS.md` and `docs/TEST_SPEC.md` — if applicable
+4. `docs/REQUIREMENTS.md` and `docs/TESTS.md` — if applicable
 
 ## Pull Request Process
 

@@ -9,14 +9,14 @@ from typing import Any
 
 import click
 import yaml
-from rich.console import Console
 
 from specsmith import __version__
 from specsmith.config import Platform, ProjectConfig, ProjectType
+from specsmith.console_utils import make_console
 from specsmith.scaffolder import scaffold_project
 from specsmith.requirements_parser import parse_architecture_requirements, define_test_cases
 
-console = Console()
+console = make_console()
 
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
 PROJECT_TYPE_LABELS = {
@@ -352,6 +352,197 @@ def audit(fix: bool, project_dir: str) -> None:
         raise SystemExit(1)
 
 
+@main.command(name="preflight")
+@click.argument("utterance")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the preflight decision as JSON (default).",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Include the rendered plain-language narration alongside the decision.",
+)
+def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool) -> None:
+    """Classify a natural-language utterance under Specsmith governance (REQ-085).
+
+    Reads REQUIREMENTS.md and ``.repo-index/files.json`` from PROJECT-DIR,
+    classifies intent (read-only ask / change / release / destructive),
+    infers scope, and emits a JSON object describing the preflight decision.
+    Read-only asks accept by default; destructive intents require
+    clarification; changes with no matching scope return needs_clarification.
+    """
+    import json as _json
+    import uuid
+
+    from specsmith.agent.broker import (
+        Intent,
+        classify_intent,
+        infer_scope,
+        narrate_plan,
+        PreflightDecision,
+    )
+
+    root = Path(project_dir).resolve()
+    intent = classify_intent(utterance)
+    scope = infer_scope(
+        utterance,
+        root / "REQUIREMENTS.md",
+        repo_index_path=root / ".repo-index" / "files.json",
+    )
+
+    requirement_ids = [r.req_id for r in scope.matched_requirements]
+
+    # Heuristic decision policy. Specsmith governance owns the contract; the
+    # CLI implementation is intentionally simple and deterministic so the
+    # broker (and tests) can rely on it without an LLM.
+    decision_str = "accepted"
+    instruction = ""
+    confidence_target = 0.7
+
+    if intent == Intent.READ_ONLY_ASK:
+        decision_str = "accepted"
+        instruction = "Read-only ask; no governance changes required."
+    elif intent == Intent.DESTRUCTIVE:
+        decision_str = "needs_clarification"
+        instruction = (
+            "Destructive operation detected. "
+            "Confirm explicitly which paths or resources should be removed."
+        )
+        confidence_target = 0.9
+    elif intent == Intent.RELEASE:
+        decision_str = "needs_clarification"
+        instruction = (
+            "Release operations require explicit confirmation. "
+            "Specify the target version and channel."
+        )
+        confidence_target = 0.9
+    else:  # CHANGE
+        if scope.is_known:
+            decision_str = "accepted"
+            instruction = (
+                "Change request matched existing governance scope. Proceed under "
+                "Specsmith verification."
+            )
+            confidence_target = max(0.7, scope.confidence)
+        else:
+            decision_str = "needs_clarification"
+            instruction = (
+                "This change does not match an existing requirement. "
+                "Could you say in one sentence which behavior you expect?"
+            )
+            confidence_target = 0.7
+
+    work_item_id = (
+        f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
+    )
+
+    payload = {
+        "decision": decision_str,
+        "work_item_id": work_item_id,
+        "requirement_ids": requirement_ids,
+        "test_case_ids": [],
+        "confidence_target": round(confidence_target, 3),
+        "instruction": instruction,
+        "intent": intent.value,
+    }
+    if verbose:
+        decision_obj = PreflightDecision.from_json(payload)
+        payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
+
+    # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
+    click.echo(_json.dumps(payload, indent=2))
+
+
+@main.command(name="clean")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--apply",
+    "apply_flag",
+    is_flag=True,
+    default=False,
+    help="Actually delete the canonical targets (default is dry-run).",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the cleanup report as JSON instead of human-readable text.",
+)
+def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
+    """Safely remove build/cache/temporary artifacts (REQ-077..REQ-080).
+
+    Defaults to a dry-run that lists what would be removed. Pass --apply to
+    actually delete. Governance files, source, .git, and .specsmith are always
+    protected. When --apply is used, a ledger event is recorded so the run
+    is traceable.
+    """
+    import json as _json
+
+    from specsmith.agent.cleanup import clean_repo
+    from specsmith.ledger import add_entry
+
+    root = Path(project_dir).resolve()
+    report = clean_repo(root, apply=apply_flag)
+
+    if as_json:
+        # Bypass rich's renderer to avoid soft-wrap mangling the JSON payload.
+        click.echo(_json.dumps(report.to_dict(), indent=2))
+    else:
+        mode = "APPLY" if apply_flag else "DRY-RUN"
+        console.print(f"[bold]specsmith clean[/bold] ({mode}) \u2014 {root}\n")
+        if report.removed:
+            for path in report.removed:
+                icon = "[red]\u2717[/red]" if apply_flag else "[yellow]~[/yellow]"
+                console.print(f"  {icon} {path}")
+        if report.skipped:
+            for entry in report.skipped:
+                console.print(
+                    f"  [dim]\u2014 {entry['path']} (skipped: {entry['reason']})[/dim]"
+                )
+        mb = report.bytes_reclaimed / (1024 * 1024)
+        verb = "reclaimed" if apply_flag else "would reclaim"
+        console.print(
+            f"\n[bold green]\u2713[/bold green] {len(report.removed)} target(s); "
+            f"{verb} {mb:.2f} MB."
+        )
+        if not apply_flag:
+            console.print(
+                "  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]"
+            )
+
+    if apply_flag and (root / "LEDGER.md").exists():
+        try:
+            add_entry(
+                root,
+                description=(
+                    f"specsmith clean --apply removed {len(report.removed)} target(s), "
+                    f"{report.bytes_reclaimed} bytes reclaimed."
+                ),
+                entry_type="cleanup",
+                author="specsmith",
+                reqs="REQ-077,REQ-078,REQ-079,REQ-080",
+            )
+        except Exception:  # noqa: BLE001
+            pass  # Ledger writing is best-effort here
+
+
 @main.command()
 @click.option(
     "--project-dir",
@@ -663,7 +854,7 @@ def import_project(
             "AGENTS.md",
             "LEDGER.md",
             "docs/REQUIREMENTS.md",
-            "docs/TEST_SPEC.md",
+            "docs/TESTS.md",
             "docs/ARCHITECTURE.md",
             "scaffold.yml",
             "docs/governance/RULES.md",
@@ -753,8 +944,8 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     reqs_path.write_text(reqs_content, encoding="utf-8")
     created.append(reqs_path)
 
-    # Generate TEST_SPEC.md with TEST stubs
-    tests_path = target / "docs" / "TEST_SPEC.md"
+    # Generate TESTS.md with TEST stubs
+    tests_path = target / "docs" / "TESTS.md"
     tests_content = "# Test Specification\n\n"
     test_num = 1
     for comp in components:
@@ -2250,7 +2441,7 @@ def stress_test_cmd(project_dir: str, accepted_only: bool, output_format: str) -
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -2322,7 +2513,7 @@ def belief_graph_cmd(project_dir: str, output_format: str, component: str) -> No
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -2404,7 +2595,7 @@ def epistemic_audit_cmd(project_dir: str, threshold: float, emit_mermaid: bool) 
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -4479,7 +4670,7 @@ def index_group() -> None:
 def index_build_cmd(project_dir: str, include_ledger: bool, external: str) -> None:
     """Build or refresh the local retrieval index.
 
-    Indexes governance docs (AGENTS.md, REQUIREMENTS.md, ARCHITECTURE.md, TEST_SPEC.md)
+    Indexes governance docs (AGENTS.md, REQUIREMENTS.md, ARCHITECTURE.md, TESTS.md)
     and source files under src/, client/, server/, and shared/.
     Use --external to add external reference material.
     """

@@ -9,7 +9,7 @@ This project follows the 7-phase Applied Epistemic Engineering (AEE) development
 1. 🌱 **Inception** — Governance scaffold, AGENTS.md, project type established
 2. 🏗 **Architecture** — ARCHITECTURE.md written, components defined, key decisions sealed
 3. 📋 **Requirements** — REQUIREMENTS.md populated, stress-tested, equilibrium reached
-4. ✅ **Test Specification** — TEST_SPEC.md covers all P1 requirements, coverage ≥ 80%
+4. ✅ **Test Specification** — TESTS.md covers all P1 requirements, coverage ≥ 80%
 5. ⚙ **Implementation** — Code development loop; audit passes; ledger updated each session
 6. 🔬 **Verification** — Epistemic audit passes threshold; trace vault sealed; export clean
 7. 🚀 **Release** — CHANGELOG updated; release tag created; compliance report filed
@@ -37,8 +37,8 @@ Each phase produces specific artifacts:
 
 - **Inception**: `scaffold.yml`, `AGENTS.md`, `LEDGER.md`
 - **Architecture**: `docs/ARCHITECTURE.md`, trace vault seal
-- **Requirements**: `docs/REQUIREMENTS.md`, `docs/TEST_SPEC.md`
-- **Test Specification**: TEST_SPEC.md with ≥ 80% REQ coverage
+- **Requirements**: `docs/REQUIREMENTS.md`, `docs/TESTS.md`
+- **Test Specification**: TESTS.md with ≥ 80% REQ coverage
 - **Implementation**: Code, updated LEDGER.md, passing audit
 - **Verification**: Epistemic audit, trace vault seals, export report
 - **Release**: `CHANGELOG.md`, release tag, compliance report

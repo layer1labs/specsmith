@@ -181,7 +181,7 @@ class RecoveryOperator:
                     failure_mode_challenge=fm.challenge,
                     strategy=RecoveryStrategy.FALSIFY,
                     description=(
-                        f"Add a TEST entry in docs/TEST_SPEC.md for {artifact.artifact_id}."
+                        f"Add a TEST entry in docs/TESTS.md for {artifact.artifact_id}."
                     ),
                     suggested_change=(
                         f"Add: `- **TEST-XXX**: Covers: {artifact.artifact_id}\\n"

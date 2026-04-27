@@ -10,7 +10,7 @@
 ## 2. Governance Files Must Be Owned by Specsmith
 - **ID:** REQ-002
 - **Title:** Governance Files Must Be Owned by Specsmith
-- **Description:** Only Specsmith may create, update, or delete the human‑readable governance files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TEST_SPEC.md`, and `LEDGER.md`.
+- **Description:** Only Specsmith may create, update, or delete the human‑readable governance files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TESTS.md`, and `LEDGER.md`.
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 
@@ -445,6 +445,160 @@
 - **ID:** REQ-064
 - **Title:** Interactive Correction Workflow
 - **Description:** After stopping, Specsmith should provide an interactive correction workflow.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 65. Nexus Runtime Must Not Own Governance
+- **ID:** REQ-065
+- **Title:** Nexus Runtime Must Not Own Governance
+- **Description:** The Nexus agent runtime must defer preflight, requirement mapping, verification, retry decisions, and ledger writing to Specsmith.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 66. Nexus Must Provide Required Agent Roles
+- **ID:** REQ-066
+- **Title:** Nexus Must Provide Required Agent Roles
+- **Description:** Nexus must instantiate PlannerAgent, ShellAgent, CodeAgent, ReviewerAgent, MemoryAgent, GitAgent, HumanProxyAgent, and an Executor node.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 67. Nexus Tool Layer Must Expose Required Tools
+- **ID:** REQ-067
+- **Title:** Nexus Tool Layer Must Expose Required Tools
+- **Description:** Nexus must expose run_shell, read_file, write_file, patch_file, list_files, grep, git_diff, git_status, run_tests, open_url, search_docs, and remember_project_fact.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 68. Nexus Safety Middleware Must Block Unsafe Commands
+- **ID:** REQ-068
+- **Title:** Nexus Safety Middleware Must Block Unsafe Commands
+- **Description:** The safety middleware must block or require explicit approval for unsafe shell patterns including rm -rf, git push, docker compose down -v, database migrations, deploy commands, and secret reads.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 69. Nexus Tool Arguments Must Be JSON Validated
+- **ID:** REQ-069
+- **Title:** Nexus Tool Arguments Must Be JSON Validated
+- **Description:** All Nexus tool calls must validate that arguments are JSON-serializable before execution.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 70. Nexus Must Normalize File Paths
+- **ID:** REQ-070
+- **Title:** Nexus Must Normalize File Paths
+- **Description:** All file paths supplied to Nexus tools must be normalized to absolute, resolved paths before access.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 71. Nexus Must Index the Repository
+- **ID:** REQ-071
+- **Title:** Nexus Must Index the Repository
+- **Description:** Nexus must populate .repo-index/ with files.json, tags, test_commands.json, architecture.md, and conventions.md as available.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 72. Nexus REPL Must Support Slash Commands
+- **ID:** REQ-072
+- **Title:** Nexus REPL Must Support Slash Commands
+- **Description:** The Nexus REPL must support /plan, /ask, /fix, /test, /commit, /pr, /undo, /context, /exit.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 73. Nexus Output Contract
+- **ID:** REQ-073
+- **Title:** Nexus Output Contract
+- **Description:** Each Nexus task response must include sections Plan, Commands to run, Files changed, Diff, Test results, and Next action.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 74. vLLM Image Must Be Pinned
+- **ID:** REQ-074
+- **Title:** vLLM Image Must Be Pinned
+- **Description:** The Nexus docker-compose.yml must pin the vLLM image to a specific tag (vllm/vllm-openai:v0.8.5) and not use latest.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 75. vLLM Must Serve l1-nexus Model
+- **ID:** REQ-075
+- **Title:** vLLM Must Serve l1-nexus Model
+- **Description:** The Nexus docker-compose.yml must publish the served model as l1-nexus and use the Hermes tool-call parser.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 76. Nexus Tool Executor Registration Must Be Unique
+- **ID:** REQ-076
+- **Title:** Nexus Tool Executor Registration Must Be Unique
+- **Description:** Each Nexus tool must be registered with the AG2 executor exactly once; LLM-side tool signatures may be attached to multiple caller agents but the execution function must not be re-registered to avoid AG2 override warnings.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 77. Safe Cleanup Must Default to Dry-Run
+- **ID:** REQ-077
+- **Title:** Safe Cleanup Must Default to Dry-Run
+- **Description:** The Specsmith safe-cleanup capability must default to dry-run mode and only delete files when an explicit apply flag is provided.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 78. Safe Cleanup Must Use a Hard-Coded Target List
+- **ID:** REQ-078
+- **Title:** Safe Cleanup Must Use a Hard-Coded Target List
+- **Description:** Safe cleanup must only consider the canonical built-in target list and must reject user-supplied arbitrary paths.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 79. Safe Cleanup Must Protect Governance and Source
+- **ID:** REQ-079
+- **Title:** Safe Cleanup Must Protect Governance and Source
+- **Description:** Safe cleanup must refuse to delete .git, .specsmith, governance markdown files, pyproject.toml, README.md, LICENSE, CHANGELOG.md, src/, tests/, docs/, scripts/, .repo-index/, .github/, .warp/, .vscode/, and project configuration dotfiles.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 80. Safe Cleanup Must Emit a Structured Report
+- **ID:** REQ-080
+- **Title:** Safe Cleanup Must Emit a Structured Report
+- **Description:** Safe cleanup must return a report containing the lists of removed paths, skipped paths with reasons, and total bytes reclaimed, suitable for inclusion as ledger evidence.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 81. Safe Cleanup Must Be Exposed via Specsmith CLI
+- **ID:** REQ-081
+- **Title:** Safe Cleanup Must Be Exposed via Specsmith CLI
+- **Description:** The Specsmith CLI must expose the safe cleanup capability as `specsmith clean`, supporting `--apply`, `--json`, and `--project-dir`. When `--apply` is used and `LEDGER.md` exists, the run must be recorded as a `cleanup` ledger event tagged with REQ-077..REQ-080.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 82. CLI Console Must Be UTF-8 Safe Across Platforms
+- **ID:** REQ-082
+- **Title:** CLI Console Must Be UTF-8 Safe Across Platforms
+- **Description:** All Specsmith CLI output (rich Console) must render UTF-8 glyphs (such as warning, arrow, check, cross) without raising UnicodeEncodeError on Windows code pages such as cp1252. The console factory must reconfigure stdout/stderr to UTF-8 and disable rich's legacy_windows renderer.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 83. Canonical Test Specification File Is TESTS.md
+- **ID:** REQ-083
+- **Title:** Canonical Test Specification File Is TESTS.md
+- **Description:** The canonical test specification file is named `TESTS.md` (replacing the legacy names `TEST_SPEC.md`, `TEST-SPEC.md`, and `TEST-SPECS.md`). Specsmith code, governance documents, templates, scaffolder output, importer overlay, auditor checks, retrieval index, exporter, validator, REPL skill files, ReadTheDocs site, and CLI help must all reference `TESTS.md`. Legacy filenames must not be created by new scaffolds, must be auto-renamed by `specsmith migrate-project`, and must not be referenced in user-facing docs.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 84. Natural-Language Governance Broker
+- **ID:** REQ-084
+- **Title:** Natural-Language Governance Broker
+- **Description:** Specsmith must expose a Nexus broker module (`specsmith.agent.broker`) that translates plain-language user utterances into Specsmith-governed work without the user reasoning about REQ IDs, TEST IDs, or work items. The broker must classify intent (read-only ask vs change vs release), infer affected scope from the local `.repo-index` and existing requirements, invoke `specsmith preflight` and `specsmith verify` as the only sources of governance decisions, render plain-language plans and outcomes, hide REQ/TEST/work-item IDs by default (revealed only on `/why`, `/show-governance`, or `--verbose`), bound retries per REQ-014, escalate to a single user clarification on stop-and-align (REQ-063), and never invent governance content (REQ/TEST drafting requires explicit user confirmation).
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 85. specsmith preflight CLI Subcommand
+- **ID:** REQ-085
+- **Title:** specsmith preflight CLI Subcommand
+- **Description:** The Specsmith CLI must expose a `specsmith preflight <utterance>` subcommand that reads `REQUIREMENTS.md` and `.specsmith/` state, classifies intent and infers scope, and emits a JSON object with at least the keys `decision` (one of `accepted`, `needs_clarification`, `blocked`, `rejected`), `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence_target`, and `instruction`. Read-only asks accept by default, destructive intents require clarification, and changes with no matching scope return `needs_clarification` with a one-sentence question. The CLI must support `--project-dir`, `--json`, and `--verbose`.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 86. Nexus REPL Must Gate Execution on Preflight Acceptance
+- **ID:** REQ-086
+- **Title:** Nexus REPL Must Gate Execution on Preflight Acceptance
+- **Description:** When a non-slash utterance flows through the broker, the Nexus REPL must only invoke the AG2 orchestrator's `run_task` if the preflight decision is `accepted`. For any other decision (`needs_clarification`, `blocked`, `rejected`), the REPL must print the broker's plain-language clarification or rejection and return to the prompt without executing.
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 

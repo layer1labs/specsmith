@@ -19,7 +19,7 @@ specsmith init --output-dir /path/to/parent       # Custom output location
 - `--config PATH` — Path to scaffold.yml. If omitted, runs interactive prompts for project name, type, platforms, VCS, branching, and integrations.
 - `--output-dir PATH` — Parent directory for the new project (default: `.`). The project is created as a subdirectory named after `name` in the config.
 - `--no-git` — Skip running `git init` in the new project.
-- `--guided` — After scaffolding, prompts for component names and generates REQUIREMENTS.md with `REQ-{COMPONENT}-001/002` stubs, TEST_SPEC.md with linked tests, and architecture.md with component descriptions.
+- `--guided` — After scaffolding, prompts for component names and generates REQUIREMENTS.md with `REQ-{COMPONENT}-001/002` stubs, TESTS.md with linked tests, and architecture.md with component descriptions.
 
 **What it generates:** AGENTS.md, LEDGER.md, modular governance, project docs, type-specific directories, CI config, dependency management, agent integration files, scripts, and scaffold.yml.
 
@@ -58,7 +58,7 @@ specsmith audit --fix --project-dir ./my-project
 
 1. **Required files** — AGENTS.md and LEDGER.md must exist
 2. **Modular governance** — If AGENTS.md exceeds 200 lines, docs/governance/*.md must exist
-3. **REQ↔TEST coverage** — Every requirement ID in REQUIREMENTS.md must have a `Covers:` reference in TEST_SPEC.md
+3. **REQ↔TEST coverage** — Every requirement ID in REQUIREMENTS.md must have a `Covers:` reference in TESTS.md
 4. **Ledger health** — LEDGER.md must be under 500 lines; open TODOs must be under 20
 5. **Governance size** — Individual governance files must not exceed their line thresholds
 6. **Tool configuration** — CI config must reference the expected verification tools for the project type (reads scaffold.yml to determine type)
@@ -490,7 +490,7 @@ specsmith phase status              # one-line status for CI/IDE: 'requirements 
 1. `inception` 🌱 — Governance scaffold, AGENTS.md, project type established
 2. `architecture` 🏗 — ARCHITECTURE.md, components, key decisions sealed
 3. `requirements` 📋 — REQUIREMENTS.md populated, stress-tested, equilibrium reached
-4. `test_spec` ✅ — TEST_SPEC.md covers all P1 requirements (≥80%)
+4. `test_spec` ✅ — TESTS.md covers all P1 requirements (≥80%)
 5. `implementation` ⚙ — Development cycle: code, commit, audit, ledger
 6. `verification` 🔬 — Epistemic audit passes, trace vault sealed
 7. `release` 🚀 — CHANGELOG updated, tag created, compliance report filed

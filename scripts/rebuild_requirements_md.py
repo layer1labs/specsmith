@@ -1,7 +1,7 @@
 import json
 REQS=[
     {"ID":"REQ-001","Title":"Specsmith Must Govern Itself","Description":"Specsmith must govern its own governance layer and use it for all changes.","Source":"ARCHITECTURE.md","Status":"defined"},
-    {"ID":"REQ-002","Title":"Governance Files Must Be Owned by Specsmith","Description":"Only Specsmith may create, update, or delete the human‑readable governance files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TEST_SPEC.md`, and `LEDGER.md`.","Source":"ARCHITECTURE.md","Status":"defined"},
+    {"ID":"REQ-002","Title":"Governance Files Must Be Owned by Specsmith","Description":"Only Specsmith may create, update, or delete the human‑readable governance files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TESTS.md`, and `LEDGER.md`.","Source":"ARCHITECTURE.md","Status":"defined"},
     {"ID":"REQ-003","Title":"Machine State Must Reflect Governance State","Description":"Every machine‑readable state file under `.specsmith/` must be derived from its corresponding human‑readable governance file and remain in sync.","Source":"ARCHITECTURE.md","Status":"defined"},
     {"ID":"REQ-004","Title":"Requirements Must Be Derived from Architecture","Description":"Specsmith must parse `ARCHITECTURE.md` to produce initial requirements.","Source":"ARCHITECTURE.md","Status":"defined"},
     {"ID":"REQ-005","Title":"Requirement IDs Must Be Stable","Description":"Once assigned, a requirement ID must never change or be reused.","Source":"ARCHITECTURE.md","Status":"defined"},

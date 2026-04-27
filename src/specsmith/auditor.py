@@ -8,9 +8,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from rich.console import Console
+from specsmith.console_utils import make_console
 
-console = Console()
+console = make_console()
 
 
 @dataclass
@@ -67,7 +67,7 @@ GOVERNANCE_FILES = [
 
 RECOMMENDED_FILES = [
     "docs/REQUIREMENTS.md",
-    "docs/TEST_SPEC.md",
+    "docs/TESTS.md",
     "docs/ARCHITECTURE.md",
     "CONTRIBUTING.md",
     "LICENSE",
@@ -168,14 +168,14 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
     results: list[AuditResult] = []
 
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists() or not test_path.exists():
         results.append(
             AuditResult(
                 name="req-test-consistency",
                 passed=True,
-                message="Skipped: REQUIREMENTS.md or TEST_SPEC.md not found",
+                message="Skipped: REQUIREMENTS.md or TESTS.md not found",
             )
         )
         return results
@@ -792,13 +792,13 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
             )
             fixed.append("Created stub docs/REQUIREMENTS.md")
 
-        elif result.name == "recommended:docs/TEST_SPEC.md" and not result.passed:
-            path = root / "docs" / "TEST_SPEC.md"
+        elif result.name == "recommended:docs/TESTS.md" and not result.passed:
+            path = root / "docs" / "TESTS.md"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(
                 "# Test Specification\n\nNo tests defined yet.\n",
                 encoding="utf-8",
             )
-            fixed.append("Created stub docs/TEST_SPEC.md")
+            fixed.append("Created stub docs/TESTS.md")
 
     return fixed

@@ -24,7 +24,7 @@ Every specsmith-governed project has this authority hierarchy — higher files o
 2. **README.md** — Project intent and scope.
 3. **docs/REQUIREMENTS.md** — What the system must do.
 4. **docs/ARCHITECTURE.md** — How the system is structured.
-5. **docs/TEST_SPEC.md** — How the system is verified.
+5. **docs/TESTS.md** — How the system is verified.
 6. **LEDGER.md** — Sole authority for session state (what's been done, what's next).
 
 ## AGENTS.md — The Governance Hub
@@ -78,7 +78,7 @@ This is how context persists across sessions. When an agent starts with `resume`
 - **Description**: specsmith init scaffolds a governed project from interactive prompts or YAML config
 ```
 
-`docs/TEST_SPEC.md` links tests to requirements:
+`docs/TESTS.md` links tests to requirements:
 
 ```markdown
 ### TEST-CLI-002

@@ -34,7 +34,7 @@ for t in tests:
     md += f'- **Input:** {t["input"]}\n'
     md += f'- **Expected Behavior:** {t["expected_behavior"]}\n'
     md += f'- **Confidence:** {t["confidence"]}\n\n'
-with open('TEST_SPEC.md','w',encoding='utf-8') as f:
+with open('TESTS.md','w',encoding='utf-8') as f:
     f.write(md)
 
 with open('.specsmith/testcases.json','w',encoding='utf-8') as f:

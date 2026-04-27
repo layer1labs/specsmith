@@ -20,7 +20,7 @@ The governance layer owns:
 
 - `ARCHITECTURE.md`
 - `REQUIREMENTS.md`
-- `TEST_SPEC.md`
+- `TESTS.md`
 - `LEDGER.md`
 - `.specsmith/requirements.json`
 - `.specsmith/testcases.json`
@@ -91,7 +91,7 @@ Specsmith governance is represented in both human-readable and machine-readable 
 
 - `ARCHITECTURE.md` — canonical architectural source of truth
 - `REQUIREMENTS.md` — declarative requirement list
-- `TEST_SPEC.md` — test specification and requirement-to-test expectations
+- `TESTS.md` — test specification and requirement-to-test expectations
 - `LEDGER.md` — human-readable audit trail
 
 ### Machine-readable governance files
@@ -153,7 +153,7 @@ A requirement must be:
 Planned behavior:
 
 1. Accepted requirements produce or link to test cases.
-2. Test cases are recorded in `TEST_SPEC.md`.
+2. Test cases are recorded in `TESTS.md`.
 3. Structured test cases are written to `.specsmith/testcases.json`.
 4. Tests are executed through pytest or other registered tools.
 5. Test results are attached to work items.

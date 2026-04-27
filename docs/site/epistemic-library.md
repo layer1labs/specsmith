@@ -175,7 +175,7 @@ from epistemic import StressTester, StressTestResult
 
 tester = StressTester(
     req_path=Path("docs/REQUIREMENTS.md"),  # for test coverage detection
-    test_path=Path("docs/TEST_SPEC.md"),
+    test_path=Path("docs/TESTS.md"),
 )
 result: StressTestResult = tester.run(artifacts)
 
