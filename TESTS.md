@@ -1045,3 +1045,58 @@
 - **Expected Behavior:** Log file present and non-empty; mentions either ok=true/false from the smoke script.
 - **Confidence:** 1.0
 
+## TEST-096. execute_with_governance Maps Failures to Retry Strategies
+- **ID:** TEST-096
+- **Title:** execute_with_governance Maps Failures to Retry Strategies
+- **Description:** When the executor never reaches equilibrium, `execute_with_governance` must populate `RunResult.strategy` with one of the canonical labels: `narrow_scope`, `expand_scope`, `fix_tests`, `rollback`, or `stop`. The clarifying question must mention the chosen label.
+- **Requirement ID:** REQ-096
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** mocked executor returning failure reports
+- **Expected Behavior:** `result.strategy` is a canonical label; `result.clarifying_question` references it.
+- **Confidence:** 1.0
+
+## TEST-097. specsmith verify CLI Emits Required JSON
+- **ID:** TEST-097
+- **Title:** specsmith verify CLI Emits Required JSON
+- **Description:** Invoking `specsmith verify --stdin --json` with a JSON verification payload via click's CliRunner must return a JSON object containing `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`, and `retry_strategy`. Exit code is 0 when equilibrium and confidence ≥ threshold, 2 when retry is recommended, and 3 on stop-and-align.
+- **Requirement ID:** REQ-097
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner with stdin JSON
+- **Expected Behavior:** JSON parses; required keys present; exit code matches verification outcome.
+- **Confidence:** 1.0
+
+## TEST-098. Confidence Threshold Read From .specsmith/config.yml
+- **ID:** TEST-098
+- **Title:** Confidence Threshold Read From .specsmith/config.yml
+- **Description:** When `.specsmith/config.yml` sets `epistemic.confidence_threshold: 0.95` (well above the heuristic default), invoking `specsmith preflight` over a tmp project must return `confidence_target >= 0.95`. When the config file is absent, the heuristic default still applies.
+- **Requirement ID:** REQ-098
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over tmp_path with seeded config.yml
+- **Expected Behavior:** confidence_target floor matches the config when present; falls back to heuristic when absent.
+- **Confidence:** 1.0
+
+## TEST-099. Accepted Preflight Records work_proposal Event Once
+- **ID:** TEST-099
+- **Title:** Accepted Preflight Records work_proposal Event Once
+- **Description:** When the preflight decision is `accepted` and the assigned `work_item_id` is not already in `LEDGER.md`, the CLI must emit BOTH a `preflight` ledger entry AND a `work_proposal` ledger entry tagged with `REQ-044` and `REQ-085`. A subsequent invocation that surfaces a different work_item_id must emit a second work_proposal entry.
+- **Requirement ID:** REQ-099
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over tmp_path with LEDGER.md
+- **Expected Behavior:** LEDGER.md contains a `work_proposal` entry referencing REQ-044, REQ-085, and the work_item_id; subsequent acceptance with a different id appends another work_proposal.
+- **Confidence:** 1.0
+
+## TEST-100. Broker Scope Inference Surfaces Stress Warnings Under --stress
+- **ID:** TEST-100
+- **Title:** Broker Scope Inference Surfaces Stress Warnings Under --stress
+- **Description:** Invoking `specsmith preflight "fix the cleanup bug" --stress` over a tmp project that has matched requirements with at least one synthetic critical failure must include a non-empty `stress_warnings` list in the JSON payload. Without `--stress`, the field is absent (or empty).
+- **Requirement ID:** REQ-100
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over tmp_path with seeded REQUIREMENTS.md
+- **Expected Behavior:** `stress_warnings` populated under --stress when StressTester reports critical failures; absent or empty otherwise.
+- **Confidence:** 1.0
+

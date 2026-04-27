@@ -442,17 +442,89 @@ def narrate_plan(
 
 @dataclass
 class RunResult:
-    """Outcome of execute_with_governance."""
+    """Outcome of execute_with_governance.
+
+    REQ-096 adds the ``strategy`` field, which is one of the canonical
+    retry-strategy labels from REQ-028 when ``success`` is False:
+
+      - ``narrow_scope``: too much was attempted; cut scope and retry.
+      - ``expand_scope``: not enough context; broaden scope and retry.
+      - ``fix_tests``: tests are wrong or missing; repair tests first.
+      - ``rollback``: the change is destructive or contradictory; revert.
+      - ``stop``: confidence cannot improve; stop and ask the user.
+
+    On success the field is left as the empty string.
+    """
 
     success: bool
     attempts: int
     confidence: float = 0.0
     summary: str = ""
     clarifying_question: str = ""
+    strategy: str = ""
 
 
 # REQ-014: retries are bounded. The default is intentionally small.
 DEFAULT_RETRY_BUDGET = 3
+
+# REQ-028 / REQ-096: canonical retry strategies.
+RETRY_STRATEGIES = (
+    "narrow_scope",
+    "expand_scope",
+    "fix_tests",
+    "rollback",
+    "stop",
+)
+
+
+def classify_retry_strategy(report: dict, decision: PreflightDecision) -> str:
+    """Map an executor failure report to one of the canonical retry strategies.
+
+    The classification is deterministic and inspects:
+      - ``test_results`` for non-zero failure counts (-> fix_tests),
+      - ``summary`` text for rollback / contradiction / scope hints,
+      - ``confidence`` distance from the target (>0.5 below -> narrow_scope,
+        otherwise expand_scope when scope was unknown),
+      - falls through to ``stop`` when nothing else matches.
+    """
+    summary_text = str(report.get("summary", report.get("message", "")) or "").lower()
+    test_results = report.get("test_results") or {}
+    confidence = float(report.get("confidence", 0.0) or 0.0)
+
+    # Rollback signal: explicit destructive / contradiction language.
+    rollback_tokens = ("rollback", "contradiction", "revert", "corrupt", "data loss")
+    if any(tok in summary_text for tok in rollback_tokens):
+        return "rollback"
+
+    # Test failures dominate everything else.
+    failed_count = 0
+    if isinstance(test_results, dict):
+        for key in ("failed", "failures", "errors"):
+            try:
+                failed_count += int(test_results.get(key, 0) or 0)
+            except (TypeError, ValueError):
+                continue
+        raw_text = str(test_results.get("raw", "") or "")
+        if "failed" in raw_text.lower():
+            failed_count = max(failed_count, 1)
+    if failed_count > 0:
+        return "fix_tests"
+
+    # Scope hints.
+    if "too broad" in summary_text or "narrow" in summary_text:
+        return "narrow_scope"
+    if "out of scope" in summary_text or "expand" in summary_text:
+        return "expand_scope"
+
+    # Confidence-distance heuristic.
+    if decision.confidence_target > 0:
+        gap = decision.confidence_target - confidence
+        if gap >= 0.5:
+            return "narrow_scope"
+        if gap >= 0.2 and not getattr(decision, "requirement_ids", []):
+            return "expand_scope"
+
+    return "stop"
 
 
 def execute_with_governance(
@@ -467,15 +539,18 @@ def execute_with_governance(
     performs the work and returns a Specsmith verify-shaped JSON dict. The
     broker checks ``equilibrium`` and ``confidence``; if the run is below
     threshold after the budget is exhausted, the broker returns a single
-    clarifying question instead of looping.
+    clarifying question instead of looping. The ``RunResult`` carries a
+    canonical ``strategy`` label (REQ-096) when retries are exhausted.
     """
     if retry_budget < 1:
         retry_budget = 1
 
     last_summary = ""
     last_confidence = 0.0
+    last_report: dict = {}
     for attempt in range(1, retry_budget + 1):
         report = executor(decision, attempt) or {}
+        last_report = report
         equilibrium = bool(report.get("equilibrium", False))
         confidence = float(report.get("confidence", 0.0) or 0.0)
         last_confidence = confidence
@@ -489,9 +564,12 @@ def execute_with_governance(
                 summary=last_summary or "Verified by Specsmith.",
             )
 
-    # Bounded retries exhausted \u2014 stop-and-align (REQ-063).
+    # Bounded retries exhausted \u2014 stop-and-align (REQ-063) plus a
+    # canonical retry-strategy label (REQ-096).
+    strategy = classify_retry_strategy(last_report, decision)
     question = (
         "I tried this a few times and Specsmith isn't yet satisfied. "
+        f"Suggested next step: {strategy}. "
         "Could you tell me which behavior you expected, in one sentence?"
     )
     return RunResult(
@@ -500,6 +578,7 @@ def execute_with_governance(
         confidence=last_confidence,
         summary=last_summary or "Verification did not reach equilibrium.",
         clarifying_question=question,
+        strategy=strategy,
     )
 
 

@@ -507,3 +507,38 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-093
 - **Status**: complete
 - **Chain hash**: `01f963eb2078b181...`
+
+## 2026-04-27T19:53 — WI-NEXUS-016: Retry strategy mapping in execute_with_governance (REQ-096)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-096
+- **Status**: complete
+- **Chain hash**: `0a696105c598f0cd...`
+
+## 2026-04-27T19:53 — WI-NEXUS-017: specsmith verify CLI subcommand (REQ-097)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-097
+- **Status**: complete
+- **Chain hash**: `b6a7f5cccf5d0e70...`
+
+## 2026-04-27T19:53 — WI-NEXUS-018: Confidence threshold from .specsmith/config.yml (REQ-098)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-098
+- **Status**: complete
+- **Chain hash**: `b0caf9452cdd3cd1...`
+
+## 2026-04-27T19:53 — WI-NEXUS-019: work_proposal ledger event distinct from preflight (REQ-099)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-099
+- **Status**: complete
+- **Chain hash**: `32c2742d1f5b3323...`
+
+## 2026-04-27T19:53 — WI-NEXUS-020: Stress-test bridge in preflight CLI (REQ-100)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-100
+- **Status**: complete
+- **Chain hash**: `1b5b01b80278aabd...`

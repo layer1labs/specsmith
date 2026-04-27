@@ -665,3 +665,38 @@
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 
+## 96. Bounded-Retry Harness Must Map Failures to Retry Strategies
+- **ID:** REQ-096
+- **Title:** Bounded-Retry Harness Must Map Failures to Retry Strategies
+- **Description:** When `execute_with_governance` exhausts its retry budget (REQ-014), it must classify the last executor report against the canonical retry strategy mapping (REQ-028): `narrow_scope`, `expand_scope`, `fix_tests`, `rollback`, or `stop`. The classification must be exposed on `RunResult.strategy` and surfaced in the clarifying question (REQ-063) so the user gets one concrete next-action label rather than only a free-form sentence.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 97. specsmith verify CLI Subcommand
+- **ID:** REQ-097
+- **Title:** specsmith verify CLI Subcommand
+- **Description:** The Specsmith CLI must expose a `specsmith verify` subcommand that consumes the verification input contract (REQ-027): file diffs, test results, execution logs, and changed files (paths or `--stdin` JSON). The subcommand must emit a JSON object with at least `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`, and `retry_strategy`. Exit code 0 on equilibrium with confidence ≥ the configured threshold, 2 when retry is recommended, and 3 when stop-and-align is required.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 98. Confidence Threshold Must Be Read From .specsmith/config.yml
+- **ID:** REQ-098
+- **Title:** Confidence Threshold Must Be Read From .specsmith/config.yml
+- **Description:** Both `specsmith preflight` and the broker's `run_preflight` helper must consult `.specsmith/config.yml` for the `epistemic.confidence_threshold` value (REQ-058) and use it as the floor for the JSON `confidence_target` field whenever it is greater than the heuristic default. When the config file is absent or unparseable, the existing heuristic defaults must continue to apply.
+- **Source:** .specsmith/config.yml, ARCHITECTURE.md
+- **Status:** defined
+
+## 99. Accepted Preflight Must Record a Distinct work_proposal Event
+- **ID:** REQ-099
+- **Title:** Accepted Preflight Must Record a Distinct work_proposal Event
+- **Description:** When `specsmith preflight` produces an `accepted` decision and assigns a brand-new `work_item_id`, the CLI must append a `work_proposal` ledger event in addition to the existing `preflight` event (REQ-044). The `work_proposal` entry must reference REQ-044 and REQ-085, include the `work_item_id` and matched `requirement_ids`, and must NOT be emitted when the underlying `work_item_id` already appears in `LEDGER.md` (no duplicate proposals).
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 100. Broker Scope Inference May Surface Stress-Test Critical Failures
+- **ID:** REQ-100
+- **Title:** Broker Scope Inference May Surface Stress-Test Critical Failures
+- **Description:** When the user passes `--stress` to `specsmith preflight` and the matched requirements set is non-empty, the CLI must invoke the existing AEE `StressTester` against those belief artifacts and surface any critical failures in the JSON payload as a `stress_warnings` list. The narration (verbose mode) must include a one-sentence plain-English warning when at least one critical failure is found. The flag must default off so unrelated tests continue to pass.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+

@@ -373,7 +373,19 @@ def audit(fix: bool, project_dir: str) -> None:
     default=False,
     help="Include the rendered plain-language narration alongside the decision.",
 )
-def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool) -> None:
+@click.option(
+    "--stress",
+    is_flag=True,
+    default=False,
+    help="Run a stress-test pass over matched requirements (REQ-100).",
+)
+def preflight_cmd(
+    utterance: str,
+    project_dir: str,
+    as_json: bool,
+    verbose: bool,
+    stress: bool,
+) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
     Reads REQUIREMENTS.md and ``.repo-index/files.json`` from PROJECT-DIR,
@@ -479,6 +491,13 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
             )
             confidence_target = 0.7
 
+    # REQ-098: respect epistemic.confidence_threshold from .specsmith/config.yml
+    # as a floor for confidence_target (heuristic default still applies when
+    # the configured value is lower or the file is missing).
+    config_threshold = _read_confidence_threshold_floor(root)
+    if config_threshold is not None and config_threshold > confidence_target:
+        confidence_target = config_threshold
+
     work_item_id = (
         f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
     )
@@ -492,19 +511,36 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
         "instruction": instruction,
         "intent": intent.value,
     }
+
+    # REQ-100: optional stress-test bridge over matched requirements. The flag
+    # defaults off so unrelated tests stay green.
+    if stress and scope.matched_requirements:
+        warnings = _stress_test_warnings(root, scope.matched_requirements)
+        if warnings:
+            payload["stress_warnings"] = warnings
+
     if verbose:
         decision_obj = PreflightDecision.from_json(payload)
         payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
+        if payload.get("stress_warnings"):
+            payload["narration"] += (
+                "\nNote: stress-test surfaced one or more critical failures."
+            )
 
     # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
     click.echo(_json.dumps(payload, indent=2))
 
-    # REQ-093: when accepted and LEDGER.md exists, append a `preflight` ledger
-    # event tagged with REQ-085 plus the resolved requirement_ids. Best-effort:
-    # never block the CLI on ledger errors.
+    # REQ-093 + REQ-099: when accepted and LEDGER.md exists, append a
+    # `preflight` ledger event AND a distinct `work_proposal` event when the
+    # assigned work_item_id is brand-new. Best-effort: never block the CLI on
+    # ledger errors. We capture the pre-write ledger contents up front so the
+    # work_item_id presence check is not polluted by our own preflight entry.
     if decision_str == "accepted" and (root / "LEDGER.md").exists():
         try:
             from specsmith.ledger import add_entry
+
+            ledger_before = (root / "LEDGER.md").read_text(encoding="utf-8")
+            is_new_work_item = bool(work_item_id) and work_item_id not in ledger_before
 
             req_tags = "REQ-085"
             if requirement_ids:
@@ -521,6 +557,21 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
                 author="specsmith",
                 reqs=req_tags,
             )
+
+            # REQ-099: distinct `work_proposal` event when the work_item_id
+            # is brand-new (not in the pre-write ledger snapshot).
+            if is_new_work_item:
+                proposal_desc = (
+                    f"work_proposal {work_item_id}: {utterance}"
+                )
+                add_entry(
+                    root,
+                    description=proposal_desc,
+                    entry_type="work_proposal",
+                    author="specsmith",
+                    reqs="REQ-044,REQ-085"
+                    + ("," + ",".join(requirement_ids) if requirement_ids else ""),
+                )
         except Exception:  # noqa: BLE001 - ledger writing is best-effort
             pass
 
@@ -534,6 +585,251 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
         raise SystemExit(3)
     # Unknown decision values fall through to exit 0 to preserve back-compat.
     return
+
+
+def _read_confidence_threshold_floor(root: Path) -> float | None:
+    """Return ``epistemic.confidence_threshold`` from .specsmith/config.yml (REQ-098).
+
+    Returns ``None`` if the file is missing or unparseable so the caller can
+    fall back to the heuristic default.
+    """
+    cfg = root / ".specsmith" / "config.yml"
+    if not cfg.is_file():
+        return None
+    try:
+        import yaml as _yaml
+
+        raw = _yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001
+        return None
+    section = raw.get("epistemic") if isinstance(raw, dict) else None
+    if not isinstance(section, dict):
+        return None
+    val = section.get("confidence_threshold")
+    try:
+        return float(val) if val is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _stress_test_warnings(
+    root: Path,
+    matched_requirements,  # list[broker.RequirementSummary]
+) -> list[str]:
+    """Run StressTester over matched requirements; return critical-failure warnings (REQ-100).
+
+    Best-effort: any import or stress-tester error returns an empty list.
+    """
+    if not matched_requirements:
+        return []
+    try:
+        from specsmith.epistemic.belief import parse_requirements_as_beliefs
+        from specsmith.epistemic.stress_tester import StressTester
+    except Exception:  # noqa: BLE001
+        return []
+
+    req_path = root / "REQUIREMENTS.md"
+    if not req_path.is_file():
+        return []
+    try:
+        artifacts = parse_requirements_as_beliefs(req_path)
+    except Exception:  # noqa: BLE001
+        return []
+    matched_ids = {r.req_id for r in matched_requirements}
+    relevant = [a for a in artifacts if a.artifact_id in matched_ids]
+    if not relevant:
+        return []
+    try:
+        tester = StressTester(req_path=req_path)
+        result = tester.run(relevant)
+    except Exception:  # noqa: BLE001
+        return []
+
+    warnings: list[str] = []
+    if getattr(result, "critical_count", 0) > 0:
+        warnings.append(
+            f"{result.critical_count} critical failure(s) detected by stress-tester."
+        )
+    for id1, id2, reason in getattr(result, "logic_knots", []) or []:
+        warnings.append(f"logic knot {id1} <-> {id2}: {reason}")
+    return warnings
+
+
+@main.command(name="verify")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--stdin",
+    "read_stdin",
+    is_flag=True,
+    default=False,
+    help="Read the verification input JSON from stdin (REQ-027).",
+)
+@click.option(
+    "--diff",
+    "diff_path",
+    type=click.Path(),
+    default=None,
+    help="Path to a diff file (alternative to --stdin).",
+)
+@click.option(
+    "--tests",
+    "tests_path",
+    type=click.Path(),
+    default=None,
+    help="Path to a JSON test-results file with passed/failed counts.",
+)
+@click.option(
+    "--logs",
+    "logs_path",
+    type=click.Path(),
+    default=None,
+    help="Path to an execution log file.",
+)
+@click.option(
+    "--changed",
+    "changed_paths",
+    default="",
+    help="Comma-separated list of changed file paths.",
+)
+@click.option(
+    "--work-item-id",
+    "work_item_id",
+    default="",
+    help="Optional work item id to bind the verification to.",
+)
+def verify_cmd(
+    project_dir: str,
+    read_stdin: bool,
+    diff_path: str | None,
+    tests_path: str | None,
+    logs_path: str | None,
+    changed_paths: str,
+    work_item_id: str,
+) -> None:
+    """Verify a Specsmith-governed change set (REQ-097).
+
+    Consumes the verification input contract (REQ-027): file diffs, test
+    results, execution logs, and changed files. Emits a JSON object with
+    `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`,
+    and `retry_strategy`. Exit codes per REQ-097: 0 ok, 2 retry, 3 stop.
+
+    Inputs may be passed either as `--stdin` (a single JSON object) or via
+    the `--diff`, `--tests`, `--logs`, and `--changed` flags.
+    """
+    import json as _json
+    import sys as _sys
+
+    from specsmith.agent.broker import (
+        DEFAULT_RETRY_BUDGET,
+        PreflightDecision,
+        classify_retry_strategy,
+    )
+
+    root = Path(project_dir).resolve()
+
+    # Build the input record.
+    payload_in: dict = {}
+    if read_stdin:
+        try:
+            payload_in = _json.loads(_sys.stdin.read() or "{}")
+        except ValueError:
+            payload_in = {}
+    if not payload_in:
+        if diff_path and Path(diff_path).is_file():
+            payload_in["diff"] = Path(diff_path).read_text(encoding="utf-8")
+        if tests_path and Path(tests_path).is_file():
+            try:
+                payload_in["test_results"] = _json.loads(
+                    Path(tests_path).read_text(encoding="utf-8")
+                )
+            except ValueError:
+                payload_in["test_results"] = {
+                    "raw": Path(tests_path).read_text(encoding="utf-8")
+                }
+        if logs_path and Path(logs_path).is_file():
+            payload_in["logs"] = Path(logs_path).read_text(encoding="utf-8")
+        if changed_paths:
+            payload_in["files_changed"] = [
+                p.strip() for p in changed_paths.split(",") if p.strip()
+            ]
+
+    # Heuristic verification policy (deterministic; REQ-021 / REQ-022):
+    # equilibrium iff test_results report zero failures and the diff is
+    # non-empty when files_changed is non-empty.
+    test_results = payload_in.get("test_results") or {}
+    if not isinstance(test_results, dict):
+        test_results = {"raw": str(test_results)}
+    files_changed = payload_in.get("files_changed") or []
+    if isinstance(files_changed, str):
+        files_changed = [
+            p.strip() for p in files_changed.split(",") if p.strip()
+        ]
+
+    failed = 0
+    for key in ("failed", "failures", "errors"):
+        try:
+            failed += int(test_results.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    raw_text = str(test_results.get("raw", "") or "").lower()
+    if "failed" in raw_text and not failed:
+        failed = 1
+    has_changes = bool(files_changed) or bool(payload_in.get("diff"))
+
+    threshold = _read_confidence_threshold_floor(root) or 0.7
+    equilibrium = failed == 0 and has_changes
+    confidence = 0.85 if equilibrium else (0.4 if has_changes else 0.0)
+    summary = (
+        "Equilibrium reached. All tests passed."
+        if equilibrium
+        else f"{failed} test failure(s) detected."
+        if failed
+        else "No changes or test signal provided."
+    )
+
+    # Retry strategy classification reuses the broker's deterministic
+    # mapping so `verify` and `execute_with_governance` agree.
+    fake_decision = PreflightDecision(
+        raw={},
+        decision="accepted",
+        work_item_id=work_item_id,
+        confidence_target=threshold,
+    )
+    fake_report = {
+        "equilibrium": equilibrium,
+        "confidence": confidence,
+        "summary": summary,
+        "test_results": test_results,
+    }
+    retry_strategy = (
+        "" if equilibrium and confidence >= threshold
+        else classify_retry_strategy(fake_report, fake_decision)
+    )
+
+    out = {
+        "equilibrium": equilibrium,
+        "confidence": round(confidence, 3),
+        "summary": summary,
+        "files_changed": list(files_changed),
+        "test_results": test_results,
+        "retry_strategy": retry_strategy,
+        "work_item_id": work_item_id,
+        "retry_budget": DEFAULT_RETRY_BUDGET,
+        "confidence_threshold": threshold,
+    }
+    click.echo(_json.dumps(out, indent=2))
+
+    # Exit codes per REQ-097.
+    if equilibrium and confidence >= threshold:
+        return  # 0
+    if retry_strategy == "stop":
+        raise SystemExit(3)
+    raise SystemExit(2)
 
 
 @main.command(name="clean")

@@ -1163,3 +1163,215 @@ def test_nexus_live_smoke_evidence_captured():
     assert ("\"ok\": true" in body) or ("\"ok\": false" in body) or (
         "NEXUS_LIVE" in body
     ), "WI-NEXUS-011 logs.txt does not document a smoke result"
+
+
+# ---------------------------------------------------------------------------
+# TEST-096 — execute_with_governance maps failures to retry strategies
+# ---------------------------------------------------------------------------
+from specsmith.agent.broker import (  # noqa: E402
+    PreflightDecision as _PreflightDecision,
+    RETRY_STRATEGIES as _RETRY_STRATEGIES,
+    classify_retry_strategy as _classify_retry_strategy,
+    execute_with_governance as _execute_with_governance,
+)
+
+
+def test_classify_retry_strategy_test_failures_map_to_fix_tests():
+    decision = _PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
+    report = {
+        "equilibrium": False,
+        "confidence": 0.4,
+        "summary": "",
+        "test_results": {"failed": 2},
+    }
+    assert _classify_retry_strategy(report, decision) == "fix_tests"
+
+
+def test_classify_retry_strategy_rollback_signal():
+    decision = _PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
+    report = {
+        "equilibrium": False,
+        "confidence": 0.4,
+        "summary": "detected a contradiction in the change set",
+        "test_results": {},
+    }
+    assert _classify_retry_strategy(report, decision) == "rollback"
+
+
+def test_classify_retry_strategy_low_confidence_to_narrow_scope():
+    decision = _PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
+    report = {"equilibrium": False, "confidence": 0.1, "summary": "", "test_results": {}}
+    assert _classify_retry_strategy(report, decision) == "narrow_scope"
+
+
+def test_execute_with_governance_surfaces_strategy_label():
+    decision = _PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
+
+    def executor(d, attempt):
+        return {
+            "equilibrium": False,
+            "confidence": 0.4,
+            "summary": "",
+            "test_results": {"failed": 1},
+        }
+
+    result = _execute_with_governance(decision, executor=executor, retry_budget=2)
+    assert not result.success
+    assert result.strategy in _RETRY_STRATEGIES
+    assert result.strategy == "fix_tests"
+    assert result.strategy in result.clarifying_question
+
+
+# ---------------------------------------------------------------------------
+# TEST-097 — specsmith verify CLI emits required JSON
+# ---------------------------------------------------------------------------
+def _invoke_verify(tmp_path: Path, payload_in: dict, *extra: str):
+    from click.testing import CliRunner
+
+    from specsmith.cli import main
+
+    (tmp_path / "scaffold.yml").write_text(
+        "name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8"
+    )
+    runner = CliRunner()
+    return runner.invoke(
+        main,
+        ["verify", "--project-dir", str(tmp_path), "--stdin", *extra],
+        input=json.dumps(payload_in),
+        env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
+        catch_exceptions=False,
+    )
+
+
+def test_specsmith_verify_cli_zero_when_equilibrium(tmp_path):
+    payload_in = {
+        "diff": "@@ +++ added line\n",
+        "files_changed": ["src/foo.py"],
+        "test_results": {"passed": 5, "failed": 0},
+    }
+    result = _invoke_verify(tmp_path, payload_in)
+    assert result.exit_code == 0, result.output
+    out = json.loads(result.output)
+    for key in (
+        "equilibrium",
+        "confidence",
+        "summary",
+        "files_changed",
+        "test_results",
+        "retry_strategy",
+    ):
+        assert key in out
+    assert out["equilibrium"] is True
+    assert out["retry_strategy"] == ""
+
+
+def test_specsmith_verify_cli_two_when_retry_recommended(tmp_path):
+    payload_in = {
+        "diff": "@@ +++ added line\n",
+        "files_changed": ["src/foo.py"],
+        "test_results": {"passed": 5, "failed": 2},
+    }
+    result = _invoke_verify(tmp_path, payload_in)
+    assert result.exit_code == 2, result.output
+    out = json.loads(result.output)
+    assert out["equilibrium"] is False
+    assert out["retry_strategy"] in {"fix_tests", "narrow_scope", "expand_scope", "rollback", "stop"}
+
+
+# ---------------------------------------------------------------------------
+# TEST-098 — confidence threshold read from .specsmith/config.yml
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_confidence_threshold_floor_from_config(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    spec_dir = tmp_path / ".specsmith"
+    spec_dir.mkdir()
+    (spec_dir / "config.yml").write_text(
+        "epistemic:\n  confidence_threshold: 0.95\n", encoding="utf-8"
+    )
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["decision"] == "accepted"
+    assert payload["confidence_target"] >= 0.95
+
+
+def test_specsmith_preflight_confidence_threshold_falls_back_without_config(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    # No .specsmith/config.yml — heuristic default applies (0.7 floor for changes).
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["confidence_target"] >= 0.7
+    assert payload["confidence_target"] < 0.95
+
+
+# ---------------------------------------------------------------------------
+# TEST-099 — accepted preflight records a distinct work_proposal event
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_accepted_records_work_proposal(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
+
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+
+    ledger = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+    # Both the preflight event and the work_proposal event must appear.
+    assert "specsmith preflight accepted" in ledger
+    assert "work_proposal" in ledger
+    # The work_proposal entry references REQ-044 and REQ-085.
+    assert "REQ-044" in ledger
+    assert "REQ-085" in ledger
+
+
+def test_specsmith_preflight_emits_work_proposal_per_unique_work_item(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
+
+    r1 = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert r1.exit_code == 0, r1.output
+    r2 = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert r2.exit_code == 0, r2.output
+
+    ledger = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
+    proposal_count = ledger.count("work_proposal")
+    # Each invocation generates a fresh WI-XXXXXXXX so both should record a
+    # distinct work_proposal event.
+    assert proposal_count >= 2
+
+
+# ---------------------------------------------------------------------------
+# TEST-100 — broker scope inference surfaces stress warnings under --stress
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_stress_flag_surfaces_warnings(tmp_path, monkeypatch):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+
+    # Patch the StressTester import path used by cli._stress_test_warnings to
+    # return a synthetic critical failure so the test is deterministic and
+    # does not depend on the real epistemic stress-tester implementation.
+    import specsmith.cli as cli_mod
+
+    class _FakeResult:
+        critical_count = 1
+        logic_knots = []
+
+    def _fake_warnings(root, matched_requirements):
+        return ["1 critical failure(s) detected by stress-tester."]
+
+    monkeypatch.setattr(cli_mod, "_stress_test_warnings", _fake_warnings)
+
+    result = _invoke_preflight(
+        tmp_path, "fix the cleanup dry-run regression", "--stress"
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload.get("stress_warnings")
+    assert any("critical" in w for w in payload["stress_warnings"])
+
+
+def test_specsmith_preflight_no_stress_flag_omits_stress_warnings(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert not payload.get("stress_warnings")
