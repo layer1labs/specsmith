@@ -32,7 +32,7 @@ def governed_project(tmp_path: Path) -> Path:
 
     docs = tmp_path / "docs"
     (docs / "REQUIREMENTS.md").write_text("# Reqs\n", encoding="utf-8")
-    (docs / "TEST_SPEC.md").write_text("# Tests\n", encoding="utf-8")
+    (docs / "TESTS.md").write_text("# Tests\n", encoding="utf-8")
     (docs / "ARCHITECTURE.md").write_text("# Arch\n", encoding="utf-8")
     (tmp_path / "CONTRIBUTING.md").write_text("# Contributing\n", encoding="utf-8")
     (tmp_path / "LICENSE").write_text("MIT License\n", encoding="utf-8")
@@ -76,7 +76,7 @@ class TestAuditDetectsIssues:
         reqs = "# Reqs\n\nREQ-CLI-001: do things\nREQ-CLI-002: more things\n"
         tests = "# Tests\n\nTEST-CLI-001\nCovers: REQ-CLI-001\n"
         (governed_project / "docs" / "REQUIREMENTS.md").write_text(reqs, encoding="utf-8")
-        (governed_project / "docs" / "TEST_SPEC.md").write_text(tests, encoding="utf-8")
+        (governed_project / "docs" / "TESTS.md").write_text(tests, encoding="utf-8")
         report = run_audit(governed_project)
         coverage = [r for r in report.results if r.name == "req-test-coverage"]
         assert len(coverage) == 1

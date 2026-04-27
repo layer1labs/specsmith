@@ -56,7 +56,7 @@ def run_export(root: Path) -> str:
     import re
 
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if req_path.exists() and test_path.exists():
         req_text = req_path.read_text(encoding="utf-8")
@@ -135,7 +135,7 @@ def run_export(root: Path) -> str:
         "LEDGER.md",
         "scaffold.yml",
         "docs/REQUIREMENTS.md",
-        "docs/TEST_SPEC.md",
+        "docs/TESTS.md",
         "docs/ARCHITECTURE.md",
         "docs/governance/RULES.md",
         "docs/governance/SESSION-PROTOCOL.md",

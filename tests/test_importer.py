@@ -145,7 +145,7 @@ class TestGenerateOverlay:
         assert "AGENTS.md" in created_names
         assert "LEDGER.md" in created_names
         assert "REQUIREMENTS.md" in created_names
-        assert "TEST_SPEC.md" in created_names
+        assert "TESTS.md" in created_names
         assert "ARCHITECTURE.md" in created_names
 
     def test_overlay_skip_existing(self, tmp_path: Path) -> None:

@@ -1,17 +1,17 @@
 name: specsmith
 type: cli-python
 languages:
-  - Bash
-  - Cmd / Batch
-  - Markdown
-  - Python
-  - TOML
-  - YAML
+- Bash
+- Cmd / Batch
+- Markdown
+- Python
+- TOML
+- YAML
 platforms:
-  - linux
-  - windows
-  - macos
-spec_version: 0.3.8
+- linux
+- windows
+- macos
+spec_version: 0.3.13
 aee_phase: inception
 description: Applied Epistemic Engineering toolkit for AI-assisted development.
 vcs_platform: github
@@ -36,3 +36,6 @@ community_files:
 enable_epistemic: true
 epistemic_threshold: 0.7
 enable_trace_vault: false
+agent_model: qwen2.5-coder:7b-instruct
+agent_num_ctx: 65536
+agents_max_iterations: 10

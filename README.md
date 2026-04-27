@@ -160,6 +160,42 @@ Project Settings → Agent tab.
 
 ---
 
+## Nexus — Plain-English Governance, Local-First
+
+**Nexus** is the local-first Nexus runtime that turns plain English into Specsmith-governed
+work. You speak in your own words; Specsmith stays the sole authority on what counts as a
+requirement, a test, or a work item — Nexus just brokers the conversation and runs the work.
+
+```bash
+# Classify a natural-language utterance under Specsmith governance
+specsmith preflight "fix the cleanup dry-run regression" --json
+
+# Or drop into the Nexus REPL
+specsmith run
+nexus> what does the cleanup module do?           # read-only ask -> answered
+nexus> fix the cleanup dry-run regression          # change -> Specsmith approves, runs
+nexus> delete the entire dist directory            # destructive -> needs clarification
+nexus> /why                                        # toggle governance details on/off
+```
+
+**How it works.** A natural-language **broker** classifies intent, infers scope from
+your requirements, and asks Specsmith to **preflight** the request. Only when the
+preflight decision is `accepted` does Nexus drive the AG2 orchestrator — and it does so
+through a **bounded-retry harness** so you can never accidentally run away. By default,
+Nexus speaks plain English; toggle `/why` in the REPL to surface the underlying
+requirement, test, and work-item identifiers Specsmith assigned.
+
+**Pieces in this repo.**
+- `specsmith preflight` — CLI subcommand emitting a deterministic governance JSON payload
+  (`decision`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`).
+- `src/specsmith/agent/broker.py` — natural-language broker (intent + scope + narration).
+- `src/specsmith/agent/repl.py` — Nexus REPL with the `/why` toggle and execution gate.
+- `docker-compose.yml` — pinned vLLM `l1-nexus` model server with the Hermes tool-call parser.
+- `scripts/nexus_smoke.py` — opt-in live smoke test (`NEXUS_LIVE=1` to run against
+  a running container).
+
+---
+
 ## VS Code Extension
 
 The **specsmith AEE Workbench** VS Code extension is the flagship client:

@@ -31,7 +31,7 @@ After making ANY code changes to the specsmith project, always evaluate whether 
 
 4. **docs/REQUIREMENTS.md** — Update if new requirements are introduced
 
-5. **docs/TEST_SPEC.md** — Update if new test categories are added
+5. **docs/TESTS.md** — Update if new test categories are added
 
 ## Evaluation Checklist
 

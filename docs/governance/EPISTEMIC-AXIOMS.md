@@ -25,7 +25,7 @@ Every accepted requirement must have a corresponding test. Unchallenged claims a
 engineering artifacts.
 
 **In practice:**
-- Every REQ-XXX with status ACCEPTED must have TEST-XXX in TEST_SPEC.md with `Covers:` reference
+- Every REQ-XXX with status ACCEPTED must have TEST-XXX in TESTS.md with `Covers:` reference
 - `specsmith audit` enforces REQ↔TEST consistency
 - `specsmith epistemic-audit` detects accepted requirements without test coverage
 

@@ -1,0 +1,1 @@
+#!/usr/bin/env python3\nimport pytest\nfrom specsmith.data import DataDefinition  # Adjust this import based on actual data module location\n\ndef test_data_validation():\n    dd = DataDefinition(data)  # Replace with actual data input for validation\n    assert dd.validate() == True  # Replace with actual validation logic and expected outcome

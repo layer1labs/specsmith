@@ -93,7 +93,7 @@ class StressTester:
     Usage::
 
         tester = StressTester(req_path=Path("docs/REQUIREMENTS.md"),
-                              test_path=Path("docs/TEST_SPEC.md"))
+                              test_path=Path("docs/TESTS.md"))
         result = tester.run(artifacts)
 
     The tester is stateless after initialisation. Call ``run()`` as many
@@ -190,12 +190,12 @@ class StressTester:
                 challenge="Falsifiability: no test exists to challenge this belief",
                 breakpoint=(
                     f"{artifact.artifact_id} is accepted but has no corresponding "
-                    "TEST-xxx entry in TEST_SPEC.md. A belief without a falsification "
+                    "TEST-xxx entry in TESTS.md. A belief without a falsification "
                     "mechanism violates Axiom 2 (Falsifiability)."
                 ),
                 severity=FailureSeverity.HIGH,
                 recovery_hint=(
-                    "Add a TEST entry in docs/TEST_SPEC.md that covers this requirement."
+                    "Add a TEST entry in docs/TESTS.md that covers this requirement."
                 ),
             )
         ]
@@ -436,7 +436,7 @@ _STOP_WORDS = {
 
 
 def _extract_covered_reqs(test_path: Path) -> set[str]:
-    """Extract REQ IDs that are referenced in TEST_SPEC.md."""
+    """Extract REQ IDs that are referenced in TESTS.md."""
     content = test_path.read_text(encoding="utf-8")
     pattern = re.compile(r"REQ-[A-Z0-9_]+-\d+")
     return set(pattern.findall(content))

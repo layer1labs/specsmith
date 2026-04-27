@@ -66,7 +66,7 @@ All changes follow: **propose → check → execute → verify → record**.
 - `LEDGER.md` — session ledger (read second)
 - `docs/governance/` — modular governance docs (load on demand)
 - `docs/REQUIREMENTS.md` — formal requirements
-- `docs/TEST_SPEC.md` — test specifications
+- `docs/TESTS.md` — test specifications
 - `docs/ARCHITECTURE.md` — system architecture
 
 ## Session Start

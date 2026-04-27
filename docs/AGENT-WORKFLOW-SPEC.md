@@ -100,7 +100,7 @@ Service and startup expectations per platform. Required when the project include
 
 Formal, numbered requirements derived from the architecture. Each requirement is testable and traceable.
 
-### 2.8 docs/TEST_SPEC.md
+### 2.8 docs/TESTS.md
 
 Test cases linked to requirements. Each test references one or more requirements. Defines smoke tests, platform tests, boundary tests, and regression structure.
 
@@ -114,7 +114,7 @@ When documents conflict, precedence is resolved top-down:
 2. **README.md** — project intent and scope
 3. **docs/REQUIREMENTS.md** — what the system must do
 4. **docs/ARCHITECTURE.md** — how the system is structured
-5. **docs/TEST_SPEC.md** — how the system is verified
+5. **docs/TESTS.md** — how the system is verified
 6. **LEDGER.md** — what has been done and what remains (sole authority for session state)
 7. **docs/governance/SESSION-PROTOCOL.md** — how sessions work
 8. **docs/services.md** — platform-specific startup/service behavior
@@ -135,7 +135,7 @@ Trigger: fresh conversation targeting the repository.
 
 ```
 Load AGENTS.md, README.md, docs/ARCHITECTURE.md, docs/WORKFLOW.md,
-docs/services.md (if it exists), docs/REQUIREMENTS.md, docs/TEST_SPEC.md, and LEDGER.md.
+docs/services.md (if it exists), docs/REQUIREMENTS.md, docs/TESTS.md, and LEDGER.md.
 
 Output:
 1. Current system understanding
@@ -149,7 +149,7 @@ Then produce a Proposal.
 Context window optimization (see Section 10):
 - Read AGENTS.md in full
 - Read only the last ~300 lines of LEDGER.md
-- Read only the first ~200 lines of REQUIREMENTS.md and TEST_SPEC.md
+- Read only the first ~200 lines of REQUIREMENTS.md and TESTS.md
 - Read architecture.md by section header (first ~40 lines) unless a section is task-relevant
 
 ### 4.2 RESUME SESSION (resume)
@@ -361,7 +361,7 @@ Large governance files consume agent context rapidly. Agents MUST actively manag
 ### On session load:
 - Read AGENTS.md in full (rules are authoritative, no shortcuts)
 - Read only the **last ~300 lines** of LEDGER.md (recent entries + next-session block)
-- Read only the **first ~200 lines** of REQUIREMENTS.md and TEST_SPEC.md (TOC + active items)
+- Read only the **first ~200 lines** of REQUIREMENTS.md and TESTS.md (TOC + active items)
 - Read architecture.md by section header only (~first 40 lines) unless a specific section is task-relevant
 - Older ledger entries, deep requirement sections, and full architecture are loaded only when explicitly needed
 
@@ -382,7 +382,7 @@ Track approximate line counts of governance files. Example thresholds:
 - AGENTS.md: ~200–500 lines — read in full
 - LEDGER.md: grows unbounded — read last ~300 lines
 - REQUIREMENTS.md: ~100–400 lines — read first ~200
-- TEST_SPEC.md: ~100–600 lines — read first ~200
+- TESTS.md: ~100–600 lines — read first ~200
 - architecture.md: ~100–400 lines — read first ~40, expand by section
 
 Treat context window exhaustion as a **preventable defect**.
@@ -640,7 +640,7 @@ Different project types require different governance emphasis. The core workflow
 │  ├─ workflow.md
 │  ├─ services.md
 │  ├─ REQUIREMENTS.md
-│  └─ TEST_SPEC.md
+│  └─ TESTS.md
 ├─ backend/
 │  ├─ pyproject.toml          # or requirements.txt
 │  ├─ src/
@@ -706,7 +706,7 @@ Additional governance:
 │  ├─ architecture.md
 │  ├─ workflow.md
 │  ├─ REQUIREMENTS.md
-│  └─ TEST_SPEC.md
+│  └─ TESTS.md
 ├─ src/
 │  └─ <package>/
 │     ├─ __init__.py
@@ -741,7 +741,7 @@ Additional governance:
 │  ├─ architecture.md
 │  ├─ workflow.md
 │  ├─ REQUIREMENTS.md
-│  ├─ TEST_SPEC.md
+│  ├─ TESTS.md
 │  └─ api-reference.md
 ├─ src/
 │  └─ <package>/
@@ -919,7 +919,7 @@ When an agent is asked to scaffold a new project using this workflow:
 - **docs/WORKFLOW.md** — work loop, proposal rules, milestones, cross-platform rules, verification rules
 - **docs/services.md** — (if applicable) platform service/startup expectations
 - **docs/REQUIREMENTS.md** — initial requirements derived from architecture (may be sparse)
-- **docs/TEST_SPEC.md** — initial test specifications linked to requirements (may be sparse)
+- **docs/TESTS.md** — initial test specifications linked to requirements (may be sparse)
 
 ### Step 4: Create bootstrap scripts
 - `scripts/setup.ps1` and `scripts/setup.sh` — environment setup (may be stubs initially)

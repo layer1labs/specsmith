@@ -89,7 +89,7 @@ class TestSandboxNew:
         # Project docs
         assert (project / "docs" / "ARCHITECTURE.md").exists()
         assert (project / "docs" / "REQUIREMENTS.md").exists()
-        assert (project / "docs" / "TEST_SPEC.md").exists()
+        assert (project / "docs" / "TESTS.md").exists()
 
         # ---- Step 3: Project structure ----
         assert (project / "pyproject.toml").exists()

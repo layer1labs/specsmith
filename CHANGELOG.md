@@ -322,7 +322,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Import with large AGENTS.md** (#46): broader keyword extraction, diff marker stripping, paragraph dedup, existing doc detection.
 - **UnboundLocalError on import** with existing docs: scoping fix for REQUIREMENTS/TEST_SPEC/architecture skip logic.
 - **Audit false positive**: architecture docs found in subdirectories (e.g., `docs/architecture/DESIGN.md`).
-- **`audit --fix`** now generates missing recommended files (ARCHITECTURE.md from scan, REQUIREMENTS.md, TEST_SPEC.md stubs).
+- **`audit --fix`** now generates missing recommended files (ARCHITECTURE.md from scan, REQUIREMENTS.md, TESTS.md stubs).
 - **Topic-aware section classification** (#47): body content keywords route sections to correct governance files.
 - **Type-specific audit thresholds** (#48): FPGA/embedded get higher limits (rules=1000, verification=600).
 
@@ -385,7 +385,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **specsmith CLI tool** with 9 commands: `init`, `import`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`.
-- **`specsmith import`**: walk an existing project, detect language/build/tests/CI, generate governance overlay (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TEST_SPEC.md, architecture.md). Supports `--force` to overwrite existing files.
+- **`specsmith import`**: walk an existing project, detect language/build/tests/CI, generate governance overlay (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TESTS.md, architecture.md). Supports `--force` to overwrite existing files.
 - **`specsmith init --guided`**: interactive architecture definition session that auto-generates REQ/TEST stubs and architecture.md from user-defined components.
 - **Verification tool registry** (`tools.py`): maps all 20 project types to lint, typecheck, test, security, build, format, and compliance tools. Supports user overrides via `verification_tools` config field.
 - **Tool-aware CI generation**: GitHub Actions, GitLab CI, and Bitbucket Pipelines generate correct tool commands per project type (not just Python). CI metadata for 13 languages including setup actions, Docker images, and cache keys.
