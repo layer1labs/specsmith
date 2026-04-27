@@ -1043,5 +1043,60 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-096",
+    "title": "execute_with_governance Maps Failures to Retry Strategies",
+    "description": "When the executor never reaches equilibrium, `execute_with_governance` must populate `RunResult.strategy` with one of the canonical labels: `narrow_scope`, `expand_scope`, `fix_tests`, `rollback`, or `stop`. The clarifying question must mention the chosen label.",
+    "requirement_id": "REQ-096",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-097",
+    "title": "specsmith verify CLI Emits Required JSON",
+    "description": "Invoking `specsmith verify --stdin --json` with a JSON verification payload via click's CliRunner must return a JSON object containing `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`, and `retry_strategy`. Exit code is 0 when equilibrium and confidence ≥ threshold, 2 when retry is recommended, and 3 on stop-and-align.",
+    "requirement_id": "REQ-097",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-098",
+    "title": "Confidence Threshold Read From .specsmith/config.yml",
+    "description": "When `.specsmith/config.yml` sets `epistemic.confidence_threshold: 0.95` (well above the heuristic default), invoking `specsmith preflight` over a tmp project must return `confidence_target >= 0.95`. When the config file is absent, the heuristic default still applies.",
+    "requirement_id": "REQ-098",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-099",
+    "title": "Accepted Preflight Records work_proposal Event Once",
+    "description": "When the preflight decision is `accepted` and the assigned `work_item_id` is not already in `LEDGER.md`, the CLI must emit BOTH a `preflight` ledger entry AND a `work_proposal` ledger entry tagged with `REQ-044` and `REQ-085`. A subsequent invocation that surfaces a different work_item_id must emit a second work_proposal entry.",
+    "requirement_id": "REQ-099",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-100",
+    "title": "Broker Scope Inference Surfaces Stress Warnings Under --stress",
+    "description": "Invoking `specsmith preflight \"fix the cleanup bug\" --stress` over a tmp project that has matched requirements with at least one synthetic critical failure must include a non-empty `stress_warnings` list in the JSON payload. Without `--stress`, the field is absent (or empty).",
+    "requirement_id": "REQ-100",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
