@@ -403,6 +403,42 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
 
+    # REQ-088: resolve test_case_ids from machine state by joining
+    # `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md`
+    # when the JSON is unavailable). Never invent ids.
+    test_case_ids: list[str] = []
+    if requirement_ids:
+        testcases_json = root / ".specsmith" / "testcases.json"
+        if testcases_json.is_file():
+            try:
+                records = _json.loads(testcases_json.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                records = []
+            req_set = set(requirement_ids)
+            for record in records:
+                if (
+                    isinstance(record, dict)
+                    and record.get("requirement_id") in req_set
+                    and isinstance(record.get("id"), str)
+                ):
+                    test_case_ids.append(record["id"])
+        else:
+            tests_md = root / "TESTS.md"
+            if tests_md.is_file():
+                import re as _re
+
+                text = tests_md.read_text(encoding="utf-8")
+                # Match each test block: a `TEST-NNN` id paired with a
+                # `REQ-NNN` requirement-id reference within the same block.
+                req_set = set(requirement_ids)
+                for block in _re.split(r"\n## ", text):
+                    test_match = _re.search(r"\*\*ID:\*\*\s+(TEST-\d+)", block)
+                    req_match = _re.search(
+                        r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block
+                    )
+                    if test_match and req_match and req_match.group(1) in req_set:
+                        test_case_ids.append(test_match.group(1))
+
     # Heuristic decision policy. Specsmith governance owns the contract; the
     # CLI implementation is intentionally simple and deterministic so the
     # broker (and tests) can rely on it without an LLM.
@@ -451,7 +487,7 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
         "decision": decision_str,
         "work_item_id": work_item_id,
         "requirement_ids": requirement_ids,
-        "test_case_ids": [],
+        "test_case_ids": test_case_ids,
         "confidence_target": round(confidence_target, 3),
         "instruction": instruction,
         "intent": intent.value,

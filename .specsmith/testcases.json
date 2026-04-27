@@ -944,5 +944,49 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-087",
+    "title": "REPL Drives Orchestrator via Bounded-Retry Harness",
+    "description": "The REPL module must invoke `execute_with_governance` from the broker branch, passing the preflight decision and an executor closure built around `orchestrator.run_task`; `orchestrator.run_task` must not be called directly from the broker branch (only via the harness's executor argument).",
+    "requirement_id": "REQ-087",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-088",
+    "title": "specsmith preflight Resolves Test Case IDs From Machine State",
+    "description": "Invoking `specsmith preflight` over a tmp project that contains a REQUIREMENTS.md (REQ-077) and a matching `.specsmith/testcases.json` (TEST-077 → REQ-077) must emit a JSON payload whose `test_case_ids` includes `TEST-077` when the change is accepted; the CLI must never emit ids absent from machine state.",
+    "requirement_id": "REQ-088",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-089",
+    "title": "Nexus Live l1-nexus Smoke Test Script",
+    "description": "`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.",
+    "requirement_id": "REQ-089",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-090",
+    "title": "Nexus Documentation Surfaces Broker, Preflight, and Gated Execution",
+    "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
+    "requirement_id": "REQ-090",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

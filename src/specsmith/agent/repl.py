@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 
 from specsmith.agent.broker import (
-    broker_step,
     classify_intent,
+    execute_with_governance,
     infer_scope,
     narrate_plan,
     run_preflight,
@@ -111,7 +111,27 @@ def main():
 
             # REQ-086: gate execution on preflight acceptance.
             if decision.accepted:
-                orchestrator.run_task(user_input)
+                # REQ-087: drive orchestrator through the bounded-retry harness.
+                # The executor closure is the ONLY place the broker branch is
+                # allowed to call orchestrator.run_task; calling it directly
+                # outside the harness would bypass REQ-014 retry bounds and
+                # REQ-063 stop-and-align escalation.
+                def _executor(_decision, attempt):
+                    summary = orchestrator.run_task(user_input)
+                    # The orchestrator currently returns a free-form string or
+                    # None. Until the orchestrator emits a structured result
+                    # the broker treats a successful, non-empty response as
+                    # equilibrium with a confidence at the decision target.
+                    confident = bool(summary) if summary is not None else True
+                    return {
+                        "equilibrium": confident,
+                        "confidence": _decision.confidence_target if confident else 0.0,
+                        "summary": summary if isinstance(summary, str) else "",
+                    }
+
+                result = execute_with_governance(decision, executor=_executor)
+                if not result.success and result.clarifying_question:
+                    print(result.clarifying_question)
             else:
                 print("(no execution \u2014 preflight did not accept this request)")
 

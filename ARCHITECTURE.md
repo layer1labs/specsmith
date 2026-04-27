@@ -87,6 +87,21 @@ The Nexus broker (`src/specsmith/agent/broker.py`) sits between the user's natur
 - Honors a hard retry budget consistent with REQ-014 and surfaces a single clarifying question on stop-and-align (REQ-063).
 - Never drafts new governance content (REQ/TEST/work-item) without explicit user confirmation; user-facing summaries must be a strict transformation of Specsmith JSON output.
 
+Nexus Preflight CLI Subcommand
+The Specsmith CLI exposes `specsmith preflight <utterance>` as the canonical entrypoint into the broker contract. The subcommand reads `REQUIREMENTS.md` and `.specsmith/testcases.json`, classifies intent and infers scope, joins matched requirements against machine-state test cases, and emits a deterministic JSON object (`decision`, `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`, `intent`, optional `narration`). Read-only asks accept by default, destructive intents require clarification, and changes with no matched scope return `needs_clarification` with a one-sentence question. The CLI accepts `--project-dir`, `--json`, and `--verbose`.
+
+Nexus REPL Execution Gate
+When a non-slash utterance flows through the broker, the Nexus REPL invokes `orchestrator.run_task` only when `decision.accepted` is `true`. Any other outcome (`needs_clarification`, `blocked`, `rejected`) prints the broker's plain-language clarification and returns to the prompt without executing any tooling. The user toggles governance verbosity with the `/why` slash command.
+
+Nexus Bounded-Retry Harness
+The REPL drives accepted work through `specsmith.agent.broker.execute_with_governance`, supplying an executor closure that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness honors `DEFAULT_RETRY_BUDGET` (REQ-014) and surfaces the single clarifying question on stop-and-align (REQ-063). The orchestrator is never invoked from the broker branch outside the harness.
+
+Nexus End-to-End Example Flow
+A user types `fix the cleanup dry-run regression` at the `nexus>` prompt. The REPL classifies intent as `change`, infers scope to the matching cleanup requirement, calls `specsmith preflight`, and prints a plain-language plan. Because the decision is `accepted`, the harness runs the AG2 orchestrator (up to the retry budget) and emits the standard Plan / Commands / Files changed / Diff / Test results / Next action sections. If the user toggles `/why`, the same flow now also surfaces the underlying REQ, TEST, and work-item identifiers Specsmith assigned.
+
+Nexus Live Smoke Test
+A `scripts/nexus_smoke.py` script exercises the running vLLM `l1-nexus` container by POSTing a minimal chat-completions request to `http://localhost:8000/v1/chat/completions` and verifying a well-formed `choices[0].message.content`. The accompanying pytest test skips unless `NEXUS_LIVE=1` is set, keeping the suite green offline while making the live path verifiable on demand.
+
 Safe Repository Cleanup Boundary
 Specsmith provides a deterministic safe-cleanup capability that removes only build/cache/temporary artifacts produced by toolchains (compilers, packagers, linters, type-checkers, test runners) and never touches governance, source, or version-controlled history. Cleanup must:
 - Operate within the project root only and never traverse outside it via symlinks.

@@ -602,3 +602,31 @@
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 
+## 87. Nexus REPL Must Drive Execution Through the Bounded-Retry Harness
+- **ID:** REQ-087
+- **Title:** Nexus REPL Must Drive Execution Through the Bounded-Retry Harness
+- **Description:** When the preflight decision is `accepted`, the Nexus REPL must drive the AG2 orchestrator through `specsmith.agent.broker.execute_with_governance`, supplying an executor that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness must honor `DEFAULT_RETRY_BUDGET` (REQ-014), surface the single clarifying question on stop-and-align (REQ-063), and never call `run_task` directly outside the harness.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 88. specsmith preflight Must Resolve Test Case IDs From Machine State
+- **ID:** REQ-088
+- **Title:** specsmith preflight Must Resolve Test Case IDs From Machine State
+- **Description:** The `specsmith preflight` CLI must populate `test_case_ids` in its JSON payload by joining the matched `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md` when the JSON is unavailable). When the resolved set is non-empty the CLI must include every matching `TEST-NNN` id and must never invent ids not present in machine state.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 89. Nexus Live l1-nexus Smoke Test
+- **ID:** REQ-089
+- **Title:** Nexus Live l1-nexus Smoke Test
+- **Description:** Specsmith must ship a `scripts/nexus_smoke.py` script that POSTs a minimal chat-completions request to a running vLLM `l1-nexus` container at `http://localhost:8000/v1/chat/completions` and reports whether the model responded with a well-formed `choices[0].message.content`. A pytest integration test must invoke the script and skip unless the environment variable `NEXUS_LIVE=1` is set, so the suite stays green offline but is verifiable when the container is up.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+
+## 90. Nexus Documentation Must Describe Broker, Preflight, and Gated Execution
+- **ID:** REQ-090
+- **Title:** Nexus Documentation Must Describe Broker, Preflight, and Gated Execution
+- **Description:** `ARCHITECTURE.md`, `README.md`, and `docs/` must describe the natural-language broker (REQ-084), the `specsmith preflight` CLI (REQ-085), the REPL execution gate (REQ-086), and the bounded-retry harness (REQ-087), including the `/why` toggle and an end-to-end example flow. Documentation must not surface REQ/TEST/WI tokens to the user except inside the explicit `/why` block.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
+

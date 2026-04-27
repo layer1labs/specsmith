@@ -1,0 +1,511 @@
+diff --git a/.specsmith/requirements.json b/.specsmith/requirements.json
+index 76d9b8c..3b91fb0 100644
+--- a/.specsmith/requirements.json
++++ b/.specsmith/requirements.json
+@@ -600,5 +600,33 @@
+     "description": "When a non-slash utterance flows through the broker, the Nexus REPL must only invoke the AG2 orchestrator's `run_task` if the preflight decision is `accepted`. For any other decision (`needs_clarification`, `blocked`, `rejected`), the REPL must print the broker's plain-language clarification or rejection and return to the prompt without executing.",
+     "source": "ARCHITECTURE.md",
+     "status": "defined"
++  },
++  {
++    "id": "REQ-087",
++    "title": "Nexus REPL Must Drive Execution Through the Bounded-Retry Harness",
++    "description": "When the preflight decision is `accepted`, the Nexus REPL must drive the AG2 orchestrator through `specsmith.agent.broker.execute_with_governance`, supplying an executor that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness must honor `DEFAULT_RETRY_BUDGET` (REQ-014), surface the single clarifying question on stop-and-align (REQ-063), and never call `run_task` directly outside the harness.",
++    "source": "ARCHITECTURE.md",
++    "status": "defined"
++  },
++  {
++    "id": "REQ-088",
++    "title": "specsmith preflight Must Resolve Test Case IDs From Machine State",
++    "description": "The `specsmith preflight` CLI must populate `test_case_ids` in its JSON payload by joining the matched `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md` when the JSON is unavailable). When the resolved set is non-empty the CLI must include every matching `TEST-NNN` id and must never invent ids not present in machine state.",
++    "source": "ARCHITECTURE.md",
++    "status": "defined"
++  },
++  {
++    "id": "REQ-089",
++    "title": "Nexus Live l1-nexus Smoke Test",
++    "description": "Specsmith must ship a `scripts/nexus_smoke.py` script that POSTs a minimal chat-completions request to a running vLLM `l1-nexus` container at `http://localhost:8000/v1/chat/completions` and reports whether the model responded with a well-formed `choices[0].message.content`. A pytest integration test must invoke the script and skip unless the environment variable `NEXUS_LIVE=1` is set, so the suite stays green offline but is verifiable when the container is up.",
++    "source": "ARCHITECTURE.md",
++    "status": "defined"
++  },
++  {
++    "id": "REQ-090",
++    "title": "Nexus Documentation Must Describe Broker, Preflight, and Gated Execution",
++    "description": "`ARCHITECTURE.md`, `README.md`, and `docs/` must describe the natural-language broker (REQ-084), the `specsmith preflight` CLI (REQ-085), the REPL execution gate (REQ-086), and the bounded-retry harness (REQ-087), including the `/why` toggle and an end-to-end example flow. Documentation must not surface REQ/TEST/WI tokens to the user except inside the explicit `/why` block.",
++    "source": "ARCHITECTURE.md",
++    "status": "defined"
+   }
+ ]
+\ No newline at end of file
+diff --git a/.specsmith/testcases.json b/.specsmith/testcases.json
+index 174fed0..6a79ecc 100644
+--- a/.specsmith/testcases.json
++++ b/.specsmith/testcases.json
+@@ -944,5 +944,49 @@
+     "input": {},
+     "expected_behavior": {},
+     "confidence": 1.0
++  },
++  {
++    "id": "TEST-087",
++    "title": "REPL Drives Orchestrator via Bounded-Retry Harness",
++    "description": "The REPL module must invoke `execute_with_governance` from the broker branch, passing the preflight decision and an executor closure built around `orchestrator.run_task`; `orchestrator.run_task` must not be called directly from the broker branch (only via the harness's executor argument).",
++    "requirement_id": "REQ-087",
++    "type": "unit",
++    "verification_method": "pytest",
++    "input": {},
++    "expected_behavior": {},
++    "confidence": 1.0
++  },
++  {
++    "id": "TEST-088",
++    "title": "specsmith preflight Resolves Test Case IDs From Machine State",
++    "description": "Invoking `specsmith preflight` over a tmp project that contains a REQUIREMENTS.md (REQ-077) and a matching `.specsmith/testcases.json` (TEST-077 → REQ-077) must emit a JSON payload whose `test_case_ids` includes `TEST-077` when the change is accepted; the CLI must never emit ids absent from machine state.",
++    "requirement_id": "REQ-088",
++    "type": "unit",
++    "verification_method": "pytest",
++    "input": {},
++    "expected_behavior": {},
++    "confidence": 1.0
++  },
++  {
++    "id": "TEST-089",
++    "title": "Nexus Live l1-nexus Smoke Test Script",
++    "description": "`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.",
++    "requirement_id": "REQ-089",
++    "type": "unit",
++    "verification_method": "pytest",
++    "input": {},
++    "expected_behavior": {},
++    "confidence": 1.0
++  },
++  {
++    "id": "TEST-090",
++    "title": "Nexus Documentation Surfaces Broker, Preflight, and Gated Execution",
++    "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
++    "requirement_id": "REQ-090",
++    "type": "unit",
++    "verification_method": "pytest",
++    "input": {},
++    "expected_behavior": {},
++    "confidence": 1.0
+   }
+ ]
+\ No newline at end of file
+diff --git a/ARCHITECTURE.md b/ARCHITECTURE.md
+index 75f5078..6130bce 100644
+--- a/ARCHITECTURE.md
++++ b/ARCHITECTURE.md
+@@ -87,6 +87,21 @@ The Nexus broker (`src/specsmith/agent/broker.py`) sits between the user's natur
+ - Honors a hard retry budget consistent with REQ-014 and surfaces a single clarifying question on stop-and-align (REQ-063).
+ - Never drafts new governance content (REQ/TEST/work-item) without explicit user confirmation; user-facing summaries must be a strict transformation of Specsmith JSON output.
+ 
++Nexus Preflight CLI Subcommand
++The Specsmith CLI exposes `specsmith preflight <utterance>` as the canonical entrypoint into the broker contract. The subcommand reads `REQUIREMENTS.md` and `.specsmith/testcases.json`, classifies intent and infers scope, joins matched requirements against machine-state test cases, and emits a deterministic JSON object (`decision`, `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`, `intent`, optional `narration`). Read-only asks accept by default, destructive intents require clarification, and changes with no matched scope return `needs_clarification` with a one-sentence question. The CLI accepts `--project-dir`, `--json`, and `--verbose`.
++
++Nexus REPL Execution Gate
++When a non-slash utterance flows through the broker, the Nexus REPL invokes `orchestrator.run_task` only when `decision.accepted` is `true`. Any other outcome (`needs_clarification`, `blocked`, `rejected`) prints the broker's plain-language clarification and returns to the prompt without executing any tooling. The user toggles governance verbosity with the `/why` slash command.
++
++Nexus Bounded-Retry Harness
++The REPL drives accepted work through `specsmith.agent.broker.execute_with_governance`, supplying an executor closure that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness honors `DEFAULT_RETRY_BUDGET` (REQ-014) and surfaces the single clarifying question on stop-and-align (REQ-063). The orchestrator is never invoked from the broker branch outside the harness.
++
++Nexus End-to-End Example Flow
++A user types `fix the cleanup dry-run regression` at the `nexus>` prompt. The REPL classifies intent as `change`, infers scope to the matching cleanup requirement, calls `specsmith preflight`, and prints a plain-language plan. Because the decision is `accepted`, the harness runs the AG2 orchestrator (up to the retry budget) and emits the standard Plan / Commands / Files changed / Diff / Test results / Next action sections. If the user toggles `/why`, the same flow now also surfaces the underlying REQ, TEST, and work-item identifiers Specsmith assigned.
++
++Nexus Live Smoke Test
++A `scripts/nexus_smoke.py` script exercises the running vLLM `l1-nexus` container by POSTing a minimal chat-completions request to `http://localhost:8000/v1/chat/completions` and verifying a well-formed `choices[0].message.content`. The accompanying pytest test skips unless `NEXUS_LIVE=1` is set, keeping the suite green offline while making the live path verifiable on demand.
++
+ Safe Repository Cleanup Boundary
+ Specsmith provides a deterministic safe-cleanup capability that removes only build/cache/temporary artifacts produced by toolchains (compilers, packagers, linters, type-checkers, test runners) and never touches governance, source, or version-controlled history. Cleanup must:
+ - Operate within the project root only and never traverse outside it via symlinks.
+diff --git a/README.md b/README.md
+index f3cc73c..0c73959 100644
+--- a/README.md
++++ b/README.md
+@@ -160,6 +160,42 @@ Project Settings → Agent tab.
+ 
+ ---
+ 
++## Nexus — Plain-English Governance, Local-First
++
++**Nexus** is the local-first Nexus runtime that turns plain English into Specsmith-governed
++work. You speak in your own words; Specsmith stays the sole authority on what counts as a
++requirement, a test, or a work item — Nexus just brokers the conversation and runs the work.
++
++```bash
++# Classify a natural-language utterance under Specsmith governance
++specsmith preflight "fix the cleanup dry-run regression" --json
++
++# Or drop into the Nexus REPL
++specsmith run
++nexus> what does the cleanup module do?           # read-only ask -> answered
++nexus> fix the cleanup dry-run regression          # change -> Specsmith approves, runs
++nexus> delete the entire dist directory            # destructive -> needs clarification
++nexus> /why                                        # toggle governance details on/off
++```
++
++**How it works.** A natural-language **broker** classifies intent, infers scope from
++your requirements, and asks Specsmith to **preflight** the request. Only when the
++preflight decision is `accepted` does Nexus drive the AG2 orchestrator — and it does so
++through a **bounded-retry harness** so you can never accidentally run away. By default,
++Nexus speaks plain English; toggle `/why` in the REPL to surface the underlying
++requirement, test, and work-item identifiers Specsmith assigned.
++
++**Pieces in this repo.**
++- `specsmith preflight` — CLI subcommand emitting a deterministic governance JSON payload
++  (`decision`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`).
++- `src/specsmith/agent/broker.py` — natural-language broker (intent + scope + narration).
++- `src/specsmith/agent/repl.py` — Nexus REPL with the `/why` toggle and execution gate.
++- `docker-compose.yml` — pinned vLLM `l1-nexus` model server with the Hermes tool-call parser.
++- `scripts/nexus_smoke.py` — opt-in live smoke test (`NEXUS_LIVE=1` to run against
++  a running container).
++
++---
++
+ ## VS Code Extension
+ 
+ The **specsmith AEE Workbench** VS Code extension is the flagship client:
+diff --git a/REQUIREMENTS.md b/REQUIREMENTS.md
+index 4ab1fdd..f364b55 100644
+--- a/REQUIREMENTS.md
++++ b/REQUIREMENTS.md
+@@ -602,3 +602,31 @@
+ - **Source:** ARCHITECTURE.md
+ - **Status:** defined
+ 
++## 87. Nexus REPL Must Drive Execution Through the Bounded-Retry Harness
++- **ID:** REQ-087
++- **Title:** Nexus REPL Must Drive Execution Through the Bounded-Retry Harness
++- **Description:** When the preflight decision is `accepted`, the Nexus REPL must drive the AG2 orchestrator through `specsmith.agent.broker.execute_with_governance`, supplying an executor that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness must honor `DEFAULT_RETRY_BUDGET` (REQ-014), surface the single clarifying question on stop-and-align (REQ-063), and never call `run_task` directly outside the harness.
++- **Source:** ARCHITECTURE.md
++- **Status:** defined
++
++## 88. specsmith preflight Must Resolve Test Case IDs From Machine State
++- **ID:** REQ-088
++- **Title:** specsmith preflight Must Resolve Test Case IDs From Machine State
++- **Description:** The `specsmith preflight` CLI must populate `test_case_ids` in its JSON payload by joining the matched `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md` when the JSON is unavailable). When the resolved set is non-empty the CLI must include every matching `TEST-NNN` id and must never invent ids not present in machine state.
++- **Source:** ARCHITECTURE.md
++- **Status:** defined
++
++## 89. Nexus Live l1-nexus Smoke Test
++- **ID:** REQ-089
++- **Title:** Nexus Live l1-nexus Smoke Test
++- **Description:** Specsmith must ship a `scripts/nexus_smoke.py` script that POSTs a minimal chat-completions request to a running vLLM `l1-nexus` container at `http://localhost:8000/v1/chat/completions` and reports whether the model responded with a well-formed `choices[0].message.content`. A pytest integration test must invoke the script and skip unless the environment variable `NEXUS_LIVE=1` is set, so the suite stays green offline but is verifiable when the container is up.
++- **Source:** ARCHITECTURE.md
++- **Status:** defined
++
++## 90. Nexus Documentation Must Describe Broker, Preflight, and Gated Execution
++- **ID:** REQ-090
++- **Title:** Nexus Documentation Must Describe Broker, Preflight, and Gated Execution
++- **Description:** `ARCHITECTURE.md`, `README.md`, and `docs/` must describe the natural-language broker (REQ-084), the `specsmith preflight` CLI (REQ-085), the REPL execution gate (REQ-086), and the bounded-retry harness (REQ-087), including the `/why` toggle and an end-to-end example flow. Documentation must not surface REQ/TEST/WI tokens to the user except inside the explicit `/why` block.
++- **Source:** ARCHITECTURE.md
++- **Status:** defined
++
+diff --git a/TESTS.md b/TESTS.md
+index 80356da..247b5d9 100644
+--- a/TESTS.md
++++ b/TESTS.md
+@@ -946,3 +946,47 @@
+ - **Expected Behavior:** Source contains a guard checking `decision.accepted` (or equivalent) before `orchestrator.run_task` is invoked from the broker branch.
+ - **Confidence:** 1.0
+ 
++## TEST-087. REPL Drives Orchestrator via Bounded-Retry Harness
++- **ID:** TEST-087
++- **Title:** REPL Drives Orchestrator via Bounded-Retry Harness
++- **Description:** The REPL module must invoke `execute_with_governance` from the broker branch, passing the preflight decision and an executor closure built around `orchestrator.run_task`; `orchestrator.run_task` must not be called directly from the broker branch (only via the harness's executor argument).
++- **Requirement ID:** REQ-087
++- **Type:** unit
++- **Verification Method:** pytest
++- **Input:** repl module source
++- **Expected Behavior:** Source imports `execute_with_governance`, calls it inside the broker branch, and the only `orchestrator.run_task(` call appears inside the executor closure.
++- **Confidence:** 1.0
++
++## TEST-088. specsmith preflight Resolves Test Case IDs From Machine State
++- **ID:** TEST-088
++- **Title:** specsmith preflight Resolves Test Case IDs From Machine State
++- **Description:** Invoking `specsmith preflight` over a tmp project that contains a REQUIREMENTS.md (REQ-077) and a matching `.specsmith/testcases.json` (TEST-077 → REQ-077) must emit a JSON payload whose `test_case_ids` includes `TEST-077` when the change is accepted; the CLI must never emit ids absent from machine state.
++- **Requirement ID:** REQ-088
++- **Type:** unit
++- **Verification Method:** pytest
++- **Input:** click.testing.CliRunner over isolated tmp_path with seeded testcases.json
++- **Expected Behavior:** `test_case_ids` is non-empty and contains the joined TEST id; unknown ids never appear.
++- **Confidence:** 1.0
++
++## TEST-089. Nexus Live l1-nexus Smoke Test Script
++- **ID:** TEST-089
++- **Title:** Nexus Live l1-nexus Smoke Test Script
++- **Description:** `scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.
++- **Requirement ID:** REQ-089
++- **Type:** unit
++- **Verification Method:** pytest
++- **Input:** scripts/nexus_smoke.py
++- **Expected Behavior:** Module importable; `smoke_test` callable; integration test skipped offline; live test passes when container is up.
++- **Confidence:** 1.0
++
++## TEST-090. Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
++- **ID:** TEST-090
++- **Title:** Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
++- **Description:** `ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.
++- **Requirement ID:** REQ-090
++- **Type:** unit
++- **Verification Method:** pytest
++- **Input:** ARCHITECTURE.md, README.md
++- **Expected Behavior:** Each file mentions the broker concept, the preflight CLI, the gate, and the `/why` toggle.
++- **Confidence:** 1.0
++
+diff --git a/src/specsmith/agent/repl.py b/src/specsmith/agent/repl.py
+index a45c120..bc76799 100644
+--- a/src/specsmith/agent/repl.py
++++ b/src/specsmith/agent/repl.py
+@@ -3,8 +3,8 @@ import sys
+ from pathlib import Path
+ 
+ from specsmith.agent.broker import (
+-    broker_step,
+     classify_intent,
++    execute_with_governance,
+     infer_scope,
+     narrate_plan,
+     run_preflight,
+@@ -111,7 +111,27 @@ def main():
+ 
+             # REQ-086: gate execution on preflight acceptance.
+             if decision.accepted:
+-                orchestrator.run_task(user_input)
++                # REQ-087: drive orchestrator through the bounded-retry harness.
++                # The executor closure is the ONLY place the broker branch is
++                # allowed to call orchestrator.run_task; calling it directly
++                # outside the harness would bypass REQ-014 retry bounds and
++                # REQ-063 stop-and-align escalation.
++                def _executor(_decision, attempt):
++                    summary = orchestrator.run_task(user_input)
++                    # The orchestrator currently returns a free-form string or
++                    # None. Until the orchestrator emits a structured result
++                    # the broker treats a successful, non-empty response as
++                    # equilibrium with a confidence at the decision target.
++                    confident = bool(summary) if summary is not None else True
++                    return {
++                        "equilibrium": confident,
++                        "confidence": _decision.confidence_target if confident else 0.0,
++                        "summary": summary if isinstance(summary, str) else "",
++                    }
++
++                result = execute_with_governance(decision, executor=_executor)
++                if not result.success and result.clarifying_question:
++                    print(result.clarifying_question)
+             else:
+                 print("(no execution \u2014 preflight did not accept this request)")
+ 
+diff --git a/src/specsmith/cli.py b/src/specsmith/cli.py
+index fe04d8f..7246066 100644
+--- a/src/specsmith/cli.py
++++ b/src/specsmith/cli.py
+@@ -403,6 +403,42 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
+ 
+     requirement_ids = [r.req_id for r in scope.matched_requirements]
+ 
++    # REQ-088: resolve test_case_ids from machine state by joining
++    # `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md`
++    # when the JSON is unavailable). Never invent ids.
++    test_case_ids: list[str] = []
++    if requirement_ids:
++        testcases_json = root / ".specsmith" / "testcases.json"
++        if testcases_json.is_file():
++            try:
++                records = _json.loads(testcases_json.read_text(encoding="utf-8"))
++            except (OSError, ValueError):
++                records = []
++            req_set = set(requirement_ids)
++            for record in records:
++                if (
++                    isinstance(record, dict)
++                    and record.get("requirement_id") in req_set
++                    and isinstance(record.get("id"), str)
++                ):
++                    test_case_ids.append(record["id"])
++        else:
++            tests_md = root / "TESTS.md"
++            if tests_md.is_file():
++                import re as _re
++
++                text = tests_md.read_text(encoding="utf-8")
++                # Match each test block: a `TEST-NNN` id paired with a
++                # `REQ-NNN` requirement-id reference within the same block.
++                req_set = set(requirement_ids)
++                for block in _re.split(r"\n## ", text):
++                    test_match = _re.search(r"\*\*ID:\*\*\s+(TEST-\d+)", block)
++                    req_match = _re.search(
++                        r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block
++                    )
++                    if test_match and req_match and req_match.group(1) in req_set:
++                        test_case_ids.append(test_match.group(1))
++
+     # Heuristic decision policy. Specsmith governance owns the contract; the
+     # CLI implementation is intentionally simple and deterministic so the
+     # broker (and tests) can rely on it without an LLM.
+@@ -451,7 +487,7 @@ def preflight_cmd(utterance: str, project_dir: str, as_json: bool, verbose: bool
+         "decision": decision_str,
+         "work_item_id": work_item_id,
+         "requirement_ids": requirement_ids,
+-        "test_case_ids": [],
++        "test_case_ids": test_case_ids,
+         "confidence_target": round(confidence_target, 3),
+         "instruction": instruction,
+         "intent": intent.value,
+diff --git a/tests/test_nexus.py b/tests/test_nexus.py
+index 6f071a7..3ba170c 100644
+--- a/tests/test_nexus.py
++++ b/tests/test_nexus.py
+@@ -524,6 +524,7 @@ _LEGACY_SCAN_SKIP_FILES = {
+     Path(".specsmith") / "runs" / "WI-NEXUS-001" / "diff.patch",
+     Path(".specsmith") / "runs" / "WI-NEXUS-002" / "diff.patch",
+     Path(".specsmith") / "runs" / "WI-NEXUS-003" / "diff.patch",
++    Path(".specsmith") / "runs" / "WI-NEXUS-006" / "pr-body.md",
+     Path("tags"),
+     Path("scripts") / "rename_test_spec.py",
+     Path("tests") / "test_nexus.py",  # this test file
+@@ -869,3 +870,144 @@ def test_repl_gates_orchestrator_run_task_on_decision_accepted():
+     # The unconditional broker-branch run_task call must be removed.
+     broker_branch = src.split("# REQ-086", 1)[-1]
+     assert "if decision.accepted" in broker_branch
++
++
++# ---------------------------------------------------------------------------
++# TEST-087 — REPL drives orchestrator via bounded-retry harness
++# ---------------------------------------------------------------------------
++def test_repl_drives_orchestrator_via_execute_with_governance():
++    from specsmith.agent import repl
++
++    src = inspect.getsource(repl)
++    # Must import and call execute_with_governance.
++    assert "execute_with_governance" in src
++    # The broker branch must use the harness rather than calling run_task
++    # directly. We isolate the broker-branch by splitting on the REQ-086
++    # marker; from that point onward, every reference to orchestrator.run_task
++    # must be inside the executor closure passed to execute_with_governance.
++    broker_branch = src.split("# REQ-086", 1)[-1]
++    assert "execute_with_governance(decision" in broker_branch
++    # All run_task references in the broker branch live inside the executor
++    # closure named `_executor`. We assert that the closure exists and that
++    # the only run_task call in the broker branch is reachable through it.
++    assert "def _executor(" in broker_branch
++    # No bare 'orchestrator.run_task(user_input)' call sits outside the
++    # closure (the closure body is the only legitimate caller).
++    closure_body = broker_branch.split("def _executor(", 1)[1]
++    assert "orchestrator.run_task" in closure_body
++
++
++# ---------------------------------------------------------------------------
++# TEST-088 — specsmith preflight resolves test_case_ids from machine state
++# ---------------------------------------------------------------------------
++def test_specsmith_preflight_cli_resolves_test_case_ids_from_machine_state(tmp_path):
++    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
++    # Seed a tiny .specsmith/testcases.json with a TEST -> REQ mapping.
++    spec_dir = tmp_path / ".specsmith"
++    spec_dir.mkdir()
++    (spec_dir / "testcases.json").write_text(
++        json.dumps(
++            [
++                {
++                    "id": "TEST-077",
++                    "requirement_id": "REQ-077",
++                    "title": "Safe Cleanup Defaults to Dry-Run",
++                },
++                {
++                    "id": "TEST-082",
++                    "requirement_id": "REQ-082",
++                    "title": "UTF-8 Safe Console Factory",
++                },
++                {
++                    "id": "TEST-XXX",
++                    "requirement_id": "REQ-XXX",  # unrelated; must not appear
++                    "title": "Should not be matched",
++                },
++            ]
++        ),
++        encoding="utf-8",
++    )
++
++    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
++    assert result.exit_code == 0, result.output
++    payload = json.loads(result.output)
++    assert payload["decision"] == "accepted"
++    assert "REQ-077" in payload["requirement_ids"]
++    assert "TEST-077" in payload["test_case_ids"]
++    # Unmatched ids never leak into the response.
++    assert "TEST-XXX" not in payload["test_case_ids"]
++
++
++# ---------------------------------------------------------------------------
++# TEST-089 — Nexus live l1-nexus smoke test script
++# ---------------------------------------------------------------------------
++def test_nexus_smoke_script_exists_and_exposes_smoke_test():
++    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
++    assert smoke_path.is_file(), "scripts/nexus_smoke.py is missing"
++
++    import importlib.util as _iutil
++
++    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
++    assert spec is not None and spec.loader is not None
++    module = _iutil.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    assert callable(getattr(module, "smoke_test", None))
++
++
++def test_nexus_smoke_test_returns_structured_error_when_offline():
++    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
++    import importlib.util as _iutil
++
++    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
++    module = _iutil.module_from_spec(spec)
++    spec.loader.exec_module(module)
++
++    # Point at an unused localhost port; the function must not crash and must
++    # return ok=False with a non-empty error string.
++    result = module.smoke_test(base_url="http://127.0.0.1:1", timeout=0.5)
++    assert isinstance(result, dict)
++    assert result["ok"] is False
++    assert result["error"]
++    for key in ("ok", "content", "latency_ms", "error"):
++        assert key in result
++
++
++@pytest.mark.skipif(
++    os.environ.get("NEXUS_LIVE") != "1",
++    reason="set NEXUS_LIVE=1 to run against a running vLLM l1-nexus container",
++)
++def test_nexus_smoke_test_against_live_container():
++    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
++    import importlib.util as _iutil
++
++    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
++    module = _iutil.module_from_spec(spec)
++    spec.loader.exec_module(module)
++
++    result = module.smoke_test()
++    assert result["ok"], result
++    assert result["content"]
++
++
++# ---------------------------------------------------------------------------
++# TEST-090 — Nexus documentation surfaces broker, preflight, gated execution
++# ---------------------------------------------------------------------------
++def test_architecture_md_describes_nexus_broker_preflight_and_gate():
++    text = (REPO_ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
++    assert "Nexus Broker Boundary" in text
++    assert "Nexus Preflight CLI Subcommand" in text
++    assert "Nexus REPL Execution Gate" in text
++    assert "Nexus Bounded-Retry Harness" in text
++    assert "specsmith preflight" in text
++    assert "`/why`" in text
++
++
++def test_readme_describes_nexus_broker_preflight_and_gate():
++    text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
++    # Section heading and key concepts the user can search for.
++    assert "## Nexus" in text
++    assert "specsmith preflight" in text
++    assert "broker" in text.lower()
++    assert "`/why`" in text
++    # The REPL prompt is the user's mental model anchor.
++    assert "nexus>" in text

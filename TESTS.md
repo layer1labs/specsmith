@@ -946,3 +946,47 @@
 - **Expected Behavior:** Source contains a guard checking `decision.accepted` (or equivalent) before `orchestrator.run_task` is invoked from the broker branch.
 - **Confidence:** 1.0
 
+## TEST-087. REPL Drives Orchestrator via Bounded-Retry Harness
+- **ID:** TEST-087
+- **Title:** REPL Drives Orchestrator via Bounded-Retry Harness
+- **Description:** The REPL module must invoke `execute_with_governance` from the broker branch, passing the preflight decision and an executor closure built around `orchestrator.run_task`; `orchestrator.run_task` must not be called directly from the broker branch (only via the harness's executor argument).
+- **Requirement ID:** REQ-087
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** repl module source
+- **Expected Behavior:** Source imports `execute_with_governance`, calls it inside the broker branch, and the only `orchestrator.run_task(` call appears inside the executor closure.
+- **Confidence:** 1.0
+
+## TEST-088. specsmith preflight Resolves Test Case IDs From Machine State
+- **ID:** TEST-088
+- **Title:** specsmith preflight Resolves Test Case IDs From Machine State
+- **Description:** Invoking `specsmith preflight` over a tmp project that contains a REQUIREMENTS.md (REQ-077) and a matching `.specsmith/testcases.json` (TEST-077 → REQ-077) must emit a JSON payload whose `test_case_ids` includes `TEST-077` when the change is accepted; the CLI must never emit ids absent from machine state.
+- **Requirement ID:** REQ-088
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over isolated tmp_path with seeded testcases.json
+- **Expected Behavior:** `test_case_ids` is non-empty and contains the joined TEST id; unknown ids never appear.
+- **Confidence:** 1.0
+
+## TEST-089. Nexus Live l1-nexus Smoke Test Script
+- **ID:** TEST-089
+- **Title:** Nexus Live l1-nexus Smoke Test Script
+- **Description:** `scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.
+- **Requirement ID:** REQ-089
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** scripts/nexus_smoke.py
+- **Expected Behavior:** Module importable; `smoke_test` callable; integration test skipped offline; live test passes when container is up.
+- **Confidence:** 1.0
+
+## TEST-090. Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
+- **ID:** TEST-090
+- **Title:** Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
+- **Description:** `ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.
+- **Requirement ID:** REQ-090
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** ARCHITECTURE.md, README.md
+- **Expected Behavior:** Each file mentions the broker concept, the preflight CLI, the gate, and the `/why` toggle.
+- **Confidence:** 1.0
+

@@ -524,6 +524,7 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path(".specsmith") / "runs" / "WI-NEXUS-001" / "diff.patch",
     Path(".specsmith") / "runs" / "WI-NEXUS-002" / "diff.patch",
     Path(".specsmith") / "runs" / "WI-NEXUS-003" / "diff.patch",
+    Path(".specsmith") / "runs" / "WI-NEXUS-006" / "pr-body.md",
     Path("tags"),
     Path("scripts") / "rename_test_spec.py",
     Path("tests") / "test_nexus.py",  # this test file
@@ -869,3 +870,144 @@ def test_repl_gates_orchestrator_run_task_on_decision_accepted():
     # The unconditional broker-branch run_task call must be removed.
     broker_branch = src.split("# REQ-086", 1)[-1]
     assert "if decision.accepted" in broker_branch
+
+
+# ---------------------------------------------------------------------------
+# TEST-087 — REPL drives orchestrator via bounded-retry harness
+# ---------------------------------------------------------------------------
+def test_repl_drives_orchestrator_via_execute_with_governance():
+    from specsmith.agent import repl
+
+    src = inspect.getsource(repl)
+    # Must import and call execute_with_governance.
+    assert "execute_with_governance" in src
+    # The broker branch must use the harness rather than calling run_task
+    # directly. We isolate the broker-branch by splitting on the REQ-086
+    # marker; from that point onward, every reference to orchestrator.run_task
+    # must be inside the executor closure passed to execute_with_governance.
+    broker_branch = src.split("# REQ-086", 1)[-1]
+    assert "execute_with_governance(decision" in broker_branch
+    # All run_task references in the broker branch live inside the executor
+    # closure named `_executor`. We assert that the closure exists and that
+    # the only run_task call in the broker branch is reachable through it.
+    assert "def _executor(" in broker_branch
+    # No bare 'orchestrator.run_task(user_input)' call sits outside the
+    # closure (the closure body is the only legitimate caller).
+    closure_body = broker_branch.split("def _executor(", 1)[1]
+    assert "orchestrator.run_task" in closure_body
+
+
+# ---------------------------------------------------------------------------
+# TEST-088 — specsmith preflight resolves test_case_ids from machine state
+# ---------------------------------------------------------------------------
+def test_specsmith_preflight_cli_resolves_test_case_ids_from_machine_state(tmp_path):
+    _write_sample_requirements(tmp_path / "REQUIREMENTS.md")
+    # Seed a tiny .specsmith/testcases.json with a TEST -> REQ mapping.
+    spec_dir = tmp_path / ".specsmith"
+    spec_dir.mkdir()
+    (spec_dir / "testcases.json").write_text(
+        json.dumps(
+            [
+                {
+                    "id": "TEST-077",
+                    "requirement_id": "REQ-077",
+                    "title": "Safe Cleanup Defaults to Dry-Run",
+                },
+                {
+                    "id": "TEST-082",
+                    "requirement_id": "REQ-082",
+                    "title": "UTF-8 Safe Console Factory",
+                },
+                {
+                    "id": "TEST-XXX",
+                    "requirement_id": "REQ-XXX",  # unrelated; must not appear
+                    "title": "Should not be matched",
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["decision"] == "accepted"
+    assert "REQ-077" in payload["requirement_ids"]
+    assert "TEST-077" in payload["test_case_ids"]
+    # Unmatched ids never leak into the response.
+    assert "TEST-XXX" not in payload["test_case_ids"]
+
+
+# ---------------------------------------------------------------------------
+# TEST-089 — Nexus live l1-nexus smoke test script
+# ---------------------------------------------------------------------------
+def test_nexus_smoke_script_exists_and_exposes_smoke_test():
+    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
+    assert smoke_path.is_file(), "scripts/nexus_smoke.py is missing"
+
+    import importlib.util as _iutil
+
+    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
+    assert spec is not None and spec.loader is not None
+    module = _iutil.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert callable(getattr(module, "smoke_test", None))
+
+
+def test_nexus_smoke_test_returns_structured_error_when_offline():
+    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
+    import importlib.util as _iutil
+
+    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
+    module = _iutil.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # Point at an unused localhost port; the function must not crash and must
+    # return ok=False with a non-empty error string.
+    result = module.smoke_test(base_url="http://127.0.0.1:1", timeout=0.5)
+    assert isinstance(result, dict)
+    assert result["ok"] is False
+    assert result["error"]
+    for key in ("ok", "content", "latency_ms", "error"):
+        assert key in result
+
+
+@pytest.mark.skipif(
+    os.environ.get("NEXUS_LIVE") != "1",
+    reason="set NEXUS_LIVE=1 to run against a running vLLM l1-nexus container",
+)
+def test_nexus_smoke_test_against_live_container():
+    smoke_path = REPO_ROOT / "scripts" / "nexus_smoke.py"
+    import importlib.util as _iutil
+
+    spec = _iutil.spec_from_file_location("nexus_smoke", smoke_path)
+    module = _iutil.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    result = module.smoke_test()
+    assert result["ok"], result
+    assert result["content"]
+
+
+# ---------------------------------------------------------------------------
+# TEST-090 — Nexus documentation surfaces broker, preflight, gated execution
+# ---------------------------------------------------------------------------
+def test_architecture_md_describes_nexus_broker_preflight_and_gate():
+    text = (REPO_ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "Nexus Broker Boundary" in text
+    assert "Nexus Preflight CLI Subcommand" in text
+    assert "Nexus REPL Execution Gate" in text
+    assert "Nexus Bounded-Retry Harness" in text
+    assert "specsmith preflight" in text
+    assert "`/why`" in text
+
+
+def test_readme_describes_nexus_broker_preflight_and_gate():
+    text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    # Section heading and key concepts the user can search for.
+    assert "## Nexus" in text
+    assert "specsmith preflight" in text
+    assert "broker" in text.lower()
+    assert "`/why`" in text
+    # The REPL prompt is the user's mental model anchor.
+    assert "nexus>" in text

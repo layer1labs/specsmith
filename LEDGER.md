@@ -444,3 +444,31 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-085,REQ-086
 - **Status**: complete
 - **Chain hash**: `cdc3fb4815489052...`
+
+## 2026-04-27T19:28 — WI-NEXUS-007: Wire bounded-retry harness into Nexus REPL (REQ-087)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-087
+- **Status**: complete
+- **Chain hash**: `340e468840a68ac7...`
+
+## 2026-04-27T19:28 — WI-NEXUS-008: Populate preflight test_case_ids from .specsmith/testcases.json (REQ-088)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-088
+- **Status**: complete
+- **Chain hash**: `a39dcae4c5b4338d...`
+
+## 2026-04-27T19:28 — WI-NEXUS-009: Live l1-nexus smoke test script + skip-by-default integration test (REQ-089)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-089
+- **Status**: complete
+- **Chain hash**: `d0e80ec48ee0a854...`
+
+## 2026-04-27T19:28 — WI-NEXUS-010: Documentation pass for Nexus broker, preflight, gate, and harness (REQ-090)
+- **Author**: agent
+- **Type**: docs
+- **REQs affected**: REQ-090
+- **Status**: complete
+- **Chain hash**: `8d94f66001aed55c...`
