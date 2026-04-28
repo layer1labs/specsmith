@@ -56,9 +56,7 @@ def parse_tests(text: str) -> list[dict]:
                 "description": m_desc.group(1).strip(),
                 "requirement_id": m_req.group(1).strip(),
                 "type": (m_type.group(1).strip() if m_type else "unit"),
-                "verification_method": (
-                    m_method.group(1).strip() if m_method else "evaluator"
-                ),
+                "verification_method": (m_method.group(1).strip() if m_method else "evaluator"),
                 "input": {},
                 "expected_behavior": {},
                 "confidence": 1.0,

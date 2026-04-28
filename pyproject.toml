@@ -107,6 +107,11 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 # Long rule text and install command strings in documentation modules
 "src/specsmith/toolrules.py" = ["E501"]
 "src/specsmith/tool_installer.py" = ["E501"]
+# One-shot rebuild scripts contain literal REQ description strings that are
+# intentionally long; wrapping them would damage readability of the source
+# of truth they reconstruct.
+"scripts/rebuild_requirements_json.py" = ["E501"]
+"scripts/rebuild_requirements_md.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -141,9 +146,11 @@ ignore_missing_imports = true
 module = ["epistemic", "epistemic.*"]
 ignore_errors = true
 
-# New modules that use dynamic typing patterns incompatible with strict mypy.
+# Modules that use dynamic typing patterns incompatible with strict mypy.
 # These are correct at runtime; the Any-heavy urllib, json.loads, etc. patterns
 # are the source of most errors here. Exclude from strict type checking.
+# REQ-111: shrunk this list as part of the pre-1.0 cleanup; broker, safety,
+# console_utils, and indexer have been graduated to strict mypy.
 [[tool.mypy.overrides]]
 module = [
     "specsmith.ollama_cmds",
@@ -153,14 +160,10 @@ module = [
     "specsmith.importer",
     "specsmith.agent.providers.gemini",
     "specsmith.agent.runner",
-    "specsmith.agent.broker",
     "specsmith.agent.cleanup",
-    "specsmith.agent.indexer",
     "specsmith.agent.orchestrator",
     "specsmith.agent.repl",
-    "specsmith.agent.safety",
     "specsmith.agent.tools",
-    "specsmith.console_utils",
     "specsmith.profiles",
     "specsmith.serve",
     "specsmith.toolrules",

@@ -26,9 +26,7 @@ from pathlib import Path
 def _build_synthetic_project(root: Path, n_reqs: int = 1000) -> None:
     root.mkdir(parents=True, exist_ok=True)
     (root / ".repo-index").mkdir(exist_ok=True)
-    (root / ".repo-index" / "files.json").write_text(
-        json.dumps({"files": []}), encoding="utf-8"
-    )
+    (root / ".repo-index" / "files.json").write_text(json.dumps({"files": []}), encoding="utf-8")
     lines = ["# Requirements\n"]
     for i in range(1, n_reqs + 1):
         lines.append(

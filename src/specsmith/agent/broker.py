@@ -40,6 +40,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Intent classification
@@ -285,7 +286,7 @@ def infer_scope(
 class PreflightDecision:
     """Wrapped Specsmith preflight outcome."""
 
-    raw: dict
+    raw: dict[str, Any]
     decision: str = "unknown"
     work_item_id: str = ""
     requirement_ids: list[str] = field(default_factory=list)
@@ -294,7 +295,7 @@ class PreflightDecision:
     instruction: str = ""
 
     @classmethod
-    def from_json(cls, payload: dict) -> PreflightDecision:
+    def from_json(cls, payload: dict[str, Any]) -> PreflightDecision:
         return cls(
             raw=payload,
             decision=str(payload.get("decision", "unknown")),
@@ -476,7 +477,7 @@ RETRY_STRATEGIES = (
 )
 
 
-def classify_retry_strategy(report: dict, decision: PreflightDecision) -> str:
+def classify_retry_strategy(report: dict[str, Any], decision: PreflightDecision) -> str:
     """Map an executor failure report to one of the canonical retry strategies.
 
     The classification is deterministic and inspects:
@@ -529,7 +530,7 @@ def classify_retry_strategy(report: dict, decision: PreflightDecision) -> str:
 def execute_with_governance(
     decision: PreflightDecision,
     *,
-    executor: Callable[[PreflightDecision, int], dict],
+    executor: Callable[[PreflightDecision, int], dict[str, Any]],
     retry_budget: int = DEFAULT_RETRY_BUDGET,
 ) -> RunResult:
     """Run the work with Specsmith governance and a hard retry budget.
@@ -546,7 +547,7 @@ def execute_with_governance(
 
     last_summary = ""
     last_confidence = 0.0
-    last_report: dict = {}
+    last_report: dict[str, Any] = {}
     for attempt in range(1, retry_budget + 1):
         report = executor(decision, attempt) or {}
         last_report = report
