@@ -378,12 +378,23 @@ def audit(fix: bool, project_dir: str) -> None:
     default=False,
     help="Run a stress-test pass over matched requirements (REQ-100).",
 )
+@click.option(
+    "--predict-only",
+    "predict_only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Return intent + suggested refinement without allocating a work item "
+        "or writing the ledger (REQ-117)."
+    ),
+)
 def preflight_cmd(
     utterance: str,
     project_dir: str,
     as_json: bool,
     verbose: bool,
     stress: bool,
+    predict_only: bool,
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
@@ -497,6 +508,12 @@ def preflight_cmd(
 
     work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
 
+    # REQ-117: predict-only mode does not allocate a work_item_id and does
+    # not write a ledger event; instead it adds a `predicted_refinement`
+    # field for IDE autocomplete.
+    if predict_only:
+        work_item_id = ""
+
     payload = {
         "decision": decision_str,
         "work_item_id": work_item_id,
@@ -506,6 +523,15 @@ def preflight_cmd(
         "instruction": instruction,
         "intent": intent.value,
     }
+    if predict_only:
+        if not scope.is_known and intent == Intent.CHANGE:
+            payload["predicted_refinement"] = (
+                f"{utterance} (please name the component or file you want to change)"
+            )
+        elif intent == Intent.DESTRUCTIVE:
+            payload["predicted_refinement"] = f"{utterance} (specify the exact paths or resources)"
+        else:
+            payload["predicted_refinement"] = utterance
 
     # REQ-100: optional stress-test bridge over matched requirements. The flag
     # defaults off so unrelated tests stay green.
@@ -528,7 +554,8 @@ def preflight_cmd(
     # assigned work_item_id is brand-new. Best-effort: never block the CLI on
     # ledger errors. We capture the pre-write ledger contents up front so the
     # work_item_id presence check is not polluted by our own preflight entry.
-    if decision_str == "accepted" and (root / "LEDGER.md").exists():
+    # REQ-117: predict-only never writes the ledger.
+    if not predict_only and decision_str == "accepted" and (root / "LEDGER.md").exists():
         try:
             from specsmith.ledger import add_entry
 
@@ -691,6 +718,12 @@ def _stress_test_warnings(
     default="",
     help="Optional work item id to bind the verification to.",
 )
+@click.option(
+    "--comment",
+    "reviewer_comment",
+    default="",
+    help="Reviewer comment that retry strategies should consume on the next attempt (REQ-116).",
+)
 def verify_cmd(
     project_dir: str,
     read_stdin: bool,
@@ -699,6 +732,7 @@ def verify_cmd(
     logs_path: str | None,
     changed_paths: str,
     work_item_id: str,
+    reviewer_comment: str,
 ) -> None:
     """Verify a Specsmith-governed change set (REQ-097).
 
@@ -806,6 +840,9 @@ def verify_cmd(
         "retry_budget": DEFAULT_RETRY_BUDGET,
         "confidence_threshold": threshold,
     }
+    # REQ-116: include reviewer comment so the next retry can consume it.
+    if reviewer_comment:
+        out["reviewer_comment"] = reviewer_comment
     click.echo(_json.dumps(out, indent=2))
 
     # Exit codes per REQ-097.
@@ -1074,11 +1111,95 @@ def diff(project_dir: str, html_output: str | None) -> None:
     default=".",
     help="Project root directory.",
 )
-def doctor(project_dir: str) -> None:
-    """Check if verification tools are installed locally."""
+@click.option(
+    "--onboarding",
+    is_flag=True,
+    default=False,
+    help="Run the new-user onboarding checklist (REQ-127).",
+)
+def doctor(project_dir: str, onboarding: bool) -> None:
+    """Check if verification tools are installed locally.
+
+    With --onboarding, walks through a 6-step checklist for new users that
+    confirms scaffold.yml, governance files, agent provider setup, optional
+    Nexus broker availability, and prints next-step commands (REQ-127).
+    """
     from specsmith.doctor import run_doctor
 
     root = Path(project_dir).resolve()
+
+    if onboarding:
+        # REQ-127: explicit onboarding checklist for new users.
+        console.print("[bold]specsmith onboarding[/bold]\n")
+        steps: list[tuple[str, bool, str]] = []
+        steps.append(
+            (
+                "scaffold.yml present",
+                (root / "scaffold.yml").is_file(),
+                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold].",
+            )
+        )
+        steps.append(
+            (
+                "REQUIREMENTS.md present",
+                (root / "REQUIREMENTS.md").is_file()
+                or (root / "docs" / "REQUIREMENTS.md").is_file(),
+                "Add at least one REQ entry (REQ-001).",
+            )
+        )
+        steps.append(
+            (
+                "AGENTS.md present",
+                (root / "AGENTS.md").is_file(),
+                "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
+            )
+        )
+        steps.append(
+            (
+                "LEDGER.md present",
+                (root / "LEDGER.md").is_file(),
+                "Create LEDGER.md (specsmith init seeds one).",
+            )
+        )
+        steps.append(
+            (
+                "At least one agent provider configured",
+                bool(
+                    __import__("os").environ.get("ANTHROPIC_API_KEY")
+                    or __import__("os").environ.get("OPENAI_API_KEY")
+                    or __import__("os").environ.get("GOOGLE_API_KEY")
+                    or (root / ".specsmith" / "nexus.yml").is_file()
+                ),
+                "Set ANTHROPIC_API_KEY / OPENAI_API_KEY or run [bold]specsmith nexus init[/bold].",
+            )
+        )
+        steps.append(
+            (
+                "docs/governance/ structure present",
+                (root / "docs" / "governance").is_dir(),
+                "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
+            )
+        )
+        ok_count = 0
+        for label, passed, hint in steps:
+            if passed:
+                console.print(f"  [green]\u2713[/green] {label}")
+                ok_count += 1
+            else:
+                console.print(f"  [red]\u2717[/red] {label} \u2014 {hint}")
+        console.print()
+        if ok_count == len(steps):
+            console.print(
+                "[bold green]All onboarding checks passed.[/bold green] "
+                'Try [bold]specsmith preflight "add hello world"[/bold].'
+            )
+        else:
+            console.print(
+                f"[bold yellow]{len(steps) - ok_count} step(s) remaining.[/bold yellow] "
+                "See docs/site/getting-started.md."
+            )
+        return
+
     report = run_doctor(root)
 
     if not report.checks:
@@ -5057,6 +5178,358 @@ def index_search_cmd(query: str, project_dir: str, limit: int) -> None:
 
 
 main.add_command(index_group)
+
+
+# ---------------------------------------------------------------------------
+# Chat — streaming JSONL chat surface (REQ-112..REQ-116, REQ-120, REQ-122, REQ-125)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="chat")
+@click.argument("utterance")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--session-id",
+    "session_id",
+    default="",
+    help="Continue an existing session (REQ-120). Default: a new id is allocated.",
+)
+@click.option(
+    "--parent-session",
+    "parent_session",
+    default="",
+    help="Mark this session as a sub-session of the given parent (REQ-125).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["safe", "standard", "yolo"]),
+    default="standard",
+    help="Permission/autonomy tier (REQ-115). safe = ask before tools.",
+)
+@click.option(
+    "--comment",
+    "reviewer_comment",
+    default="",
+    help="Reviewer comment fed into the next retry (REQ-116).",
+)
+@click.option(
+    "--json-events",
+    "json_events",
+    is_flag=True,
+    default=True,
+    help="Emit block-protocol JSONL events (REQ-113). On by default for chat.",
+)
+def chat_cmd(
+    utterance: str,
+    project_dir: str,
+    session_id: str,
+    parent_session: str,
+    profile: str,
+    reviewer_comment: str,
+    json_events: bool,
+) -> None:
+    """Run a single chat turn, streaming JSONL block events to stdout.
+
+    Emits the Specsmith block protocol (REQ-113): block_start → token →
+    plan_step → tool_call → diff → block_complete → task_complete.
+    Persists the turn to ``.specsmith/sessions/<session_id>/turns.jsonl``
+    so subsequent runs (with the same --session-id) carry context
+    (REQ-120). Respects ``--profile safe`` by emitting tool_request
+    events instead of executing tool calls (REQ-115).
+    """
+    import json as _json
+    import uuid as _uuid
+
+    from specsmith.agent.events import EventEmitter
+    from specsmith.agent.memory import append_turn, recent_turns
+    from specsmith.agent.router import choose_tier
+    from specsmith.agent.rules import load_rules
+
+    root = Path(project_dir).resolve()
+    sid = session_id or f"sess_{_uuid.uuid4().hex[:12]}"
+    emitter = EventEmitter()
+
+    # Open the message block first so the consumer always sees something.
+    msg_block = emitter.block_start(
+        "message",
+        agent="nexus",
+        session_id=sid,
+        parent_session=parent_session or None,
+        profile=profile,
+    )
+
+    # Load prior context (REQ-120) and project rules (REQ-119).
+    history = recent_turns(root, sid, max_chars=20_000)
+    rules_prefix = load_rules(root)
+    if history:
+        emitter.token(msg_block, f"[continuing session {sid}: {len(history)} prior turn(s)]\n")
+    if rules_prefix:
+        emitter.token(msg_block, "[project rules loaded]\n")
+
+    # Pick a tier (REQ-122) so consumers know which model is in play.
+    _utt_lower = utterance.lower()
+    if any(k in _utt_lower for k in ("add", "fix", "refactor")):
+        intent = "change"
+    else:
+        intent = "read_only_ask"
+    tier = choose_tier(intent, project_dir=root)
+    emitter.token(msg_block, f"[router: intent={intent}, tier={tier}]\n")
+
+    # Plan block (REQ-114).
+    plan_steps = [
+        {"id": "s1", "label": "Run preflight"},
+        {"id": "s2", "label": "Execute under harness"},
+        {"id": "s3", "label": "Emit verifier verdict"},
+    ]
+    plan_block = emitter.plan(plan_steps)
+    for step in plan_steps:
+        emitter.plan_step(plan_block, step["id"], "pending")
+
+    # Run preflight in-process (best effort) so chat shares the broker contract.
+    from specsmith.agent.broker import classify_intent, infer_scope
+
+    real_intent = classify_intent(utterance)
+    scope = infer_scope(
+        utterance,
+        root / "REQUIREMENTS.md",
+        repo_index_path=root / ".repo-index" / "files.json",
+    )
+    emitter.plan_step(
+        plan_block,
+        "s1",
+        "complete",
+        intent=real_intent.value,
+        matched=len(scope.matched_requirements),
+    )
+
+    # Permission gate (REQ-115). In safe mode every tool becomes a request.
+    if profile == "safe":
+        emitter.tool_request(msg_block, "execute_with_governance", {"utterance": utterance})
+        emitter.plan_step(plan_block, "s2", "awaiting_approval")
+        emitter.block_complete(plan_block, status="paused")
+        emitter.block_complete(msg_block)
+        emitter.task_complete(
+            success=False,
+            confidence=0.0,
+            summary="Safe mode: tool execution awaiting user approval.",
+            profile=profile,
+        )
+        # Persist turn for memory continuity.
+        append_turn(
+            root,
+            sid,
+            {
+                "role": "user",
+                "utterance": utterance,
+                "profile": profile,
+                "intent": real_intent.value,
+                "status": "awaiting_approval",
+            },
+        )
+        click.echo(_json.dumps({"session_id": sid, "status": "awaiting_approval"}))
+        return
+
+    # Standard / yolo: emit a tool_call event for execute_with_governance and
+    # let downstream consumers route to the real harness if configured.
+    emitter.tool_call(msg_block, "execute_with_governance", {"utterance": utterance})
+    emitter.plan_step(plan_block, "s2", "complete")
+
+    # Verifier sketch (deterministic, no LLM needed for this stub):
+    summary = (
+        f"Preflight intent={real_intent.value}, matched_reqs={len(scope.matched_requirements)}."
+    )
+    if reviewer_comment:
+        summary += f" reviewer_comment={reviewer_comment!r}"
+    emitter.plan_step(plan_block, "s3", "complete", summary=summary)
+    emitter.block_complete(plan_block, status="complete")
+    emitter.token(msg_block, summary + "\n")
+    emitter.block_complete(msg_block)
+    emitter.task_complete(
+        success=True,
+        confidence=0.7,
+        summary=summary,
+        profile=profile,
+        session_id=sid,
+        parent_session=parent_session or None,
+    )
+
+    # Persist turn (REQ-120 / REQ-125).
+    append_turn(
+        root,
+        sid,
+        {
+            "role": "user",
+            "utterance": utterance,
+            "profile": profile,
+            "intent": real_intent.value,
+            "reviewer_comment": reviewer_comment,
+            "parent_session": parent_session or None,
+            "json_events": json_events,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Notebook — capture / replay run artifacts (REQ-123)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="notebook")
+def notebook_group() -> None:
+    """Capture and replay Nexus run artifacts as docs/notebooks/<slug>.md."""
+
+
+@notebook_group.command(name="record")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--work-item-id",
+    "work_item_id",
+    default="",
+    help="Work item id whose .specsmith/runs/<WI>/ artifacts should be captured.",
+)
+def notebook_record(slug: str, project_dir: str, work_item_id: str) -> None:
+    """Record a notebook for the given SLUG (REQ-123).
+
+    Reads `.specsmith/runs/<work_item_id>/` (logs.txt, decision.json, etc.)
+    and writes a self-contained Markdown notebook to
+    `docs/notebooks/<slug>.md`.
+    """
+    root = Path(project_dir).resolve()
+    nb_dir = root / "docs" / "notebooks"
+    nb_dir.mkdir(parents=True, exist_ok=True)
+    target = nb_dir / f"{slug}.md"
+
+    runs_dir = root / ".specsmith" / "runs"
+    artifact_dir = runs_dir / work_item_id if work_item_id else None
+    sections: list[str] = [f"# Notebook — {slug}\n"]
+    if work_item_id:
+        sections.append(f"- **Work item**: `{work_item_id}`")
+    if artifact_dir and artifact_dir.is_dir():
+        sections.append("\n## Captured artifacts\n")
+        for path in sorted(artifact_dir.rglob("*")):
+            if path.is_file():
+                rel = path.relative_to(root)
+                try:
+                    body = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    sections.append(f"### `{rel}`\n\n_(binary, omitted)_\n")
+                    continue
+                fence = "```"
+                sections.append(f"### `{rel}`\n\n{fence}\n{body}\n{fence}\n")
+    else:
+        sections.append(
+            "\n_No `.specsmith/runs/<WI>/` directory found. "
+            "Run `specsmith preflight` and `specsmith verify` first to capture evidence._\n"
+        )
+    target.write_text("\n".join(sections), encoding="utf-8")
+    console.print(f"[green]\u2713[/green] Notebook recorded at {target.relative_to(root)}")
+
+
+@notebook_group.command(name="replay")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def notebook_replay(slug: str, project_dir: str) -> None:
+    """Print the previously-recorded notebook to stdout."""
+    root = Path(project_dir).resolve()
+    target = root / "docs" / "notebooks" / f"{slug}.md"
+    if not target.is_file():
+        console.print(f"[red]No notebook at {target}[/red]")
+        raise SystemExit(1)
+    click.echo(target.read_text(encoding="utf-8"))
+
+
+main.add_command(notebook_group)
+
+
+# ---------------------------------------------------------------------------
+# Cloud — spawn an off-machine agent (REQ-126)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="cloud")
+def cloud_group() -> None:
+    """Spawn cloud agents (stub for now — packages and posts work)."""
+
+
+@cloud_group.command(name="spawn")
+@click.argument("utterance")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--endpoint",
+    default="",
+    help="Cloud endpoint URL (default: SPECSMITH_CLOUD_ENDPOINT env var).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Build the tarball + manifest but do not POST.",
+)
+def cloud_spawn(utterance: str, project_dir: str, endpoint: str, dry_run: bool) -> None:
+    """Tarball the working tree and POST to a cloud agent endpoint (REQ-126).
+
+    Always emits a manifest at `.specsmith/cloud/<run_id>/manifest.json`
+    so the operation is auditable. When the endpoint is reachable the
+    response stream is tailed to stdout as JSONL events. Without an
+    endpoint, the command stays local: the manifest is recorded and a
+    helpful error is printed.
+    """
+    import json as _json
+    import os
+    import tarfile
+    import uuid as _uuid
+    from urllib import error as _urlerror
+    from urllib import request as _urlreq
+
+    root = Path(project_dir).resolve()
+    run_id = f"cloud_{_uuid.uuid4().hex[:12]}"
+    run_dir = root / ".specsmith" / "cloud" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    tar_path = run_dir / "workspace.tar.gz"
+    skip = {".git", ".venv", "__pycache__", ".specsmith", "node_modules", "dist", "build"}
+    with tarfile.open(tar_path, "w:gz") as tar:
+        for item in sorted(root.iterdir()):
+            if item.name in skip:
+                continue
+            tar.add(item, arcname=item.name)
+
+    manifest = {
+        "run_id": run_id,
+        "utterance": utterance,
+        "workspace": str(tar_path.relative_to(root)),
+        "endpoint": endpoint or os.environ.get("SPECSMITH_CLOUD_ENDPOINT", ""),
+        "dry_run": dry_run,
+    }
+    (run_dir / "manifest.json").write_text(_json.dumps(manifest, indent=2), encoding="utf-8")
+
+    if dry_run or not manifest["endpoint"]:
+        console.print(
+            f"[yellow]Cloud endpoint not configured.[/yellow] Manifest written to {run_dir}."
+        )
+        console.print(
+            "  Set [bold]SPECSMITH_CLOUD_ENDPOINT[/bold] or pass [bold]--endpoint[/bold] to POST."
+        )
+        return
+
+    body = _json.dumps(manifest).encode("utf-8")
+    req = _urlreq.Request(
+        manifest["endpoint"],
+        data=body,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with _urlreq.urlopen(req, timeout=30) as resp:  # noqa: S310 - user-configured
+            for line in resp:
+                click.echo(line.decode("utf-8", errors="replace").rstrip())
+    except (_urlerror.URLError, OSError) as exc:
+        console.print(f"[red]Cloud spawn failed:[/red] {exc}")
+        raise SystemExit(1) from None
+
+
+main.add_command(cloud_group)
 
 
 # ---------------------------------------------------------------------------

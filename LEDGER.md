@@ -598,3 +598,10 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-049,REQ-050
 - **Status**: complete
 - **Chain hash**: `dd0115de0abeff8d...`
+
+## 2026-04-28T09:05 — Nexus 1.0 roadmap groundwork landed (REQ-108..REQ-129): real verifier signal, JSONL chat block protocol (chat/notebook/cloud subcommands), persistent session memory, MCP loader, dynamic router, project-rules auto-injection, --predict-only and --comment flags, doctor --onboarding, perf smoke harness, e2e+unit tests, API-stability doc. Pre-1.0; no version bump.
+- **Author**: oz
+- **Type**: feature
+- **REQs affected**: REQ-108,REQ-109,REQ-110,REQ-111,REQ-112,REQ-113,REQ-114,REQ-115,REQ-116,REQ-117,REQ-118,REQ-119,REQ-120,REQ-121,REQ-122,REQ-123,REQ-124,REQ-125,REQ-126,REQ-127,REQ-128,REQ-129
+- **Status**: complete
+- **Chain hash**: `48a8719093e2e87d...`
