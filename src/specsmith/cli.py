@@ -5437,7 +5437,23 @@ def _read_stdin_decision(expected_type: str, timeout_seconds: float) -> dict[str
     import sys as _sys
 
     line: str | None = None
-    if _sys.platform == "win32":
+
+    # ``select`` only works on real file descriptors. Under test runners
+    # (CliRunner) and other in-memory stdins, ``sys.stdin.fileno()`` raises;
+    # in that case fall back to a direct ``readline()`` which the runner
+    # has already pre-buffered with the supplied ``input``.
+    has_fileno = True
+    try:
+        _sys.stdin.fileno()
+    except (OSError, ValueError, AttributeError):
+        has_fileno = False
+
+    if not has_fileno:
+        try:
+            line = _sys.stdin.readline()
+        except Exception:  # noqa: BLE001 - never let stdin issues kill chat
+            line = None
+    elif _sys.platform == "win32":
         # Windows has no select() on file descriptors; spawn a tiny reader
         # thread and poll a queue.
         import queue as _queue
@@ -5458,7 +5474,10 @@ def _read_stdin_decision(expected_type: str, timeout_seconds: float) -> dict[str
     else:
         import select as _select
 
-        ready, _, _ = _select.select([_sys.stdin], [], [], timeout_seconds)
+        try:
+            ready, _, _ = _select.select([_sys.stdin], [], [], timeout_seconds)
+        except (OSError, ValueError):
+            ready = []
         if ready:
             line = _sys.stdin.readline()
 
