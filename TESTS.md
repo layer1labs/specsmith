@@ -1129,4 +1129,44 @@
 - **Input:** working tree on develop
 - **Expected Behavior:** pip-audit exits 0 under the documented ignore-vuln flag; CI security job is green on PRs targeting develop.
 - **Confidence:** 1.0
+## TEST-104. workitems.json Mirrors Implemented REQs
+- **ID:** TEST-104
+- **Title:** workitems.json Mirrors Implemented REQs
+- **Description:** Running `python scripts/sync_workitems.py` produces a `.specsmith/workitems.json` whose count matches the REQ count, every entry has `status=complete`, and every entry's `test_case_ids` lists the TEST ids that share the matching `requirement_id`.
+- **Requirement ID:** REQ-104
+- **Type:** integration
+- **Verification Method:** script
+- **Input:** developer workstation
+- **Expected Behavior:** Sync prints `Synced N work items (N complete, 0 pending)` where N == REQ count.
+- **Confidence:** 1.0
+## TEST-105. Live Smoke Logs Document Skip Reason
+- **ID:** TEST-105
+- **Title:** Live Smoke Logs Document Skip Reason
+- **Description:** `.specsmith/runs/WI-NEXUS-011/logs.txt` contains a fresh `nexus_smoke.py` probe output (with `"ok": false` or `"ok": true`), a UTC timestamp, the host's docker + GPU info, and a documented reason if the container could not be reached.
+- **Requirement ID:** REQ-105
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** .specsmith/runs/WI-NEXUS-011/logs.txt
+- **Expected Behavior:** Logs file references either ok=true or ok=false / NEXUS_LIVE; documents the skip reason when applicable.
+- **Confidence:** 1.0
+## TEST-106. VS Code Extension Registers Broker Commands
+- **ID:** TEST-106
+- **Title:** VS Code Extension Registers Broker Commands
+- **Description:** `specsmith-vscode/package.json` declares `specsmith.runPreflight`, `specsmith.runVerify`, and `specsmith.toggleWhy`; `src/extension.ts` registers each with `vscode.commands.registerCommand`; `npm run lint` (`tsc --noEmit`) exits zero.
+- **Requirement ID:** REQ-106
+- **Type:** integration
+- **Verification Method:** npm
+- **Input:** specsmith-vscode repo
+- **Expected Behavior:** Three new commands visible in the command palette; tsc emits no errors.
+- **Confidence:** 1.0
+## TEST-107. ARCHITECTURE.md Has Current State Section
+- **ID:** TEST-107
+- **Title:** ARCHITECTURE.md Has Current State Section
+- **Description:** `ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence, and documentation surface.
+- **Requirement ID:** REQ-107
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** ARCHITECTURE.md
+- **Expected Behavior:** Section present and references all six post-WI-NEXUS-023 facets.
+- **Confidence:** 1.0
 

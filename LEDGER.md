@@ -563,3 +563,38 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-103
 - **Status**: complete
 - **Chain hash**: `61b8dcb9f748149d...`
+
+## 2026-04-27T20:53 — WI-NEXUS-024: workitems.json synced via scripts/sync_workitems.py - 107 work items mirrored to REQ-001..REQ-107 (REQ-104)
+- **Author**: specsmith
+- **Type**: sync
+- **REQs affected**: REQ-104
+- **Status**: complete
+- **Chain hash**: `c1e83204390b35e3...`
+
+## 2026-04-27T20:53 — WI-NEXUS-025: live l1-nexus smoke evidence refreshed at .specsmith/runs/WI-NEXUS-011/logs.txt - skip with documented hardware reason (12GB GPU vs ~20GB needed) (REQ-105)
+- **Author**: specsmith
+- **Type**: evidence
+- **REQs affected**: REQ-105
+- **Status**: complete
+- **Chain hash**: `b375b793d5b016c4...`
+
+## 2026-04-27T20:53 — WI-NEXUS-026: VS Code extension parity - specsmith.runPreflight, specsmith.runVerify, specsmith.toggleWhy commands shipped in specsmith-vscode PR #28 (REQ-106)
+- **Author**: specsmith
+- **Type**: feature
+- **REQs affected**: REQ-106
+- **Status**: complete
+- **Chain hash**: `68a8ba78f45bb418...`
+
+## 2026-04-27T20:53 — WI-NEXUS-027: ARCHITECTURE.md gained 'Current State (post-WI-NEXUS-023)' section listing realized broker, harness, retry strategies, CI baseline, VS Code parity, smoke evidence, and docs surface (REQ-107)
+- **Author**: specsmith
+- **Type**: docs
+- **REQs affected**: REQ-107
+- **Status**: complete
+- **Chain hash**: `f2026d5eb9729534...`
+
+## 2026-04-27T20:53 — WI-NEXUS-028: bumped pyproject.toml to 0.4.0; CHANGELOG [Unreleased] -> [0.4.0]; release prep complete (REQ-049, REQ-050)
+- **Author**: specsmith
+- **Type**: release
+- **REQs affected**: REQ-049,REQ-050
+- **Status**: complete
+- **Chain hash**: `dd0115de0abeff8d...`

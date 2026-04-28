@@ -717,4 +717,28 @@
 - **Description:** The CI security job must upgrade pip to the latest release before invoking `pip-audit`, and must pass the `--ignore-vuln CVE-2026-3219` flag for the unfixed pip advisory so the runner's own pip version does not block PRs. Specsmith's actual runtime dependencies (click, jinja2, pyyaml, pydantic, rich) must remain pip-audit clean; any new advisory against them must trigger a dependency bump rather than another ignore-flag.
 - **Source:** .github/workflows/ci.yml
 - **Status:** defined
+## 104. Work Items Must Mirror Implemented REQs
+- **ID:** REQ-104
+- **Title:** Work Items Must Mirror Implemented REQs
+- **Description:** `.specsmith/workitems.json` must derive from `.specsmith/requirements.json` and `.specsmith/testcases.json`. For each REQ-N there must be a matching WORK-N entry with `requirement_id=REQ-N`, `test_case_ids` listing every TEST joined by `requirement_id`, and `status=complete` when the REQ is implemented in source. The `scripts/sync_workitems.py` helper is the canonical sync.
+- **Source:** scripts/sync_workitems.py, .specsmith/workitems.json
+- **Status:** defined
+## 105. Live Smoke Evidence Must Be Reproducible Or Honestly Skipped
+- **ID:** REQ-105
+- **Title:** Live Smoke Evidence Must Be Reproducible Or Honestly Skipped
+- **Description:** A live or honestly-skipped invocation of `scripts/nexus_smoke.py` against the configured `l1-nexus` model must be captured under `.specsmith/runs/WI-NEXUS-011/logs.txt`. The skip note must include a fresh probe attempt, a timestamp, and the hardware/environment reason the live container could not be reached.
+- **Source:** .specsmith/runs/WI-NEXUS-011/logs.txt, scripts/nexus_smoke.py
+- **Status:** defined
+## 106. VS Code Extension Must Surface Nexus Broker
+- **ID:** REQ-106
+- **Title:** VS Code Extension Must Surface Nexus Broker
+- **Description:** The `specsmith-vscode` extension must expose three commands that wrap the Nexus broker contract: `specsmith.runPreflight` (REQ-085), `specsmith.runVerify` (REQ-097), and `specsmith.toggleWhy` (REQ-094). Each command must be reachable from the command palette and must use the configured `specsmith.executablePath` for terminal invocation.
+- **Source:** specsmith-vscode/package.json, specsmith-vscode/src/extension.ts
+- **Status:** defined
+## 107. ARCHITECTURE.md Must Reflect Current State
+- **ID:** REQ-107
+- **Title:** ARCHITECTURE.md Must Reflect Current State
+- **Description:** `ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.
+- **Source:** ARCHITECTURE.md
+- **Status:** defined
 
