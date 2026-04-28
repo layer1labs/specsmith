@@ -2,6 +2,70 @@
 
 specsmith has 40+ commands. Every command that operates on a project accepts `--project-dir PATH` (default: current directory).
 
+## `specsmith preflight`
+
+Classify a natural-language utterance under Specsmith governance and emit a deterministic JSON payload (REQ-085, REQ-088, REQ-092, REQ-093, REQ-099, REQ-100).
+
+```bash
+specsmith preflight "fix the cleanup dry-run regression" --json
+specsmith preflight "delete the dist directory" --json
+specsmith preflight "refactor the broker" --stress --verbose --json
+```
+
+**Options:**
+
+- `--project-dir PATH` \u2014 project root (default: `.`).
+- `--json` \u2014 emit the decision as JSON on stdout.
+- `--verbose` \u2014 include a plain-language narration block alongside the JSON payload.
+- `--stress` \u2014 run an AEE stress-test pass over matched requirements; surfaces critical failures as `stress_warnings`.
+
+**JSON payload keys:** `decision` (one of `accepted`, `needs_clarification`, `blocked`, `rejected`), `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`, `intent`. Optional: `stress_warnings`, `narration`.
+
+**Exit codes (REQ-092):** `0` for `accepted`, `2` for `needs_clarification`, `3` for `blocked`/`rejected`. The JSON payload still prints to stdout for non-zero exits so CI scripts can branch on intent without re-parsing the entire output.
+
+**Ledger side-effects:** when the decision is `accepted` and `LEDGER.md` exists, the CLI appends a `preflight` entry tagged with `REQ-085` plus the resolved `requirement_ids`. Brand-new `work_item_id` values also get a distinct `work_proposal` entry tagged with `REQ-044,REQ-085` (REQ-099).
+
+## `specsmith verify`
+
+Verify a Specsmith-governed change set per the verification input contract (REQ-027, REQ-097).
+
+```bash
+echo '{"diff":"...","files_changed":["src/foo.py"],"test_results":{"passed":5,"failed":0}}' | \
+  specsmith verify --stdin
+
+specsmith verify --diff change.patch --tests test-results.json --logs run.log
+```
+
+**Options:**
+
+- `--project-dir PATH` \u2014 project root (default: `.`).
+- `--stdin` \u2014 read the verification input as a single JSON object from stdin.
+- `--diff PATH` / `--tests PATH` / `--logs PATH` \u2014 file-based alternatives to `--stdin`.
+- `--changed a,b,c` \u2014 comma-separated list of changed file paths.
+- `--work-item-id ID` \u2014 optional work item id to bind the verification to.
+
+**JSON payload keys:** `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`, `retry_strategy` (one of `narrow_scope`, `expand_scope`, `fix_tests`, `rollback`, `stop`, or empty when equilibrium is reached), `work_item_id`, `retry_budget`, `confidence_threshold`.
+
+**Exit codes (REQ-097):** `0` when equilibrium is reached and confidence \u2265 the configured threshold; `2` when retry is recommended; `3` when stop-and-align is required.
+
+## Nexus REPL
+
+```bash
+specsmith run                                       # AEE-integrated REPL
+# or, with the experimental Nexus REPL surface:
+python -m specsmith.agent.repl
+
+nexus> what does the cleanup module do?             # read-only ask -> answered
+nexus> fix the cleanup dry-run regression            # change -> Specsmith approves, runs
+nexus> delete the entire dist directory              # destructive -> needs clarification
+nexus> /why                                          # toggle governance details on/off
+nexus> /show-governance                              # alias for /why
+nexus> /plan add a new validator command             # plan-only mode
+nexus> /exit
+```
+
+The Nexus broker classifies intent, infers scope from `REQUIREMENTS.md` and `.repo-index/files.json`, calls `specsmith preflight`, and gates execution: only `accepted` decisions reach the AG2 orchestrator (REQ-086). Execution itself runs through the bounded-retry harness (REQ-014, REQ-087); when retries are exhausted, the harness surfaces a single clarifying question whose `Suggested next step:` field maps the failure to one of the canonical retry strategies (REQ-096). Toggle `/why` to reveal the underlying `work_item_id`, `requirement_ids`, `test_case_ids`, post-run confidence, and equilibrium flag (REQ-094).
+
 ## `specsmith init`
 
 Scaffold a new governed project.

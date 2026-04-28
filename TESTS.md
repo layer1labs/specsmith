@@ -1099,4 +1099,34 @@
 - **Input:** click.testing.CliRunner over tmp_path with seeded REQUIREMENTS.md
 - **Expected Behavior:** `stress_warnings` populated under --stress when StressTester reports critical failures; absent or empty otherwise.
 - **Confidence:** 1.0
+## TEST-101. Lint Baseline Is Clean on develop
+- **ID:** TEST-101
+- **Title:** Lint Baseline Is Clean on develop
+- **Description:** `ruff check src/ tests/` and `ruff format --check src/ tests/` both exit zero on `develop`. The CI workflow's `lint` job is the canonical gate; running both commands locally produces "All checks passed!" and "112 files already formatted" (or equivalent for the current file count).
+- **Requirement ID:** REQ-101
+- **Type:** integration
+- **Verification Method:** ci
+- **Input:** working tree on develop
+- **Expected Behavior:** Both ruff invocations exit 0; CI lint job is green on PRs targeting develop.
+- **Confidence:** 1.0
+## TEST-102. Type-Check Baseline Is Clean on develop
+- **ID:** TEST-102
+- **Title:** Type-Check Baseline Is Clean on develop
+- **Description:** `mypy src/specsmith/` exits zero on `develop`. The CI workflow's `typecheck` job is the canonical gate. Modules added to the `ignore_errors=true` overrides in `pyproject.toml` (REQ-102) must remain enumerated; new modules must justify any addition with a comment.
+- **Requirement ID:** REQ-102
+- **Type:** integration
+- **Verification Method:** ci
+- **Input:** working tree on develop
+- **Expected Behavior:** mypy exits 0; CI typecheck job is green on PRs targeting develop.
+- **Confidence:** 1.0
+## TEST-103. Security Job Passes With pip-audit ignore-vuln
+- **ID:** TEST-103
+- **Title:** Security Job Passes With pip-audit ignore-vuln
+- **Description:** The CI security job upgrades pip to the latest release, installs `pip-audit`, installs specsmith with its runtime dependencies, then runs `pip-audit --ignore-vuln CVE-2026-3219`. The job exits zero on `develop`.
+- **Requirement ID:** REQ-103
+- **Type:** integration
+- **Verification Method:** ci
+- **Input:** working tree on develop
+- **Expected Behavior:** pip-audit exits 0 under the documented ignore-vuln flag; CI security job is green on PRs targeting develop.
+- **Confidence:** 1.0
 

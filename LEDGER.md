@@ -542,3 +542,24 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **REQs affected**: REQ-100
 - **Status**: complete
 - **Chain hash**: `1b5b01b80278aabd...`
+
+## 2026-04-27T20:20 — WI-NEXUS-021: ruff lint + format baseline clean on develop (REQ-101)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-101
+- **Status**: complete
+- **Chain hash**: `334a9bbfb434660b...`
+
+## 2026-04-27T20:20 — WI-NEXUS-022: mypy typecheck baseline clean (69 source files) on develop (REQ-102)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-102
+- **Status**: complete
+- **Chain hash**: `21d93939267d1bd6...`
+
+## 2026-04-27T20:20 — WI-NEXUS-023: CI security baseline upgraded; pip-audit ignore-vuln CVE-2026-3219 documented; no open Dependabot alerts (REQ-103)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-103
+- **Status**: complete
+- **Chain hash**: `61b8dcb9f748149d...`

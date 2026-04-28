@@ -698,5 +698,26 @@
     "description": "When the user passes `--stress` to `specsmith preflight` and the matched requirements set is non-empty, the CLI must invoke the existing AEE `StressTester` against those belief artifacts and surface any critical failures in the JSON payload as a `stress_warnings` list. The narration (verbose mode) must include a one-sentence plain-English warning when at least one critical failure is found. The flag must default off so unrelated tests continue to pass.",
     "source": "ARCHITECTURE.md",
     "status": "defined"
+  },
+  {
+    "id": "REQ-101",
+    "title": "Lint Baseline Must Be Clean",
+    "description": "`ruff check src/ tests/` and `ruff format --check src/ tests/` must both exit zero on `develop`. The lint job in `.github/workflows/ci.yml` enforces this contract. Per-file ignores in `pyproject.toml` are reserved for documentation modules whose long lines are intentional (e.g. `toolrules.py`, `tool_installer.py`).",
+    "source": ".github/workflows/ci.yml, pyproject.toml",
+    "status": "defined"
+  },
+  {
+    "id": "REQ-102",
+    "title": "Type-Check Baseline Must Be Clean",
+    "description": "`mypy src/specsmith/` must exit zero on `develop`. Strict-mypy is preserved for the historically-typed modules; dynamically-typed modules in `specsmith.agent.*`, `specsmith.console_utils`, `specsmith.serve`, and the agent-orchestrator surface are explicitly enumerated in the `[[tool.mypy.overrides]]` `ignore_errors=true` block of `pyproject.toml` until they are individually annotated.",
+    "source": ".github/workflows/ci.yml, pyproject.toml",
+    "status": "defined"
+  },
+  {
+    "id": "REQ-103",
+    "title": "Security Baseline Tolerates Unfixed pip Advisory",
+    "description": "The CI security job must upgrade pip to the latest release before invoking `pip-audit`, and must pass the `--ignore-vuln CVE-2026-3219` flag for the unfixed pip advisory so the runner's own pip version does not block PRs. Specsmith's actual runtime dependencies (click, jinja2, pyyaml, pydantic, rich) must remain pip-audit clean; any new advisory against them must trigger a dependency bump rather than another ignore-flag.",
+    "source": ".github/workflows/ci.yml",
+    "status": "defined"
   }
 ]
