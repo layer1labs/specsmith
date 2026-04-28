@@ -5258,6 +5258,7 @@ def chat_cmd(
     events instead of executing tool calls (REQ-115).
     """
     import json as _json
+    import os
     import uuid as _uuid
 
     from specsmith.agent.events import EventEmitter
@@ -5363,10 +5364,38 @@ def chat_cmd(
     emitter.tool_call(msg_block, "execute_with_governance", {"utterance": utterance})
     emitter.plan_step(plan_block, "s2", "complete")
 
-    # Verifier sketch (deterministic, no LLM needed for this stub):
-    summary = (
-        f"Preflight intent={real_intent.value}, matched_reqs={len(scope.matched_requirements)}."
-    )
+    # Real LLM turn — try Ollama / Anthropic / OpenAI / Gemini via
+    # specsmith.agent.chat_runner. Any failure (no provider, network
+    # error, missing SDK) returns ``None`` so we fall back to the
+    # deterministic stub below. This keeps the test suite green on
+    # machines without an LLM configured at all.
+    real_result = None
+    if os.environ.get("SPECSMITH_DISABLE_REAL_CHAT", "").lower() not in ("1", "true", "yes"):
+        try:
+            from specsmith.agent.chat_runner import run_chat as _run_chat
+
+            real_result = _run_chat(
+                utterance,
+                project_dir=root,
+                profile=profile,
+                session_id=sid,
+                emitter=emitter,
+                msg_block=msg_block,
+                history=history,
+                rules_prefix=rules_prefix,
+            )
+        except Exception:  # noqa: BLE001 - real chat is best-effort
+            real_result = None
+
+    if real_result is not None:
+        verdict = real_result.verdict
+        summary = real_result.summary or (verdict.summary if verdict else "")
+    else:
+        # Verifier sketch (deterministic, no LLM needed for this stub):
+        verdict = None
+        summary = (
+            f"Preflight intent={real_intent.value}, matched_reqs={len(scope.matched_requirements)}."
+        )
     if reviewer_comment:
         summary += f" reviewer_comment={reviewer_comment!r}"
     emitter.plan_step(plan_block, "s3", "complete", summary=summary)
@@ -5383,13 +5412,13 @@ def chat_cmd(
         for req in scope.matched_requirements[:3]:
             diff_block = emitter.diff(
                 path=f"docs/{req.req_id}.md",
-                diff=f"--- {req.req_id} (review)\n+++ {req.req_id} (proposed)\n",
+                body=f"--- {req.req_id} (review)\n+++ {req.req_id} (proposed)\n",
             )
             decision = _read_stdin_decision("diff_decision", decision_timeout)
-            verdict = (decision or {}).get("decision", "timeout")
+            decision_status = (decision or {}).get("decision", "timeout")
             comment = (decision or {}).get("comment", "")
-            emitter.block_complete(diff_block, status=verdict)
-            if verdict != "accept" and comment:
+            emitter.block_complete(diff_block, status=decision_status)
+            if decision_status != "accept" and comment:
                 extra_comment = comment
                 break
 
@@ -5397,9 +5426,12 @@ def chat_cmd(
     if extra_comment:
         final_summary += f" reviewer_comment={extra_comment!r}"
 
+    final_confidence = (
+        verdict.confidence if real_result is not None and verdict is not None else 0.7
+    )
     emitter.task_complete(
-        success=True,
-        confidence=0.7,
+        success=real_result is None or (verdict is not None and verdict.equilibrium),
+        confidence=final_confidence,
         summary=final_summary,
         profile=profile,
         session_id=sid,

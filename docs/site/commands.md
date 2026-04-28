@@ -65,6 +65,55 @@ nexus> /exit
 ```
 
 The Nexus broker classifies intent, infers scope from `REQUIREMENTS.md` and `.repo-index/files.json`, calls `specsmith preflight`, and gates execution: only `accepted` decisions reach the AG2 orchestrator (REQ-086). Execution itself runs through the bounded-retry harness (REQ-014, REQ-087); when retries are exhausted, the harness surfaces a single clarifying question whose `Suggested next step:` field maps the failure to one of the canonical retry strategies (REQ-096). Toggle `/why` to reveal the underlying `work_item_id`, `requirement_ids`, `test_case_ids`, post-run confidence, and equilibrium flag (REQ-094).
+## `specsmith chat`
+
+Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients (e.g. the VS Code extension's `ChatPanel`).
+
+```bash
+specsmith chat "add a hello world greeter" --project-dir .
+specsmith chat "refactor the broker" --profile safe --interactive --decision-timeout 120
+```
+
+**Options:**
+
+- `--project-dir PATH` \u2014 project root (default: `.`).
+- `--session-id ID` \u2014 reuse an existing session id; persisted turns under `.specsmith/sessions/<id>/turns.jsonl` are replayed as prior context (REQ-120).
+- `--parent-session ID` \u2014 mark this run as a sub-session of the given parent (REQ-125).
+- `--profile {safe,standard,yolo}` \u2014 permission tier (REQ-115). `safe` emits a `tool_request` event and waits before executing.
+- `--comment TEXT` \u2014 reviewer comment fed into the next retry (REQ-116).
+- `--json-events` \u2014 emit JSONL block events (on by default).
+- `--interactive` \u2014 read decision events from stdin (`tool_decision` and `diff_decision`). Used by IDE consumers to drive safe-mode approval and inline diff review.
+- `--decision-timeout SECONDS` \u2014 maximum wait for a stdin decision (default `120.0`).
+
+**Event protocol (selected types):** `block_start` / `block_complete` (kinds: `plan`, `message`, `tool_call`, `tool_result`, `diff`), `token`, `tool_call`, `tool_request`, `tool_result`, `plan_step`, `task_complete`. Each event is a single JSON object on its own line.
+
+**Stdin decision protocol** (only with `--interactive`):
+
+```
+{"type":"tool_decision","decision":"approve"}
+{"type":"tool_decision","decision":"deny","reason":"unsafe path"}
+{"type":"diff_decision","decision":"accept"}
+{"type":"diff_decision","decision":"reject","comment":"use uppercase greeting"}
+```
+
+A non-accept `diff_decision` with a `comment` field is folded into the persisted turn's `reviewer_comment` so the next harness retry can consume it (REQ-116).
+
+**Real LLM backend.** When `chat` runs, the command first attempts a real model turn through `specsmith.agent.chat_runner`, which selects the first available provider in this order: a local Ollama daemon (default `http://127.0.0.1:11434`, model `qwen2.5:7b`), then the `anthropic`, `openai`, and `google-genai` SDKs (each gated on the matching `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `GOOGLE_API_KEY` env var and the SDK being installed). If no provider is reachable the runner returns ``None`` and the command falls back to a deterministic stub so tests and offline workflows stay green. Set `SPECSMITH_DISABLE_REAL_CHAT=1` to force the deterministic path.
+## `specsmith skill`
+
+Discover and install built-in agent skills.
+
+```bash
+specsmith skill list
+specsmith skill search verifier
+specsmith skill install diff-reviewer --project-dir ./my-project
+```
+
+**Subcommands:**
+
+- `list` \u2014 print the built-in catalog (`verifier`, `planner`, `diff-reviewer`, `onboarding-coach`, `release-pilot`).
+- `search QUERY` \u2014 fuzzy-match the catalog by slug, name, or description.
+- `install SLUG` \u2014 write the skill's `SKILL.md` to `.agents/skills/<slug>/SKILL.md` so the local Nexus runtime picks it up at session start. Existing files are preserved unless `--force` is passed.
 
 ## `specsmith init`
 

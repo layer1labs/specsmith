@@ -12,6 +12,8 @@ from __future__ import annotations
 import contextlib
 import sys
 
+import pytest
+
 
 def pytest_configure(config):  # type: ignore[no-untyped-def]  # noqa: ARG001
     """Patch pytest's cleanup_dead_symlinks early to suppress WinError 448.
@@ -42,3 +44,20 @@ def pytest_configure(config):  # type: ignore[no-untyped-def]  # noqa: ARG001
         _pytest_tmpdir.cleanup_dead_symlinks = _safe_cleanup  # type: ignore[attr-defined]
     except Exception:  # noqa: BLE001
         pass
+
+
+@pytest.fixture(autouse=True)
+def _disable_specsmith_auto_update(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Suppress the project auto-update / PyPI-check prompts during tests.
+
+    Both ``_maybe_prompt_project_update`` and ``_maybe_notify_pypi_update``
+    in ``specsmith.cli`` run on every CLI invocation. The first calls
+    ``input()`` when the project's ``scaffold.yml`` ``spec_version`` is
+    behind the installed version — that ``input()`` call would silently
+    consume the first line of stdin in tests that drive the chat
+    ``--interactive`` protocol. The second hits the network. Pinning the
+    suppression env vars keeps tests hermetic, deterministic, and free of
+    network access.
+    """
+    monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
+    monkeypatch.setenv("SPECSMITH_PYPI_CHECKED", "1")
