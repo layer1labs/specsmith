@@ -20,7 +20,7 @@ The importer walks the project tree (skipping `.git/`, `node_modules/`, `__pycac
 
 **VCS remote** — Runs `git remote get-url origin` and infers: github.com → github, gitlab → gitlab, bitbucket → bitbucket.
 
-**Existing governance** — Checks for AGENTS.md, LEDGER.md, CLAUDE.md, GEMINI.md, docs/REQUIREMENTS.md, docs/TEST_SPEC.md, docs/architecture.md.
+**Existing governance** — Checks for AGENTS.md, LEDGER.md, CLAUDE.md, GEMINI.md, docs/REQUIREMENTS.md, docs/TESTS.md, docs/architecture.md.
 
 **Modules** — Python: `src/*/` with `__init__.py`. Rust: `src/lib.rs`, `src/main.rs`. Go: directories with `.go` files. JS/TS: `src/*/` subdirectories.
 
@@ -37,7 +37,7 @@ The overlay generates **only what's missing**. If your project already has `AGEN
 - `AGENTS.md` — project name, detected language/build/test info, workflow rules
 - `LEDGER.md` — initial import entry with date, type, language
 - `docs/REQUIREMENTS.md` — one REQ per detected module + build requirement
-- `docs/TEST_SPEC.md` — one TEST per detected test file, linked to module REQs
+- `docs/TESTS.md` — one TEST per detected test file, linked to module REQs
 - `docs/architecture.md` — overview, modules, entry points, language distribution
 - `docs/governance/*.md` — six modular governance stubs
 - `scaffold.yml` — full ProjectConfig for future specsmith commands
@@ -80,7 +80,7 @@ Without `--force`, existing files are never overwritten. With `--force`, all gov
 
 ## Using `--guided`
 
-After the overlay is generated, `--guided` runs an interactive architecture session: you name your components, and specsmith generates richer REQUIREMENTS.md (two REQs per component) and TEST_SPEC.md (linked tests) and architecture.md (component descriptions).
+After the overlay is generated, `--guided` runs an interactive architecture session: you name your components, and specsmith generates richer REQUIREMENTS.md (two REQs per component) and TESTS.md (linked tests) and architecture.md (component descriptions).
 
 ## Branch-Based Import (Recommended)
 

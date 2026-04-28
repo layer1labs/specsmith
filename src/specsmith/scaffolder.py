@@ -129,7 +129,7 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
         # Project docs
         ("docs/architecture.md.j2", "docs/ARCHITECTURE.md"),
         ("docs/requirements.md.j2", "docs/REQUIREMENTS.md"),
-        ("docs/test-spec.md.j2", "docs/TEST_SPEC.md"),
+        ("docs/test-spec.md.j2", "docs/TESTS.md"),
         # Scripts
         ("scripts/setup.cmd.j2", "scripts/setup.cmd"),
         ("scripts/setup.sh.j2", "scripts/setup.sh"),

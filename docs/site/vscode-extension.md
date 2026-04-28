@@ -124,7 +124,7 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 - All saved to `fpga_tools:`, `platforms:` in scaffold.yml
 
 ### Tab: Files
-- Governance file status table: scaffold.yml, AGENTS.md, REQUIREMENTS.md, TEST_SPEC.md, ARCHITECTURE.md, LEDGER.md
+- Governance file status table: scaffold.yml, AGENTS.md, REQUIREMENTS.md, TESTS.md, ARCHITECTURE.md, LEDGER.md
 - Governance files use new naming: SESSION-PROTOCOL.md, LIFECYCLE.md (replaces old WORKFLOW.md)
 - ✓ / ✗ indicators with line counts
 - **Add** buttons for missing files — choose AI-generated or template

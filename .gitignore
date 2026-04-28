@@ -26,6 +26,8 @@ venv/
 
 # Testing / coverage
 .pytest_cache/
+.pytest_tmp/
+.ruff_cache/
 .coverage
 htmlcov/
 .mypy_cache/
@@ -35,3 +37,7 @@ htmlcov/
 tmp/
 temp/
 *.log
+
+# Secrets and local-only Nexus artifacts
+.env
+.repo-index/

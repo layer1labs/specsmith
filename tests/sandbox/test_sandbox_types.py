@@ -54,7 +54,7 @@ class TestPatentApplicationScaffold:
         assert "REQ-SPEC-001" in reqs
 
         # Patent-specific test spec
-        tests = (project / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        tests = (project / "docs" / "TESTS.md").read_text(encoding="utf-8")
         assert "TEST-CLM-001" in tests
 
         # Verification.md has patent tools
@@ -212,7 +212,7 @@ class TestLegalComplianceScaffold:
         assert "REQ-REG-001" in reqs
 
         # Legal-specific test spec
-        tests = (project / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        tests = (project / "docs" / "TESTS.md").read_text(encoding="utf-8")
         assert "TEST-CTR-001" in tests
 
         # Legal AGENTS.md rules
@@ -301,7 +301,7 @@ class TestAPISpecScaffold:
         assert "REQ-AUTH-001" in reqs
 
         # API-specific test spec
-        tests = (project / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        tests = (project / "docs" / "TESTS.md").read_text(encoding="utf-8")
         assert "TEST-API-001" in tests
 
         # CI has spectral

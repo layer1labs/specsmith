@@ -90,7 +90,7 @@ def run_upgrade(
         target_version: Target spec version. If None, uses the current specsmith version.
         full: If True, also regenerate exec shims, agent integrations, CI configs,
               and create missing community/RTD files. Safe: never overwrites
-              AGENTS.md, LEDGER.md, REQUIREMENTS.md, TEST_SPEC.md, or user docs.
+              AGENTS.md, LEDGER.md, REQUIREMENTS.md, TESTS.md, or user docs.
 
     Returns:
         UpgradeResult with details of the operation.
@@ -181,7 +181,7 @@ _USER_OWNED: set[str] = {
     "LEDGER.md",
     "README.md",
     "docs/REQUIREMENTS.md",
-    "docs/TEST_SPEC.md",
+    "docs/TESTS.md",
     "docs/ARCHITECTURE.md",
 }
 

@@ -276,7 +276,7 @@ def detect_project(root: Path) -> DetectionResult:
         "CLAUDE.md",
         "GEMINI.md",
         "docs/REQUIREMENTS.md",
-        "docs/TEST_SPEC.md",
+        "docs/TESTS.md",
         "docs/ARCHITECTURE.md",
     ):
         if (root / gov_file).exists():
@@ -1177,7 +1177,7 @@ def generate_overlay(
         "1. Read AGENTS.md fully before starting any task.\n"
         "2. Log all changes in LEDGER.md.\n"
         "3. Map changes to requirements in docs/REQUIREMENTS.md.\n"
-        "4. Verify against docs/TEST_SPEC.md.\n",
+        "4. Verify against docs/TESTS.md.\n",
     )
 
     # LEDGER.md
@@ -1214,7 +1214,7 @@ def generate_overlay(
             )
         _write("docs/REQUIREMENTS.md", reqs)
 
-    # docs/TEST_SPEC.md — skip if project already has one
+    # docs/TESTS.md — skip if project already has one
     existing_tests = list(target.glob("docs/**/TEST_SPEC*")) + list(
         target.glob("docs/**/test_spec*")
     )
@@ -1238,7 +1238,7 @@ def generate_overlay(
                 "  Covers: REQ-BUILD-001\n"
                 "- **Status**: Detected\n\n"
             )
-        _write("docs/TEST_SPEC.md", tests)
+        _write("docs/TESTS.md", tests)
 
     # docs/architecture.md — skip if project has architecture doc anywhere under docs/
     existing_arch = list(target.glob("docs/**/ARCHITECTURE*")) + list(
@@ -1344,7 +1344,7 @@ def generate_overlay(
                 "| ---- | ------- |\n"
                 "| `LEDGER.md` | Append-only work record |\n"
                 "| `docs/REQUIREMENTS.md` | Formal requirements |\n"
-                "| `docs/TEST_SPEC.md` | Test cases |\n"
+                "| `docs/TESTS.md` | Test cases |\n"
                 "| `docs/ARCHITECTURE.md` | Architecture |\n\n"
                 "---\n\n"
                 f"*Original AGENTS.md ({agents_lines} lines) backed up "

@@ -1,154 +1,19 @@
 # Ledger — specsmith
 
-## Session 2026-04-01 — Initial CLI implementation
+## Archived (3 entries)
 
-**Status:** Complete
-**Scope:** Full CLI tool with 5 commands, 4 agent adapters, CI/CD, tests
+*Archived on 2026-04-23*
 
-### Proposal
-Build specsmith CLI tool with: init (scaffold generation), audit (health checks),
-validate (consistency), compress (ledger archival), upgrade (spec version migration).
-Add agent integration adapters for Warp, Claude Code, Cursor, and Copilot.
-
-Estimated cost: high
-
-### Changes
-- `src/specsmith/cli.py` — click CLI with init, audit, validate, compress, upgrade
-- `src/specsmith/scaffolder.py` — Jinja2 template renderer with project type logic
-- `src/specsmith/config.py` — pydantic ProjectConfig with 8 project types
-- `src/specsmith/auditor.py` — governance file checks, REQ↔TEST coverage, ledger health
-- `src/specsmith/validator.py` — scaffold.yml, AGENTS.md refs, REQ uniqueness
-- `src/specsmith/compressor.py` — ledger archival with configurable thresholds
-- `src/specsmith/upgrader.py` — governance template re-rendering on version bump
-- `src/specsmith/integrations/` — base adapter + Warp, Claude Code, Cursor, Copilot
-- `src/specsmith/templates/` — 30+ Jinja2 templates for governed scaffolds
-- `.github/workflows/ci.yml` — lint + typecheck + test matrix + security audit
-- `.github/workflows/release.yml` — tag-triggered build → GitHub Release
-- `docs/REQUIREMENTS.md` — 37 formal requirements
-- `docs/TEST_SPEC.md` — 30 test specifications
-
-### Verification
-- 36 tests passing (pytest)
-- ruff lint: clean
-- ruff format: clean
-- mypy strict: clean
-- CI: lint ✓, security ✓, typecheck pending (fix pushed)
-
-### Open TODOs
-- [x] Add VCS platform integrations (GitHub/GitLab/Bitbucket CLI)
-- [x] Add Gemini, Windsurf, Aider agent adapters
-- [x] Expand CLI runner test coverage
-- [x] Self-host governance (this file)
-
-## Session 2026-04-05 — AEE epistemic layer, agentic client, CI/CD, meta-governance
-
-**Status:** Complete
-**Branch:** develop
-**Spec version:** 0.3.0 (switched from 0.3.0a1 → X.Y.Z.devN scheme)
-
-### What was done
-
-**Applied Epistemic Engineering (AEE) — core implementation:**
-- `src/epistemic/` standalone library (7 modules, zero deps): BeliefArtifact, StressTester, FailureModeGraph, RecoveryOperator, CertaintyEngine, TraceVault, AEESession. `from epistemic import AEESession` works in any Python 3.10+ project.
-- `src/specsmith/epistemic/` shim re-exporting from `epistemic` (backward compat)
-- `src/specsmith/trace.py` — STP-inspired SHA-256 audit chain
-- `ledger.py` — CryptoAuditChain (tamper-evident ledger entries)
-- 8 new CLI commands: stress-test, epistemic-audit, belief-graph, trace seal/verify/log, integrate
-- H13 hard rule (Epistemic Boundaries Required) in governance templates
-- 4 new governance templates: epistemic-axioms, belief-registry, failure-modes, uncertainty-map
-- 3 new project types: epistemic-pipeline, knowledge-engineering, aee-research
-- 33 project types total (up from 30)
-- 25 new tests, all passing
-
-**Agentic client (`src/specsmith/agent/`):**
-- `specsmith run` — AEE-integrated REPL (Anthropic, OpenAI, Gemini, Ollama; all optional extras)
-- 20 specsmith commands as native LLM tools with epistemic contracts
-- HookRegistry: H13 enforcement, ledger hints, context budget warning
-- SKILL.md loader with domain priority
-- Built-in profiles: planner, verifier, epistemic-auditor
-
-**Issue resolutions (all closed):**
-- #52: CreditBudget.enforcement_mode soft|hard, specsmith credits check
-- #37: specsmith auth set/list/remove/check (OS keyring > file; tokens never logged)
-- #17: specsmith workspace init/audit/export (workspace.yml multi-project)
-- #16: specsmith watch (polling daemon, LEDGER.md staleness alerts)
-- #10: specsmith patent search/prior-art (USPTO ODP API)
-- #18: governance templates marketplace (deferred, plugin system is the foundation)
-
-**CI/CD fixes:**
-- 5 rounds of CI fixes: ruff SIM violations, mypy errors (auth.py, trace.py, runner.py, cli.py), test count assertions, sandbox upgrade test
-- Dev-release workflow: RTD token validation, HTTP status logging, develop/latest build triggers
-- RTD “latest”: PATCH /versions/latest/ with identifier=develop (HTTP 204) — root fix confirmed
-- PyPI badge: removed dev badge (shields.io couldn’t show .devN reliably)
-- v0.3.0a1 GitHub release/tag deleted; versioning changed to X.Y.Z.devN
-
-**Meta-governance bootstrapping:**
-- `scaffold.yml` created for specsmith itself (hand-crafted, enable_epistemic: true)
-- west-env: specsmith import run, 14 governance files generated, spec_version 0.3.0, committed
-
-**Documentation:**
-- docs/site/aee-primer.md — 10-part comprehensive AEE guide
-- docs/site/epistemic-library.md — standalone library API reference + glossa-lab examples
-- docs/site/agent-client.md — specsmith run reference
-- docs/site/index.md — AEE-first homepage
-- README.md, AGENTS.md, mkdocs.yml, CHANGELOG.md all updated
-- ECC reference cloned: C:\Users\trist\Development\BitConcepts\everything-claude-code
-
-### Verification
-- 25 new epistemic tests (all pass)
-- ruff check + format: clean
-- mypy strict: clean (0 errors in 62 files)
-- CI: green (all 4 jobs pass)
-- 0 open GitHub issues
-- 0 security/dependabot alerts
-
-### Open TODOs
-- [ ] RTD latest: verify homepage shows AEE content after version identifier fix
-- [ ] Yank 0.3.0a1 from PyPI (optional — pip install --pre gets 0.3.0a1 until 0.3.0 releases)
-- [ ] glossa-lab: adopt epistemic library (AEESession for decipherment hypotheses)
-- [ ] scaffolder.py: render epistemic templates for epistemic project types (foundation done, rendering hook pending)
-- [ ] Release 0.3.0 stable when ready (merge develop → main, tag v0.3.0)
-
-### Next step
-Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separately, run specsmith import on cpac and cpsc-engine-python to extend governance to the full BitConcepts portfolio.
-
----
-
-## Session 2026-04-02 — v0.2.0→v0.2.2 release cycle
-
-**Status:** Complete
-**Scope:** Major feature release + two patch releases
-
-### Changes
-- **v0.2.0**: Uppercase governance filenames, community templates (#42), AI credit tracking (#50/#51), architect command (#49), self-update, multi-language detection, dynamic versioning, VCS commands, ledger/req/test CLIs, plugin scaffold
-- **v0.2.1**: Process abort/PID tracking (exec/ps/abort commands), language-specific templates (#41 — Rust, Go, JS/TS), RTD integration (#38), release workflow templates (#44), PyPI integration (#36), template refactor (#45), upgrade --full sync mechanism
-- **v0.2.2**: Auto-fix AGENTS.md references on lowercase→uppercase migration, alternate path detection (docs/LEDGER.md, docs/architecture/**), case-insensitive architecture check, CI-gated dev releases
-
-### Issues closed
-- #36, #38, #41, #42, #44, #45 (closed), #55, #56 (filed)
-- Created v0.3.0 milestone, assigned 6 remaining issues
-
-### Verification
-- 115 tests passing (pytest, 3 OS × 3 Python)
-- ruff check + format: clean (src/ + tests/)
-- mypy strict: clean
-- CI: 19/19 checks pass on all PRs before merge
-- CodeQL: 0 open alerts
-- Dependabot: 0 open alerts
-
-### Open TODOs
-- [ ] #55: Fix governance table rendering on RTD (double pipe)
-- [ ] #56: Document 15+ missing CLI commands in RTD
-- [ ] #52: Credit budget cap enforcement
-- [ ] #37: Secure API key management
-- [ ] #10: USPTO/MCP patent integration
-- [ ] #17: Multi-project workspace management
+- ## Session 2026-04-01 — Initial CLI implementation — ** Complete
+- ## Session 2026-04-05 — AEE epistemic layer, agentic client, CI/CD, meta-governance — ** Complete
+- ## Session 2026-04-02 — v0.2.0→v0.2.2 release cycle — ** Complete
 
 ## 2026-04-05T15:25 — specsmith migration: 0.3.0 → 0.3.0a1.dev8
 - **Author**: specsmith
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `5a6995207163ba49...`
+
 
 ## 2026-04-05T15:57 — specsmith migration: 0.3.0a1.dev8 → 0.3.0
 - **Author**: specsmith
@@ -157,6 +22,7 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 - **Chain hash**: `30255640fa4f54c2...`
 
 ---
+
 
 ## Session 2026-04-09 — v0.3.6: VCS awareness, Ollama context, English enforcement hardening
 
@@ -198,11 +64,13 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 - [ ] Add action button in VS Code session chat when agent finds a fixable issue
 - [ ] Add VCS status live refresh (currently only at session start)
 
+
 ## 2026-04-09T08:43 — specsmith migration: 0.3.0 → 0.3.6.dev178
 - **Author**: specsmith
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `45890fddd2d61233...`
+
 
 ## 2026-04-09T16:38 — specsmith migration: 0.3.6 → 0.3.8
 - **Author**: specsmith
@@ -211,6 +79,7 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 - **Chain hash**: `c6cbccdf4558bd52...`
 
 ---
+
 
 ## Session 2026-04-10 — Architecture research, gap analysis, and roadmap
 
@@ -282,6 +151,7 @@ Begin Phase 1: `operations.py` first (it blocks tool handler refactoring), then 
 
 ---
 
+
 ## Session 2026-04-10 (cont.) — VS Code plugin fixes, releases, implementation plan
 
 **Status:** Complete
@@ -318,6 +188,7 @@ Begin Phase 1: `operations.py` first (it blocks tool handler refactoring), then 
 - [ ] Merge specsmith-vscode develop → main, tag v0.3.14 stable
 
 ---
+
 
 ## Session 2026-04-20 — AG2 Realignment: Phases 0–3
 
@@ -393,6 +264,7 @@ specsmith can now improve itself via `specsmith agent improve <task>`. Use it fo
 
 ---
 
+
 ## Session 2026-04-21/22 — VS Code Extension Overhaul + Critical Fixes
 
 **Status:** Complete
@@ -467,6 +339,7 @@ specsmith can now improve itself via `specsmith agent improve <task>`. Use it fo
 
 ---
 
+
 ## Session 2026-04-22 (cont.) \u2014 Service Mode, Settings Overhaul, Stable Release
 
 **Status:** Complete
@@ -523,3 +396,205 @@ specsmith can now improve itself via `specsmith agent improve <task>`. Use it fo
 
 ### Next step
 Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-agent coordination via AG2 GroupChat.
+
+## 2026-04-27T18:06 — specsmith migration: 0.3.8 → 0.3.13
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `5201f75f6e54933f...`
+
+## 2026-04-27T18:07 — Implement Nexus runtime (rename from Warp), fix AG2 executor override warnings, add 12 Nexus REQs/TESTs, add tests/test_nexus.py with 21 passing tests, update ARCHITECTURE.md with Nexus boundary.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-065,REQ-066,REQ-067,REQ-068,REQ-069,REQ-070,REQ-071,REQ-072,REQ-073,REQ-074,REQ-075,REQ-076
+- **Status**: complete
+- **Chain hash**: `ff611e6a7ac0ca62...`
+
+## 2026-04-27T18:14 — WI-NEXUS-002: reconcile machine state JSON (REQ-065..REQ-080), remove stale legacy tests (test_agent.py, test_optimizer.py), add Safe Repository Cleanup boundary + cleanup module + 4 cleanup tests, execute apply cleanup reclaiming 52MB of stale build/cache/archive artifacts. Full suite green: 202 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-003,REQ-077,REQ-078,REQ-079,REQ-080
+- **Status**: complete
+- **Chain hash**: `176531aa559ed8de...`
+
+## 2026-04-27T18:21 — WI-NEXUS-003: add specsmith clean CLI subcommand (REQ-081), add UTF-8 safe console factory and fix Windows cp1252 UnicodeEncodeError in specsmith validate (REQ-082), reconcile machine state to 82 reqs/82 tests, full suite 206 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-081,REQ-082
+- **Status**: complete
+- **Chain hash**: `ac851adc0fd1aca7...`
+
+## 2026-04-27T18:25 — WI-NEXUS-004: rename canonical test-spec governance file from TEST_SPEC.md to TESTS.md across code, docs, ReadTheDocs site, templates, governance, and machine state. Add REQ-083/TEST-083 plus 3 pytest tests guarding against regression. Updated 58 files; full suite green at 209 tests.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-002,REQ-083
+- **Status**: complete
+- **Chain hash**: `e24fb649a8ef5ce1...`
+
+## 2026-04-27T19:09 — WI-NEXUS-005: add Natural-Language Governance Broker (REQ-084). New module specsmith.agent.broker provides classify_intent, infer_scope, run_preflight, narrate_plan, and execute_with_governance. Wired into Nexus REPL as default mode with /why toggle. Hides REQ/TEST/WI tokens by default, bounds retries per REQ-014, escalates with single clarifying question per REQ-063, and never invents governance content. Full suite green: 227 tests pass.
+- **Author**: Tristen Pierson <tpierson@bitconcepts.tech>
+- **Type**: feature
+- **REQs affected**: REQ-014,REQ-063,REQ-084
+- **Status**: complete
+- **Chain hash**: `050373fa73b9b15f...`
+
+## 2026-04-27T19:18 — WI-NEXUS-006: specsmith preflight CLI + Nexus REPL execution gating (REQ-085, REQ-086)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-085,REQ-086
+- **Status**: complete
+- **Chain hash**: `cdc3fb4815489052...`
+
+## 2026-04-27T19:28 — WI-NEXUS-007: Wire bounded-retry harness into Nexus REPL (REQ-087)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-087
+- **Status**: complete
+- **Chain hash**: `340e468840a68ac7...`
+
+## 2026-04-27T19:28 — WI-NEXUS-008: Populate preflight test_case_ids from .specsmith/testcases.json (REQ-088)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-088
+- **Status**: complete
+- **Chain hash**: `a39dcae4c5b4338d...`
+
+## 2026-04-27T19:28 — WI-NEXUS-009: Live l1-nexus smoke test script + skip-by-default integration test (REQ-089)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-089
+- **Status**: complete
+- **Chain hash**: `d0e80ec48ee0a854...`
+
+## 2026-04-27T19:28 — WI-NEXUS-010: Documentation pass for Nexus broker, preflight, gate, and harness (REQ-090)
+- **Author**: agent
+- **Type**: docs
+- **REQs affected**: REQ-090
+- **Status**: complete
+- **Chain hash**: `8d94f66001aed55c...`
+
+## 2026-04-27T19:42 — WI-NEXUS-011: Live l1-nexus smoke evidence captured (REQ-095)
+- **Author**: agent
+- **Type**: evidence
+- **REQs affected**: REQ-095
+- **Status**: complete
+- **Chain hash**: `414225ca221b7eb7...`
+
+## 2026-04-27T19:42 — WI-NEXUS-012: Structured TaskResult dataclass returned by orchestrator.run_task (REQ-091)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-091
+- **Status**: complete
+- **Chain hash**: `7f161e088d82fcde...`
+
+## 2026-04-27T19:42 — WI-NEXUS-013: /why post-run governance block in REPL (REQ-094)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-094
+- **Status**: complete
+- **Chain hash**: `7125182a6d402b2e...`
+
+## 2026-04-27T19:42 — WI-NEXUS-014: specsmith preflight CLI decision-specific exit codes (REQ-092)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-092
+- **Status**: complete
+- **Chain hash**: `16eb05be2f953074...`
+
+## 2026-04-27T19:42 — WI-NEXUS-015: Accepted preflight records preflight ledger event (REQ-093)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-093
+- **Status**: complete
+- **Chain hash**: `01f963eb2078b181...`
+
+## 2026-04-27T19:53 — WI-NEXUS-016: Retry strategy mapping in execute_with_governance (REQ-096)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-096
+- **Status**: complete
+- **Chain hash**: `0a696105c598f0cd...`
+
+## 2026-04-27T19:53 — WI-NEXUS-017: specsmith verify CLI subcommand (REQ-097)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-097
+- **Status**: complete
+- **Chain hash**: `b6a7f5cccf5d0e70...`
+
+## 2026-04-27T19:53 — WI-NEXUS-018: Confidence threshold from .specsmith/config.yml (REQ-098)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-098
+- **Status**: complete
+- **Chain hash**: `b0caf9452cdd3cd1...`
+
+## 2026-04-27T19:53 — WI-NEXUS-019: work_proposal ledger event distinct from preflight (REQ-099)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-099
+- **Status**: complete
+- **Chain hash**: `32c2742d1f5b3323...`
+
+## 2026-04-27T19:53 — WI-NEXUS-020: Stress-test bridge in preflight CLI (REQ-100)
+- **Author**: agent
+- **Type**: feature
+- **REQs affected**: REQ-100
+- **Status**: complete
+- **Chain hash**: `1b5b01b80278aabd...`
+
+## 2026-04-27T20:20 — WI-NEXUS-021: ruff lint + format baseline clean on develop (REQ-101)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-101
+- **Status**: complete
+- **Chain hash**: `334a9bbfb434660b...`
+
+## 2026-04-27T20:20 — WI-NEXUS-022: mypy typecheck baseline clean (69 source files) on develop (REQ-102)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-102
+- **Status**: complete
+- **Chain hash**: `21d93939267d1bd6...`
+
+## 2026-04-27T20:20 — WI-NEXUS-023: CI security baseline upgraded; pip-audit ignore-vuln CVE-2026-3219 documented; no open Dependabot alerts (REQ-103)
+- **Author**: specsmith
+- **Type**: baseline
+- **REQs affected**: REQ-103
+- **Status**: complete
+- **Chain hash**: `61b8dcb9f748149d...`
+
+## 2026-04-27T20:53 — WI-NEXUS-024: workitems.json synced via scripts/sync_workitems.py - 107 work items mirrored to REQ-001..REQ-107 (REQ-104)
+- **Author**: specsmith
+- **Type**: sync
+- **REQs affected**: REQ-104
+- **Status**: complete
+- **Chain hash**: `c1e83204390b35e3...`
+
+## 2026-04-27T20:53 — WI-NEXUS-025: live l1-nexus smoke evidence refreshed at .specsmith/runs/WI-NEXUS-011/logs.txt - skip with documented hardware reason (12GB GPU vs ~20GB needed) (REQ-105)
+- **Author**: specsmith
+- **Type**: evidence
+- **REQs affected**: REQ-105
+- **Status**: complete
+- **Chain hash**: `b375b793d5b016c4...`
+
+## 2026-04-27T20:53 — WI-NEXUS-026: VS Code extension parity - specsmith.runPreflight, specsmith.runVerify, specsmith.toggleWhy commands shipped in specsmith-vscode PR #28 (REQ-106)
+- **Author**: specsmith
+- **Type**: feature
+- **REQs affected**: REQ-106
+- **Status**: complete
+- **Chain hash**: `68a8ba78f45bb418...`
+
+## 2026-04-27T20:53 — WI-NEXUS-027: ARCHITECTURE.md gained 'Current State (post-WI-NEXUS-023)' section listing realized broker, harness, retry strategies, CI baseline, VS Code parity, smoke evidence, and docs surface (REQ-107)
+- **Author**: specsmith
+- **Type**: docs
+- **REQs affected**: REQ-107
+- **Status**: complete
+- **Chain hash**: `f2026d5eb9729534...`
+
+## 2026-04-27T20:53 — WI-NEXUS-028: bumped pyproject.toml to 0.4.0; CHANGELOG [Unreleased] -> [0.4.0]; release prep complete (REQ-049, REQ-050)
+- **Author**: specsmith
+- **Type**: release
+- **REQs affected**: REQ-049,REQ-050
+- **Status**: complete
+- **Chain hash**: `dd0115de0abeff8d...`

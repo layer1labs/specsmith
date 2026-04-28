@@ -182,7 +182,7 @@ class TestSandboxImport:
         assert (root / "AGENTS.md").exists()
         assert (root / "LEDGER.md").exists()
         assert (root / "docs" / "REQUIREMENTS.md").exists()
-        assert (root / "docs" / "TEST_SPEC.md").exists()
+        assert (root / "docs" / "TESTS.md").exists()
         assert (root / "docs" / "ARCHITECTURE.md").exists()
 
         # New governance file names
@@ -204,7 +204,7 @@ class TestSandboxImport:
         arch = (root / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
         assert "python" in arch.lower()
 
-        test_spec = (root / "docs" / "TEST_SPEC.md").read_text(encoding="utf-8")
+        test_spec = (root / "docs" / "TESTS.md").read_text(encoding="utf-8")
         assert "TEST-" in test_spec
 
         # ---- Step 5: Verify scaffold.yml created ----
@@ -271,7 +271,7 @@ class TestSandboxImport:
             p = root / f
             if p.exists():
                 p.unlink()
-        for f in ["REQUIREMENTS.md", "TEST_SPEC.md", "ARCHITECTURE.md"]:
+        for f in ["REQUIREMENTS.md", "TESTS.md", "ARCHITECTURE.md"]:
             p = root / "docs" / f
             if p.exists():
                 p.unlink()
@@ -306,7 +306,7 @@ class TestSandboxImport:
             "# Existing Requirements\n\n## REQ-CUSTOM-001\nReal requirement.\n",
             encoding="utf-8",
         )
-        (docs / "TEST_SPEC.md").write_text(
+        (docs / "TESTS.md").write_text(
             "# Existing Tests\n\n## TEST-CUSTOM-001\nReal test.\n",
             encoding="utf-8",
         )
@@ -326,7 +326,7 @@ class TestSandboxImport:
         assert "REQ-CUSTOM-001" in reqs  # Original content preserved
         assert "auto-generated" not in reqs.lower()  # Not replaced with stub
 
-        tests_content = (docs / "TEST_SPEC.md").read_text(encoding="utf-8")
+        tests_content = (docs / "TESTS.md").read_text(encoding="utf-8")
         assert "TEST-CUSTOM-001" in tests_content
 
         # ARCHITECTURE.md stub should NOT have been created (existing arch doc found)

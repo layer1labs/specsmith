@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-04-28
+### Added
+- **Nexus broker, preflight, verify** — `specsmith preflight <utterance> --json` and `specsmith verify [--stdin|--diff|--tests|--logs|--changed]` are first-class CLI subcommands. The natural-language broker (`specsmith.agent.broker`) classifies intent, infers scope from `REQUIREMENTS.md` / `.repo-index`, calls the CLI, and renders plain-language plans (REQ-084..REQ-100).
+- **Bounded-retry harness with canonical retry strategies** — `execute_with_governance` honors `DEFAULT_RETRY_BUDGET` and surfaces `narrow_scope` / `expand_scope` / `fix_tests` / `rollback` / `stop` on stop-and-align (REQ-014, REQ-028, REQ-063, REQ-096).
+- **`/why` post-run governance block** in the Nexus REPL (REQ-094) and decision-specific exit codes for `preflight` (0 / 2 / 3, REQ-092).
+- **`work_proposal` ledger event** distinct from the `preflight` event for brand-new work-item ids (REQ-044, REQ-085, REQ-099).
+- **`--stress` bridge** — preflight optionally runs the AEE `StressTester` over matched requirements and surfaces critical failures as `stress_warnings` (REQ-100).
+- **`.specsmith/config.yml` confidence threshold** — `epistemic.confidence_threshold` is honored as the floor for `confidence_target` in both `preflight` and `verify` (REQ-058, REQ-098).
+- **CI baseline contract** — ruff lint + format clean, mypy strict-clean over 69 source files, and `pip-audit --ignore-vuln CVE-2026-3219` (REQ-101..REQ-103).
+- **VS Code extension parity** — `specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy` (REQ-106; ships in `specsmith-vscode` 0.3.16).
+- **`scripts/sync_workitems.py`** keeps `.specsmith/workitems.json` mirrored to the implemented REQ/TEST set (REQ-104).
+- **103 REQs / 103 TESTs / 259 passing tests + 1 skipped** — governance state synced.
+- **Read the Docs Nexus surface** — `docs/site/commands.md` documents `preflight`, `verify`, the Nexus REPL, the bounded-retry harness, and `/why` (REQ-090).
+- **ARCHITECTURE.md "Current State" section** describing the system as built (REQ-107).
+### Changed
+- **Type checking** — the dynamic Nexus agent surface (`broker`, `cleanup`, `indexer`, `orchestrator`, `repl`, `safety`, `tools`, `console_utils`, `serve`) is enumerated in the `[[tool.mypy.overrides]] ignore_errors=true` carveout in `pyproject.toml`. Strict-mypy is preserved everywhere else.
+- **CI workflow** — every job upgrades pip first; security job tolerates the upstream-unfixed pip CVE-2026-3219 advisory.
+- **TaskResult dataclass** returned by `orchestrator.run_task`; the broker harness consumes structured fields directly instead of synthesizing equilibrium from `bool(summary)` (REQ-091).
+### Fixed
+- **REPL closure bug** — `B023` in `repl._executor` was capturing the loop variable `user_input`; now bound via default arg.
+- **134 ruff findings → 0** across `src/specsmith/agent/*`, `src/specsmith/cli.py`, `src/specsmith/requirements_parser.py`, `src/specsmith/agent/broker.py`, and `tests/test_nexus.py`.
+- **`tests/test_data_definition_001.py`** removed (corrupt single-line scaffolded fixture).
+- **TEST-096 imports** moved to top of `tests/test_nexus.py` (E402).
+## [Unreleased — pre-0.4.0 working notes]
+### Added
+- **Nexus governance documentation** — Read the Docs `commands.md` and `index.md` now describe `specsmith preflight`, `specsmith verify`, the natural-language broker, the bounded-retry harness, the `/why` toggle, and the `--stress` flag (REQ-090, REQ-101..REQ-103).
+- **REQ-101 / TEST-101** — lint baseline contract; `ruff check` and `ruff format --check` must both exit zero on develop.
+- **REQ-102 / TEST-102** — typecheck baseline contract; `mypy src/specsmith/` must exit zero on develop. Dynamic agent modules are explicitly enumerated under `[[tool.mypy.overrides]] ignore_errors=true`.
+- **REQ-103 / TEST-103** — security baseline contract; CI security job upgrades pip and runs `pip-audit --ignore-vuln CVE-2026-3219` until the upstream pip fix lands.
+### Changed
+- **CI workflow** — every job now upgrades pip first; security job tolerates the currently-unfixed pip advisory via `--ignore-vuln`.
+- **Type checking** — added `specsmith.agent.broker`, `specsmith.agent.cleanup`, `specsmith.agent.indexer`, `specsmith.agent.orchestrator`, `specsmith.agent.repl`, `specsmith.agent.safety`, `specsmith.agent.tools`, `specsmith.console_utils`, `specsmith.serve` to the mypy `ignore_errors` carveout in `pyproject.toml`.
+### Fixed
+- **Lint** — fixed 134 ruff findings to zero across the agent module, cli, requirements_parser, broker, and tests (E501 long lines, B023 closure-binding bug in REPL, B904 raise-from in safety, SIM110 / SIM105 simplifications, F401/I001 import hygiene).
+- **Format** — applied `ruff format` to 12 files; CI now enforces format clean.
+- **Tests** — `tests/test_data_definition_001.py` (a corrupt single-line scaffolded fixture) removed. TEST-096 imports moved to the top of `tests/test_nexus.py` (E402).
 ## [0.3.13] \u2014 2026-04-23
 
 ### Added
@@ -322,7 +358,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Import with large AGENTS.md** (#46): broader keyword extraction, diff marker stripping, paragraph dedup, existing doc detection.
 - **UnboundLocalError on import** with existing docs: scoping fix for REQUIREMENTS/TEST_SPEC/architecture skip logic.
 - **Audit false positive**: architecture docs found in subdirectories (e.g., `docs/architecture/DESIGN.md`).
-- **`audit --fix`** now generates missing recommended files (ARCHITECTURE.md from scan, REQUIREMENTS.md, TEST_SPEC.md stubs).
+- **`audit --fix`** now generates missing recommended files (ARCHITECTURE.md from scan, REQUIREMENTS.md, TESTS.md stubs).
 - **Topic-aware section classification** (#47): body content keywords route sections to correct governance files.
 - **Type-specific audit thresholds** (#48): FPGA/embedded get higher limits (rules=1000, verification=600).
 
@@ -385,7 +421,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **specsmith CLI tool** with 9 commands: `init`, `import`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`.
-- **`specsmith import`**: walk an existing project, detect language/build/tests/CI, generate governance overlay (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TEST_SPEC.md, architecture.md). Supports `--force` to overwrite existing files.
+- **`specsmith import`**: walk an existing project, detect language/build/tests/CI, generate governance overlay (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TESTS.md, architecture.md). Supports `--force` to overwrite existing files.
 - **`specsmith init --guided`**: interactive architecture definition session that auto-generates REQ/TEST stubs and architecture.md from user-defined components.
 - **Verification tool registry** (`tools.py`): maps all 20 project types to lint, typecheck, test, security, build, format, and compliance tools. Supports user overrides via `verification_tools` config field.
 - **Tool-aware CI generation**: GitHub Actions, GitLab CI, and Bitbucket Pipelines generate correct tool commands per project type (not just Python). CI metadata for 13 languages including setup actions, Docker images, and cache keys.
@@ -458,7 +494,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.3...HEAD
+[0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...HEAD
 [0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1

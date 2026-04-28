@@ -1,0 +1,41 @@
+features:
+  evidence_archive: true
+  readme_sync: true
+  changelog_sync: true
+  license_generation: true
+  versioning: true
+  release_strategy: true
+  branching_strategy: true
+  local_commit_after_work: true
+  ledger_timestamping: true
+
+governance:
+  epistemic_confidence_threshold: 0.85
+  iteration_mode: indefinite
+  max_iterations: null
+  max_token_spend: null
+  max_session_cost: null
+  max_elapsed_minutes: null
+  stop_on_confidence_regression: true
+  interactive_alignment_on_stop: true
+
+release:
+  versioning_scheme: semver
+  changelog_format: keepachangelog
+  branching_default: gitflow
+  guided_branching: true
+  guided_release_strategy: true
+
+ip_evidence:
+  hash_algorithm: sha256
+  include_git_commit: true
+  include_author_metadata: true
+  include_ledger_references: true
+  include_archive_hash: true
+  trusted_timestamping: optional
+  legal_disclaimer_required: true
+
+license:
+  github_supported_licenses: true
+  commercial_license_guided_drafting: true
+  legal_disclaimer_required: true

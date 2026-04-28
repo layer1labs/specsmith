@@ -4,18 +4,20 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from typing import Any
 
 import click
 import yaml
-from rich.console import Console
 
 from specsmith import __version__
 from specsmith.config import Platform, ProjectConfig, ProjectType
+from specsmith.console_utils import make_console
+from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
 from specsmith.scaffolder import scaffold_project
 
-console = Console()
+console = make_console()
 
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
 PROJECT_TYPE_LABELS = {
@@ -219,7 +221,7 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     console.print(
         f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
     )
-    console.print('Open this project in your AI agent and type [bold]"start"[/bold].')
+    console.print("Project scaffolded. Review generated files.")
 
     # Save config as scaffold.yml for re-runs and upgrades
     config_out = target / "scaffold.yml"
@@ -257,17 +259,6 @@ VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "Non
 BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
 BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
 
-INTEGRATION_OPTIONS = [
-    ("agents-md", "AGENTS.md (always included)"),
-    ("warp", "Warp / Oz"),
-    ("claude-code", "Claude Code"),
-    ("copilot", "GitHub Copilot"),
-    ("cursor", "Cursor"),
-    ("gemini", "Gemini CLI"),
-    ("windsurf", "Windsurf"),
-    ("aider", "Aider"),
-]
-
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
     """Gather project config interactively."""
@@ -303,19 +294,6 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     branch_choice = click.prompt("Select strategy", default="1")
     branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "gitflow")
 
-    # Agent integrations
-    console.print("\nAgent integrations (comma-separated numbers):")
-    for i, (_key, label) in enumerate(INTEGRATION_OPTIONS):
-        console.print(f"  {i + 1}. {label}")
-    int_input = click.prompt("Select integrations", default="1")
-    integrations = ["agents-md"]
-    for idx_str in int_input.split(","):
-        idx = int(idx_str.strip()) - 1
-        if 0 <= idx < len(INTEGRATION_OPTIONS):
-            name_val = INTEGRATION_OPTIONS[idx][0]
-            if name_val not in integrations:
-                integrations.append(name_val)
-
     return ProjectConfig(
         name=name,
         type=project_type,
@@ -325,7 +303,7 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
         git_init=not no_git,
         vcs_platform=vcs_platform,
         branching_strategy=branching_strategy,
-        integrations=integrations,
+        integrations=["agents-md"],  # Keep AGENTS.md as a default, non-AI specific integration
     )
 
 
@@ -371,6 +349,545 @@ def audit(fix: bool, project_dir: str) -> None:
             else:
                 console.print("[yellow]No auto-fixable issues found.[/yellow]")
         raise SystemExit(1)
+
+
+@main.command(name="preflight")
+@click.argument("utterance")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the preflight decision as JSON (default).",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Include the rendered plain-language narration alongside the decision.",
+)
+@click.option(
+    "--stress",
+    is_flag=True,
+    default=False,
+    help="Run a stress-test pass over matched requirements (REQ-100).",
+)
+def preflight_cmd(
+    utterance: str,
+    project_dir: str,
+    as_json: bool,
+    verbose: bool,
+    stress: bool,
+) -> None:
+    """Classify a natural-language utterance under Specsmith governance (REQ-085).
+
+    Reads REQUIREMENTS.md and ``.repo-index/files.json`` from PROJECT-DIR,
+    classifies intent (read-only ask / change / release / destructive),
+    infers scope, and emits a JSON object describing the preflight decision.
+    Read-only asks accept by default; destructive intents require
+    clarification; changes with no matching scope return needs_clarification.
+    """
+    import json as _json
+    import uuid
+
+    from specsmith.agent.broker import (
+        Intent,
+        PreflightDecision,
+        classify_intent,
+        infer_scope,
+        narrate_plan,
+    )
+
+    root = Path(project_dir).resolve()
+    intent = classify_intent(utterance)
+    scope = infer_scope(
+        utterance,
+        root / "REQUIREMENTS.md",
+        repo_index_path=root / ".repo-index" / "files.json",
+    )
+
+    requirement_ids = [r.req_id for r in scope.matched_requirements]
+
+    # REQ-088: resolve test_case_ids from machine state by joining
+    # `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md`
+    # when the JSON is unavailable). Never invent ids.
+    test_case_ids: list[str] = []
+    if requirement_ids:
+        testcases_json = root / ".specsmith" / "testcases.json"
+        if testcases_json.is_file():
+            try:
+                records = _json.loads(testcases_json.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                records = []
+            req_set = set(requirement_ids)
+            for record in records:
+                if (
+                    isinstance(record, dict)
+                    and record.get("requirement_id") in req_set
+                    and isinstance(record.get("id"), str)
+                ):
+                    test_case_ids.append(record["id"])
+        else:
+            tests_md = root / "TESTS.md"
+            if tests_md.is_file():
+                import re as _re
+
+                text = tests_md.read_text(encoding="utf-8")
+                # Match each test block: a `TEST-NNN` id paired with a
+                # `REQ-NNN` requirement-id reference within the same block.
+                req_set = set(requirement_ids)
+                for block in _re.split(r"\n## ", text):
+                    test_match = _re.search(r"\*\*ID:\*\*\s+(TEST-\d+)", block)
+                    req_match = _re.search(r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block)
+                    if test_match and req_match and req_match.group(1) in req_set:
+                        test_case_ids.append(test_match.group(1))
+
+    # Heuristic decision policy. Specsmith governance owns the contract; the
+    # CLI implementation is intentionally simple and deterministic so the
+    # broker (and tests) can rely on it without an LLM.
+    decision_str = "accepted"
+    instruction = ""
+    confidence_target = 0.7
+
+    if intent == Intent.READ_ONLY_ASK:
+        decision_str = "accepted"
+        instruction = "Read-only ask; no governance changes required."
+    elif intent == Intent.DESTRUCTIVE:
+        decision_str = "needs_clarification"
+        instruction = (
+            "Destructive operation detected. "
+            "Confirm explicitly which paths or resources should be removed."
+        )
+        confidence_target = 0.9
+    elif intent == Intent.RELEASE:
+        decision_str = "needs_clarification"
+        instruction = (
+            "Release operations require explicit confirmation. "
+            "Specify the target version and channel."
+        )
+        confidence_target = 0.9
+    else:  # CHANGE
+        if scope.is_known:
+            decision_str = "accepted"
+            instruction = (
+                "Change request matched existing governance scope. Proceed under "
+                "Specsmith verification."
+            )
+            confidence_target = max(0.7, scope.confidence)
+        else:
+            decision_str = "needs_clarification"
+            instruction = (
+                "This change does not match an existing requirement. "
+                "Could you say in one sentence which behavior you expect?"
+            )
+            confidence_target = 0.7
+
+    # REQ-098: respect epistemic.confidence_threshold from .specsmith/config.yml
+    # as a floor for confidence_target (heuristic default still applies when
+    # the configured value is lower or the file is missing).
+    config_threshold = _read_confidence_threshold_floor(root)
+    if config_threshold is not None and config_threshold > confidence_target:
+        confidence_target = config_threshold
+
+    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
+
+    payload = {
+        "decision": decision_str,
+        "work_item_id": work_item_id,
+        "requirement_ids": requirement_ids,
+        "test_case_ids": test_case_ids,
+        "confidence_target": round(confidence_target, 3),
+        "instruction": instruction,
+        "intent": intent.value,
+    }
+
+    # REQ-100: optional stress-test bridge over matched requirements. The flag
+    # defaults off so unrelated tests stay green.
+    if stress and scope.matched_requirements:
+        warnings = _stress_test_warnings(root, scope.matched_requirements)
+        if warnings:
+            payload["stress_warnings"] = warnings
+
+    if verbose:
+        decision_obj = PreflightDecision.from_json(payload)
+        payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
+        if payload.get("stress_warnings"):
+            payload["narration"] += "\nNote: stress-test surfaced one or more critical failures."
+
+    # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
+    click.echo(_json.dumps(payload, indent=2))
+
+    # REQ-093 + REQ-099: when accepted and LEDGER.md exists, append a
+    # `preflight` ledger event AND a distinct `work_proposal` event when the
+    # assigned work_item_id is brand-new. Best-effort: never block the CLI on
+    # ledger errors. We capture the pre-write ledger contents up front so the
+    # work_item_id presence check is not polluted by our own preflight entry.
+    if decision_str == "accepted" and (root / "LEDGER.md").exists():
+        try:
+            from specsmith.ledger import add_entry
+
+            ledger_before = (root / "LEDGER.md").read_text(encoding="utf-8")
+            is_new_work_item = bool(work_item_id) and work_item_id not in ledger_before
+
+            req_tags = "REQ-085"
+            if requirement_ids:
+                req_tags = "REQ-085," + ",".join(requirement_ids)
+            description = (
+                f'specsmith preflight accepted utterance "{utterance}" '
+                f"(work_item_id={work_item_id}, "
+                f"confidence_target={round(confidence_target, 3)})."
+            )
+            add_entry(
+                root,
+                description=description,
+                entry_type="preflight",
+                author="specsmith",
+                reqs=req_tags,
+            )
+
+            # REQ-099: distinct `work_proposal` event when the work_item_id
+            # is brand-new (not in the pre-write ledger snapshot).
+            if is_new_work_item:
+                proposal_desc = f"work_proposal {work_item_id}: {utterance}"
+                add_entry(
+                    root,
+                    description=proposal_desc,
+                    entry_type="work_proposal",
+                    author="specsmith",
+                    reqs="REQ-044,REQ-085"
+                    + ("," + ",".join(requirement_ids) if requirement_ids else ""),
+                )
+        except Exception:  # noqa: BLE001 - ledger writing is best-effort
+            pass
+
+    # REQ-092: decision-specific exit codes so CI / shell wrappers can branch
+    # on intent without parsing the JSON payload.
+    if decision_str == "accepted":
+        return  # exit 0
+    if decision_str == "needs_clarification":
+        raise SystemExit(2)
+    if decision_str in ("blocked", "rejected"):
+        raise SystemExit(3)
+    # Unknown decision values fall through to exit 0 to preserve back-compat.
+    return
+
+
+def _read_confidence_threshold_floor(root: Path) -> float | None:
+    """Return ``epistemic.confidence_threshold`` from .specsmith/config.yml (REQ-098).
+
+    Returns ``None`` if the file is missing or unparseable so the caller can
+    fall back to the heuristic default.
+    """
+    cfg = root / ".specsmith" / "config.yml"
+    if not cfg.is_file():
+        return None
+    try:
+        import yaml as _yaml
+
+        raw = _yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001
+        return None
+    section = raw.get("epistemic") if isinstance(raw, dict) else None
+    if not isinstance(section, dict):
+        return None
+    val = section.get("confidence_threshold")
+    try:
+        return float(val) if val is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _stress_test_warnings(
+    root: Path,
+    matched_requirements,  # list[broker.RequirementSummary]
+) -> list[str]:
+    """Run StressTester over matched requirements; return critical-failure warnings (REQ-100).
+
+    Best-effort: any import or stress-tester error returns an empty list.
+    """
+    if not matched_requirements:
+        return []
+    try:
+        from specsmith.epistemic.belief import parse_requirements_as_beliefs
+        from specsmith.epistemic.stress_tester import StressTester
+    except Exception:  # noqa: BLE001
+        return []
+
+    req_path = root / "REQUIREMENTS.md"
+    if not req_path.is_file():
+        return []
+    try:
+        artifacts = parse_requirements_as_beliefs(req_path)
+    except Exception:  # noqa: BLE001
+        return []
+    matched_ids = {r.req_id for r in matched_requirements}
+    relevant = [a for a in artifacts if a.artifact_id in matched_ids]
+    if not relevant:
+        return []
+    try:
+        tester = StressTester(req_path=req_path)
+        result = tester.run(relevant)
+    except Exception:  # noqa: BLE001
+        return []
+
+    warnings: list[str] = []
+    if getattr(result, "critical_count", 0) > 0:
+        warnings.append(f"{result.critical_count} critical failure(s) detected by stress-tester.")
+    for id1, id2, reason in getattr(result, "logic_knots", []) or []:
+        warnings.append(f"logic knot {id1} <-> {id2}: {reason}")
+    return warnings
+
+
+@main.command(name="verify")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--stdin",
+    "read_stdin",
+    is_flag=True,
+    default=False,
+    help="Read the verification input JSON from stdin (REQ-027).",
+)
+@click.option(
+    "--diff",
+    "diff_path",
+    type=click.Path(),
+    default=None,
+    help="Path to a diff file (alternative to --stdin).",
+)
+@click.option(
+    "--tests",
+    "tests_path",
+    type=click.Path(),
+    default=None,
+    help="Path to a JSON test-results file with passed/failed counts.",
+)
+@click.option(
+    "--logs",
+    "logs_path",
+    type=click.Path(),
+    default=None,
+    help="Path to an execution log file.",
+)
+@click.option(
+    "--changed",
+    "changed_paths",
+    default="",
+    help="Comma-separated list of changed file paths.",
+)
+@click.option(
+    "--work-item-id",
+    "work_item_id",
+    default="",
+    help="Optional work item id to bind the verification to.",
+)
+def verify_cmd(
+    project_dir: str,
+    read_stdin: bool,
+    diff_path: str | None,
+    tests_path: str | None,
+    logs_path: str | None,
+    changed_paths: str,
+    work_item_id: str,
+) -> None:
+    """Verify a Specsmith-governed change set (REQ-097).
+
+    Consumes the verification input contract (REQ-027): file diffs, test
+    results, execution logs, and changed files. Emits a JSON object with
+    `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`,
+    and `retry_strategy`. Exit codes per REQ-097: 0 ok, 2 retry, 3 stop.
+
+    Inputs may be passed either as `--stdin` (a single JSON object) or via
+    the `--diff`, `--tests`, `--logs`, and `--changed` flags.
+    """
+    import json as _json
+    import sys as _sys
+
+    from specsmith.agent.broker import (
+        DEFAULT_RETRY_BUDGET,
+        PreflightDecision,
+        classify_retry_strategy,
+    )
+
+    root = Path(project_dir).resolve()
+
+    # Build the input record.
+    payload_in: dict = {}
+    if read_stdin:
+        try:
+            payload_in = _json.loads(_sys.stdin.read() or "{}")
+        except ValueError:
+            payload_in = {}
+    if not payload_in:
+        if diff_path and Path(diff_path).is_file():
+            payload_in["diff"] = Path(diff_path).read_text(encoding="utf-8")
+        if tests_path and Path(tests_path).is_file():
+            try:
+                payload_in["test_results"] = _json.loads(
+                    Path(tests_path).read_text(encoding="utf-8")
+                )
+            except ValueError:
+                payload_in["test_results"] = {"raw": Path(tests_path).read_text(encoding="utf-8")}
+        if logs_path and Path(logs_path).is_file():
+            payload_in["logs"] = Path(logs_path).read_text(encoding="utf-8")
+        if changed_paths:
+            payload_in["files_changed"] = [p.strip() for p in changed_paths.split(",") if p.strip()]
+
+    # Heuristic verification policy (deterministic; REQ-021 / REQ-022):
+    # equilibrium iff test_results report zero failures and the diff is
+    # non-empty when files_changed is non-empty.
+    test_results = payload_in.get("test_results") or {}
+    if not isinstance(test_results, dict):
+        test_results = {"raw": str(test_results)}
+    files_changed = payload_in.get("files_changed") or []
+    if isinstance(files_changed, str):
+        files_changed = [p.strip() for p in files_changed.split(",") if p.strip()]
+
+    failed = 0
+    for key in ("failed", "failures", "errors"):
+        try:
+            failed += int(test_results.get(key, 0) or 0)
+        except (TypeError, ValueError):
+            continue
+    raw_text = str(test_results.get("raw", "") or "").lower()
+    if "failed" in raw_text and not failed:
+        failed = 1
+    has_changes = bool(files_changed) or bool(payload_in.get("diff"))
+
+    threshold = _read_confidence_threshold_floor(root) or 0.7
+    equilibrium = failed == 0 and has_changes
+    confidence = 0.85 if equilibrium else (0.4 if has_changes else 0.0)
+    summary = (
+        "Equilibrium reached. All tests passed."
+        if equilibrium
+        else f"{failed} test failure(s) detected."
+        if failed
+        else "No changes or test signal provided."
+    )
+
+    # Retry strategy classification reuses the broker's deterministic
+    # mapping so `verify` and `execute_with_governance` agree.
+    fake_decision = PreflightDecision(
+        raw={},
+        decision="accepted",
+        work_item_id=work_item_id,
+        confidence_target=threshold,
+    )
+    fake_report = {
+        "equilibrium": equilibrium,
+        "confidence": confidence,
+        "summary": summary,
+        "test_results": test_results,
+    }
+    retry_strategy = (
+        ""
+        if equilibrium and confidence >= threshold
+        else classify_retry_strategy(fake_report, fake_decision)
+    )
+
+    out = {
+        "equilibrium": equilibrium,
+        "confidence": round(confidence, 3),
+        "summary": summary,
+        "files_changed": list(files_changed),
+        "test_results": test_results,
+        "retry_strategy": retry_strategy,
+        "work_item_id": work_item_id,
+        "retry_budget": DEFAULT_RETRY_BUDGET,
+        "confidence_threshold": threshold,
+    }
+    click.echo(_json.dumps(out, indent=2))
+
+    # Exit codes per REQ-097.
+    if equilibrium and confidence >= threshold:
+        return  # 0
+    if retry_strategy == "stop":
+        raise SystemExit(3)
+    raise SystemExit(2)
+
+
+@main.command(name="clean")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--apply",
+    "apply_flag",
+    is_flag=True,
+    default=False,
+    help="Actually delete the canonical targets (default is dry-run).",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the cleanup report as JSON instead of human-readable text.",
+)
+def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
+    """Safely remove build/cache/temporary artifacts (REQ-077..REQ-080).
+
+    Defaults to a dry-run that lists what would be removed. Pass --apply to
+    actually delete. Governance files, source, .git, and .specsmith are always
+    protected. When --apply is used, a ledger event is recorded so the run
+    is traceable.
+    """
+    import json as _json
+
+    from specsmith.agent.cleanup import clean_repo
+    from specsmith.ledger import add_entry
+
+    root = Path(project_dir).resolve()
+    report = clean_repo(root, apply=apply_flag)
+
+    if as_json:
+        # Bypass rich's renderer to avoid soft-wrap mangling the JSON payload.
+        click.echo(_json.dumps(report.to_dict(), indent=2))
+    else:
+        mode = "APPLY" if apply_flag else "DRY-RUN"
+        console.print(f"[bold]specsmith clean[/bold] ({mode}) \u2014 {root}\n")
+        if report.removed:
+            for path in report.removed:
+                icon = "[red]\u2717[/red]" if apply_flag else "[yellow]~[/yellow]"
+                console.print(f"  {icon} {path}")
+        if report.skipped:
+            for entry in report.skipped:
+                console.print(f"  [dim]\u2014 {entry['path']} (skipped: {entry['reason']})[/dim]")
+        mb = report.bytes_reclaimed / (1024 * 1024)
+        verb = "reclaimed" if apply_flag else "would reclaim"
+        console.print(
+            f"\n[bold green]\u2713[/bold green] {len(report.removed)} target(s); "
+            f"{verb} {mb:.2f} MB."
+        )
+        if not apply_flag:
+            console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
+
+    if apply_flag and (root / "LEDGER.md").exists():
+        # Ledger writing is best-effort here.
+        with contextlib.suppress(Exception):
+            add_entry(
+                root,
+                description=(
+                    f"specsmith clean --apply removed {len(report.removed)} target(s), "
+                    f"{report.bytes_reclaimed} bytes reclaimed."
+                ),
+                entry_type="cleanup",
+                author="specsmith",
+                reqs="REQ-077,REQ-078,REQ-079,REQ-080",
+            )
 
 
 @main.command()
@@ -684,7 +1201,7 @@ def import_project(
             "AGENTS.md",
             "LEDGER.md",
             "docs/REQUIREMENTS.md",
-            "docs/TEST_SPEC.md",
+            "docs/TESTS.md",
             "docs/ARCHITECTURE.md",
             "scaffold.yml",
             "docs/governance/RULES.md",
@@ -744,7 +1261,7 @@ def import_project(
         created.extend(guided_files)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
-    console.print('Open this project in your AI agent and type [bold]"start"[/bold].')
+    console.print("Governance files generated. Review project configuration.")
 
 
 def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
@@ -774,8 +1291,8 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     reqs_path.write_text(reqs_content, encoding="utf-8")
     created.append(reqs_path)
 
-    # Generate TEST_SPEC.md with TEST stubs
-    tests_path = target / "docs" / "TEST_SPEC.md"
+    # Generate TESTS.md with TEST stubs
+    tests_path = target / "docs" / "TESTS.md"
     tests_content = "# Test Specification\n\n"
     test_num = 1
     for comp in components:
@@ -878,6 +1395,101 @@ def architect(project_dir: str, non_interactive: bool) -> None:
             "are referenced but not merged. Review manually."
         )
     console.print('  [dim]Run "specsmith audit --project-dir ." to verify governance health.[/dim]')
+
+
+@main.command(name="parse-reqs")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    default=None,
+    help="Write parsed requirements to a JSON file instead of stdout.",
+)
+def parse_reqs_cmd(project_dir: str, output: str | None) -> None:
+    """Parse ARCHITECTURE.md for discernable requirements."""
+    root = Path(project_dir).resolve()
+    arch_path = root / "docs" / "ARCHITECTURE.md"
+    console.print(f"[bold]Parsing requirements from[/bold] {arch_path}...\n")
+    requirements = parse_architecture_requirements(root)
+
+    if not requirements:
+        console.print("[yellow]No requirements found in ARCHITECTURE.md.[/yellow]")
+        return
+
+    if output:
+        output_path = Path(output)
+        import json
+
+        output_path.write_text(json.dumps(requirements, indent=2), encoding="utf-8")
+        console.print(f"[bold green]Parsed requirements written to {output_path}[/bold green]")
+    else:
+        for req in requirements:
+            console.print(f"  [cyan]{req['id']}[/cyan] ({req['component']}): {req['description']}")
+        console.print(f"\n[bold green]Found {len(requirements)} requirements.[/bold green]")
+
+
+@main.command(name="generate-tests")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--reqs-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to a JSON file containing requirements (from parse-reqs).",
+)
+@click.option(
+    "--output",
+    type=click.Path(),
+    default=None,
+    help="Write generated test cases to a JSON file instead of stdout.",
+)
+def generate_tests_cmd(project_dir: str, reqs_file: str | None, output: str | None) -> None:
+    """Generate test cases based on parsed requirements."""
+    root = Path(project_dir).resolve()
+    requirements = []
+
+    if reqs_file:
+        import json
+
+        reqs_path = Path(reqs_file)
+        requirements = json.loads(reqs_path.read_text(encoding="utf-8"))
+        console.print(f"[bold]Loading requirements from[/bold] {reqs_path}...")
+    else:
+        arch_path = root / "docs" / "ARCHITECTURE.md"
+        console.print(f"[bold]Parsing requirements from[/bold] {arch_path}...")
+        requirements = parse_architecture_requirements(root)
+
+    if not requirements:
+        console.print("[yellow]No requirements to generate test cases from.[/yellow]")
+        return
+
+    test_cases = define_test_cases(requirements)
+
+    if not test_cases:
+        console.print("[yellow]No test cases generated.[/yellow]")
+        return
+
+    if output:
+        output_path = Path(output)
+        import json
+
+        output_path.write_text(json.dumps(test_cases, indent=2), encoding="utf-8")
+        console.print(f"[bold green]Generated test cases written to {output_path}[/bold green]")
+    else:
+        for tc in test_cases:
+            console.print(
+                f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}"
+            )
+        console.print(f"\n[bold green]Generated {len(test_cases)} test cases.[/bold green]")
 
 
 # ---------------------------------------------------------------------------
@@ -1234,18 +1846,6 @@ def apply(project_dir: str) -> None:
         try:
             platform = get_platform(config.vcs_platform)
             created.extend(platform.generate_all(config, root))
-        except ValueError:
-            pass
-
-    # Regenerate agent integration files
-    for integration_name in config.integrations:
-        if integration_name == "agents-md":
-            continue
-        try:
-            from specsmith.integrations import get_adapter
-
-            adapter = get_adapter(integration_name)
-            created.extend(adapter.generate(config, root))
         except ValueError:
             pass
 
@@ -2194,7 +2794,7 @@ def stress_test_cmd(project_dir: str, accepted_only: bool, output_format: str) -
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -2266,7 +2866,7 @@ def belief_graph_cmd(project_dir: str, output_format: str, component: str) -> No
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -2348,7 +2948,7 @@ def epistemic_audit_cmd(project_dir: str, threshold: float, emit_mermaid: bool) 
 
     root = Path(project_dir).resolve()
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     if not req_path.exists():
         console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
@@ -4423,7 +5023,7 @@ def index_group() -> None:
 def index_build_cmd(project_dir: str, include_ledger: bool, external: str) -> None:
     """Build or refresh the local retrieval index.
 
-    Indexes governance docs (AGENTS.md, REQUIREMENTS.md, ARCHITECTURE.md, TEST_SPEC.md)
+    Indexes governance docs (AGENTS.md, REQUIREMENTS.md, ARCHITECTURE.md, TESTS.md)
     and source files under src/, client/, server/, and shared/.
     Use --external to add external reference material.
     """

@@ -18,10 +18,10 @@ From `scaffold.yml`: project name, type label, language, VCS platform, spec vers
 Complete listing of all 7 tool categories from the [Tool Registry](tool-registry.md): lint, typecheck, test, security, build, format, compliance. Shows the exact tool commands configured for this project type.
 
 ### Requirements Coverage Matrix
-Cross-references `docs/REQUIREMENTS.md` against `docs/TEST_SPEC.md`:
+Cross-references `docs/REQUIREMENTS.md` against `docs/TESTS.md`:
 
 - Scans REQUIREMENTS.md for all `REQ-xxx-NNN` IDs
-- Scans TEST_SPEC.md for `Covers: REQ-xxx-NNN` references
+- Scans TESTS.md for `Covers: REQ-xxx-NNN` references
 - Reports: **Coverage: 56/74 (76%)**
 - Lists every REQ with ✓ (covered) or ✗ (uncovered)
 
@@ -40,7 +40,7 @@ Runs the full `specsmith audit` check suite inline and reports:
 
 ### Governance File Inventory
 Lists all expected governance files with ✓ (exists) or ✗ (missing):
-AGENTS.md, LEDGER.md, scaffold.yml, docs/REQUIREMENTS.md, docs/TEST_SPEC.md, docs/architecture.md, docs/governance/rules.md, workflow.md, roles.md, verification.md.
+AGENTS.md, LEDGER.md, scaffold.yml, docs/REQUIREMENTS.md, docs/TESTS.md, docs/architecture.md, docs/governance/rules.md, workflow.md, roles.md, verification.md.
 
 ## Example Output
 

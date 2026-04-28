@@ -75,7 +75,7 @@ my-tool/
 │   ├── ARCHITECTURE.md
 │   ├── WORKFLOW.md
 │   ├── REQUIREMENTS.md
-│   └── TEST_SPEC.md
+│   └── TESTS.md
 ├── src/my_tool/
 │   ├── __init__.py
 │   └── cli.py
@@ -172,7 +172,7 @@ After confirming, specsmith generates only the **missing** governance files:
 - `AGENTS.md` — populated with detected project info
 - `LEDGER.md` — initial import entry
 - `docs/REQUIREMENTS.md` — one REQ per detected module
-- `docs/TEST_SPEC.md` — one TEST per detected test file
+- `docs/TESTS.md` — one TEST per detected test file
 - `docs/architecture.md` — modules, entry points, language distribution
 - `docs/governance/*.md` — modular governance stubs
 - `scaffold.yml` — project config for future commands

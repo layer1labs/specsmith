@@ -69,7 +69,7 @@ def add_req(
 def trace_reqs(root: Path) -> list[dict[str, object]]:
     """Map each REQ to its covering TESTs."""
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     req_ids: list[str] = []
     if req_path.exists():
@@ -103,7 +103,7 @@ def get_gaps(root: Path) -> list[str]:
 def get_orphan_tests(root: Path) -> list[str]:
     """Return TEST IDs that reference non-existent REQs."""
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TEST_SPEC.md"
+    test_path = root / "docs" / "TESTS.md"
 
     req_ids: set[str] = set()
     if req_path.exists():

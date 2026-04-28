@@ -17,7 +17,7 @@ Load on demand:
 - `docs/governance/VERIFICATION.md` — when testing or accepting work
 - `docs/governance/DRIFT-METRICS.md` — when running `audit`
 - `docs/REQUIREMENTS.md` — first ~200 lines, expand by section
-- `docs/TEST_SPEC.md` — first ~200 lines, expand by section
+- `docs/TESTS.md` — first ~200 lines, expand by section
 - `docs/ARCHITECTURE.md` — first ~40 lines, expand by section
 
 ## During a session
