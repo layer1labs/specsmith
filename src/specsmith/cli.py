@@ -5533,6 +5533,415 @@ main.add_command(cloud_group)
 
 
 # ---------------------------------------------------------------------------
+# Workflow — parameterised command snippets (Warp-style Workflows)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="workflow")
+def workflow_group() -> None:
+    """Record, list, and run parameterised command snippets.
+
+    Workflows are saved as YAML files under `.specsmith/workflows/<name>.yml`.
+    Each workflow has a name, an optional description, a command template
+    that may contain ``{{ param }}`` placeholders, and a list of accepted
+    params. ``specsmith workflow run <name>`` substitutes the params and
+    executes the resulting command via ``subprocess.run``.
+    """
+
+
+def _workflows_dir(root: Path) -> Path:
+    d = root / ".specsmith" / "workflows"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@workflow_group.command(name="record")
+@click.argument("name")
+@click.option(
+    "--command",
+    "command",
+    required=True,
+    help="Command template. Use {{ param }} for substitution placeholders.",
+)
+@click.option("--description", "description", default="", help="Free-text description.")
+@click.option(
+    "--param",
+    "params",
+    multiple=True,
+    help="Declared parameter name (repeatable). Substituted at run time.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def workflow_record(
+    name: str,
+    command: str,
+    description: str,
+    params: tuple[str, ...],
+    project_dir: str,
+) -> None:
+    """Save a workflow under .specsmith/workflows/<NAME>.yml."""
+    root = Path(project_dir).resolve()
+    target = _workflows_dir(root) / f"{name}.yml"
+    payload = {
+        "name": name,
+        "description": description,
+        "command": command,
+        "params": list(params),
+    }
+    target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    console.print(f"[green]\u2713[/green] Workflow recorded at {target.relative_to(root)}")
+
+
+@workflow_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
+def workflow_list(project_dir: str, as_json: bool) -> None:
+    """List workflows recorded for this project."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    wf_dir = _workflows_dir(root)
+    items: list[dict[str, Any]] = []
+    for path in sorted(wf_dir.glob("*.yml")):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        items.append(
+            {
+                "name": data.get("name", path.stem),
+                "description": data.get("description", ""),
+                "command": data.get("command", ""),
+                "params": list(data.get("params", [])),
+            }
+        )
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    if not items:
+        console.print("[dim]No workflows recorded.[/dim]")
+        return
+    for item in items:
+        params = ", ".join(item["params"]) or "(none)"
+        console.print(f"[bold]{item['name']}[/bold] — params: {params}")
+        if item["description"]:
+            console.print(f"  {item['description']}")
+        console.print(f"  [dim]{item['command']}[/dim]")
+
+
+@workflow_group.command(name="run")
+@click.argument("name")
+@click.option(
+    "--param",
+    "param_assignments",
+    multiple=True,
+    help="Parameter assignment in key=value form (repeatable).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print the resolved command without executing.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def workflow_run(
+    name: str,
+    param_assignments: tuple[str, ...],
+    dry_run: bool,
+    project_dir: str,
+) -> None:
+    """Substitute parameters and execute the recorded workflow."""
+    import re
+    import shlex
+    import subprocess
+
+    root = Path(project_dir).resolve()
+    target = _workflows_dir(root) / f"{name}.yml"
+    if not target.is_file():
+        console.print(f"[red]No workflow named '{name}' at {target}[/red]")
+        raise SystemExit(1)
+    data = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    template: str = data.get("command", "")
+    declared = list(data.get("params", []))
+
+    assignments: dict[str, str] = {}
+    for raw in param_assignments:
+        if "=" not in raw:
+            console.print(f"[red]Bad --param value: {raw!r} (expected key=value)[/red]")
+            raise SystemExit(2)
+        key, _, value = raw.partition("=")
+        assignments[key.strip()] = value
+
+    missing = [p for p in declared if p not in assignments]
+    if missing:
+        console.print(f"[red]Missing required params: {', '.join(missing)}[/red]")
+        raise SystemExit(2)
+
+    def _replace(match: re.Match[str]) -> str:
+        key = match.group(1).strip()
+        return assignments.get(key, match.group(0))
+
+    resolved = re.sub(r"\{\{\s*([^}]+?)\s*\}\}", _replace, template)
+
+    if dry_run:
+        console.print(f"[cyan]{resolved}[/cyan]")
+        return
+
+    args = shlex.split(resolved, posix=False) if resolved else []
+    if not args:
+        console.print("[red]Resolved workflow command is empty.[/red]")
+        raise SystemExit(2)
+    raise SystemExit(subprocess.call(args, cwd=str(root)))  # noqa: S603
+
+
+main.add_command(workflow_group)
+
+
+# ---------------------------------------------------------------------------
+# History — search across .specsmith/sessions/<id>/turns.jsonl (REQ-120)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="history")
+def history_group() -> None:
+    """Search and list persistent session memory written by `specsmith chat`."""
+
+
+def _sessions_dir(root: Path) -> Path:
+    return root / ".specsmith" / "sessions"
+
+
+@history_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--limit", type=int, default=20, help="Max number of sessions to list.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def history_list(project_dir: str, limit: int, as_json: bool) -> None:
+    """List the N most recent sessions with turn counts."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    base = _sessions_dir(root)
+    if not base.is_dir():
+        if as_json:
+            click.echo("[]")
+        else:
+            console.print("[dim]No sessions recorded.[/dim]")
+        return
+    sessions = sorted(
+        (p for p in base.iterdir() if p.is_dir()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )[:limit]
+    items: list[dict[str, Any]] = []
+    for sd in sessions:
+        turns_path = sd / "turns.jsonl"
+        count = 0
+        if turns_path.is_file():
+            with turns_path.open("r", encoding="utf-8") as fh:
+                count = sum(1 for line in fh if line.strip())
+        items.append({"session_id": sd.name, "turns": count, "path": str(turns_path)})
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    if not items:
+        console.print("[dim]No sessions recorded.[/dim]")
+        return
+    for item in items:
+        console.print(f"[bold]{item['session_id']}[/bold]  {item['turns']} turn(s)")
+
+
+@history_group.command(name="search")
+@click.argument("query")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--session", "session", default="", help="Limit to a specific session id.")
+@click.option("--limit", type=int, default=50, help="Max matching turns to print.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def history_search(
+    query: str,
+    project_dir: str,
+    session: str,
+    limit: int,
+    as_json: bool,
+) -> None:
+    """Print turns whose JSON content contains QUERY (case-insensitive substring)."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    base = _sessions_dir(root)
+    if not base.is_dir():
+        if as_json:
+            click.echo("[]")
+        return
+    needle = query.lower()
+    targets = [base / session / "turns.jsonl"] if session else sorted(base.rglob("turns.jsonl"))
+    matches: list[dict[str, Any]] = []
+    for path in targets:
+        if not path.is_file():
+            continue
+        with path.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                if needle not in raw.lower():
+                    continue
+                try:
+                    turn = _json.loads(raw)
+                except _json.JSONDecodeError:
+                    continue
+                matches.append({"session_id": path.parent.name, "turn": turn})
+                if len(matches) >= limit:
+                    break
+        if len(matches) >= limit:
+            break
+    if as_json:
+        click.echo(_json.dumps(matches, indent=2))
+        return
+    if not matches:
+        console.print("[dim]No matches.[/dim]")
+        return
+    for hit in matches:
+        console.print(f"[bold]{hit['session_id']}[/bold]: {_json.dumps(hit['turn'])[:200]}")
+
+
+main.add_command(history_group)
+
+
+# ---------------------------------------------------------------------------
+# Drive — user-scoped sync for rules / workflows / notebooks / mcp configs
+# ---------------------------------------------------------------------------
+
+_DRIVE_KINDS = {
+    "rules": ("docs/governance",),
+    "workflows": (".specsmith/workflows",),
+    "notebooks": ("docs/notebooks",),
+    "mcp": (".specsmith/mcp.yml",),
+}
+
+
+def _drive_root() -> Path:
+    home = Path.home()
+    base = home / ".specsmith" / "drive"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+@main.group(name="drive")
+def drive_group() -> None:
+    """User-scoped Drive at ~/.specsmith/drive/ for rules / workflows / notebooks.
+
+    The Drive is a local, gitignored mirror of the four kinds of project
+    artefacts that users typically want to share across machines:
+    ``rules`` (docs/governance/*_RULES.md), ``workflows``
+    (.specsmith/workflows/*.yml), ``notebooks`` (docs/notebooks/*.md), and
+    ``mcp`` (.specsmith/mcp.yml). Cloud sync is left to the user's preferred
+    backup tool — Drive is a stable canonical location, not a server.
+    """
+
+
+@drive_group.command(name="list")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def drive_list(as_json: bool) -> None:
+    """Show the contents of ~/.specsmith/drive/ grouped by kind."""
+    import json as _json
+
+    base = _drive_root()
+    items: dict[str, list[str]] = {}
+    for kind in _DRIVE_KINDS:
+        kind_dir = base / kind
+        if not kind_dir.is_dir():
+            items[kind] = []
+            continue
+        items[kind] = sorted(
+            str(p.relative_to(kind_dir)) for p in kind_dir.rglob("*") if p.is_file()
+        )
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    for kind, paths in items.items():
+        console.print(f"[bold]{kind}[/bold] ({len(paths)} item(s))")
+        for rel in paths:
+            console.print(f"  {rel}")
+
+
+@drive_group.command(name="push")
+@click.argument("kind", type=click.Choice(sorted(_DRIVE_KINDS.keys())))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def drive_push(kind: str, project_dir: str) -> None:
+    """Copy this project's KIND artefacts into ~/.specsmith/drive/KIND/."""
+    import shutil
+
+    root = Path(project_dir).resolve()
+    base = _drive_root() / kind
+    base.mkdir(parents=True, exist_ok=True)
+    sources = _DRIVE_KINDS[kind]
+    copied = 0
+    for rel in sources:
+        src = root / rel
+        if not src.exists():
+            continue
+        if src.is_file():
+            shutil.copy2(src, base / src.name)
+            copied += 1
+            continue
+        for path in src.rglob("*"):
+            if not path.is_file():
+                continue
+            target = base / path.relative_to(src)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+            copied += 1
+    console.print(f"[green]\u2713[/green] Pushed {copied} file(s) to {base}")
+
+
+@drive_group.command(name="pull")
+@click.argument("kind", type=click.Choice(sorted(_DRIVE_KINDS.keys())))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing project files.")
+def drive_pull(kind: str, project_dir: str, force: bool) -> None:
+    """Copy KIND artefacts from ~/.specsmith/drive/ into this project.
+
+    Existing project files are preserved unless --force is supplied.
+    """
+    import shutil
+
+    root = Path(project_dir).resolve()
+    base = _drive_root() / kind
+    if not base.is_dir():
+        console.print(f"[yellow]Drive has no {kind!r} entries yet.[/yellow]")
+        return
+    target_root = root / _DRIVE_KINDS[kind][0]
+    pulled = skipped = 0
+    if base.is_dir() and target_root.suffix == "":
+        target_root.mkdir(parents=True, exist_ok=True)
+        for path in base.rglob("*"):
+            if not path.is_file():
+                continue
+            dest = target_root / path.relative_to(base)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest.exists() and not force:
+                skipped += 1
+                continue
+            shutil.copy2(path, dest)
+            pulled += 1
+    else:
+        # Single-file kind (e.g. mcp.yml).
+        for path in base.iterdir():
+            if not path.is_file():
+                continue
+            dest = root / _DRIVE_KINDS[kind][0]
+            if dest.exists() and not force:
+                skipped += 1
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, dest)
+            pulled += 1
+    console.print(
+        f"[green]\u2713[/green] Pulled {pulled} file(s) into {target_root}; "
+        f"skipped {skipped} (use --force to overwrite)."
+    )
+
+
+main.add_command(drive_group)
+
+
+# ---------------------------------------------------------------------------
 # AG2 Agent Shell
 # ---------------------------------------------------------------------------
 
