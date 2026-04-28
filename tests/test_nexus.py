@@ -18,6 +18,19 @@ from unittest import mock
 
 import pytest
 
+from specsmith.agent.broker import (
+    RETRY_STRATEGIES as _RETRY_STRATEGIES,
+)
+from specsmith.agent.broker import (
+    PreflightDecision as _PreflightDecision,
+)
+from specsmith.agent.broker import (
+    classify_retry_strategy as _classify_retry_strategy,
+)
+from specsmith.agent.broker import (
+    execute_with_governance as _execute_with_governance,
+)
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -720,9 +733,7 @@ def test_broker_execute_with_governance_succeeds_on_first_pass():
         execute_with_governance,
     )
 
-    decision = PreflightDecision(
-        raw={}, decision="accepted", confidence_target=0.8
-    )
+    decision = PreflightDecision(raw={}, decision="accepted", confidence_target=0.8)
     calls = []
 
     def executor(d, attempt):
@@ -741,9 +752,7 @@ def test_broker_execute_with_governance_bounds_retries_and_escalates():
         execute_with_governance,
     )
 
-    decision = PreflightDecision(
-        raw={}, decision="accepted", confidence_target=0.9
-    )
+    decision = PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
     calls = []
 
     def executor(d, attempt):
@@ -1154,28 +1163,19 @@ def test_repl_emits_why_post_run_block_when_verbose():
 def test_nexus_live_smoke_evidence_captured():
     log_path = REPO_ROOT / ".specsmith" / "runs" / "WI-NEXUS-011" / "logs.txt"
     assert log_path.is_file(), (
-        "Live smoke evidence missing: "
-        ".specsmith/runs/WI-NEXUS-011/logs.txt was not captured."
+        "Live smoke evidence missing: .specsmith/runs/WI-NEXUS-011/logs.txt was not captured."
     )
     body = log_path.read_text(encoding="utf-8")
     assert body.strip(), "WI-NEXUS-011 logs.txt is empty"
     # Either a successful live smoke or an honest skip note is acceptable.
-    assert ("\"ok\": true" in body) or ("\"ok\": false" in body) or (
-        "NEXUS_LIVE" in body
-    ), "WI-NEXUS-011 logs.txt does not document a smoke result"
+    assert ('"ok": true' in body) or ('"ok": false' in body) or ("NEXUS_LIVE" in body), (
+        "WI-NEXUS-011 logs.txt does not document a smoke result"
+    )
 
 
 # ---------------------------------------------------------------------------
 # TEST-096 — execute_with_governance maps failures to retry strategies
 # ---------------------------------------------------------------------------
-from specsmith.agent.broker import (  # noqa: E402
-    PreflightDecision as _PreflightDecision,
-    RETRY_STRATEGIES as _RETRY_STRATEGIES,
-    classify_retry_strategy as _classify_retry_strategy,
-    execute_with_governance as _execute_with_governance,
-)
-
-
 def test_classify_retry_strategy_test_failures_map_to_fix_tests():
     decision = _PreflightDecision(raw={}, decision="accepted", confidence_target=0.9)
     report = {
@@ -1275,7 +1275,13 @@ def test_specsmith_verify_cli_two_when_retry_recommended(tmp_path):
     assert result.exit_code == 2, result.output
     out = json.loads(result.output)
     assert out["equilibrium"] is False
-    assert out["retry_strategy"] in {"fix_tests", "narrow_scope", "expand_scope", "rollback", "stop"}
+    assert out["retry_strategy"] in {
+        "fix_tests",
+        "narrow_scope",
+        "expand_scope",
+        "rollback",
+        "stop",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1360,9 +1366,7 @@ def test_specsmith_preflight_stress_flag_surfaces_warnings(tmp_path, monkeypatch
 
     monkeypatch.setattr(cli_mod, "_stress_test_warnings", _fake_warnings)
 
-    result = _invoke_preflight(
-        tmp_path, "fix the cleanup dry-run regression", "--stress"
-    )
+    result = _invoke_preflight(tmp_path, "fix the cleanup dry-run regression", "--stress")
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload.get("stress_warnings")

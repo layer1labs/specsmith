@@ -194,9 +194,7 @@ class StressTester:
                     "mechanism violates Axiom 2 (Falsifiability)."
                 ),
                 severity=FailureSeverity.HIGH,
-                recovery_hint=(
-                    "Add a TEST entry in docs/TESTS.md that covers this requirement."
-                ),
+                recovery_hint=("Add a TEST entry in docs/TESTS.md that covers this requirement."),
             )
         ]
 

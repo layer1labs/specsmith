@@ -1,6 +1,5 @@
-import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 try:
     import autogen
@@ -39,10 +38,10 @@ class TaskResult:
     equilibrium: bool = False
     confidence: float = 0.0
     summary: str = ""
-    files_changed: List[str] = field(default_factory=list)
-    test_results: Dict[str, Any] = field(default_factory=dict)
+    files_changed: list[str] = field(default_factory=list)
+    test_results: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "equilibrium": self.equilibrium,
             "confidence": self.confidence,
@@ -51,15 +50,25 @@ class TaskResult:
             "test_results": dict(self.test_results),
         }
 
+
 class Orchestrator:
     """Nexus orchestrator: AG2-based local-first agentic development runtime.
 
     Specsmith governs all work; Nexus only executes within governance bounds.
     """
-    def __init__(self, endpoint: str = "http://localhost:8000/v1", model: str = "Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8", api_key: str = "specsmith-local-key"):
+
+    def __init__(
+        self,
+        endpoint: str = "http://localhost:8000/v1",
+        model: str = "Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8",
+        api_key: str = "specsmith-local-key",
+    ):
         if autogen is None:
-            raise ImportError("ag2 (autogen) is not installed. Please install it via `pip install ag2[ollama]` or `pip install pyautogen`.")
-            
+            raise ImportError(
+                "ag2 (autogen) is not installed. Please install it via "
+                "`pip install ag2[ollama]` or `pip install pyautogen`."
+            )
+
         self.llm_config = {
             "config_list": [
                 {
@@ -70,7 +79,7 @@ class Orchestrator:
             ],
             "temperature": 0.0,
         }
-        
+
         self.setup_agents()
         self.register_tools()
 
@@ -78,47 +87,60 @@ class Orchestrator:
         """Initialize all required AG2 agents."""
         self.planner = ConversableAgent(
             name="PlannerAgent",
-            system_message="You are the Planner. Break down the user's task into manageable steps. Once steps are generated, pass to CodeAgent or ShellAgent to execute.",
+            system_message=(
+                "You are the Planner. Break down the user's task into "
+                "manageable steps. Once steps are generated, pass to "
+                "CodeAgent or ShellAgent to execute."
+            ),
             llm_config=self.llm_config,
         )
-        
+
         self.shell_agent = ConversableAgent(
             name="ShellAgent",
-            system_message="You execute shell commands using the run_shell tool to inspect the environment or run tests.",
+            system_message=(
+                "You execute shell commands using the run_shell tool "
+                "to inspect the environment or run tests."
+            ),
             llm_config=self.llm_config,
         )
-        
+
         self.code_agent = ConversableAgent(
             name="CodeAgent",
             system_message="You write, read, and patch code files using the available tools.",
             llm_config=self.llm_config,
         )
-        
+
         self.reviewer_agent = ConversableAgent(
             name="ReviewerAgent",
-            system_message="You review code changes and test results to ensure they meet the requirements. Provide feedback or approval.",
+            system_message=(
+                "You review code changes and test results to ensure they "
+                "meet the requirements. Provide feedback or approval."
+            ),
             llm_config=self.llm_config,
         )
-        
+
         self.memory_agent = ConversableAgent(
             name="MemoryAgent",
             system_message="You store and retrieve project facts and context from the .repo-index.",
             llm_config=self.llm_config,
         )
-        
+
         self.git_agent = ConversableAgent(
             name="GitAgent",
             system_message="You handle git status, diffs, and staging changes.",
             llm_config=self.llm_config,
         )
-        
+
         self.human_proxy = ConversableAgent(
             name="HumanProxyAgent",
-            system_message="You are the human proxy. You provide approval for actions and relay task outcomes to the user.",
+            system_message=(
+                "You are the human proxy. You provide approval for actions "
+                "and relay task outcomes to the user."
+            ),
             llm_config=False,
             human_input_mode="ALWAYS",
         )
-        
+
         # Tools execution node
         self.executor = ConversableAgent(
             name="Executor",
@@ -150,9 +172,18 @@ class Orchestrator:
         retry on non-equilibrium outcomes without inventing signal.
         """
         groupchat = GroupChat(
-            agents=[self.human_proxy, self.planner, self.shell_agent, self.code_agent, self.reviewer_agent, self.memory_agent, self.git_agent, self.executor],
+            agents=[
+                self.human_proxy,
+                self.planner,
+                self.shell_agent,
+                self.code_agent,
+                self.reviewer_agent,
+                self.memory_agent,
+                self.git_agent,
+                self.executor,
+            ],
             messages=[],
-            max_round=50
+            max_round=50,
         )
         manager = GroupChatManager(groupchat=groupchat, llm_config=self.llm_config)
 
@@ -193,14 +224,14 @@ Next action:
         equilibrium = bool(sections) and "next_action" in sections
         confidence = 0.85 if equilibrium else (0.4 if summary else 0.0)
 
-        files_changed: List[str] = []
+        files_changed: list[str] = []
         files_section = sections.get("files_changed", "")
         for line in files_section.splitlines():
             cleaned = line.strip("-* \t")
             if cleaned and cleaned.lower() != "none":
                 files_changed.append(cleaned)
 
-        test_results: Dict[str, Any] = {}
+        test_results: dict[str, Any] = {}
         tests_section = sections.get("test_results", "").strip()
         if tests_section:
             test_results["raw"] = tests_section
@@ -214,7 +245,7 @@ Next action:
         )
 
     @staticmethod
-    def _parse_output_contract(text: str) -> Dict[str, str]:
+    def _parse_output_contract(text: str) -> dict[str, str]:
         """Parse the Nexus output contract sections out of a free-form summary.
 
         Returns a dict keyed by lowercase, underscore-joined section names
@@ -233,14 +264,14 @@ Next action:
             "Next action:",
         )
         lines = text.splitlines()
-        sections: Dict[str, List[str]] = {}
+        sections: dict[str, list[str]] = {}
         current: str | None = None
         for line in lines:
             stripped = line.strip()
             matched = next((s for s in canonical if stripped.startswith(s)), None)
             if matched:
                 current = matched.rstrip(":").lower().replace(" ", "_")
-                remainder = stripped[len(matched):].strip()
+                remainder = stripped[len(matched) :].strip()
                 sections.setdefault(current, [])
                 if remainder:
                     sections[current].append(remainder)

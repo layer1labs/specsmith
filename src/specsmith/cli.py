@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from typing import Any
 
@@ -13,8 +14,8 @@ import yaml
 from specsmith import __version__
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
+from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
 from specsmith.scaffolder import scaffold_project
-from specsmith.requirements_parser import parse_architecture_requirements, define_test_cases
 
 console = make_console()
 
@@ -220,7 +221,7 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     console.print(
         f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
     )
-    console.print('Project scaffolded. Review generated files.')
+    console.print("Project scaffolded. Review generated files.")
 
     # Save config as scaffold.yml for re-runs and upgrades
     config_out = target / "scaffold.yml"
@@ -257,8 +258,6 @@ VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "Non
 
 BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
 BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
-
-
 
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
@@ -304,7 +303,7 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
         git_init=not no_git,
         vcs_platform=vcs_platform,
         branching_strategy=branching_strategy,
-        integrations=["agents-md"], # Keep AGENTS.md as a default, non-AI specific integration
+        integrations=["agents-md"],  # Keep AGENTS.md as a default, non-AI specific integration
     )
 
 
@@ -399,10 +398,10 @@ def preflight_cmd(
 
     from specsmith.agent.broker import (
         Intent,
+        PreflightDecision,
         classify_intent,
         infer_scope,
         narrate_plan,
-        PreflightDecision,
     )
 
     root = Path(project_dir).resolve()
@@ -445,9 +444,7 @@ def preflight_cmd(
                 req_set = set(requirement_ids)
                 for block in _re.split(r"\n## ", text):
                     test_match = _re.search(r"\*\*ID:\*\*\s+(TEST-\d+)", block)
-                    req_match = _re.search(
-                        r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block
-                    )
+                    req_match = _re.search(r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block)
                     if test_match and req_match and req_match.group(1) in req_set:
                         test_case_ids.append(test_match.group(1))
 
@@ -498,9 +495,7 @@ def preflight_cmd(
     if config_threshold is not None and config_threshold > confidence_target:
         confidence_target = config_threshold
 
-    work_item_id = (
-        f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
-    )
+    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
 
     payload = {
         "decision": decision_str,
@@ -523,9 +518,7 @@ def preflight_cmd(
         decision_obj = PreflightDecision.from_json(payload)
         payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
         if payload.get("stress_warnings"):
-            payload["narration"] += (
-                "\nNote: stress-test surfaced one or more critical failures."
-            )
+            payload["narration"] += "\nNote: stress-test surfaced one or more critical failures."
 
     # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
     click.echo(_json.dumps(payload, indent=2))
@@ -546,7 +539,7 @@ def preflight_cmd(
             if requirement_ids:
                 req_tags = "REQ-085," + ",".join(requirement_ids)
             description = (
-                f"specsmith preflight accepted utterance \"{utterance}\" "
+                f'specsmith preflight accepted utterance "{utterance}" '
                 f"(work_item_id={work_item_id}, "
                 f"confidence_target={round(confidence_target, 3)})."
             )
@@ -561,9 +554,7 @@ def preflight_cmd(
             # REQ-099: distinct `work_proposal` event when the work_item_id
             # is brand-new (not in the pre-write ledger snapshot).
             if is_new_work_item:
-                proposal_desc = (
-                    f"work_proposal {work_item_id}: {utterance}"
-                )
+                proposal_desc = f"work_proposal {work_item_id}: {utterance}"
                 add_entry(
                     root,
                     description=proposal_desc,
@@ -647,9 +638,7 @@ def _stress_test_warnings(
 
     warnings: list[str] = []
     if getattr(result, "critical_count", 0) > 0:
-        warnings.append(
-            f"{result.critical_count} critical failure(s) detected by stress-tester."
-        )
+        warnings.append(f"{result.critical_count} critical failure(s) detected by stress-tester.")
     for id1, id2, reason in getattr(result, "logic_knots", []) or []:
         warnings.append(f"logic knot {id1} <-> {id2}: {reason}")
     return warnings
@@ -748,15 +737,11 @@ def verify_cmd(
                     Path(tests_path).read_text(encoding="utf-8")
                 )
             except ValueError:
-                payload_in["test_results"] = {
-                    "raw": Path(tests_path).read_text(encoding="utf-8")
-                }
+                payload_in["test_results"] = {"raw": Path(tests_path).read_text(encoding="utf-8")}
         if logs_path and Path(logs_path).is_file():
             payload_in["logs"] = Path(logs_path).read_text(encoding="utf-8")
         if changed_paths:
-            payload_in["files_changed"] = [
-                p.strip() for p in changed_paths.split(",") if p.strip()
-            ]
+            payload_in["files_changed"] = [p.strip() for p in changed_paths.split(",") if p.strip()]
 
     # Heuristic verification policy (deterministic; REQ-021 / REQ-022):
     # equilibrium iff test_results report zero failures and the diff is
@@ -766,9 +751,7 @@ def verify_cmd(
         test_results = {"raw": str(test_results)}
     files_changed = payload_in.get("files_changed") or []
     if isinstance(files_changed, str):
-        files_changed = [
-            p.strip() for p in files_changed.split(",") if p.strip()
-        ]
+        files_changed = [p.strip() for p in files_changed.split(",") if p.strip()]
 
     failed = 0
     for key in ("failed", "failures", "errors"):
@@ -807,7 +790,8 @@ def verify_cmd(
         "test_results": test_results,
     }
     retry_strategy = (
-        "" if equilibrium and confidence >= threshold
+        ""
+        if equilibrium and confidence >= threshold
         else classify_retry_strategy(fake_report, fake_decision)
     )
 
@@ -881,9 +865,7 @@ def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
                 console.print(f"  {icon} {path}")
         if report.skipped:
             for entry in report.skipped:
-                console.print(
-                    f"  [dim]\u2014 {entry['path']} (skipped: {entry['reason']})[/dim]"
-                )
+                console.print(f"  [dim]\u2014 {entry['path']} (skipped: {entry['reason']})[/dim]")
         mb = report.bytes_reclaimed / (1024 * 1024)
         verb = "reclaimed" if apply_flag else "would reclaim"
         console.print(
@@ -891,12 +873,11 @@ def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
             f"{verb} {mb:.2f} MB."
         )
         if not apply_flag:
-            console.print(
-                "  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]"
-            )
+            console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
 
     if apply_flag and (root / "LEDGER.md").exists():
-        try:
+        # Ledger writing is best-effort here.
+        with contextlib.suppress(Exception):
             add_entry(
                 root,
                 description=(
@@ -907,8 +888,6 @@ def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
                 author="specsmith",
                 reqs="REQ-077,REQ-078,REQ-079,REQ-080",
             )
-        except Exception:  # noqa: BLE001
-            pass  # Ledger writing is best-effort here
 
 
 @main.command()
@@ -1282,7 +1261,7 @@ def import_project(
         created.extend(guided_files)
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
-    console.print('Governance files generated. Review project configuration.')
+    console.print("Governance files generated. Review project configuration.")
 
 
 def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
@@ -1434,7 +1413,8 @@ def architect(project_dir: str, non_interactive: bool) -> None:
 def parse_reqs_cmd(project_dir: str, output: str | None) -> None:
     """Parse ARCHITECTURE.md for discernable requirements."""
     root = Path(project_dir).resolve()
-    console.print(f"[bold]Parsing requirements from[/bold] {root / 'docs' / 'ARCHITECTURE.md'}...\n")
+    arch_path = root / "docs" / "ARCHITECTURE.md"
+    console.print(f"[bold]Parsing requirements from[/bold] {arch_path}...\n")
     requirements = parse_architecture_requirements(root)
 
     if not requirements:
@@ -1444,6 +1424,7 @@ def parse_reqs_cmd(project_dir: str, output: str | None) -> None:
     if output:
         output_path = Path(output)
         import json
+
         output_path.write_text(json.dumps(requirements, indent=2), encoding="utf-8")
         console.print(f"[bold green]Parsed requirements written to {output_path}[/bold green]")
     else:
@@ -1478,11 +1459,13 @@ def generate_tests_cmd(project_dir: str, reqs_file: str | None, output: str | No
 
     if reqs_file:
         import json
+
         reqs_path = Path(reqs_file)
         requirements = json.loads(reqs_path.read_text(encoding="utf-8"))
         console.print(f"[bold]Loading requirements from[/bold] {reqs_path}...")
     else:
-        console.print(f"[bold]Parsing requirements from[/bold] {root / 'docs' / 'ARCHITECTURE.md'}...")
+        arch_path = root / "docs" / "ARCHITECTURE.md"
+        console.print(f"[bold]Parsing requirements from[/bold] {arch_path}...")
         requirements = parse_architecture_requirements(root)
 
     if not requirements:
@@ -1498,11 +1481,14 @@ def generate_tests_cmd(project_dir: str, reqs_file: str | None, output: str | No
     if output:
         output_path = Path(output)
         import json
+
         output_path.write_text(json.dumps(test_cases, indent=2), encoding="utf-8")
         console.print(f"[bold green]Generated test cases written to {output_path}[/bold green]")
     else:
         for tc in test_cases:
-            console.print(f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}")
+            console.print(
+                f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}"
+            )
         console.print(f"\n[bold green]Generated {len(test_cases)} test cases.[/bold green]")
 
 
@@ -1862,7 +1848,6 @@ def apply(project_dir: str) -> None:
             created.extend(platform.generate_all(config, root))
         except ValueError:
             pass
-
 
     if created:
         for path in created:

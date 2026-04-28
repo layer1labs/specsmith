@@ -36,11 +36,10 @@ import json
 import re
 import shutil
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
-
 
 # ---------------------------------------------------------------------------
 # Intent classification
@@ -122,9 +121,7 @@ def classify_intent(utterance: str) -> Intent:
 # ---------------------------------------------------------------------------
 
 
-_REQ_HEADING = re.compile(
-    r"^##\s+\d+\.\s+(?P<title>.+)\s*$", re.MULTILINE
-)
+_REQ_HEADING = re.compile(r"^##\s+\d+\.\s+(?P<title>.+)\s*$", re.MULTILINE)
 _REQ_ID = re.compile(r"-\s*\*\*ID:\*\*\s*(REQ-\d+)")
 _REQ_DESC = re.compile(r"-\s*\*\*Description:\*\*\s*(.+)")
 
@@ -228,7 +225,7 @@ class ScopeProposal:
 def infer_scope(
     utterance: str,
     req_md_path: Path,
-    repo_index_path: Optional[Path] = None,
+    repo_index_path: Path | None = None,
     *,
     top_k: int = 3,
 ) -> ScopeProposal:
@@ -297,7 +294,7 @@ class PreflightDecision:
     instruction: str = ""
 
     @classmethod
-    def from_json(cls, payload: dict) -> "PreflightDecision":
+    def from_json(cls, payload: dict) -> PreflightDecision:
         return cls(
             raw=payload,
             decision=str(payload.get("decision", "unknown")),
@@ -325,7 +322,7 @@ def run_preflight(
     utterance: str,
     project_dir: Path,
     *,
-    runner: Optional[Callable[[list[str]], "subprocess.CompletedProcess[str]"]] = None,
+    runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> PreflightDecision:
     """Invoke ``specsmith preflight <utterance> --json`` and parse the result.
 
@@ -398,7 +395,9 @@ def narrate_plan(
     elif intent == Intent.RELEASE:
         lines.append("Release request \u2014 will require explicit confirmation before publishing.")
     elif intent == Intent.DESTRUCTIVE:
-        lines.append("Destructive request \u2014 will require explicit confirmation before running.")
+        lines.append(
+            "Destructive request \u2014 will require explicit confirmation before running."
+        )
     else:
         lines.append("Change request \u2014 will run under Specsmith governance.")
 
@@ -592,7 +591,7 @@ def broker_step(
     project_dir: Path,
     *,
     verbose: bool = False,
-    runner: Optional[Callable[[list[str]], "subprocess.CompletedProcess[str]"]] = None,
+    runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> str:
     """Single-shot, side-effect-free broker pipeline used by the REPL.
 

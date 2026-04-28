@@ -22,9 +22,7 @@ from pathlib import Path
 # Canonical cleanup target list (hard-coded; user-supplied paths are rejected).
 # ---------------------------------------------------------------------------
 # Recursive directory-name targets (matched anywhere under the project root).
-RECURSIVE_DIR_TARGETS = (
-    "__pycache__",
-)
+RECURSIVE_DIR_TARGETS = ("__pycache__",)
 
 # Top-level-only directory targets.
 TOP_LEVEL_DIR_TARGETS = (
@@ -117,6 +115,7 @@ class CleanupReport:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _path_size(path: Path) -> int:
     """Return total bytes for a file or directory tree."""
     if path.is_file():
@@ -154,9 +153,7 @@ def _is_protected(rel_path: Path) -> bool:
 def _current_package_version() -> str | None:
     """Best-effort read of the current package version from pyproject.toml."""
     try:
-        text = (Path(__file__).resolve().parents[3] / "pyproject.toml").read_text(
-            encoding="utf-8"
-        )
+        text = (Path(__file__).resolve().parents[3] / "pyproject.toml").read_text(encoding="utf-8")
         m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
         return m.group(1) if m else None
     except OSError:
@@ -166,6 +163,7 @@ def _current_package_version() -> str | None:
 # ---------------------------------------------------------------------------
 # Target collection
 # ---------------------------------------------------------------------------
+
 
 def collect_targets(project_root: Path) -> list[tuple[Path, bool]]:
     """Enumerate canonical cleanup targets present in the project root.
@@ -236,6 +234,7 @@ def collect_targets(project_root: Path) -> list[tuple[Path, bool]]:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> CleanupReport:
     """Run safe cleanup against the given project root.
 
@@ -260,9 +259,7 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
         try:
             rel = target.resolve().relative_to(root)
         except ValueError:
-            report.skipped.append(
-                {"path": str(target), "reason": "outside project root"}
-            )
+            report.skipped.append({"path": str(target), "reason": "outside project root"})
             continue
 
         # Hard-protect governance, source, and project configuration roots
@@ -274,9 +271,7 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
         # Targets nested inside a protected top-level directory are only
         # allowed if their canonical collection rule explicitly opted in.
         if rel.parts and rel.parts[0] in PROTECTED_PATHS and not allow_inside_protected:
-            report.skipped.append(
-                {"path": str(rel), "reason": "inside protected path"}
-            )
+            report.skipped.append({"path": str(rel), "reason": "inside protected path"})
             continue
 
         size = _path_size(target)
@@ -288,9 +283,7 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
                 else:
                     target.unlink()
             except OSError as exc:
-                report.skipped.append(
-                    {"path": str(rel), "reason": f"removal failed: {exc}"}
-                )
+                report.skipped.append({"path": str(rel), "reason": f"removal failed: {exc}"})
                 continue
 
         report.removed.append(str(rel))

@@ -1098,5 +1098,38 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-101",
+    "title": "Lint Baseline Is Clean on develop",
+    "description": "`ruff check src/ tests/` and `ruff format --check src/ tests/` both exit zero on `develop`. The CI workflow's `lint` job is the canonical gate; running both commands locally produces \"All checks passed!\" and \"112 files already formatted\" (or equivalent for the current file count).",
+    "requirement_id": "REQ-101",
+    "type": "integration",
+    "verification_method": "ci",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-102",
+    "title": "Type-Check Baseline Is Clean on develop",
+    "description": "`mypy src/specsmith/` exits zero on `develop`. The CI workflow's `typecheck` job is the canonical gate. Modules added to the `ignore_errors=true` overrides in `pyproject.toml` (REQ-102) must remain enumerated; new modules must justify any addition with a comment.",
+    "requirement_id": "REQ-102",
+    "type": "integration",
+    "verification_method": "ci",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-103",
+    "title": "Security Job Passes With pip-audit ignore-vuln",
+    "description": "The CI security job upgrades pip to the latest release, installs `pip-audit`, installs specsmith with its runtime dependencies, then runs `pip-audit --ignore-vuln CVE-2026-3219`. The job exits zero on `develop`.",
+    "requirement_id": "REQ-103",
+    "type": "integration",
+    "verification_method": "ci",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
