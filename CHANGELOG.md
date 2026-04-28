@@ -5,7 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] — 2026-04-28
+### Added
+- **Nexus broker, preflight, verify** — `specsmith preflight <utterance> --json` and `specsmith verify [--stdin|--diff|--tests|--logs|--changed]` are first-class CLI subcommands. The natural-language broker (`specsmith.agent.broker`) classifies intent, infers scope from `REQUIREMENTS.md` / `.repo-index`, calls the CLI, and renders plain-language plans (REQ-084..REQ-100).
+- **Bounded-retry harness with canonical retry strategies** — `execute_with_governance` honors `DEFAULT_RETRY_BUDGET` and surfaces `narrow_scope` / `expand_scope` / `fix_tests` / `rollback` / `stop` on stop-and-align (REQ-014, REQ-028, REQ-063, REQ-096).
+- **`/why` post-run governance block** in the Nexus REPL (REQ-094) and decision-specific exit codes for `preflight` (0 / 2 / 3, REQ-092).
+- **`work_proposal` ledger event** distinct from the `preflight` event for brand-new work-item ids (REQ-044, REQ-085, REQ-099).
+- **`--stress` bridge** — preflight optionally runs the AEE `StressTester` over matched requirements and surfaces critical failures as `stress_warnings` (REQ-100).
+- **`.specsmith/config.yml` confidence threshold** — `epistemic.confidence_threshold` is honored as the floor for `confidence_target` in both `preflight` and `verify` (REQ-058, REQ-098).
+- **CI baseline contract** — ruff lint + format clean, mypy strict-clean over 69 source files, and `pip-audit --ignore-vuln CVE-2026-3219` (REQ-101..REQ-103).
+- **VS Code extension parity** — `specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy` (REQ-106; ships in `specsmith-vscode` 0.3.16).
+- **`scripts/sync_workitems.py`** keeps `.specsmith/workitems.json` mirrored to the implemented REQ/TEST set (REQ-104).
+- **103 REQs / 103 TESTs / 259 passing tests + 1 skipped** — governance state synced.
+- **Read the Docs Nexus surface** — `docs/site/commands.md` documents `preflight`, `verify`, the Nexus REPL, the bounded-retry harness, and `/why` (REQ-090).
+- **ARCHITECTURE.md "Current State" section** describing the system as built (REQ-107).
+### Changed
+- **Type checking** — the dynamic Nexus agent surface (`broker`, `cleanup`, `indexer`, `orchestrator`, `repl`, `safety`, `tools`, `console_utils`, `serve`) is enumerated in the `[[tool.mypy.overrides]] ignore_errors=true` carveout in `pyproject.toml`. Strict-mypy is preserved everywhere else.
+- **CI workflow** — every job upgrades pip first; security job tolerates the upstream-unfixed pip CVE-2026-3219 advisory.
+- **TaskResult dataclass** returned by `orchestrator.run_task`; the broker harness consumes structured fields directly instead of synthesizing equilibrium from `bool(summary)` (REQ-091).
+### Fixed
+- **REPL closure bug** — `B023` in `repl._executor` was capturing the loop variable `user_input`; now bound via default arg.
+- **134 ruff findings → 0** across `src/specsmith/agent/*`, `src/specsmith/cli.py`, `src/specsmith/requirements_parser.py`, `src/specsmith/agent/broker.py`, and `tests/test_nexus.py`.
+- **`tests/test_data_definition_001.py`** removed (corrupt single-line scaffolded fixture).
+- **TEST-096 imports** moved to top of `tests/test_nexus.py` (E402).
+## [Unreleased — pre-0.4.0 working notes]
 ### Added
 - **Nexus governance documentation** — Read the Docs `commands.md` and `index.md` now describe `specsmith preflight`, `specsmith verify`, the natural-language broker, the bounded-retry harness, the `/why` toggle, and the `--stress` flag (REQ-090, REQ-101..REQ-103).
 - **REQ-101 / TEST-101** — lint baseline contract; `ruff check` and `ruff format --check` must both exit zero on develop.
@@ -471,7 +494,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.3...HEAD
+[0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...HEAD
 [0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1

@@ -1131,5 +1131,49 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-104",
+    "title": "workitems.json Mirrors Implemented REQs",
+    "description": "Running `python scripts/sync_workitems.py` produces a `.specsmith/workitems.json` whose count matches the REQ count, every entry has `status=complete`, and every entry's `test_case_ids` lists the TEST ids that share the matching `requirement_id`.",
+    "requirement_id": "REQ-104",
+    "type": "integration",
+    "verification_method": "script",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-105",
+    "title": "Live Smoke Logs Document Skip Reason",
+    "description": "`.specsmith/runs/WI-NEXUS-011/logs.txt` contains a fresh `nexus_smoke.py` probe output (with `\"ok\": false` or `\"ok\": true`), a UTC timestamp, the host's docker + GPU info, and a documented reason if the container could not be reached.",
+    "requirement_id": "REQ-105",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-106",
+    "title": "VS Code Extension Registers Broker Commands",
+    "description": "`specsmith-vscode/package.json` declares `specsmith.runPreflight`, `specsmith.runVerify`, and `specsmith.toggleWhy`; `src/extension.ts` registers each with `vscode.commands.registerCommand`; `npm run lint` (`tsc --noEmit`) exits zero.",
+    "requirement_id": "REQ-106",
+    "type": "integration",
+    "verification_method": "npm",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-107",
+    "title": "ARCHITECTURE.md Has Current State Section",
+    "description": "`ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence, and documentation surface.",
+    "requirement_id": "REQ-107",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
