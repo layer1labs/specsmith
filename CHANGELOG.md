@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- **Skill marketplace** — new `specsmith skill` subcommand group (`search`, `list`, `install`) backed by a small built-in catalog (`verifier`, `planner`, `diff-reviewer`, `onboarding-coach`, `release-pilot`). `specsmith skill install <slug>` writes the SKILL.md into the project's `.agents/skills/` directory so the local Nexus runtime picks it up. New module `src/specsmith/skills.py` exposes `SkillEntry`, `CATALOG`, `search()`, `get()`, `install()`, `installed_skills()`.
+- **`specsmith chat --interactive` stdin decision protocol** — when launched with `--interactive`, the chat command reads JSONL decision events from stdin so an IDE consumer (e.g. the VS Code extension) can drive the safe-mode approval flow and the inline diff review. The new `--decision-timeout <seconds>` flag bounds the wait. Approved tool calls fall through to the standard tool_call/plan_step/task_complete flow; denied calls emit `task_complete success=False`. The first non-accept `diff_decision` comment is folded into the persisted turn's `reviewer_comment` field so the next harness retry can consume it.
+- **Tests** — `tests/test_skill_marketplace.py` (18 tests) and `tests/test_chat_stdin_protocol.py` (3 tests) cover the new surfaces.
+
 ## [0.5.0] — 2026-04-28
 ### Changed
 - **Agent skill adapter renamed** — the integration adapter that previously generated `.warp/skills/SKILL.md` is now named `agent-skill` and writes to `.agents/skills/SKILL.md`. Existing `scaffold.yml` files that still list `warp` continue to work via a backward-compat alias resolved in `specsmith.integrations.get_adapter`. The legacy `.warp/skills/SKILL.md` path is still patched on `specsmith upgrade` for projects that have not yet rebuilt.

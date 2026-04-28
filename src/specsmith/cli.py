@@ -5219,6 +5219,24 @@ main.add_command(index_group)
     default=True,
     help="Emit block-protocol JSONL events (REQ-113). On by default for chat.",
 )
+@click.option(
+    "--interactive",
+    "interactive",
+    is_flag=True,
+    default=False,
+    help=(
+        "Read decision events (tool_decision / diff_decision / comment) from "
+        "stdin. Used by IDE consumers like the VS Code extension to drive "
+        "the safe-mode approval flow and inline diff review."
+    ),
+)
+@click.option(
+    "--decision-timeout",
+    "decision_timeout",
+    type=float,
+    default=120.0,
+    help="Seconds to wait for a stdin decision before falling back to deny.",
+)
 def chat_cmd(
     utterance: str,
     project_dir: str,
@@ -5227,6 +5245,8 @@ def chat_cmd(
     profile: str,
     reviewer_comment: str,
     json_events: bool,
+    interactive: bool,
+    decision_timeout: float,
 ) -> None:
     """Run a single chat turn, streaming JSONL block events to stdout.
 
@@ -5302,35 +5322,44 @@ def chat_cmd(
         matched=len(scope.matched_requirements),
     )
 
-    # Permission gate (REQ-115). In safe mode every tool becomes a request.
+    # Permission gate (REQ-115). In safe mode every tool becomes a request,
+    # and (with --interactive) we then block on stdin for the user's decision.
     if profile == "safe":
         emitter.tool_request(msg_block, "execute_with_governance", {"utterance": utterance})
         emitter.plan_step(plan_block, "s2", "awaiting_approval")
-        emitter.block_complete(plan_block, status="paused")
-        emitter.block_complete(msg_block)
-        emitter.task_complete(
-            success=False,
-            confidence=0.0,
-            summary="Safe mode: tool execution awaiting user approval.",
-            profile=profile,
-        )
-        # Persist turn for memory continuity.
-        append_turn(
-            root,
-            sid,
-            {
-                "role": "user",
-                "utterance": utterance,
-                "profile": profile,
-                "intent": real_intent.value,
-                "status": "awaiting_approval",
-            },
-        )
-        click.echo(_json.dumps({"session_id": sid, "status": "awaiting_approval"}))
-        return
 
-    # Standard / yolo: emit a tool_call event for execute_with_governance and
-    # let downstream consumers route to the real harness if configured.
+        decision = _read_stdin_decision("tool_decision", decision_timeout) if interactive else None
+        if decision and decision.get("decision") == "approve":
+            # User approved — fall through into the standard flow as if the
+            # tool had been pre-authorised.
+            emitter.plan_step(plan_block, "s2", "approved")
+        else:
+            denied_reason = (decision or {}).get("reason", "awaiting_approval")
+            emitter.block_complete(plan_block, status="paused")
+            emitter.block_complete(msg_block)
+            emitter.task_complete(
+                success=False,
+                confidence=0.0,
+                summary=f"Safe mode: {denied_reason}.",
+                profile=profile,
+            )
+            append_turn(
+                root,
+                sid,
+                {
+                    "role": "user",
+                    "utterance": utterance,
+                    "profile": profile,
+                    "intent": real_intent.value,
+                    "status": denied_reason,
+                },
+            )
+            click.echo(_json.dumps({"session_id": sid, "status": denied_reason}))
+            return
+
+    # Standard / yolo / safe-approved: emit a tool_call event for
+    # execute_with_governance and let downstream consumers route to the
+    # real harness if configured.
     emitter.tool_call(msg_block, "execute_with_governance", {"utterance": utterance})
     emitter.plan_step(plan_block, "s2", "complete")
 
@@ -5344,10 +5373,34 @@ def chat_cmd(
     emitter.block_complete(plan_block, status="complete")
     emitter.token(msg_block, summary + "\n")
     emitter.block_complete(msg_block)
+
+    # Optional inline-diff review (REQ-116) when interactive: emit one
+    # representative diff block per matched requirement and read each
+    # diff_decision from stdin. The first non-accept decision becomes the
+    # next retry's reviewer_comment so the harness can adjust.
+    extra_comment = ""
+    if interactive and scope.matched_requirements:
+        for req in scope.matched_requirements[:3]:
+            diff_block = emitter.diff(
+                path=f"docs/{req.req_id}.md",
+                diff=f"--- {req.req_id} (review)\n+++ {req.req_id} (proposed)\n",
+            )
+            decision = _read_stdin_decision("diff_decision", decision_timeout)
+            verdict = (decision or {}).get("decision", "timeout")
+            comment = (decision or {}).get("comment", "")
+            emitter.block_complete(diff_block, status=verdict)
+            if verdict != "accept" and comment:
+                extra_comment = comment
+                break
+
+    final_summary = summary
+    if extra_comment:
+        final_summary += f" reviewer_comment={extra_comment!r}"
+
     emitter.task_complete(
         success=True,
         confidence=0.7,
-        summary=summary,
+        summary=final_summary,
         profile=profile,
         session_id=sid,
         parent_session=parent_session or None,
@@ -5362,11 +5415,83 @@ def chat_cmd(
             "utterance": utterance,
             "profile": profile,
             "intent": real_intent.value,
-            "reviewer_comment": reviewer_comment,
+            "reviewer_comment": reviewer_comment or extra_comment,
             "parent_session": parent_session or None,
             "json_events": json_events,
         },
     )
+
+
+def _read_stdin_decision(expected_type: str, timeout_seconds: float) -> dict[str, Any] | None:
+    """Read a single JSON decision line from stdin with a timeout.
+
+    Used by ``specsmith chat --interactive`` to wait for ``tool_decision``
+    or ``diff_decision`` events emitted by an IDE client. Returns the
+    parsed JSON object or ``None`` if the timeout fires, the line cannot
+    be parsed, or its ``type`` does not match the expected type.
+
+    Cross-platform: uses ``select`` on POSIX and a polling reader thread
+    on Windows so the flow stays non-blocking on either OS.
+    """
+    import json as _json
+    import sys as _sys
+
+    line: str | None = None
+
+    # ``select`` only works on real file descriptors. Under test runners
+    # (CliRunner) and other in-memory stdins, ``sys.stdin.fileno()`` raises;
+    # in that case fall back to a direct ``readline()`` which the runner
+    # has already pre-buffered with the supplied ``input``.
+    has_fileno = True
+    try:
+        _sys.stdin.fileno()
+    except (OSError, ValueError, AttributeError):
+        has_fileno = False
+
+    if not has_fileno:
+        try:
+            line = _sys.stdin.readline()
+        except Exception:  # noqa: BLE001 - never let stdin issues kill chat
+            line = None
+    elif _sys.platform == "win32":
+        # Windows has no select() on file descriptors; spawn a tiny reader
+        # thread and poll a queue.
+        import queue as _queue
+        import threading as _threading
+
+        q: _queue.Queue[str] = _queue.Queue()
+
+        def _reader() -> None:
+            data = _sys.stdin.readline()
+            q.put(data)
+
+        t = _threading.Thread(target=_reader, daemon=True)
+        t.start()
+        try:
+            line = q.get(timeout=timeout_seconds)
+        except _queue.Empty:
+            line = None
+    else:
+        import select as _select
+
+        try:
+            ready, _, _ = _select.select([_sys.stdin], [], [], timeout_seconds)
+        except (OSError, ValueError):
+            ready = []
+        if ready:
+            line = _sys.stdin.readline()
+
+    if not line or not line.strip():
+        return None
+    try:
+        payload = _json.loads(line.strip())
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("type") != expected_type:
+        return None
+    return payload
 
 
 # ---------------------------------------------------------------------------
@@ -5939,6 +6064,116 @@ def drive_pull(kind: str, project_dir: str, force: bool) -> None:
 
 
 main.add_command(drive_group)
+
+
+# ---------------------------------------------------------------------------
+# Skill marketplace — search / list / install community skills
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="skill")
+def skill_group() -> None:
+    """Discover, list, and install community SKILL.md files.
+
+    specsmith ships a small built-in catalog of reusable skills. Each entry
+    is a short Markdown file describing a workflow the agent should follow
+    (verifier, planner, diff-reviewer, onboarding-coach, release-pilot).
+    ``specsmith skill install <slug>`` copies the SKILL.md into
+    ``.agents/skills/`` so the local Nexus runtime picks it up alongside any
+    project-specific skills.
+    """
+
+
+@skill_group.command(name="search")
+@click.argument("query", required=False, default="")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def skill_search(query: str, as_json: bool) -> None:
+    """Search the catalog for skills matching QUERY (case-insensitive)."""
+    import json as _json
+
+    from specsmith import skills as _skills
+
+    matches = _skills.search(query)
+    if as_json:
+        click.echo(
+            _json.dumps(
+                [
+                    {
+                        "slug": m.slug,
+                        "name": m.name,
+                        "description": m.description,
+                        "tags": list(m.tags),
+                    }
+                    for m in matches
+                ],
+                indent=2,
+            )
+        )
+        return
+    if not matches:
+        console.print("[dim]No matching skills.[/dim]")
+        return
+    for entry in matches:
+        console.print(f"[bold]{entry.slug}[/bold] \u2014 {entry.name}")
+        console.print(f"  {entry.description}")
+        if entry.tags:
+            console.print(f"  [dim]tags: {', '.join(entry.tags)}[/dim]")
+
+
+@skill_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def skill_list(project_dir: str, as_json: bool) -> None:
+    """Show installed skills (under .agents/skills/) and the catalog."""
+    import json as _json
+
+    from specsmith import skills as _skills
+
+    root = Path(project_dir).resolve()
+    installed = [p.name for p in _skills.installed_skills(root)]
+    catalog = [
+        {"slug": entry.slug, "name": entry.name, "installed": f"{entry.slug}.md" in installed}
+        for entry in _skills.CATALOG
+    ]
+    if as_json:
+        click.echo(_json.dumps({"installed": installed, "catalog": catalog}, indent=2))
+        return
+    console.print(f"[bold]Installed skills[/bold] ({len(installed)})")
+    for name in installed:
+        console.print(f"  [green]\u2713[/green] {name}")
+    if not installed:
+        console.print("  [dim](none)[/dim]")
+    console.print()
+    console.print("[bold]Catalog[/bold]")
+    for entry in catalog:
+        marker = "[green]\u2713[/green]" if entry["installed"] else "[dim]\u2014[/dim]"
+        console.print(f"  {marker} {entry['slug']:20s} {entry['name']}")
+
+
+@skill_group.command(name="install")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--force", is_flag=True, default=False, help="Overwrite an existing file.")
+def skill_install(slug: str, project_dir: str, force: bool) -> None:
+    """Install SLUG into the project's .agents/skills/ directory."""
+    from specsmith import skills as _skills
+
+    root = Path(project_dir).resolve()
+    try:
+        target = _skills.install(slug, root, force=force)
+    except KeyError:
+        console.print(f"[red]Unknown skill: {slug}[/red]")
+        console.print("  Run [bold]specsmith skill search[/bold] to browse the catalog.")
+        raise SystemExit(1) from None
+    except FileExistsError as exc:
+        console.print(f"[yellow]{exc}[/yellow]")
+        raise SystemExit(2) from None
+    console.print(
+        f"[green]\u2713[/green] Installed [bold]{slug}[/bold] at {target.relative_to(root)}"
+    )
+
+
+main.add_command(skill_group)
 
 
 # ---------------------------------------------------------------------------
