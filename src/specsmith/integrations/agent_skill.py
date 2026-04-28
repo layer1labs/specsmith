@@ -1,6 +1,16 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
-"""Warp / Oz skill integration adapter."""
+"""Agent skill integration adapter.
+
+Generates a generic ``SKILL.md`` file under ``.agents/skills/`` for any
+terminal-native AI agent that supports the SKILL.md convention.
+
+This adapter previously shipped under the name ``warp`` and wrote to
+``.warp/skills/SKILL.md``. The legacy name is still resolved as an alias
+in :mod:`specsmith.integrations` so existing ``scaffold.yml`` configs
+continue to work, but the canonical adapter name is ``agent-skill`` and
+the canonical output path is ``.agents/skills/SKILL.md``.
+"""
 
 from __future__ import annotations
 
@@ -10,19 +20,19 @@ from specsmith.config import ProjectConfig
 from specsmith.integrations.base import AgentAdapter
 
 
-class WarpAdapter(AgentAdapter):
-    """Generate a Warp skill file for the project."""
+class AgentSkillAdapter(AgentAdapter):
+    """Generate a generic agent skill file (.agents/skills/SKILL.md)."""
 
     @property
     def name(self) -> str:
-        return "warp"
+        return "agent-skill"
 
     @property
     def description(self) -> str:
-        return "Warp / Oz skill file (.warp/skills/)"
+        return "Agent skill file (.agents/skills/SKILL.md)"
 
     def generate(self, config: ProjectConfig, target: Path) -> list[Path]:
-        skill_dir = target / ".warp" / "skills"
+        skill_dir = target / ".agents" / "skills"
         skill_dir.mkdir(parents=True, exist_ok=True)
 
         skill_path = skill_dir / "SKILL.md"
@@ -87,7 +97,7 @@ Before marking any task complete, run: {verify_line}
 ## Credit Tracking
 After completing tasks, record token usage:
 ```
-specsmith credits record --model <model> --provider <provider> \
+specsmith credits record --model <model> --provider <provider> \\
   --tokens-in <N> --tokens-out <N> --task "<desc>"
 ```
 Check budget: `specsmith credits summary`

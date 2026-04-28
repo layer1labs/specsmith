@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] — 2026-04-28
+### Changed
+- **Agent skill adapter renamed** — the integration adapter that previously generated `.warp/skills/SKILL.md` is now named `agent-skill` and writes to `.agents/skills/SKILL.md`. Existing `scaffold.yml` files that still list `warp` continue to work via a backward-compat alias resolved in `specsmith.integrations.get_adapter`. The legacy `.warp/skills/SKILL.md` path is still patched on `specsmith upgrade` for projects that have not yet rebuilt.
+- **Customer-facing docs** — Read the Docs pages (`agent-integrations.md`, `getting-started.md`, `configuration.md`, `commands.md`, `agent-client.md`) and `TESTS.md` no longer reference any specific terminal-AI vendor by name. The `agent-skill` adapter is described as a generic SKILL.md integration for terminal-native AI agents.
+- **REQ-079 / ARCHITECTURE.md cleanup boundary text** — protected-paths description generalised to “third-party agent integration directories (e.g. `.agents/`)”. Defensive code in `agent/cleanup.py` continues to protect both `.agents/` and `.warp/` for users who already have either directory in their project.
+- **`pyproject.toml`** version bumped to `0.5.0`. `Development Status :: 4 - Beta` classifier preserved (1.0.0 stays deferred per the pre-1.0 stance).
+- **`scaffold.yml`** integration list switched to the new `agent-skill` adapter name in this repo's own scaffold.
+### Internal
+- New module `src/specsmith/integrations/agent_skill.py` (`AgentSkillAdapter`) replaces `src/specsmith/integrations/warp.py` (file removed). `LEGACY_ALIASES = {"warp": "agent-skill"}` in `src/specsmith/integrations/__init__.py` keeps existing configs working without manual migration.
+- `tests/test_integrations.py` covers the new canonical name, the legacy alias, and the new `.agents/skills/` output path.
 ## [0.4.0] — 2026-04-28
 ### Added
 - **Nexus broker, preflight, verify** — `specsmith preflight <utterance> --json` and `specsmith verify [--stdin|--diff|--tests|--logs|--changed]` are first-class CLI subcommands. The natural-language broker (`specsmith.agent.broker`) classifies intent, infers scope from `REQUIREMENTS.md` / `.repo-index`, calls the CLI, and renders plain-language plans (REQ-084..REQ-100).
@@ -494,8 +504,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
+[0.5.0]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.5.0...HEAD
 [0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1

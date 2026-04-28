@@ -23,7 +23,7 @@ exec_shims: true
 shell_wrappers: false
 integrations:
 - agents-md
-- warp
+- agent-skill
 - claude-code
 license: MIT
 community_files:

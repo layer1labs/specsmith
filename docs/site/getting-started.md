@@ -41,7 +41,7 @@ platforms: [windows, linux, macos]
 language: python
 vcs_platform: github
 branching_strategy: gitflow
-integrations: [agents-md, warp, claude-code]
+integrations: [agents-md, agent-skill, claude-code]
 ```
 
 ### Step 2: Scaffold
@@ -89,7 +89,7 @@ my-tool/
 │   ├── dependabot.yml                 # pip + github-actions
 │   ├── PULL_REQUEST_TEMPLATE.md        # Governance-aware PR template
 │   └── ISSUE_TEMPLATE/                # Bug report + feature request
-├── .warp/skills/SKILL.md              # Warp/Oz governance skill
+├── .agents/skills/SKILL.md            # Generic agent SKILL.md (terminal-native AI runtimes)
 └── CLAUDE.md                          # Claude Code governance
 ```
 
@@ -131,7 +131,7 @@ From the project root, use the universal session start command:
 /agent AGENTS.md
 ```
 
-This works in Warp/Oz, Claude Code, Cursor, and any agent that reads context files. The agent reads `AGENTS.md` (the governance hub), loads `LEDGER.md` for session state, and follows the closed-loop workflow.
+This works in Claude Code, Cursor, terminal-native AI agents that load `.agents/skills/SKILL.md`, and any agent that reads project context files. The agent reads `AGENTS.md` (the governance hub), loads `LEDGER.md` for session state, and follows the closed-loop workflow.
 
 After the agent is loaded, use the quick command `start` to trigger the full session start protocol.
 

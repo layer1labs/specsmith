@@ -549,7 +549,7 @@
 ## 79. Safe Cleanup Must Protect Governance and Source
 - **ID:** REQ-079
 - **Title:** Safe Cleanup Must Protect Governance and Source
-- **Description:** Safe cleanup must refuse to delete .git, .specsmith, governance markdown files, pyproject.toml, README.md, LICENSE, CHANGELOG.md, src/, tests/, docs/, scripts/, .repo-index/, .github/, .warp/, .vscode/, and project configuration dotfiles.
+- **Description:** Safe cleanup must refuse to delete .git, .specsmith, governance markdown files, pyproject.toml, README.md, LICENSE, CHANGELOG.md, src/, tests/, docs/, scripts/, .repo-index/, .github/, .vscode/, third-party agent integration directories (such as .agents/), and project configuration dotfiles.
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 

@@ -17,7 +17,7 @@ class CreditEntry:
     timestamp: str = ""
     session_id: str = ""
     model: str = ""
-    provider: str = ""  # openai, anthropic, google, warp, local
+    provider: str = ""  # openai, anthropic, google, local, ollama, etc.
     tokens_in: int = 0
     tokens_out: int = 0
     estimated_cost_usd: float = 0.0

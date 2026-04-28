@@ -198,7 +198,10 @@ class ProjectConfig(BaseModel):
     # Agent integrations
     integrations: list[str] = Field(
         default=["agents-md"],
-        description="Agent integrations to generate (agents-md, warp, claude-code, cursor, etc.)",
+        description=(
+            "Agent integrations to generate (agents-md, agent-skill, claude-code, "
+            "cursor, copilot, gemini, windsurf, aider)."
+        ),
     )
 
     # Agent execution profile

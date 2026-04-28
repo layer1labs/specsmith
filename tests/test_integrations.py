@@ -10,10 +10,10 @@ import pytest
 
 from specsmith.config import ProjectConfig, ProjectType
 from specsmith.integrations import get_adapter, list_adapters
+from specsmith.integrations.agent_skill import AgentSkillAdapter
 from specsmith.integrations.claude_code import ClaudeCodeAdapter
 from specsmith.integrations.copilot import CopilotAdapter
 from specsmith.integrations.cursor import CursorAdapter
-from specsmith.integrations.warp import WarpAdapter
 
 
 @pytest.fixture
@@ -30,26 +30,36 @@ def config() -> ProjectConfig:
 class TestAdapterRegistry:
     def test_list_adapters(self) -> None:
         adapters = list_adapters()
-        assert "warp" in adapters
+        assert "agent-skill" in adapters
         assert "claude-code" in adapters
         assert "cursor" in adapters
         assert "copilot" in adapters
+        # Legacy aliases are not surfaced as canonical names.
+        assert "warp" not in adapters
 
     def test_get_adapter(self) -> None:
+        adapter = get_adapter("agent-skill")
+        assert isinstance(adapter, AgentSkillAdapter)
+
+    def test_get_adapter_legacy_alias(self) -> None:
+        # Existing scaffold.yml configs that still say `warp` keep working.
         adapter = get_adapter("warp")
-        assert isinstance(adapter, WarpAdapter)
+        assert isinstance(adapter, AgentSkillAdapter)
 
     def test_get_unknown_adapter(self) -> None:
         with pytest.raises(ValueError, match="Unknown integration"):
             get_adapter("nonexistent")
 
 
-class TestWarpAdapter:
+class TestAgentSkillAdapter:
     def test_generates_skill(self, config: ProjectConfig, tmp_path: Path) -> None:
-        adapter = WarpAdapter()
+        adapter = AgentSkillAdapter()
         files = adapter.generate(config, tmp_path)
         assert len(files) == 1
         assert files[0].name == "SKILL.md"
+        # Canonical generated path is .agents/skills/SKILL.md (rebrand from .warp/).
+        assert files[0].parent.name == "skills"
+        assert files[0].parent.parent.name == ".agents"
         content = files[0].read_text(encoding="utf-8")
         assert "test-project" in content
         assert "AGENTS.md" in content
