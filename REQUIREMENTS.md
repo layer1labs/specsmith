@@ -741,4 +741,136 @@
 - **Description:** `ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
+## 108. Real Verifier Signal Must Drive Confidence
+- **ID:** REQ-108
+- **Title:** Real Verifier Signal Must Drive Confidence
+- **Description:** `Orchestrator._build_task_result` must derive `TaskResult.confidence` and `equilibrium` from a real verifier (`src/specsmith/agent/verifier.py`) that inspects test results, ruff output, and mypy output for the changed files. The hardcoded 0.85 / 0.4 / 0.0 placeholder must be removed.
+- **Source:** src/specsmith/agent/verifier.py, src/specsmith/agent/orchestrator.py
+- **Status:** defined
+## 109. Live `l1-nexus` Smoke Overlay Must Produce ok=true on 7B Hardware
+- **ID:** REQ-109
+- **Title:** Live `l1-nexus` Smoke Overlay Must Produce ok=true on 7B Hardware
+- **Description:** Specsmith ships a `docker-compose.smoke.yml` overlay that swaps `l1-nexus` to a 7B GPTQ-Int4 model fitting <=8 GB VRAM, and `.specsmith/runs/WI-NEXUS-029/logs.txt` documents how to capture an `ok: true` smoke result with `NEXUS_LIVE=1` against that overlay.
+- **Source:** docker-compose.smoke.yml, .specsmith/runs/WI-NEXUS-029/logs.txt
+- **Status:** defined
+## 110. End-to-End Nexus Path Must Be Integration-Tested
+- **ID:** REQ-110
+- **Title:** End-to-End Nexus Path Must Be Integration-Tested
+- **Description:** `tests/test_e2e_nexus.py` exercises the broker -> preflight -> harness -> orchestrator -> verifier path with a `FakeOrchestrator` and asserts ledger events, `RunResult.success`, and retry-strategy classification on a scripted failure-then-recovery sequence.
+- **Source:** tests/test_e2e_nexus.py
+- **Status:** defined
+## 111. Mypy Strict Carveout Must Shrink Toward Zero
+- **ID:** REQ-111
+- **Title:** Mypy Strict Carveout Must Shrink Toward Zero
+- **Description:** At least the four newly-annotated dynamic agent modules (`broker`, `safety`, `console_utils`, `indexer`) are fully type-annotated and removed from the `[[tool.mypy.overrides]] ignore_errors=true` block in `pyproject.toml`. The remaining carveout (orchestrator, repl, tools, cleanup, serve) is documented as a 1.x cleanup target.
+- **Source:** pyproject.toml, src/specsmith/agent/*.py, src/specsmith/console_utils.py
+- **Status:** defined
+## 112. Streaming Token Bridge Must Emit JSONL Events
+- **ID:** REQ-112
+- **Title:** Streaming Token Bridge Must Emit JSONL Events
+- **Description:** A new `specsmith chat <utterance> --json-events` CLI subcommand drives the broker + harness end-to-end and emits a JSONL event stream on stdout with at least the event types `block_start`, `token`, `tool_call`, `tool_result`, `block_complete`, and `task_complete`. Each event is a single JSON object on its own line.
+- **Source:** src/specsmith/cli.py, src/specsmith/agent/events.py
+- **Status:** defined
+## 113. Block-Based Output Schema
+- **ID:** REQ-113
+- **Title:** Block-Based Output Schema
+- **Description:** Every `block_start` event carries a `block_id`, `kind` (one of `plan`, `message`, `tool_call`, `tool_result`, `diff`, `test_results`, `verdict`), `agent`, and `timestamp`. The corresponding `block_complete` reuses the same `block_id`. Schema is documented in `docs/site/chat-events.md`.
+- **Source:** src/specsmith/agent/events.py, docs/site/chat-events.md
+- **Status:** defined
+## 114. Plan Block Must Surface Steps
+- **ID:** REQ-114
+- **Title:** Plan Block Must Surface Steps
+- **Description:** When the broker classifies an utterance as a `change` and preflight is `accepted`, the chat stream must emit a `plan` block whose payload is a list of `{step_id, title, status}` items. Status transitions (`pending` -> `running` -> `done` / `failed`) are emitted as `plan_step` events keyed by `step_id`.
+- **Source:** src/specsmith/agent/events.py
+- **Status:** defined
+## 115. Permission/Autonomy Tier Must Be Honored End-to-End
+- **ID:** REQ-115
+- **Title:** Permission/Autonomy Tier Must Be Honored End-to-End
+- **Description:** `specsmith chat` accepts `--profile {safe,standard,open,admin}` (default reads `scaffold.yml`). Under `safe`, every tool call emits a `tool_request` event and waits for an inbound `tool_decision` line on stdin (`{decision: 'approve'|'deny'}`). Under `standard` / `open` the harness proceeds without prompting. The selected profile is recorded in the ledger entry.
+- **Source:** src/specsmith/cli.py, src/specsmith/profiles.py
+- **Status:** defined
+## 116. Inline Diff Review Must Round-Trip Comments
+- **ID:** REQ-116
+- **Title:** Inline Diff Review Must Round-Trip Comments
+- **Description:** `specsmith chat` emits a `diff` block per file changed by the orchestrator; subsequent stdin lines of the form `{type: 'comment', block_id, path, line, body}` are stored in the session memory and surfaced to the bounded-retry harness as additional context on the next attempt. `--comment` flag on `specsmith verify` does the equivalent for non-streaming use.
+- **Source:** src/specsmith/agent/events.py, src/specsmith/cli.py
+- **Status:** defined
+## 117. Predict-Only Preflight Must Not Allocate a Work Item
+- **ID:** REQ-117
+- **Title:** Predict-Only Preflight Must Not Allocate a Work Item
+- **Description:** `specsmith preflight <utterance> --predict-only --json` returns the same JSON shape as the canonical `preflight` (intent, requirement_ids, instruction, etc.) but with `work_item_id == ''`, no ledger event written, and a new `predicted_refinement` field that suggests a tightened utterance. Used by IDE autocomplete.
+- **Source:** src/specsmith/cli.py
+- **Status:** defined
+## 118. VS Code Extension Must Surface specsmith chat
+- **ID:** REQ-118
+- **Title:** VS Code Extension Must Surface specsmith chat
+- **Description:** `specsmith-vscode` exposes a `specsmith.openChat` command that spawns `specsmith chat --json-events` with the active session's project dir, consumes the JSONL stream, and renders blocks in the existing `SessionPanel`. Extension version >= 0.4.0.
+- **Source:** specsmith-vscode/src/extension.ts, specsmith-vscode/package.json
+- **Status:** defined
+## 119. Project Rules Must Auto-Inject Into the System Prompt
+- **ID:** REQ-119
+- **Title:** Project Rules Must Auto-Inject Into the System Prompt
+- **Description:** `src/specsmith/agent/rules.py:load_rules(project_dir)` reads `docs/governance/*_RULES.md` and the H-rules from `AGENTS.md`, returning a single deterministic system-prompt prefix string. The orchestrator prepends this string to every AG2 agent's `system_message` at construction time.
+- **Source:** src/specsmith/agent/rules.py, src/specsmith/agent/orchestrator.py
+- **Status:** defined
+## 120. Persistent Session Memory Must Be Token-Budgeted
+- **ID:** REQ-120
+- **Title:** Persistent Session Memory Must Be Token-Budgeted
+- **Description:** `src/specsmith/agent/memory.py` provides `append_turn(session_id, turn)` and `recent_turns(session_id, max_chars)` that read/write `.specsmith/sessions/<session_id>/turns.jsonl`. `specsmith chat --session-id <id>` injects the most recent N turns (within `max_chars`) into the orchestrator's first message.
+- **Source:** src/specsmith/agent/memory.py
+- **Status:** defined
+## 121. MCP Tool Consumption Must Be Configuration-Driven
+- **ID:** REQ-121
+- **Title:** MCP Tool Consumption Must Be Configuration-Driven
+- **Description:** `src/specsmith/agent/mcp.py:load_mcp_tools(project_dir)` reads `.specsmith/mcp.yml` (a list of `{name, command, args, env}` entries) and returns Nexus-tool wrappers that proxy to each external MCP server via stdio. The Specsmith safety middleware wraps every MCP tool call.
+- **Source:** src/specsmith/agent/mcp.py, .specsmith/mcp.yml
+- **Status:** defined
+## 122. Dynamic Agent/Model Routing Must Be Pluggable
+- **ID:** REQ-122
+- **Title:** Dynamic Agent/Model Routing Must Be Pluggable
+- **Description:** `src/specsmith/agent/router.py:choose_tier(intent, scope, retry_count)` returns one of `{coder, heavy, fast}` based on `.specsmith/config.yml routing:` overrides. The orchestrator builds a model-config map keyed by tier and selects the appropriate `llm_config` per agent.
+- **Source:** src/specsmith/agent/router.py, .specsmith/config.yml
+- **Status:** defined
+## 123. Notebook Capture and Replay
+- **ID:** REQ-123
+- **Title:** Notebook Capture and Replay
+- **Description:** `specsmith notebook record --session-id <id> --slug <name>` writes `docs/notebooks/<slug>.md` with the captured turns; `specsmith notebook replay <slug>` re-runs each utterance through `specsmith chat` (using the recorded `--profile`), re-checking governance gates.
+- **Source:** src/specsmith/cli.py, docs/notebooks/
+- **Status:** defined
+## 124. Performance Baseline Must Be Measured and Tracked
+- **ID:** REQ-124
+- **Title:** Performance Baseline Must Be Measured and Tracked
+- **Description:** `scripts/perf_smoke.py` synthesizes a 1000-REQ `REQUIREMENTS.md` in tmp_path, runs `specsmith preflight` 50 times, and writes p50 / p95 / p99 to `.specsmith/perf/baseline.json`. CI reports the deltas vs the committed baseline as a non-blocking warning.
+- **Source:** scripts/perf_smoke.py, .specsmith/perf/baseline.json
+- **Status:** defined
+## 125. Multi-Session Parallel Agents
+- **ID:** REQ-125
+- **Title:** Multi-Session Parallel Agents
+- **Description:** `specsmith chat` accepts `--parent-session <id>`. When set, the spawned session's `task_complete` event also writes a `sub_session_complete` event into the parent's session log so the parent's plan-block can surface child outcomes.
+- **Source:** src/specsmith/cli.py, src/specsmith/agent/memory.py
+- **Status:** defined
+## 126. Cloud Agent Stub Endpoint
+- **ID:** REQ-126
+- **Title:** Cloud Agent Stub Endpoint
+- **Description:** `specsmith cloud spawn <utterance> --endpoint <url>` packages working-tree + scaffold.yml + LEDGER.md as a tarball, POSTs to `<url>/spawn` with the utterance, and tails the returned JSONL stream URL. The contract is documented in `docs/site/cloud-agents.md`. The endpoint reference implementation is out of scope for 1.0 (documented as deferred).
+- **Source:** src/specsmith/cli.py, docs/site/cloud-agents.md
+- **Status:** defined
+## 127. Onboarding Path Must Be Verified
+- **ID:** REQ-127
+- **Title:** Onboarding Path Must Be Verified
+- **Description:** `specsmith doctor --onboarding` prints a checklist (CLI installed, env activated, scaffold.yml present, REQUIREMENTS.md present, vLLM endpoint reachable, ledger present) and exits non-zero if any required item is missing. `docs/site/getting-started.md` walks a fresh user from install to first accepted preflight.
+- **Source:** src/specsmith/doctor.py, src/specsmith/cli.py, docs/site/getting-started.md
+- **Status:** defined
+## 128. Cross-Repo Security Sweep
+- **ID:** REQ-128
+- **Title:** Cross-Repo Security Sweep
+- **Description:** `specsmith-vscode` CI (`.github/workflows/ci.yml`) runs `npm audit --omit=dev --audit-level=high` and fails on high-or-critical findings. The Dependabot manifest in both repos is reviewed and any open alert at 1.0 release time is documented.
+- **Source:** specsmith-vscode/.github/workflows/ci.yml
+- **Status:** defined
+## 129. 1.0 API Stability Commitment
+- **ID:** REQ-129
+- **Title:** 1.0 API Stability Commitment
+- **Description:** `docs/site/api-stability.md` enumerates the public surfaces frozen at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify / chat events, broker module API, ledger event schemas, VS Code extension command IDs). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable` and `pyproject.toml` to `1.0.0`.
+- **Source:** docs/site/api-stability.md, pyproject.toml
+- **Status:** defined
 
