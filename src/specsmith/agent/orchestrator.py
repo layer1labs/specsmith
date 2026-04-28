@@ -207,13 +207,15 @@ Next action:
 
         AG2's ``initiate_chat`` returns a ``ChatResult`` whose ``summary`` is
         the last assistant message and whose ``chat_history`` lists every
-        turn. We treat reaching a non-empty summary that includes the
-        ``Next action:`` section as equilibrium per REQ-073, and parse
-        ``Files changed:`` and ``Test results:`` if present. The confidence
-        is conservative (0.85 for a complete contract response, 0.4 for a
-        partial one) and is meant to be replaced by a real verifier signal
-        once one is wired in.
+        turn. We parse the Nexus output contract out of the summary and feed
+        the structured signal through :func:`specsmith.agent.verifier.score`
+        (REQ-108) so ``equilibrium`` and ``confidence`` reflect real test /
+        ruff / mypy state instead of a hardcoded heuristic. When the LLM
+        returns no contract sections at all we fall back to the previous
+        conservative defaults so behaviour stays the same on degraded runs.
         """
+        from specsmith.agent.verifier import report_from_chat_sections, score
+
         summary = ""
         if chat_result is not None:
             summary = getattr(chat_result, "summary", "") or ""
@@ -221,8 +223,6 @@ Next action:
                 summary = str(summary)
 
         sections = self._parse_output_contract(summary)
-        equilibrium = bool(sections) and "next_action" in sections
-        confidence = 0.85 if equilibrium else (0.4 if summary else 0.0)
 
         files_changed: list[str] = []
         files_section = sections.get("files_changed", "")
@@ -235,6 +235,22 @@ Next action:
         tests_section = sections.get("test_results", "").strip()
         if tests_section:
             test_results["raw"] = tests_section
+
+        # REQ-108: derive confidence and equilibrium from the real verifier
+        # signal rather than guessing from the presence of contract sections.
+        if sections:
+            report = report_from_chat_sections(sections, files_changed=files_changed)
+            verdict = score(report, confidence_target=0.7)
+            confidence = verdict.confidence
+            # Treat "reached the next_action section" as a soft floor for
+            # equilibrium so the harness still distinguishes a structurally
+            # complete contract from a totally empty one.
+            equilibrium = verdict.equilibrium or (
+                "next_action" in sections and report.has_changes and report.test_failed == 0
+            )
+        else:
+            equilibrium = False
+            confidence = 0.4 if summary else 0.0
 
         return TaskResult(
             equilibrium=equilibrium,
