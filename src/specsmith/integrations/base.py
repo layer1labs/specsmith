@@ -16,7 +16,7 @@ class AgentAdapter(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Short identifier for this integration (e.g. 'warp', 'claude-code')."""
+        """Short identifier for this integration (e.g. 'agent-skill', 'claude-code')."""
 
     @property
     @abstractmethod

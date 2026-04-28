@@ -421,7 +421,7 @@ Regenerate CI and agent integration files from the current `scaffold.yml`.
 specsmith apply --project-dir ./my-project
 ```
 
-Re-renders GitHub Actions / GitLab CI / Bitbucket Pipelines config and agent integration files (CLAUDE.md, GEMINI.md, `.warp/`, etc.). Safe: never overwrites AGENTS.md, LEDGER.md, or user-authored docs.
+Re-renders GitHub Actions / GitLab CI / Bitbucket Pipelines config and agent integration files (CLAUDE.md, GEMINI.md, `.agents/skills/SKILL.md`, etc.). Safe: never overwrites AGENTS.md, LEDGER.md, or user-authored docs.
 
 ## `specsmith migrate-project`
 

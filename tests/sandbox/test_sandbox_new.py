@@ -26,7 +26,7 @@ def _write_scaffold_config(config_path: Path) -> None:
         "vcs_platform": "github",
         "branching_strategy": "gitflow",
         "git_init": False,
-        "integrations": ["agents-md", "warp", "claude-code"],
+        "integrations": ["agents-md", "agent-skill", "claude-code"],
     }
     with open(config_path, "w") as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
@@ -121,7 +121,7 @@ class TestSandboxNew:
         assert "github-actions" in dep
 
         # ---- Step 6: Agent integration files ----
-        assert (project / ".warp" / "skills" / "SKILL.md").exists()
+        assert (project / ".agents" / "skills" / "SKILL.md").exists()
         assert (project / "CLAUDE.md").exists()
 
         # ---- Step 7: scaffold.yml saved ----
