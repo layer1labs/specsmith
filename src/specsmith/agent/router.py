@@ -60,7 +60,7 @@ def _load_routing_overrides(project_dir: Path) -> dict[str, Tier]:
     if not cfg.is_file():
         return {}
     try:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
 
         raw = yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
     except Exception:  # noqa: BLE001

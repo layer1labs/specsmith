@@ -56,11 +56,7 @@ def score(
         base *= 0.8
     base = round(max(0.0, min(1.0, base)), 3)
 
-    clean = (
-        report.test_failed == 0
-        and report.ruff_errors == 0
-        and report.mypy_errors == 0
-    )
+    clean = report.test_failed == 0 and report.ruff_errors == 0 and report.mypy_errors == 0
     equilibrium = clean and report.has_changes and base >= confidence_target
 
     parts: list[str] = []

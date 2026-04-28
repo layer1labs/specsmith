@@ -35,9 +35,7 @@ def synthetic_project(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (tmp_path / "TESTS.md").write_text(
-        "# Tests\n\n## TEST-001\n"
-        "- **ID:** TEST-001\n"
-        "- **Requirement ID:** REQ-001\n",
+        "# Tests\n\n## TEST-001\n- **ID:** TEST-001\n- **Requirement ID:** REQ-001\n",
         encoding="utf-8",
     )
     (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
@@ -88,7 +86,7 @@ def test_e2e_preflight_chat_verify(synthetic_project: Path) -> None:
     assert "task_complete" in kinds
 
     # Session log was persisted (REQ-120).
-    turns = (synthetic_project / ".specsmith" / "sessions" / "sess_e2e" / "turns.jsonl")
+    turns = synthetic_project / ".specsmith" / "sessions" / "sess_e2e" / "turns.jsonl"
     assert turns.is_file()
     payload = [json.loads(line) for line in turns.read_text(encoding="utf-8").splitlines() if line]
     assert payload[-1]["utterance"] == "add hello world"
@@ -140,9 +138,7 @@ def test_e2e_chat_safe_mode_emits_tool_request(synthetic_project: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     types = [
-        json.loads(line).get("type")
-        for line in result.output.splitlines()
-        if line.startswith("{")
+        json.loads(line).get("type") for line in result.output.splitlines() if line.startswith("{")
     ]
     assert "tool_request" in types
     assert "tool_call" not in types

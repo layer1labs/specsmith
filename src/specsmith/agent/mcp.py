@@ -86,7 +86,7 @@ def load_mcp_tools(project_dir: Path) -> list[MCPTool]:
     if not cfg_path.is_file():
         return []
     try:
-        import yaml  # type: ignore[import-untyped]
+        import yaml
 
         raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or []
     except Exception:  # noqa: BLE001

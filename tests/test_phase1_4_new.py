@@ -31,9 +31,7 @@ def test_verifier_score_rewards_clean_runs() -> None:
 
 
 def test_verifier_score_punishes_failures_and_ruff_errors() -> None:
-    report = VerifierReport(
-        test_passed=5, test_failed=2, ruff_errors=1, has_changes=True
-    )
+    report = VerifierReport(test_passed=5, test_failed=2, ruff_errors=1, has_changes=True)
     verdict = score(report, confidence_target=0.7)
     assert verdict.equilibrium is False
     # base capped at 0.5 (failures), then *0.7 (ruff) = 0.35

@@ -529,9 +529,7 @@ def preflight_cmd(
                 f"{utterance} (please name the component or file you want to change)"
             )
         elif intent == Intent.DESTRUCTIVE:
-            payload["predicted_refinement"] = (
-                f"{utterance} (specify the exact paths or resources)"
-            )
+            payload["predicted_refinement"] = f"{utterance} (specify the exact paths or resources)"
         else:
             payload["predicted_refinement"] = utterance
 
@@ -1193,7 +1191,7 @@ def doctor(project_dir: str, onboarding: bool) -> None:
         if ok_count == len(steps):
             console.print(
                 "[bold green]All onboarding checks passed.[/bold green] "
-                "Try [bold]specsmith preflight \"add hello world\"[/bold]."
+                'Try [bold]specsmith preflight "add hello world"[/bold].'
             )
         else:
             console.print(
