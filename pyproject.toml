@@ -143,6 +143,12 @@ module = [
     "yaml.*",
     "keyring",   # optional OS credential store; stubs not published
     "keyring.*",
+    "numpy",     # optional [history-semantic] extra (REQ-135)
+    "numpy.*",
+    "sentence_transformers",  # optional [history-semantic] extra (REQ-135)
+    "sentence_transformers.*",
+    "whisper_cpp_python",  # optional [voice] extra (REQ-141)
+    "whisper_cpp_python.*",
 ]
 ignore_missing_imports = true
 
