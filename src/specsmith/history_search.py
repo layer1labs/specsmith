@@ -119,7 +119,7 @@ def _semantic_search(query: str, project_dir: Path, *, limit: int) -> list[Histo
     ``ImportError`` so the caller falls back to keyword matching.
     """
     try:
-        from sentence_transformers import SentenceTransformer  # type: ignore[import-not-found]
+        from sentence_transformers import SentenceTransformer
     except Exception as exc:  # noqa: BLE001
         raise ImportError("sentence-transformers not installed") from exc
 
