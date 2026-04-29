@@ -4441,6 +4441,129 @@ def info_cmd(as_json: bool, section: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# specsmith chat-export-block — self-contained block share (REQ-134)
+# ---------------------------------------------------------------------------
+#
+# This is exposed at the top level (rather than under ``chat``) because the
+# existing ``specsmith chat <utterance>`` command takes a positional argument
+# and cannot simultaneously act as a Click group.
+
+
+@main.command(name="chat-export-block")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--session-id", "session_id", required=True)
+@click.option("--block-id", "block_id", required=True)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["md", "json", "html"]),
+    default="md",
+)
+def chat_export_block_cmd(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
+    """Export one chat block as a self-contained snippet (REQ-134)."""
+    from specsmith.block_export import export_block
+
+    try:
+        out = export_block(
+            Path(project_dir).resolve(),
+            session_id,
+            block_id,
+            fmt=fmt,
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    click.echo(out)
+
+
+# ---------------------------------------------------------------------------
+# specsmith cloud serve — reference cloud-agent receiver (REQ-136)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="cloud-serve")
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", type=int, default=9000)
+@click.option("--token", default="", help="Optional bearer token.")
+@click.option("--allow-cidr", default="", help="CIDR range required to bind non-loopback.")
+def cloud_serve_cmd(host: str, port: int, token: str, allow_cidr: str) -> None:
+    """Run the reference cloud-agent receiver (REQ-136).
+
+    Accepts POST /spawn with a JSON manifest, persists it under
+    ~/.specsmith/cloud-runs/<run_id>/manifest.json, and returns 202 with
+    a stream_url placeholder.
+    """
+    from specsmith.cloud_serve import CloudReceiverConfig, make_server
+
+    config = CloudReceiverConfig(host=host, port=port, token=token, allow_cidr=allow_cidr)
+    try:
+        server = make_server(config)
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+    console.print(
+        f"[bold]specsmith cloud serve[/bold] on http://{config.host}:{config.port}\n"
+        f"  storage: {config.storage_dir}\n"
+        f"  token:   {'(set)' if token else '(none)'}\n"
+        "  Press Ctrl+C to stop."
+    )
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        console.print("\n[dim]cloud serve stopped.[/dim]")
+        server.server_close()
+
+
+# ---------------------------------------------------------------------------
+# specsmith api-surface — 1.0 stability snapshot (REQ-140)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="api-surface")
+@click.option(
+    "--snapshot",
+    type=click.Path(),
+    default="",
+    help="Write the current public surface to this JSON file.",
+)
+def api_surface_cmd(snapshot: str) -> None:
+    """Print the frozen public CLI/API surface as JSON (REQ-140)."""
+    import json as _json
+
+    surface = {
+        "cli_commands": sorted(
+            cmd_name for cmd_name in main.commands if not cmd_name.startswith("_")
+        ),
+        "exit_codes": {
+            "preflight_accepted": 0,
+            "preflight_needs_clarification": 2,
+            "preflight_blocked": 3,
+            "verify_ok": 0,
+            "verify_retry": 2,
+            "verify_stop": 3,
+        },
+        "event_types": [
+            "block_start",
+            "block_complete",
+            "token",
+            "plan_step",
+            "tool_call",
+            "tool_request",
+            "tool_result",
+            "diff",
+            "task_complete",
+        ],
+    }
+    payload = _json.dumps(surface, indent=2, sort_keys=True)
+    if snapshot:
+        Path(snapshot).write_text(payload, encoding="utf-8")
+    click.echo(payload)
+
+
+# ---------------------------------------------------------------------------
 # specsmith suggest-command — NL-to-command suggester (REQ-131)
 # ---------------------------------------------------------------------------
 
