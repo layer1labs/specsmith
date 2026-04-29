@@ -67,6 +67,11 @@ mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.
 gui = ["PySide6>=6.6"]
 # AG2 agent shell (Planner/Builder/Verifier over Ollama)
 ag2 = ["ag2[ollama]"]
+# Optional semantic backend for `specsmith history search --semantic` (REQ-135).
+# Falls back gracefully to keyword matching if these are not installed.
+history-semantic = ["sentence-transformers>=2.2", "numpy>=1.24"]
+# Optional whisper-cpp wrapper for the voice agent input (REQ-141).
+voice = ["whisper-cpp-python>=0.2"]
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
 # Convenience bundle: everything
@@ -138,6 +143,12 @@ module = [
     "yaml.*",
     "keyring",   # optional OS credential store; stubs not published
     "keyring.*",
+    "numpy",     # optional [history-semantic] extra (REQ-135)
+    "numpy.*",
+    "sentence_transformers",  # optional [history-semantic] extra (REQ-135)
+    "sentence_transformers.*",
+    "whisper_cpp_python",  # optional [voice] extra (REQ-141)
+    "whisper_cpp_python.*",
 ]
 ignore_missing_imports = true
 
