@@ -17,12 +17,16 @@ from click.testing import CliRunner
 
 from specsmith.agent.mcp import (
     MCPServerSpec,
-    MCPTool,
+    _read_specs,
     load_mcp_tools,
 )
 from specsmith.cli import main
 
-# ── MCP loader (REQ-121 / TEST-121) ──────────────────────────────────────────
+# ── MCP config parser (REQ-121 / TEST-121) ───────────────────────────
+#
+# `load_mcp_tools()` now actually opens an MCP server (REQ-130). End-to-end
+# tests using a fake stdio server live in `test_mcp_client.py`. The tests
+# below cover only the YAML config parser, so they remain hermetic.
 
 
 def test_load_mcp_tools_returns_empty_when_config_missing(tmp_path: Path) -> None:
@@ -30,7 +34,7 @@ def test_load_mcp_tools_returns_empty_when_config_missing(tmp_path: Path) -> Non
     assert load_mcp_tools(tmp_path) == []
 
 
-def test_load_mcp_tools_parses_one_entry(tmp_path: Path) -> None:
+def test_read_specs_parses_one_entry(tmp_path: Path) -> None:
     cfg_dir = tmp_path / ".specsmith"
     cfg_dir.mkdir()
     (cfg_dir / "mcp.yml").write_text(
@@ -41,17 +45,16 @@ def test_load_mcp_tools_parses_one_entry(tmp_path: Path) -> None:
         "    HOME: /tmp\n",
         encoding="utf-8",
     )
-    tools = load_mcp_tools(tmp_path)
-    assert len(tools) == 1
-    tool = tools[0]
-    assert isinstance(tool, MCPTool)
-    assert tool.name == "filesystem"
-    assert tool.spec.command == "mcp-server-filesystem"
-    assert tool.spec.args == ["--root", "."]
-    assert tool.spec.env == {"HOME": "/tmp"}
+    specs = _read_specs(tmp_path)
+    assert len(specs) == 1
+    spec = specs[0]
+    assert spec.name == "filesystem"
+    assert spec.command == "mcp-server-filesystem"
+    assert spec.args == ["--root", "."]
+    assert spec.env == {"HOME": "/tmp"}
 
 
-def test_load_mcp_tools_skips_malformed_entries(tmp_path: Path) -> None:
+def test_read_specs_skips_malformed_entries(tmp_path: Path) -> None:
     """Entries missing name or command must be silently dropped."""
     cfg_dir = tmp_path / ".specsmith"
     cfg_dir.mkdir()
@@ -59,14 +62,25 @@ def test_load_mcp_tools_skips_malformed_entries(tmp_path: Path) -> None:
         "- name: ok\n  command: mcp-real\n- command: nameless\n- name: commandless\n- not_a_dict\n",
         encoding="utf-8",
     )
-    tools = load_mcp_tools(tmp_path)
-    assert [t.name for t in tools] == ["ok"]
+    specs = _read_specs(tmp_path)
+    assert [s.name for s in specs] == ["ok"]
 
 
-def test_load_mcp_tools_returns_empty_on_unparseable_yaml(tmp_path: Path) -> None:
+def test_read_specs_returns_empty_on_unparseable_yaml(tmp_path: Path) -> None:
     cfg_dir = tmp_path / ".specsmith"
     cfg_dir.mkdir()
     (cfg_dir / "mcp.yml").write_text(": : :\n", encoding="utf-8")
+    assert _read_specs(tmp_path) == []
+
+
+def test_load_mcp_tools_skips_servers_that_fail_to_start(tmp_path: Path) -> None:
+    """Real MCP client sweep: servers that don't open are dropped silently."""
+    cfg_dir = tmp_path / ".specsmith"
+    cfg_dir.mkdir()
+    (cfg_dir / "mcp.yml").write_text(
+        "- name: missing\n  command: definitely-not-a-real-mcp-binary-xyz\n",
+        encoding="utf-8",
+    )
     assert load_mcp_tools(tmp_path) == []
 
 
@@ -75,9 +89,6 @@ def test_mcp_server_spec_round_trip() -> None:
     assert spec.name == "x"
     assert spec.args == ["a"]
     assert spec.env == {"k": "v"}
-
-
-# ── Notebook record / replay (REQ-123 / TEST-123) ────────────────────────────
 
 
 def test_notebook_record_with_session_id_captures_turns(tmp_path: Path) -> None:

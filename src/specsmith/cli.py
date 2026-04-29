@@ -5288,13 +5288,20 @@ def chat_cmd(
     if rules_prefix:
         emitter.token(msg_block, "[project rules loaded]\n")
 
-    # Surface configured MCP servers (REQ-121). The actual invocation
-    # path still flows through the safety middleware; here we just announce
-    # availability so consumers can render the list.
+    # Surface configured MCP servers (REQ-121, REQ-130). The real client
+    # opens each server, runs the initialize handshake, and discovers its
+    # tools; the safety middleware still gates every actual invocation.
+    # Here we just announce availability so consumers can render the list.
     mcp_tools = load_mcp_tools(root)
     if mcp_tools:
-        names = ", ".join(t.name for t in mcp_tools)
-        emitter.token(msg_block, f"[mcp servers: {names}]\n")
+        servers: dict[str, list[str]] = {}
+        for tool in mcp_tools:
+            servers.setdefault(tool.server, []).append(tool.name)
+        summary = ", ".join(f"{srv} ({len(names)})" for srv, names in servers.items())
+        emitter.token(
+            msg_block,
+            f"[mcp: {len(mcp_tools)} tool(s) across {len(servers)} server(s): {summary}]\n",
+        )
 
     # Pick a tier (REQ-122) so consumers know which model is in play.
     _utt_lower = utterance.lower()

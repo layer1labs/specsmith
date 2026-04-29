@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **Real MCP JSON-RPC client (REQ-130).** `agent.mcp` now ships a full stdio client (`MCPSession`) that runs the official MCP handshake (`initialize` -> `notifications/initialized` -> `tools/list`) against any configured server, exposes each discovered tool as an `MCPTool` whose `invoke_with_safety()` runs every call through the supplied safety check. Protocol pinned at `2024-11-05`. The chat session header now reports tools-per-server counts.
+- **`tests/fixtures/mcp_fake_server.py`** -- pure-Python stdio MCP server fixture for hermetic tests.
+- **`tests/test_mcp_client.py`** -- 8 new pytest cases (handshake, protocol pin, idempotent close, text/error/unknown-tool, safety integration, crash recovery, loader silent-skip).
+
 - **MCP server announcement in chat sessions (REQ-121).** When `.specsmith/mcp.yml` is present, `specsmith chat` now loads the configured servers via `agent.mcp.load_mcp_tools` and emits a `[mcp servers: <names>]` token at the top of the message block so consumers (and the user) see which external tool surfaces are in play. The Specsmith safety middleware still gates every call.
 - **`specsmith notebook record --session-id <id>`** now reads `.specsmith/sessions/<id>/turns.jsonl` and embeds each turn as a `### <role>` section in the generated `docs/notebooks/<slug>.md`, alongside any `--work-item-id` artifacts. Both flags may be combined; either may be omitted (with a friendlier placeholder when neither is supplied). Closes the gap between TESTS.md TEST-123 and the existing implementation.
 - **`tests/test_phase34_completion.py`** — 12 new pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), `cloud spawn --dry-run` (manifest + tarball + `--help` documents `--endpoint`), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
