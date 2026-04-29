@@ -4440,6 +4440,36 @@ def info_cmd(as_json: bool, section: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# specsmith suggest-command — NL-to-command suggester (REQ-131)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="suggest-command")
+@click.argument("text")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=True,
+    help="Emit suggestion as JSON (default; only mode for now).",
+)
+def suggest_command_cmd(text: str, project_dir: str, as_json: bool) -> None:
+    """Suggest a refined command or utterance for a partial input (REQ-131).
+
+    Returns a JSON object: ``{kind, suggestion, confidence, reasoning, candidates}``.
+    ``kind`` is one of ``command``, ``utterance``, ``passthrough``. The
+    extension renders the suggestion as inline ghost-text.
+    """
+    import json as _json
+
+    from specsmith.agent.suggester import suggest_command
+
+    result = suggest_command(text, project_dir=Path(project_dir).resolve())
+    click.echo(_json.dumps(result.to_dict(), indent=2))
+
+
 @main.command(name="scan")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
