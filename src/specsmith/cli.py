@@ -5262,6 +5262,7 @@ def chat_cmd(
     import uuid as _uuid
 
     from specsmith.agent.events import EventEmitter
+    from specsmith.agent.mcp import load_mcp_tools
     from specsmith.agent.memory import append_turn, recent_turns
     from specsmith.agent.router import choose_tier
     from specsmith.agent.rules import load_rules
@@ -5286,6 +5287,14 @@ def chat_cmd(
         emitter.token(msg_block, f"[continuing session {sid}: {len(history)} prior turn(s)]\n")
     if rules_prefix:
         emitter.token(msg_block, "[project rules loaded]\n")
+
+    # Surface configured MCP servers (REQ-121). The actual invocation
+    # path still flows through the safety middleware; here we just announce
+    # availability so consumers can render the list.
+    mcp_tools = load_mcp_tools(root)
+    if mcp_tools:
+        names = ", ".join(t.name for t in mcp_tools)
+        emitter.token(msg_block, f"[mcp servers: {names}]\n")
 
     # Pick a tier (REQ-122) so consumers know which model is in play.
     _utt_lower = utterance.lower()
@@ -5545,13 +5554,27 @@ def notebook_group() -> None:
     default="",
     help="Work item id whose .specsmith/runs/<WI>/ artifacts should be captured.",
 )
-def notebook_record(slug: str, project_dir: str, work_item_id: str) -> None:
+@click.option(
+    "--session-id",
+    "session_id",
+    default="",
+    help="Session id whose .specsmith/sessions/<id>/turns.jsonl should be captured.",
+)
+def notebook_record(slug: str, project_dir: str, work_item_id: str, session_id: str) -> None:
     """Record a notebook for the given SLUG (REQ-123).
 
-    Reads `.specsmith/runs/<work_item_id>/` (logs.txt, decision.json, etc.)
-    and writes a self-contained Markdown notebook to
-    `docs/notebooks/<slug>.md`.
+    Two artifact sources are supported and may be combined:
+
+    * ``--work-item-id`` reads `.specsmith/runs/<WI>/` (preflight/verify
+      logs, decision.json, etc.).
+    * ``--session-id`` reads `.specsmith/sessions/<id>/turns.jsonl` so a
+      conversational chat session can be replayed later.
+
+    Either flag may be omitted; both may be combined to produce a single
+    notebook that captures the full evidence trail.
     """
+    import json as _json
+
     root = Path(project_dir).resolve()
     nb_dir = root / "docs" / "notebooks"
     nb_dir.mkdir(parents=True, exist_ok=True)
@@ -5559,10 +5582,15 @@ def notebook_record(slug: str, project_dir: str, work_item_id: str) -> None:
 
     runs_dir = root / ".specsmith" / "runs"
     artifact_dir = runs_dir / work_item_id if work_item_id else None
-    sections: list[str] = [f"# Notebook — {slug}\n"]
+    sections: list[str] = [f"# Notebook \u2014 {slug}\n"]
     if work_item_id:
         sections.append(f"- **Work item**: `{work_item_id}`")
+    if session_id:
+        sections.append(f"- **Session**: `{session_id}`")
+
+    captured_any = False
     if artifact_dir and artifact_dir.is_dir():
+        captured_any = True
         sections.append("\n## Captured artifacts\n")
         for path in sorted(artifact_dir.rglob("*")):
             if path.is_file():
@@ -5574,10 +5602,30 @@ def notebook_record(slug: str, project_dir: str, work_item_id: str) -> None:
                     continue
                 fence = "```"
                 sections.append(f"### `{rel}`\n\n{fence}\n{body}\n{fence}\n")
-    else:
+
+    if session_id:
+        turns_path = root / ".specsmith" / "sessions" / session_id / "turns.jsonl"
+        if turns_path.is_file():
+            captured_any = True
+            sections.append("\n## Session turns\n")
+            for line in turns_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    turn = _json.loads(line)
+                except ValueError:
+                    continue
+                role = str(turn.get("role", "?"))
+                utterance = str(turn.get("utterance") or turn.get("text") or "").strip()
+                ts = str(turn.get("timestamp", "")).strip()
+                header = f"### `{role}`" + (f" \u2014 {ts}" if ts else "")
+                sections.append(f"{header}\n\n{utterance}\n")
+
+    if not captured_any:
         sections.append(
-            "\n_No `.specsmith/runs/<WI>/` directory found. "
-            "Run `specsmith preflight` and `specsmith verify` first to capture evidence._\n"
+            "\n_No artifacts captured. Pass `--work-item-id <WI>` or "
+            "`--session-id <id>` to populate this notebook._\n"
         )
     target.write_text("\n".join(sections), encoding="utf-8")
     console.print(f"[green]\u2713[/green] Notebook recorded at {target.relative_to(root)}")

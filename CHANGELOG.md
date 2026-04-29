@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **MCP server announcement in chat sessions (REQ-121).** When `.specsmith/mcp.yml` is present, `specsmith chat` now loads the configured servers via `agent.mcp.load_mcp_tools` and emits a `[mcp servers: <names>]` token at the top of the message block so consumers (and the user) see which external tool surfaces are in play. The Specsmith safety middleware still gates every call.
+- **`specsmith notebook record --session-id <id>`** now reads `.specsmith/sessions/<id>/turns.jsonl` and embeds each turn as a `### <role>` section in the generated `docs/notebooks/<slug>.md`, alongside any `--work-item-id` artifacts. Both flags may be combined; either may be omitted (with a friendlier placeholder when neither is supplied). Closes the gap between TESTS.md TEST-123 and the existing implementation.
+- **`tests/test_phase34_completion.py`** — 12 new pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), `cloud spawn --dry-run` (manifest + tarball + `--help` documents `--endpoint`), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
+
+### Changed
+- `specsmith chat` imports `load_mcp_tools` and emits the MCP-servers token after the rules-loaded notice.
+- `notebook_record` gained `--session-id` and merges `.specsmith/runs/<WI>/` artifacts and `.specsmith/sessions/<id>/turns.jsonl` content into a single notebook.
+
+### Validation
+- `pytest`: **316 passed, 1 skipped** (was 304; +12 in test_phase34_completion.py).
+- `ruff check` + `ruff format --check`: clean.
+- `mypy src/specsmith/`: same status as develop (no regressions; pre-existing `chat_runner.py` errors only surface when optional `anthropic`/`openai` SDKs are locally installed; CI installs only `[dev]` so `ignore_missing_imports` keeps it green there).
 
 ## [0.6.0] — 2026-04-28
 
