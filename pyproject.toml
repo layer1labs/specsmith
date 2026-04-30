@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.4.0"
+version = "0.7.0"
 description = "Applied Epistemic Engineering toolkit — AEE agent sessions, execution profiles, FPGA/HDL governance, tool installer, 50+ CLI commands."
 readme = "README.md"
 license = "MIT"
@@ -67,6 +67,11 @@ mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.
 gui = ["PySide6>=6.6"]
 # AG2 agent shell (Planner/Builder/Verifier over Ollama)
 ag2 = ["ag2[ollama]"]
+# Optional semantic backend for `specsmith history search --semantic` (REQ-135).
+# Falls back gracefully to keyword matching if these are not installed.
+history-semantic = ["sentence-transformers>=2.2", "numpy>=1.24"]
+# Optional whisper-cpp wrapper for the voice agent input (REQ-141).
+voice = ["whisper-cpp-python>=0.2"]
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
 # Convenience bundle: everything
@@ -107,6 +112,11 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 # Long rule text and install command strings in documentation modules
 "src/specsmith/toolrules.py" = ["E501"]
 "src/specsmith/tool_installer.py" = ["E501"]
+# One-shot rebuild scripts contain literal REQ description strings that are
+# intentionally long; wrapping them would damage readability of the source
+# of truth they reconstruct.
+"scripts/rebuild_requirements_json.py" = ["E501"]
+"scripts/rebuild_requirements_md.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -133,6 +143,12 @@ module = [
     "yaml.*",
     "keyring",   # optional OS credential store; stubs not published
     "keyring.*",
+    "numpy",     # optional [history-semantic] extra (REQ-135)
+    "numpy.*",
+    "sentence_transformers",  # optional [history-semantic] extra (REQ-135)
+    "sentence_transformers.*",
+    "whisper_cpp_python",  # optional [voice] extra (REQ-141)
+    "whisper_cpp_python.*",
 ]
 ignore_missing_imports = true
 
@@ -141,9 +157,11 @@ ignore_missing_imports = true
 module = ["epistemic", "epistemic.*"]
 ignore_errors = true
 
-# New modules that use dynamic typing patterns incompatible with strict mypy.
+# Modules that use dynamic typing patterns incompatible with strict mypy.
 # These are correct at runtime; the Any-heavy urllib, json.loads, etc. patterns
 # are the source of most errors here. Exclude from strict type checking.
+# REQ-111: shrunk this list as part of the pre-1.0 cleanup; broker, safety,
+# console_utils, and indexer have been graduated to strict mypy.
 [[tool.mypy.overrides]]
 module = [
     "specsmith.ollama_cmds",
@@ -153,14 +171,10 @@ module = [
     "specsmith.importer",
     "specsmith.agent.providers.gemini",
     "specsmith.agent.runner",
-    "specsmith.agent.broker",
     "specsmith.agent.cleanup",
-    "specsmith.agent.indexer",
     "specsmith.agent.orchestrator",
     "specsmith.agent.repl",
-    "specsmith.agent.safety",
     "specsmith.agent.tools",
-    "specsmith.console_utils",
     "specsmith.profiles",
     "specsmith.serve",
     "specsmith.toolrules",

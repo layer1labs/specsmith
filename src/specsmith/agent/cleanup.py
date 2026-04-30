@@ -68,6 +68,7 @@ PROTECTED_PATHS = frozenset(
         ".repo-index",
         ".github",
         ".vscode",
+        ".agents",
         ".warp",
         ".editorconfig",
         ".gitignore",

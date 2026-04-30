@@ -1,6 +1,6 @@
 # Agent Integrations
 
-specsmith generates governance files for 7 AI coding agents plus the cross-platform AGENTS.md standard. Each agent has a different file format and location convention.
+specsmith generates governance files for 7 AI coding agent formats plus the cross-platform AGENTS.md standard. Each format has its own file convention and location.
 
 ## AGENTS.md (Cross-Platform Standard)
 
@@ -9,12 +9,12 @@ specsmith generates governance files for 7 AI coding agents plus the cross-platf
 
 Even if you don't use any specific agent adapter, AGENTS.md provides governance for any AI assistant that reads project files.
 
-## Warp / Oz
+## Agent Skill (SKILL.md)
 
-**File:** `.warp/skills/SKILL.md`
-**Config key:** `warp`
+**File:** `.agents/skills/SKILL.md`
+**Config key:** `agent-skill` (legacy alias `warp` still accepted for existing scaffolds)
 
-Warp's Oz agent reads skill files from `.warp/skills/`. The generated SKILL.md contains project metadata, governance rules, and verification tool references formatted for Warp's skill system.
+Generates a generic skill file under `.agents/skills/` for terminal-native AI agents that follow the SKILL.md convention. The file contains project metadata, governance rules, and verification tool references and works with any agent runtime that loads SKILL.md from a project-local directory.
 
 ## Claude Code
 
@@ -65,7 +65,7 @@ In `scaffold.yml`:
 ```yaml
 integrations:
   - agents-md      # Always included
-  - warp           # Add Warp/Oz support
+  - agent-skill    # Generic SKILL.md (.agents/skills/)
   - claude-code    # Add Claude Code support
   - copilot        # Add Copilot support
 ```

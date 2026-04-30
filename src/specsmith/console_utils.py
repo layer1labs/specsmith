@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import os
 import sys
+from typing import IO, Any
 
 from rich.console import Console
 
 
-def _ensure_utf8_stream(stream) -> None:
+def _ensure_utf8_stream(stream: IO[str]) -> None:
     """Best-effort upgrade of ``stream`` to UTF-8 with safe error handling."""
     reconfigure = getattr(stream, "reconfigure", None)
     if reconfigure is None:
@@ -40,7 +41,7 @@ def _ensure_utf8_stream(stream) -> None:
         return
 
 
-def make_console(**kwargs) -> Console:
+def make_console(**kwargs: Any) -> Console:
     """Return a UTF-8 safe ``rich.console.Console``.
 
     Any keyword arguments are forwarded to ``Console`` and override the
@@ -53,7 +54,7 @@ def make_console(**kwargs) -> Console:
     # we may spawn (e.g. tests, CI runners).
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
-    defaults = {
+    defaults: dict[str, Any] = {
         "legacy_windows": False,
         "soft_wrap": False,
         "force_terminal": None,

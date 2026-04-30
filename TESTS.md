@@ -1169,4 +1169,224 @@
 - **Input:** ARCHITECTURE.md
 - **Expected Behavior:** Section present and references all six post-WI-NEXUS-023 facets.
 - **Confidence:** 1.0
+## TEST-108. Verifier Scores Confidence From Tests/Lint/Type Outputs
+- **ID:** TEST-108
+- **Title:** Verifier Scores Confidence From Tests/Lint/Type Outputs
+- **Description:** `verifier.score(report)` returns higher confidence when test_results report 0 failures, ruff_errors=0, mypy_errors=0; lower confidence when failures > 0; equilibrium=True only when all three gates are clean and confidence >= target.
+- **Requirement ID:** REQ-108
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** synthetic verifier reports
+- **Expected Behavior:** confidence and equilibrium reflect inputs deterministically.
+- **Confidence:** 1.0
+## TEST-109. Smoke Overlay File Pins 7B Q4 Model
+- **ID:** TEST-109
+- **Title:** Smoke Overlay File Pins 7B Q4 Model
+- **Description:** `docker-compose.smoke.yml` exists and references a 7B GPTQ-Int4 model + `--served-model-name l1-nexus`. Evidence file `.specsmith/runs/WI-NEXUS-029/logs.txt` exists and references the overlay.
+- **Requirement ID:** REQ-109
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** docker-compose.smoke.yml
+- **Expected Behavior:** Overlay present; file references 7B + Int4 + l1-nexus.
+- **Confidence:** 1.0
+## TEST-110. End-to-End Nexus Path Reaches Equilibrium
+- **ID:** TEST-110
+- **Title:** End-to-End Nexus Path Reaches Equilibrium
+- **Description:** Driving a `FakeOrchestrator` through `execute_with_governance` with scripted attempt-1 failure and attempt-2 success yields `RunResult.success=True`, ledger gains a preflight + work_proposal entry, and retry strategy is empty.
+- **Requirement ID:** REQ-110
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** tmp_path with REQUIREMENTS.md + LEDGER.md + FakeOrchestrator
+- **Expected Behavior:** end-to-end success; ledger written.
+- **Confidence:** 1.0
+## TEST-111. Mypy Strict Carveout Reduced
+- **ID:** TEST-111
+- **Title:** Mypy Strict Carveout Reduced
+- **Description:** `pyproject.toml`'s `[[tool.mypy.overrides]] ignore_errors=true` block does NOT include `specsmith.agent.broker`, `specsmith.agent.safety`, `specsmith.console_utils`, or `specsmith.agent.indexer`. `mypy src/specsmith/` exits zero.
+- **Requirement ID:** REQ-111
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** pyproject.toml
+- **Expected Behavior:** Listed modules absent from carveout.
+- **Confidence:** 1.0
+## TEST-112. Streaming Chat Emits Required JSONL Event Types
+- **ID:** TEST-112
+- **Title:** Streaming Chat Emits Required JSONL Event Types
+- **Description:** Invoking `specsmith chat <utterance> --json-events --project-dir <tmp>` (against a stub orchestrator) emits at least one `block_start`, one `block_complete`, and one `task_complete` event on stdout.
+- **Requirement ID:** REQ-112
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner over tmp_path with stub orchestrator
+- **Expected Behavior:** Required event kinds present in JSONL output.
+- **Confidence:** 1.0
+## TEST-113. Block Schema Has block_id, kind, agent, timestamp
+- **ID:** TEST-113
+- **Title:** Block Schema Has block_id, kind, agent, timestamp
+- **Description:** Every emitted `block_start` event has all four required keys; the matching `block_complete` event reuses the same `block_id` value.
+- **Requirement ID:** REQ-113
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** stub event stream
+- **Expected Behavior:** Schema satisfied.
+- **Confidence:** 1.0
+## TEST-114. Plan Block Surfaces Steps with Status Transitions
+- **ID:** TEST-114
+- **Title:** Plan Block Surfaces Steps with Status Transitions
+- **Description:** When the broker classifies a `change` and the orchestrator runs, a `plan` block is emitted with at least one step; subsequent `plan_step` events reference the step by id and end with `status=done` or `status=failed`.
+- **Requirement ID:** REQ-114
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** stub orchestrator emitting plan steps
+- **Expected Behavior:** plan event present; step transitions emitted.
+- **Confidence:** 1.0
+## TEST-115. --profile Flag Is Honored And Recorded
+- **ID:** TEST-115
+- **Title:** --profile Flag Is Honored And Recorded
+- **Description:** Passing `--profile safe` to `specsmith chat` causes the chat-event stream to include a `profile` field on the `task_complete` event matching `safe`. Passing `--profile open` gives `profile: open`.
+- **Requirement ID:** REQ-115
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner
+- **Expected Behavior:** Selected profile reflected in stream.
+- **Confidence:** 1.0
+## TEST-116. Inline Diff Round-Trip
+- **ID:** TEST-116
+- **Title:** Inline Diff Round-Trip
+- **Description:** `specsmith verify --comment 'fix the off-by-one'` records the comment in `task_complete.comments` (or, in chat mode, the next harness retry surfaces it via memory).
+- **Requirement ID:** REQ-116
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner verify with --comment
+- **Expected Behavior:** Comment persisted.
+- **Confidence:** 1.0
+## TEST-117. Predict-Only Preflight Does Not Allocate Work Item
+- **ID:** TEST-117
+- **Title:** Predict-Only Preflight Does Not Allocate Work Item
+- **Description:** `specsmith preflight 'fix the cleanup' --predict-only --json` returns `work_item_id == ''`, includes a `predicted_refinement` field, and does NOT modify `LEDGER.md`.
+- **Requirement ID:** REQ-117
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner preflight with --predict-only
+- **Expected Behavior:** No work_item_id, no ledger writes, predicted_refinement present.
+- **Confidence:** 1.0
+## TEST-118. Extension Declares specsmith.openChat Command
+- **ID:** TEST-118
+- **Title:** Extension Declares specsmith.openChat Command
+- **Description:** `specsmith-vscode/package.json` declares the `specsmith.openChat` command; `src/extension.ts` registers a handler for it. Sister-repo gate.
+- **Requirement ID:** REQ-118
+- **Type:** integration
+- **Verification Method:** static-check
+- **Input:** specsmith-vscode repo
+- **Expected Behavior:** Command declared and registered; package.json version >= 0.4.0.
+- **Confidence:** 1.0
+## TEST-119. Rules Loader Returns Project Rules As System-Prompt Prefix
+- **ID:** TEST-119
+- **Title:** Rules Loader Returns Project Rules As System-Prompt Prefix
+- **Description:** `rules.load_rules(tmp_path)` reads the seeded `docs/governance/RULES.md` plus AGENTS.md H-rules and returns a non-empty string that contains the rule body verbatim.
+- **Requirement ID:** REQ-119
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path with seeded governance docs
+- **Expected Behavior:** Returned string contains the seeded rule text.
+- **Confidence:** 1.0
+## TEST-120. Memory Append/Read Round-Trip
+- **ID:** TEST-120
+- **Title:** Memory Append/Read Round-Trip
+- **Description:** `memory.append_turn(session_id, turn)` followed by `memory.recent_turns(session_id, max_chars=10000)` returns the appended turn's content; capping by `max_chars` truncates oldest first.
+- **Requirement ID:** REQ-120
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path session
+- **Expected Behavior:** Round-trip works; cap honored.
+- **Confidence:** 1.0
+## TEST-121. MCP Loader Reads .specsmith/mcp.yml
+- **ID:** TEST-121
+- **Title:** MCP Loader Reads .specsmith/mcp.yml
+- **Description:** `mcp.load_mcp_tools(tmp_path)` reads a seeded `.specsmith/mcp.yml` with one entry and returns one tool wrapper whose name matches the configured server.
+- **Requirement ID:** REQ-121
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path with mcp.yml
+- **Expected Behavior:** Loader returns one tool; safety wrapper applied.
+- **Confidence:** 1.0
+## TEST-122. Router Picks Tier From Intent
+- **ID:** TEST-122
+- **Title:** Router Picks Tier From Intent
+- **Description:** `router.choose_tier('change', scope, retry_count=0)` returns `coder`; `choose_tier('release', ...)` returns `heavy`; `choose_tier('read_only_ask', ...)` returns `fast`. Override via `.specsmith/config.yml routing:` is honored.
+- **Requirement ID:** REQ-122
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** synthetic intents + config
+- **Expected Behavior:** Tier matches mapping; override wins.
+- **Confidence:** 1.0
+## TEST-123. Notebook Record Writes docs/notebooks/<slug>.md
+- **ID:** TEST-123
+- **Title:** Notebook Record Writes docs/notebooks/<slug>.md
+- **Description:** `specsmith notebook record --session-id S --slug demo --project-dir <tmp>` reads `.specsmith/sessions/S/turns.jsonl` and writes a markdown notebook to `docs/notebooks/demo.md` containing each turn.
+- **Requirement ID:** REQ-123
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path with seeded session
+- **Expected Behavior:** Notebook file written with turns.
+- **Confidence:** 1.0
+## TEST-124. Perf Smoke Writes Baseline JSON
+- **ID:** TEST-124
+- **Title:** Perf Smoke Writes Baseline JSON
+- **Description:** Running `scripts/perf_smoke.py --runs 3 --reqs 50 --output <tmp>/baseline.json` writes a JSON file with `p50`, `p95`, `p99` numeric keys.
+- **Requirement ID:** REQ-124
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path output
+- **Expected Behavior:** File written; required keys present.
+- **Confidence:** 1.0
+## TEST-125. Multi-Session Parent/Child Wiring
+- **ID:** TEST-125
+- **Title:** Multi-Session Parent/Child Wiring
+- **Description:** `specsmith chat ... --session-id child --parent-session parent` causes the `task_complete` event to also write a `sub_session_complete` line into the parent session's turns.jsonl.
+- **Requirement ID:** REQ-125
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path with parent + child sessions
+- **Expected Behavior:** Parent session log contains sub_session_complete entry.
+- **Confidence:** 1.0
+## TEST-126. Cloud Spawn Documents Endpoint Contract
+- **ID:** TEST-126
+- **Title:** Cloud Spawn Documents Endpoint Contract
+- **Description:** `docs/site/cloud-agents.md` exists and documents the POST contract (`/spawn`, request body, response body, JSONL stream URL). `specsmith cloud spawn --help` shows the `--endpoint` flag.
+- **Requirement ID:** REQ-126
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** docs/site/cloud-agents.md, click help
+- **Expected Behavior:** Doc present; help describes flag.
+- **Confidence:** 1.0
+## TEST-127. Onboarding Doctor Has Required Checks
+- **ID:** TEST-127
+- **Title:** Onboarding Doctor Has Required Checks
+- **Description:** `specsmith doctor --onboarding --project-dir <tmp>` prints a checklist that includes lines for 'CLI installed', 'scaffold.yml', 'REQUIREMENTS.md', and 'LEDGER.md'.
+- **Requirement ID:** REQ-127
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** click.testing.CliRunner doctor --onboarding
+- **Expected Behavior:** Required check labels appear in stdout.
+- **Confidence:** 1.0
+## TEST-128. specsmith-vscode CI Runs npm audit
+- **ID:** TEST-128
+- **Title:** specsmith-vscode CI Runs npm audit
+- **Description:** `specsmith-vscode/.github/workflows/ci.yml` includes a step running `npm audit --omit=dev --audit-level=high`. Sister-repo gate.
+- **Requirement ID:** REQ-128
+- **Type:** integration
+- **Verification Method:** static-check
+- **Input:** specsmith-vscode CI workflow
+- **Expected Behavior:** Step present.
+- **Confidence:** 1.0
+## TEST-129. API Stability Doc Enumerates Frozen Surface
+- **ID:** TEST-129
+- **Title:** API Stability Doc Enumerates Frozen Surface
+- **Description:** `docs/site/api-stability.md` exists and enumerates: CLI subcommands, exit codes, JSON payload schemas, broker module API, ledger event schemas, VS Code extension command IDs. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.
+- **Requirement ID:** REQ-129
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** docs/site/api-stability.md, pyproject.toml
+- **Expected Behavior:** All six API surfaces enumerated; version+classifier match.
+- **Confidence:** 1.0
 

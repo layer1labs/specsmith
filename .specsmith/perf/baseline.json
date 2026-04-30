@@ -1,0 +1,11 @@
+{
+  "n_reqs": 1000,
+  "timings_seconds": [
+    0.6941,
+    0.574,
+    0.5701
+  ],
+  "median_seconds": 0.574,
+  "min_seconds": 0.5701,
+  "max_seconds": 0.6941
+}

@@ -67,7 +67,7 @@
   Covers: REQ-SCF-003
 - **TEST-SCF-005**: scaffold.yml written after init
   Covers: REQ-SCF-005
-- **TEST-SCF-006**: Warp integration files created when configured
+- **TEST-SCF-006**: agent-skill integration files created when configured
   Covers: REQ-SCF-006, REQ-INT-001
 
 ### CLI
@@ -83,7 +83,7 @@
 
 ### Integrations
 
-- **TEST-INT-001**: Warp adapter generates SKILL.md with project metadata
+- **TEST-INT-001**: agent-skill adapter generates SKILL.md under .agents/skills/ with project metadata
   Covers: REQ-INT-001
 - **TEST-INT-002**: Claude Code adapter generates CLAUDE.md
   Covers: REQ-INT-002
@@ -500,7 +500,7 @@
   Covers: REQ-CRD-007
 - **TEST-CRD-008**: session-end checklist includes credit summary
   Covers: REQ-CRD-008
-- **TEST-CRD-009**: Warp and Claude adapters include credit recording instructions
+- **TEST-CRD-009**: agent-skill and Claude adapters include credit recording instructions
   Covers: REQ-CRD-009
 
 ### Self-Update

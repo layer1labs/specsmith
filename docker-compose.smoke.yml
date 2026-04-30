@@ -1,0 +1,22 @@
+# Smoke overlay (REQ-109): swaps `l1-nexus` to a 7B Q4 model that fits a
+# typical developer GPU (~5 GB VRAM at batch=1) so `scripts/nexus_smoke.py`
+# with `NEXUS_LIVE=1` can produce real `ok: true` evidence on the dev
+# workstation. Production deployments still use `docker-compose.yml`'s
+# 32B Int8 configuration.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.smoke.yml up -d
+#   $env:NEXUS_LIVE = '1'
+#   py scripts/nexus_smoke.py | Tee-Object -FilePath .specsmith/runs/WI-NEXUS-029/logs.txt
+#   docker compose -f docker-compose.yml -f docker-compose.smoke.yml down
+services:
+  l1-nexus:
+    command: >
+      Qwen/Qwen2.5-Coder-7B-Instruct-GPTQ-Int4
+      --served-model-name l1-nexus
+      --gpu-memory-utilization 0.85
+      --max-model-len 8192
+      --trust-remote-code
+      --generation-config vllm
+      --enable-auto-tool-choice
+      --tool-call-parser hermes

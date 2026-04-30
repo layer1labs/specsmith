@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+## [0.7.0] — 2026-04-30
+### Added
+- **`specsmith serve --auth-token` (REQ-137).** Optional bearer-token gate on every `/api/*` endpoint. `/api/health` stays open so liveness probes still work behind a load balancer that strips `Authorization`. New `make_server()` factory in `src/specsmith/serve.py` exposes a fully wired server for tests; `run_server()` adds the banner + `serve_forever` loop. `_Handler._authorize()` enforces `Authorization: Bearer <token>` on `do_GET`, `do_POST`, and `do_DELETE`.
+- **`specsmith voice transcribe <wav>` (REQ-141).** New `src/specsmith/agent/voice.py` wraps the optional `whisper-cpp-python` extra. Three resolution modes: real (library + model file under `~/.specsmith/voice/` or `SPECSMITH_VOICE_MODEL`), stub (`SPECSMITH_VOICE_STUB=<text>` for tests/CI), or unavailable (raises `VoiceUnavailableError` with an actionable install hint). CLI exposes `voice transcribe --json` and `voice status`.
+- **`specsmith cloud spawn <manifest> --endpoint --token --dry-run` (REQ-136).** Replaces the original REQ-126 stub. The new shape reads a YAML or JSON manifest, POSTs it to `<endpoint>/spawn`, and prints the response. `--token` adds bearer auth; `--dry-run` prints the would-be POST as JSON without leaving the host. Manifests must be mappings; lists / scalars exit 2 with a clear message.
+- **`tests/test_warp_parity_followup.py`** — 20 new pytest cases covering: serve auth-gate (open `/api/health`, 401 on missing/wrong token, 200 on correct token), cloud spawn (dry-run JSON output, manifest type validation, 401 on missing token, persistence on success), voice (stub mode, missing-file error, unavailable-when-no-library + no-stub, status output), and the api-surface stability snapshot (matches fixture, required commands present, exit codes + event types frozen).
+- **`docs/site/api-stability.md`** — documents the `api-surface` snapshot mechanism: payload shape, regeneration command, the required-command spot check, and what is *not* covered by the snapshot.
+- **Specsmith Drive (REQ-133).** New `src/specsmith/drive.py` module exposes `push()`, `pull()`, `listing()`; mirrors project rules / workflows / notebooks under `~/.specsmith/drive/<project>/<kind>/`. Round-trip safe; default backend is filesystem-only so the user can `git push` themselves.
+- **Per-block share / export (REQ-134).** New `src/specsmith/block_export.py` plus `specsmith chat-export-block --session-id <id> --block-id <id> [--format md|json|html]` slices a single block out of `.specsmith/sessions/<id>/events.jsonl` (fallback `turns.jsonl`) and emits a self-contained markdown / JSON / HTML snippet. Raises `FileNotFoundError` for missing sessions and `KeyError` for missing blocks; the CLI exits non-zero in either case.
+- **AI-searchable history (REQ-135).** New `src/specsmith/history_search.py` adds a deterministic keyword `search()` over every `.specsmith/sessions/<id>/turns.jsonl` plus an optional `semantic=True` mode that uses `sentence-transformers` when available and silently falls back to keyword matching otherwise. New `[history-semantic]` extra in `pyproject.toml`.
+- **Reference cloud-agent receiver (REQ-136).** New `src/specsmith/cloud_serve.py` ships a stdlib `HTTPServer` accepting `POST /spawn` (manifest JSON) and `GET /health`. Bearer-token auth + CIDR allowlist + a guardrail that refuses to bind non-loopback hosts without `--allow-cidr`. Persists each manifest under `~/.specsmith/cloud-runs/<run_id>/manifest.json`. Wired up as `specsmith cloud-serve --host --port --token --allow-cidr`.
+- **`specsmith api-surface` (REQ-140).** Top-level command emits the frozen 1.0 public surface (`cli_commands`, `exit_codes`, `event_types`) as JSON; `--snapshot <path>` writes the same payload to disk for CI diffing.
+- **`[voice]` optional extra (REQ-141).** Pyproject extra carrying `whisper-cpp-python` for the upcoming agent voice-input integration (not yet wired into the CLI).
+- **`tests/test_warp_parity.py`** -- 20 new pytest cases covering the four new modules, the API-surface contract, and the CLI wiring (incl. localhost cloud-serve roundtrips, missing-token / wrong-token rejection, and the non-loopback guardrail).
+
+- **Real MCP JSON-RPC client (REQ-130).** `agent.mcp` now ships a full stdio client (`MCPSession`) that runs the official MCP handshake (`initialize` -> `notifications/initialized` -> `tools/list`) against any configured server, exposes each discovered tool as an `MCPTool` whose `invoke_with_safety()` runs every call through the supplied safety check. Protocol pinned at `2024-11-05`. The chat session header now reports tools-per-server counts.
+- **`tests/fixtures/mcp_fake_server.py`** -- pure-Python stdio MCP server fixture for hermetic tests.
+- **`tests/test_mcp_client.py`** -- 8 new pytest cases (handshake, protocol pin, idempotent close, text/error/unknown-tool, safety integration, crash recovery, loader silent-skip).
+
+- **MCP server announcement in chat sessions (REQ-121).** When `.specsmith/mcp.yml` is present, `specsmith chat` now loads the configured servers via `agent.mcp.load_mcp_tools` and emits a `[mcp servers: <names>]` token at the top of the message block so consumers (and the user) see which external tool surfaces are in play. The Specsmith safety middleware still gates every call.
+- **`specsmith notebook record --session-id <id>`** now reads `.specsmith/sessions/<id>/turns.jsonl` and embeds each turn as a `### <role>` section in the generated `docs/notebooks/<slug>.md`, alongside any `--work-item-id` artifacts. Both flags may be combined; either may be omitted (with a friendlier placeholder when neither is supplied). Closes the gap between TESTS.md TEST-123 and the existing implementation.
+- **`tests/test_phase34_completion.py`** — 12 new pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), `cloud spawn --dry-run` (manifest + tarball + `--help` documents `--endpoint`), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
+
+### Changed
+- `specsmith chat` imports `load_mcp_tools` and emits the MCP-servers token after the rules-loaded notice.
+- `notebook_record` gained `--session-id` and merges `.specsmith/runs/<WI>/` artifacts and `.specsmith/sessions/<id>/turns.jsonl` content into a single notebook.
+
+### Validation
+- `pytest`: **316 passed, 1 skipped** (was 304; +12 in test_phase34_completion.py).
+- `ruff check` + `ruff format --check`: clean.
+- `mypy src/specsmith/`: same status as develop (no regressions; pre-existing `chat_runner.py` errors only surface when optional `anthropic`/`openai` SDKs are locally installed; CI installs only `[dev]` so `ignore_missing_imports` keeps it green there).
+
+## [0.6.0] — 2026-04-28
+
+### Added
+- **Skill marketplace** — new `specsmith skill` subcommand group (`search`, `list`, `install`) backed by a small built-in catalog (`verifier`, `planner`, `diff-reviewer`, `onboarding-coach`, `release-pilot`). `specsmith skill install <slug>` writes the SKILL.md into the project's `.agents/skills/` directory so the local Nexus runtime picks it up. New module `src/specsmith/skills.py` exposes `SkillEntry`, `CATALOG`, `search()`, `get()`, `install()`, `installed_skills()`.
+- **`specsmith chat --interactive` stdin decision protocol** — when launched with `--interactive`, the chat command reads JSONL decision events from stdin so an IDE consumer (e.g. the VS Code extension) can drive the safe-mode approval flow and the inline diff review. The new `--decision-timeout <seconds>` flag bounds the wait. Approved tool calls fall through to the standard tool_call/plan_step/task_complete flow; denied calls emit `task_complete success=False`. The first non-accept `diff_decision` comment is folded into the persisted turn's `reviewer_comment` field so the next harness retry can consume it.
+- **Real chat orchestrator** — new `src/specsmith/agent/chat_runner.py` powers `specsmith chat` with a streaming LLM turn. Provider preference is local-first: Ollama (default `http://127.0.0.1:11434`, model `qwen2.5:7b`), then the `anthropic`, `openai`, and `google-genai` SDKs gated on the corresponding API-key env vars. Tokens are streamed to the existing `EventEmitter` as `token` events, and the model's `Plan: / Files changed: / Test results:` sections feed `specsmith.agent.verifier.score()` so `task_complete.confidence` and the `success` flag now reflect a real verdict. Any provider error or missing SDK transparently falls back to the deterministic stub; set `SPECSMITH_DISABLE_REAL_CHAT=1` to force the stub explicitly (used by the test suite).
+- **Diff-decision tests** — `tests/test_chat_diff_decision.py` adds three end-to-end tests for the inline diff review path (accept, reject-with-comment threaded into the final summary, timeout becomes `status="timeout"`).
+- **Hermetic test fixture** — a new autouse fixture in `tests/conftest.py` sets `SPECSMITH_NO_AUTO_UPDATE=1` and `SPECSMITH_PYPI_CHECKED=1` so the project-update prompt and the PyPI version check do not consume stdin or hit the network during tests. This made the existing `test_chat_stdin_protocol.py` tests pass deterministically when run individually, not just as part of the full suite.
+- **Documentation** — `docs/site/commands.md` now documents `specsmith chat` (block protocol, stdin decision protocol, real-LLM provider order, fallback behaviour) and `specsmith skill` (`list`, `search`, `install`).
+- **Tests** — `tests/test_skill_marketplace.py` (18 tests), `tests/test_chat_stdin_protocol.py` (3 tests), and `tests/test_chat_diff_decision.py` (3 tests) cover the new surfaces.
+
+### Changed
+- **`pyproject.toml`** version bumped from `0.5.0` to `0.6.0`. `Development Status :: 4 - Beta` classifier preserved (1.0.0 stays deferred per the pre-1.0 stance).
+
+### Fixed
+- **`specsmith chat` diff block kwarg** — the inline diff review path called `EventEmitter.diff(path=..., diff=...)` but the helper takes `body=`. The kwarg mismatch was latent because no existing test created a `REQUIREMENTS.md` that triggered scope-matched diff blocks. Fixed in `src/specsmith/cli.py` and exercised by `tests/test_chat_diff_decision.py`.
+
+## [0.5.0] — 2026-04-28
+
+### Changed
+- **Agent skill adapter renamed** — the integration adapter that previously generated `.warp/skills/SKILL.md` is now named `agent-skill` and writes to `.agents/skills/SKILL.md`. Existing `scaffold.yml` files that still list `warp` continue to work via a backward-compat alias resolved in `specsmith.integrations.get_adapter`. The legacy `.warp/skills/SKILL.md` path is still patched on `specsmith upgrade` for projects that have not yet rebuilt.
+- **Customer-facing docs** — Read the Docs pages (`agent-integrations.md`, `getting-started.md`, `configuration.md`, `commands.md`, `agent-client.md`) and `TESTS.md` no longer reference any specific terminal-AI vendor by name. The `agent-skill` adapter is described as a generic SKILL.md integration for terminal-native AI agents.
+- **REQ-079 / ARCHITECTURE.md cleanup boundary text** — protected-paths description generalised to “third-party agent integration directories (e.g. `.agents/`)”. Defensive code in `agent/cleanup.py` continues to protect both `.agents/` and `.warp/` for users who already have either directory in their project.
+- **`pyproject.toml`** version bumped to `0.5.0`. `Development Status :: 4 - Beta` classifier preserved (1.0.0 stays deferred per the pre-1.0 stance).
+- **`scaffold.yml`** integration list switched to the new `agent-skill` adapter name in this repo's own scaffold.
+
+### Internal
+- New module `src/specsmith/integrations/agent_skill.py` (`AgentSkillAdapter`) replaces `src/specsmith/integrations/warp.py` (file removed). `LEGACY_ALIASES = {"warp": "agent-skill"}` in `src/specsmith/integrations/__init__.py` keeps existing configs working without manual migration.
+- `tests/test_integrations.py` covers the new canonical name, the legacy alias, and the new `.agents/skills/` output path.
 ## [0.4.0] — 2026-04-28
 ### Added
 - **Nexus broker, preflight, verify** — `specsmith preflight <utterance> --json` and `specsmith verify [--stdin|--diff|--tests|--logs|--changed]` are first-class CLI subcommands. The natural-language broker (`specsmith.agent.broker`) classifies intent, infers scope from `REQUIREMENTS.md` / `.repo-index`, calls the CLI, and renders plain-language plans (REQ-084..REQ-100).
@@ -494,8 +556,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
+[0.6.0]: https://github.com/BitConcepts/specsmith/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/BitConcepts/specsmith/compare/v0.6.0...v0.7.0
 [0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1

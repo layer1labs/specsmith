@@ -36,7 +36,7 @@ exec_shims: true                    # Include timeout shim scripts
 # Agent integrations
 integrations:
   - agents-md        # AGENTS.md (always included)
-  - warp             # .warp/skills/SKILL.md
+  - agent-skill      # .agents/skills/SKILL.md
   - claude-code      # CLAUDE.md
   - copilot          # .github/copilot-instructions.md
   - cursor           # .cursor/rules/governance.mdc

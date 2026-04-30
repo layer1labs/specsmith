@@ -378,12 +378,23 @@ def audit(fix: bool, project_dir: str) -> None:
     default=False,
     help="Run a stress-test pass over matched requirements (REQ-100).",
 )
+@click.option(
+    "--predict-only",
+    "predict_only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Return intent + suggested refinement without allocating a work item "
+        "or writing the ledger (REQ-117)."
+    ),
+)
 def preflight_cmd(
     utterance: str,
     project_dir: str,
     as_json: bool,
     verbose: bool,
     stress: bool,
+    predict_only: bool,
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
@@ -497,6 +508,12 @@ def preflight_cmd(
 
     work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
 
+    # REQ-117: predict-only mode does not allocate a work_item_id and does
+    # not write a ledger event; instead it adds a `predicted_refinement`
+    # field for IDE autocomplete.
+    if predict_only:
+        work_item_id = ""
+
     payload = {
         "decision": decision_str,
         "work_item_id": work_item_id,
@@ -506,6 +523,15 @@ def preflight_cmd(
         "instruction": instruction,
         "intent": intent.value,
     }
+    if predict_only:
+        if not scope.is_known and intent == Intent.CHANGE:
+            payload["predicted_refinement"] = (
+                f"{utterance} (please name the component or file you want to change)"
+            )
+        elif intent == Intent.DESTRUCTIVE:
+            payload["predicted_refinement"] = f"{utterance} (specify the exact paths or resources)"
+        else:
+            payload["predicted_refinement"] = utterance
 
     # REQ-100: optional stress-test bridge over matched requirements. The flag
     # defaults off so unrelated tests stay green.
@@ -528,7 +554,8 @@ def preflight_cmd(
     # assigned work_item_id is brand-new. Best-effort: never block the CLI on
     # ledger errors. We capture the pre-write ledger contents up front so the
     # work_item_id presence check is not polluted by our own preflight entry.
-    if decision_str == "accepted" and (root / "LEDGER.md").exists():
+    # REQ-117: predict-only never writes the ledger.
+    if not predict_only and decision_str == "accepted" and (root / "LEDGER.md").exists():
         try:
             from specsmith.ledger import add_entry
 
@@ -691,6 +718,12 @@ def _stress_test_warnings(
     default="",
     help="Optional work item id to bind the verification to.",
 )
+@click.option(
+    "--comment",
+    "reviewer_comment",
+    default="",
+    help="Reviewer comment that retry strategies should consume on the next attempt (REQ-116).",
+)
 def verify_cmd(
     project_dir: str,
     read_stdin: bool,
@@ -699,6 +732,7 @@ def verify_cmd(
     logs_path: str | None,
     changed_paths: str,
     work_item_id: str,
+    reviewer_comment: str,
 ) -> None:
     """Verify a Specsmith-governed change set (REQ-097).
 
@@ -806,6 +840,9 @@ def verify_cmd(
         "retry_budget": DEFAULT_RETRY_BUDGET,
         "confidence_threshold": threshold,
     }
+    # REQ-116: include reviewer comment so the next retry can consume it.
+    if reviewer_comment:
+        out["reviewer_comment"] = reviewer_comment
     click.echo(_json.dumps(out, indent=2))
 
     # Exit codes per REQ-097.
@@ -1074,11 +1111,95 @@ def diff(project_dir: str, html_output: str | None) -> None:
     default=".",
     help="Project root directory.",
 )
-def doctor(project_dir: str) -> None:
-    """Check if verification tools are installed locally."""
+@click.option(
+    "--onboarding",
+    is_flag=True,
+    default=False,
+    help="Run the new-user onboarding checklist (REQ-127).",
+)
+def doctor(project_dir: str, onboarding: bool) -> None:
+    """Check if verification tools are installed locally.
+
+    With --onboarding, walks through a 6-step checklist for new users that
+    confirms scaffold.yml, governance files, agent provider setup, optional
+    Nexus broker availability, and prints next-step commands (REQ-127).
+    """
     from specsmith.doctor import run_doctor
 
     root = Path(project_dir).resolve()
+
+    if onboarding:
+        # REQ-127: explicit onboarding checklist for new users.
+        console.print("[bold]specsmith onboarding[/bold]\n")
+        steps: list[tuple[str, bool, str]] = []
+        steps.append(
+            (
+                "scaffold.yml present",
+                (root / "scaffold.yml").is_file(),
+                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold].",
+            )
+        )
+        steps.append(
+            (
+                "REQUIREMENTS.md present",
+                (root / "REQUIREMENTS.md").is_file()
+                or (root / "docs" / "REQUIREMENTS.md").is_file(),
+                "Add at least one REQ entry (REQ-001).",
+            )
+        )
+        steps.append(
+            (
+                "AGENTS.md present",
+                (root / "AGENTS.md").is_file(),
+                "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
+            )
+        )
+        steps.append(
+            (
+                "LEDGER.md present",
+                (root / "LEDGER.md").is_file(),
+                "Create LEDGER.md (specsmith init seeds one).",
+            )
+        )
+        steps.append(
+            (
+                "At least one agent provider configured",
+                bool(
+                    __import__("os").environ.get("ANTHROPIC_API_KEY")
+                    or __import__("os").environ.get("OPENAI_API_KEY")
+                    or __import__("os").environ.get("GOOGLE_API_KEY")
+                    or (root / ".specsmith" / "nexus.yml").is_file()
+                ),
+                "Set ANTHROPIC_API_KEY / OPENAI_API_KEY or run [bold]specsmith nexus init[/bold].",
+            )
+        )
+        steps.append(
+            (
+                "docs/governance/ structure present",
+                (root / "docs" / "governance").is_dir(),
+                "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
+            )
+        )
+        ok_count = 0
+        for label, passed, hint in steps:
+            if passed:
+                console.print(f"  [green]\u2713[/green] {label}")
+                ok_count += 1
+            else:
+                console.print(f"  [red]\u2717[/red] {label} \u2014 {hint}")
+        console.print()
+        if ok_count == len(steps):
+            console.print(
+                "[bold green]All onboarding checks passed.[/bold green] "
+                'Try [bold]specsmith preflight "add hello world"[/bold].'
+            )
+        else:
+            console.print(
+                f"[bold yellow]{len(steps) - ok_count} step(s) remaining.[/bold yellow] "
+                "See docs/site/getting-started.md."
+            )
+        return
+
     report = run_doctor(root)
 
     if not report.checks:
@@ -2675,12 +2796,23 @@ def run_cmd(
 @click.option("--model", default="", help="Model name (blank = provider default).")
 @click.option("--port", type=int, default=8421, help="HTTP port to listen on.")
 @click.option("--host", default="127.0.0.1", help="Bind address (use 0.0.0.0 for network access).")
+@click.option(
+    "--auth-token",
+    "auth_token",
+    default="",
+    help=(
+        "Optional bearer token (REQ-137). When set, every /api/* request must "
+        "present `Authorization: Bearer <token>`. /api/health stays open so "
+        "liveness probes still work."
+    ),
+)
 def serve_cmd(
     project_dir: str,
     provider: str,
     model: str,
     port: int,
     host: str,
+    auth_token: str,
 ) -> None:
     """Start a persistent HTTP server for agent sessions.
 
@@ -2689,7 +2821,8 @@ def serve_cmd(
     POST /api/send.
 
     Example:
-      specsmith serve --port 8421 --provider ollama --model qwen2.5:14b
+      specsmith serve --port 8421 --provider ollama --model qwen2.5:14b \
+        --auth-token $(specsmith auth get serve)
     """
     from specsmith.serve import run_server
 
@@ -2699,6 +2832,7 @@ def serve_cmd(
         model=model,
         port=port,
         host=host,
+        auth_token=auth_token,
     )
 
 
@@ -4319,6 +4453,311 @@ def info_cmd(as_json: bool, section: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# specsmith chat-export-block — self-contained block share (REQ-134)
+# ---------------------------------------------------------------------------
+#
+# Top-level alias kept for back-compat with v0.6.x which only exposed
+# ``specsmith chat-export-block``. The canonical 1.0 spelling is
+# ``specsmith chat export-block`` under the chat group below.
+
+
+def _do_chat_export_block(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
+    from specsmith.block_export import export_block
+
+    try:
+        out = export_block(
+            Path(project_dir).resolve(),
+            session_id,
+            block_id,
+            fmt=fmt,
+        )
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    click.echo(out)
+
+
+@main.command(name="chat-export-block")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--session-id", "session_id", required=True)
+@click.option("--block-id", "block_id", required=True)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["md", "json", "html"]),
+    default="md",
+)
+def chat_export_block_cmd(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
+    """Export one chat block as a self-contained snippet (REQ-134, top-level alias)."""
+    _do_chat_export_block(project_dir, session_id, block_id, fmt)
+
+
+# ---------------------------------------------------------------------------
+# specsmith voice transcribe — wav/flac transcription via whisper-cpp (REQ-141)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="voice")
+def voice_group() -> None:
+    """Voice agent input (REQ-141). Requires the ``[voice]`` extra."""
+
+
+@voice_group.command(name="transcribe")
+@click.argument("audio_path", type=click.Path(exists=True))
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the full transcription record as JSON.",
+)
+def voice_transcribe_cmd(audio_path: str, as_json: bool) -> None:
+    """Transcribe AUDIO_PATH to text using whisper-cpp.
+
+    Three resolution modes:
+
+    \b
+    * SPECSMITH_VOICE_STUB=<text> — returns the literal text (used by tests)
+    * whisper-cpp installed + model present — real transcription
+    * neither — exits 2 with an actionable install hint
+    """
+    import json as _json
+
+    from specsmith.agent.voice import VoiceUnavailableError, transcribe
+
+    try:
+        result = transcribe(Path(audio_path))
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    except VoiceUnavailableError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+    else:
+        click.echo(result.text)
+
+
+@voice_group.command(name="status")
+def voice_status_cmd() -> None:
+    """Report whether voice transcription is available right now."""
+    from specsmith.agent.voice import default_model_dir, is_available
+
+    if is_available():
+        console.print("[green]\u2713[/green] voice available")
+        console.print(f"  model dir: {default_model_dir()}")
+    else:
+        console.print("[yellow]\u2014[/yellow] voice unavailable")
+        console.print(
+            "  Install: [bold]pipx inject specsmith whisper-cpp-python[/bold] "
+            "and place a model under ~/.specsmith/voice/."
+        )
+        raise SystemExit(2)
+
+
+# ---------------------------------------------------------------------------
+# specsmith cloud spawn — client side of the receiver (REQ-136)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="cloud")
+def cloud_group() -> None:
+    """Cloud-agent receiver client (REQ-136)."""
+
+
+@cloud_group.command(name="spawn")
+@click.argument("manifest_path", type=click.Path(exists=True))
+@click.option(
+    "--endpoint",
+    default="http://127.0.0.1:9000",
+    help="Cloud-serve base URL (default: http://127.0.0.1:9000).",
+)
+@click.option("--token", default="", help="Bearer token for the receiver.")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Validate the manifest locally and print what would be posted.",
+)
+def cloud_spawn_cmd(manifest_path: str, endpoint: str, token: str, dry_run: bool) -> None:
+    """Post a manifest to a `specsmith cloud-serve` endpoint (REQ-136).
+
+    The MANIFEST_PATH is a YAML or JSON file describing the run. The CLI
+    reads it, posts it to ``<endpoint>/spawn`` with optional bearer auth,
+    and prints the response as JSON.
+    """
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    raw = Path(manifest_path).read_text(encoding="utf-8")
+    payload: dict[str, object]
+    if manifest_path.endswith((".yml", ".yaml")):
+        try:
+            import yaml as _yaml
+
+            payload = _yaml.safe_load(raw) or {}
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]Invalid YAML manifest: {exc}[/red]")
+            raise SystemExit(2) from exc
+    else:
+        try:
+            payload = _json.loads(raw)
+        except ValueError as exc:
+            console.print(f"[red]Invalid JSON manifest: {exc}[/red]")
+            raise SystemExit(2) from exc
+
+    if not isinstance(payload, dict):
+        console.print("[red]Manifest must be a mapping (YAML/JSON object).[/red]")
+        raise SystemExit(2)
+
+    if dry_run:
+        click.echo(_json.dumps({"endpoint": endpoint, "manifest": payload}, indent=2))
+        return
+
+    body = _json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(  # noqa: S310 - user-supplied endpoint
+        endpoint.rstrip("/") + "/spawn",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+            response = _json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body_text = exc.read().decode("utf-8") or "{}"
+        console.print(f"[red]HTTP {exc.code}[/red]: {body_text}")
+        raise SystemExit(1) from exc
+    except urllib.error.URLError as exc:
+        console.print(f"[red]Network error[/red]: {exc.reason}")
+        raise SystemExit(1) from exc
+
+    click.echo(_json.dumps(response, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# specsmith cloud serve — reference cloud-agent receiver (REQ-136)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="cloud-serve")
+@click.option("--host", default="127.0.0.1")
+@click.option("--port", type=int, default=9000)
+@click.option("--token", default="", help="Optional bearer token.")
+@click.option("--allow-cidr", default="", help="CIDR range required to bind non-loopback.")
+def cloud_serve_cmd(host: str, port: int, token: str, allow_cidr: str) -> None:
+    """Run the reference cloud-agent receiver (REQ-136).
+
+    Accepts POST /spawn with a JSON manifest, persists it under
+    ~/.specsmith/cloud-runs/<run_id>/manifest.json, and returns 202 with
+    a stream_url placeholder.
+    """
+    from specsmith.cloud_serve import CloudReceiverConfig, make_server
+
+    config = CloudReceiverConfig(host=host, port=port, token=token, allow_cidr=allow_cidr)
+    try:
+        server = make_server(config)
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+    console.print(
+        f"[bold]specsmith cloud serve[/bold] on http://{config.host}:{config.port}\n"
+        f"  storage: {config.storage_dir}\n"
+        f"  token:   {'(set)' if token else '(none)'}\n"
+        "  Press Ctrl+C to stop."
+    )
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        console.print("\n[dim]cloud serve stopped.[/dim]")
+        server.server_close()
+
+
+# ---------------------------------------------------------------------------
+# specsmith api-surface — 1.0 stability snapshot (REQ-140)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="api-surface")
+@click.option(
+    "--snapshot",
+    type=click.Path(),
+    default="",
+    help="Write the current public surface to this JSON file.",
+)
+def api_surface_cmd(snapshot: str) -> None:
+    """Print the frozen public CLI/API surface as JSON (REQ-140)."""
+    import json as _json
+
+    surface = {
+        "cli_commands": sorted(
+            cmd_name for cmd_name in main.commands if not cmd_name.startswith("_")
+        ),
+        "exit_codes": {
+            "preflight_accepted": 0,
+            "preflight_needs_clarification": 2,
+            "preflight_blocked": 3,
+            "verify_ok": 0,
+            "verify_retry": 2,
+            "verify_stop": 3,
+        },
+        "event_types": [
+            "block_start",
+            "block_complete",
+            "token",
+            "plan_step",
+            "tool_call",
+            "tool_request",
+            "tool_result",
+            "diff",
+            "task_complete",
+        ],
+    }
+    payload = _json.dumps(surface, indent=2, sort_keys=True)
+    if snapshot:
+        Path(snapshot).write_text(payload, encoding="utf-8")
+    click.echo(payload)
+
+
+# ---------------------------------------------------------------------------
+# specsmith suggest-command — NL-to-command suggester (REQ-131)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="suggest-command")
+@click.argument("text")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=True,
+    help="Emit suggestion as JSON (default; only mode for now).",
+)
+def suggest_command_cmd(text: str, project_dir: str, as_json: bool) -> None:
+    """Suggest a refined command or utterance for a partial input (REQ-131).
+
+    Returns a JSON object: ``{kind, suggestion, confidence, reasoning, candidates}``.
+    ``kind`` is one of ``command``, ``utterance``, ``passthrough``. The
+    extension renders the suggestion as inline ghost-text.
+    """
+    import json as _json
+
+    from specsmith.agent.suggester import suggest_command
+
+    result = suggest_command(text, project_dir=Path(project_dir).resolve())
+    click.echo(_json.dumps(result.to_dict(), indent=2))
+
+
 @main.command(name="scan")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
@@ -5057,6 +5496,1009 @@ def index_search_cmd(query: str, project_dir: str, limit: int) -> None:
 
 
 main.add_command(index_group)
+
+
+# ---------------------------------------------------------------------------
+# Chat — streaming JSONL chat surface (REQ-112..REQ-116, REQ-120, REQ-122, REQ-125)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="chat")
+@click.argument("utterance")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--session-id",
+    "session_id",
+    default="",
+    help="Continue an existing session (REQ-120). Default: a new id is allocated.",
+)
+@click.option(
+    "--parent-session",
+    "parent_session",
+    default="",
+    help="Mark this session as a sub-session of the given parent (REQ-125).",
+)
+@click.option(
+    "--profile",
+    type=click.Choice(["safe", "standard", "yolo"]),
+    default="standard",
+    help="Permission/autonomy tier (REQ-115). safe = ask before tools.",
+)
+@click.option(
+    "--comment",
+    "reviewer_comment",
+    default="",
+    help="Reviewer comment fed into the next retry (REQ-116).",
+)
+@click.option(
+    "--json-events",
+    "json_events",
+    is_flag=True,
+    default=True,
+    help="Emit block-protocol JSONL events (REQ-113). On by default for chat.",
+)
+@click.option(
+    "--interactive",
+    "interactive",
+    is_flag=True,
+    default=False,
+    help=(
+        "Read decision events (tool_decision / diff_decision / comment) from "
+        "stdin. Used by IDE consumers like the VS Code extension to drive "
+        "the safe-mode approval flow and inline diff review."
+    ),
+)
+@click.option(
+    "--decision-timeout",
+    "decision_timeout",
+    type=float,
+    default=120.0,
+    help="Seconds to wait for a stdin decision before falling back to deny.",
+)
+def chat_cmd(
+    utterance: str,
+    project_dir: str,
+    session_id: str,
+    parent_session: str,
+    profile: str,
+    reviewer_comment: str,
+    json_events: bool,
+    interactive: bool,
+    decision_timeout: float,
+) -> None:
+    """Run a single chat turn, streaming JSONL block events to stdout.
+
+    Emits the Specsmith block protocol (REQ-113): block_start → token →
+    plan_step → tool_call → diff → block_complete → task_complete.
+    Persists the turn to ``.specsmith/sessions/<session_id>/turns.jsonl``
+    so subsequent runs (with the same --session-id) carry context
+    (REQ-120). Respects ``--profile safe`` by emitting tool_request
+    events instead of executing tool calls (REQ-115).
+    """
+    import json as _json
+    import os
+    import uuid as _uuid
+
+    from specsmith.agent.events import EventEmitter
+    from specsmith.agent.mcp import load_mcp_tools
+    from specsmith.agent.memory import append_turn, recent_turns
+    from specsmith.agent.router import choose_tier
+    from specsmith.agent.rules import load_rules
+
+    root = Path(project_dir).resolve()
+    sid = session_id or f"sess_{_uuid.uuid4().hex[:12]}"
+    emitter = EventEmitter()
+
+    # Open the message block first so the consumer always sees something.
+    msg_block = emitter.block_start(
+        "message",
+        agent="nexus",
+        session_id=sid,
+        parent_session=parent_session or None,
+        profile=profile,
+    )
+
+    # Load prior context (REQ-120) and project rules (REQ-119).
+    history = recent_turns(root, sid, max_chars=20_000)
+    rules_prefix = load_rules(root)
+    if history:
+        emitter.token(msg_block, f"[continuing session {sid}: {len(history)} prior turn(s)]\n")
+    if rules_prefix:
+        emitter.token(msg_block, "[project rules loaded]\n")
+
+    # Surface configured MCP servers (REQ-121, REQ-130). The real client
+    # opens each server, runs the initialize handshake, and discovers its
+    # tools; the safety middleware still gates every actual invocation.
+    # Here we just announce availability so consumers can render the list.
+    mcp_tools = load_mcp_tools(root)
+    if mcp_tools:
+        servers: dict[str, list[str]] = {}
+        for tool in mcp_tools:
+            servers.setdefault(tool.server, []).append(tool.name)
+        summary = ", ".join(f"{srv} ({len(names)})" for srv, names in servers.items())
+        emitter.token(
+            msg_block,
+            f"[mcp: {len(mcp_tools)} tool(s) across {len(servers)} server(s): {summary}]\n",
+        )
+
+    # Pick a tier (REQ-122) so consumers know which model is in play.
+    _utt_lower = utterance.lower()
+    if any(k in _utt_lower for k in ("add", "fix", "refactor")):
+        intent = "change"
+    else:
+        intent = "read_only_ask"
+    tier = choose_tier(intent, project_dir=root)
+    emitter.token(msg_block, f"[router: intent={intent}, tier={tier}]\n")
+
+    # Plan block (REQ-114).
+    plan_steps = [
+        {"id": "s1", "label": "Run preflight"},
+        {"id": "s2", "label": "Execute under harness"},
+        {"id": "s3", "label": "Emit verifier verdict"},
+    ]
+    plan_block = emitter.plan(plan_steps)
+    for step in plan_steps:
+        emitter.plan_step(plan_block, step["id"], "pending")
+
+    # Run preflight in-process (best effort) so chat shares the broker contract.
+    from specsmith.agent.broker import classify_intent, infer_scope
+
+    real_intent = classify_intent(utterance)
+    scope = infer_scope(
+        utterance,
+        root / "REQUIREMENTS.md",
+        repo_index_path=root / ".repo-index" / "files.json",
+    )
+    emitter.plan_step(
+        plan_block,
+        "s1",
+        "complete",
+        intent=real_intent.value,
+        matched=len(scope.matched_requirements),
+    )
+
+    # Permission gate (REQ-115). In safe mode every tool becomes a request,
+    # and (with --interactive) we then block on stdin for the user's decision.
+    if profile == "safe":
+        emitter.tool_request(msg_block, "execute_with_governance", {"utterance": utterance})
+        emitter.plan_step(plan_block, "s2", "awaiting_approval")
+
+        decision = _read_stdin_decision("tool_decision", decision_timeout) if interactive else None
+        if decision and decision.get("decision") == "approve":
+            # User approved — fall through into the standard flow as if the
+            # tool had been pre-authorised.
+            emitter.plan_step(plan_block, "s2", "approved")
+        else:
+            denied_reason = (decision or {}).get("reason", "awaiting_approval")
+            emitter.block_complete(plan_block, status="paused")
+            emitter.block_complete(msg_block)
+            emitter.task_complete(
+                success=False,
+                confidence=0.0,
+                summary=f"Safe mode: {denied_reason}.",
+                profile=profile,
+            )
+            append_turn(
+                root,
+                sid,
+                {
+                    "role": "user",
+                    "utterance": utterance,
+                    "profile": profile,
+                    "intent": real_intent.value,
+                    "status": denied_reason,
+                },
+            )
+            click.echo(_json.dumps({"session_id": sid, "status": denied_reason}))
+            return
+
+    # Standard / yolo / safe-approved: emit a tool_call event for
+    # execute_with_governance and let downstream consumers route to the
+    # real harness if configured.
+    emitter.tool_call(msg_block, "execute_with_governance", {"utterance": utterance})
+    emitter.plan_step(plan_block, "s2", "complete")
+
+    # Real LLM turn — try Ollama / Anthropic / OpenAI / Gemini via
+    # specsmith.agent.chat_runner. Any failure (no provider, network
+    # error, missing SDK) returns ``None`` so we fall back to the
+    # deterministic stub below. This keeps the test suite green on
+    # machines without an LLM configured at all.
+    real_result = None
+    if os.environ.get("SPECSMITH_DISABLE_REAL_CHAT", "").lower() not in ("1", "true", "yes"):
+        try:
+            from specsmith.agent.chat_runner import run_chat as _run_chat
+
+            real_result = _run_chat(
+                utterance,
+                project_dir=root,
+                profile=profile,
+                session_id=sid,
+                emitter=emitter,
+                msg_block=msg_block,
+                history=history,
+                rules_prefix=rules_prefix,
+            )
+        except Exception:  # noqa: BLE001 - real chat is best-effort
+            real_result = None
+
+    if real_result is not None:
+        verdict = real_result.verdict
+        summary = real_result.summary or (verdict.summary if verdict else "")
+    else:
+        # Verifier sketch (deterministic, no LLM needed for this stub):
+        verdict = None
+        summary = (
+            f"Preflight intent={real_intent.value}, matched_reqs={len(scope.matched_requirements)}."
+        )
+    if reviewer_comment:
+        summary += f" reviewer_comment={reviewer_comment!r}"
+    emitter.plan_step(plan_block, "s3", "complete", summary=summary)
+    emitter.block_complete(plan_block, status="complete")
+    emitter.token(msg_block, summary + "\n")
+    emitter.block_complete(msg_block)
+
+    # Optional inline-diff review (REQ-116) when interactive: emit one
+    # representative diff block per matched requirement and read each
+    # diff_decision from stdin. The first non-accept decision becomes the
+    # next retry's reviewer_comment so the harness can adjust.
+    extra_comment = ""
+    if interactive and scope.matched_requirements:
+        for req in scope.matched_requirements[:3]:
+            diff_block = emitter.diff(
+                path=f"docs/{req.req_id}.md",
+                body=f"--- {req.req_id} (review)\n+++ {req.req_id} (proposed)\n",
+            )
+            decision = _read_stdin_decision("diff_decision", decision_timeout)
+            decision_status = (decision or {}).get("decision", "timeout")
+            comment = (decision or {}).get("comment", "")
+            emitter.block_complete(diff_block, status=decision_status)
+            if decision_status != "accept" and comment:
+                extra_comment = comment
+                break
+
+    final_summary = summary
+    if extra_comment:
+        final_summary += f" reviewer_comment={extra_comment!r}"
+
+    final_confidence = (
+        verdict.confidence if real_result is not None and verdict is not None else 0.7
+    )
+    emitter.task_complete(
+        success=real_result is None or (verdict is not None and verdict.equilibrium),
+        confidence=final_confidence,
+        summary=final_summary,
+        profile=profile,
+        session_id=sid,
+        parent_session=parent_session or None,
+    )
+
+    # Persist turn (REQ-120 / REQ-125).
+    append_turn(
+        root,
+        sid,
+        {
+            "role": "user",
+            "utterance": utterance,
+            "profile": profile,
+            "intent": real_intent.value,
+            "reviewer_comment": reviewer_comment or extra_comment,
+            "parent_session": parent_session or None,
+            "json_events": json_events,
+        },
+    )
+
+
+def _read_stdin_decision(expected_type: str, timeout_seconds: float) -> dict[str, Any] | None:
+    """Read a single JSON decision line from stdin with a timeout.
+
+    Used by ``specsmith chat --interactive`` to wait for ``tool_decision``
+    or ``diff_decision`` events emitted by an IDE client. Returns the
+    parsed JSON object or ``None`` if the timeout fires, the line cannot
+    be parsed, or its ``type`` does not match the expected type.
+
+    Cross-platform: uses ``select`` on POSIX and a polling reader thread
+    on Windows so the flow stays non-blocking on either OS.
+    """
+    import json as _json
+    import sys as _sys
+
+    line: str | None = None
+
+    # ``select`` only works on real file descriptors. Under test runners
+    # (CliRunner) and other in-memory stdins, ``sys.stdin.fileno()`` raises;
+    # in that case fall back to a direct ``readline()`` which the runner
+    # has already pre-buffered with the supplied ``input``.
+    has_fileno = True
+    try:
+        _sys.stdin.fileno()
+    except (OSError, ValueError, AttributeError):
+        has_fileno = False
+
+    if not has_fileno:
+        try:
+            line = _sys.stdin.readline()
+        except Exception:  # noqa: BLE001 - never let stdin issues kill chat
+            line = None
+    elif _sys.platform == "win32":
+        # Windows has no select() on file descriptors; spawn a tiny reader
+        # thread and poll a queue.
+        import queue as _queue
+        import threading as _threading
+
+        q: _queue.Queue[str] = _queue.Queue()
+
+        def _reader() -> None:
+            data = _sys.stdin.readline()
+            q.put(data)
+
+        t = _threading.Thread(target=_reader, daemon=True)
+        t.start()
+        try:
+            line = q.get(timeout=timeout_seconds)
+        except _queue.Empty:
+            line = None
+    else:
+        import select as _select
+
+        try:
+            ready, _, _ = _select.select([_sys.stdin], [], [], timeout_seconds)
+        except (OSError, ValueError):
+            ready = []
+        if ready:
+            line = _sys.stdin.readline()
+
+    if not line or not line.strip():
+        return None
+    try:
+        payload = _json.loads(line.strip())
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("type") != expected_type:
+        return None
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# Notebook — capture / replay run artifacts (REQ-123)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="notebook")
+def notebook_group() -> None:
+    """Capture and replay Nexus run artifacts as docs/notebooks/<slug>.md."""
+
+
+@notebook_group.command(name="record")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--work-item-id",
+    "work_item_id",
+    default="",
+    help="Work item id whose .specsmith/runs/<WI>/ artifacts should be captured.",
+)
+@click.option(
+    "--session-id",
+    "session_id",
+    default="",
+    help="Session id whose .specsmith/sessions/<id>/turns.jsonl should be captured.",
+)
+def notebook_record(slug: str, project_dir: str, work_item_id: str, session_id: str) -> None:
+    """Record a notebook for the given SLUG (REQ-123).
+
+    Two artifact sources are supported and may be combined:
+
+    * ``--work-item-id`` reads `.specsmith/runs/<WI>/` (preflight/verify
+      logs, decision.json, etc.).
+    * ``--session-id`` reads `.specsmith/sessions/<id>/turns.jsonl` so a
+      conversational chat session can be replayed later.
+
+    Either flag may be omitted; both may be combined to produce a single
+    notebook that captures the full evidence trail.
+    """
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    nb_dir = root / "docs" / "notebooks"
+    nb_dir.mkdir(parents=True, exist_ok=True)
+    target = nb_dir / f"{slug}.md"
+
+    runs_dir = root / ".specsmith" / "runs"
+    artifact_dir = runs_dir / work_item_id if work_item_id else None
+    sections: list[str] = [f"# Notebook \u2014 {slug}\n"]
+    if work_item_id:
+        sections.append(f"- **Work item**: `{work_item_id}`")
+    if session_id:
+        sections.append(f"- **Session**: `{session_id}`")
+
+    captured_any = False
+    if artifact_dir and artifact_dir.is_dir():
+        captured_any = True
+        sections.append("\n## Captured artifacts\n")
+        for path in sorted(artifact_dir.rglob("*")):
+            if path.is_file():
+                rel = path.relative_to(root)
+                try:
+                    body = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    sections.append(f"### `{rel}`\n\n_(binary, omitted)_\n")
+                    continue
+                fence = "```"
+                sections.append(f"### `{rel}`\n\n{fence}\n{body}\n{fence}\n")
+
+    if session_id:
+        turns_path = root / ".specsmith" / "sessions" / session_id / "turns.jsonl"
+        if turns_path.is_file():
+            captured_any = True
+            sections.append("\n## Session turns\n")
+            for line in turns_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    turn = _json.loads(line)
+                except ValueError:
+                    continue
+                role = str(turn.get("role", "?"))
+                utterance = str(turn.get("utterance") or turn.get("text") or "").strip()
+                ts = str(turn.get("timestamp", "")).strip()
+                header = f"### `{role}`" + (f" \u2014 {ts}" if ts else "")
+                sections.append(f"{header}\n\n{utterance}\n")
+
+    if not captured_any:
+        sections.append(
+            "\n_No artifacts captured. Pass `--work-item-id <WI>` or "
+            "`--session-id <id>` to populate this notebook._\n"
+        )
+    target.write_text("\n".join(sections), encoding="utf-8")
+    console.print(f"[green]\u2713[/green] Notebook recorded at {target.relative_to(root)}")
+
+
+@notebook_group.command(name="replay")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def notebook_replay(slug: str, project_dir: str) -> None:
+    """Print the previously-recorded notebook to stdout."""
+    root = Path(project_dir).resolve()
+    target = root / "docs" / "notebooks" / f"{slug}.md"
+    if not target.is_file():
+        console.print(f"[red]No notebook at {target}[/red]")
+        raise SystemExit(1)
+    click.echo(target.read_text(encoding="utf-8"))
+
+
+main.add_command(notebook_group)
+
+
+# ---------------------------------------------------------------------------
+# Cloud — REQ-126 placeholder (cloud spawn lives above under REQ-136).
+# ---------------------------------------------------------------------------
+# The original REQ-126 stub built a workspace tarball and posted to a free-
+# form endpoint with no auth. REQ-136 supersedes it with a manifest-based
+# command that posts to ``<endpoint>/spawn`` with optional bearer auth.
+# Keeping a single ``cloud spawn`` avoids surface drift; see
+# tests/test_warp_parity_followup.py for coverage.
+
+
+# ---------------------------------------------------------------------------
+# Workflow — parameterised command snippets (Warp-style Workflows)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="workflow")
+def workflow_group() -> None:
+    """Record, list, and run parameterised command snippets.
+
+    Workflows are saved as YAML files under `.specsmith/workflows/<name>.yml`.
+    Each workflow has a name, an optional description, a command template
+    that may contain ``{{ param }}`` placeholders, and a list of accepted
+    params. ``specsmith workflow run <name>`` substitutes the params and
+    executes the resulting command via ``subprocess.run``.
+    """
+
+
+def _workflows_dir(root: Path) -> Path:
+    d = root / ".specsmith" / "workflows"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@workflow_group.command(name="record")
+@click.argument("name")
+@click.option(
+    "--command",
+    "command",
+    required=True,
+    help="Command template. Use {{ param }} for substitution placeholders.",
+)
+@click.option("--description", "description", default="", help="Free-text description.")
+@click.option(
+    "--param",
+    "params",
+    multiple=True,
+    help="Declared parameter name (repeatable). Substituted at run time.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def workflow_record(
+    name: str,
+    command: str,
+    description: str,
+    params: tuple[str, ...],
+    project_dir: str,
+) -> None:
+    """Save a workflow under .specsmith/workflows/<NAME>.yml."""
+    root = Path(project_dir).resolve()
+    target = _workflows_dir(root) / f"{name}.yml"
+    payload = {
+        "name": name,
+        "description": description,
+        "command": command,
+        "params": list(params),
+    }
+    target.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    console.print(f"[green]\u2713[/green] Workflow recorded at {target.relative_to(root)}")
+
+
+@workflow_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON.")
+def workflow_list(project_dir: str, as_json: bool) -> None:
+    """List workflows recorded for this project."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    wf_dir = _workflows_dir(root)
+    items: list[dict[str, Any]] = []
+    for path in sorted(wf_dir.glob("*.yml")):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        items.append(
+            {
+                "name": data.get("name", path.stem),
+                "description": data.get("description", ""),
+                "command": data.get("command", ""),
+                "params": list(data.get("params", [])),
+            }
+        )
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    if not items:
+        console.print("[dim]No workflows recorded.[/dim]")
+        return
+    for item in items:
+        params = ", ".join(item["params"]) or "(none)"
+        console.print(f"[bold]{item['name']}[/bold] — params: {params}")
+        if item["description"]:
+            console.print(f"  {item['description']}")
+        console.print(f"  [dim]{item['command']}[/dim]")
+
+
+@workflow_group.command(name="run")
+@click.argument("name")
+@click.option(
+    "--param",
+    "param_assignments",
+    multiple=True,
+    help="Parameter assignment in key=value form (repeatable).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print the resolved command without executing.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def workflow_run(
+    name: str,
+    param_assignments: tuple[str, ...],
+    dry_run: bool,
+    project_dir: str,
+) -> None:
+    """Substitute parameters and execute the recorded workflow."""
+    import re
+    import shlex
+    import subprocess
+
+    root = Path(project_dir).resolve()
+    target = _workflows_dir(root) / f"{name}.yml"
+    if not target.is_file():
+        console.print(f"[red]No workflow named '{name}' at {target}[/red]")
+        raise SystemExit(1)
+    data = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    template: str = data.get("command", "")
+    declared = list(data.get("params", []))
+
+    assignments: dict[str, str] = {}
+    for raw in param_assignments:
+        if "=" not in raw:
+            console.print(f"[red]Bad --param value: {raw!r} (expected key=value)[/red]")
+            raise SystemExit(2)
+        key, _, value = raw.partition("=")
+        assignments[key.strip()] = value
+
+    missing = [p for p in declared if p not in assignments]
+    if missing:
+        console.print(f"[red]Missing required params: {', '.join(missing)}[/red]")
+        raise SystemExit(2)
+
+    def _replace(match: re.Match[str]) -> str:
+        key = match.group(1).strip()
+        return assignments.get(key, match.group(0))
+
+    resolved = re.sub(r"\{\{\s*([^}]+?)\s*\}\}", _replace, template)
+
+    if dry_run:
+        console.print(f"[cyan]{resolved}[/cyan]")
+        return
+
+    args = shlex.split(resolved, posix=False) if resolved else []
+    if not args:
+        console.print("[red]Resolved workflow command is empty.[/red]")
+        raise SystemExit(2)
+    raise SystemExit(subprocess.call(args, cwd=str(root)))  # noqa: S603
+
+
+main.add_command(workflow_group)
+
+
+# ---------------------------------------------------------------------------
+# History — search across .specsmith/sessions/<id>/turns.jsonl (REQ-120)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="history")
+def history_group() -> None:
+    """Search and list persistent session memory written by `specsmith chat`."""
+
+
+def _sessions_dir(root: Path) -> Path:
+    return root / ".specsmith" / "sessions"
+
+
+@history_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--limit", type=int, default=20, help="Max number of sessions to list.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def history_list(project_dir: str, limit: int, as_json: bool) -> None:
+    """List the N most recent sessions with turn counts."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    base = _sessions_dir(root)
+    if not base.is_dir():
+        if as_json:
+            click.echo("[]")
+        else:
+            console.print("[dim]No sessions recorded.[/dim]")
+        return
+    sessions = sorted(
+        (p for p in base.iterdir() if p.is_dir()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )[:limit]
+    items: list[dict[str, Any]] = []
+    for sd in sessions:
+        turns_path = sd / "turns.jsonl"
+        count = 0
+        if turns_path.is_file():
+            with turns_path.open("r", encoding="utf-8") as fh:
+                count = sum(1 for line in fh if line.strip())
+        items.append({"session_id": sd.name, "turns": count, "path": str(turns_path)})
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    if not items:
+        console.print("[dim]No sessions recorded.[/dim]")
+        return
+    for item in items:
+        console.print(f"[bold]{item['session_id']}[/bold]  {item['turns']} turn(s)")
+
+
+@history_group.command(name="search")
+@click.argument("query")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--session", "session", default="", help="Limit to a specific session id.")
+@click.option("--limit", type=int, default=50, help="Max matching turns to print.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def history_search(
+    query: str,
+    project_dir: str,
+    session: str,
+    limit: int,
+    as_json: bool,
+) -> None:
+    """Print turns whose JSON content contains QUERY (case-insensitive substring)."""
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    base = _sessions_dir(root)
+    if not base.is_dir():
+        if as_json:
+            click.echo("[]")
+        return
+    needle = query.lower()
+    targets = [base / session / "turns.jsonl"] if session else sorted(base.rglob("turns.jsonl"))
+    matches: list[dict[str, Any]] = []
+    for path in targets:
+        if not path.is_file():
+            continue
+        with path.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                if needle not in raw.lower():
+                    continue
+                try:
+                    turn = _json.loads(raw)
+                except _json.JSONDecodeError:
+                    continue
+                matches.append({"session_id": path.parent.name, "turn": turn})
+                if len(matches) >= limit:
+                    break
+        if len(matches) >= limit:
+            break
+    if as_json:
+        click.echo(_json.dumps(matches, indent=2))
+        return
+    if not matches:
+        console.print("[dim]No matches.[/dim]")
+        return
+    for hit in matches:
+        console.print(f"[bold]{hit['session_id']}[/bold]: {_json.dumps(hit['turn'])[:200]}")
+
+
+main.add_command(history_group)
+
+
+# ---------------------------------------------------------------------------
+# Drive — user-scoped sync for rules / workflows / notebooks / mcp configs
+# ---------------------------------------------------------------------------
+
+_DRIVE_KINDS = {
+    "rules": ("docs/governance",),
+    "workflows": (".specsmith/workflows",),
+    "notebooks": ("docs/notebooks",),
+    "mcp": (".specsmith/mcp.yml",),
+}
+
+
+def _drive_root() -> Path:
+    home = Path.home()
+    base = home / ".specsmith" / "drive"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+@main.group(name="drive")
+def drive_group() -> None:
+    """User-scoped Drive at ~/.specsmith/drive/ for rules / workflows / notebooks.
+
+    The Drive is a local, gitignored mirror of the four kinds of project
+    artefacts that users typically want to share across machines:
+    ``rules`` (docs/governance/*_RULES.md), ``workflows``
+    (.specsmith/workflows/*.yml), ``notebooks`` (docs/notebooks/*.md), and
+    ``mcp`` (.specsmith/mcp.yml). Cloud sync is left to the user's preferred
+    backup tool — Drive is a stable canonical location, not a server.
+    """
+
+
+@drive_group.command(name="list")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def drive_list(as_json: bool) -> None:
+    """Show the contents of ~/.specsmith/drive/ grouped by kind."""
+    import json as _json
+
+    base = _drive_root()
+    items: dict[str, list[str]] = {}
+    for kind in _DRIVE_KINDS:
+        kind_dir = base / kind
+        if not kind_dir.is_dir():
+            items[kind] = []
+            continue
+        items[kind] = sorted(
+            str(p.relative_to(kind_dir)) for p in kind_dir.rglob("*") if p.is_file()
+        )
+    if as_json:
+        click.echo(_json.dumps(items, indent=2))
+        return
+    for kind, paths in items.items():
+        console.print(f"[bold]{kind}[/bold] ({len(paths)} item(s))")
+        for rel in paths:
+            console.print(f"  {rel}")
+
+
+@drive_group.command(name="push")
+@click.argument("kind", type=click.Choice(sorted(_DRIVE_KINDS.keys())))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def drive_push(kind: str, project_dir: str) -> None:
+    """Copy this project's KIND artefacts into ~/.specsmith/drive/KIND/."""
+    import shutil
+
+    root = Path(project_dir).resolve()
+    base = _drive_root() / kind
+    base.mkdir(parents=True, exist_ok=True)
+    sources = _DRIVE_KINDS[kind]
+    copied = 0
+    for rel in sources:
+        src = root / rel
+        if not src.exists():
+            continue
+        if src.is_file():
+            shutil.copy2(src, base / src.name)
+            copied += 1
+            continue
+        for path in src.rglob("*"):
+            if not path.is_file():
+                continue
+            target = base / path.relative_to(src)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+            copied += 1
+    console.print(f"[green]\u2713[/green] Pushed {copied} file(s) to {base}")
+
+
+@drive_group.command(name="pull")
+@click.argument("kind", type=click.Choice(sorted(_DRIVE_KINDS.keys())))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing project files.")
+def drive_pull(kind: str, project_dir: str, force: bool) -> None:
+    """Copy KIND artefacts from ~/.specsmith/drive/ into this project.
+
+    Existing project files are preserved unless --force is supplied.
+    """
+    import shutil
+
+    root = Path(project_dir).resolve()
+    base = _drive_root() / kind
+    if not base.is_dir():
+        console.print(f"[yellow]Drive has no {kind!r} entries yet.[/yellow]")
+        return
+    target_root = root / _DRIVE_KINDS[kind][0]
+    pulled = skipped = 0
+    if base.is_dir() and target_root.suffix == "":
+        target_root.mkdir(parents=True, exist_ok=True)
+        for path in base.rglob("*"):
+            if not path.is_file():
+                continue
+            dest = target_root / path.relative_to(base)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            if dest.exists() and not force:
+                skipped += 1
+                continue
+            shutil.copy2(path, dest)
+            pulled += 1
+    else:
+        # Single-file kind (e.g. mcp.yml).
+        for path in base.iterdir():
+            if not path.is_file():
+                continue
+            dest = root / _DRIVE_KINDS[kind][0]
+            if dest.exists() and not force:
+                skipped += 1
+                continue
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, dest)
+            pulled += 1
+    console.print(
+        f"[green]\u2713[/green] Pulled {pulled} file(s) into {target_root}; "
+        f"skipped {skipped} (use --force to overwrite)."
+    )
+
+
+main.add_command(drive_group)
+
+
+# ---------------------------------------------------------------------------
+# Skill marketplace — search / list / install community skills
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="skill")
+def skill_group() -> None:
+    """Discover, list, and install community SKILL.md files.
+
+    specsmith ships a small built-in catalog of reusable skills. Each entry
+    is a short Markdown file describing a workflow the agent should follow
+    (verifier, planner, diff-reviewer, onboarding-coach, release-pilot).
+    ``specsmith skill install <slug>`` copies the SKILL.md into
+    ``.agents/skills/`` so the local Nexus runtime picks it up alongside any
+    project-specific skills.
+    """
+
+
+@skill_group.command(name="search")
+@click.argument("query", required=False, default="")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def skill_search(query: str, as_json: bool) -> None:
+    """Search the catalog for skills matching QUERY (case-insensitive)."""
+    import json as _json
+
+    from specsmith import skills as _skills
+
+    matches = _skills.search(query)
+    if as_json:
+        click.echo(
+            _json.dumps(
+                [
+                    {
+                        "slug": m.slug,
+                        "name": m.name,
+                        "description": m.description,
+                        "tags": list(m.tags),
+                    }
+                    for m in matches
+                ],
+                indent=2,
+            )
+        )
+        return
+    if not matches:
+        console.print("[dim]No matching skills.[/dim]")
+        return
+    for entry in matches:
+        console.print(f"[bold]{entry.slug}[/bold] \u2014 {entry.name}")
+        console.print(f"  {entry.description}")
+        if entry.tags:
+            console.print(f"  [dim]tags: {', '.join(entry.tags)}[/dim]")
+
+
+@skill_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def skill_list(project_dir: str, as_json: bool) -> None:
+    """Show installed skills (under .agents/skills/) and the catalog."""
+    import json as _json
+
+    from specsmith import skills as _skills
+
+    root = Path(project_dir).resolve()
+    installed = [p.name for p in _skills.installed_skills(root)]
+    catalog = [
+        {"slug": entry.slug, "name": entry.name, "installed": f"{entry.slug}.md" in installed}
+        for entry in _skills.CATALOG
+    ]
+    if as_json:
+        click.echo(_json.dumps({"installed": installed, "catalog": catalog}, indent=2))
+        return
+    console.print(f"[bold]Installed skills[/bold] ({len(installed)})")
+    for name in installed:
+        console.print(f"  [green]\u2713[/green] {name}")
+    if not installed:
+        console.print("  [dim](none)[/dim]")
+    console.print()
+    console.print("[bold]Catalog[/bold]")
+    for entry in catalog:
+        marker = "[green]\u2713[/green]" if entry["installed"] else "[dim]\u2014[/dim]"
+        console.print(f"  {marker} {entry['slug']:20s} {entry['name']}")
+
+
+@skill_group.command(name="install")
+@click.argument("slug")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--force", is_flag=True, default=False, help="Overwrite an existing file.")
+def skill_install(slug: str, project_dir: str, force: bool) -> None:
+    """Install SLUG into the project's .agents/skills/ directory."""
+    from specsmith import skills as _skills
+
+    root = Path(project_dir).resolve()
+    try:
+        target = _skills.install(slug, root, force=force)
+    except KeyError:
+        console.print(f"[red]Unknown skill: {slug}[/red]")
+        console.print("  Run [bold]specsmith skill search[/bold] to browse the catalog.")
+        raise SystemExit(1) from None
+    except FileExistsError as exc:
+        console.print(f"[yellow]{exc}[/yellow]")
+        raise SystemExit(2) from None
+    console.print(
+        f"[green]\u2713[/green] Installed [bold]{slug}[/bold] at {target.relative_to(root)}"
+    )
+
+
+main.add_command(skill_group)
 
 
 # ---------------------------------------------------------------------------

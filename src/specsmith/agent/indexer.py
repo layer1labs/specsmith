@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 
-def generate_index(cwd: str = None):
+def generate_index(cwd: str | None = None) -> None:
     """Generate repository index into .repo-index/"""
     if cwd is None:
         cwd = os.getcwd()

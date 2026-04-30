@@ -368,6 +368,10 @@ def _update_references(
         "AGENTS.md",
         "CLAUDE.md",
         "GEMINI.md",
+        # Canonical post-0.5.0 path for the agent-skill adapter.
+        ".agents/skills/SKILL.md",
+        # Legacy path for projects scaffolded before 0.5.0 (still patched
+        # so reference rewrites continue to work after rename).
         ".warp/skills/SKILL.md",
         ".cursor/rules/governance.mdc",
         ".windsurfrules",
