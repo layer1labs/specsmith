@@ -2796,12 +2796,23 @@ def run_cmd(
 @click.option("--model", default="", help="Model name (blank = provider default).")
 @click.option("--port", type=int, default=8421, help="HTTP port to listen on.")
 @click.option("--host", default="127.0.0.1", help="Bind address (use 0.0.0.0 for network access).")
+@click.option(
+    "--auth-token",
+    "auth_token",
+    default="",
+    help=(
+        "Optional bearer token (REQ-137). When set, every /api/* request must "
+        "present `Authorization: Bearer <token>`. /api/health stays open so "
+        "liveness probes still work."
+    ),
+)
 def serve_cmd(
     project_dir: str,
     provider: str,
     model: str,
     port: int,
     host: str,
+    auth_token: str,
 ) -> None:
     """Start a persistent HTTP server for agent sessions.
 
@@ -2810,7 +2821,8 @@ def serve_cmd(
     POST /api/send.
 
     Example:
-      specsmith serve --port 8421 --provider ollama --model qwen2.5:14b
+      specsmith serve --port 8421 --provider ollama --model qwen2.5:14b \
+        --auth-token $(specsmith auth get serve)
     """
     from specsmith.serve import run_server
 
@@ -2820,6 +2832,7 @@ def serve_cmd(
         model=model,
         port=port,
         host=host,
+        auth_token=auth_token,
     )
 
 
@@ -4444,23 +4457,12 @@ def info_cmd(as_json: bool, section: str) -> None:
 # specsmith chat-export-block — self-contained block share (REQ-134)
 # ---------------------------------------------------------------------------
 #
-# This is exposed at the top level (rather than under ``chat``) because the
-# existing ``specsmith chat <utterance>`` command takes a positional argument
-# and cannot simultaneously act as a Click group.
+# Top-level alias kept for back-compat with v0.6.x which only exposed
+# ``specsmith chat-export-block``. The canonical 1.0 spelling is
+# ``specsmith chat export-block`` under the chat group below.
 
 
-@main.command(name="chat-export-block")
-@click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--session-id", "session_id", required=True)
-@click.option("--block-id", "block_id", required=True)
-@click.option(
-    "--format",
-    "fmt",
-    type=click.Choice(["md", "json", "html"]),
-    default="md",
-)
-def chat_export_block_cmd(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
-    """Export one chat block as a self-contained snippet (REQ-134)."""
+def _do_chat_export_block(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
     from specsmith.block_export import export_block
 
     try:
@@ -4477,6 +4479,169 @@ def chat_export_block_cmd(project_dir: str, session_id: str, block_id: str, fmt:
         console.print(f"[red]{exc}[/red]")
         raise SystemExit(1) from exc
     click.echo(out)
+
+
+@main.command(name="chat-export-block")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--session-id", "session_id", required=True)
+@click.option("--block-id", "block_id", required=True)
+@click.option(
+    "--format",
+    "fmt",
+    type=click.Choice(["md", "json", "html"]),
+    default="md",
+)
+def chat_export_block_cmd(project_dir: str, session_id: str, block_id: str, fmt: str) -> None:
+    """Export one chat block as a self-contained snippet (REQ-134, top-level alias)."""
+    _do_chat_export_block(project_dir, session_id, block_id, fmt)
+
+
+# ---------------------------------------------------------------------------
+# specsmith voice transcribe — wav/flac transcription via whisper-cpp (REQ-141)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="voice")
+def voice_group() -> None:
+    """Voice agent input (REQ-141). Requires the ``[voice]`` extra."""
+
+
+@voice_group.command(name="transcribe")
+@click.argument("audio_path", type=click.Path(exists=True))
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the full transcription record as JSON.",
+)
+def voice_transcribe_cmd(audio_path: str, as_json: bool) -> None:
+    """Transcribe AUDIO_PATH to text using whisper-cpp.
+
+    Three resolution modes:
+
+    \b
+    * SPECSMITH_VOICE_STUB=<text> — returns the literal text (used by tests)
+    * whisper-cpp installed + model present — real transcription
+    * neither — exits 2 with an actionable install hint
+    """
+    import json as _json
+
+    from specsmith.agent.voice import VoiceUnavailableError, transcribe
+
+    try:
+        result = transcribe(Path(audio_path))
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    except VoiceUnavailableError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+    else:
+        click.echo(result.text)
+
+
+@voice_group.command(name="status")
+def voice_status_cmd() -> None:
+    """Report whether voice transcription is available right now."""
+    from specsmith.agent.voice import default_model_dir, is_available
+
+    if is_available():
+        console.print("[green]\u2713[/green] voice available")
+        console.print(f"  model dir: {default_model_dir()}")
+    else:
+        console.print("[yellow]\u2014[/yellow] voice unavailable")
+        console.print(
+            "  Install: [bold]pipx inject specsmith whisper-cpp-python[/bold] "
+            "and place a model under ~/.specsmith/voice/."
+        )
+        raise SystemExit(2)
+
+
+# ---------------------------------------------------------------------------
+# specsmith cloud spawn — client side of the receiver (REQ-136)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="cloud")
+def cloud_group() -> None:
+    """Cloud-agent receiver client (REQ-136)."""
+
+
+@cloud_group.command(name="spawn")
+@click.argument("manifest_path", type=click.Path(exists=True))
+@click.option(
+    "--endpoint",
+    default="http://127.0.0.1:9000",
+    help="Cloud-serve base URL (default: http://127.0.0.1:9000).",
+)
+@click.option("--token", default="", help="Bearer token for the receiver.")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Validate the manifest locally and print what would be posted.",
+)
+def cloud_spawn_cmd(manifest_path: str, endpoint: str, token: str, dry_run: bool) -> None:
+    """Post a manifest to a `specsmith cloud-serve` endpoint (REQ-136).
+
+    The MANIFEST_PATH is a YAML or JSON file describing the run. The CLI
+    reads it, posts it to ``<endpoint>/spawn`` with optional bearer auth,
+    and prints the response as JSON.
+    """
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    raw = Path(manifest_path).read_text(encoding="utf-8")
+    payload: dict[str, object]
+    if manifest_path.endswith((".yml", ".yaml")):
+        try:
+            import yaml as _yaml
+
+            payload = _yaml.safe_load(raw) or {}
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[red]Invalid YAML manifest: {exc}[/red]")
+            raise SystemExit(2) from exc
+    else:
+        try:
+            payload = _json.loads(raw)
+        except ValueError as exc:
+            console.print(f"[red]Invalid JSON manifest: {exc}[/red]")
+            raise SystemExit(2) from exc
+
+    if not isinstance(payload, dict):
+        console.print("[red]Manifest must be a mapping (YAML/JSON object).[/red]")
+        raise SystemExit(2)
+
+    if dry_run:
+        click.echo(_json.dumps({"endpoint": endpoint, "manifest": payload}, indent=2))
+        return
+
+    body = _json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(  # noqa: S310 - user-supplied endpoint
+        endpoint.rstrip("/") + "/spawn",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+            response = _json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body_text = exc.read().decode("utf-8") or "{}"
+        console.print(f"[red]HTTP {exc.code}[/red]: {body_text}")
+        raise SystemExit(1) from exc
+    except urllib.error.URLError as exc:
+        console.print(f"[red]Network error[/red]: {exc.reason}")
+        raise SystemExit(1) from exc
+
+    click.echo(_json.dumps(response, indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -5808,93 +5973,13 @@ main.add_command(notebook_group)
 
 
 # ---------------------------------------------------------------------------
-# Cloud — spawn an off-machine agent (REQ-126)
+# Cloud — REQ-126 placeholder (cloud spawn lives above under REQ-136).
 # ---------------------------------------------------------------------------
-
-
-@main.group(name="cloud")
-def cloud_group() -> None:
-    """Spawn cloud agents (stub for now — packages and posts work)."""
-
-
-@cloud_group.command(name="spawn")
-@click.argument("utterance")
-@click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option(
-    "--endpoint",
-    default="",
-    help="Cloud endpoint URL (default: SPECSMITH_CLOUD_ENDPOINT env var).",
-)
-@click.option(
-    "--dry-run",
-    is_flag=True,
-    default=False,
-    help="Build the tarball + manifest but do not POST.",
-)
-def cloud_spawn(utterance: str, project_dir: str, endpoint: str, dry_run: bool) -> None:
-    """Tarball the working tree and POST to a cloud agent endpoint (REQ-126).
-
-    Always emits a manifest at `.specsmith/cloud/<run_id>/manifest.json`
-    so the operation is auditable. When the endpoint is reachable the
-    response stream is tailed to stdout as JSONL events. Without an
-    endpoint, the command stays local: the manifest is recorded and a
-    helpful error is printed.
-    """
-    import json as _json
-    import os
-    import tarfile
-    import uuid as _uuid
-    from urllib import error as _urlerror
-    from urllib import request as _urlreq
-
-    root = Path(project_dir).resolve()
-    run_id = f"cloud_{_uuid.uuid4().hex[:12]}"
-    run_dir = root / ".specsmith" / "cloud" / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    tar_path = run_dir / "workspace.tar.gz"
-    skip = {".git", ".venv", "__pycache__", ".specsmith", "node_modules", "dist", "build"}
-    with tarfile.open(tar_path, "w:gz") as tar:
-        for item in sorted(root.iterdir()):
-            if item.name in skip:
-                continue
-            tar.add(item, arcname=item.name)
-
-    manifest = {
-        "run_id": run_id,
-        "utterance": utterance,
-        "workspace": str(tar_path.relative_to(root)),
-        "endpoint": endpoint or os.environ.get("SPECSMITH_CLOUD_ENDPOINT", ""),
-        "dry_run": dry_run,
-    }
-    (run_dir / "manifest.json").write_text(_json.dumps(manifest, indent=2), encoding="utf-8")
-
-    if dry_run or not manifest["endpoint"]:
-        console.print(
-            f"[yellow]Cloud endpoint not configured.[/yellow] Manifest written to {run_dir}."
-        )
-        console.print(
-            "  Set [bold]SPECSMITH_CLOUD_ENDPOINT[/bold] or pass [bold]--endpoint[/bold] to POST."
-        )
-        return
-
-    body = _json.dumps(manifest).encode("utf-8")
-    req = _urlreq.Request(
-        manifest["endpoint"],
-        data=body,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with _urlreq.urlopen(req, timeout=30) as resp:  # noqa: S310 - user-configured
-            for line in resp:
-                click.echo(line.decode("utf-8", errors="replace").rstrip())
-    except (_urlerror.URLError, OSError) as exc:
-        console.print(f"[red]Cloud spawn failed:[/red] {exc}")
-        raise SystemExit(1) from None
-
-
-main.add_command(cloud_group)
+# The original REQ-126 stub built a workspace tarball and posted to a free-
+# form endpoint with no auth. REQ-136 supersedes it with a manifest-based
+# command that posts to ``<endpoint>/spawn`` with optional bearer auth.
+# Keeping a single ``cloud spawn`` avoids surface drift; see
+# tests/test_warp_parity_followup.py for coverage.
 
 
 # ---------------------------------------------------------------------------
