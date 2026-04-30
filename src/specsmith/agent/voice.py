@@ -99,7 +99,7 @@ def transcribe(path: Path) -> TranscribeResult:
         return TranscribeResult(text=stub, backend="stub")
 
     try:
-        import whisper_cpp_python  # type: ignore[import-not-found]
+        import whisper_cpp_python
     except Exception as exc:  # noqa: BLE001
         raise VoiceUnavailableError(
             "whisper-cpp-python is not installed. Run "
