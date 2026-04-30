@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.7.0] — 2026-04-30
 ### Added
 - **`specsmith serve --auth-token` (REQ-137).** Optional bearer-token gate on every `/api/*` endpoint. `/api/health` stays open so liveness probes still work behind a load balancer that strips `Authorization`. New `make_server()` factory in `src/specsmith/serve.py` exposes a fully wired server for tests; `run_server()` adds the banner + `serve_forever` loop. `_Handler._authorize()` enforces `Authorization: Bearer <token>` on `do_GET`, `do_POST`, and `do_DELETE`.
 - **`specsmith voice transcribe <wav>` (REQ-141).** New `src/specsmith/agent/voice.py` wraps the optional `whisper-cpp-python` extra. Three resolution modes: real (library + model file under `~/.specsmith/voice/` or `SPECSMITH_VOICE_MODEL`), stub (`SPECSMITH_VOICE_STUB=<text>` for tests/CI), or unavailable (raises `VoiceUnavailableError` with an actionable install hint). CLI exposes `voice transcribe --json` and `voice status`.
@@ -558,7 +559,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.6.0]: https://github.com/BitConcepts/specsmith/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/BitConcepts/specsmith/compare/v0.6.0...v0.7.0
 [0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1
