@@ -54,3 +54,44 @@ We will only stamp 1.0 once:
    regression.
 Until those criteria are met, expect a steady stream of pre-1.0 minor
 releases.
+## The `api-surface` snapshot (REQ-140)
+The `specsmith api-surface` command emits the **frozen public surface** as
+JSON. It exists so external automation, IDE plugins, and the CI pipeline
+can diff against a known-good snapshot and detect drift before a release
+ships.
+The payload has three top-level keys:
+- `cli_commands` — sorted list of top-level subcommand names. Adding new
+  commands is non-breaking; renaming/removing is.
+- `exit_codes` — the semantic exit codes for `preflight` (0/2/3) and
+  `verify` (0/2/3). These are part of the contract and downstream
+  automation depends on them.
+- `event_types` — the JSONL event kinds emitted by `specsmith chat` and
+  the `serve` SSE endpoint: `block_start`, `block_complete`, `token`,
+  `plan_step`, `tool_call`, `tool_request`, `tool_result`, `diff`,
+  `task_complete`. Adding new event types is non-breaking.
+### Snapshot file
+The canonical snapshot lives at `tests/fixtures/api_surface.json`. The
+test `tests/test_warp_parity_followup.py::test_api_surface_matches_fixture`
+asserts equality between the live output and the fixture. If you have
+intentionally changed the public surface, regenerate the fixture:
+```bash
+py -m specsmith.cli api-surface > tests/fixtures/api_surface.json
+```
+Then call out the change in the next CHANGELOG entry.
+### Required-command spot check
+A second test, `test_api_surface_contains_required_1_0_commands`, asserts
+that a hand-picked subset of 1.0-contract commands (`preflight`, `verify`,
+`audit`, `validate`, `doctor`, `scan`, `init`, `import`, `ledger`,
+`drive`, `history`, `chat`, `chat-export-block`, `cloud`, `cloud-serve`,
+`voice`, `api-surface`, `suggest-command`, `serve`) is *always* present.
+This catches accidental command removal even when someone updates the
+fixture without checking what they removed.
+### What is *not* covered by the snapshot
+- Subcommand names of Click groups (e.g. `voice transcribe`). The group
+  name is in `cli_commands`; the subcommands are covered by their own
+  `--help` text and focused integration tests.
+- The shape of internal Click options not documented in `--help`.
+- The wire format of the `~/.specsmith/` cache directory.
+- Banner text, log formatting, prompt wording.
+- Module-level Python APIs (`specsmith.agent.runner`,
+  `specsmith.history_search`, etc.). These are reserved for internal use.

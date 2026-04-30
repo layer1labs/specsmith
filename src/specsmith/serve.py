@@ -153,11 +153,29 @@ class _Handler(BaseHTTPRequestHandler):
 
     bus: _EventBus
     agent: _AgentThread
+    auth_token: str = ""  # populated by run_server / make_server when set
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Suppress default stderr logging."""
 
+    # ── Auth ─────────────────────────────────────────────────────────
+    # REQ-137: when run_server is started with --auth-token, every
+    # request must present `Authorization: Bearer <token>`. /api/health
+    # is the only unauthenticated endpoint so liveness probes still
+    # work behind a load balancer that strips Authorization.
+    def _authorize(self) -> bool:
+        token = type(self).auth_token
+        if not token:
+            return True
+        if self.path == "/api/health":
+            return True
+        header = self.headers.get("Authorization", "")
+        return header == f"Bearer {token}"
+
     def do_GET(self) -> None:  # noqa: N802
+        if not self._authorize():
+            self._json_response({"error": "unauthorized"}, code=401)
+            return
         if self.path == "/api/events":
             self._sse()
         elif self.path == "/api/status":
@@ -168,6 +186,9 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self._authorize():
+            self._json_response({"error": "unauthorized"}, code=401)
+            return
         if self.path == "/api/send":
             body = self._read_json()
             text = body.get("text", "").strip() if body else ""
@@ -183,6 +204,9 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_DELETE(self) -> None:  # noqa: N802
+        if not self._authorize():
+            self._json_response({"error": "unauthorized"}, code=401)
+            return
         if self.path == "/api/session":
             self.agent.send(None)  # type: ignore[arg-type]
             self._json_response({"ok": True, "message": "session ending"})
@@ -246,6 +270,36 @@ class _Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+def make_server(
+    *,
+    project_dir: str = ".",
+    provider: str = "ollama",
+    model: str = "",
+    port: int = 8421,
+    host: str = "127.0.0.1",
+    auth_token: str = "",
+) -> tuple[_ThreadedHTTPServer, _AgentThread]:
+    """Build the HTTP server + agent thread without serving yet.
+
+    Used by tests so they can drive a fresh server inside the same
+    process. Production callers go through ``run_server`` which adds
+    the banner + serve_forever loop.
+    """
+    project_dir = str(Path(project_dir).resolve())
+    bus = _EventBus()
+    agent = _AgentThread(project_dir, provider, model, bus)
+
+    class Handler(_Handler):
+        pass
+
+    Handler.bus = bus
+    Handler.agent = agent
+    Handler.auth_token = auth_token
+
+    server = _ThreadedHTTPServer((host, port), Handler)
+    return server, agent
+
+
 def run_server(
     *,
     project_dir: str = ".",
@@ -253,31 +307,31 @@ def run_server(
     model: str = "",
     port: int = 8421,
     host: str = "127.0.0.1",
+    auth_token: str = "",
 ) -> None:
     """Start the specsmith HTTP server."""
-    project_dir = str(Path(project_dir).resolve())
-    bus = _EventBus()
-    agent = _AgentThread(project_dir, provider, model, bus)
-
-    # Subclass to carry shared state into the handler
-    class Handler(_Handler):
-        pass
-
-    Handler.bus = bus
-    Handler.agent = agent
-
-    server = _ThreadedHTTPServer((host, port), Handler)
+    server, agent = make_server(
+        project_dir=project_dir,
+        provider=provider,
+        model=model,
+        port=port,
+        host=host,
+        auth_token=auth_token,
+    )
     agent.start()
 
+    auth_note = "  Auth:     bearer-token required\n" if auth_token else ""
     print(  # noqa: T201
         f"specsmith serve — http://{host}:{port}\n"
         f"  Project:  {project_dir}\n"
         f"  Provider: {provider}/{model or '(default)'}\n"
+        f"{auth_note}"
         f"  Endpoints:\n"
         f"    GET  /api/events  — SSE event stream\n"
         f"    POST /api/send    — send a message\n"
         f"    GET  /api/status  — session status\n"
         f"    POST /api/stop    — stop current turn\n"
+        f"    GET  /api/health  — unauthenticated liveness\n"
         f"  Press Ctrl+C to stop.\n",
         file=sys.stderr,
     )

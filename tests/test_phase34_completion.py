@@ -169,32 +169,27 @@ def test_notebook_replay_missing_slug_exits_non_zero(tmp_path: Path) -> None:
     assert "No notebook" in result.output
 
 
-# ── Cloud spawn (REQ-126 / TEST-126) ─────────────────────────────────────────
+# ── Cloud spawn (REQ-136) ──────────────────────────────────────
+#
+# REQ-136 supersedes the original REQ-126 stub: ``cloud spawn`` now takes a
+# manifest YAML or JSON file and POSTs it to ``<endpoint>/spawn`` with
+# optional bearer auth. The dry-run mode prints the would-be POST as JSON
+# instead of building a workspace tarball.
 
 
-def test_cloud_spawn_dry_run_writes_manifest_without_posting(tmp_path: Path) -> None:
+def test_cloud_spawn_dry_run_emits_payload_json(tmp_path: Path) -> None:
+    manifest = tmp_path / "manifest.yml"
+    manifest.write_text("task: add hello world\nrun_id: r1\n", encoding="utf-8")
     runner = CliRunner()
     result = runner.invoke(
         main,
-        [
-            "cloud",
-            "spawn",
-            "add hello world",
-            "--project-dir",
-            str(tmp_path),
-            "--dry-run",
-        ],
+        ["cloud", "spawn", str(manifest), "--dry-run"],
         env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
     )
     assert result.exit_code == 0, result.output
-    cloud_root = tmp_path / ".specsmith" / "cloud"
-    assert cloud_root.is_dir()
-    runs = list(cloud_root.iterdir())
-    assert len(runs) == 1, "exactly one run directory should have been created"
-    manifest = json.loads((runs[0] / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["utterance"] == "add hello world"
-    assert manifest["dry_run"] is True
-    assert (runs[0] / "workspace.tar.gz").is_file()
+    payload = json.loads(result.output)
+    assert payload["manifest"] == {"task": "add hello world", "run_id": "r1"}
+    assert payload["endpoint"].startswith("http://")
 
 
 def test_cloud_spawn_help_documents_endpoint(tmp_path: Path) -> None:
@@ -203,6 +198,7 @@ def test_cloud_spawn_help_documents_endpoint(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "--endpoint" in result.output
     assert "--dry-run" in result.output
+    assert "--token" in result.output
 
 
 # ── Perf smoke (REQ-124 / TEST-124) ──────────────────────────────────────────
