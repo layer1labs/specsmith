@@ -41,3 +41,6 @@ temp/
 # Secrets and local-only Nexus artifacts
 .env
 .repo-index/
+
+# Test-generated cloud spawn manifests
+.specsmith/cloud/
