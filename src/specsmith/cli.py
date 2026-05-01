@@ -2806,6 +2806,16 @@ def run_cmd(
         "liveness probes still work."
     ),
 )
+@click.option(
+    "--endpoint",
+    "endpoint_id",
+    default="",
+    help=(
+        "Route turns through a registered BYOE endpoint (REQ-142). When set, "
+        "the resolved endpoint's base_url, default model, and bearer token "
+        "override --provider / --model for OpenAI-v1-compatible backends."
+    ),
+)
 def serve_cmd(
     project_dir: str,
     provider: str,
@@ -2813,6 +2823,7 @@ def serve_cmd(
     port: int,
     host: str,
     auth_token: str,
+    endpoint_id: str,
 ) -> None:
     """Start a persistent HTTP server for agent sessions.
 
@@ -2824,12 +2835,34 @@ def serve_cmd(
       specsmith serve --port 8421 --provider ollama --model qwen2.5:14b \
         --auth-token $(specsmith auth get serve)
     """
+    import os
+
     from specsmith.serve import run_server
+
+    # REQ-142: when --endpoint is given, derive provider+model from the
+    # endpoint registry so the serve loop can hand off to the OpenAI-compat
+    # driver in chat_runner. The bridge surfaces the original --provider
+    # value as a fallback when the endpoint can't be resolved.
+    effective_provider = provider
+    effective_model = model
+    if endpoint_id:
+        try:
+            from specsmith.agent.endpoints import EndpointStore
+
+            resolved = EndpointStore.load().resolve(endpoint_id)
+            effective_provider = "openai-compat"
+            effective_model = resolved.default_model or model
+            os.environ["SPECSMITH_ACTIVE_ENDPOINT"] = resolved.id
+        except Exception as exc:  # noqa: BLE001
+            console.print(
+                f"[yellow]Warning:[/yellow] could not resolve endpoint "
+                f"{endpoint_id!r}: {exc}. Falling back to --provider {provider}."
+            )
 
     run_server(
         project_dir=project_dir,
-        provider=provider,
-        model=model,
+        provider=effective_provider,
+        model=effective_model,
         port=port,
         host=host,
         auth_token=auth_token,
@@ -5881,6 +5914,16 @@ main.add_command(index_group)
     default=120.0,
     help="Seconds to wait for a stdin decision before falling back to deny.",
 )
+@click.option(
+    "--endpoint",
+    "endpoint_id",
+    default="",
+    help=(
+        "Route the LLM turn to a registered BYOE endpoint (REQ-142). "
+        "See `specsmith endpoints add ...`. When empty, falls back to the "
+        "auto-detect provider chain (Ollama / Anthropic / OpenAI / Gemini)."
+    ),
+)
 def chat_cmd(
     utterance: str,
     project_dir: str,
@@ -5891,6 +5934,7 @@ def chat_cmd(
     json_events: bool,
     interactive: bool,
     decision_timeout: float,
+    endpoint_id: str,
 ) -> None:
     """Run a single chat turn, streaming JSONL block events to stdout.
 
@@ -6043,6 +6087,7 @@ def chat_cmd(
                 msg_block=msg_block,
                 history=history,
                 rules_prefix=rules_prefix,
+                endpoint_id=endpoint_id or None,
             )
         except Exception:  # noqa: BLE001 - real chat is best-effort
             real_result = None
