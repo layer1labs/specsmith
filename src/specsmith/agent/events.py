@@ -19,6 +19,9 @@ Event kinds
 * ``plan_step``        - status transition for a step in the active plan
                          block (REQ-114).
 * ``task_complete``    - final block; carries final summary + profile.
+* ``ready``            - emitted exactly once at process start (REQ-145);
+                         the VS Code bridge waits up to 20 s for this
+                         frame before declaring the agent unresponsive.
 """
 
 from __future__ import annotations
@@ -57,6 +60,59 @@ class EventEmitter:
         # Some test buffers (e.g. capsys) don't support flush; ignore.
         with contextlib.suppress(Exception):
             self.stream.flush()
+
+    # ── Lifecycle helpers ────────────────────────────────────────────────
+
+    def ready(
+        self,
+        *,
+        agent: str = "nexus",
+        version: str = "",
+        project_dir: str = "",
+        provider: str = "",
+        model: str = "",
+        profile_id: str = "",
+        capabilities: list[str] | None = None,
+        **extra: Any,
+    ) -> None:
+        """Emit the bridge handshake frame (REQ-145).
+
+        The VS Code extension's :class:`SpecsmithBridge` keys off this
+        single event to flip from ``starting`` → ``waiting`` and to start
+        flushing the queued user prompts. Schema is intentionally flat so
+        a ``JSON.parse`` line check is enough on the consumer side.
+        """
+        payload: dict[str, Any] = {
+            "type": "ready",
+            "timestamp": _now_iso(),
+            "agent": agent,
+            "version": version,
+            "project_dir": project_dir,
+            "provider": provider,
+            "model": model,
+            "profile_id": profile_id,
+            "capabilities": list(capabilities or []),
+        }
+        payload.update(extra)
+        self.emit(payload)
+
+    def system(self, message: str, **extra: Any) -> None:
+        """Emit a free-form system note (matches bridge.ts handler)."""
+        self.emit({"type": "system", "message": message, **extra})
+
+    def turn_done(self, **extra: Any) -> None:
+        """Emit the per-turn terminator the bridge uses to clear timers."""
+        self.emit({"type": "turn_done", "timestamp": _now_iso(), **extra})
+
+    def error(self, message: str, *, recoverable: bool = False, **extra: Any) -> None:
+        """Emit an error frame (recoverable = retry will be offered)."""
+        self.emit({
+            "type": "error",
+            "timestamp": _now_iso(),
+            "message": message,
+            "recoverable": bool(recoverable),
+            **extra,
+        })
 
     # ── Block helpers ────────────────────────────────────────────────────
 

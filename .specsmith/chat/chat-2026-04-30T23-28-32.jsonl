@@ -1,0 +1,3 @@
+{"role":"user","text":"audit","ts":"2026-04-30T23:28:47.744Z"}
+{"role":"error","text":"[Apr 30, 07:28:53 PM] Agent process ended (signal SIGTERM) — send a message to restart","ts":"2026-04-30T23:28:53.486Z"}
+{"role":"error","text":"specsmith not responding (tried: \"C:\\Users\\trist\\.specsmith\\venv\\Scripts\\specsmith.exe\").\nChoose Restart Session to retry, Open Settings to reinstall, or Reload Window if the problem persists.","ts":"2026-04-30T23:29:13.477Z"}

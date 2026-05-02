@@ -2723,6 +2723,25 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
     default=False,
     help="Emit structured JSONL events to stdout (used by IDE clients like the VS Code extension).",
 )
+@click.option(
+    "--endpoint",
+    "endpoint_id",
+    default="",
+    help=(
+        "Route turns through a registered BYOE endpoint (REQ-142). When set, "
+        "the resolved endpoint's base_url, default model, and bearer token "
+        "override --provider / --model for OpenAI-v1-compatible backends."
+    ),
+)
+@click.option(
+    "--agent",
+    "profile_id",
+    default="",
+    help=(
+        "Force a specific agent profile for the whole session (REQ-146). "
+        "Identical to setting `default_profile_id` in `~/.specsmith/agents.json`."
+    ),
+)
 def run_cmd(
     project_dir: str,
     task: str,
@@ -2732,6 +2751,8 @@ def run_cmd(
     no_stream: bool,
     optimize: bool,
     json_events: bool,
+    endpoint_id: str,
+    profile_id: str,
 ) -> None:
     """Start the AEE-integrated agentic client REPL.
 
@@ -2749,31 +2770,34 @@ def run_cmd(
     from specsmith.agent.core import ModelTier
     from specsmith.agent.runner import AgentRunner
 
-    tier_map = {
-        "fast": ModelTier.FAST,
-        "balanced": ModelTier.BALANCED,
-        "powerful": ModelTier.POWERFUL,
-    }
-
     try:
         runner = AgentRunner(
             project_dir=project_dir,
             provider_name=provider_name,
             model=model,
-            tier=tier_map[tier],
+            tier=ModelTier.parse(tier, default=ModelTier.BALANCED),
             stream=not no_stream,
             optimize=optimize,
             json_events=json_events,
+            endpoint_id=endpoint_id or None,
+            profile_id=profile_id or None,
         )
         if task:
             result = runner.run_task(task)
-            console.print(result)
+            if result is not None:
+                console.print(result)
         else:
             runner.run_interactive()
-        if optimize and runner._optimizer:
-            report = runner._optimizer.report()
-            console.print(f"\n[dim]{report.summary()}[/dim]")
     except Exception as e:  # noqa: BLE001
+        # Always emit a `ready` frame for json_events mode so the bridge
+        # surfaces the failure cleanly instead of timing out at 20 s.
+        if json_events:
+            from specsmith.agent.events import EventEmitter
+
+            EventEmitter().error(
+                message=f"agent failed to start: {e}",
+                recoverable=True,
+            )
         console.print(f"[red]{e}[/red]")
         console.print(
             "\nInstall a provider (pipx recommended):\n"
@@ -4149,7 +4173,14 @@ def phase_group() -> None:
     default=".",
     help="Project root (default: current directory).",
 )
-def phase_show(project_dir: str) -> None:
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit a stable JSON document (used by the VS Code Workflows tree).",
+)
+def phase_show(project_dir: str, as_json: bool) -> None:
     """Show the current AEE workflow phase and its readiness checklist."""
     from specsmith.phase import PHASE_MAP, evaluate_phase, phase_progress_pct, read_phase
 
@@ -4158,6 +4189,37 @@ def phase_show(project_dir: str) -> None:
     phase = PHASE_MAP[phase_key]
     passed, failed = evaluate_phase(phase, root)
     pct = phase_progress_pct(phase, root)
+
+    if as_json:
+        import json as _json
+
+        phases_payload: list[dict[str, Any]] = []
+        for key, p in PHASE_MAP.items():
+            p_passed, p_failed = evaluate_phase(p, root)
+            phases_payload.append(
+                {
+                    "key": key,
+                    "label": p.label,
+                    "emoji": p.emoji,
+                    "description": p.description,
+                    "readiness_pct": phase_progress_pct(p, root),
+                    "passed": list(p_passed),
+                    "failed": list(p_failed),
+                    "next_phase": p.next_phase,
+                    "is_active": (key == phase_key),
+                }
+            )
+        click.echo(
+            _json.dumps(
+                {
+                    "active_phase": phase_key,
+                    "readiness_pct": pct,
+                    "phases": phases_payload,
+                },
+                indent=2,
+            )
+        )
+        return
 
     console.print(f"\n  {phase.emoji} [bold]{phase.label}[/bold] ({phase_key})")
     console.print(f"  {phase.description}")
@@ -6882,6 +6944,441 @@ try:
     main.add_command(agent_group)
 except Exception:  # noqa: BLE001
     pass  # AG2 not installed — agent commands unavailable
+
+
+# ---------------------------------------------------------------------------
+# specsmith agents — Agent profiles + activity routing (REQ-146)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="agents")
+def agents_group() -> None:
+    """Manage agent profiles and activity routing (REQ-146).
+
+    A *profile* is a named ``(provider, model, endpoint, fallback_chain)``
+    bundle. The *routing table* maps an activity (``/plan``, ``/fix``, AEE
+    phase, MCP tool category) to a profile. ``specsmith run`` consults the
+    table on every turn so each activity flows through the right model.
+
+    Storage: ``~/.specsmith/agents.json`` with per-project overrides at
+    ``<project>/.specsmith/agents.json``.
+    """
+
+
+@agents_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agents_list(project_dir: str, as_json: bool) -> None:
+    """List every registered agent profile."""
+    import json as _json
+
+    from specsmith.agent.profiles import ProfileStore
+
+    store = ProfileStore.load_for_project(project_dir)
+    payload = {
+        "default_profile_id": store.default_profile_id,
+        "profiles": [p.to_dict() for p in store.profiles],
+        "routes": dict(store.routes),
+    }
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    if not store.profiles:
+        console.print(
+            "[dim]No agent profiles registered. "
+            "Run `specsmith agents preset apply default` to install the recommended set.[/dim]"
+        )
+        return
+    for p in store.profiles:
+        marker = "*" if p.id == store.default_profile_id else " "
+        chain = " \u2192 ".join(p.fallback_chain) if p.fallback_chain else "(no fallback)"
+        endpoint = f" endpoint={p.endpoint_id}" if p.endpoint_id else ""
+        console.print(
+            f"{marker} [bold]{p.id}[/bold]  role={p.role}  {p.provider}/{p.model}{endpoint}"
+        )
+        console.print(f"  [dim]fallback: {chain}[/dim]")
+
+
+@agents_group.command(name="add")
+@click.option("--id", "profile_id", required=True)
+@click.option("--role", default="generalist")
+@click.option("--provider", default="ollama")
+@click.option("--model", default="")
+@click.option("--endpoint", "endpoint_id", default="")
+@click.option("--prompt-prefix", default="")
+@click.option("--capability", "capabilities", multiple=True)
+@click.option("--fallback", "fallback_chain", multiple=True)
+@click.option("--replace", is_flag=True, default=False)
+@click.option("--set-default", is_flag=True, default=False)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agents_add(
+    profile_id: str,
+    role: str,
+    provider: str,
+    model: str,
+    endpoint_id: str,
+    prompt_prefix: str,
+    capabilities: tuple[str, ...],
+    fallback_chain: tuple[str, ...],
+    replace: bool,
+    set_default: bool,
+    as_json: bool,
+) -> None:
+    """Register a new agent profile."""
+    import json as _json
+
+    from specsmith.agent.profiles import Profile, ProfileError, ProfileStore
+
+    profile = Profile(
+        id=profile_id.strip(),
+        role=role.strip(),
+        provider=provider.strip(),
+        model=model.strip(),
+        endpoint_id=endpoint_id.strip(),
+        prompt_prefix=prompt_prefix,
+        capabilities=list(capabilities),
+        fallback_chain=list(fallback_chain),
+    )
+    store = ProfileStore.load()
+    try:
+        store.add(profile, replace=replace)
+    except ProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+    if set_default:
+        store.set_default(profile.id)
+    store.save()
+    if as_json:
+        click.echo(_json.dumps({"profile": profile.to_dict()}, indent=2))
+        return
+    console.print(f"[green]\u2713[/green] saved profile [bold]{profile.id}[/bold]")
+    if store.default_profile_id == profile.id:
+        console.print("  [dim]marked as default.[/dim]")
+
+
+@agents_group.command(name="remove")
+@click.argument("profile_id")
+def agents_remove(profile_id: str) -> None:
+    """Remove a profile and any routing entries that point at it."""
+    from specsmith.agent.profiles import ProfileStore
+
+    store = ProfileStore.load()
+    if not store.remove(profile_id):
+        console.print(f"[red]unknown profile id {profile_id!r}[/red]")
+        raise SystemExit(1)
+    store.save()
+    console.print(f"[green]\u2713[/green] removed profile {profile_id!r}")
+
+
+@agents_group.command(name="default")
+@click.argument("profile_id")
+def agents_default(profile_id: str) -> None:
+    """Set the default profile (used when no route matches)."""
+    from specsmith.agent.profiles import ProfileError, ProfileStore
+
+    store = ProfileStore.load()
+    try:
+        store.set_default(profile_id)
+    except ProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    store.save()
+    console.print(f"[green]\u2713[/green] default profile = {profile_id!r}")
+
+
+@agents_group.command(name="test")
+@click.argument("profile_id")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agents_test(profile_id: str, as_json: bool) -> None:
+    """Probe a profile (resolves the endpoint/provider, reports reachability)."""
+    import json as _json
+
+    from specsmith.agent.endpoints import EndpointError, EndpointStore
+    from specsmith.agent.profiles import ProfileError, ProfileStore
+
+    store = ProfileStore.load()
+    try:
+        profile = store.get(profile_id)
+    except ProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+
+    payload: dict[str, Any] = {"profile_id": profile.id, "reachable": False}
+    # If the profile points at a BYOE endpoint, probe it; else just report
+    # the resolved provider/model (full provider testing lands in a follow-up).
+    if profile.endpoint_id:
+        try:
+            endpoint = EndpointStore.load().resolve(profile.endpoint_id)
+            health = endpoint.health(timeout=5.0)
+            payload["reachable"] = bool(health.ok)
+            payload["latency_ms"] = round(health.latency_ms, 2)
+            payload["models"] = health.models
+            payload["error"] = health.error
+        except EndpointError as exc:
+            payload["error"] = str(exc)
+    else:
+        payload["reachable"] = True
+        payload["note"] = (
+            "profile has no endpoint_id; reachability not probed for built-in providers."
+        )
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    if payload.get("reachable"):
+        latency = payload.get("latency_ms")
+        models = payload.get("models") or []
+        if latency is not None:
+            console.print(
+                f"[green]\u2713[/green] {profile.id} ok in {int(float(latency))} ms "
+                f"({len(models)} models)"
+            )
+        else:
+            console.print(f"[green]\u2713[/green] {profile.id} ({profile.provider}/{profile.model})")
+    else:
+        console.print(f"[red]\u2717[/red] {profile.id} unreachable: {payload.get('error', '?')}")
+        raise SystemExit(1)
+
+
+@agents_group.group(name="route")
+def agents_route_group() -> None:
+    """Manage the activity → profile routing table."""
+
+
+@agents_route_group.command(name="set")
+@click.argument("activity")
+@click.argument("profile_id")
+def agents_route_set(activity: str, profile_id: str) -> None:
+    """Map ACTIVITY to PROFILE_ID (e.g. /plan -> architect)."""
+    from specsmith.agent.profiles import ProfileError, ProfileStore
+
+    store = ProfileStore.load()
+    try:
+        store.set_route(activity, profile_id)
+    except ProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    store.save()
+    console.print(f"[green]\u2713[/green] {activity} \u2192 {profile_id}")
+
+
+@agents_route_group.command(name="clear")
+@click.argument("activity")
+def agents_route_clear(activity: str) -> None:
+    """Drop ACTIVITY from the routing table; falls back to default."""
+    from specsmith.agent.profiles import ProfileStore
+
+    store = ProfileStore.load()
+    store.clear_route(activity)
+    store.save()
+    console.print(f"[green]\u2713[/green] cleared route for {activity}")
+
+
+@agents_route_group.command(name="show")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agents_route_show(project_dir: str, as_json: bool) -> None:
+    """Print the merged (project + global) routing table."""
+    import json as _json
+
+    from specsmith.agent.profiles import ProfileStore
+
+    store = ProfileStore.load_for_project(project_dir)
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {"default_profile_id": store.default_profile_id, "routes": dict(store.routes)},
+                indent=2,
+            )
+        )
+        return
+    if not store.routes:
+        console.print(
+            "[dim]No routes configured. "
+            "Run `specsmith agents preset apply default` to install the recommended set.[/dim]"
+        )
+        return
+    for activity, profile_id in sorted(store.routes.items()):
+        marker = "*" if profile_id == store.default_profile_id else " "
+        console.print(f"{marker} {activity:20s} \u2192 {profile_id}")
+
+
+@agents_group.group(name="preset")
+def agents_preset_group() -> None:
+    """Apply or inspect built-in profile presets."""
+
+
+@agents_preset_group.command(name="apply")
+@click.argument("name")
+def agents_preset_apply(name: str) -> None:
+    """Install one of the built-in presets (default, local-only, frontier-only, cost-conscious)."""
+    from specsmith.agent.profiles import ProfileError, apply_preset
+
+    try:
+        store = apply_preset(name)
+    except ProfileError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    console.print(
+        f"[green]\u2713[/green] applied preset [bold]{name}[/bold] \u2014 "
+        f"{len(store.profiles)} profiles, {len(store.routes)} routes"
+    )
+
+
+@agents_preset_group.command(name="list")
+def agents_preset_list() -> None:
+    """Show every built-in preset."""
+    from specsmith.agent.profiles import DEFAULT_PRESETS
+
+    for name in sorted(DEFAULT_PRESETS):
+        blob = DEFAULT_PRESETS[name]
+        console.print(
+            f"  [bold]{name}[/bold]  "
+            f"profiles={len(blob.get('profiles', []))}, "
+            f"routes={len(blob.get('routes', {}))}, "
+            f"default={blob.get('default_profile_id', '')}"
+        )
+
+
+main.add_command(agents_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith mcp — list / test MCP servers as JSON (REQ-146 surface)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="mcp")
+def mcp_group() -> None:
+    """Inspect MCP servers registered for the agent's tool registry."""
+
+
+@mcp_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
+    """List configured MCP servers (from ``~/.specsmith/mcp.json`` or project config)."""
+    import json as _json
+    import os
+
+    base = os.environ.get("SPECSMITH_HOME", "").strip()
+    home = Path(base) if base else Path.home() / ".specsmith"
+    candidates = [
+        Path(project_dir).resolve() / ".specsmith" / "mcp.json",
+        home / "mcp.json",
+    ]
+    servers: list[dict[str, Any]] = []
+    source = ""
+    for path in candidates:
+        if path.is_file():
+            try:
+                raw = _json.loads(path.read_text(encoding="utf-8"))
+            except ValueError:
+                continue
+            entries = raw.get("servers") if isinstance(raw, dict) else raw
+            if isinstance(entries, list):
+                for item in entries:
+                    if isinstance(item, dict) and "id" in item:
+                        servers.append(
+                            {
+                                "id": str(item.get("id", "")),
+                                "name": str(item.get("name", item.get("id", ""))),
+                                "command": item.get("command", ""),
+                                "args": list(item.get("args", [])),
+                                "transport": str(item.get("transport", "stdio")),
+                                "description": str(item.get("description", "")),
+                            }
+                        )
+            source = str(path)
+            break
+    payload = {"source": source, "servers": servers}
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    if not servers:
+        console.print("[dim]No MCP servers configured.[/dim]")
+        return
+    console.print(f"[bold]MCP servers[/bold]  ({source})\n")
+    for s in servers:
+        console.print(f"  [bold]{s['id']}[/bold]  {s['transport']}  {s['command']}")
+        if s["description"]:
+            console.print(f"    [dim]{s['description']}[/dim]")
+
+
+main.add_command(mcp_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith rules — enumerate rule docs across project / workspace / personal
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="rules")
+def rules_group() -> None:
+    """Inspect AEE rule documents across the layered scope hierarchy."""
+
+
+@rules_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def rules_list_cmd(project_dir: str, as_json: bool) -> None:
+    """List rule docs grouped by scope (project, workspace, personal)."""
+    import json as _json
+    import os
+
+    base = os.environ.get("SPECSMITH_HOME", "").strip()
+    home = Path(base) if base else Path.home() / ".specsmith"
+    project = Path(project_dir).resolve()
+
+    scopes: dict[str, list[Path]] = {
+        "project": [],
+        "workspace": [],
+        "personal": [],
+    }
+    project_dirs = [
+        project / ".specsmith" / "rules",
+        project / "docs" / "governance",
+    ]
+    workspace_dirs = [project / ".warp" / "rules"]
+    personal_dirs = [home / "rules"]
+    for d in project_dirs:
+        if d.is_dir():
+            scopes["project"].extend(sorted(d.rglob("*.md")))
+    for d in workspace_dirs:
+        if d.is_dir():
+            scopes["workspace"].extend(sorted(d.rglob("*.md")))
+    for d in personal_dirs:
+        if d.is_dir():
+            scopes["personal"].extend(sorted(d.rglob("*.md")))
+
+    payload: dict[str, list[dict[str, Any]]] = {k: [] for k in scopes}
+    for scope_name, paths in scopes.items():
+        for p in paths:
+            try:
+                head = p.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+            except OSError:
+                head = []
+            title = head[0].lstrip("# ").strip() if head else p.stem
+            payload[scope_name].append(
+                {
+                    "scope": scope_name,
+                    "path": str(p),
+                    "title": title or p.stem,
+                    "last_modified": int(p.stat().st_mtime) if p.exists() else 0,
+                }
+            )
+
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    for scope_name, items in payload.items():
+        if not items:
+            continue
+        console.print(f"\n[bold]{scope_name.title()} rules[/bold] ({len(items)})")
+        for item in items:
+            console.print(f"  [cyan]{item['title']}[/cyan]  [dim]{item['path']}[/dim]")
+
+
+main.add_command(rules_group)
 
 
 if __name__ == "__main__":
