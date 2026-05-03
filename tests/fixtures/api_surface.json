@@ -2,6 +2,7 @@
   "cli_commands": [
     "abort",
     "agent",
+    "agents",
     "api-surface",
     "apply",
     "architect",
@@ -33,6 +34,7 @@
     "init",
     "integrate",
     "ledger",
+    "mcp",
     "migrate",
     "migrate-project",
     "notebook",
@@ -48,6 +50,7 @@
     "push",
     "release",
     "req",
+    "rules",
     "run",
     "scan",
     "self-update",
