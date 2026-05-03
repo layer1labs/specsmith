@@ -106,13 +106,15 @@ class EventEmitter:
 
     def error(self, message: str, *, recoverable: bool = False, **extra: Any) -> None:
         """Emit an error frame (recoverable = retry will be offered)."""
-        self.emit({
-            "type": "error",
-            "timestamp": _now_iso(),
-            "message": message,
-            "recoverable": bool(recoverable),
-            **extra,
-        })
+        self.emit(
+            {
+                "type": "error",
+                "timestamp": _now_iso(),
+                "message": message,
+                "recoverable": bool(recoverable),
+                **extra,
+            }
+        )
 
     # ── Block helpers ────────────────────────────────────────────────────
 
