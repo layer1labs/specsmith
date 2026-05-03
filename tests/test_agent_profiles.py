@@ -19,7 +19,7 @@ from specsmith.agent.profiles import (
 
 def test_default_preset_round_trip(tmp_path: Path) -> None:
     store_path = tmp_path / "agents.json"
-    store = apply_preset("default", path=store_path)
+    apply_preset("default", path=store_path)
     assert store_path.is_file()
     raw = json.loads(store_path.read_text(encoding="utf-8"))
     assert raw["default_profile_id"] == "coder"

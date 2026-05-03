@@ -20,12 +20,11 @@ module restores the emitter and centralizes the protocol (REQ-145).
 
 from __future__ import annotations
 
-import json
-import os
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 from specsmith.agent.core import AgentState, ModelTier
 from specsmith.agent.events import EventEmitter
@@ -296,9 +295,10 @@ class AgentRunner:
         # the single-provider path so the user still gets a response.
         profile, endpoint_override = self._resolve_for_activity(activity)
         if profile is not None:
+            _ident = f"{profile.provider}/{profile.model}"
             self._emit_event(
                 type="system",
-                message=f"\u21bb routing {activity} \u2192 {profile.id} ({profile.provider}/{profile.model})",
+                message=f"\u21bb routing {activity} \u2192 {profile.id} ({_ident})",
             )
 
         block_id = self._next_block_id()

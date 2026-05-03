@@ -7133,9 +7133,11 @@ def agents_test(profile_id: str, as_json: bool) -> None:
                 f"({len(models)} models)"
             )
         else:
-            console.print(f"[green]\u2713[/green] {profile.id} ({profile.provider}/{profile.model})")
+            _ident = f"{profile.provider}/{profile.model}"
+            console.print(f"[green]\u2713[/green] {profile.id} ({_ident})")
     else:
-        console.print(f"[red]\u2717[/red] {profile.id} unreachable: {payload.get('error', '?')}")
+        _err = payload.get("error", "?")
+        console.print(f"[red]\u2717[/red] {profile.id} unreachable: {_err}")
         raise SystemExit(1)
 
 

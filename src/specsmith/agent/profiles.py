@@ -316,7 +316,7 @@ class Profile:
         }
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "Profile":
+    def from_dict(cls, raw: dict[str, Any]) -> Profile:
         return cls(
             id=str(raw.get("id") or "").strip(),
             role=str(raw.get("role") or "generalist").strip(),
@@ -365,7 +365,7 @@ class ProfileStore:
     # ── I/O ────────────────────────────────────────────────────────────
 
     @classmethod
-    def load(cls, path: Path | None = None) -> "ProfileStore":
+    def load(cls, path: Path | None = None) -> ProfileStore:
         target = path or default_store_path()
         if not target.exists():
             return cls(path=target)
@@ -381,7 +381,7 @@ class ProfileStore:
         return cls._from_raw(target, raw)
 
     @classmethod
-    def load_for_project(cls, project_dir: str | Path) -> "ProfileStore":
+    def load_for_project(cls, project_dir: str | Path) -> ProfileStore:
         """Return a merged view of global + project-level profiles.
 
         Project profiles win on id collisions; routes are merged with
@@ -412,7 +412,7 @@ class ProfileStore:
         )
 
     @classmethod
-    def _from_raw(cls, path: Path, raw: dict[str, Any]) -> "ProfileStore":
+    def _from_raw(cls, path: Path, raw: dict[str, Any]) -> ProfileStore:
         version = int(raw.get("schema_version") or 0)
         if version and version != SCHEMA_VERSION:
             raise ProfileError(

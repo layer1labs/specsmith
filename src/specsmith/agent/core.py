@@ -33,7 +33,11 @@ class ModelTier(str, enum.Enum):
     POWERFUL = "powerful"
 
     @classmethod
-    def parse(cls, value: str | "ModelTier" | None, default: "ModelTier" = None) -> "ModelTier":
+    def parse(
+        cls,
+        value: str | ModelTier | None,
+        default: ModelTier | None = None,
+    ) -> ModelTier:
         """Tolerant parser used by CLI option handlers."""
         if value is None or value == "":
             return default or cls.BALANCED

@@ -17,9 +17,12 @@ from __future__ import annotations
 
 import contextlib
 import socket
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any
 from urllib.error import HTTPError, URLError
+
+# (ruff I001 sentinel: imports above are intentionally grouped stdlib + typing)
 
 
 # Errors we treat as worth falling through. Anything else is a programmer
@@ -69,9 +72,12 @@ def parse_target(target: str) -> tuple[str, str, str]:
 
     Examples::
 
-        parse_target("anthropic/claude-haiku-4-5")     # ("provider", "anthropic", "claude-haiku-4-5")
-        parse_target("ollama/qwen2.5:7b")              # ("provider", "ollama", "qwen2.5:7b")
-        parse_target("endpoint:home-vllm")             # ("endpoint", "home-vllm", "")
+        parse_target("anthropic/claude-haiku-4-5")
+            # -> ("provider", "anthropic", "claude-haiku-4-5")
+        parse_target("ollama/qwen2.5:7b")
+            # -> ("provider", "ollama", "qwen2.5:7b")
+        parse_target("endpoint:home-vllm")
+            # -> ("endpoint", "home-vllm", "")
     """
     cleaned = (target or "").strip()
     if not cleaned:
