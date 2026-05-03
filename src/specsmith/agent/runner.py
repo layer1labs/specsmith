@@ -281,14 +281,12 @@ class AgentRunner:
         if text.startswith("/endpoint "):
             new_endpoint = text.split(maxsplit=1)[1].strip()
             self.endpoint_id = new_endpoint or None
-            self._emit_event(
-                type="system", message=f"endpoint = {new_endpoint or '(auto)'}"
-            )
+            self._emit_event(type="system", message=f"endpoint = {new_endpoint or '(auto)'}")
             return None
 
         activity = _slash_to_activity(text)
         prefix = SLASH_COMMANDS.get(activity, "")
-        utterance = text[len(activity):].strip() if activity != "chat" else text
+        utterance = text[len(activity) :].strip() if activity != "chat" else text
         full_prompt = (prefix + utterance) if prefix else utterance
 
         # Resolve the per-turn profile (PR-G). On any error we degrade to

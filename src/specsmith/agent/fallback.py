@@ -83,7 +83,7 @@ def parse_target(target: str) -> tuple[str, str, str]:
     if not cleaned:
         return ("provider", "", "")
     if cleaned.startswith("endpoint:"):
-        return ("endpoint", cleaned[len("endpoint:"):], "")
+        return ("endpoint", cleaned[len("endpoint:") :], "")
     if "/" not in cleaned:
         return ("provider", cleaned, "")
     provider, _, model = cleaned.partition("/")

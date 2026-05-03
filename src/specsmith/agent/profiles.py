@@ -405,8 +405,7 @@ class ProfileStore:
         return cls(
             path=project_path,
             schema_version=SCHEMA_VERSION,
-            default_profile_id=project_store.default_profile_id
-            or global_store.default_profile_id,
+            default_profile_id=project_store.default_profile_id or global_store.default_profile_id,
             profiles=list(merged_profiles.values()),
             routes=merged_routes,
         )
