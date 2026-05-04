@@ -849,12 +849,6 @@
 - **Description:** `specsmith chat` accepts `--parent-session <id>`. When set, the spawned session's `task_complete` event also writes a `sub_session_complete` event into the parent's session log so the parent's plan-block can surface child outcomes.
 - **Source:** src/specsmith/cli.py, src/specsmith/agent/memory.py
 - **Status:** defined
-## 126. Cloud Agent Stub Endpoint
-- **ID:** REQ-126
-- **Title:** Cloud Agent Stub Endpoint
-- **Description:** `specsmith cloud spawn <utterance> --endpoint <url>` packages working-tree + scaffold.yml + LEDGER.md as a tarball, POSTs to `<url>/spawn` with the utterance, and tails the returned JSONL stream URL. The contract is documented in `docs/site/cloud-agents.md`. The endpoint reference implementation is out of scope for 1.0 (documented as deferred).
-- **Source:** src/specsmith/cli.py, docs/site/cloud-agents.md
-- **Status:** defined
 ## 127. Onboarding Path Must Be Verified
 - **ID:** REQ-127
 - **Title:** Onboarding Path Must Be Verified

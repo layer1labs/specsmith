@@ -1375,17 +1375,6 @@
     "confidence": 1.0
   },
   {
-    "id": "TEST-126",
-    "title": "Cloud Spawn Documents Endpoint Contract",
-    "description": "`docs/site/cloud-agents.md` exists and documents the POST contract (`/spawn`, request body, response body, JSONL stream URL). `specsmith cloud spawn --help` shows the `--endpoint` flag.",
-    "requirement_id": "REQ-126",
-    "type": "unit",
-    "verification_method": "pytest",
-    "input": {},
-    "expected_behavior": {},
-    "confidence": 1.0
-  },
-  {
     "id": "TEST-127",
     "title": "Onboarding Doctor Has Required Checks",
     "description": "`specsmith doctor --onboarding --project-dir <tmp>` prints a checklist that includes lines for 'CLI installed', 'scaffold.yml', 'REQUIREMENTS.md', and 'LEDGER.md'.",

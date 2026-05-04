@@ -4,7 +4,6 @@
 
 Covers:
 * serve --auth-token (REQ-137)
-* cloud spawn client (REQ-136)
 * voice transcription wrapper (REQ-141)
 * api-surface stability snapshot (REQ-140)
 """
@@ -29,8 +28,6 @@ from specsmith.agent.voice import (
     transcribe,
 )
 from specsmith.cli import main
-from specsmith.cloud_serve import CloudReceiverConfig
-from specsmith.cloud_serve import make_server as make_cloud_server
 
 
 @pytest.fixture(autouse=True)
@@ -127,96 +124,6 @@ def test_serve_cli_help_documents_auth_token() -> None:
     assert res.exit_code == 0
     assert "--auth-token" in res.output
     assert "REQ-137" in res.output
-
-
-# ---------------------------------------------------------------------------
-# REQ-136: cloud spawn client
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-def cloud_endpoint(tmp_path: Path):
-    port = _free_port()
-    config = CloudReceiverConfig(
-        host="127.0.0.1",
-        port=port,
-        token="cloud-secret",
-        storage_dir=tmp_path / "cloud-runs",
-    )
-    server = make_cloud_server(config)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    time.sleep(0.05)
-    try:
-        yield port, config
-    finally:
-        server.shutdown()
-        server.server_close()
-
-
-def test_cloud_spawn_dry_run(tmp_path: Path) -> None:
-    manifest = tmp_path / "manifest.yml"
-    manifest.write_text("task: hello\nrun_id: r1\n", encoding="utf-8")
-    runner = CliRunner()
-    res = runner.invoke(main, ["cloud", "spawn", str(manifest), "--dry-run"])
-    assert res.exit_code == 0
-    payload = json.loads(res.output)
-    assert payload["manifest"] == {"task": "hello", "run_id": "r1"}
-    assert payload["endpoint"].startswith("http://")
-
-
-def test_cloud_spawn_non_mapping_payload_exits_2(tmp_path: Path) -> None:
-    manifest = tmp_path / "bad.json"
-    # JSON parses fine but the payload is a list, not a mapping → exit 2.
-    manifest.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
-    runner = CliRunner()
-    res = runner.invoke(main, ["cloud", "spawn", str(manifest), "--dry-run"])
-    assert res.exit_code == 2
-    assert "mapping" in res.output.lower() or "object" in res.output.lower()
-
-
-def test_cloud_spawn_missing_token_returns_401(  # type: ignore[no-untyped-def]
-    tmp_path: Path, cloud_endpoint
-) -> None:
-    port, _ = cloud_endpoint
-    manifest = tmp_path / "m.json"
-    manifest.write_text(json.dumps({"task": "x"}), encoding="utf-8")
-    runner = CliRunner()
-    res = runner.invoke(
-        main,
-        ["cloud", "spawn", str(manifest), "--endpoint", f"http://127.0.0.1:{port}"],
-    )
-    assert res.exit_code != 0
-    assert "401" in res.output or "unauthorized" in res.output.lower()
-
-
-def test_cloud_spawn_with_token_persists_manifest(  # type: ignore[no-untyped-def]
-    tmp_path: Path, cloud_endpoint
-) -> None:
-    port, config = cloud_endpoint
-    manifest = tmp_path / "m.json"
-    manifest.write_text(
-        json.dumps({"task": "demo", "run_id": "spawn_test"}),
-        encoding="utf-8",
-    )
-    runner = CliRunner()
-    res = runner.invoke(
-        main,
-        [
-            "cloud",
-            "spawn",
-            str(manifest),
-            "--endpoint",
-            f"http://127.0.0.1:{port}",
-            "--token",
-            "cloud-secret",
-        ],
-    )
-    assert res.exit_code == 0, res.output
-    response = json.loads(res.output)
-    assert response["run_id"] == "spawn_test"
-    persisted = config.storage_dir / "spawn_test" / "manifest.json"
-    assert persisted.is_file()
 
 
 # ---------------------------------------------------------------------------
@@ -327,8 +234,6 @@ def test_api_surface_contains_required_1_0_commands() -> None:
         "history",
         "chat",
         "chat-export-block",
-        "cloud",
-        "cloud-serve",
         "voice",
         "api-surface",
         "suggest-command",

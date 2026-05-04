@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
-"""Phase 3-4 completion tests: mcp loader, notebook + cloud commands.
+"""Phase 3-4 completion tests: mcp loader and notebook commands.
 
-Covers REQ-121 (MCP), REQ-123 (notebook), REQ-126 (cloud spawn), REQ-124
-(perf smoke). The CLI commands are exercised through Click's CliRunner so
-the tests stay fully hermetic — no real subprocess, no real PyPI hits.
+Covers REQ-121 (MCP), REQ-123 (notebook), and REQ-124 (perf smoke). The
+CLI commands are exercised through Click's CliRunner so the tests stay
+fully hermetic — no real subprocess, no real PyPI hits.
 """
 
 from __future__ import annotations
@@ -167,38 +167,6 @@ def test_notebook_replay_missing_slug_exits_non_zero(tmp_path: Path) -> None:
     )
     assert result.exit_code == 1
     assert "No notebook" in result.output
-
-
-# ── Cloud spawn (REQ-136) ──────────────────────────────────────
-#
-# REQ-136 supersedes the original REQ-126 stub: ``cloud spawn`` now takes a
-# manifest YAML or JSON file and POSTs it to ``<endpoint>/spawn`` with
-# optional bearer auth. The dry-run mode prints the would-be POST as JSON
-# instead of building a workspace tarball.
-
-
-def test_cloud_spawn_dry_run_emits_payload_json(tmp_path: Path) -> None:
-    manifest = tmp_path / "manifest.yml"
-    manifest.write_text("task: add hello world\nrun_id: r1\n", encoding="utf-8")
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["cloud", "spawn", str(manifest), "--dry-run"],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
-    assert payload["manifest"] == {"task": "add hello world", "run_id": "r1"}
-    assert payload["endpoint"].startswith("http://")
-
-
-def test_cloud_spawn_help_documents_endpoint(tmp_path: Path) -> None:
-    runner = CliRunner()
-    result = runner.invoke(main, ["cloud", "spawn", "--help"])
-    assert result.exit_code == 0
-    assert "--endpoint" in result.output
-    assert "--dry-run" in result.output
-    assert "--token" in result.output
 
 
 # ── Perf smoke (REQ-124 / TEST-124) ──────────────────────────────────────────
