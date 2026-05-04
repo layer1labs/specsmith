@@ -1349,16 +1349,6 @@
 - **Input:** tmp_path with parent + child sessions
 - **Expected Behavior:** Parent session log contains sub_session_complete entry.
 - **Confidence:** 1.0
-## TEST-126. Cloud Spawn Documents Endpoint Contract
-- **ID:** TEST-126
-- **Title:** Cloud Spawn Documents Endpoint Contract
-- **Description:** `docs/site/cloud-agents.md` exists and documents the POST contract (`/spawn`, request body, response body, JSONL stream URL). `specsmith cloud spawn --help` shows the `--endpoint` flag.
-- **Requirement ID:** REQ-126
-- **Type:** unit
-- **Verification Method:** pytest
-- **Input:** docs/site/cloud-agents.md, click help
-- **Expected Behavior:** Doc present; help describes flag.
-- **Confidence:** 1.0
 ## TEST-127. Onboarding Doctor Has Required Checks
 - **ID:** TEST-127
 - **Title:** Onboarding Doctor Has Required Checks

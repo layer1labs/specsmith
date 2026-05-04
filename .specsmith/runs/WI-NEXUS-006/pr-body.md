@@ -56,11 +56,3 @@ that envelope.
 - WI-NEXUS-010: end-to-end documentation pass for the broker → preflight →
   gated execution flow.
 
----
-
-🤖 Generated with [Warp](https://app.warp.dev) — agent conversation:
-[link](https://app.warp.dev/conversation/6f8aa790-049b-4ddf-9c52-4840728faee5)
-
-Plan artifact: [Warp Agent Implementation Plan](https://app.warp.dev/drive/notebook/rfCwIZUgJPCakjJ2S552DX)
-
-Co-Authored-By: Oz <oz-agent@warp.dev>

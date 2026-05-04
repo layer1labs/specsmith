@@ -42,5 +42,3 @@ temp/
 .env
 .repo-index/
 
-# Test-generated cloud spawn manifests
-.specsmith/cloud/

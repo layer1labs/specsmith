@@ -374,7 +374,6 @@ During bootstrap, do not yet implement:
 
 - full model orchestration
 - full OpenCode plugin runtime
-- cloud database storage
 - GUI changes
 - multi-agent teams
 - daemon service

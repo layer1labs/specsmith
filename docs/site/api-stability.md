@@ -29,8 +29,6 @@ change ships with a CHANGELOG entry but does not require a major bump.
   router, rules). Their **shape** is stable but signatures may grow.
 - The `specsmith chat` CLI flags. New event kinds and flags may be added;
   existing keys will not be removed without a deprecation cycle.
-- `specsmith cloud spawn` manifest format. The current `manifest.json`
-  layout is provisional while the cloud endpoint is being designed.
 - `.specsmith/sessions/<id>/turns.jsonl` schema (REQ-120). Fields will be
   additive, but the file format itself may switch from JSONL to a
   database in a future release.
@@ -45,11 +43,9 @@ change ships with a CHANGELOG entry but does not require a major bump.
 We will only stamp 1.0 once:
 1. The Nexus chat block protocol has been used by at least one external
    IDE integration for two minor releases.
-2. The cloud agent surface has graduated from stub to a documented
-   endpoint contract.
-3. The mypy strict carveout in `pyproject.toml` has been emptied except
+2. The mypy strict carveout in `pyproject.toml` has been emptied except
    for explicitly third-party-typed modules.
-4. The performance baseline (REQ-124) has been published in
+3. The performance baseline (REQ-124) has been published in
    `.specsmith/perf/baseline.json` for at least three releases without
    regression.
 Until those criteria are met, expect a steady stream of pre-1.0 minor
@@ -82,10 +78,10 @@ Then call out the change in the next CHANGELOG entry.
 A second test, `test_api_surface_contains_required_1_0_commands`, asserts
 that a hand-picked subset of 1.0-contract commands (`preflight`, `verify`,
 `audit`, `validate`, `doctor`, `scan`, `init`, `import`, `ledger`,
-`drive`, `history`, `chat`, `chat-export-block`, `cloud`, `cloud-serve`,
-`voice`, `api-surface`, `suggest-command`, `serve`) is *always* present.
-This catches accidental command removal even when someone updates the
-fixture without checking what they removed.
+`drive`, `history`, `chat`, `chat-export-block`, `voice`, `api-surface`,
+`suggest-command`, `serve`) is *always* present. This catches accidental
+command removal even when someone updates the fixture without checking
+what they removed.
 ### What is *not* covered by the snapshot
 - Subcommand names of Click groups (e.g. `voice transcribe`). The group
   name is in `cli_commands`; the subcommands are covered by their own

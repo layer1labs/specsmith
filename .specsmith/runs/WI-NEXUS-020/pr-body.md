@@ -48,11 +48,3 @@ existing AEE epistemic infrastructure. **Suite: 259 passing, 1 skipped
 - All new ledger writes are wrapped in `try/except` so ledger errors never
   block the CLI.
 
----
-
-🤖 Generated with [Warp](https://app.warp.dev) — agent conversation:
-[link](https://app.warp.dev/conversation/6f8aa790-049b-4ddf-9c52-4840728faee5)
-
-Plan artifact: [Warp Agent Implementation Plan](https://app.warp.dev/drive/notebook/rfCwIZUgJPCakjJ2S552DX)
-
-Co-Authored-By: Oz <oz-agent@warp.dev>
