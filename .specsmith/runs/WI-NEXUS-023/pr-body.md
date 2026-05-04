@@ -51,7 +51,3 @@ mypy src/specsmith/:     Success: no issues found in 69 source files
 gh dependabot/alerts:    []
 ```
 
-## Conversation + plan
-
-- Conversation: https://app.warp.dev/conversation/6f8aa790-049b-4ddf-9c52-4840728faee5
-- Plan: https://app.warp.dev/drive/notebook/rfCwIZUgJPCakjJ2S552DX

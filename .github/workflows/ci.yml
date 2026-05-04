@@ -69,3 +69,32 @@ jobs:
       - run: pip install pip-audit
       - run: pip install -e .
       - run: pip-audit --ignore-vuln CVE-2026-3219
+
+  api-surface:
+    # REQ-140 guard: regenerates the public CLI surface and fails the build
+    # if the live output drifts from the committed fixture. Catches accidental
+    # command additions / removals in PRs without forcing every contributor
+    # to remember to run `specsmith api-surface > tests/fixtures/api_surface.json`.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Regenerate api_surface.json
+        env:
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+          SPECSMITH_PYPI_CHECKED: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m specsmith.cli api-surface > /tmp/api_surface.live.json
+      - name: Diff against committed fixture
+        run: |
+          diff -u tests/fixtures/api_surface.json /tmp/api_surface.live.json || {
+            echo "::error::api_surface.json is stale. Regenerate via:"
+            echo "  python -m specsmith.cli api-surface > tests/fixtures/api_surface.json"
+            exit 1
+          }

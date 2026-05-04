@@ -119,7 +119,7 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 ### Tab: Tools
 - **FPGA/HDL tools** (21 tools) — vivado, quartus, gtkwave, ghdl, iverilog, verilator, vsg, yosys, nextpnr, symbiyosys, and more
 - **Auxiliary disciplines** — add mixed-discipline support (e.g. FPGA + embedded C + Python verification)
-- **CI/CD build platforms** — linux, windows, macos, embedded, cloud, FPGA variants (target deploy/test platforms, not the host OS)
+- **CI/CD build platforms** — linux, windows, macos, embedded, FPGA variants (target deploy/test platforms, not the host OS)
 - **Installed Ollama models** with Update / Remove buttons
 - All saved to `fpga_tools:`, `platforms:` in scaffold.yml
 

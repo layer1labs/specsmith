@@ -875,13 +875,6 @@
     "status": "defined"
   },
   {
-    "id": "REQ-126",
-    "title": "Cloud Agent Stub Endpoint",
-    "description": "`specsmith cloud spawn <utterance> --endpoint <url>` packages working-tree + scaffold.yml + LEDGER.md as a tarball, POSTs to `<url>/spawn` with the utterance, and tails the returned JSONL stream URL. The contract is documented in `docs/site/cloud-agents.md`. The endpoint reference implementation is out of scope for 1.0 (documented as deferred).",
-    "source": "src/specsmith/cli.py, docs/site/cloud-agents.md",
-    "status": "defined"
-  },
-  {
     "id": "REQ-127",
     "title": "Onboarding Path Must Be Verified",
     "description": "`specsmith doctor --onboarding` prints a checklist (CLI installed, env activated, scaffold.yml present, REQUIREMENTS.md present, vLLM endpoint reachable, ledger present) and exits non-zero if any required item is missing. `docs/site/getting-started.md` walks a fresh user from install to first accepted preflight.",

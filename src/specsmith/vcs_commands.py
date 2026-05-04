@@ -100,7 +100,7 @@ def run_commit(
     *,
     message: str = "",
     auto_push: bool = False,
-    co_author: str = "Oz <oz-agent@warp.dev>",
+    co_author: str = "",
 ) -> GitResult:
     """Stage all changes and commit with governance-aware message."""
     if not message:

@@ -6,20 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Removed
+- **Cloud Runs feature retired.** `specsmith cloud spawn`, `specsmith cloud-serve`, `src/specsmith/cloud_serve.py`, `docs/site/cloud-agents.md`, the `.specsmith/cloud/` storage convention, and all related tests/fixtures have been removed. The deferred REQ-126/REQ-136 cloud-agent surface is no longer part of the 1.0 contract.
 ## [0.7.0] — 2026-04-30
 ### Added
 - **`specsmith serve --auth-token` (REQ-137).** Optional bearer-token gate on every `/api/*` endpoint. `/api/health` stays open so liveness probes still work behind a load balancer that strips `Authorization`. New `make_server()` factory in `src/specsmith/serve.py` exposes a fully wired server for tests; `run_server()` adds the banner + `serve_forever` loop. `_Handler._authorize()` enforces `Authorization: Bearer <token>` on `do_GET`, `do_POST`, and `do_DELETE`.
 - **`specsmith voice transcribe <wav>` (REQ-141).** New `src/specsmith/agent/voice.py` wraps the optional `whisper-cpp-python` extra. Three resolution modes: real (library + model file under `~/.specsmith/voice/` or `SPECSMITH_VOICE_MODEL`), stub (`SPECSMITH_VOICE_STUB=<text>` for tests/CI), or unavailable (raises `VoiceUnavailableError` with an actionable install hint). CLI exposes `voice transcribe --json` and `voice status`.
-- **`specsmith cloud spawn <manifest> --endpoint --token --dry-run` (REQ-136).** Replaces the original REQ-126 stub. The new shape reads a YAML or JSON manifest, POSTs it to `<endpoint>/spawn`, and prints the response. `--token` adds bearer auth; `--dry-run` prints the would-be POST as JSON without leaving the host. Manifests must be mappings; lists / scalars exit 2 with a clear message.
-- **`tests/test_warp_parity_followup.py`** — 20 new pytest cases covering: serve auth-gate (open `/api/health`, 401 on missing/wrong token, 200 on correct token), cloud spawn (dry-run JSON output, manifest type validation, 401 on missing token, persistence on success), voice (stub mode, missing-file error, unavailable-when-no-library + no-stub, status output), and the api-surface stability snapshot (matches fixture, required commands present, exit codes + event types frozen).
+- **`tests/test_warp_parity_followup.py`** — covers serve auth-gate (open `/api/health`, 401 on missing/wrong token, 200 on correct token), voice (stub mode, missing-file error, unavailable-when-no-library + no-stub, status output), and the api-surface stability snapshot (matches fixture, required commands present, exit codes + event types frozen).
 - **`docs/site/api-stability.md`** — documents the `api-surface` snapshot mechanism: payload shape, regeneration command, the required-command spot check, and what is *not* covered by the snapshot.
 - **Specsmith Drive (REQ-133).** New `src/specsmith/drive.py` module exposes `push()`, `pull()`, `listing()`; mirrors project rules / workflows / notebooks under `~/.specsmith/drive/<project>/<kind>/`. Round-trip safe; default backend is filesystem-only so the user can `git push` themselves.
 - **Per-block share / export (REQ-134).** New `src/specsmith/block_export.py` plus `specsmith chat-export-block --session-id <id> --block-id <id> [--format md|json|html]` slices a single block out of `.specsmith/sessions/<id>/events.jsonl` (fallback `turns.jsonl`) and emits a self-contained markdown / JSON / HTML snippet. Raises `FileNotFoundError` for missing sessions and `KeyError` for missing blocks; the CLI exits non-zero in either case.
 - **AI-searchable history (REQ-135).** New `src/specsmith/history_search.py` adds a deterministic keyword `search()` over every `.specsmith/sessions/<id>/turns.jsonl` plus an optional `semantic=True` mode that uses `sentence-transformers` when available and silently falls back to keyword matching otherwise. New `[history-semantic]` extra in `pyproject.toml`.
-- **Reference cloud-agent receiver (REQ-136).** New `src/specsmith/cloud_serve.py` ships a stdlib `HTTPServer` accepting `POST /spawn` (manifest JSON) and `GET /health`. Bearer-token auth + CIDR allowlist + a guardrail that refuses to bind non-loopback hosts without `--allow-cidr`. Persists each manifest under `~/.specsmith/cloud-runs/<run_id>/manifest.json`. Wired up as `specsmith cloud-serve --host --port --token --allow-cidr`.
 - **`specsmith api-surface` (REQ-140).** Top-level command emits the frozen 1.0 public surface (`cli_commands`, `exit_codes`, `event_types`) as JSON; `--snapshot <path>` writes the same payload to disk for CI diffing.
 - **`[voice]` optional extra (REQ-141).** Pyproject extra carrying `whisper-cpp-python` for the upcoming agent voice-input integration (not yet wired into the CLI).
-- **`tests/test_warp_parity.py`** -- 20 new pytest cases covering the four new modules, the API-surface contract, and the CLI wiring (incl. localhost cloud-serve roundtrips, missing-token / wrong-token rejection, and the non-loopback guardrail).
+- **`tests/test_warp_parity.py`** -- pytest cases covering the new drive / block-export / history-search modules, the API-surface contract, and the CLI wiring.
 
 - **Real MCP JSON-RPC client (REQ-130).** `agent.mcp` now ships a full stdio client (`MCPSession`) that runs the official MCP handshake (`initialize` -> `notifications/initialized` -> `tools/list`) against any configured server, exposes each discovered tool as an `MCPTool` whose `invoke_with_safety()` runs every call through the supplied safety check. Protocol pinned at `2024-11-05`. The chat session header now reports tools-per-server counts.
 - **`tests/fixtures/mcp_fake_server.py`** -- pure-Python stdio MCP server fixture for hermetic tests.
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **MCP server announcement in chat sessions (REQ-121).** When `.specsmith/mcp.yml` is present, `specsmith chat` now loads the configured servers via `agent.mcp.load_mcp_tools` and emits a `[mcp servers: <names>]` token at the top of the message block so consumers (and the user) see which external tool surfaces are in play. The Specsmith safety middleware still gates every call.
 - **`specsmith notebook record --session-id <id>`** now reads `.specsmith/sessions/<id>/turns.jsonl` and embeds each turn as a `### <role>` section in the generated `docs/notebooks/<slug>.md`, alongside any `--work-item-id` artifacts. Both flags may be combined; either may be omitted (with a friendlier placeholder when neither is supplied). Closes the gap between TESTS.md TEST-123 and the existing implementation.
-- **`tests/test_phase34_completion.py`** — 12 new pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), `cloud spawn --dry-run` (manifest + tarball + `--help` documents `--endpoint`), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
+- **`tests/test_phase34_completion.py`** — pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
 
 ### Changed
 - `specsmith chat` imports `load_mcp_tools` and emits the MCP-servers token after the rules-loaded notice.
@@ -468,7 +468,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specsmith init --guided`**: interactive architecture definition with REQ/TEST stub generation.
 - **Auditor**: 6 health checks (files, REQ↔TEST, ledger, governance size, tool config, consistency). `--fix` auto-repairs missing files and CI configs.
 - **Domain-specific templates**: patent claims/spec/figures, legal contracts/regulatory, business exec-summary/financials, research citations/methodology, API endpoints/auth.
-- **7 agent integrations**: AGENTS.md, Warp/Oz, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
+- **7 agent integrations**: AGENTS.md, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
 - **3 VCS platforms**: GitHub (`gh`), GitLab (`glab`), Bitbucket (`bb`) with CI/CD, dependency management (Dependabot/Renovate per ecosystem), and status checks.
 - **Config inheritance**: `extends` field in scaffold.yml for org-level defaults.
 - **Type-specific .gitignore**: Rust, Go, Node, Kotlin, .NET, KiCad, FPGA, Zephyr, LaTeX, Terraform patterns.
@@ -498,7 +498,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specsmith diff`**: compare governance files against what spec templates would generate.
 - **`audit --fix`**: auto-repair missing governance files and compress oversized ledgers.
 - **Config inheritance**: `extends` field in scaffold.yml to inherit org-level defaults.
-- **7 agent integration adapters**: Warp/Oz, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
+- **7 agent integration adapters**: Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
 - **3 VCS platform integrations**: GitHub (`gh`), GitLab (`glab`), Bitbucket (`bb`) with CI/CD, dependency, and security config generation.
 - **Domain-specific scaffold directories**: FPGA, Yocto, PCB, Embedded, Web, Rust, Go, C/C++, .NET, Mobile, DevOps, Data/ML, Microservices.
 - **Branching strategy config**: gitflow, trunk-based, github-flow with tuning knobs.

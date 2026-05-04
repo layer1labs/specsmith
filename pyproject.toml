@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.8.0"
+version = "0.10.0"
 description = "Applied Epistemic Engineering toolkit — AEE agent sessions, execution profiles, FPGA/HDL governance, tool installer, 50+ CLI commands."
 readme = "README.md"
 license = "MIT"
@@ -171,6 +171,9 @@ module = [
     "specsmith.importer",
     "specsmith.agent.providers.gemini",
     "specsmith.agent.runner",
+    "specsmith.agent.profiles",
+    "specsmith.agent.fallback",
+    "specsmith.agent.core",
     "specsmith.agent.cleanup",
     "specsmith.agent.orchestrator",
     "specsmith.agent.repl",

@@ -134,7 +134,7 @@ Extensive research and gap analysis session to bring specsmith architecture to f
 - `docs/REQUIREMENTS.md` — 15 new requirement domains (OPS, CMD, MAS, ORC, FLG, LRN, EDD, MEM, HRK, SRV, RTR, LPR, MCP, SEC, IDE) with 60+ formal requirements
 - `docs/ARCHITECTURE.md` — Added "Planned Architecture Evolution" section covering all new components, multi-agent patterns, eval design, and architecture invariants
 - `AGENTS.md` — Added planned commands, planned file registry entries, updated tech stack
-- Architecture plan document updated in Warp Oz with full gap analysis and 16-workstream roadmap
+- Architecture plan document updated with full gap analysis and 16-workstream roadmap
 
 ### Open TODOs (Phase 1 — next immediate actions)
 
@@ -599,8 +599,8 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **Status**: complete
 - **Chain hash**: `dd0115de0abeff8d...`
 
-## 2026-04-28T09:05 — Nexus 1.0 roadmap groundwork landed (REQ-108..REQ-129): real verifier signal, JSONL chat block protocol (chat/notebook/cloud subcommands), persistent session memory, MCP loader, dynamic router, project-rules auto-injection, --predict-only and --comment flags, doctor --onboarding, perf smoke harness, e2e+unit tests, API-stability doc. Pre-1.0; no version bump.
-- **Author**: oz
+## 2026-04-28T09:05 — Nexus 1.0 roadmap groundwork landed (REQ-108..REQ-129): real verifier signal, JSONL chat block protocol (chat/notebook subcommands), persistent session memory, MCP loader, dynamic router, project-rules auto-injection, --predict-only and --comment flags, doctor --onboarding, perf smoke harness, e2e+unit tests, API-stability doc. Pre-1.0; no version bump.
+- **Author**: specsmith-agent
 - **Type**: feature
 - **REQs affected**: REQ-108,REQ-109,REQ-110,REQ-111,REQ-112,REQ-113,REQ-114,REQ-115,REQ-116,REQ-117,REQ-118,REQ-119,REQ-120,REQ-121,REQ-122,REQ-123,REQ-124,REQ-125,REQ-126,REQ-127,REQ-128,REQ-129
 - **Status**: complete

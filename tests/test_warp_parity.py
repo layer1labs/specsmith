@@ -1,19 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
-"""Warp parity bundle tests (REQ-133..REQ-136, REQ-140).
+"""Warp parity bundle tests (REQ-133..REQ-135, REQ-140).
 
-Exercises the four new modules introduced in MEGA-PR-CLI plus the API
-stability surface and the CLI wiring that exposes them.
+Exercises the modules introduced in MEGA-PR-CLI plus the API stability
+surface and the CLI wiring that exposes them.
 """
 
 from __future__ import annotations
 
 import json
-import socket
-import threading
-import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 import pytest
@@ -21,7 +16,6 @@ from click.testing import CliRunner
 
 from specsmith.block_export import export_block, slice_block
 from specsmith.cli import main
-from specsmith.cloud_serve import CloudReceiverConfig, make_server
 from specsmith.drive import default_drive_dir, listing, pull, push
 from specsmith.history_search import HistoryHit, search
 
@@ -230,111 +224,7 @@ def test_history_search_semantic_falls_back_to_keyword(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# cloud_serve.py — REQ-136
-# ---------------------------------------------------------------------------
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return int(s.getsockname()[1])
-
-
-@pytest.fixture
-def cloud_server(tmp_path: Path) -> tuple[CloudReceiverConfig, threading.Thread, int]:
-    port = _free_port()
-    config = CloudReceiverConfig(
-        host="127.0.0.1",
-        port=port,
-        token="secret",
-        storage_dir=tmp_path / "cloud-runs",
-    )
-    server = make_server(config)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    # Tiny settle delay; the server is in-process so this is cheap and avoids
-    # racing the first connection on slow CI machines.
-    time.sleep(0.05)
-    try:
-        yield config, thread, port
-    finally:
-        server.shutdown()
-        server.server_close()
-
-
-def _post_json(
-    port: int, path: str, payload: dict, *, token: str | None = None
-) -> tuple[int, dict]:
-    body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(  # noqa: S310 - localhost
-        f"http://127.0.0.1:{port}{path}",
-        data=body,
-        method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    if token:
-        req.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
-            return resp.status, json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        body_text = exc.read().decode("utf-8") or "{}"
-        return exc.code, json.loads(body_text)
-
-
-def test_cloud_serve_rejects_missing_token(cloud_server) -> None:  # type: ignore[no-untyped-def]
-    _, _, port = cloud_server
-    status, payload = _post_json(port, "/spawn", {"task": "hi"})
-    assert status == 401
-    assert payload == {"error": "unauthorized"}
-
-
-def test_cloud_serve_rejects_wrong_token(cloud_server) -> None:  # type: ignore[no-untyped-def]
-    _, _, port = cloud_server
-    status, _ = _post_json(port, "/spawn", {"task": "hi"}, token="wrong")
-    assert status == 401
-
-
-def test_cloud_serve_accepts_valid_token_and_persists_manifest(cloud_server) -> None:  # type: ignore[no-untyped-def]
-    config, _, port = cloud_server
-    status, payload = _post_json(
-        port,
-        "/spawn",
-        {"task": "demo", "run_id": "fixed_run"},
-        token="secret",
-    )
-    assert status == 202
-    assert payload["run_id"] == "fixed_run"
-    assert payload["status"] == "accepted"
-    manifest = config.storage_dir / "fixed_run" / "manifest.json"
-    assert manifest.is_file()
-    body = json.loads(manifest.read_text(encoding="utf-8"))
-    assert body == {"task": "demo", "run_id": "fixed_run"}
-
-
-def test_cloud_serve_health_requires_token(cloud_server) -> None:  # type: ignore[no-untyped-def]
-    _, _, port = cloud_server
-    req = urllib.request.Request(  # noqa: S310 - localhost
-        f"http://127.0.0.1:{port}/health",
-        headers={"Authorization": "Bearer secret"},
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
-        data = json.loads(resp.read().decode("utf-8"))
-    assert data == {"ok": True}
-
-
-def test_cloud_serve_refuses_non_loopback_without_cidr(tmp_path: Path) -> None:
-    config = CloudReceiverConfig(
-        host="0.0.0.0",  # noqa: S104 - intentional, we expect a guardrail
-        port=_free_port(),
-        storage_dir=tmp_path / "cloud-runs",
-    )
-    with pytest.raises(RuntimeError):
-        make_server(config)
-
-
-# ---------------------------------------------------------------------------
-# CLI wiring — chat export-block / cloud-serve / api-surface (REQ-140)
+# CLI wiring — chat export-block / api-surface (REQ-140)
 # ---------------------------------------------------------------------------
 
 
@@ -414,7 +304,6 @@ def test_cli_api_surface_emits_stable_keys(tmp_path: Path) -> None:
         "history",
         "chat",
         "chat-export-block",
-        "cloud-serve",
         "api-surface",
         "suggest-command",
     }
