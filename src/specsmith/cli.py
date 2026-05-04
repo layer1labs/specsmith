@@ -4344,6 +4344,31 @@ def phase_next(project_dir: str, force: bool) -> None:
         for cmd in next_phase.commands:
             console.print(f"    {cmd}")
 
+    # G3: keep the agents routing table aligned with the active phase.
+    # We pin a synthetic ``phase:active`` route so the runner can flip the
+    # whole session to the new phase’s preferred profile without the user
+    # having to run `specsmith agents route set` themselves.
+    try:
+        from specsmith.agent.profiles import ProfileStore
+
+        agents_store = ProfileStore.load()
+        if agents_store.profiles:
+            phase_key_target = f"phase:{phase.next_phase}"
+            target_id = agents_store.routes.get(phase_key_target) or (
+                agents_store.default_profile_id
+            )
+            if target_id and agents_store._index(target_id) is not None:
+                agents_store.set_route("phase:active", target_id)
+                # Make sure the canonical phase:<key> route is present too;
+                # adding a sensible default lets a fresh project route
+                # immediately on the very first ``phase next``.
+                if phase_key_target not in agents_store.routes:
+                    agents_store.set_route(phase_key_target, target_id)
+                agents_store.save()
+                console.print(f"  [dim]\u21bb agents route phase:active \u2192 {target_id}[/dim]")
+    except Exception:  # noqa: BLE001 — routing is opportunistic; never block phase advance
+        pass
+
 
 @phase_group.command(name="status")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
@@ -6836,29 +6861,46 @@ def agents_group() -> None:
 
 @agents_group.command(name="list")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--capability",
+    "capability",
+    default="",
+    help="Filter profiles whose capabilities list includes this value (G2).",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
-def agents_list(project_dir: str, as_json: bool) -> None:
+def agents_list(project_dir: str, capability: str, as_json: bool) -> None:
     """List every registered agent profile."""
     import json as _json
 
     from specsmith.agent.profiles import ProfileStore
 
     store = ProfileStore.load_for_project(project_dir)
+    profiles = (
+        store.filter_by_capability(capability) if capability.strip() else list(store.profiles)
+    )
     payload = {
         "default_profile_id": store.default_profile_id,
-        "profiles": [p.to_dict() for p in store.profiles],
+        "profiles": [p.to_dict() for p in profiles],
         "routes": dict(store.routes),
     }
+    if capability.strip():
+        payload["capability_filter"] = capability.strip()
     if as_json:
         click.echo(_json.dumps(payload, indent=2))
         return
-    if not store.profiles:
-        console.print(
-            "[dim]No agent profiles registered. "
-            "Run `specsmith agents preset apply default` to install the recommended set.[/dim]"
-        )
+    if not profiles:
+        if capability.strip():
+            console.print(
+                f"[dim]No profiles advertise capability {capability!r}.[/dim]",
+            )
+        else:
+            console.print(
+                "[dim]No agent profiles registered. "
+                "Run `specsmith agents preset apply default` to install "
+                "the recommended set.[/dim]",
+            )
         return
-    for p in store.profiles:
+    for p in profiles:
         marker = "*" if p.id == store.default_profile_id else " "
         chain = " \u2192 ".join(p.fallback_chain) if p.fallback_chain else "(no fallback)"
         endpoint = f" endpoint={p.endpoint_id}" if p.endpoint_id else ""
@@ -6909,6 +6951,11 @@ def agents_add(
         fallback_chain=list(fallback_chain),
     )
     store = ProfileStore.load()
+    # G1 diversity guard — warn on same-family coder/reviewer pairings *before*
+    # we touch the store so the user can still bail out by Ctrl+C-ing the next
+    # invocation. The warnings are non-fatal: governance still saves the
+    # profile, but we surface the cross-check risk so it's a deliberate choice.
+    diversity = store.diversity_warnings(candidate=profile)
     try:
         store.add(profile, replace=replace)
     except ProfileError as exc:
@@ -6918,11 +6965,18 @@ def agents_add(
         store.set_default(profile.id)
     store.save()
     if as_json:
-        click.echo(_json.dumps({"profile": profile.to_dict()}, indent=2))
+        click.echo(
+            _json.dumps(
+                {"profile": profile.to_dict(), "diversity_warnings": diversity},
+                indent=2,
+            )
+        )
         return
     console.print(f"[green]\u2713[/green] saved profile [bold]{profile.id}[/bold]")
     if store.default_profile_id == profile.id:
         console.print("  [dim]marked as default.[/dim]")
+    for warning in diversity:
+        console.print(f"  [yellow]\u26a0[/yellow] {warning}")
 
 
 @agents_group.command(name="remove")

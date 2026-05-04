@@ -277,6 +277,13 @@ class AgentRunner:
             self.profile_id = new_profile or None
             self._state.profile_id = new_profile
             self._emit_event(type="system", message=f"profile = {new_profile or '(default)'}")
+            # G4: pin the profile choice into the project trace vault so the
+            # decision “I explicitly asked for profile X here” is
+            # cryptographically chained into the audit trail. Best-effort:
+            # missing TraceVault dependency / read-only filesystem must not
+            # break the chat loop.
+            if new_profile:
+                self._seal_profile_pin(new_profile)
             return None
         if text.startswith("/endpoint "):
             new_endpoint = text.split(maxsplit=1)[1].strip()
@@ -321,14 +328,21 @@ class AgentRunner:
             )
             return None
 
-        # Aggregate metrics into the session state. ``run_chat`` does not
-        # currently surface token counts, so we credit zero — the field is
-        # still updated so the TokenMeter chip shows turn counts.
+        # Aggregate metrics into the session state (C1).
+        # ``run_chat`` now reports tokens_in / tokens_out / cost_usd off the
+        # provider response (Ollama prompt_eval_count + eval_count, OpenAI
+        # streaming usage, Anthropic final_message.usage, Gemini
+        # usage_metadata) with a 4-chars-per-token fallback when the SDK
+        # omits them. The TokenMeter chip therefore shows real numbers
+        # instead of staying pinned at zero.
+        tokens_in = int(getattr(result, "tokens_in", 0) or 0) if result is not None else 0
+        tokens_out = int(getattr(result, "tokens_out", 0) or 0) if result is not None else 0
+        cost_usd = float(getattr(result, "cost_usd", 0.0) or 0.0) if result is not None else 0.0
         self._state.credit(
             profile_id=(profile.id if profile is not None else self.profile_id or ""),
-            tokens_in=0,
-            tokens_out=0,
-            cost_usd=0.0,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cost_usd=cost_usd,
             tool_calls=0,
         )
         self._state.elapsed_minutes = round((time.time() - self._started_at) / 60.0, 2)
@@ -397,3 +411,24 @@ class AgentRunner:
             return _v("specsmith")
         except Exception:  # noqa: BLE001
             return "0.0.0"
+
+    def _seal_profile_pin(self, profile_id: str) -> None:
+        """Append a TraceVault decision seal recording the ``/agent`` pin (G4).
+
+        Wrapped in best-effort try/except so an unwriteable
+        ``.specsmith/trace.jsonl`` (read-only fs, missing project root, etc.)
+        never breaks the chat loop. The seal type is ``decision`` because
+        a profile pin is an explicit governance choice the user made.
+        """
+        try:
+            from specsmith.trace import SealType, TraceVault
+
+            vault = TraceVault(Path(self.project_dir))
+            vault.seal(
+                seal_type=SealType.DECISION,
+                description=f"agent profile pinned via /agent: {profile_id}",
+                author="runner",
+                artifact_ids=[f"profile:{profile_id}"],
+            )
+        except Exception:  # noqa: BLE001 — trace sealing is best-effort
+            return

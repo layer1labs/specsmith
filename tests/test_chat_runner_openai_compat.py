@@ -107,7 +107,10 @@ def test_openai_compat_streams_tokens(fake_chat_server: int) -> None:
         base_url=f"http://127.0.0.1:{port}/v1",
         default_model="fake-model",
     )
-    text = _run_openai_compat(
+    # C1: drivers now return ``(text, usage)`` so the runner can credit
+    # tokens against the AgentState. The legacy contract returned just
+    # ``text``; tests are unpacked here to match.
+    text, _usage = _run_openai_compat(
         [{"role": "user", "content": "hello"}], emitter, "block-1", endpoint=endpoint
     )
     assert text is not None
@@ -126,7 +129,7 @@ def test_openai_compat_returns_none_without_default_model(fake_chat_server: int)
         base_url=f"http://127.0.0.1:{port}/v1",
         default_model="",
     )
-    text = _run_openai_compat(
+    text, _usage = _run_openai_compat(
         [{"role": "user", "content": "hi"}], emitter, "block-1", endpoint=endpoint
     )
     assert text is None
@@ -143,7 +146,7 @@ def test_openai_compat_returns_none_when_unauthorised(fake_chat_server: int) -> 
         default_model="fake-model",
         auth=EndpointAuth(kind="bearer-inline", token="wrong-token"),
     )
-    text = _run_openai_compat(
+    text, _usage = _run_openai_compat(
         [{"role": "user", "content": "hi"}], emitter, "block-1", endpoint=endpoint
     )
     assert text is None
