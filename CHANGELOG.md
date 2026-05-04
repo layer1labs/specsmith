@@ -6,8 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+## [0.10.1] — 2026-05-04
+### Added — Multi-Agent + BYOE (rolled into the 0.10.x line)
+- **`AgentRunner` + ready event (REQ-145).** New `agent/runner.py` with `_print_banner()` emitting a JSONL `ready` event, slash-command dispatch (`/agent`, `/profile`, `/status`), `AgentState` metrics, and `_hard_stop` cleanup. `agent/core.py` adds the `ModelTier` enum.
+- **Agent profiles + activity routing (REQ-146).** `agent/profiles.py` (`Profile`, `ProfileStore`, `RoutingTable`), `agent/fallback.py` (transient-aware fallback chain with `FallbackAttempt` / `FallbackResult` dataclasses), `templates/agent-profiles.default.json` presets (default / local-only / frontier-only / cost-conscious), and a full `specsmith agents` CLI group (`list`, `add`, `remove`, `default`, `test`, `route`, `preset`). `--agent <id>` flag accepted on `chat`, `run`, and `serve`.
+- **Bring-Your-Own-Endpoint (REQ-142, BYOE 0.8.0).** Endpoints registry + openai-compat provider; `specsmith endpoints add/list/test/default/remove`.
+- **CLI JSON surfaces.** `specsmith phase show --json`, `specsmith mcp list/test/start/stop --json`, `specsmith rules list --json`, `specsmith notebook new <slug> [--from-run]` + `templates/notebook.md.j2`.
+- **`api-surface` CI guard.** New CI job diffs live `specsmith api-surface` output against `tests/fixtures/api_surface.json`.
+- **Diversity guard.** `ProfileStore.diversity_warnings` + `PROVIDER_FAMILIES` table warns when the reviewer/architect shares a provider family with the coder. CLI prints yellow warnings (non-fatal); `--json` output includes `diversity_warnings`.
+- **Capability filter.** `ProfileStore.filter_by_capability` + `specsmith agents list --capability <cap>` flag.
+- **Phase auto-routing.** `specsmith phase next` now auto-pins `phase:active` to the new phase's preferred profile and seeds `phase:<key>` if absent.
+- **TraceVault seal on `/agent`.** `runner._seal_profile_pin()` writes a `decision` seal into `.specsmith/trace.jsonl` whenever the in-chat `/agent <id>` command pins a profile.
+- **Real token cost threading.** Each provider driver now returns `(text, _UsageDelta)` with real token counts (Ollama `prompt_eval_count`+`eval_count`, Anthropic `final_message.usage`, OpenAI `stream_options.include_usage`, Gemini `usage_metadata`); 4-chars/token fallback. Counts flow into `ChatRunResult.tokens_in/out/cost_usd` and `AgentState.credit()`'s `by_profile` bucket.
+- **`tests/test_fallback_chain.py`** — 33 new tests covering parse_target, transient HTTPError 408/429/5xx + network errors, non-transient 4xx + RuntimeError, blank-target skip, on_attempt callback resilience.
+- **Docs.** `docs/site/agents.md` (preset → route → per-session → BYOE walkthrough), `docs/site/quickstart.md` reproduction script, README "0.10.0 — Multi-Agent + BYOE" elevator pitch.
+- **`.pre-commit-config.yaml`** with ruff + ruff-format + pre-commit-hooks.
 ### Removed
 - **Cloud Runs feature retired.** `specsmith cloud spawn`, `specsmith cloud-serve`, `src/specsmith/cloud_serve.py`, `docs/site/cloud-agents.md`, the `.specsmith/cloud/` storage convention, and all related tests/fixtures have been removed. The deferred REQ-126/REQ-136 cloud-agent surface is no longer part of the 1.0 contract.
+### Changed
+- `pyproject.toml` version bumped from 0.7.0 to 0.10.1; `src/specsmith/__init__.py` fallback `__version__` updated to match.
+### Validation
+- `pytest`: **448 passed, 1 skipped**.
+- `ruff`: clean.
+- `api-surface` snapshot: matches fixture.
 ## [0.7.0] — 2026-04-30
 ### Added
 - **`specsmith serve --auth-token` (REQ-137).** Optional bearer-token gate on every `/api/*` endpoint. `/api/health` stays open so liveness probes still work behind a load balancer that strips `Authorization`. New `make_server()` factory in `src/specsmith/serve.py` exposes a fully wired server for tests; `run_server()` adds the banner + `serve_forever` loop. `_Handler._authorize()` enforces `Authorization: Bearer <token>` on `do_GET`, `do_POST`, and `do_DELETE`.
