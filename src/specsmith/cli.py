@@ -2806,6 +2806,16 @@ def run_cmd(
         "liveness probes still work."
     ),
 )
+@click.option(
+    "--endpoint",
+    "endpoint_id",
+    default="",
+    help=(
+        "Route turns through a registered BYOE endpoint (REQ-142). When set, "
+        "the resolved endpoint's base_url, default model, and bearer token "
+        "override --provider / --model for OpenAI-v1-compatible backends."
+    ),
+)
 def serve_cmd(
     project_dir: str,
     provider: str,
@@ -2813,6 +2823,7 @@ def serve_cmd(
     port: int,
     host: str,
     auth_token: str,
+    endpoint_id: str,
 ) -> None:
     """Start a persistent HTTP server for agent sessions.
 
@@ -2824,12 +2835,34 @@ def serve_cmd(
       specsmith serve --port 8421 --provider ollama --model qwen2.5:14b \
         --auth-token $(specsmith auth get serve)
     """
+    import os
+
     from specsmith.serve import run_server
+
+    # REQ-142: when --endpoint is given, derive provider+model from the
+    # endpoint registry so the serve loop can hand off to the OpenAI-compat
+    # driver in chat_runner. The bridge surfaces the original --provider
+    # value as a fallback when the endpoint can't be resolved.
+    effective_provider = provider
+    effective_model = model
+    if endpoint_id:
+        try:
+            from specsmith.agent.endpoints import EndpointStore
+
+            resolved = EndpointStore.load().resolve(endpoint_id)
+            effective_provider = "openai-compat"
+            effective_model = resolved.default_model or model
+            os.environ["SPECSMITH_ACTIVE_ENDPOINT"] = resolved.id
+        except Exception as exc:  # noqa: BLE001
+            console.print(
+                f"[yellow]Warning:[/yellow] could not resolve endpoint "
+                f"{endpoint_id!r}: {exc}. Falling back to --provider {provider}."
+            )
 
     run_server(
         project_dir=project_dir,
-        provider=provider,
-        model=model,
+        provider=effective_provider,
+        model=effective_model,
         port=port,
         host=host,
         auth_token=auth_token,
@@ -4562,6 +4595,332 @@ def voice_status_cmd() -> None:
 
 
 # ---------------------------------------------------------------------------
+# specsmith endpoints — Bring-Your-Own-Endpoint store (REQ-142)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="endpoints")
+def endpoints_group() -> None:
+    """Manage OpenAI-v1-compatible LLM endpoints (REQ-142).
+
+    Lets you register one or more self-hosted backends (vLLM, llama.cpp
+    server, LM Studio, TGI, ...) and pick between them per session via
+    ``--endpoint <id>`` on ``specsmith run`` / ``chat`` / ``serve``.
+    Stored at ``~/.specsmith/endpoints.json``; tokens default to the OS
+    keyring.
+    """
+
+
+def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
+    return override.strip() or f"endpoint:{endpoint_id}"
+
+
+@endpoints_group.command(name="add")
+@click.option("--id", "endpoint_id", required=True, help="Stable identifier (no whitespace).")
+@click.option("--name", default="", help="Human-readable display name (defaults to id).")
+@click.option(
+    "--base-url", "base_url", required=True, help="OpenAI-v1 base URL, e.g. http://10.0.0.4:8000/v1"
+)
+@click.option("--default-model", default="", help="Optional default model id.")
+@click.option(
+    "--auth",
+    "auth_kind",
+    type=click.Choice(
+        list(
+            __import__("specsmith.agent.endpoints", fromlist=["VALID_AUTH_KINDS"]).VALID_AUTH_KINDS
+        )
+    ),
+    default="none",
+    show_default=True,
+    help="Auth strategy: none / bearer-inline / bearer-env / bearer-keyring.",
+)
+@click.option("--token", default="", help="Inline bearer token (only with --auth bearer-inline).")
+@click.option("--token-env", default="", help="Env var name (only with --auth bearer-env).")
+@click.option(
+    "--keyring-service", default="", help="Override the keyring service (default: 'specsmith')."
+)
+@click.option(
+    "--keyring-user", default="", help="Override the keyring user (default: 'endpoint:<id>')."
+)
+@click.option(
+    "--no-verify-tls",
+    is_flag=True,
+    default=False,
+    help="Disable TLS certificate verification for this endpoint (insecure).",
+)
+@click.option("--tag", "tags", multiple=True, help="Optional free-form tag (repeatable).")
+@click.option(
+    "--replace",
+    is_flag=True,
+    default=False,
+    help="Overwrite an existing endpoint with the same id.",
+)
+@click.option(
+    "--set-default",
+    is_flag=True,
+    default=False,
+    help="After saving, mark this endpoint as the default.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def endpoints_add(
+    endpoint_id: str,
+    name: str,
+    base_url: str,
+    default_model: str,
+    auth_kind: str,
+    token: str,
+    token_env: str,
+    keyring_service: str,
+    keyring_user: str,
+    no_verify_tls: bool,
+    tags: tuple[str, ...],
+    replace: bool,
+    set_default: bool,
+    as_json: bool,
+) -> None:
+    """Register a new endpoint in ``~/.specsmith/endpoints.json``.
+
+    For ``--auth bearer-keyring`` the token is prompted for (no echo) and
+    stored in the OS keyring via the existing :mod:`keyring` integration;
+    nothing secret lands in the JSON itself.
+    """
+    import json as _json
+
+    from specsmith.agent.endpoints import (
+        DEFAULT_KEYRING_SERVICE,
+        Endpoint,
+        EndpointAuth,
+        EndpointError,
+        EndpointStore,
+    )
+
+    auth_token = token
+    if auth_kind == "bearer-keyring" and not token:
+        try:
+            auth_token = click.prompt(
+                f"Token for endpoint {endpoint_id!r} (will be stored in OS keyring)",
+                hide_input=True,
+                confirmation_prompt=False,
+                default="",
+                show_default=False,
+            )
+        except click.Abort as exc:  # pragma: no cover - interactive abort
+            raise SystemExit(2) from exc
+        if not auth_token:
+            console.print("[red]Refusing to store an empty keyring token.[/red]")
+            raise SystemExit(2)
+
+    auth = EndpointAuth(
+        kind=auth_kind,
+        token=auth_token if auth_kind == "bearer-inline" else "",
+        token_env=token_env,
+        keyring_service=keyring_service or DEFAULT_KEYRING_SERVICE,
+        keyring_user=_resolve_keyring_user(endpoint_id, keyring_user)
+        if auth_kind == "bearer-keyring"
+        else keyring_user,
+    )
+    endpoint = Endpoint(
+        id=endpoint_id.strip(),
+        name=name.strip() or endpoint_id.strip(),
+        base_url=base_url.strip(),
+        auth=auth,
+        default_model=default_model.strip(),
+        verify_tls=not no_verify_tls,
+        tags=list(tags),
+    )
+
+    store = EndpointStore.load()
+    try:
+        store.add(endpoint, replace=replace)
+    except EndpointError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(2) from exc
+
+    if auth_kind == "bearer-keyring":
+        try:
+            import keyring  # type: ignore[import-not-found]
+
+            keyring.set_password(auth.keyring_service, auth.keyring_user, auth_token)
+        except Exception as exc:  # noqa: BLE001
+            console.print(
+                f"[yellow]Warning:[/yellow] keyring write failed ({exc}). "
+                "Endpoint metadata saved, but the token was not stored."
+            )
+
+    if set_default:
+        store.set_default(endpoint.id)
+    store.save()
+
+    public = endpoint.to_public_dict()
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {"endpoint": public, "default": store.default_endpoint_id},
+                indent=2,
+            )
+        )
+        return
+    console.print(
+        f"[green]\u2713[/green] saved endpoint [bold]{endpoint.id}[/bold] "
+        f"({endpoint.base_url}, auth={auth_kind})"
+    )
+    if store.default_endpoint_id == endpoint.id:
+        console.print("  [dim]marked as default.[/dim]")
+
+
+@endpoints_group.command(name="list")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def endpoints_list(as_json: bool) -> None:
+    """List every registered endpoint (tokens are redacted)."""
+    import json as _json
+
+    from specsmith.agent.endpoints import EndpointStore
+
+    store = EndpointStore.load()
+    items = store.list_public()
+    payload = {"default_endpoint_id": store.default_endpoint_id, "endpoints": items}
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    if not items:
+        console.print("[dim]No endpoints registered. Run `specsmith endpoints add ...`.[/dim]")
+        return
+    for item in items:
+        marker = "*" if item["id"] == store.default_endpoint_id else " "
+        console.print(
+            f"{marker} [bold]{item['id']}[/bold]  {item['base_url']}  "
+            f"[dim]auth={item['auth']['kind']}, model={item['default_model'] or '-'}[/dim]"
+        )
+
+
+@endpoints_group.command(name="remove")
+@click.argument("endpoint_id")
+@click.option(
+    "--purge-keyring",
+    is_flag=True,
+    default=False,
+    help="Also delete the bearer-keyring entry for this endpoint.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def endpoints_remove(endpoint_id: str, purge_keyring: bool, as_json: bool) -> None:
+    """Remove an endpoint by id. Exits 1 if the id is unknown."""
+    import json as _json
+
+    from specsmith.agent.endpoints import EndpointStore
+
+    store = EndpointStore.load()
+    target = store.get(endpoint_id) if store._index(endpoint_id) is not None else None
+    removed = store.remove(endpoint_id)
+    if not removed:
+        console.print(f"[red]unknown endpoint id {endpoint_id!r}[/red]")
+        raise SystemExit(1)
+    if purge_keyring and target is not None and target.auth.kind == "bearer-keyring":
+        try:
+            import keyring  # type: ignore[import-not-found]
+
+            keyring.delete_password(target.auth.keyring_service, target.auth.keyring_user)
+        except Exception:  # noqa: BLE001
+            pass
+    store.save()
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {"removed": endpoint_id, "default_endpoint_id": store.default_endpoint_id},
+                indent=2,
+            )
+        )
+        return
+    console.print(f"[green]\u2713[/green] removed endpoint {endpoint_id!r}")
+
+
+@endpoints_group.command(name="default")
+@click.argument("endpoint_id")
+def endpoints_default(endpoint_id: str) -> None:
+    """Mark an existing endpoint as the default for unqualified runs."""
+    from specsmith.agent.endpoints import EndpointError, EndpointStore
+
+    store = EndpointStore.load()
+    try:
+        store.set_default(endpoint_id)
+    except EndpointError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    store.save()
+    console.print(f"[green]\u2713[/green] default endpoint = {endpoint_id!r}")
+
+
+@endpoints_group.command(name="test")
+@click.argument("endpoint_id", required=False, default="")
+@click.option("--timeout", type=float, default=5.0, help="Request timeout in seconds.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def endpoints_test(endpoint_id: str, timeout: float, as_json: bool) -> None:
+    """Probe ENDPOINT_ID's /models route. Defaults to the default endpoint."""
+    import json as _json
+
+    from specsmith.agent.endpoints import EndpointError, EndpointStore
+
+    store = EndpointStore.load()
+    try:
+        endpoint = store.resolve(endpoint_id or None)
+    except EndpointError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    health = endpoint.health(timeout=timeout)
+    if as_json:
+        click.echo(_json.dumps({"id": endpoint.id, **health.to_dict()}, indent=2))
+    else:
+        if health.ok:
+            console.print(
+                f"[green]\u2713[/green] {endpoint.id} ok in "
+                f"{int(health.latency_ms)} ms ({len(health.models)} models)"
+            )
+            for model in health.models[:5]:
+                console.print(f"    [dim]\u2022 {model}[/dim]")
+            if len(health.models) > 5:
+                console.print(f"    [dim]... +{len(health.models) - 5} more[/dim]")
+        else:
+            console.print(f"[red]\u2717[/red] {endpoint.id} failed: {health.error}")
+    if not health.ok:
+        raise SystemExit(1)
+
+
+@endpoints_group.command(name="models")
+@click.argument("endpoint_id", required=False, default="")
+@click.option("--timeout", type=float, default=5.0, help="Request timeout in seconds.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def endpoints_models(endpoint_id: str, timeout: float, as_json: bool) -> None:
+    """List every model the endpoint advertises via /v1/models."""
+    import json as _json
+
+    from specsmith.agent.endpoints import EndpointError, EndpointStore
+
+    store = EndpointStore.load()
+    try:
+        endpoint = store.resolve(endpoint_id or None)
+    except EndpointError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    health = endpoint.health(timeout=timeout)
+    if not health.ok:
+        if as_json:
+            click.echo(_json.dumps({"id": endpoint.id, "error": health.error}, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {endpoint.id} failed: {health.error}")
+        raise SystemExit(1)
+    if as_json:
+        click.echo(_json.dumps({"id": endpoint.id, "models": health.models}, indent=2))
+        return
+    if not health.models:
+        console.print(f"[yellow]\u2014[/yellow] {endpoint.id} returned no models.")
+        return
+    for model in health.models:
+        console.print(model)
+
+
+main.add_command(endpoints_group)
+
+
+# ---------------------------------------------------------------------------
 # specsmith cloud spawn — client side of the receiver (REQ-136)
 # ---------------------------------------------------------------------------
 
@@ -5555,6 +5914,16 @@ main.add_command(index_group)
     default=120.0,
     help="Seconds to wait for a stdin decision before falling back to deny.",
 )
+@click.option(
+    "--endpoint",
+    "endpoint_id",
+    default="",
+    help=(
+        "Route the LLM turn to a registered BYOE endpoint (REQ-142). "
+        "See `specsmith endpoints add ...`. When empty, falls back to the "
+        "auto-detect provider chain (Ollama / Anthropic / OpenAI / Gemini)."
+    ),
+)
 def chat_cmd(
     utterance: str,
     project_dir: str,
@@ -5565,6 +5934,7 @@ def chat_cmd(
     json_events: bool,
     interactive: bool,
     decision_timeout: float,
+    endpoint_id: str,
 ) -> None:
     """Run a single chat turn, streaming JSONL block events to stdout.
 
@@ -5717,6 +6087,7 @@ def chat_cmd(
                 msg_block=msg_block,
                 history=history,
                 rules_prefix=rules_prefix,
+                endpoint_id=endpoint_id or None,
             )
         except Exception:  # noqa: BLE001 - real chat is best-effort
             real_result = None

@@ -80,10 +80,34 @@ def run_chat(
     history: list[dict[str, Any]] | None = None,
     confidence_target: float = 0.7,
     rules_prefix: str = "",
+    endpoint_id: str | None = None,
 ) -> ChatRunResult | None:
-    """Drive a real LLM turn. Return ``None`` if no provider is reachable."""
+    """Drive a real LLM turn. Return ``None`` if no provider is reachable.
+
+    When ``endpoint_id`` is set, the BYOE store (REQ-142) is consulted and
+    the resolved :class:`Endpoint` short-circuits the provider chain via
+    the new :func:`_run_openai_compat` driver. Any error during endpoint
+    resolution falls back to the legacy auto-detect chain so an offline
+    misconfigured endpoint never breaks `specsmith chat`.
+    """
     history = history or []
     messages = _build_messages(utterance, history, rules_prefix)
+
+    # REQ-142: explicit endpoint override.
+    if endpoint_id:
+        try:
+            from specsmith.agent.endpoints import EndpointStore
+
+            endpoint = EndpointStore.load().resolve(endpoint_id)
+        except Exception:  # noqa: BLE001 - any failure → fall back to auto-detect
+            endpoint = None
+        if endpoint is not None:
+            try:
+                full_text = _run_openai_compat(messages, emitter, msg_block, endpoint=endpoint)
+            except Exception:  # noqa: BLE001 - degrade to auto-detect
+                full_text = None
+            if full_text is not None:
+                return _finalize(full_text, "openai_compat", project_dir, confidence_target)
 
     # Order matters: Ollama first because it's local-first and free.
     for provider in (_run_ollama, _run_anthropic, _run_openai, _run_gemini):
@@ -225,6 +249,79 @@ def _run_openai(
         if text:
             emitter.token(block_id, text)
             pieces.append(text)
+    return "".join(pieces) if pieces else None
+
+
+def _run_openai_compat(
+    messages: list[dict[str, str]],
+    emitter: EventEmitter,
+    block_id: str,
+    *,
+    endpoint: Any,
+) -> str | None:
+    """Stream from a user-registered OpenAI-v1-compatible endpoint (REQ-142).
+
+    Uses raw stdlib HTTP so the openai SDK is not a hard dependency for
+    BYOE. Sends a streaming ``/chat/completions`` request, decodes the
+    Server-Sent-Events ``data:`` lines, and forwards each ``content``
+    delta as a ``token`` event on ``block_id``.
+    """
+    base_url = endpoint.base_url.rstrip("/")
+    url = f"{base_url}/chat/completions"
+    model = endpoint.default_model or os.environ.get("SPECSMITH_OPENAI_COMPAT_MODEL", "")
+    if not model:
+        # The endpoint did not pin a default model and the env override is
+        # absent. We cannot fabricate one; fall back to the auto-detect chain.
+        return None
+
+    headers: dict[str, str] = {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+    }
+    try:
+        token = endpoint.resolve_token()
+    except Exception:  # noqa: BLE001 - fall back to auto-detect chain
+        return None
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    body = json.dumps({"model": model, "messages": messages, "stream": True}).encode("utf-8")
+    req = Request(url, data=body, headers=headers, method="POST")  # noqa: S310 - user-supplied
+
+    ctx = None
+    if not endpoint.verify_tls and url.startswith("https://"):
+        import ssl
+
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+    pieces: list[str] = []
+    try:
+        with urlopen(req, timeout=120, context=ctx) as resp:  # noqa: S310 - user-supplied
+            for raw_line in resp:
+                line = raw_line.decode("utf-8", errors="replace").rstrip("\n\r")
+                if not line.startswith("data:"):
+                    continue
+                payload = line[len("data:") :].strip()
+                if not payload or payload == "[DONE]":
+                    if payload == "[DONE]":
+                        break
+                    continue
+                try:
+                    obj = json.loads(payload)
+                except ValueError:
+                    continue
+                choices = obj.get("choices") or []
+                if not choices:
+                    continue
+                delta = (choices[0] or {}).get("delta") or {}
+                chunk = str(delta.get("content") or "")
+                if chunk:
+                    emitter.token(block_id, chunk)
+                    pieces.append(chunk)
+    except (URLError, TimeoutError, OSError):
+        return None
     return "".join(pieces) if pieces else None
 
 
