@@ -233,6 +233,34 @@ installed model list before spawning the session.
 
 ---
 
+## Multi-Agent + BYOE Surfaces (0.10.0)
+The extension exposes the CLI's `agents` (REQ-146) and `endpoints` (REQ-142)
+stores as two sidebar trees plus eight Command Palette entries. Each
+command shells out to `specsmith <subcommand> --json` so the on-disk
+schema lives in exactly one place.
+### Sidebar trees
+- **BYOE Endpoints** (`specsmith.endpoints` view) — every entry from
+  `~/.specsmith/endpoints.json`; the entry marked `★` is the default.
+- **Agent Profiles** (`specsmith.agents` view) — grouped under *Profiles*
+  (with `★` on the default) and *Routes* (`activity → profile_id`).
+### Commands
+| Command palette                                  | Action                                                                |
+|--------------------------------------------------|------------------------------------------------------------------------|
+| `specsmith: BYOE Endpoints…`                     | Quick Pick over endpoints with copy-id / set-default / test actions.   |
+| `specsmith: Test BYOE Endpoint`                  | Probes `/v1/models`; toast shows latency + model count.                |
+| `specsmith: Refresh BYOE Endpoints`              | Re-runs `specsmith endpoints list --json` and refreshes the tree.      |
+| `specsmith: Agent Profiles…`                     | Quick Pick over profiles; copy id, set default, route to activity.     |
+| `specsmith: Test Agent Profile`                  | Probes the resolved provider / endpoint and shows reachability.        |
+| `specsmith: Refresh Agent Profiles`              | Re-runs `specsmith agents list --json` and refreshes the tree.         |
+| `specsmith: Apply Agent Preset (default / local-only / frontier-only / cost-conscious)` | Runs `specsmith agents preset apply <name>`.                           |
+| `specsmith: Route Activity to Agent Profile`     | Picks an activity (`/plan`, `/fix`, `phase:requirements`, …) and a profile, then runs `specsmith agents route set`. |
+| `specsmith: Pick Session Profile`                | Per-session pin for the active SessionPanel; appends `--agent <id>` to the bridge invocation. |
+The SessionPanel header chip surfaces the resolved profile + endpoint for
+the current turn; click it to open the picker without leaving the chat.
+### `/agent <id>` from chat
+Typing `/agent opus-reviewer` in the chat input flips the active session
+to the named profile and writes a TraceVault decision seal so the change
+is chained into `.specsmith/trace.jsonl`.
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

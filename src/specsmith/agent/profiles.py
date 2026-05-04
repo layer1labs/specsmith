@@ -56,6 +56,33 @@ VALID_ROLES = (
     "generalist",
 )
 
+# Provider “family” groupings used by the diversity guard (G1). Profiles in
+# the same family are likely to share training data, system prompt biases,
+# and hallucination patterns — so pairing the coder with a reviewer in the
+# same family defeats the cross-check the reviewer is meant to provide.
+#
+# Anything not listed here is treated as its own family.
+PROVIDER_FAMILIES: dict[str, str] = {
+    "anthropic": "anthropic",
+    "openai": "openai",
+    "openai-compat": "openai",
+    "azure-openai": "openai",
+    "gemini": "google",
+    "google": "google",
+    "google-genai": "google",
+    "mistral": "mistral",
+    "ollama": "ollama",
+    "llamacpp": "ollama",
+    "vllm": "ollama",
+    "lmstudio": "ollama",
+}
+
+
+def provider_family(provider: str) -> str:
+    """Return the family name for ``provider`` (or the provider verbatim)."""
+    key = (provider or "").strip().lower()
+    return PROVIDER_FAMILIES.get(key, key or "unknown")
+
 
 # Default presets shipped with the CLI so a fresh install Just Works.
 # The exact model strings can be customised per-deployment via
@@ -493,7 +520,64 @@ class ProfileStore:
     def list_all(self) -> list[Profile]:
         return list(self.profiles)
 
-    # ── Routing ───────────────────────────────────────────────────────
+    def filter_by_capability(self, capability: str) -> list[Profile]:
+        """Return profiles whose ``capabilities`` list contains ``capability``.
+
+        Matching is case-insensitive and trims whitespace. An empty
+        ``capability`` argument returns ``[]`` rather than “everything” so
+        callers can distinguish “no filter” (don’t call this method) from
+        “filter for an empty value” (which is never meaningful).
+        """
+        needle = (capability or "").strip().lower()
+        if not needle:
+            return []
+        return [
+            p
+            for p in self.profiles
+            if any(needle == str(c).strip().lower() for c in p.capabilities)
+        ]
+
+    def diversity_warnings(self, *, candidate: Profile | None = None) -> list[str]:
+        """Return a list of plain-English diversity warnings for the store.
+
+        The reviewer profile exists to cross-check the coder; if both call
+        the same provider family the cross-check is degenerate. Same logic
+        applies to architect vs. reviewer (both should be skeptical of the
+        coder). When ``candidate`` is supplied the candidate is added to
+        the population *and* takes precedence over any same-id profile
+        already in the store, so a `specsmith agents add` invocation can
+        preview the warnings *before* writing the store.
+        """
+        population: dict[str, Profile] = {p.id: p for p in self.profiles}
+        if candidate is not None:
+            population[candidate.id] = candidate
+        by_role: dict[str, list[Profile]] = {}
+        for p in population.values():
+            by_role.setdefault(p.role, []).append(p)
+
+        warnings: list[str] = []
+        for left_role, right_role in (
+            ("coder", "reviewer"),
+            ("architect", "reviewer"),
+        ):
+            left = by_role.get(left_role) or []
+            right = by_role.get(right_role) or []
+            if not left or not right:
+                continue
+            for lp in left:
+                lf = provider_family(lp.provider)
+                for rp in right:
+                    if provider_family(rp.provider) == lf:
+                        warnings.append(
+                            f"{rp.id} ({rp.role}, {rp.provider}/{rp.model}) "
+                            f"shares the {lf!r} family with "
+                            f"{lp.id} ({lp.role}, {lp.provider}/{lp.model}); "
+                            "diversity is recommended so the reviewer can catch "
+                            "the coder's blind spots."
+                        )
+        return warnings
+
+    # ── Routing ─────────────────────────────────────────────────
 
     def set_route(self, activity: str, profile_id: str) -> None:
         activity = activity.strip()
@@ -558,6 +642,7 @@ def apply_preset(name: str, *, path: Path | None = None) -> ProfileStore:
 
 __all__ = [
     "DEFAULT_PRESETS",
+    "PROVIDER_FAMILIES",
     "Profile",
     "ProfileError",
     "ProfileStore",
@@ -566,4 +651,5 @@ __all__ = [
     "apply_preset",
     "default_store_path",
     "project_store_path",
+    "provider_family",
 ]

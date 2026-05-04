@@ -16,6 +16,25 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
+**0.10.0 — Multi-Agent + BYOE.** A `/plan` goes to the architect, `/fix`
+goes to the coder, `/review` goes to a reviewer that runs on a different
+model family. Each *profile* is a `(provider, model, endpoint?, fallback_chain)`
+bundle stored in `~/.specsmith/agents.json`; an *activity routing table*
+maps slash commands and AEE phases to profiles; **BYOE endpoints**
+(`~/.specsmith/endpoints.json`) let you point a profile at any
+OpenAI-v1-compatible backend you self-host (vLLM, llama.cpp `server`,
+LM Studio, TGI, ...). Cross-family **diversity guard**, capability
+filtering, transient-failure fallback chains, and TraceVault decision
+seals on every `/agent` pin are wired in by default. See
+[`docs/site/agents.md`](docs/site/agents.md) for the five-minute walkthrough.
+
+```bash
+specsmith agents preset apply default       # frontier coder + cross-family reviewer
+specsmith endpoints add --id home-vllm \
+  --base-url http://10.0.0.4:8000/v1 --auth bearer-keyring
+specsmith run --agent opus-reviewer         # one-shot per-session pin
+```
+
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
 
 ```python
