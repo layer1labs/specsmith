@@ -55,6 +55,21 @@ All proposals MUST state their epistemic boundaries. A proposal without explicit
 
 Hidden assumptions are not acceptable. Declare all epistemic boundaries in the `Assumptions:` field of every proposal.
 
+### H14 — Documentation Freshness Required
+Whenever a user-facing command, CLI option, or behaviour is added, changed, or removed, the
+agent MUST update the relevant documentation in the **same work cycle** — not in a follow-up:
+
+- **README.md** — if the change affects user-visible CLI behaviour, quick-start examples,
+  or the feature list
+- **docs/site/** pages — specifically `commands.md` when any command is added or changed;
+  `governance.md` / `configuration.md` when governance model changes
+- **CHANGELOG.md** — always, for any user-facing change, following Keep a Changelog format
+
+This rule exists because you, the agent, are the only one maintaining these files.
+The human operator will never need to read a README file or touch RTD pages — specsmith
+must keep them current automatically. Failure to update documentation is a H7 violation
+(undocumented state change) and a stop condition.
+
 ---
 
 ## Stop Conditions

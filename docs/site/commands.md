@@ -48,23 +48,17 @@ specsmith verify --diff change.patch --tests test-results.json --logs run.log
 
 **Exit codes (REQ-097):** `0` when equilibrium is reached and confidence \u2265 the configured threshold; `2` when retry is recommended; `3` when stop-and-align is required.
 
-## Nexus REPL
+## Agentic REPL (`specsmith run`)
 
 ```bash
-specsmith run                                       # AEE-integrated REPL
-# or, with the experimental Nexus REPL surface:
-python -m specsmith.agent.repl
-
-nexus> what does the cleanup module do?             # read-only ask -> answered
-nexus> fix the cleanup dry-run regression            # change -> Specsmith approves, runs
-nexus> delete the entire dist directory              # destructive -> needs clarification
-nexus> /why                                          # toggle governance details on/off
-nexus> /show-governance                              # alias for /why
-nexus> /plan add a new validator command             # plan-only mode
-nexus> /exit
+specsmith run                            # AEE-integrated REPL (auto-detects provider)
+specsmith run --provider ollama          # force local Ollama
+specsmith run --task "fix lint errors"  # non-interactive single task
 ```
 
-The Nexus broker classifies intent, infers scope from `REQUIREMENTS.md` and `.repo-index/files.json`, calls `specsmith preflight`, and gates execution: only `accepted` decisions reach the AG2 orchestrator (REQ-086). Execution itself runs through the bounded-retry harness (REQ-014, REQ-087); when retries are exhausted, the harness surfaces a single clarifying question whose `Suggested next step:` field maps the failure to one of the canonical retry strategies (REQ-096). Toggle `/why` to reveal the underlying `work_item_id`, `requirement_ids`, `test_case_ids`, post-run confidence, and equilibrium flag (REQ-094).
+The broker classifies intent, infers scope from `docs/REQUIREMENTS.md`, calls `specsmith
+preflight`, and gates execution: only `accepted` decisions proceed. Toggle `/why` in the REPL
+to reveal the underlying `work_item_id`, `requirement_ids`, and `test_case_ids` Specsmith assigned.
 ## `specsmith chat`
 
 Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients (e.g. the VS Code extension's `ChatPanel`).
@@ -157,6 +151,59 @@ specsmith import --project-dir ./my-project --guided
 **Merge behavior:** Import only generates files that don't already exist. This means you can safely run `import` on a project that already has a hand-crafted AGENTS.md — it will add the missing pieces (scaffold.yml, docs/governance/, REQUIREMENTS.md) without touching what's already there.
 
 **Detection:** Language (by file extension counts), build system (pyproject.toml, Cargo.toml, etc.), test framework, CI platform, VCS remote, modules, entry points, test files, existing governance. See [Importing Projects](importing.md) for full details.
+
+## `specsmith sync`
+
+Sync `.specsmith/` machine-state JSON from `docs/` Markdown (REQ-003).
+
+```bash
+specsmith sync                            # regenerate requirements.json + testcases.json
+specsmith sync --check                    # CI: exit 1 if out of sync, no writes
+specsmith sync --json                     # emit result as JSON
+```
+
+Markdown files in `docs/` are always the source of truth; the JSON files are a derived cache
+that tools like `preflight` and `verify` read for fast machine-state lookup. Run `sync` after
+any edit to `docs/REQUIREMENTS.md` or `docs/TESTS.md`.
+
+## `specsmith governance-serve`
+
+Start the governance REST API server for Kairos (REQ-001 Kairos side).
+
+```bash
+specsmith governance-serve --port 7700   # default port for Kairos integration
+specsmith governance-serve --port 7700 --project-dir ./my-project
+```
+
+Endpoints:
+- `GET  /health`    — liveness probe; returns `{"status": "ok", "version": "..."}`
+- `POST /preflight` — governance gate; returns a PreflightDecision JSON
+- `POST /verify`    — post-change verification; returns a VerifyResult JSON
+
+This is **separate** from `specsmith serve` (port 8421, chat/SSE for IDE clients). Architecture
+invariant I2 enforced: host must be localhost (127.0.0.1 / ::1). External hosts are rejected.
+
+## `specsmith agent permissions`
+
+Show the active least-privilege permission profile for this project (REG-012).
+
+```bash
+specsmith agent permissions                  # human-readable profile
+specsmith agent permissions --json           # JSON summary
+specsmith agent permissions-check git_push   # check specific tool (exit 0=ok, 3=denied)
+specsmith agent permissions-check git_push --no-log  # dry-run, no ledger write
+```
+
+Configure in `docs/SPECSMITH.yml`:
+```yaml
+agent:
+  permissions:
+    preset: standard       # read_only | standard | extended | admin
+    allow: [read_file, write_file, run_shell, git_status, git_diff]
+    deny:  [git_commit, git_push, git_create_pr, open_url]
+```
+
+Denied tool attempts are logged to `docs/LEDGER.md` as `permission-denied` entries (REG-012 audit trail).
 
 ## `specsmith audit`
 
@@ -395,12 +442,12 @@ specsmith push --force
 
 - `--force` — Skip branch-protection checks.
 
-## `specsmith sync`
+## `specsmith pull`
 
 Pull latest and warn about governance conflicts.
 
 ```bash
-specsmith sync --project-dir ./my-project
+specsmith pull --project-dir ./my-project
 ```
 
 Runs `git pull` and checks for conflicts in governance files (AGENTS.md, LEDGER.md, docs/governance/*).

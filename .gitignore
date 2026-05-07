@@ -38,7 +38,24 @@ tmp/
 temp/
 *.log
 
-# Secrets and local-only Nexus artifacts
+# Secrets and local-only artifacts
 .env
 .repo-index/
+
+# .specsmith/ split: committed (audit chain) vs gitignored (runtime cache)
+# Keep committed: trace.jsonl, ledger-chain.txt, config.yml,
+#                 requirements.json, testcases.json (snapshot of docs/)
+# Gitignore: runtime-only volatile files
+.specsmith/workitems.json
+.specsmith/runs/
+.specsmith/chat/
+.specsmith/perf/
+.specsmith/recovery/
+.specsmith/ledger.jsonl
+.specsmith/pids/
+.specsmith/logs/
+.specsmith/sessions/
+.specsmith/credits.json
+.specsmith/model-rate-limits.json
+.specsmith/agent-reports/
 

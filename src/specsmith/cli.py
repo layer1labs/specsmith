@@ -2182,10 +2182,10 @@ def pr_cmd(project_dir: str, title: str, draft: bool) -> None:
         console.print(f"[red]\u2717[/red] {result.message}")
 
 
-@main.command(name="sync")
+@main.command(name="pull")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def sync_cmd(project_dir: str) -> None:
-    """Pull latest and check for governance conflicts."""
+def pull_cmd(project_dir: str) -> None:
+    """Pull latest changes and check for governance conflicts."""
     from specsmith.vcs_commands import run_sync
 
     result = run_sync(Path(project_dir).resolve())
@@ -4757,6 +4757,92 @@ def info_cmd(as_json: bool, section: str) -> None:
 
     if as_json:
         console.print(json_mod.dumps(result, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# specsmith sync — machine state sync (REQ-003)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="sync")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--check",
+    "check_only",
+    is_flag=True,
+    default=False,
+    help=(
+        "Dry-run: report whether .specsmith/ JSON is in sync with docs/ Markdown "
+        "without writing anything. Exits 1 if out of sync (useful for CI)."
+    ),
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the sync result as JSON.",
+)
+def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
+    """Sync .specsmith/ machine state from docs/ Markdown (REQ-003).
+
+    Regenerates .specsmith/requirements.json from docs/REQUIREMENTS.md and
+    .specsmith/testcases.json from docs/TESTS.md. The Markdown files are
+    always the source of truth; the JSON files are a derived cache.
+
+    Existing ``input`` and ``expected_behavior`` fields in testcases.json
+    are preserved so hand-crafted test specs are not clobbered.
+
+    Run after any change to docs/REQUIREMENTS.md or docs/TESTS.md, or let
+    ``specsmith audit`` surface a warning when they drift.
+
+    \b
+    Exit codes:
+      0 — in sync (or successfully updated)
+      1 — out of sync (--check mode only)
+    """
+    import json as _json
+
+    from specsmith.sync import run_sync
+
+    root = Path(project_dir).resolve()
+    result = run_sync(root, dry_run=check_only)
+
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "reqs_before": result.reqs_before,
+                    "reqs_after": result.reqs_after,
+                    "tests_before": result.tests_before,
+                    "tests_after": result.tests_after,
+                    "reqs_changed": result.reqs_changed,
+                    "tests_changed": result.tests_changed,
+                    "in_sync": not result.changed,
+                    "dry_run": result.dry_run,
+                },
+                indent=2,
+            )
+        )
+    else:
+        if result.changed:
+            if check_only:
+                console.print(f"[yellow]\u26a0 Machine state drift:[/yellow] {result.message}")
+                console.print(
+                    "  Run [bold]specsmith sync[/bold] to regenerate from docs/."
+                )
+            else:
+                console.print(f"[green]\u2713[/green] {result.message}")
+        else:
+            console.print("[green]\u2713[/green] Machine state already in sync.")
+
+    if check_only and result.changed:
+        raise SystemExit(1)
 
 
 # ---------------------------------------------------------------------------

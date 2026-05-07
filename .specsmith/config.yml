@@ -9,8 +9,12 @@ features:
   local_commit_after_work: true
   ledger_timestamping: true
 
+# epistemic.confidence_threshold is read by specsmith preflight / verify
+# as the project-wide confidence floor (REQ-098).
+epistemic:
+  confidence_threshold: 0.85
+
 governance:
-  epistemic_confidence_threshold: 0.85
   iteration_mode: indefinite
   max_iterations: null
   max_token_spend: null

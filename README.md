@@ -16,23 +16,17 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**0.10.0 — Multi-Agent + BYOE.** A `/plan` goes to the architect, `/fix`
-goes to the coder, `/review` goes to a reviewer that runs on a different
-model family. Each *profile* is a `(provider, model, endpoint?, fallback_chain)`
-bundle stored in `~/.specsmith/agents.json`; an *activity routing table*
-maps slash commands and AEE phases to profiles; **BYOE endpoints**
-(`~/.specsmith/endpoints.json`) let you point a profile at any
-OpenAI-v1-compatible backend you self-host (vLLM, llama.cpp `server`,
-LM Studio, TGI, ...). Cross-family **diversity guard**, capability
-filtering, transient-failure fallback chains, and TraceVault decision
-seals on every `/agent` pin are wired in by default. See
-[`docs/site/agents.md`](docs/site/agents.md) for the five-minute walkthrough.
+**0.10.1 — Governance REST API, machine-state sync, and least-privilege permissions.**
+Specsmith now serves as the governance backend for Kairos (the epistemically-governed
+Rust terminal) via `specsmith governance-serve`, keeps `.specsmith/` JSON in sync
+with `docs/` Markdown via `specsmith sync`, and gates every agent tool call via
+`specsmith agent permissions-check`. Multi-agent profiles, BYOE endpoints, and the
+AEE phase lifecycle are all fully wired.
 
 ```bash
-specsmith agents preset apply default       # frontier coder + cross-family reviewer
-specsmith endpoints add --id home-vllm \
-  --base-url http://10.0.0.4:8000/v1 --auth bearer-keyring
-specsmith run --agent opus-reviewer         # one-shot per-session pin
+specsmith governance-serve --port 7700     # Kairos governance REST API
+specsmith sync                              # sync .specsmith/ from docs/ markdown
+specsmith agent permissions-check git_push # check tool permission (REG-012)
 ```
 
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
@@ -154,47 +148,55 @@ specsmith phase --project-dir ./my-project
 
 ---
 
-## AG2 Agent Shell — Local AI Agents over Ollama
+## Machine State Sync
 
-specsmith includes an AG2-based agent shell with three specialized agents:
-
-- **Planner** — inspects repo, generates execution plans with acceptance criteria
-- **Builder** — makes code/doc changes following the plan
-- **Verifier** — runs tests, accepts or rejects changes
-
-All agents run locally on Ollama (default: `qwen2.5:14b`). Zero cloud cost.
+`.specsmith/` always mirrors the human-readable `docs/` governance files.
+Run `specsmith sync` after any change to `docs/REQUIREMENTS.md` or `docs/TESTS.md`:
 
 ```bash
-pip install "specsmith[ag2]"              # install AG2 + Ollama support
-specsmith agent status                    # verify config + Ollama running
-specsmith agent run "fix lint errors"     # Plan → Build → Verify pipeline
-specsmith agent improve "add tests for config.py"  # self-improvement with reports
+specsmith sync                     # regenerate .specsmith/requirements.json + testcases.json
+specsmith sync --check             # CI mode: exits 1 if out of sync without writing
+specsmith sync --json              # emit sync result as JSON
 ```
 
-The agent shell stores structured reports at `.specsmith/agent-reports/` with task ID,
-files changed, test results, verdict (ACCEPT/REJECT), and follow-up tasks.
+## Least-Privilege Agent Permissions (REG-012)
 
-Configurable per-project in `scaffold.yml` under `agents:` or via the VS Code
-Project Settings → Agent tab.
+```bash
+specsmith agent permissions                      # show active permission profile
+specsmith agent permissions-check git_push       # check if git_push is allowed
+specsmith agent permissions-check git_push --no-log  # dry-run (no ledger write)
+```
+
+Configure in `docs/SPECSMITH.yml`:
+```yaml
+agent:
+  permissions:
+    preset: standard       # read_only | standard | extended | admin
+    # Or custom:
+    allow: [read_file, write_file, run_shell, git_status]
+    deny:  [git_push, git_create_pr]
+```
 
 ---
 
-## Nexus — Plain-English Governance, Local-First
+## Kairos + Governance REST API
 
-**Nexus** is the local-first Nexus runtime that turns plain English into Specsmith-governed
-work. You speak in your own words; Specsmith stays the sole authority on what counts as a
-requirement, a test, or a work item — Nexus just brokers the conversation and runs the work.
+**Kairos** is the companion Rust terminal runtime (`BitConcepts/kairos`). specsmith
+acts as the governance backend: Kairos spawns `specsmith governance-serve` at startup
+and routes all preflight and verify calls through it.
 
 ```bash
+# Start the governance REST API (Kairos calls this automatically)
+specsmith governance-serve --port 7700 --project-dir .
+
 # Classify a natural-language utterance under Specsmith governance
 specsmith preflight "fix the cleanup dry-run regression" --json
 
-# Or drop into the Nexus REPL
+# Start the agentic REPL
 specsmith run
-nexus> what does the cleanup module do?           # read-only ask -> answered
-nexus> fix the cleanup dry-run regression          # change -> Specsmith approves, runs
-nexus> delete the entire dist directory            # destructive -> needs clarification
-nexus> /why                                        # toggle governance details on/off
+> what does the cleanup module do?           # read-only ask -> answered
+> fix the cleanup dry-run regression          # change -> Specsmith approves, runs
+> delete the entire dist directory            # destructive -> needs clarification
 ```
 
 **How it works.** A natural-language **broker** classifies intent, infers scope from
