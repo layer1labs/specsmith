@@ -1380,3 +1380,840 @@
 - **Expected Behavior:** All six API surfaces enumerated; version+classifier match.
 - **Confidence:** 1.0
 
+
+
+## TEST-130. Typed ProjectOperations Layer
+- **ID:** TEST-130
+- **Title:** Typed ProjectOperations Layer
+- **Description:** All tool handlers MUST use a typed `ProjectOperations` class for file, git/VCS, and search operations. Direct raw shell string assembly in tool handlers is prohibited.
+- **Requirement ID:** REQ-130
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-131. ProjectOperations File Operations via pathlib
+- **ID:** TEST-131
+- **Title:** ProjectOperations File Operations via pathlib
+- **Description:** `ProjectOperations` MUST expose file operations (`read_file`, `write_file`, `list_dir`, `glob`, `search`) implemented via Python `pathlib`/`stdlib` — no subprocess calls.
+- **Requirement ID:** REQ-131
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-132. ProjectOperations Git/VCS Operations
+- **ID:** TEST-132
+- **Title:** ProjectOperations Git/VCS Operations
+- **Description:** `ProjectOperations` MUST expose git/VCS operations (`status`, `log`, `diff`, `add`, `commit`, `push`, `create_branch`, `create_pr`) returning structured result objects.
+- **Requirement ID:** REQ-132
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-133. ProjectOperations Typed Result Objects
+- **ID:** TEST-133
+- **Title:** ProjectOperations Typed Result Objects
+- **Description:** All `ProjectOperations` methods MUST return a typed result containing at minimum `exit_code`, `stdout`, `stderr`, and `elapsed_ms`.
+- **Requirement ID:** REQ-133
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-134. executor.py run_tracked Preserved as Narrow Fallback
+- **ID:** TEST-134
+- **Title:** executor.py run_tracked Preserved as Narrow Fallback
+- **Description:** The existing `executor.py` `run_tracked()` function MUST be preserved as a narrow fallback for commands that have no Python equivalent.
+- **Requirement ID:** REQ-134
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-135. ProjectOperations Cross-Platform
+- **ID:** TEST-135
+- **Title:** ProjectOperations Cross-Platform
+- **Description:** `ProjectOperations` MUST be cross-platform (Windows, Linux, macOS) without platform-specific code branches in call sites.
+- **Requirement ID:** REQ-135
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-136. Harness Slash Commands Package
+- **ID:** TEST-136
+- **Title:** Harness Slash Commands Package
+- **Description:** The `commands/` package MUST implement all priority harness slash commands available inside `specsmith run`.
+- **Requirement ID:** REQ-136
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-137. Session Management Slash Commands
+- **ID:** TEST-137
+- **Title:** Session Management Slash Commands
+- **Description:** Session management commands MUST include: `/model`, `/provider`, `/tier`, `/status`, `/save`, `/clear`, `/compact`, `/export`.
+- **Requirement ID:** REQ-137
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-138. Multi-Agent Slash Commands
+- **ID:** TEST-138
+- **Title:** Multi-Agent Slash Commands
+- **Description:** Multi-agent commands MUST include: `/spawn`, `/team`, `/team-status`, `/worktree`.
+- **Requirement ID:** REQ-138
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-139. Continuous Learning Slash Commands
+- **ID:** TEST-139
+- **Title:** Continuous Learning Slash Commands
+- **Description:** Continuous learning commands MUST include: `/learn`, `/learn-eval`, `/instinct-status`, `/instinct-import`, `/instinct-export`.
+- **Requirement ID:** REQ-139
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-140. Evaluation Slash Commands
+- **ID:** TEST-140
+- **Title:** Evaluation Slash Commands
+- **Description:** Evaluation commands MUST include: `/eval define`, `/eval run`, `/eval report`, `/eval compare`.
+- **Requirement ID:** REQ-140
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-141. Orchestration Slash Commands
+- **ID:** TEST-141
+- **Title:** Orchestration Slash Commands
+- **Description:** Orchestration commands MUST include: `/multi-plan`, `/multi-execute`, `/route`.
+- **Requirement ID:** REQ-141
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-142. Hook Control Slash Commands
+- **ID:** TEST-142
+- **Title:** Hook Control Slash Commands
+- **Description:** Hook control commands MUST include: `/hooks-enable`, `/hooks-disable`, `/hook-profile`.
+- **Requirement ID:** REQ-142
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-143. MCP Slash Commands
+- **ID:** TEST-143
+- **Title:** MCP Slash Commands
+- **Description:** MCP commands MUST include: `/mcp-list`, `/mcp-add`, `/mcp-configure`.
+- **Requirement ID:** REQ-143
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-144. Security Slash Commands
+- **ID:** TEST-144
+- **Title:** Security Slash Commands
+- **Description:** Security commands MUST include: `/security-scan`, `/audit-prompt`.
+- **Requirement ID:** REQ-144
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-145. AgentTool for Subagent Spawning
+- **ID:** TEST-145
+- **Title:** AgentTool for Subagent Spawning
+- **Description:** The runner MUST provide an `AgentTool` (TaskTool) as a native LLM-callable tool that spawns subagent instances.
+- **Requirement ID:** REQ-145
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-146. Hub-and-Spoke and Agent-Teams Coordination
+- **ID:** TEST-146
+- **Title:** Hub-and-Spoke and Agent-Teams Coordination
+- **Description:** Subagent spawning MUST support hub-and-spoke and agent-teams (peer-to-peer via filesystem mailbox) coordination modes.
+- **Requirement ID:** REQ-146
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-147. Filesystem Mailbox for Agent Teams
+- **ID:** TEST-147
+- **Title:** Filesystem Mailbox for Agent Teams
+- **Description:** The filesystem mailbox for agent teams MUST be stored at `.specsmith/teams/{team}/mailbox/{agent}.json`.
+- **Requirement ID:** REQ-147
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-148. Git Worktree Isolation for Subagents
+- **ID:** TEST-148
+- **Title:** Git Worktree Isolation for Subagents
+- **Description:** When `isolation=worktree`, the spawner MUST create a git worktree at `.specsmith/worktrees/{agent_id}/`.
+- **Requirement ID:** REQ-148
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-149. No Recursive Subagent Nesting
+- **ID:** TEST-149
+- **Title:** No Recursive Subagent Nesting
+- **Description:** Subagents MUST NOT be able to spawn further subagents (no recursive nesting).
+- **Requirement ID:** REQ-149
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-150. Distilled Summary from Subagents
+- **ID:** TEST-150
+- **Title:** Distilled Summary from Subagents
+- **Description:** The parent agent MUST receive a distilled summary from each subagent on completion, not the full transcript.
+- **Requirement ID:** REQ-150
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-151. Agent Teams Feature Flag Gated
+- **ID:** TEST-151
+- **Title:** Agent Teams Feature Flag Gated
+- **Description:** Agent team mode MUST be gated behind a feature flag (`SPECSMITH_AGENT_TEAMS=1`).
+- **Requirement ID:** REQ-151
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-152. Orchestrator Meta-Agent for Routing
+- **ID:** TEST-152
+- **Title:** Orchestrator Meta-Agent for Routing
+- **Description:** specsmith MUST provide an orchestrator meta-agent for task classification, routing, and optimization — not execution.
+- **Requirement ID:** REQ-152
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-153. Orchestrator Defaults to Local Ollama
+- **ID:** TEST-153
+- **Title:** Orchestrator Defaults to Local Ollama
+- **Description:** The orchestrator MUST default to a small local Ollama model so orchestration incurs zero cloud API cost.
+- **Requirement ID:** REQ-153
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-154. Agent Registry with Capability Metadata
+- **ID:** TEST-154
+- **Title:** Agent Registry with Capability Metadata
+- **Description:** The orchestrator MUST maintain an agent registry with type, model, provider, cost_tier, capabilities, avg_latency_ms, confidence.
+- **Requirement ID:** REQ-154
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-155. Orchestrator Emits One Structured Next-Action
+- **ID:** TEST-155
+- **Title:** Orchestrator Emits One Structured Next-Action
+- **Description:** The orchestrator MUST emit exactly one structured next-action per task.
+- **Requirement ID:** REQ-155
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-156. Cost-Aware Routing
+- **ID:** TEST-156
+- **Title:** Cost-Aware Routing
+- **Description:** The orchestrator MUST route cheap tasks to Ollama workers and complex tasks to cloud providers.
+- **Requirement ID:** REQ-156
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-157. Post-Session Self-Evaluation for Routing Thresholds
+- **ID:** TEST-157
+- **Title:** Post-Session Self-Evaluation for Routing Thresholds
+- **Description:** The orchestrator MUST run a post-session self-evaluation to update routing thresholds.
+- **Requirement ID:** REQ-157
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-158. Feature Flag System for Tool Schema Visibility
+- **ID:** TEST-158
+- **Title:** Feature Flag System for Tool Schema Visibility
+- **Description:** specsmith MUST implement a feature-flag system controlling which tool schemas are sent to the LLM.
+- **Requirement ID:** REQ-158
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-159. Feature Flags via Environment and scaffold.yml
+- **ID:** TEST-159
+- **Title:** Feature Flags via Environment and scaffold.yml
+- **Description:** Feature flags MUST be configurable via environment variables and `scaffold.yml` under `agent.flags`.
+- **Requirement ID:** REQ-159
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-160. Agent Teams and Advanced Features Flag-Gated
+- **ID:** TEST-160
+- **Title:** Agent Teams and Advanced Features Flag-Gated
+- **Description:** Agent teams, worktree isolation, KAIROS daemon mode, security scanner, and MCP tools MUST be flag-gated.
+- **Requirement ID:** REQ-160
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-161. Instinct Persistence System
+- **ID:** TEST-161
+- **Title:** Instinct Persistence System
+- **Description:** specsmith MUST implement an instinct persistence system in `src/specsmith/instinct.py`.
+- **Requirement ID:** REQ-161
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-162. Instinct Record Schema
+- **ID:** TEST-162
+- **Title:** Instinct Record Schema
+- **Description:** Each instinct record MUST contain: id, trigger_pattern, content, confidence, project_scope, created, last_used, use_count.
+- **Requirement ID:** REQ-162
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-163. SESSION_END Hook Extracts Candidate Instincts
+- **ID:** TEST-163
+- **Title:** SESSION_END Hook Extracts Candidate Instincts
+- **Description:** The `SESSION_END` hook MUST extract candidate instincts for user review.
+- **Requirement ID:** REQ-163
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-164. /learn Command Promotes Pattern to Instinct
+- **ID:** TEST-164
+- **Title:** /learn Command Promotes Pattern to Instinct
+- **Description:** The `/learn` command MUST promote a pattern to an instinct with an initial confidence score.
+- **Requirement ID:** REQ-164
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-165. Instinct Confidence Updated on Application
+- **ID:** TEST-165
+- **Title:** Instinct Confidence Updated on Application
+- **Description:** Instinct confidence MUST be updated based on application success/rejection.
+- **Requirement ID:** REQ-165
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-166. Instincts Importable and Exportable as Markdown
+- **ID:** TEST-166
+- **Title:** Instincts Importable and Exportable as Markdown
+- **Description:** Instincts MUST be importable and exportable as `.md` files.
+- **Requirement ID:** REQ-166
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-167. /instinct-status Displays Active Instincts
+- **ID:** TEST-167
+- **Title:** /instinct-status Displays Active Instincts
+- **Description:** `/instinct-status` MUST display all active instincts sorted by confidence.
+- **Requirement ID:** REQ-167
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-168. Eval Harness Module
+- **ID:** TEST-168
+- **Title:** Eval Harness Module
+- **Description:** specsmith MUST implement an eval harness in `src/specsmith/eval/`.
+- **Requirement ID:** REQ-168
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-169. Eval Data Model
+- **ID:** TEST-169
+- **Title:** Eval Data Model
+- **Description:** The eval model MUST define: Task, Trial, Grader, Transcript, Outcome.
+- **Requirement ID:** REQ-169
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-170. Eval Tasks Stored as Markdown
+- **ID:** TEST-170
+- **Title:** Eval Tasks Stored as Markdown
+- **Description:** Tasks MUST be stored as Markdown at `.specsmith/evals/{feature}.md` with YAML frontmatter.
+- **Requirement ID:** REQ-170
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-171. Three Grader Types
+- **ID:** TEST-171
+- **Title:** Three Grader Types
+- **Description:** The harness MUST support CodeGrader, ModelGrader, and HumanFlag grader types.
+- **Requirement ID:** REQ-171
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-172. pass@k and pass^k Metrics
+- **ID:** TEST-172
+- **Title:** pass@k and pass^k Metrics
+- **Description:** The harness MUST compute `pass@k` and `pass^k` metrics.
+- **Requirement ID:** REQ-172
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-173. Git-Based Outcome Grading by Default
+- **ID:** TEST-173
+- **Title:** Git-Based Outcome Grading by Default
+- **Description:** Default grading MUST be git-based outcome grading, not execution-path assertion.
+- **Requirement ID:** REQ-173
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-174. /eval run --trials k
+- **ID:** TEST-174
+- **Title:** /eval run --trials k
+- **Description:** `/eval run --trials k` MUST run k independent trials and report results.
+- **Requirement ID:** REQ-174
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-175. Capability vs Regression Eval Distinction
+- **ID:** TEST-175
+- **Title:** Capability vs Regression Eval Distinction
+- **Description:** The harness MUST distinguish capability evals from regression evals.
+- **Requirement ID:** REQ-175
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-176. Cross-Session Agent Memory
+- **ID:** TEST-176
+- **Title:** Cross-Session Agent Memory
+- **Description:** specsmith MUST implement cross-session agent memory in `src/specsmith/memory.py`.
+- **Requirement ID:** REQ-176
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-177. Agent Memory Structured JSON
+- **ID:** TEST-177
+- **Title:** Agent Memory Structured JSON
+- **Description:** Agent memory MUST be structured JSON with accumulated patterns, preferred approaches, known project facts, and failure history.
+- **Requirement ID:** REQ-177
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-178. SESSION_START Hook Injects Memories into System Prompt
+- **ID:** TEST-178
+- **Title:** SESSION_START Hook Injects Memories into System Prompt
+- **Description:** The `SESSION_START` hook MUST inject relevant memories into the system prompt (token-budget-aware).
+- **Requirement ID:** REQ-178
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-179. Agent Memory Compatible with Theia AI Convention
+- **ID:** TEST-179
+- **Title:** Agent Memory Compatible with Theia AI Convention
+- **Description:** Agent memory layout MUST be compatible with Theia AI's `~/.theia/agent-memory/` convention.
+- **Requirement ID:** REQ-179
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-180. Runtime Hook Enable/Disable
+- **ID:** TEST-180
+- **Title:** Runtime Hook Enable/Disable
+- **Description:** Hooks MUST be enable/disable-able at runtime without restarting the session.
+- **Requirement ID:** REQ-180
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-181. Hook Profiles via /hook-profile
+- **ID:** TEST-181
+- **Title:** Hook Profiles via /hook-profile
+- **Description:** Hook profiles MUST be loadable via `/hook-profile`.
+- **Requirement ID:** REQ-181
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-182. New Hook Trigger Events
+- **ID:** TEST-182
+- **Title:** New Hook Trigger Events
+- **Description:** New triggers: `SUBAGENT_START`, `SUBAGENT_STOP`, `CONTEXT_COMPACT`, `EVAL_PASS`, `EVAL_FAIL`.
+- **Requirement ID:** REQ-182
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-183. SUBAGENT_START Hook Can Block Spawn
+- **ID:** TEST-183
+- **Title:** SUBAGENT_START Hook Can Block Spawn
+- **Description:** `SUBAGENT_START` MUST fire before spawning; a hook MAY block the spawn.
+- **Requirement ID:** REQ-183
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-184. SUBAGENT_STOP Hook on Completion
+- **ID:** TEST-184
+- **Title:** SUBAGENT_STOP Hook on Completion
+- **Description:** `SUBAGENT_STOP` MUST fire when a subagent completes.
+- **Requirement ID:** REQ-184
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-185. CONTEXT_COMPACT Hook Before Trimming
+- **ID:** TEST-185
+- **Title:** CONTEXT_COMPACT Hook Before Trimming
+- **Description:** `CONTEXT_COMPACT` MUST fire before context trimming.
+- **Requirement ID:** REQ-185
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-186. specsmith serve Command
+- **ID:** TEST-186
+- **Title:** specsmith serve Command
+- **Description:** specsmith MUST provide a `specsmith serve` command (already shipped in v0.7.0).
+- **Requirement ID:** REQ-186
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-187. REST Endpoints for Session and Agent Management
+- **ID:** TEST-187
+- **Title:** REST Endpoints for Session and Agent Management
+- **Description:** REST endpoints: `GET/POST /sessions`, `GET /agents`, `GET /instincts`, `GET /evals`, `POST /index`, `GET /health`.
+- **Requirement ID:** REQ-187
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-188. WebSocket Endpoint for Live Session I/O
+- **ID:** TEST-188
+- **Title:** WebSocket Endpoint for Live Session I/O
+- **Description:** WebSocket endpoint at `/ws/session/{id}` for live session I/O using the existing JSONL event schema.
+- **Requirement ID:** REQ-188
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-189. EventSink Protocol for Stdout and WebSocket
+- **ID:** TEST-189
+- **Title:** EventSink Protocol for Stdout and WebSocket
+- **Description:** `AgentRunner._emit_event()` MUST use an `EventSink` protocol (`StdoutSink` / `WebSocketSink`).
+- **Requirement ID:** REQ-189
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-190. Kairos Terminal Connects via HTTP/WebSocket
+- **ID:** TEST-190
+- **Title:** Kairos Terminal Connects via HTTP/WebSocket
+- **Description:** The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.
+- **Requirement ID:** REQ-190
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-191. BM25 Retrieval Ranking
+- **ID:** TEST-191
+- **Title:** BM25 Retrieval Ranking
+- **Description:** `retrieval.py` MUST be upgraded from term-frequency to BM25 ranking using `rank_bm25`.
+- **Requirement ID:** REQ-191
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-192. File-Watcher Based Index Refresh
+- **ID:** TEST-192
+- **Title:** File-Watcher Based Index Refresh
+- **Description:** The retrieval index MUST support file-watcher-based refresh.
+- **Requirement ID:** REQ-192
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-193. Token-Counted Retrieval Results
+- **ID:** TEST-193
+- **Title:** Token-Counted Retrieval Results
+- **Description:** Retrieval results MUST be token-counted before injection to prevent context budget overruns.
+- **Requirement ID:** REQ-193
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-194. MCP Server Configuration Templates
+- **ID:** TEST-194
+- **Title:** MCP Server Configuration Templates
+- **Description:** specsmith MUST provide MCP server configuration templates via `/mcp-add` or `specsmith mcp add`.
+- **Requirement ID:** REQ-194
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-195. MCP Server Registry with Status
+- **ID:** TEST-195
+- **Title:** MCP Server Registry with Status
+- **Description:** The MCP server registry MUST list configured servers with status and tool surfaces.
+- **Requirement ID:** REQ-195
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-196. MCP Configuration in scaffold.yml
+- **ID:** TEST-196
+- **Title:** MCP Configuration in scaffold.yml
+- **Description:** MCP configuration MUST be storable in `scaffold.yml` under `agent.mcp_servers`.
+- **Requirement ID:** REQ-196
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-197. /security-scan Command
+- **ID:** TEST-197
+- **Title:** /security-scan Command
+- **Description:** specsmith MUST provide a `/security-scan` command running a dedicated security analysis agent.
+- **Requirement ID:** REQ-197
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-198. Security Scan Coverage
+- **ID:** TEST-198
+- **Title:** Security Scan Coverage
+- **Description:** The security scan MUST check dependency vulnerabilities, OWASP-style code patterns, and exposed secrets.
+- **Requirement ID:** REQ-198
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-199. /audit-prompt for Injection Analysis
+- **ID:** TEST-199
+- **Title:** /audit-prompt for Injection Analysis
+- **Description:** `/audit-prompt` MUST analyze a prompt string for injection vectors.
+- **Requirement ID:** REQ-199
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-200. Security Scan Results Stored Structurally
+- **ID:** TEST-200
+- **Title:** Security Scan Results Stored Structurally
+- **Description:** Security scan results MUST be structured and stored at `.specsmith/security-reports/`.
+- **Requirement ID:** REQ-200
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-201. specsmith-ide Theia Application
+- **ID:** TEST-201
+- **Title:** specsmith-ide Theia Application
+- **Description:** A `specsmith-ide` application MUST be created on Eclipse Theia with `@theia/ai-core`, `@theia/ai-chat`, `@theia/ai-ide`.
+- **Requirement ID:** REQ-201
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-202. specsmith-ide Extension Packages
+- **ID:** TEST-202
+- **Title:** specsmith-ide Extension Packages
+- **Description:** specsmith-ide MUST ship: `@specsmith/ai-agents`, `@specsmith/epistemic-ui`, `@specsmith/eval-ui`, `@specsmith/service-client`.
+- **Requirement ID:** REQ-202
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-203. specsmith-ide WebSocket Connection to specsmith serve
+- **ID:** TEST-203
+- **Title:** specsmith-ide WebSocket Connection to specsmith serve
+- **Description:** specsmith-ide MUST connect to `specsmith serve` over WebSocket.
+- **Requirement ID:** REQ-203
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-204. specsmith-ide Leverages Theia AI Native Tooling
+- **ID:** TEST-204
+- **Title:** specsmith-ide Leverages Theia AI Native Tooling
+- **Description:** specsmith-ide MUST leverage Theia AI's existing MCP support, ShellExecutionTool, and agent skills system.
+- **Requirement ID:** REQ-204
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0
+
+## TEST-205. specsmith-ide Electron Desktop Packaging
+- **ID:** TEST-205
+- **Title:** specsmith-ide Electron Desktop Packaging
+- **Description:** specsmith-ide MUST be packageable as an Electron desktop application.
+- **Requirement ID:** REQ-205
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** {}
+- **Expected Behavior:** {}
+- **Confidence:** 1.0

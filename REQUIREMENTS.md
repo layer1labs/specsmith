@@ -868,3 +868,536 @@
 - **Source:** docs/site/api-stability.md, pyproject.toml
 - **Status:** defined
 
+
+
+## 130. Typed ProjectOperations Layer
+- **ID:** REQ-130
+- **Title:** Typed ProjectOperations Layer
+- **Description:** All tool handlers MUST use a typed `ProjectOperations` class for file, git/VCS, and search operations. Direct raw shell string assembly in tool handlers is prohibited.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-001)
+- **Status:** defined
+
+## 131. ProjectOperations File Operations via pathlib
+- **ID:** REQ-131
+- **Title:** ProjectOperations File Operations via pathlib
+- **Description:** `ProjectOperations` MUST expose file operations (`read_file`, `write_file`, `list_dir`, `glob`, `search`) implemented via Python `pathlib`/`stdlib` — no subprocess calls.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-002)
+- **Status:** defined
+
+## 132. ProjectOperations Git/VCS Operations
+- **ID:** REQ-132
+- **Title:** ProjectOperations Git/VCS Operations
+- **Description:** `ProjectOperations` MUST expose git/VCS operations (`status`, `log`, `diff`, `add`, `commit`, `push`, `create_branch`, `create_pr`) returning structured result objects.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-003)
+- **Status:** defined
+
+## 133. ProjectOperations Typed Result Objects
+- **ID:** REQ-133
+- **Title:** ProjectOperations Typed Result Objects
+- **Description:** All `ProjectOperations` methods MUST return a typed result containing at minimum `exit_code`, `stdout`, `stderr`, and `elapsed_ms`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-004)
+- **Status:** defined
+
+## 134. executor.py run_tracked Preserved as Narrow Fallback
+- **ID:** REQ-134
+- **Title:** executor.py run_tracked Preserved as Narrow Fallback
+- **Description:** The existing `executor.py` `run_tracked()` function MUST be preserved as a narrow fallback for commands that have no Python equivalent.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-005)
+- **Status:** defined
+
+## 135. ProjectOperations Cross-Platform
+- **ID:** REQ-135
+- **Title:** ProjectOperations Cross-Platform
+- **Description:** `ProjectOperations` MUST be cross-platform (Windows, Linux, macOS) without platform-specific code branches in call sites.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (OPS-006)
+- **Status:** defined
+
+## 136. Harness Slash Commands Package
+- **ID:** REQ-136
+- **Title:** Harness Slash Commands Package
+- **Description:** The `commands/` package MUST implement all priority harness slash commands available inside `specsmith run`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-001)
+- **Status:** defined
+
+## 137. Session Management Slash Commands
+- **ID:** REQ-137
+- **Title:** Session Management Slash Commands
+- **Description:** Session management commands MUST include: `/model`, `/provider`, `/tier`, `/status`, `/save`, `/clear`, `/compact`, `/export`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-002)
+- **Status:** defined
+
+## 138. Multi-Agent Slash Commands
+- **ID:** REQ-138
+- **Title:** Multi-Agent Slash Commands
+- **Description:** Multi-agent commands MUST include: `/spawn`, `/team`, `/team-status`, `/worktree`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-003)
+- **Status:** defined
+
+## 139. Continuous Learning Slash Commands
+- **ID:** REQ-139
+- **Title:** Continuous Learning Slash Commands
+- **Description:** Continuous learning commands MUST include: `/learn`, `/learn-eval`, `/instinct-status`, `/instinct-import`, `/instinct-export`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-004)
+- **Status:** defined
+
+## 140. Evaluation Slash Commands
+- **ID:** REQ-140
+- **Title:** Evaluation Slash Commands
+- **Description:** Evaluation commands MUST include: `/eval define`, `/eval run`, `/eval report`, `/eval compare`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-005)
+- **Status:** defined
+
+## 141. Orchestration Slash Commands
+- **ID:** REQ-141
+- **Title:** Orchestration Slash Commands
+- **Description:** Orchestration commands MUST include: `/multi-plan`, `/multi-execute`, `/route`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-006)
+- **Status:** defined
+
+## 142. Hook Control Slash Commands
+- **ID:** REQ-142
+- **Title:** Hook Control Slash Commands
+- **Description:** Hook control commands MUST include: `/hooks-enable`, `/hooks-disable`, `/hook-profile`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-007)
+- **Status:** defined
+
+## 143. MCP Slash Commands
+- **ID:** REQ-143
+- **Title:** MCP Slash Commands
+- **Description:** MCP commands MUST include: `/mcp-list`, `/mcp-add`, `/mcp-configure`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-008)
+- **Status:** defined
+
+## 144. Security Slash Commands
+- **ID:** REQ-144
+- **Title:** Security Slash Commands
+- **Description:** Security commands MUST include: `/security-scan`, `/audit-prompt`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (CMD-009)
+- **Status:** defined
+
+## 145. AgentTool for Subagent Spawning
+- **ID:** REQ-145
+- **Title:** AgentTool for Subagent Spawning
+- **Description:** The runner MUST provide an `AgentTool` (TaskTool) as a native LLM-callable tool that spawns subagent instances.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-001)
+- **Status:** defined
+
+## 146. Hub-and-Spoke and Agent-Teams Coordination
+- **ID:** REQ-146
+- **Title:** Hub-and-Spoke and Agent-Teams Coordination
+- **Description:** Subagent spawning MUST support hub-and-spoke and agent-teams (peer-to-peer via filesystem mailbox) coordination modes.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-002)
+- **Status:** defined
+
+## 147. Filesystem Mailbox for Agent Teams
+- **ID:** REQ-147
+- **Title:** Filesystem Mailbox for Agent Teams
+- **Description:** The filesystem mailbox for agent teams MUST be stored at `.specsmith/teams/{team}/mailbox/{agent}.json`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-003)
+- **Status:** defined
+
+## 148. Git Worktree Isolation for Subagents
+- **ID:** REQ-148
+- **Title:** Git Worktree Isolation for Subagents
+- **Description:** When `isolation=worktree`, the spawner MUST create a git worktree at `.specsmith/worktrees/{agent_id}/`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-004)
+- **Status:** defined
+
+## 149. No Recursive Subagent Nesting
+- **ID:** REQ-149
+- **Title:** No Recursive Subagent Nesting
+- **Description:** Subagents MUST NOT be able to spawn further subagents (no recursive nesting).
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-005)
+- **Status:** defined
+
+## 150. Distilled Summary from Subagents
+- **ID:** REQ-150
+- **Title:** Distilled Summary from Subagents
+- **Description:** The parent agent MUST receive a distilled summary from each subagent on completion, not the full transcript.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-006)
+- **Status:** defined
+
+## 151. Agent Teams Feature Flag Gated
+- **ID:** REQ-151
+- **Title:** Agent Teams Feature Flag Gated
+- **Description:** Agent team mode MUST be gated behind a feature flag (`SPECSMITH_AGENT_TEAMS=1`).
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MAS-007)
+- **Status:** defined
+
+## 152. Orchestrator Meta-Agent for Routing
+- **ID:** REQ-152
+- **Title:** Orchestrator Meta-Agent for Routing
+- **Description:** specsmith MUST provide an orchestrator meta-agent for task classification, routing, and optimization — not execution.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-001)
+- **Status:** defined
+
+## 153. Orchestrator Defaults to Local Ollama
+- **ID:** REQ-153
+- **Title:** Orchestrator Defaults to Local Ollama
+- **Description:** The orchestrator MUST default to a small local Ollama model so orchestration incurs zero cloud API cost.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-002)
+- **Status:** defined
+
+## 154. Agent Registry with Capability Metadata
+- **ID:** REQ-154
+- **Title:** Agent Registry with Capability Metadata
+- **Description:** The orchestrator MUST maintain an agent registry with type, model, provider, cost_tier, capabilities, avg_latency_ms, confidence.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-003)
+- **Status:** defined
+
+## 155. Orchestrator Emits One Structured Next-Action
+- **ID:** REQ-155
+- **Title:** Orchestrator Emits One Structured Next-Action
+- **Description:** The orchestrator MUST emit exactly one structured next-action per task.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-004)
+- **Status:** defined
+
+## 156. Cost-Aware Routing
+- **ID:** REQ-156
+- **Title:** Cost-Aware Routing
+- **Description:** The orchestrator MUST route cheap tasks to Ollama workers and complex tasks to cloud providers.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-005)
+- **Status:** defined
+
+## 157. Post-Session Self-Evaluation for Routing Thresholds
+- **ID:** REQ-157
+- **Title:** Post-Session Self-Evaluation for Routing Thresholds
+- **Description:** The orchestrator MUST run a post-session self-evaluation to update routing thresholds.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (ORC-006)
+- **Status:** defined
+
+## 158. Feature Flag System for Tool Schema Visibility
+- **ID:** REQ-158
+- **Title:** Feature Flag System for Tool Schema Visibility
+- **Description:** specsmith MUST implement a feature-flag system controlling which tool schemas are sent to the LLM.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (FLG-001)
+- **Status:** defined
+
+## 159. Feature Flags via Environment and scaffold.yml
+- **ID:** REQ-159
+- **Title:** Feature Flags via Environment and scaffold.yml
+- **Description:** Feature flags MUST be configurable via environment variables and `scaffold.yml` under `agent.flags`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (FLG-002)
+- **Status:** defined
+
+## 160. Agent Teams and Advanced Features Flag-Gated
+- **ID:** REQ-160
+- **Title:** Agent Teams and Advanced Features Flag-Gated
+- **Description:** Agent teams, worktree isolation, KAIROS daemon mode, security scanner, and MCP tools MUST be flag-gated.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (FLG-003)
+- **Status:** defined
+
+## 161. Instinct Persistence System
+- **ID:** REQ-161
+- **Title:** Instinct Persistence System
+- **Description:** specsmith MUST implement an instinct persistence system in `src/specsmith/instinct.py`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-001)
+- **Status:** defined
+
+## 162. Instinct Record Schema
+- **ID:** REQ-162
+- **Title:** Instinct Record Schema
+- **Description:** Each instinct record MUST contain: id, trigger_pattern, content, confidence, project_scope, created, last_used, use_count.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-002)
+- **Status:** defined
+
+## 163. SESSION_END Hook Extracts Candidate Instincts
+- **ID:** REQ-163
+- **Title:** SESSION_END Hook Extracts Candidate Instincts
+- **Description:** The `SESSION_END` hook MUST extract candidate instincts for user review.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-003)
+- **Status:** defined
+
+## 164. /learn Command Promotes Pattern to Instinct
+- **ID:** REQ-164
+- **Title:** /learn Command Promotes Pattern to Instinct
+- **Description:** The `/learn` command MUST promote a pattern to an instinct with an initial confidence score.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-004)
+- **Status:** defined
+
+## 165. Instinct Confidence Updated on Application
+- **ID:** REQ-165
+- **Title:** Instinct Confidence Updated on Application
+- **Description:** Instinct confidence MUST be updated based on application success/rejection.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-005)
+- **Status:** defined
+
+## 166. Instincts Importable and Exportable as Markdown
+- **ID:** REQ-166
+- **Title:** Instincts Importable and Exportable as Markdown
+- **Description:** Instincts MUST be importable and exportable as `.md` files.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-006)
+- **Status:** defined
+
+## 167. /instinct-status Displays Active Instincts
+- **ID:** REQ-167
+- **Title:** /instinct-status Displays Active Instincts
+- **Description:** `/instinct-status` MUST display all active instincts sorted by confidence.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (LRN-007)
+- **Status:** defined
+
+## 168. Eval Harness Module
+- **ID:** REQ-168
+- **Title:** Eval Harness Module
+- **Description:** specsmith MUST implement an eval harness in `src/specsmith/eval/`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-001)
+- **Status:** defined
+
+## 169. Eval Data Model
+- **ID:** REQ-169
+- **Title:** Eval Data Model
+- **Description:** The eval model MUST define: Task, Trial, Grader, Transcript, Outcome.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-002)
+- **Status:** defined
+
+## 170. Eval Tasks Stored as Markdown
+- **ID:** REQ-170
+- **Title:** Eval Tasks Stored as Markdown
+- **Description:** Tasks MUST be stored as Markdown at `.specsmith/evals/{feature}.md` with YAML frontmatter.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-003)
+- **Status:** defined
+
+## 171. Three Grader Types
+- **ID:** REQ-171
+- **Title:** Three Grader Types
+- **Description:** The harness MUST support CodeGrader, ModelGrader, and HumanFlag grader types.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-004)
+- **Status:** defined
+
+## 172. pass@k and pass^k Metrics
+- **ID:** REQ-172
+- **Title:** pass@k and pass^k Metrics
+- **Description:** The harness MUST compute `pass@k` and `pass^k` metrics.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-005)
+- **Status:** defined
+
+## 173. Git-Based Outcome Grading by Default
+- **ID:** REQ-173
+- **Title:** Git-Based Outcome Grading by Default
+- **Description:** Default grading MUST be git-based outcome grading, not execution-path assertion.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-006)
+- **Status:** defined
+
+## 174. /eval run --trials k
+- **ID:** REQ-174
+- **Title:** /eval run --trials k
+- **Description:** `/eval run --trials k` MUST run k independent trials and report results.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-007)
+- **Status:** defined
+
+## 175. Capability vs Regression Eval Distinction
+- **ID:** REQ-175
+- **Title:** Capability vs Regression Eval Distinction
+- **Description:** The harness MUST distinguish capability evals from regression evals.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (EDD-008)
+- **Status:** defined
+
+## 176. Cross-Session Agent Memory
+- **ID:** REQ-176
+- **Title:** Cross-Session Agent Memory
+- **Description:** specsmith MUST implement cross-session agent memory in `src/specsmith/memory.py`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MEM-001)
+- **Status:** defined
+
+## 177. Agent Memory Structured JSON
+- **ID:** REQ-177
+- **Title:** Agent Memory Structured JSON
+- **Description:** Agent memory MUST be structured JSON with accumulated patterns, preferred approaches, known project facts, and failure history.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MEM-002)
+- **Status:** defined
+
+## 178. SESSION_START Hook Injects Memories into System Prompt
+- **ID:** REQ-178
+- **Title:** SESSION_START Hook Injects Memories into System Prompt
+- **Description:** The `SESSION_START` hook MUST inject relevant memories into the system prompt (token-budget-aware).
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MEM-003)
+- **Status:** defined
+
+## 179. Agent Memory Compatible with Theia AI Convention
+- **ID:** REQ-179
+- **Title:** Agent Memory Compatible with Theia AI Convention
+- **Description:** Agent memory layout MUST be compatible with Theia AI's `~/.theia/agent-memory/` convention.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MEM-004)
+- **Status:** defined
+
+## 180. Runtime Hook Enable/Disable
+- **ID:** REQ-180
+- **Title:** Runtime Hook Enable/Disable
+- **Description:** Hooks MUST be enable/disable-able at runtime without restarting the session.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-001)
+- **Status:** defined
+
+## 181. Hook Profiles via /hook-profile
+- **ID:** REQ-181
+- **Title:** Hook Profiles via /hook-profile
+- **Description:** Hook profiles MUST be loadable via `/hook-profile`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-002)
+- **Status:** defined
+
+## 182. New Hook Trigger Events
+- **ID:** REQ-182
+- **Title:** New Hook Trigger Events
+- **Description:** New triggers: `SUBAGENT_START`, `SUBAGENT_STOP`, `CONTEXT_COMPACT`, `EVAL_PASS`, `EVAL_FAIL`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-003)
+- **Status:** defined
+
+## 183. SUBAGENT_START Hook Can Block Spawn
+- **ID:** REQ-183
+- **Title:** SUBAGENT_START Hook Can Block Spawn
+- **Description:** `SUBAGENT_START` MUST fire before spawning; a hook MAY block the spawn.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-004)
+- **Status:** defined
+
+## 184. SUBAGENT_STOP Hook on Completion
+- **ID:** REQ-184
+- **Title:** SUBAGENT_STOP Hook on Completion
+- **Description:** `SUBAGENT_STOP` MUST fire when a subagent completes.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-005)
+- **Status:** defined
+
+## 185. CONTEXT_COMPACT Hook Before Trimming
+- **ID:** REQ-185
+- **Title:** CONTEXT_COMPACT Hook Before Trimming
+- **Description:** `CONTEXT_COMPACT` MUST fire before context trimming.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (HRK-006)
+- **Status:** defined
+
+## 186. specsmith serve Command
+- **ID:** REQ-186
+- **Title:** specsmith serve Command
+- **Description:** specsmith MUST provide a `specsmith serve` command (already shipped in v0.7.0).
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SRV-001)
+- **Status:** defined
+
+## 187. REST Endpoints for Session and Agent Management
+- **ID:** REQ-187
+- **Title:** REST Endpoints for Session and Agent Management
+- **Description:** REST endpoints: `GET/POST /sessions`, `GET /agents`, `GET /instincts`, `GET /evals`, `POST /index`, `GET /health`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SRV-002)
+- **Status:** defined
+
+## 188. WebSocket Endpoint for Live Session I/O
+- **ID:** REQ-188
+- **Title:** WebSocket Endpoint for Live Session I/O
+- **Description:** WebSocket endpoint at `/ws/session/{id}` for live session I/O using the existing JSONL event schema.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SRV-003)
+- **Status:** defined
+
+## 189. EventSink Protocol for Stdout and WebSocket
+- **ID:** REQ-189
+- **Title:** EventSink Protocol for Stdout and WebSocket
+- **Description:** `AgentRunner._emit_event()` MUST use an `EventSink` protocol (`StdoutSink` / `WebSocketSink`).
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SRV-004)
+- **Status:** defined
+
+## 190. Kairos Terminal Connects via HTTP/WebSocket
+- **ID:** REQ-190
+- **Title:** Kairos Terminal Connects via HTTP/WebSocket
+- **Description:** The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SRV-005)
+- **Status:** defined
+
+## 191. BM25 Retrieval Ranking
+- **ID:** REQ-191
+- **Title:** BM25 Retrieval Ranking
+- **Description:** `retrieval.py` MUST be upgraded from term-frequency to BM25 ranking using `rank_bm25`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (RTR-001)
+- **Status:** defined
+
+## 192. File-Watcher Based Index Refresh
+- **ID:** REQ-192
+- **Title:** File-Watcher Based Index Refresh
+- **Description:** The retrieval index MUST support file-watcher-based refresh.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (RTR-002)
+- **Status:** defined
+
+## 193. Token-Counted Retrieval Results
+- **ID:** REQ-193
+- **Title:** Token-Counted Retrieval Results
+- **Description:** Retrieval results MUST be token-counted before injection to prevent context budget overruns.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (RTR-003)
+- **Status:** defined
+
+## 194. MCP Server Configuration Templates
+- **ID:** REQ-194
+- **Title:** MCP Server Configuration Templates
+- **Description:** specsmith MUST provide MCP server configuration templates via `/mcp-add` or `specsmith mcp add`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MCP-001)
+- **Status:** defined
+
+## 195. MCP Server Registry with Status
+- **ID:** REQ-195
+- **Title:** MCP Server Registry with Status
+- **Description:** The MCP server registry MUST list configured servers with status and tool surfaces.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MCP-002)
+- **Status:** defined
+
+## 196. MCP Configuration in scaffold.yml
+- **ID:** REQ-196
+- **Title:** MCP Configuration in scaffold.yml
+- **Description:** MCP configuration MUST be storable in `scaffold.yml` under `agent.mcp_servers`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (MCP-003)
+- **Status:** defined
+
+## 197. /security-scan Command
+- **ID:** REQ-197
+- **Title:** /security-scan Command
+- **Description:** specsmith MUST provide a `/security-scan` command running a dedicated security analysis agent.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SEC-001)
+- **Status:** defined
+
+## 198. Security Scan Coverage
+- **ID:** REQ-198
+- **Title:** Security Scan Coverage
+- **Description:** The security scan MUST check dependency vulnerabilities, OWASP-style code patterns, and exposed secrets.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SEC-002)
+- **Status:** defined
+
+## 199. /audit-prompt for Injection Analysis
+- **ID:** REQ-199
+- **Title:** /audit-prompt for Injection Analysis
+- **Description:** `/audit-prompt` MUST analyze a prompt string for injection vectors.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SEC-003)
+- **Status:** defined
+
+## 200. Security Scan Results Stored Structurally
+- **ID:** REQ-200
+- **Title:** Security Scan Results Stored Structurally
+- **Description:** Security scan results MUST be structured and stored at `.specsmith/security-reports/`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (SEC-004)
+- **Status:** defined
+
+## 201. specsmith-ide Theia Application
+- **ID:** REQ-201
+- **Title:** specsmith-ide Theia Application
+- **Description:** A `specsmith-ide` application MUST be created on Eclipse Theia with `@theia/ai-core`, `@theia/ai-chat`, `@theia/ai-ide`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (IDE-001)
+- **Status:** defined
+
+## 202. specsmith-ide Extension Packages
+- **ID:** REQ-202
+- **Title:** specsmith-ide Extension Packages
+- **Description:** specsmith-ide MUST ship: `@specsmith/ai-agents`, `@specsmith/epistemic-ui`, `@specsmith/eval-ui`, `@specsmith/service-client`.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (IDE-002)
+- **Status:** defined
+
+## 203. specsmith-ide WebSocket Connection to specsmith serve
+- **ID:** REQ-203
+- **Title:** specsmith-ide WebSocket Connection to specsmith serve
+- **Description:** specsmith-ide MUST connect to `specsmith serve` over WebSocket.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (IDE-003)
+- **Status:** defined
+
+## 204. specsmith-ide Leverages Theia AI Native Tooling
+- **ID:** REQ-204
+- **Title:** specsmith-ide Leverages Theia AI Native Tooling
+- **Description:** specsmith-ide MUST leverage Theia AI's existing MCP support, ShellExecutionTool, and agent skills system.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (IDE-004)
+- **Status:** defined
+
+## 205. specsmith-ide Electron Desktop Packaging
+- **ID:** REQ-205
+- **Title:** specsmith-ide Electron Desktop Packaging
+- **Description:** specsmith-ide MUST be packageable as an Electron desktop application.
+- **Source:** docs/PLANNED-REQUIREMENTS.md (IDE-005)
+- **Status:** defined
