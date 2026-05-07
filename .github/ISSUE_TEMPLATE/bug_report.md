@@ -25,7 +25,10 @@ What actually happened (include full error output).
 - specsmith version: [e.g., 0.1.0a4]
 - Project type: [e.g., cli-python, patent-application]
 
-## scaffold.yml (if applicable)
+## scaffold.yml / specsmith.yml (if applicable)
 ```yaml
 # paste relevant config
 ```
+
+---
+> **Terminal/UI bug?** File it in [kairos](https://github.com/BitConcepts/kairos/issues/new?template=bug_report.md) instead.
