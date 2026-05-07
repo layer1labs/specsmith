@@ -228,13 +228,20 @@ PHASES: list[Phase] = [
         description="Collect, stress-test, and stabilise the belief artifact registry.",
         checks=[
             PhaseCheck(
-                "REQUIREMENTS.md exists",
-                _file_exists("REQUIREMENTS.md"),
+                "docs/REQUIREMENTS.md exists",
+                lambda root: bool(__import__('specsmith.paths', fromlist=['find_requirements']).find_requirements(root)),
             ),
             PhaseCheck("At least 5 requirements defined", _req_count(5)),
-            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
-            PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
-            PhaseCheck("REQUIREMENTS.md has content", _file_min_lines("REQUIREMENTS.md", 10)),
+            PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
+            PhaseCheck("docs/ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
+            PhaseCheck(
+                "docs/REQUIREMENTS.md has content",
+                lambda root: (
+                    (p := __import__('specsmith.paths', fromlist=['find_requirements']).find_requirements(root))
+                    is not None and p.exists()
+                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                ),
+            ),
         ],
         commands=[
             "specsmith stress-test",

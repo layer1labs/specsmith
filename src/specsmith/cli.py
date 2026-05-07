@@ -3012,6 +3012,114 @@ def agent_tools_cmd(project_dir: str) -> None:
         console.print(f"  {t.name:25s} {t.description[:60]}{claims}")
 
 
+@agent_group.command(name="permissions")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit permission summary as JSON.",
+)
+def agent_permissions_cmd(project_dir: str, as_json: bool) -> None:
+    """Show the active agent permission profile for this project (REG-012).
+
+    Prints which tools are allowed/denied under the least-privilege profile
+    loaded from docs/SPECSMITH.yml ``agent.permissions``.
+
+    Satisfies EU AI Act agent registration and NIST AI RMF least-privilege
+    requirements (REG-012).
+    """
+    import json as _json
+    from specsmith.agent.permissions import load_permissions
+
+    root = Path(project_dir).resolve()
+    perms = load_permissions(root)
+    summary = perms.summary()
+
+    if as_json:
+        click.echo(_json.dumps(summary, indent=2))
+        return
+
+    console.print(f"[bold]Agent Permission Profile[/bold]: [cyan]{perms.label}[/cyan]\n")
+    console.print("[bold]Allowed tools:[/bold]")
+    for t in sorted(perms.allow):
+        console.print(f"  [green]\u2713[/green] {t}")
+    if perms.deny:
+        console.print("\n[bold]Denied tools:[/bold]")
+        for t in sorted(perms.deny):
+            console.print(f"  [red]\u2717[/red] {t}")
+    console.print(
+        "\n[dim]Configure via docs/SPECSMITH.yml agent.permissions.allow/deny[/dim]"
+    )
+
+
+@agent_group.command(name="permissions-check")
+@click.argument("tool_name")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit the result as JSON (default: human-readable).",
+)
+@click.option(
+    "--no-log",
+    "skip_log",
+    is_flag=True,
+    default=False,
+    help="Do not write a ledger entry when the tool is denied (e.g. for dry-run checks).",
+)
+def agent_permissions_check_cmd(
+    tool_name: str, project_dir: str, as_json: bool, skip_log: bool
+) -> None:
+    """Check whether TOOL_NAME is permitted under the active permission profile (REG-012).
+
+    Exit code 0 = allowed; exit code 3 = denied.
+    Denied checks are recorded in the project ledger unless --no-log is set.
+
+    Satisfies NIST AI RMF least-privilege principle and EU AI Act Art. 13
+    agent capability declaration (REG-012).
+    """
+    import json as _json
+
+    from specsmith.agent.permissions import load_permissions
+
+    root = Path(project_dir).resolve()
+    perms = load_permissions(root)
+    allowed, reason = perms.check_and_log(tool_name, root, log_denied=not skip_log)
+
+    result = {
+        "tool": tool_name,
+        "allowed": allowed,
+        "profile": perms.label,
+        "reason": reason if not allowed else "",
+    }
+
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        if allowed:
+            console.print(
+                f"[green]\u2713[/green] [bold]{tool_name}[/bold] is "
+                f"[green]allowed[/green] under profile '[cyan]{perms.label}[/cyan]'."
+            )
+        else:
+            console.print(
+                f"[red]\u2717[/red] [bold]{tool_name}[/bold] is "
+                f"[red]denied[/red] under profile '[cyan]{perms.label}[/cyan]'."
+            )
+            console.print(f"  [dim]{reason.splitlines()[0]}[/dim]")
+            if not skip_log:
+                console.print(
+                    "  [dim]Denial recorded in ledger (REG-012 audit trail).[/dim]"
+                )
+
+    if not allowed:
+        raise SystemExit(3)
+
+
 @agent_group.command(name="skills")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def agent_skills_cmd(project_dir: str) -> None:

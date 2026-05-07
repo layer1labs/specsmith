@@ -6,6 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.11.0] — 2026-05-07
+### Added
+- **Governance structure overhaul** — all governance files (REQUIREMENTS.md, TESTS.md, LEDGER.md, scaffold config) moved to `docs/`; `AGENTS.md` remains the only root-level governance file. Backward compatibility preserved via `find_scaffold()` / `find_ledger()` helpers.
+- **`docs/SPECSMITH.yml`** — scaffold config renamed to uppercase (`SPECSMITH.yml`) for consistency with all other uppercase governance files. `paths.py` constant `SCAFFOLD_FILE = "SPECSMITH.yml"`.
+- **`src/specsmith/paths.py`** — canonical path constants (`DOCS_DIR`, `SCAFFOLD_FILE`, `SCAFFOLD_REL`, etc.) and lookup helpers (`find_scaffold`, `find_ledger`, `find_requirements`, `find_tests`) with backward-compat root fallback.
+- **`src/specsmith/safe_write.py`** — append-only + backup-protected governance file writes. `append_file()` never truncates; `safe_overwrite()` creates a timestamped `.bak` before any overwrite; `json_append()`, `compute_diff()`, SHA-256 integrity helper, and atomic temp+rename writes throughout. Satisfies REG-007/REG-008.
+- **AI regulation compliance (REG-001..REG-015)** — 15 requirements from BTWS 2027 Agentic AI Governance Report (EU AI Act, NIST AI RMF, OMB M-24-10, Colorado SB24-205, FTC, California ADMT, Utah SB149). Key implementations:
+  - REG-001: `log_agent_action()` in `tools.py` — SHA-256 chained tamper-evident agent action log at `.specsmith/agent-actions.jsonl`.
+  - REG-002: `ToolSpec` + `build_tool_registry()` — explicit capability declaration for all 12 agent tools.
+  - REG-004: `specsmith preflight --escalate-threshold <float>` — surfaces `escalation_required` when confidence < threshold.
+  - REG-005: `specsmith kill-session [--reason]` — emergency kill-switch; terminates all tracked sessions and records a kill-switch ledger event.
+  - REG-007: `upgrader.py` uses `safe_overwrite()` for governance template regeneration.
+  - REG-009: `specsmith preflight` output includes `ai_disclosure` metadata (governed_by, provider, model, spec_version).
+  - REG-010: `specsmith export` includes **AI System Inventory** section (agent capabilities, EU AI Act risk tier, human oversight controls).
+  - REG-012: Least-privilege agent permissions — `ToolSpec` epistemic contracts declare filesystem-mutating tools.
+- **Phase checks updated** — all phase checks now use canonical `docs/` paths (`docs/REQUIREMENTS.md`, `docs/SPECSMITH.yml`, `docs/LEDGER.md`).
+- **76 planned architecture requirements migrated** (REQ-130..REQ-205): OPS, CMD, MAS, ORC, FLG, LRN, EDD, MEM, HRK, SRV, RTR, MCP, SEC, IDE domains.
+- **15 AI regulation requirements added** (REQ-206..REQ-220).
+- **docs/COMPLIANCE.md** — machine-generated compliance export with AI System Inventory, REQ↔TEST coverage, audit summary, and governance file inventory.
+- **`specsmith audit`** — duplicate-file enforcement: warns when root copy AND `docs/` canonical copy both exist.
+- **kairos** — sister repository (`BitConcepts/kairos`) bootstrapped: Rust governance client (`src/governance/client.rs`, `server.rs`, `mod.rs`) with `GovernanceClient` (health/preflight/verify), `GovernanceServer` (managed child process), `GovernanceConfig` with I2 invariant enforcement.
+### Changed
+- `ledger.py`: `add_entry()` / `list_entries()` use `find_ledger()` (docs/LEDGER.md canonical).
+- `compressor.py`: uses `find_ledger()` + `safe_overwrite()`.
+- `auditor.py`: `_get_thresholds()` and `check_phase_readiness()` use `find_scaffold()`.
+- `phase.py`: all phase checks updated for canonical docs/ paths.
+- `cli.py`: `init` writes to `docs/SPECSMITH.yml`; `_maybe_prompt_project_update` uses `find_scaffold()`.
+- `upgrader.py`: `run_upgrade()` uses `find_scaffold()`; governance templates use `safe_overwrite()`.
+- `exporter.py`: `run_export()` uses `find_scaffold()`; adds AI System Inventory.
+### Validation
+- `pytest`: **448 passed, 1 skipped**.
+- `ruff`: clean.
+- `api-surface` snapshot: regenerated with `kill-session` command.
+
 ## [0.10.1] — 2026-05-04
 ### Added — Multi-Agent + BYOE (rolled into the 0.10.x line)
 - **`AgentRunner` + ready event (REQ-145).** New `agent/runner.py` with `_print_banner()` emitting a JSONL `ready` event, slash-command dispatch (`/agent`, `/profile`, `/status`), `AgentState` metrics, and `_hard_stop` cleanup. `agent/core.py` adds the `ModelTier` enum.
