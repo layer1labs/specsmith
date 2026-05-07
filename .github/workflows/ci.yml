@@ -70,6 +70,23 @@ jobs:
       - run: pip install -e .
       - run: pip-audit --ignore-vuln CVE-2026-3219
 
+  sync-check:
+    # REQ-003 guard: fail CI if .specsmith/ JSON drifts from docs/ Markdown.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Check machine state sync
+        env:
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+          SPECSMITH_PYPI_CHECKED: "1"
+        run: python -m specsmith sync --check --project-dir .
+
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
     # if the live output drifts from the committed fixture. Catches accidental

@@ -4901,6 +4901,174 @@ def governance_serve_cmd(project_dir: str, port: int, host: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# specsmith instinct — instinct persistence system (REQ-221..REQ-227)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="instinct")
+def instinct_group() -> None:
+    """Manage learned instincts (REQ-221..REQ-227).
+
+    Instincts are patterns extracted from successful agent sessions and
+    promoted by the user.  They are injected into the system prompt at
+    session start to guide the agent with project-specific knowledge.
+    """
+
+
+@instinct_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def instinct_list(project_dir: str, as_json: bool) -> None:
+    """List all recorded instincts sorted by confidence (REQ-227)."""
+    import json as _json
+
+    from specsmith.instinct import InstinctStore
+
+    store = InstinctStore(Path(project_dir).resolve())
+    records = store.all()
+    if as_json:
+        click.echo(_json.dumps([r.to_dict() for r in records], indent=2))
+        return
+    if not records:
+        console.print("[yellow]No instincts recorded yet.[/yellow]")
+        console.print(
+            "  Use [bold]specsmith instinct learn[/bold] to add one."
+        )
+        return
+    console.print(f"[bold]Instincts[/bold] ({len(records)})\n")
+    for r in records:
+        scope = f" [dim]({r.project_scope})[/dim]" if r.project_scope else ""
+        confidence_color = "green" if r.confidence >= 0.7 else ("yellow" if r.confidence >= 0.4 else "red")
+        console.print(
+            f"  [{confidence_color}]{r.confidence:.0%}[/{confidence_color}] "
+            f"[bold]{r.id}[/bold]{scope}\n"
+            f"    Trigger: {r.trigger_pattern}\n"
+            f"    Content: {r.content[:80]}{'...' if len(r.content) > 80 else ''}\n"
+            f"    Used: {r.use_count}\u00d7  Created: {r.created}"
+        )
+        console.print()
+
+
+@instinct_group.command(name="learn")
+@click.argument("trigger_pattern")
+@click.argument("content")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--scope",
+    default="project",
+    type=click.Choice(["project", "global"]),
+    help="'project': scoped to this project; 'global': applies everywhere.",
+)
+@click.option("--confidence", type=float, default=0.7, help="Initial confidence (0.0-1.0).")
+def instinct_learn(
+    trigger_pattern: str,
+    content: str,
+    project_dir: str,
+    scope: str,
+    confidence: float,
+) -> None:
+    """Promote a pattern to a learned instinct (REQ-224).
+
+    \b
+    TRIGGER_PATTERN  Natural-language phrase that activates this instinct
+    CONTENT          The advice or behaviour to apply
+
+    Example:
+      specsmith instinct learn \\
+        "when adding a CLI command" \\
+        "Always update docs/site/commands.md and README.md in the same PR."
+    """
+    from specsmith.instinct import InstinctStore
+
+    root = Path(project_dir).resolve()
+    store = InstinctStore(root)
+    project_scope = str(root) if scope == "project" else ""
+    rec = store.add(
+        trigger_pattern=trigger_pattern,
+        content=content,
+        project_scope=project_scope,
+        confidence=confidence,
+    )
+    console.print(
+        f"[green]\u2713[/green] Learned instinct [bold]{rec.id}[/bold] "
+        f"(confidence: {rec.confidence:.0%})"
+    )
+
+
+@instinct_group.command(name="status")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def instinct_status(project_dir: str) -> None:
+    """Show instinct summary: count, avg confidence, highest-confidence items (REQ-227)."""
+    from specsmith.instinct import InstinctStore
+
+    store = InstinctStore(Path(project_dir).resolve())
+    records = store.all()
+    if not records:
+        console.print("[yellow]No instincts recorded.[/yellow]")
+        return
+    avg = sum(r.confidence for r in records) / len(records)
+    total_uses = sum(r.use_count for r in records)
+    console.print(f"[bold]Instinct Status[/bold]\n")
+    console.print(f"  Total:       {len(records)}")
+    console.print(f"  Avg confidence: {avg:.0%}")
+    console.print(f"  Total uses:  {total_uses}")
+    console.print("\n  [bold]Top 3 (by confidence):[/bold]")
+    for r in records[:3]:
+        console.print(f"  [{r.confidence:.0%}] {r.trigger_pattern[:60]}")
+
+
+@instinct_group.command(name="remove")
+@click.argument("instinct_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def instinct_remove(instinct_id: str, project_dir: str) -> None:
+    """Remove an instinct by ID."""
+    from specsmith.instinct import InstinctStore
+
+    store = InstinctStore(Path(project_dir).resolve())
+    if store.remove(instinct_id):
+        console.print(f"[green]\u2713[/green] Removed instinct [bold]{instinct_id}[/bold].")
+    else:
+        console.print(f"[yellow]Instinct '{instinct_id}' not found.[/yellow]")
+
+
+@instinct_group.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--output", default="", help="Write to file instead of stdout.")
+@click.option("--format", "fmt", type=click.Choice(["json", "md"]), default="md")
+def instinct_export(project_dir: str, output: str, fmt: str) -> None:
+    """Export instincts as Markdown or JSON for sharing (REQ-226)."""
+    import json as _json
+
+    from specsmith.instinct import InstinctStore
+
+    store = InstinctStore(Path(project_dir).resolve())
+    if fmt == "json":
+        content = _json.dumps([r.to_dict() for r in store.all()], indent=2)
+    else:
+        content = store.export_markdown()
+    if output:
+        Path(output).write_text(content, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Exported {len(store.all())} instinct(s) to {output}.")
+    else:
+        click.echo(content)
+
+
+@instinct_group.command(name="import")
+@click.argument("file_path", type=click.Path(exists=True))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def instinct_import(file_path: str, project_dir: str) -> None:
+    """Import instincts from a JSON export file (REQ-226)."""
+    from specsmith.instinct import InstinctStore
+
+    store = InstinctStore(Path(project_dir).resolve())
+    count = store.import_from_path(Path(file_path))
+    console.print(f"[green]\u2713[/green] Imported {count} new instinct(s) from {file_path}.")
+
+
+main.add_command(instinct_group)
+
+
+# ---------------------------------------------------------------------------
 # Kill-switch / emergency stop (REG-005)
 # ---------------------------------------------------------------------------
 
