@@ -54,6 +54,9 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
         tmpl = env.get_template(template_name)
         content = tmpl.render(**ctx)
 
+        # REG-008: new scaffold = new files only; plain write is safe.
+        # safe_overwrite (with .bak) is reserved for UPDATES to existing files
+        # (see upgrader.py and ledger.py).
         output_path.write_text(content, encoding="utf-8")
         created.append(output_path)
 

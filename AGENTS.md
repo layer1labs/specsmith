@@ -48,7 +48,7 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/agent/repl.py` — Nexus REPL with `/why` toggle and execution gate
 - `src/specsmith/agent/orchestrator.py` — AG2 PlannerAgent/ShellAgent/CodeAgent pipeline
 - `src/specsmith/agent/profiles.py` — agent profiles, routing table, BYOE endpoints
-- `src/specsmith/paths.py` — canonical path constants (docs/specsmith.yml, docs/LEDGER.md …)
+- `src/specsmith/paths.py` — canonical path constants (docs/SPECSMITH.yml, docs/LEDGER.md …)
 - `src/specsmith/safe_write.py` — append-only + backup-protected governance file writes
 - `src/specsmith/serve.py` — HTTP/SSE server (specsmith serve)
 - `src/specsmith/cli.py` — 50+ CLI commands
@@ -58,7 +58,7 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/templates/` — Jinja2 scaffold templates
 - `tests/` — 448 tests (pytest)
 - **All governance files live in `docs/`** (except AGENTS.md at root):
-- `docs/specsmith.yml` — project scaffold config (canonical; was scaffold.yml)
+- `docs/SPECSMITH.yml` — project scaffold config (canonical; uppercase like all governance files)
 - `docs/ARCHITECTURE.md` — architecture reference
 - `docs/REQUIREMENTS.md` — formal requirements (REQ-001..REQ-220, machine-authoritative)
 - `docs/TESTS.md` — test specifications (machine-authoritative)

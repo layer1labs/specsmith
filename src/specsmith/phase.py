@@ -117,7 +117,7 @@ def _test_spec_covers_reqs(threshold_pct: int) -> Callable[[Path], bool]:
 
 
 def _scaffold_field(key: str) -> Callable[[Path], bool]:
-    """Check docs/specsmith.yml (or legacy scaffold.yml) has a non-empty value for key."""
+    """Check docs/SPECSMITH.yml (or legacy scaffold.yml) has a non-empty value for key."""
 
     def _check(root: Path) -> bool:
         from specsmith.paths import find_scaffold
@@ -182,7 +182,7 @@ PHASES: list[Phase] = [
         description="Establish project governance, scaffold, and initial context.",
         checks=[
             PhaseCheck(
-                "docs/specsmith.yml exists",
+                "docs/SPECSMITH.yml exists",
                 lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
             ),
             PhaseCheck("AGENTS.md exists", _file_exists("AGENTS.md")),
@@ -203,7 +203,7 @@ PHASES: list[Phase] = [
         description="Define system components, data flow, and architectural decisions.",
         checks=[
             PhaseCheck(
-                "docs/specsmith.yml exists",
+                "docs/SPECSMITH.yml exists",
                 lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
             ),
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
@@ -354,7 +354,7 @@ PHASE_ORDER: list[str] = [p.key for p in PHASES]
 
 
 def read_phase(project_dir: Path) -> str:
-    """Read current aee_phase from docs/specsmith.yml (or legacy scaffold.yml).
+    """Read current aee_phase from docs/SPECSMITH.yml (or legacy scaffold.yml).
 
     Returns 'inception' if not set or scaffold not found.
     """
@@ -372,7 +372,7 @@ def read_phase(project_dir: Path) -> str:
 
 
 def write_phase(project_dir: Path, phase_key: str) -> None:
-    """Write aee_phase to docs/specsmith.yml (or legacy scaffold.yml)."""
+    """Write aee_phase to docs/SPECSMITH.yml (or legacy scaffold.yml)."""
     from specsmith.paths import find_scaffold, scaffold_path
     scaffold = find_scaffold(project_dir) or scaffold_path(project_dir)
     if not scaffold.exists():

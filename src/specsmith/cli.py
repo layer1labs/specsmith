@@ -122,7 +122,7 @@ class _AutoUpdateGroup(click.Group):
 def _maybe_prompt_project_update() -> None:
     """Check if the project's scaffold config is behind the installed version.
 
-    Checks docs/specsmith.yml (canonical) then scaffold.yml (legacy).
+    Checks docs/SPECSMITH.yml (canonical) then scaffold.yml (legacy).
     If so, prints a one-line prompt and offers Y/n to migrate.
     Runs in under 5ms for projects that are up to date (no network call).
     """
@@ -273,8 +273,9 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     )
     console.print("Project scaffolded. Review generated files.")
 
-    # Save config as docs/specsmith.yml (canonical location)
-    config_out = target / "docs" / "specsmith.yml"
+    # Save config as docs/SPECSMITH.yml (canonical location — uppercase like peer governance files)
+    from specsmith.paths import scaffold_path as _scaffold_path
+    config_out = _scaffold_path(target)
     config_out.parent.mkdir(parents=True, exist_ok=True)
     with open(config_out, "w") as fh:
         yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
@@ -439,6 +440,16 @@ def audit(fix: bool, project_dir: str) -> None:
         "or writing the ledger (REQ-117)."
     ),
 )
+@click.option(
+    "--escalate-threshold",
+    "escalate_threshold",
+    type=float,
+    default=None,
+    help=(
+        "REG-004: confidence threshold below which execution must pause for human review. "
+        "Overrides .specsmith/config.yml epistemic.confidence_threshold for this call."
+    ),
+)
 def preflight_cmd(
     utterance: str,
     project_dir: str,
@@ -446,6 +457,7 @@ def preflight_cmd(
     verbose: bool,
     stress: bool,
     predict_only: bool,
+    escalate_threshold: float | None,
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
@@ -596,6 +608,26 @@ def preflight_cmd(
         payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
         if payload.get("stress_warnings"):
             payload["narration"] += "\nNote: stress-test surfaced one or more critical failures."
+
+    # REG-009: AI disclosure metadata (FTC Operation AI Comply, Utah SB149 2024).
+    # Every governed output must disclose the AI system producing it.
+    import os as _os
+    payload["ai_disclosure"] = {
+        "governed_by": "specsmith",
+        "governance_gated": True,
+        "provider": _os.environ.get("SPECSMITH_PROVIDER", "local/heuristic"),
+        "model": _os.environ.get("SPECSMITH_MODEL", "deterministic-broker"),
+        "spec_version": __version__,
+    }
+
+    # REG-004: human escalation — if a threshold is set and confidence < threshold,
+    # surface an explicit escalation notice in the payload.
+    if escalate_threshold is not None and confidence_target < escalate_threshold:
+        payload["escalation_required"] = True
+        payload["escalation_reason"] = (
+            f"Confidence {confidence_target:.3f} is below escalation threshold "
+            f"{escalate_threshold:.3f}. Human review required before execution."
+        )
 
     # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
     click.echo(_json.dumps(payload, indent=2))
@@ -4617,6 +4649,55 @@ def info_cmd(as_json: bool, section: str) -> None:
 
     if as_json:
         console.print(json_mod.dumps(result, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# Kill-switch / emergency stop (REG-005)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="kill-session")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--reason",
+    default="emergency stop",
+    help="Human-readable reason for the kill-switch activation (logged to ledger).",
+)
+def kill_session_cmd(project_dir: str, reason: str) -> None:
+    """Emergency kill-switch: halt all active agent sessions immediately (REG-005).
+
+    Sends SIGTERM/SIGKILL to all tracked specsmith processes, emits a
+    kill-switch ledger event, and exits.
+
+    Satisfies EU AI Act Art. 14 (human oversight / ability to interrupt),
+    NIST AI RMF (GO-4 emergency stop), and OMB M-24-10 kill-switch requirements.
+    """
+    from specsmith.executor import abort_all
+    from specsmith.ledger import add_entry
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold red]\u26a0 KILL SWITCH ACTIVATED[/bold red] — {reason}")
+
+    killed = abort_all(root)
+    if killed:
+        console.print(f"[red]Terminated {len(killed)} process(es): {killed}[/red]")
+    else:
+        console.print("[yellow]No tracked agent processes found.[/yellow]")
+
+    # REG-005: log the kill-switch event to the tamper-evident ledger.
+    with contextlib.suppress(Exception):
+        add_entry(
+            root,
+            description=f"KILL SWITCH ACTIVATED: {reason}",
+            entry_type="kill-switch",
+            author="specsmith-operator",
+            reqs="REG-005",
+            status="complete",
+            epistemic_status="high",
+        )
+        console.print("[green]\u2713[/green] Kill-switch event recorded in ledger.")
+
+    console.print("[dim]All governed sessions halted. Review docs/LEDGER.md for audit trail.[/dim]")
 
 
 # ---------------------------------------------------------------------------

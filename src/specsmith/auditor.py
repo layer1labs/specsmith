@@ -69,7 +69,7 @@ RECOMMENDED_FILES = [
     "docs/REQUIREMENTS.md",
     "docs/TESTS.md",
     "docs/ARCHITECTURE.md",
-    "docs/specsmith.yml",  # new canonical scaffold config (was scaffold.yml)
+    "docs/SPECSMITH.yml",  # canonical scaffold config (uppercase, like peer governance files)
     "CONTRIBUTING.md",
     "LICENSE",
 ]
@@ -147,9 +147,9 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 if (root / "docs").is_dir()
                 else False
             )
-        # docs/specsmith.yml is the canonical config, but scaffold.yml at root is also acceptable
+        # docs/SPECSMITH.yml is the canonical config, but scaffold.yml at root is also acceptable
         # (legacy projects are not penalized for not yet having migrated)
-        if not found and f == "docs/specsmith.yml":
+        if not found and f == "docs/SPECSMITH.yml":
             found = (root / "scaffold.yml").exists()
         results.append(
             AuditResult(
@@ -164,7 +164,7 @@ def check_governance_files(root: Path) -> list[AuditResult]:
     # also exists (true duplicate). Legacy projects with only a root copy are not
     # flagged here — they should migrate when ready.
     _docs_canonical_names = {
-        "scaffold.yml": "docs/specsmith.yml",
+        "scaffold.yml": "docs/SPECSMITH.yml",
         "REQUIREMENTS.md": "docs/REQUIREMENTS.md",
         "TESTS.md": "docs/TESTS.md",
         "LEDGER.md": "docs/LEDGER.md",

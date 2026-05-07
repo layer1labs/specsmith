@@ -49,7 +49,7 @@ class TestLifecycleNew:
         project = out / "lifecycle-test"
 
         # ---- Step 2: Verify initial phase is inception ----
-        scaffold_file = project / "docs" / "specsmith.yml"
+        scaffold_file = project / "docs" / "SPECSMITH.yml"
         if not scaffold_file.exists():
             scaffold_file = project / "scaffold.yml"
         with open(scaffold_file) as f:
@@ -90,7 +90,7 @@ class TestLifecycleNew:
             assert "Advanced" in r.output or "final phase" in r.output
 
             # Verify scaffold reflects the new phase (check canonical location first)
-            _sf = project / "docs" / "specsmith.yml"
+            _sf = project / "docs" / "SPECSMITH.yml"
             if not _sf.exists():
                 _sf = project / "scaffold.yml"
             with open(_sf) as f:
@@ -111,7 +111,7 @@ class TestLifecycleNew:
             ["phase", "set", "inception", "--force", "--project-dir", str(project)],
         )
         assert r.exit_code == 0
-        _sf2 = project / "docs" / "specsmith.yml"
+        _sf2 = project / "docs" / "SPECSMITH.yml"
         if not _sf2.exists():
             _sf2 = project / "scaffold.yml"
         with open(_sf2) as f:

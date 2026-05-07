@@ -100,7 +100,7 @@ def run_upgrade(
 
     if not scaffold_path or not scaffold_path.exists():
         return UpgradeResult(
-            message="No scaffold config found (docs/specsmith.yml or scaffold.yml). Cannot determine project configuration for upgrade."
+            message="No scaffold config found (docs/SPECSMITH.yml or scaffold.yml). Cannot determine project configuration for upgrade."
         )
 
     with open(scaffold_path) as f:
@@ -141,13 +141,15 @@ def run_upgrade(
         obsolete_workflow.unlink()
         result.updated_files.append("docs/WORKFLOW.md (removed — replaced by LIFECYCLE.md)")
 
-    # Regenerate governance templates (always overwritten — they're spec-managed)
+    # Regenerate governance templates (always overwritten — they're spec-managed).
+    # REG-007: safe_overwrite creates a timestamped .bak before each write.
+    from specsmith.safe_write import safe_overwrite as _safe_overwrite
     for template_name, output_rel in _GOVERNANCE_TEMPLATES:
         output_path = root / output_rel
         output_path.parent.mkdir(parents=True, exist_ok=True)
         tmpl = env.get_template(template_name)
         content = tmpl.render(**ctx)
-        output_path.write_text(content, encoding="utf-8")
+        _safe_overwrite(output_path, content, reason=f"upgrade {output_rel}")
         result.updated_files.append(output_rel)
 
     # Update scaffold config with new version (at canonical or legacy location)

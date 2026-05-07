@@ -124,9 +124,9 @@ class TestSandboxNew:
         assert (project / ".agents" / "skills" / "SKILL.md").exists()
         assert (project / "CLAUDE.md").exists()
 
-        # ---- Step 7: scaffold config saved (canonical: docs/specsmith.yml) ----
-        saved = project / "docs" / "specsmith.yml"
-        assert saved.exists(), f"docs/specsmith.yml not found in {project}"
+        # ---- Step 7: scaffold config saved (canonical: docs/SPECSMITH.yml) ----
+        saved = project / "docs" / "SPECSMITH.yml"
+        assert saved.exists(), f"docs/SPECSMITH.yml not found in {project}"
         with open(saved) as f:
             cfg = yaml.safe_load(f)
         assert cfg["name"] == "forge-cli"
@@ -168,7 +168,7 @@ class TestSandboxNew:
         assert upgrade_result.exit_code == 0, f"Upgrade failed: {upgrade_result.output}"
         assert "Upgraded" in upgrade_result.output
         # Upgrader reads the scaffold from find_scaffold() — check the new location
-        upgraded_saved = project / "docs" / "specsmith.yml"
+        upgraded_saved = project / "docs" / "SPECSMITH.yml"
         if not upgraded_saved.exists():
             upgraded_saved = project / "scaffold.yml"  # fallback for legacy-style upgrade
         with open(upgraded_saved) as f:

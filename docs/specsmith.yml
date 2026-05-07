@@ -13,7 +13,7 @@ platforms:
 - windows
 - macos
 spec_version: 0.10.1
-aee_phase: verification
+aee_phase: release
 description: Applied Epistemic Engineering toolkit for AI-assisted development. Governance backend for the Kairos terminal (BitConcepts/kairos).
 vcs_platform: github
 branching_strategy: gitflow

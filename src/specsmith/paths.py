@@ -4,7 +4,7 @@
 
 ## File Structure Convention
 All governance files (except AGENTS.md) live in docs/.
-The project scaffold config is docs/specsmith.yml (renamed from scaffold.yml).
+The project scaffold config is docs/SPECSMITH.yml (uppercase, like all governance files).
 
   root/
     AGENTS.md          ← only governance file at root
@@ -12,7 +12,7 @@ The project scaffold config is docs/specsmith.yml (renamed from scaffold.yml).
     CHANGELOG.md
     README.md / LICENSE
     docs/
-      specsmith.yml    ← project config (canonical; was scaffold.yml)
+      SPECSMITH.yml    ← project config (canonical; was scaffold.yml)
       REQUIREMENTS.md  ← formal requirements (canonical)
       TESTS.md         ← test specifications (canonical)
       LEDGER.md        ← session ledger (canonical)
@@ -35,8 +35,8 @@ from pathlib import Path
 # Canonical file names
 # ---------------------------------------------------------------------------
 
-#: Project scaffold config (renamed from scaffold.yml)
-SCAFFOLD_FILE = "specsmith.yml"
+#: Project scaffold config (renamed from scaffold.yml; uppercase like peer governance files)
+SCAFFOLD_FILE = "SPECSMITH.yml"
 #: Directory holding all governance docs
 DOCS_DIR = "docs"
 
@@ -70,7 +70,7 @@ ROOT_BANNED_FILES = [
 def find_scaffold(root: Path) -> Path | None:
     """Find the project scaffold config file.
 
-    Checks ``docs/specsmith.yml`` first (canonical), then ``scaffold.yml``
+    Checks ``docs/SPECSMITH.yml`` first (canonical), then ``scaffold.yml``
     at root (legacy).  Returns ``None`` if neither exists.
     """
     canonical = root / DOCS_DIR / SCAFFOLD_FILE
@@ -83,7 +83,7 @@ def find_scaffold(root: Path) -> Path | None:
 
 
 def scaffold_path(root: Path) -> Path:
-    """Return the canonical scaffold path (``docs/specsmith.yml``).
+    """Return the canonical scaffold path (``docs/SPECSMITH.yml``).
 
     Does **not** check whether the file exists — use ``find_scaffold``
     when you only want an existing path.

@@ -159,8 +159,8 @@ class TestConfigInheritance:
         project = tmp_path / "my-child-project"
         assert project.exists()
 
-        # Verify child overrides were applied (scaffold now at docs/specsmith.yml)
-        saved = project / "docs" / "specsmith.yml"
+        # Verify child overrides were applied (scaffold now at docs/SPECSMITH.yml)
+        saved = project / "docs" / "SPECSMITH.yml"
         if not saved.exists():
             saved = project / "scaffold.yml"  # fallback
         with open(saved) as f:

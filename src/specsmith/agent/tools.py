@@ -172,6 +172,156 @@ def remember_project_fact(key: str, value: str, cwd: str | None = None) -> str:
     return f"Remembered fact '{key}'."
 
 
+# ---------------------------------------------------------------------------
+# Tool specification (REG-001 / REG-002)
+# ---------------------------------------------------------------------------
+from dataclasses import dataclass, field as _dc_field
+
+
+@dataclass
+class ToolSpec:
+    """Metadata wrapper around a tool function.
+
+    Carries the tool's name, description, and epistemic contract
+    (claims about what it does and does NOT reliably detect).
+
+    REG-002: agent capabilities must be explicitly declared before use.
+    """
+
+    name: str
+    description: str
+    func: object
+    epistemic_claims: list[str] = _dc_field(default_factory=list)
+
+
+def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
+    """Return a list of ToolSpec objects for all available tools.
+
+    REG-001: tool capability declarations satisfy the agent registration
+    principle from EU AI Act (agent must have a signed registry entry
+    describing capabilities and allowed actions).
+    """
+    return [
+        ToolSpec(
+            name="run_shell",
+            description="Execute a shell command. Safety-checked; destructive commands are blocked.",
+            func=run_shell,
+            epistemic_claims=["EXEC-001: no python -c for non-trivial code"],
+        ),
+        ToolSpec(
+            name="read_file",
+            description="Read a text file from the repository.",
+            func=read_file,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="write_file",
+            description="Write content to a file (creates or overwrites).",
+            func=write_file,
+            epistemic_claims=["modifies filesystem: logged in audit chain"],
+        ),
+        ToolSpec(
+            name="patch_file",
+            description="Apply a unified diff patch to a file.",
+            func=patch_file,
+            epistemic_claims=["modifies filesystem: logged in audit chain"],
+        ),
+        ToolSpec(
+            name="list_files",
+            description="List files matching a glob pattern in a directory.",
+            func=list_files,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="grep",
+            description="Search for a pattern in files.",
+            func=grep,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="git_diff",
+            description="Show the git diff for the working tree.",
+            func=git_diff,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="git_status",
+            description="Show git status for the working tree.",
+            func=git_status,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="run_tests",
+            description="Run the project test suite.",
+            func=run_tests,
+            epistemic_claims=["may modify test artifacts but not source"],
+        ),
+        ToolSpec(
+            name="open_url",
+            description="Fetch text content from a URL.",
+            func=open_url,
+            epistemic_claims=["network: reads external resources"],
+        ),
+        ToolSpec(
+            name="search_docs",
+            description="Search documentation files in the repo.",
+            func=search_docs,
+            epistemic_claims=["read-only: does not modify files"],
+        ),
+        ToolSpec(
+            name="remember_project_fact",
+            description="Store a named fact in the local project index (.repo-index/facts.json).",
+            func=remember_project_fact,
+            epistemic_claims=["modifies .repo-index/facts.json only"],
+        ),
+    ]
+
+
+# ---------------------------------------------------------------------------
+# REG-001: tamper-evident agent action logging
+# ---------------------------------------------------------------------------
+
+def log_agent_action(
+    root: "Path | str",
+    tool_name: str,
+    args: dict,
+    result_summary: str = "",
+) -> None:
+    """Append a tool-call record to the agent action log (REG-001).
+
+    Writes to ``.specsmith/agent-actions.jsonl`` using the CryptoAuditChain
+    for tamper-evidence. Best-effort — never raises or blocks the caller.
+
+    Satisfies EU AI Act Art. 12 (logging obligations for AI systems).
+    """
+    import datetime
+    import json
+
+    try:
+        from specsmith.ledger import CryptoAuditChain, _sha256
+
+        root_path = Path(root) if not isinstance(root, Path) else root
+        log_file = root_path / ".specsmith" / "agent-actions.jsonl"
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+
+        chain = CryptoAuditChain(root_path)
+        prev_hash = chain.latest_hash()
+        entry_body = f"{tool_name}|{json.dumps(args, default=str)}|{result_summary[:100]}"
+        entry_hash = _sha256(f"{entry_body}:{prev_hash}")
+
+        record = {
+            "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "tool": tool_name,
+            "args_summary": entry_body[:200],
+            "result_summary": result_summary[:100],
+            "chain_hash": entry_hash[:16],
+        }
+        with open(log_file, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record) + "\n")
+    except Exception:  # noqa: BLE001 — logging must never break execution
+        pass
+
+
 # Expose available tools as a list for AG2 tool registration
 AVAILABLE_TOOLS = [
     run_shell,

@@ -129,12 +129,33 @@ def run_export(root: Path) -> str:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             sections.append("*Could not read git history*\n")
 
+    # --- REG-010: AI System Inventory (OMB M-24-10, Colorado SB24-205, EU AI Act Art. 11) ---
+    sections.append("## AI System Inventory (REG-010)\n")
+    sections.append("### Agent Capabilities")
+    from specsmith.agent.tools import build_tool_registry
+    tool_specs = build_tool_registry(str(root))
+    for t in tool_specs:
+        claims = "; ".join(t.epistemic_claims) if t.epistemic_claims else "none declared"
+        sections.append(f"- **{t.name}**: {t.description}")
+        sections.append(f"  *Epistemic claims:* {claims}")
+    sections.append("")
+    sections.append("### Risk Classification")
+    sections.append("- **EU AI Act tier**: GPAI (general-purpose; systemic risk assessment required if >10^25 FLOP)")
+    sections.append("- **NIST AI RMF**: GOVERN + MAP + MEASURE + MANAGE controls applied")
+    sections.append("- **Use-case scope**: software development governance; not Annex III high-risk")
+    sections.append("")
+    sections.append("### Human Oversight Controls")
+    sections.append("- Preflight gate: all governed actions require human-language approval")
+    sections.append("- Kill-switch: `specsmith kill-session` halts all active agent sessions")
+    sections.append("- Escalation: `specsmith preflight --escalate-threshold <float>` gates low-confidence actions")
+    sections.append("- Retry budget: `agents_max_iterations` in docs/SPECSMITH.yml bounds self-improvement loops")
+    sections.append("")
     # --- Governance file inventory ---
     sections.append("## Governance File Inventory\n")
     gov_files = [
         "AGENTS.md",
         "LEDGER.md",
-        "docs/specsmith.yml",
+        "docs/SPECSMITH.yml",
         "scaffold.yml",  # legacy location
         "docs/REQUIREMENTS.md",
         "docs/TESTS.md",
