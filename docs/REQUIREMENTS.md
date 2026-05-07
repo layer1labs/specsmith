@@ -1507,3 +1507,164 @@
 - **Description:** specsmith MUST enforce allow/deny lists for tool categories and data access patterns at the agent interface layer — not just within prompts. Agents MUST NOT access live production databases or unmanaged data sources. Satisfies EU AI Act technical controls, California ADMT data governance requirements.
 - **Source:** BTWS-2027 AI Governance Report [REG-015]
 - **Status:** defined
+
+## 221. Instinct Persistence System
+- **ID:** REQ-221
+- **Title:** Instinct Persistence System
+- **Description:** specsmith MUST implement an instinct persistence system in src/specsmith/instinct.py storing patterns extracted from successful sessions.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-001]
+- **Status:** defined
+
+## 222. Instinct Record Schema
+- **ID:** REQ-222
+- **Title:** Instinct Record Schema
+- **Description:** Each instinct record MUST contain: id, trigger_pattern, content, confidence, project_scope, created, last_used, use_count.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-002]
+- **Status:** defined
+
+## 223. Session End Instinct Extraction
+- **ID:** REQ-223
+- **Title:** Session End Instinct Extraction
+- **Description:** The SESSION_END hook MUST extract candidate instincts from session history for user review before the session closes.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-003]
+- **Status:** defined
+
+## 224. Learn Command
+- **ID:** REQ-224
+- **Title:** Learn Command
+- **Description:** The /learn command MUST promote a user-approved pattern to an instinct with an initial confidence score and persist it to the instinct store.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-004]
+- **Status:** defined
+
+## 225. Instinct Confidence Updates
+- **ID:** REQ-225
+- **Title:** Instinct Confidence Updates
+- **Description:** Instinct confidence MUST be updated based on application success or rejection — increasing on accepted application and decreasing on rejection.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-005]
+- **Status:** defined
+
+## 226. Instinct Import Export
+- **ID:** REQ-226
+- **Title:** Instinct Import Export
+- **Description:** Instincts MUST be importable and exportable as .md files for cross-project and cross-team sharing.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-006]
+- **Status:** defined
+
+## 227. Instinct Status Command
+- **ID:** REQ-227
+- **Title:** Instinct Status Command
+- **Description:** /instinct-status MUST display all active instincts sorted by confidence descending, with use_count and last_used fields.
+- **Source:** PLANNED-REQUIREMENTS.md [LRN-007]
+- **Status:** defined
+
+## 228. Eval Harness Module
+- **ID:** REQ-228
+- **Title:** Eval Harness Module
+- **Description:** specsmith MUST implement an eval harness in src/specsmith/eval/ supporting eval-driven development workflows.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-001]
+- **Status:** defined
+
+## 229. Eval Data Model
+- **ID:** REQ-229
+- **Title:** Eval Data Model
+- **Description:** The eval model MUST define: Task, Trial, Grader, Transcript, Outcome as core types.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-002]
+- **Status:** defined
+
+## 230. Eval Task Storage
+- **ID:** REQ-230
+- **Title:** Eval Task Storage
+- **Description:** Tasks MUST be stored as Markdown files at .specsmith/evals/{feature}.md with YAML frontmatter.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-003]
+- **Status:** defined
+
+## 231. Eval Grader Types
+- **ID:** REQ-231
+- **Title:** Eval Grader Types
+- **Description:** The eval harness MUST support CodeGrader, ModelGrader, and HumanFlag grader types for different validation strategies.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-004]
+- **Status:** defined
+
+## 232. Eval Pass at K Metrics
+- **ID:** REQ-232
+- **Title:** Eval Pass at K Metrics
+- **Description:** The eval harness MUST compute pass@k and pass^k metrics for measuring agent capability across multiple trials.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-005]
+- **Status:** defined
+
+## 233. Git-Based Eval Grading
+- **ID:** REQ-233
+- **Title:** Git-Based Eval Grading
+- **Description:** Default grading MUST be git-based outcome grading (checking actual changes in VCS) rather than execution-path assertion.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-006]
+- **Status:** defined
+
+## 234. Eval Run Command
+- **ID:** REQ-234
+- **Title:** Eval Run Command
+- **Description:** /eval run --trials k MUST run k independent trials and report pass@k results with per-trial transcripts.
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-007]
+- **Status:** defined
+
+## 235. Capability vs Regression Evals
+- **ID:** REQ-235
+- **Title:** Capability vs Regression Evals
+- **Description:** The eval harness MUST distinguish capability evals (new functionality) from regression evals (existing functionality preservation).
+- **Source:** PLANNED-REQUIREMENTS.md [EDD-008]
+- **Status:** defined
+
+## 236. Agent Memory Module
+- **ID:** REQ-236
+- **Title:** Agent Memory Module
+- **Description:** specsmith MUST implement cross-session agent memory in src/specsmith/memory.py persisting patterns, facts, and history across sessions.
+- **Source:** PLANNED-REQUIREMENTS.md [MEM-001]
+- **Status:** defined
+
+## 237. Agent Memory Schema
+- **ID:** REQ-237
+- **Title:** Agent Memory Schema
+- **Description:** Agent memory MUST be structured JSON containing: accumulated patterns, preferred approaches, known project facts, and failure history.
+- **Source:** PLANNED-REQUIREMENTS.md [MEM-002]
+- **Status:** defined
+
+## 238. Session Start Memory Injection
+- **ID:** REQ-238
+- **Title:** Session Start Memory Injection
+- **Description:** The SESSION_START hook MUST inject relevant memories into the system prompt, respecting the configured token budget to avoid context overrun.
+- **Source:** PLANNED-REQUIREMENTS.md [MEM-003]
+- **Status:** defined
+
+## 239. Typed Execution Layer
+- **ID:** REQ-239
+- **Title:** Typed Execution Layer
+- **Description:** All tool handlers MUST use a typed ProjectOperations class for file, git/VCS, and search operations. Direct raw shell string assembly in tool handlers is prohibited.
+- **Source:** PLANNED-REQUIREMENTS.md [OPS-001]
+- **Status:** defined
+
+## 240. ProjectOperations File Interface
+- **ID:** REQ-240
+- **Title:** ProjectOperations File Interface
+- **Description:** ProjectOperations MUST expose file operations (read_file, write_file, list_dir, glob, search) implemented via Python pathlib/stdlib with no subprocess calls.
+- **Source:** PLANNED-REQUIREMENTS.md [OPS-002]
+- **Status:** defined
+
+## 241. ProjectOperations VCS Interface
+- **ID:** REQ-241
+- **Title:** ProjectOperations VCS Interface
+- **Description:** ProjectOperations MUST expose git/VCS operations (status, log, diff, add, commit, push, create_branch, create_pr) returning structured typed result objects.
+- **Source:** PLANNED-REQUIREMENTS.md [OPS-003]
+- **Status:** defined
+
+## 242. ProjectOperations Result Schema
+- **ID:** REQ-242
+- **Title:** ProjectOperations Result Schema
+- **Description:** All ProjectOperations methods MUST return a typed result containing at minimum: exit_code, stdout, stderr, and elapsed_ms.
+- **Source:** PLANNED-REQUIREMENTS.md [OPS-004]
+- **Status:** defined
+
+## 243. Cross-Platform ProjectOperations
+- **ID:** REQ-243
+- **Title:** Cross-Platform ProjectOperations
+- **Description:** ProjectOperations MUST be cross-platform (Windows, Linux, macOS) without platform-specific code branches at call sites.
+- **Source:** PLANNED-REQUIREMENTS.md [OPS-006]
+- **Status:** defined

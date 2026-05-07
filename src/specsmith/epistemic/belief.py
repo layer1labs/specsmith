@@ -186,21 +186,67 @@ class BeliefArtifact:
 # Markdown parser — converts REQUIREMENTS.md entries to BeliefArtifacts
 # ---------------------------------------------------------------------------
 
-_REQ_HEADING = re.compile(r"^#{1,3}\s+(REQ-([A-Z0-9_]+)-(\d+))\s*(?:—\s*(.+))?$")
+# Two supported heading styles:
+#   Style A (direct):  ## REQ-001 — Title   or   ## REQ-CLI-001 — Title
+#   Style B (numbered): ## 1. Title\n- **ID:** REQ-001\n...
+#
+# The flexible REQ id regex handles both two-part (REQ-001) and three-part
+# (REQ-CLI-001 / REG-012) identifiers.
+_FLEX_REQ_ID = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
+
+# Style A: heading IS the REQ id
+_REQ_HEADING_DIRECT = re.compile(
+    r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\s*(?:[-\u2014]\s*(.+))?$"
+)
+# Style B: numbered section heading (title only, id comes from an inline field)
+_REQ_HEADING_NUMBERED = re.compile(r"^#{1,3}\s+\d+\.\s+(.+?)\s*$")
+# Inline id field inside a Style B section: - **ID:** REQ-001
+_INLINE_ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_REQ_ID + r")\s*$")
 _FIELD_LINE = re.compile(r"^\s*-\s+\*\*(.+?)\*\*:\s*(.+)$")
 
 
-def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:
+def _component_from_id(req_id: str) -> str:
+    """Extract the component code from a REQ id (empty string for two-part ids).
+
+    Examples:
+      ``REQ-001``     → ``""``
+      ``REQ-CLI-001`` → ``"CLI"``
+      ``REG-012``     → ``""``  (REG ids have no component in this scheme)
+    """
+    parts = req_id.split("-")
+    # REQ-NNN → ["REQ", "NNN"]            → no component
+    # REQ-CLI-001 → ["REQ", "CLI", "001"] → component = "CLI"
+    if len(parts) == 3 and not parts[2].isdigit():
+        # guard: last part must be numeric for a component to be meaningful
+        return ""
+    return parts[1] if len(parts) >= 3 and not parts[1].isdigit() else ""
+
+
+def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:  # noqa: C901
     """Parse a REQUIREMENTS.md file and return a list of BeliefArtifacts.
 
-    Each requirement becomes a BeliefArtifact with:
-    - artifact_id  ← the REQ-XXX-NNN identifier
-    - propositions ← the description text (split at semicolons if compound)
-    - component    ← the component code extracted from the ID
-    - priority     ← from **Priority:** field if present
-    - status       ← from **Status:** field (defaults to DRAFT)
-    - confidence   ← UNKNOWN for new artifacts, higher if status is accepted+
-    - epistemic_boundary ← from **Platform:** field if present
+    Supports two REQUIREMENTS.md heading styles:
+
+    **Style A** (direct REQ heading)::
+
+        ## REQ-001 — Short title
+        - **Description:** ...
+        - **Status:** defined
+
+    **Style B** (numbered section + inline ID field)::
+
+        ## 1. Short title
+        - **ID:** REQ-001
+        - **Description:** ...
+        - **Status:** defined
+
+    Returns a ``BeliefArtifact`` for each requirement with:
+    - ``artifact_id``  ← the REQ-NNN or REQ-COMP-NNN identifier
+    - ``propositions`` ← the description text (split at semicolons)
+    - ``component``    ← extracted from the ID (empty for two-part ids)
+    - ``priority``     ← from ``**Priority:**`` field if present
+    - ``status``       ← from ``**Status:**`` field (defaults to DRAFT)
+    - ``confidence``   ← inferred from status
     """
     if not path.exists():
         return []
@@ -210,26 +256,57 @@ def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:
     current: BeliefArtifact | None = None
     current_desc = ""
 
+    # State for Style B (numbered heading waiting for the inline ID field)
+    pending_title: str = ""
+
+    def _commit() -> None:
+        """Finalise and save the current artifact if one is active."""
+        if current is not None:
+            _finalise(current, current_desc)
+            artifacts.append(current)
+
     for line in content.splitlines():
-        m = _REQ_HEADING.match(line)
-        if m:
-            if current is not None:
-                _finalise(current, current_desc)
-                artifacts.append(current)
-            req_id = m.group(1)
-            component = m.group(2)
-            desc_inline = m.group(4) or ""
+        # ── Style A: heading IS the REQ id ──────────────────────────
+        m_direct = _REQ_HEADING_DIRECT.match(line)
+        if m_direct:
+            _commit()
+            req_id = m_direct.group(1)
+            desc_inline = m_direct.group(2) or ""
             current = BeliefArtifact(
                 artifact_id=req_id,
-                component=component,
+                component=_component_from_id(req_id),
                 source_text=desc_inline,
             )
             current_desc = desc_inline
+            pending_title = ""
+            continue
+
+        # ── Style B: numbered section heading ────────────────────────
+        m_numbered = _REQ_HEADING_NUMBERED.match(line)
+        if m_numbered:
+            _commit()
+            current = None
+            current_desc = ""
+            pending_title = m_numbered.group(1).strip()
+            continue
+
+        # ── Inline ID field (resolves a Style B section) ─────────────
+        m_id = _INLINE_ID_FIELD.match(line)
+        if m_id and pending_title and current is None:
+            req_id = m_id.group(1)
+            current = BeliefArtifact(
+                artifact_id=req_id,
+                component=_component_from_id(req_id),
+                source_text=pending_title,
+            )
+            current_desc = pending_title
+            pending_title = ""
             continue
 
         if current is None:
             continue
 
+        # ── Field lines inside any active section ─────────────────────
         fm = _FIELD_LINE.match(line)
         if fm:
             key = fm.group(1).lower()
@@ -237,6 +314,9 @@ def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:
             if key in ("description", "desc"):
                 current_desc = val
                 current.source_text = val
+            elif key in ("title",) and not current.source_text:
+                current.source_text = val
+                current_desc = current_desc or val
             elif key == "priority":
                 current.priority = val
             elif key == "status":
@@ -244,18 +324,15 @@ def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:
                 current.confidence = _infer_confidence(current.status)
             elif key in ("platform", "platforms"):
                 current.epistemic_boundary = [f"Platform: {val}"]
-            elif key in ("test", "covers", "tests"):
-                pass  # linked tests — not part of BeliefArtifact directly
+            elif key in ("test", "covers", "tests", "id"):
+                pass  # id already consumed above; tests are external
         else:
-            # Inline description continuation (bullet lines)
+            # Inline description continuation
             stripped = line.strip().lstrip("-").strip()
             if stripped and not stripped.startswith("#") and not current_desc:
                 current_desc = stripped
 
-    if current is not None:
-        _finalise(current, current_desc)
-        artifacts.append(current)
-
+    _commit()
     return artifacts
 
 

@@ -4760,6 +4760,61 @@ def info_cmd(as_json: bool, section: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# specsmith governance-serve — Kairos REST API (REQ-001 Kairos side)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="governance-serve")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--port",
+    type=int,
+    default=7700,
+    help="HTTP port to listen on (default: 7700, the Kairos governance port).",
+)
+@click.option(
+    "--host",
+    default="127.0.0.1",
+    help="Bind address (must be localhost for security; architecture invariant I2).",
+)
+def governance_serve_cmd(project_dir: str, port: int, host: str) -> None:
+    """Start the governance REST API server for Kairos (REQ-001 Kairos side).
+
+    Serves three endpoints that the Kairos governance client calls:
+
+    \b
+      GET  /health     — liveness probe; returns {"status": "ok", "version": "..."}
+      POST /preflight  — governance gate; returns a PreflightDecision JSON
+      POST /verify     — post-change verification; returns a VerifyResult JSON
+
+    This server is separate from ``specsmith serve`` (port 8421, chat/SSE).
+    Kairos should spawn it via ``specsmith governance-serve --port 7700``.
+
+    Architecture invariant I2: host must be localhost (127.0.0.1 / ::1).
+    """
+    from specsmith.governance_logic import make_governance_server
+
+    if host not in ("127.0.0.1", "localhost", "::1"):
+        console.print(
+            f"[red]Error:[/red] host must be localhost (got {host!r}). "
+            "Architecture invariant I2 prohibits external governance endpoints."
+        )
+        raise SystemExit(1)
+
+    server = make_governance_server(
+        project_dir=project_dir,
+        port=port,
+        host=host,
+    )
+    server.start()
+
+
+# ---------------------------------------------------------------------------
 # Kill-switch / emergency stop (REG-005)
 # ---------------------------------------------------------------------------
 

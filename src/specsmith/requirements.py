@@ -7,16 +7,33 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-_REQ_PATTERN = re.compile(r"\b(REQ-[A-Z]+-\d+)\b")
+# Flexible patterns that handle both two-part (REQ-001) and three-part
+# (REQ-CLI-001, REG-012) identifiers used across projects.
+_FLEX_REQ = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
+_FLEX_TEST = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+"
+
+_REQ_PATTERN = re.compile(r"\b(" + _FLEX_REQ + r")\b")
 _TEST_COVERS_PATTERN = re.compile(
-    r"(?:Covers|\*\*Requirement:?\*\*|Requirement):?\s*"
-    r"(REQ-[A-Z]+-\d+(?:\s*,\s*REQ-[A-Z]+-\d+)*)"
+    r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
+    r"(" + _FLEX_REQ + r"(?:\s*,\s*" + _FLEX_REQ + r")*)"
 )
-_TEST_ID_PATTERN = re.compile(r"\b(TEST-[A-Z]+-\d+)\b")
+_TEST_ID_PATTERN = re.compile(r"\b(" + _FLEX_TEST + r")\b")
+
+# Heading detectors for REQUIREMENTS.md (two styles supported):
+#   Style A: ## REQ-001 or ## REQ-CLI-001
+#   Style B: ## 1. Some Title  (id comes from a - **ID:** field)
+_DIRECT_REQ_HEADING = re.compile(r"^#{2,3}\s+(" + _FLEX_REQ + r")")
+_NUMBERED_HEADING = re.compile(r"^#{2,3}\s+\d+\.\s+(.+)$")
+_ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_REQ + r")\s*$")
+_FIELD_LINE = re.compile(r"^-\s+\*\*(.+?)\*\*:\s*(.+)")
 
 
 def list_reqs(root: Path) -> list[dict[str, str]]:
-    """Parse REQUIREMENTS.md and return list of requirement entries."""
+    """Parse REQUIREMENTS.md and return list of requirement entries.
+
+    Handles both Style A (``## REQ-001`` heading) and Style B
+    (``## 1. Title`` numbered heading with ``- **ID:** REQ-001`` inline field).
+    """
     req_path = root / "docs" / "REQUIREMENTS.md"
     if not req_path.exists():
         return []
@@ -24,20 +41,47 @@ def list_reqs(root: Path) -> list[dict[str, str]]:
     content = req_path.read_text(encoding="utf-8")
     reqs: list[dict[str, str]] = []
     current: dict[str, str] = {}
+    pending_title: str = ""  # title from a Style B numbered heading
+
+    def _flush() -> None:
+        if current.get("id"):
+            reqs.append(dict(current))
 
     for line in content.splitlines():
-        req_match = re.match(r"^#{2,3}\s+(REQ-[A-Z]+-\d+)", line)
-        if req_match:
-            if current:
-                reqs.append(current)
-            current = {"id": req_match.group(1)}
-        elif line.startswith("- **") and current:
-            m = re.match(r"- \*\*(.+?)\*\*:\s*(.+)", line)
-            if m:
-                current[m.group(1).lower()] = m.group(2).strip()
+        # Style A: ## REQ-001 or ## REQ-CLI-001
+        m_direct = _DIRECT_REQ_HEADING.match(line)
+        if m_direct:
+            _flush()
+            current = {"id": m_direct.group(1)}
+            pending_title = ""
+            continue
 
-    if current:
-        reqs.append(current)
+        # Style B step 1: ## N. Title
+        m_numbered = _NUMBERED_HEADING.match(line)
+        if m_numbered:
+            _flush()
+            current = {}
+            pending_title = m_numbered.group(1).strip()
+            continue
+
+        # Style B step 2: - **ID:** REQ-NNN resolves the pending title
+        m_id = _ID_FIELD.match(line)
+        if m_id and pending_title and not current.get("id"):
+            current["id"] = m_id.group(1)
+            current.setdefault("title", pending_title)
+            pending_title = ""
+            continue
+
+        # Field lines under any active section
+        if current.get("id"):
+            m_field = _FIELD_LINE.match(line)
+            if m_field:
+                key = m_field.group(1).lower()
+                val = m_field.group(2).strip()
+                if key != "id":  # already captured
+                    current.setdefault(key, val)
+
+    _flush()
     return reqs
 
 
