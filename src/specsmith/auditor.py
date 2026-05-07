@@ -69,8 +69,17 @@ RECOMMENDED_FILES = [
     "docs/REQUIREMENTS.md",
     "docs/TESTS.md",
     "docs/ARCHITECTURE.md",
+    "docs/specsmith.yml",  # new canonical scaffold config (was scaffold.yml)
     "CONTRIBUTING.md",
     "LICENSE",
+]
+
+#: Root-level files that should be in docs/ — flagged by check_no_root_copies()
+_ROOT_GOVERNANCE_FILES = [
+    "REQUIREMENTS.md",
+    "TESTS.md",
+    "LEDGER.md",
+    "scaffold.yml",
 ]
 
 
@@ -138,6 +147,10 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 if (root / "docs").is_dir()
                 else False
             )
+        # docs/specsmith.yml is the canonical config, but scaffold.yml at root is also acceptable
+        # (legacy projects are not penalized for not yet having migrated)
+        if not found and f == "docs/specsmith.yml":
+            found = (root / "scaffold.yml").exists()
         results.append(
             AuditResult(
                 name=f"recommended:{f}",
@@ -146,6 +159,32 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 fixable=not found,
             )
         )
+
+    # Enforcement: flag root-level governance files ONLY when a canonical docs/ copy
+    # also exists (true duplicate). Legacy projects with only a root copy are not
+    # flagged here — they should migrate when ready.
+    _docs_canonical_names = {
+        "scaffold.yml": "docs/specsmith.yml",
+        "REQUIREMENTS.md": "docs/REQUIREMENTS.md",
+        "TESTS.md": "docs/TESTS.md",
+        "LEDGER.md": "docs/LEDGER.md",
+    }
+    for fname in _ROOT_GOVERNANCE_FILES:
+        root_copy = root / fname
+        canonical_rel = _docs_canonical_names.get(fname, f"docs/{fname}")
+        canonical_copy = root / canonical_rel
+        if root_copy.exists() and canonical_copy.exists():
+            results.append(
+                AuditResult(
+                    name=f"no-root-copy:{fname}",
+                    passed=False,
+                    message=(
+                        f"Duplicate: {fname} exists at both root and {canonical_rel}. "
+                        f"Delete the root copy — {canonical_rel} is canonical."
+                    ),
+                    fixable=True,
+                )
+            )
 
     return results
 
@@ -366,8 +405,9 @@ _TYPE_THRESHOLD_OVERRIDES: dict[str, dict[str, int]] = {
 def _get_thresholds(root: Path) -> dict[str, int]:
     """Get governance size thresholds, scaled by project type if available."""
     thresholds = dict(_DEFAULT_THRESHOLDS)
-    scaffold_path = root / "scaffold.yml"
-    if scaffold_path.exists():
+    from specsmith.paths import find_scaffold
+    scaffold_path = find_scaffold(root)
+    if scaffold_path and scaffold_path.exists():
         try:
             import yaml
 
@@ -584,8 +624,8 @@ def check_trace_chain_integrity(root: Path) -> list[AuditResult]:
 def check_phase_readiness(root: Path) -> list[AuditResult]:
     """Check AEE phase readiness (advisory — failed checks are warnings)."""
     results: list[AuditResult] = []
-    scaffold_path = root / "scaffold.yml"
-    if not scaffold_path.exists():
+    from specsmith.paths import find_scaffold
+    if not find_scaffold(root):
         return results
 
     from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase

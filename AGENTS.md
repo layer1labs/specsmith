@@ -48,6 +48,8 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/agent/repl.py` — Nexus REPL with `/why` toggle and execution gate
 - `src/specsmith/agent/orchestrator.py` — AG2 PlannerAgent/ShellAgent/CodeAgent pipeline
 - `src/specsmith/agent/profiles.py` — agent profiles, routing table, BYOE endpoints
+- `src/specsmith/paths.py` — canonical path constants (docs/specsmith.yml, docs/LEDGER.md …)
+- `src/specsmith/safe_write.py` — append-only + backup-protected governance file writes
 - `src/specsmith/serve.py` — HTTP/SSE server (specsmith serve)
 - `src/specsmith/cli.py` — 50+ CLI commands
 - `src/epistemic/` — standalone AEE library (canonical)
@@ -55,11 +57,13 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/integrations/` — agent platform adapters (agent-skill)
 - `src/specsmith/templates/` — Jinja2 scaffold templates
 - `tests/` — 448 tests (pytest)
-- `ARCHITECTURE.md` — architecture reference and invariants
-- `REQUIREMENTS.md` — formal requirements (root, machine-authoritative)
-- `TESTS.md` — test specifications (root, machine-authoritative)
-- `LEDGER.md` — session ledger
-- `.specsmith/` — machine state (config.yml, requirements.json, testcases.json, workitems.json, ledger.jsonl)
+- **All governance files live in `docs/`** (except AGENTS.md at root):
+- `docs/specsmith.yml` — project scaffold config (canonical; was scaffold.yml)
+- `docs/ARCHITECTURE.md` — architecture reference
+- `docs/REQUIREMENTS.md` — formal requirements (REQ-001..REQ-220, machine-authoritative)
+- `docs/TESTS.md` — test specifications (machine-authoritative)
+- `docs/LEDGER.md` — session ledger
+- `.specsmith/` — machine state (config.yml, requirements.json, testcases.json, workitems.json)
 - `docker-compose.yml` — vLLM l1-nexus model server
 - `docs/site/` — Read the Docs user manual
 - `docs/governance/` — modular governance rules

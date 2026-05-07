@@ -49,7 +49,10 @@ class TestLifecycleNew:
         project = out / "lifecycle-test"
 
         # ---- Step 2: Verify initial phase is inception ----
-        with open(project / "scaffold.yml") as f:
+        scaffold_file = project / "docs" / "specsmith.yml"
+        if not scaffold_file.exists():
+            scaffold_file = project / "scaffold.yml"
+        with open(scaffold_file) as f:
             cfg = yaml.safe_load(f)
         assert cfg.get("aee_phase") == "inception"
 
@@ -86,8 +89,11 @@ class TestLifecycleNew:
             assert r.exit_code == 0, f"phase next to {phase_key} failed: {r.output}"
             assert "Advanced" in r.output or "final phase" in r.output
 
-            # Verify scaffold.yml reflects the new phase
-            with open(project / "scaffold.yml") as f:
+            # Verify scaffold reflects the new phase (check canonical location first)
+            _sf = project / "docs" / "specsmith.yml"
+            if not _sf.exists():
+                _sf = project / "scaffold.yml"
+            with open(_sf) as f:
                 cfg = yaml.safe_load(f)
             assert cfg.get("aee_phase") == phase_key
 
@@ -105,7 +111,10 @@ class TestLifecycleNew:
             ["phase", "set", "inception", "--force", "--project-dir", str(project)],
         )
         assert r.exit_code == 0
-        with open(project / "scaffold.yml") as f:
+        _sf2 = project / "docs" / "specsmith.yml"
+        if not _sf2.exists():
+            _sf2 = project / "scaffold.yml"
+        with open(_sf2) as f:
             cfg = yaml.safe_load(f)
         assert cfg["aee_phase"] == "inception"
 

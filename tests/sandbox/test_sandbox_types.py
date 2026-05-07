@@ -159,8 +159,10 @@ class TestConfigInheritance:
         project = tmp_path / "my-child-project"
         assert project.exists()
 
-        # Verify child overrides were applied
-        saved = project / "scaffold.yml"
+        # Verify child overrides were applied (scaffold now at docs/specsmith.yml)
+        saved = project / "docs" / "specsmith.yml"
+        if not saved.exists():
+            saved = project / "scaffold.yml"  # fallback
         with open(saved) as f:
             cfg = yaml.safe_load(f)
         assert cfg["name"] == "my-child-project"

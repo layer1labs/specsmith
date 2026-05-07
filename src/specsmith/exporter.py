@@ -18,12 +18,13 @@ def run_export(root: Path) -> str:
     Includes: project summary, REQ↔TEST coverage matrix, audit summary,
     tool configuration status.
     """
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.paths import find_scaffold
+    scaffold_path = find_scaffold(root)
     sections: list[str] = [f"# Compliance Report — {root.name}\n"]
     sections.append(f"**Generated:** {date.today().isoformat()}\n")
 
     # --- Project summary ---
-    if scaffold_path.exists():
+    if scaffold_path and scaffold_path.exists():
         import yaml
 
         with open(scaffold_path) as f:
@@ -133,7 +134,8 @@ def run_export(root: Path) -> str:
     gov_files = [
         "AGENTS.md",
         "LEDGER.md",
-        "scaffold.yml",
+        "docs/specsmith.yml",
+        "scaffold.yml",  # legacy location
         "docs/REQUIREMENTS.md",
         "docs/TESTS.md",
         "docs/ARCHITECTURE.md",

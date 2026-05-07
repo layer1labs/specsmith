@@ -36,6 +36,11 @@ def governed_project(tmp_path: Path) -> Path:
     (docs / "ARCHITECTURE.md").write_text("# Arch\n", encoding="utf-8")
     (tmp_path / "CONTRIBUTING.md").write_text("# Contributing\n", encoding="utf-8")
     (tmp_path / "LICENSE").write_text("MIT License\n", encoding="utf-8")
+    # Scaffold config (at root for backward compat — audit now accepts either location)
+    (tmp_path / "scaffold.yml").write_text(
+        "name: test-project\ntype: cli-python\nspec_version: 0.10.1\nvcs_platform: github\n",
+        encoding="utf-8",
+    )
 
     return tmp_path
 

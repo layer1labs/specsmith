@@ -95,11 +95,12 @@ def run_upgrade(
     Returns:
         UpgradeResult with details of the operation.
     """
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.paths import find_scaffold
+    scaffold_path = find_scaffold(root)
 
-    if not scaffold_path.exists():
+    if not scaffold_path or not scaffold_path.exists():
         return UpgradeResult(
-            message="No scaffold.yml found. Cannot determine project configuration for upgrade."
+            message="No scaffold config found (docs/specsmith.yml or scaffold.yml). Cannot determine project configuration for upgrade."
         )
 
     with open(scaffold_path) as f:
@@ -149,11 +150,11 @@ def run_upgrade(
         output_path.write_text(content, encoding="utf-8")
         result.updated_files.append(output_rel)
 
-    # Update scaffold.yml with new version
+    # Update scaffold config with new version (at canonical or legacy location)
     raw["spec_version"] = new_version
     with open(scaffold_path, "w") as f:
         yaml.dump(raw, f, default_flow_style=False, sort_keys=False)
-    result.updated_files.append("scaffold.yml")
+    result.updated_files.append(str(scaffold_path.relative_to(root)))
 
     # Initialize credit tracking if not present
     specsmith_dir = root / ".specsmith"

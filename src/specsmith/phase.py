@@ -71,12 +71,19 @@ def _file_min_lines(rel: str, min_lines: int) -> Callable[[Path], bool]:
 
 def _req_count(min_count: int) -> Callable[[Path], bool]:
     def _check(root: Path) -> bool:
-        for candidate in ["REQUIREMENTS.md", "docs/REQUIREMENTS.md"]:
+        # Canonical: docs/REQUIREMENTS.md first; legacy root fallback
+        for candidate in ["docs/REQUIREMENTS.md", "REQUIREMENTS.md"]:
             p = root / candidate
             if p.exists():
                 try:
                     text = p.read_text(encoding="utf-8", errors="ignore")
-                    return len(re.findall(r"^###\s+REQ-", text, re.MULTILINE)) >= min_count
+                    # Support both ### REQ-NNN (old) and ## N. Title / - **ID:** REQ-NNN (new)
+                    count = len(re.findall(r"^###\s+REQ-", text, re.MULTILINE))
+                    if count == 0:
+                        count = len(re.findall(r"- \*\*ID:\*\* REQ-", text))
+                    if count == 0:
+                        count = len(re.findall(r"^## \d+\.", text, re.MULTILINE))
+                    return count >= min_count
                 except OSError:
                     pass
         return False
@@ -88,8 +95,9 @@ def _test_spec_covers_reqs(threshold_pct: int) -> Callable[[Path], bool]:
     """Check that at least threshold_pct% of REQ IDs appear in TESTS.md."""
 
     def _check(root: Path) -> bool:
-        candidates_req = ["REQUIREMENTS.md", "docs/REQUIREMENTS.md"]
-        candidates_test = ["TESTS.md", "docs/TESTS.md"]
+        # Canonical locations first, legacy root fallback
+        candidates_req = ["docs/REQUIREMENTS.md", "REQUIREMENTS.md"]
+        candidates_test = ["docs/TESTS.md", "TESTS.md"]
         req_file = next((root / c for c in candidates_req if (root / c).exists()), None)
         test_file = next((root / c for c in candidates_test if (root / c).exists()), None)
         if not req_file or not test_file:
@@ -109,11 +117,12 @@ def _test_spec_covers_reqs(threshold_pct: int) -> Callable[[Path], bool]:
 
 
 def _scaffold_field(key: str) -> Callable[[Path], bool]:
-    """Check scaffold.yml has a non-empty value for the given key."""
+    """Check docs/specsmith.yml (or legacy scaffold.yml) has a non-empty value for key."""
 
     def _check(root: Path) -> bool:
-        p = root / "scaffold.yml"
-        if not p.exists():
+        from specsmith.paths import find_scaffold
+        p = find_scaffold(root)
+        if not p:
             return False
         try:
             text = p.read_text(encoding="utf-8", errors="ignore")
@@ -172,9 +181,15 @@ PHASES: list[Phase] = [
         emoji="🌱",
         description="Establish project governance, scaffold, and initial context.",
         checks=[
-            PhaseCheck("scaffold.yml exists", _file_exists("scaffold.yml")),
+            PhaseCheck(
+                "docs/specsmith.yml exists",
+                lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
+            ),
             PhaseCheck("AGENTS.md exists", _file_exists("AGENTS.md")),
-            PhaseCheck("LEDGER.md exists", _file_exists("LEDGER.md")),
+            PhaseCheck(
+                "docs/LEDGER.md exists",
+                lambda root: bool(__import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root)),
+            ),
             PhaseCheck("Project type is set", _scaffold_field("type")),
             PhaseCheck("VCS platform is set", _scaffold_field("vcs_platform")),
         ],
@@ -187,7 +202,10 @@ PHASES: list[Phase] = [
         emoji="🏗",
         description="Define system components, data flow, and architectural decisions.",
         checks=[
-            PhaseCheck("scaffold.yml exists", _file_exists("scaffold.yml")),
+            PhaseCheck(
+                "docs/specsmith.yml exists",
+                lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
+            ),
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
             PhaseCheck(
                 "ARCHITECTURE.md has content",
@@ -232,14 +250,17 @@ PHASES: list[Phase] = [
         emoji="✅",
         description="Write test specifications covering all P1 requirements.",
         checks=[
-            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
+            PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
             PhaseCheck(
-                "TESTS.md has content",
+                "docs/TESTS.md has content",
                 _file_min_lines("docs/TESTS.md", 15),
             ),
-            PhaseCheck("TEST coverage ≥ 80 %", _test_spec_covers_reqs(80)),
-            PhaseCheck("REQUIREMENTS.md has ≥ 5 REQs", _req_count(5)),
-            PhaseCheck("LEDGER.md exists", _file_exists("LEDGER.md")),
+            PhaseCheck("TEST coverage \u2265 80 %", _test_spec_covers_reqs(80)),
+            PhaseCheck("docs/REQUIREMENTS.md has \u2265 5 REQs", _req_count(5)),
+            PhaseCheck(
+                "docs/LEDGER.md exists",
+                lambda root: bool(__import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root)),
+            ),
         ],
         commands=[
             "specsmith validate",
@@ -254,10 +275,18 @@ PHASES: list[Phase] = [
         emoji="⚙",
         description="Development cycle: code, commit, verify, update ledger.",
         checks=[
-            PhaseCheck("LEDGER.md has content", _file_min_lines("LEDGER.md", 10)),
+            PhaseCheck(
+                "docs/LEDGER.md has content",
+                lambda root: (
+                    (p := __import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root))
+                    is not None
+                    and p.exists()
+                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                ),
+            ),
             PhaseCheck("Audit passes", _file_exists("AGENTS.md")),
-            PhaseCheck("TESTS.md exists", _file_exists("docs/TESTS.md")),
-            PhaseCheck("REQUIREMENTS.md exists", _req_count(1)),
+            PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
+            PhaseCheck("docs/REQUIREMENTS.md exists", _req_count(1)),
         ],
         commands=[
             "specsmith audit --fix",
@@ -274,10 +303,18 @@ PHASES: list[Phase] = [
         description="Epistemic audit passes threshold; trace vault sealed; export report clean.",
         checks=[
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
-            PhaseCheck("TEST coverage ≥ 80 %", _test_spec_covers_reqs(80)),
+            PhaseCheck("TEST coverage \u2265 80 %", _test_spec_covers_reqs(80)),
             PhaseCheck("Trace vault has seals", _trace_vault_exists()),
-            PhaseCheck("Trace vault has ≥ 2 seals", _trace_vault_exists()),
-            PhaseCheck("LEDGER.md has content", _file_min_lines("LEDGER.md", 10)),
+            PhaseCheck("Trace vault has \u2265 2 seals", _trace_vault_exists()),
+            PhaseCheck(
+                "docs/LEDGER.md has content",
+                lambda root: (
+                    (p := __import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root))
+                    is not None
+                    and p.exists()
+                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                ),
+            ),
         ],
         commands=[
             "specsmith epistemic-audit",
@@ -317,9 +354,13 @@ PHASE_ORDER: list[str] = [p.key for p in PHASES]
 
 
 def read_phase(project_dir: Path) -> str:
-    """Read current aee_phase from scaffold.yml. Returns 'inception' if not set."""
-    scaffold = project_dir / "scaffold.yml"
-    if scaffold.exists():
+    """Read current aee_phase from docs/specsmith.yml (or legacy scaffold.yml).
+
+    Returns 'inception' if not set or scaffold not found.
+    """
+    from specsmith.paths import find_scaffold
+    scaffold = find_scaffold(project_dir)
+    if scaffold and scaffold.exists():
         try:
             text = scaffold.read_text(encoding="utf-8", errors="ignore")
             m = re.search(r"^aee_phase:\s*(\S+)", text, re.MULTILINE)
@@ -331,8 +372,9 @@ def read_phase(project_dir: Path) -> str:
 
 
 def write_phase(project_dir: Path, phase_key: str) -> None:
-    """Write aee_phase to scaffold.yml, adding the field if it doesn't exist."""
-    scaffold = project_dir / "scaffold.yml"
+    """Write aee_phase to docs/specsmith.yml (or legacy scaffold.yml)."""
+    from specsmith.paths import find_scaffold, scaffold_path
+    scaffold = find_scaffold(project_dir) or scaffold_path(project_dir)
     if not scaffold.exists():
         return
 

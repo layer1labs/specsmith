@@ -120,17 +120,19 @@ class _AutoUpdateGroup(click.Group):
 
 
 def _maybe_prompt_project_update() -> None:
-    """Check if the project's scaffold.yml is behind the installed version.
+    """Check if the project's scaffold config is behind the installed version.
 
-    If so, print a one-line prompt and offer Y/n to migrate.
+    Checks docs/specsmith.yml (canonical) then scaffold.yml (legacy).
+    If so, prints a one-line prompt and offers Y/n to migrate.
     Runs in under 5ms for projects that are up to date (no network call).
     """
     import os
     from pathlib import Path
 
-    # Look for scaffold.yml in CWD
-    scaffold_path = Path(".") / "scaffold.yml"
-    if not scaffold_path.exists():
+    from specsmith.paths import find_scaffold
+    # Look for scaffold config in CWD (canonical: docs/specsmith.yml)
+    scaffold_path = find_scaffold(Path("."))
+    if scaffold_path is None:
         return  # Not a specsmith project — skip silently
 
     try:
@@ -271,8 +273,9 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     )
     console.print("Project scaffolded. Review generated files.")
 
-    # Save config as scaffold.yml for re-runs and upgrades
-    config_out = target / "scaffold.yml"
+    # Save config as docs/specsmith.yml (canonical location)
+    config_out = target / "docs" / "specsmith.yml"
+    config_out.parent.mkdir(parents=True, exist_ok=True)
     with open(config_out, "w") as fh:
         yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
 

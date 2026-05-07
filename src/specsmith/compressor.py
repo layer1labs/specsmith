@@ -81,9 +81,11 @@ def run_compress(
     Returns:
         CompressResult with details of the operation.
     """
-    ledger_path = root / "LEDGER.md"
+    from specsmith.paths import find_ledger
+    _found = find_ledger(root)
+    ledger_path = _found
 
-    if not ledger_path.exists():
+    if not ledger_path or not ledger_path.exists():
         return CompressResult(
             archived_entries=0,
             remaining_entries=0,
@@ -134,12 +136,13 @@ def run_compress(
     else:
         archive_content = archive_header + "\n".join(to_archive)
 
-    archive_path.write_text(archive_content, encoding="utf-8")
+    from specsmith.safe_write import safe_overwrite
+    safe_overwrite(archive_path, archive_content, reason="ledger compress archive")
 
-    # Rewrite ledger with summary + recent entries
+    # Rewrite ledger with summary + recent entries (backup created automatically)
     summary = _summarize_entries(to_archive)
     new_ledger = preamble + summary + "\n" + "\n".join(to_keep)
-    ledger_path.write_text(new_ledger, encoding="utf-8")
+    safe_overwrite(ledger_path, new_ledger, reason="ledger compress")
 
     return CompressResult(
         archived_entries=len(to_archive),

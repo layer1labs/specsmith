@@ -546,6 +546,9 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("LEDGER.md"),
     Path("REQUIREMENTS.md"),
     Path("TESTS.md"),
+    Path("docs") / "LEDGER.md",       # canonical ledger (moved from root)
+    Path("docs") / "REQUIREMENTS.md", # canonical requirements (moved from root; contains history)
+    Path("docs") / "TESTS.md",        # canonical tests (moved from root; contains history)
     Path("docs") / "ledger-archive.md",  # archived history; contains rename chronicle
     Path(".specsmith") / "requirements.json",
     Path(".specsmith") / "testcases.json",
@@ -553,8 +556,9 @@ _LEGACY_SCAN_SKIP_FILES = {
 
 
 def test_canonical_tests_md_exists():
-    assert (REPO_ROOT / "TESTS.md").is_file()
+    # Canonical location is now docs/TESTS.md (root TESTS.md was moved there)
     assert (REPO_ROOT / "docs" / "TESTS.md").is_file()
+    assert not (REPO_ROOT / "TESTS.md").exists(), "Root TESTS.md should have been moved to docs/"
     assert not (REPO_ROOT / "TEST_SPEC.md").exists()
     assert not (REPO_ROOT / "docs" / "TEST_SPEC.md").exists()
 
