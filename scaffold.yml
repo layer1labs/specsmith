@@ -5,15 +5,16 @@ languages:
 - Cmd / Batch
 - Markdown
 - Python
+- Rust
 - TOML
 - YAML
 platforms:
 - linux
 - windows
 - macos
-spec_version: 0.3.13
-aee_phase: inception
-description: Applied Epistemic Engineering toolkit for AI-assisted development.
+spec_version: 0.10.1
+aee_phase: verification
+description: Applied Epistemic Engineering toolkit for AI-assisted development. Governance backend for the Kairos terminal (BitConcepts/kairos).
 vcs_platform: github
 branching_strategy: gitflow
 default_branch: main
@@ -24,7 +25,6 @@ shell_wrappers: false
 integrations:
 - agents-md
 - agent-skill
-- claude-code
 license: MIT
 community_files:
 - contributing
