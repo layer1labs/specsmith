@@ -19,6 +19,54 @@ from specsmith.scaffolder import scaffold_project
 
 console = make_console()
 
+
+def _load_project_env(path: str | None = None) -> None:
+    """Load a .env file from the project root into os.environ.
+
+    Existing environment variables are *never* overwritten — a real env var
+    (CI secret, OS keyring export, shell export) always takes precedence.
+    The file is located at ``<cwd>/.env`` by default, or the path given.
+
+    Parsing rules:
+    - Lines starting with ``#`` or empty lines are skipped.
+    - ``KEY=VALUE``, ``KEY="VALUE"``, ``KEY='VALUE'`` all work.
+    - Inline comments (``KEY=value  # comment``) are stripped.
+    - A key with an empty value after parsing is skipped (not set).
+
+    This is a pure-stdlib implementation so no new dependency is needed.
+    Any parse error is silently swallowed — we never break the CLI.
+    """
+    import os
+    from pathlib import Path
+
+    target = Path(path) if path else Path.cwd() / ".env"
+    if not target.is_file():
+        return
+    try:
+        for line in target.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if "=" not in stripped:
+                continue
+            key, _, raw_value = stripped.partition("=")
+            key = key.strip()
+            if not key:
+                continue
+            # Strip inline comments, then outer quotes
+            value = raw_value.split("#")[0].strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+            # Never overwrite; skip empty values
+            if key not in os.environ and value:
+                os.environ[key] = value
+    except Exception:  # noqa: BLE001 — never break the CLI on .env parse errors
+        pass
+
+
+# Load project-local .env on startup — real env vars always win over .env values.
+_load_project_env()
+
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
 PROJECT_TYPE_LABELS = {
     str(i + 1): label

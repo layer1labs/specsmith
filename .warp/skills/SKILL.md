@@ -20,9 +20,9 @@ All changes follow: **propose → check → execute → verify → record**.
 - `AGENTS.md` — governance hub (read first)
 - `LEDGER.md` — session ledger (read second)
 - `docs/governance/` — modular governance docs (load on demand)
-- `docs/REQUIREMENTS.md` — formal requirements
-- `docs/TESTS.md` — test specifications
-- `docs/ARCHITECTURE.md` — system architecture
+- `REQUIREMENTS.md` — formal requirements (root, machine-authoritative)
+- `TESTS.md` — test specifications (root, machine-authoritative)
+- `ARCHITECTURE.md` — architecture reference
 
 ## Session Start
 Before any work, run: `specsmith update --check --project-dir .`
