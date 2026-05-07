@@ -241,6 +241,164 @@ def run_verify(
 
 
 # ---------------------------------------------------------------------------
+# OpenAI-compatible governance proxy (for Kairos BYOP integration)
+# ---------------------------------------------------------------------------
+
+
+def _build_openai_response(
+    model: str,
+    content: str,
+    role: str = "assistant",
+    finish_reason: str = "stop",
+) -> dict:
+    """Build a minimal OpenAI-compatible /v1/chat/completions response."""
+    import time
+    import uuid
+
+    return {
+        "id": f"chatcmpl-{uuid.uuid4().hex[:20]}",
+        "object": "chat.completion",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": role, "content": content},
+                "finish_reason": finish_reason,
+            }
+        ],
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+    }
+
+
+def run_chat_proxy(
+    messages: list[dict],
+    model: str,
+    project_dir: str | None = None,
+    *,
+    real_base_url: str | None = None,
+    real_api_key: str | None = None,
+    real_model: str | None = None,
+) -> dict:
+    """OpenAI-compatible governance proxy for Kairos BYOP integration.
+
+    This is called from the ``POST /v1/chat/completions`` endpoint in
+    :class:`GovernanceHTTPServer`.  It intercepts every AI request that
+    Kairos makes:
+
+    1. Extracts the user's utterance from the message list (last user turn).
+    2. Runs :func:`run_preflight` — if not accepted, returns a governance
+       refusal response **instead** of forwarding to the real AI.
+    3. Forwards the request to the real AI provider (``KAIROS_AI_BASE_URL``).
+    4. Runs :func:`run_verify` on the response summary.
+    5. Returns the real AI response (with a ``x-kairos-governance`` header in
+       the HTTP layer).
+
+    Environment variables used when real provider is not passed explicitly:
+    - ``KAIROS_AI_BASE_URL``  — real AI provider base URL
+    - ``KAIROS_AI_API_KEY``   — real AI provider API key
+    - ``KAIROS_AI_MODEL``     — real AI provider model
+
+    Falls back to a stub response when no real provider is configured
+    (useful for local dev / governance-only testing without a real LLM).
+    """
+    import os
+    import urllib.request
+    import json as _json
+    from pathlib import Path
+
+    # ── 1. Extract utterance from last user message ─────────────────────────
+    utterance = ""
+    for msg in reversed(messages):
+        if isinstance(msg, dict) and msg.get("role") == "user":
+            content = msg.get("content", "")
+            utterance = content if isinstance(content, str) else str(content)
+            break
+    if not utterance:
+        utterance = "kairos terminal request"
+
+    # ── 2. Governance preflight gate ───────────────────────────────────
+    effective_project = project_dir or os.getcwd()
+    preflight = run_preflight(utterance, effective_project)
+
+    if preflight.get("decision") not in ("accepted", ):
+        # Not accepted — return governance refusal, do NOT forward to AI.
+        instruction = preflight.get("instruction", "Request not accepted by governance.")
+        refusal = (
+            f"⚠ **Kairos Governance Gate**: {instruction}\n\n"
+            f"Decision: `{preflight.get('decision', 'needs_clarification')}`  \n"
+            f"WI: `{preflight.get('work_item_id', '—')}`  \n"
+            f"Confidence target: `{preflight.get('confidence_target', 0.7)}`"
+        )
+        return _build_openai_response(model, refusal, finish_reason="governance_stop")
+
+    # ── 3. Forward to real AI provider ──────────────────────────────────
+    base_url = (
+        real_base_url
+        or os.environ.get("KAIROS_AI_BASE_URL", "")
+    ).rstrip("/")
+    api_key = real_api_key or os.environ.get("KAIROS_AI_API_KEY", "")
+    effective_model = real_model or os.environ.get("KAIROS_AI_MODEL", "") or model
+
+    if not base_url:
+        # No real AI configured — return governance-accepted stub.
+        stub = (
+            f"✓ **Governance ACCEPTED** (WI:`{preflight.get('work_item_id', '')}`).  \n"
+            f"No AI provider configured. Set `KAIROS_AI_BASE_URL` to forward requests.  \n"
+            f"Utterance: *{utterance[:200]}*"
+        )
+        return _build_openai_response(effective_model, stub)
+
+    try:
+        payload = _json.dumps({
+            "model": effective_model,
+            "messages": messages,
+            "stream": False,
+        }).encode()
+        headers = {
+            "Content-Type": "application/json",
+            "Content-Length": str(len(payload)),
+        }
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        req = urllib.request.Request(
+            f"{base_url}/v1/chat/completions",
+            data=payload,
+            headers=headers,
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310
+            ai_response: dict = _json.loads(resp.read())
+    except Exception as exc:  # noqa: BLE001
+        # Forward failure — return governance-accepted stub with error note.
+        error_stub = (
+            f"✓ **Governance ACCEPTED** — AI provider error: `{exc}`.  \n"
+            f"Check `KAIROS_AI_BASE_URL` (`{base_url}`) is reachable."
+        )
+        return _build_openai_response(effective_model, error_stub)
+
+    # ── 4. Post-response verify (best-effort) ─────────────────────────────
+    try:
+        ai_text = (
+            ai_response.get("choices", [{}])[0]
+            .get("message", {})
+            .get("content", "")
+        )
+        run_verify(
+            diff=f"[AI response to: {utterance[:100]}]",
+            files_changed=[],
+            test_results={"raw": f"ai response received, length={len(ai_text)}"},
+            project_dir=effective_project,
+            work_item_id=preflight.get("work_item_id", ""),
+        )
+    except Exception:  # noqa: BLE001
+        pass  # verify is best-effort; never block the response
+
+    return ai_response
+
+
+# ---------------------------------------------------------------------------
 # Governance REST HTTP server (for Kairos integration)
 # ---------------------------------------------------------------------------
 
@@ -359,6 +517,25 @@ class GovernanceHTTPServer:
                         self._json_ok(result)
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
+                elif self.path == "/v1/chat/completions":
+                    # Kairos BYOP gateway — intercept, gate, forward.
+                    try:
+                        result = run_chat_proxy(
+                            messages=body.get("messages") or [],
+                            model=body.get("model", "kairos"),
+                            project_dir=body.get("project_dir") or project_dir,
+                        )
+                        import json as _j
+                        raw = _j.dumps(result, ensure_ascii=False).encode()
+                        self.send_response(200)
+                        self.send_header("Content-Type", "application/json")
+                        self.send_header("Content-Length", str(len(raw)))
+                        self.send_header("x-kairos-governance", "gated")
+                        self.send_header("Access-Control-Allow-Origin", "*")
+                        self.end_headers()
+                        self.wfile.write(raw)
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
                 else:
                     self.send_error(404)
 
@@ -374,7 +551,13 @@ class GovernanceHTTPServer:
         print(  # noqa: T201
             f"specsmith governance-serve — http://{self.host}:{self.port}\n"
             f"  Project:   {self.project_dir}\n"
-            f"  Endpoints: GET /health  POST /preflight  POST /verify\n"
+            f"  Governance endpoints:\n"
+            f"    GET  /health                  liveness probe\n"
+            f"    POST /preflight               governance gate\n"
+            f"    POST /verify                  post-change verification\n"
+            f"  Kairos BYOP gateway:\n"
+            f"    POST /v1/chat/completions     OpenAI-compatible proxy\n"
+            f"      Gate: preflight → forward to KAIROS_AI_BASE_URL → verify\n"
             f"  Press Ctrl+C to stop.\n",
             file=sys.stderr,
         )
