@@ -26,8 +26,8 @@ Estimated cost: high
 - `src/specsmith/templates/` — 30+ Jinja2 templates for governed scaffolds
 - `.github/workflows/ci.yml` — lint + typecheck + test matrix + security audit
 - `.github/workflows/release.yml` — tag-triggered build → GitHub Release
-- `docs/REQUIREMENTS.md` — 37 formal requirements
-- `docs/TESTS.md` — 30 test specifications
+- `REQUIREMENTS.md` — 37 formal requirements
+- `TESTS.md` — 30 test specifications
 
 ### Verification
 - 36 tests passing (pytest)

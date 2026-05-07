@@ -546,6 +546,7 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("LEDGER.md"),
     Path("REQUIREMENTS.md"),
     Path("TESTS.md"),
+    Path("docs") / "ledger-archive.md",  # archived history; contains rename chronicle
     Path(".specsmith") / "requirements.json",
     Path(".specsmith") / "testcases.json",
 }

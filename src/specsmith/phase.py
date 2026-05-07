@@ -89,7 +89,7 @@ def _test_spec_covers_reqs(threshold_pct: int) -> Callable[[Path], bool]:
 
     def _check(root: Path) -> bool:
         candidates_req = ["REQUIREMENTS.md", "docs/REQUIREMENTS.md"]
-        candidates_test = ["docs/TESTS.md", "TESTS.md"]
+        candidates_test = ["TESTS.md", "docs/TESTS.md"]
         req_file = next((root / c for c in candidates_req if (root / c).exists()), None)
         test_file = next((root / c for c in candidates_test if (root / c).exists()), None)
         if not req_file or not test_file:
@@ -127,13 +127,22 @@ def _scaffold_field(key: str) -> Callable[[Path], bool]:
 
 def _trace_vault_exists() -> Callable[[Path], bool]:
     def _check(root: Path) -> bool:
-        vault = root / ".specsmith" / "trace-vault.jsonl"
-        if not vault.exists():
-            return False
-        try:
-            return len(vault.read_text(encoding="utf-8", errors="ignore").strip().splitlines()) >= 1
-        except OSError:
-            return False
+        # Accept either naming convention used by specsmith trace commands.
+        for name in ("trace-vault.jsonl", "trace.jsonl"):
+            vault = root / ".specsmith" / name
+            if vault.exists():
+                try:
+                    return (
+                        len(
+                            vault.read_text(encoding="utf-8", errors="ignore")
+                            .strip()
+                            .splitlines()
+                        )
+                        >= 1
+                    )
+                except OSError:
+                    pass
+        return False
 
     return _check
 
