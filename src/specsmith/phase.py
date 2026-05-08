@@ -121,6 +121,7 @@ def _scaffold_field(key: str) -> Callable[[Path], bool]:
 
     def _check(root: Path) -> bool:
         from specsmith.paths import find_scaffold
+
         p = find_scaffold(root)
         if not p:
             return False
@@ -142,11 +143,7 @@ def _trace_vault_exists() -> Callable[[Path], bool]:
             if vault.exists():
                 try:
                     return (
-                        len(
-                            vault.read_text(encoding="utf-8", errors="ignore")
-                            .strip()
-                            .splitlines()
-                        )
+                        len(vault.read_text(encoding="utf-8", errors="ignore").strip().splitlines())
                         >= 1
                     )
                 except OSError:
@@ -183,12 +180,16 @@ PHASES: list[Phase] = [
         checks=[
             PhaseCheck(
                 "docs/SPECSMITH.yml exists",
-                lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
+                lambda root: bool(
+                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root)
+                ),
             ),
             PhaseCheck("AGENTS.md exists", _file_exists("AGENTS.md")),
             PhaseCheck(
                 "docs/LEDGER.md exists",
-                lambda root: bool(__import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root)),
+                lambda root: bool(
+                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root)
+                ),
             ),
             PhaseCheck("Project type is set", _scaffold_field("type")),
             PhaseCheck("VCS platform is set", _scaffold_field("vcs_platform")),
@@ -204,7 +205,9 @@ PHASES: list[Phase] = [
         checks=[
             PhaseCheck(
                 "docs/SPECSMITH.yml exists",
-                lambda root: bool(__import__('specsmith.paths', fromlist=['find_scaffold']).find_scaffold(root)),
+                lambda root: bool(
+                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root)
+                ),
             ),
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
             PhaseCheck(
@@ -229,7 +232,11 @@ PHASES: list[Phase] = [
         checks=[
             PhaseCheck(
                 "docs/REQUIREMENTS.md exists",
-                lambda root: bool(__import__('specsmith.paths', fromlist=['find_requirements']).find_requirements(root)),
+                lambda root: bool(
+                    __import__("specsmith.paths", fromlist=["find_requirements"]).find_requirements(
+                        root
+                    )
+                ),
             ),
             PhaseCheck("At least 5 requirements defined", _req_count(5)),
             PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
@@ -237,9 +244,14 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/REQUIREMENTS.md has content",
                 lambda root: (
-                    (p := __import__('specsmith.paths', fromlist=['find_requirements']).find_requirements(root))
-                    is not None and p.exists()
-                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                    (
+                        p := __import__(
+                            "specsmith.paths", fromlist=["find_requirements"]
+                        ).find_requirements(root)
+                    )
+                    is not None
+                    and p.exists()
+                    and len(p.read_text(encoding="utf-8", errors="ignore").splitlines()) >= 10
                 ),
             ),
         ],
@@ -266,7 +278,9 @@ PHASES: list[Phase] = [
             PhaseCheck("docs/REQUIREMENTS.md has \u2265 5 REQs", _req_count(5)),
             PhaseCheck(
                 "docs/LEDGER.md exists",
-                lambda root: bool(__import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root)),
+                lambda root: bool(
+                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root)
+                ),
             ),
         ],
         commands=[
@@ -285,10 +299,10 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/LEDGER.md has content",
                 lambda root: (
-                    (p := __import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root))
+                    (p := __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root))
                     is not None
                     and p.exists()
-                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                    and len(p.read_text(encoding="utf-8", errors="ignore").splitlines()) >= 10
                 ),
             ),
             PhaseCheck("Audit passes", _file_exists("AGENTS.md")),
@@ -316,10 +330,10 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/LEDGER.md has content",
                 lambda root: (
-                    (p := __import__('specsmith.paths', fromlist=['find_ledger']).find_ledger(root))
+                    (p := __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root))
                     is not None
                     and p.exists()
-                    and len(p.read_text(encoding='utf-8', errors='ignore').splitlines()) >= 10
+                    and len(p.read_text(encoding="utf-8", errors="ignore").splitlines()) >= 10
                 ),
             ),
         ],
@@ -366,6 +380,7 @@ def read_phase(project_dir: Path) -> str:
     Returns 'inception' if not set or scaffold not found.
     """
     from specsmith.paths import find_scaffold
+
     scaffold = find_scaffold(project_dir)
     if scaffold and scaffold.exists():
         try:
@@ -381,6 +396,7 @@ def read_phase(project_dir: Path) -> str:
 def write_phase(project_dir: Path, phase_key: str) -> None:
     """Write aee_phase to docs/SPECSMITH.yml (or legacy scaffold.yml)."""
     from specsmith.paths import find_scaffold, scaffold_path
+
     scaffold = find_scaffold(project_dir) or scaffold_path(project_dir)
     if not scaffold.exists():
         return

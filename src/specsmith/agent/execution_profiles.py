@@ -75,9 +75,9 @@ class ExecutionProfile:
         """Check if this profile allows using a given provider."""
         if self.allowed_providers and provider_id not in self.allowed_providers:
             return False
-        if self.allowed_provider_types and provider_type not in self.allowed_provider_types:
-            return False
-        return True
+        return not (
+            self.allowed_provider_types and provider_type not in self.allowed_provider_types
+        )
 
     def get_role_override(self, role: str) -> RoleOverride | None:
         return self.role_overrides.get(role)

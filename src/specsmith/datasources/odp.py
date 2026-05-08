@@ -33,13 +33,25 @@ class ODPClient:
             return {"available": False, "message": str(exc), "latency_ms": 0}
 
     def search(
-        self, query: str, *, detail: str = "minimal", limit: int = 25, offset: int = 0, **kwargs: Any,
+        self,
+        query: str,
+        *,
+        detail: str = "minimal",
+        limit: int = 25,
+        offset: int = 0,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Search patent applications via ODP."""
         params = f"searchText={query}&start={offset}&rows={min(limit, 100)}"
         data = http_get(f"{BASE_URL}/application/grants?{params}")
         results = data.get("response", {}).get("docs", data.get("results", []))
-        return {"source": self.source_id, "detail": detail, "total": len(results), "results": results, "count": len(results)}
+        return {
+            "source": self.source_id,
+            "detail": detail,
+            "total": len(results),
+            "results": results,
+            "count": len(results),
+        }
 
     def get(self, app_number: str, **kwargs: Any) -> dict[str, Any]:
         """Get application data by number."""

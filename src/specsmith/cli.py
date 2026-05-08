@@ -130,6 +130,7 @@ def _maybe_prompt_project_update() -> None:
     from pathlib import Path
 
     from specsmith.paths import find_scaffold
+
     # Look for scaffold config in CWD (canonical: docs/specsmith.yml)
     scaffold_path = find_scaffold(Path("."))
     if scaffold_path is None:
@@ -275,6 +276,7 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
 
     # Save config as docs/SPECSMITH.yml (canonical location — uppercase like peer governance files)
     from specsmith.paths import scaffold_path as _scaffold_path
+
     config_out = _scaffold_path(target)
     config_out.parent.mkdir(parents=True, exist_ok=True)
     with open(config_out, "w") as fh:
@@ -612,6 +614,7 @@ def preflight_cmd(
     # REG-009: AI disclosure metadata (FTC Operation AI Comply, Utah SB149 2024).
     # Every governed output must disclose the AI system producing it.
     import os as _os
+
     payload["ai_disclosure"] = {
         "governed_by": "specsmith",
         "governance_gated": True,
@@ -3031,6 +3034,7 @@ def agent_permissions_cmd(project_dir: str, as_json: bool) -> None:
     requirements (REG-012).
     """
     import json as _json
+
     from specsmith.agent.permissions import load_permissions
 
     root = Path(project_dir).resolve()
@@ -3049,9 +3053,7 @@ def agent_permissions_cmd(project_dir: str, as_json: bool) -> None:
         console.print("\n[bold]Denied tools:[/bold]")
         for t in sorted(perms.deny):
             console.print(f"  [red]\u2717[/red] {t}")
-    console.print(
-        "\n[dim]Configure via docs/SPECSMITH.yml agent.permissions.allow/deny[/dim]"
-    )
+    console.print("\n[dim]Configure via docs/SPECSMITH.yml agent.permissions.allow/deny[/dim]")
 
 
 @agent_group.command(name="permissions-check")
@@ -3112,9 +3114,7 @@ def agent_permissions_check_cmd(
             )
             console.print(f"  [dim]{reason.splitlines()[0]}[/dim]")
             if not skip_log:
-                console.print(
-                    "  [dim]Denial recorded in ledger (REG-012 audit trail).[/dim]"
-                )
+                console.print("  [dim]Denial recorded in ledger (REG-012 audit trail).[/dim]")
 
     if not allowed:
         raise SystemExit(3)
@@ -4833,9 +4833,7 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
         if result.changed:
             if check_only:
                 console.print(f"[yellow]\u26a0 Machine state drift:[/yellow] {result.message}")
-                console.print(
-                    "  Run [bold]specsmith sync[/bold] to regenerate from docs/."
-                )
+                console.print("  Run [bold]specsmith sync[/bold] to regenerate from docs/.")
             else:
                 console.print(f"[green]\u2713[/green] {result.message}")
         else:
@@ -4931,14 +4929,14 @@ def instinct_list(project_dir: str, as_json: bool) -> None:
         return
     if not records:
         console.print("[yellow]No instincts recorded yet.[/yellow]")
-        console.print(
-            "  Use [bold]specsmith instinct learn[/bold] to add one."
-        )
+        console.print("  Use [bold]specsmith instinct learn[/bold] to add one.")
         return
     console.print(f"[bold]Instincts[/bold] ({len(records)})\n")
     for r in records:
         scope = f" [dim]({r.project_scope})[/dim]" if r.project_scope else ""
-        confidence_color = "green" if r.confidence >= 0.7 else ("yellow" if r.confidence >= 0.4 else "red")
+        confidence_color = (
+            "green" if r.confidence >= 0.7 else ("yellow" if r.confidence >= 0.4 else "red")
+        )
         console.print(
             f"  [{confidence_color}]{r.confidence:.0%}[/{confidence_color}] "
             f"[bold]{r.id}[/bold]{scope}\n"
@@ -5008,7 +5006,7 @@ def instinct_status(project_dir: str) -> None:
         return
     avg = sum(r.confidence for r in records) / len(records)
     total_uses = sum(r.use_count for r in records)
-    console.print(f"[bold]Instinct Status[/bold]\n")
+    console.print("[bold]Instinct Status[/bold]\n")
     console.print(f"  Total:       {len(records)}")
     console.print(f"  Avg confidence: {avg:.0%}")
     console.print(f"  Total uses:  {total_uses}")

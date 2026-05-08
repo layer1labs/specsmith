@@ -24,7 +24,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import ClassVar
 
-
 # ---------------------------------------------------------------------------
 # Permission tiers — ordered from least to most privileged
 # ---------------------------------------------------------------------------
@@ -55,8 +54,8 @@ SHELL_TOOLS: frozenset[str] = frozenset(["run_shell", "run_tests"])
 #: High-privilege VCS operations — blocked by default; must be explicitly allowed.
 HIGH_PRIVILEGE_TOOLS: frozenset[str] = frozenset(
     [
-        "git_commit",   # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
-        "git_push",     # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
+        "git_commit",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
+        "git_push",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
         "git_create_pr",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
     ]
 )
@@ -94,26 +93,23 @@ class AgentPermissions:
     # Preset profiles -------------------------------------------------------
 
     #: Read-only — safest; no filesystem writes, no shell, no network.
-    READ_ONLY: ClassVar["AgentPermissions"]
+    READ_ONLY: ClassVar[AgentPermissions]
 
     #: Standard (default) — local read/write/shell; no VCS commits or network.
-    STANDARD: ClassVar["AgentPermissions"]
+    STANDARD: ClassVar[AgentPermissions]
 
     #: Extended — includes network access (open_url, search_docs).
-    EXTENDED: ClassVar["AgentPermissions"]
+    EXTENDED: ClassVar[AgentPermissions]
 
     #: Admin — all tools permitted (use only for supervised sessions).
-    ADMIN: ClassVar["AgentPermissions"]
+    ADMIN: ClassVar[AgentPermissions]
 
     def is_allowed(self, tool_name: str) -> bool:
         """Return True if ``tool_name`` is permitted under this profile."""
         if tool_name in self.deny:
             return False
-        # Explicitly allowed OR within default-allowed baseline
-        if tool_name in self.allow:
-            return True
-        # Default: tools not in any set are denied
-        return False
+        # Explicitly allowed OR within default-allowed baseline; default deny
+        return tool_name in self.allow
 
     def gate(self, tool_name: str) -> None:
         """Raise PermissionError if the tool is not allowed.

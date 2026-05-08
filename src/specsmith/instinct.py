@@ -35,6 +35,7 @@ from typing import Any
 # Data model (REQ-222)
 # ---------------------------------------------------------------------------
 
+
 def _ISO_NOW() -> str:  # noqa: N802
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 

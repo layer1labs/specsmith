@@ -546,9 +546,9 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("LEDGER.md"),
     Path("REQUIREMENTS.md"),
     Path("TESTS.md"),
-    Path("docs") / "LEDGER.md",       # canonical ledger (moved from root)
-    Path("docs") / "REQUIREMENTS.md", # canonical requirements (moved from root; contains history)
-    Path("docs") / "TESTS.md",        # canonical tests (moved from root; contains history)
+    Path("docs") / "LEDGER.md",  # canonical ledger (moved from root)
+    Path("docs") / "REQUIREMENTS.md",  # canonical requirements (moved from root; contains history)
+    Path("docs") / "TESTS.md",  # canonical tests (moved from root; contains history)
     Path("docs") / "ledger-archive.md",  # archived history; contains rename chronicle
     Path(".specsmith") / "requirements.json",
     Path(".specsmith") / "testcases.json",

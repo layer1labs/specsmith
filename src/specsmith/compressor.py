@@ -82,6 +82,7 @@ def run_compress(
         CompressResult with details of the operation.
     """
     from specsmith.paths import find_ledger
+
     _found = find_ledger(root)
     ledger_path = _found
 
@@ -137,6 +138,7 @@ def run_compress(
         archive_content = archive_header + "\n".join(to_archive)
 
     from specsmith.safe_write import safe_overwrite
+
     safe_overwrite(archive_path, archive_content, reason="ledger compress archive")
 
     # Rewrite ledger with summary + recent entries (backup created automatically)
