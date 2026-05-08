@@ -29,13 +29,14 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterator
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Data model (REQ-222)
 # ---------------------------------------------------------------------------
 
-_ISO_NOW = lambda: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())  # noqa: E731
+def _ISO_NOW() -> str:  # noqa: N802
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
 @dataclass
@@ -84,11 +85,11 @@ class InstinctRecord:
     # Serialisation
     # ------------------------------------------------------------------
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, raw: dict) -> "InstinctRecord":
+    def from_dict(cls, raw: dict[str, Any]) -> InstinctRecord:
         return cls(
             id=str(raw.get("id") or "").strip(),
             trigger_pattern=str(raw.get("trigger_pattern") or "").strip(),
@@ -189,17 +190,11 @@ class InstinctStore:
 
     def all(self) -> list[InstinctRecord]:
         """All instincts, sorted by confidence descending (REQ-227)."""
-        return sorted(
-            self._records.values(), key=lambda r: r.confidence, reverse=True
-        )
+        return sorted(self._records.values(), key=lambda r: r.confidence, reverse=True)
 
     def for_project(self, project_root: str) -> list[InstinctRecord]:
         """Global instincts plus those scoped to ``project_root``."""
-        return [
-            r
-            for r in self.all()
-            if r.project_scope == "" or r.project_scope == project_root
-        ]
+        return [r for r in self.all() if r.project_scope == "" or r.project_scope == project_root]
 
     # ------------------------------------------------------------------
     # Confidence updates (REQ-225)
@@ -279,9 +274,7 @@ def extract_candidate_instincts(
     seen: set[str] = set()
 
     # Look for explicit PATTERN: / INSTINCT: annotations in session text.
-    for m in re.finditer(
-        r"(?:PATTERN|INSTINCT):\s*(.+?)(?:\n|$)", session_text, re.IGNORECASE
-    ):
+    for m in re.finditer(r"(?:PATTERN|INSTINCT):\s*(.+?)(?:\n|$)", session_text, re.IGNORECASE):
         text = m.group(1).strip()
         if len(text) >= min_length and text not in seen:
             seen.add(text)
@@ -290,6 +283,7 @@ def extract_candidate_instincts(
     # Extract repeated shell commands (3+ chars, appears 2+ times).
     commands = re.findall(r"`([^`]{3,80})`", session_text)
     from collections import Counter
+
     for cmd, count in Counter(commands).items():
         if count >= 2 and cmd not in seen:
             seen.add(cmd)
@@ -326,10 +320,7 @@ def build_instinct_prompt_section(
     lines: list[str] = ["## Active Instincts (learned patterns)\n"]
     chars = 0
     for r in instincts:
-        entry = (
-            f"- **{r.trigger_pattern}** ({r.confidence:.0%} confidence):  \n"
-            f"  {r.content}\n"
-        )
+        entry = f"- **{r.trigger_pattern}** ({r.confidence:.0%} confidence):  \n  {r.content}\n"
         chars += len(entry)
         if chars > token_budget:
             break

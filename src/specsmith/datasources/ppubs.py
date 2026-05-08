@@ -11,7 +11,7 @@ All methods use stdlib urllib — no external dependencies.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from specsmith.datasources.base import DataSourceError, http_post
 
@@ -97,10 +97,15 @@ class PPUBSClient:
         result = self.search(patent_number, limit=1, detail="complete")
         if not result["results"]:
             raise DataSourceError(f"Patent {patent_number} not found in PPUBS")
-        return result["results"][0]
+        return cast(dict[str, Any], result["results"][0])
 
     def search_applications(
-        self, query: str, *, limit: int = 25, offset: int = 0, **kwargs: Any,
+        self,
+        query: str,
+        *,
+        limit: int = 25,
+        offset: int = 0,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Search published patent applications."""
         return self.search(query, limit=limit, offset=offset, source_type="US-PGPUB", **kwargs)

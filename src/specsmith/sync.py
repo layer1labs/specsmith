@@ -20,11 +20,12 @@ Design contract:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Markdown parsers
@@ -44,10 +45,10 @@ _TEST_NUMBERED_HEADING = re.compile(r"^#{1,3}\s+(?:TEST-[A-Z0-9_-]+\s+)?(.+?)\s*
 _TEST_ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_TEST_ID + r")")
 
 
-def parse_requirements_md(text: str) -> list[dict]:
+def parse_requirements_md(text: str) -> list[dict[str, Any]]:
     """Parse REQUIREMENTS.md and return a list of requirement records."""
-    records: list[dict] = []
-    current: dict = {}
+    records: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
     pending_title: str = ""
 
     def _flush() -> None:
@@ -97,10 +98,10 @@ def parse_requirements_md(text: str) -> list[dict]:
     ]
 
 
-def parse_tests_md(text: str) -> list[dict]:
+def parse_tests_md(text: str) -> list[dict[str, Any]]:
     """Parse TESTS.md and return a list of test case records."""
-    records: list[dict] = []
-    current: dict = {}
+    records: list[dict[str, Any]] = []
+    current: dict[str, Any] = {}
     pending_title: str = ""
 
     def _flush() -> None:
@@ -109,9 +110,7 @@ def parse_tests_md(text: str) -> list[dict]:
 
     for line in text.splitlines():
         # TEST-NNN heading or numbered-style
-        m_test_heading = re.match(
-            r"^#{1,3}\s+(" + _FLEX_TEST_ID + r")(?:\.\s+(.+?))?\s*$", line
-        )
+        m_test_heading = re.match(r"^#{1,3}\s+(" + _FLEX_TEST_ID + r")(?:\.\s+(.+?))?\s*$", line)
         if m_test_heading:
             _flush()
             current = {
@@ -153,7 +152,9 @@ def parse_tests_md(text: str) -> list[dict]:
             "description": r.get("description", ""),
             "requirement_id": r.get("requirement id", r.get("requirement_id", "")),
             "type": r.get("type", "unit"),
-            "verification_method": r.get("verification method", r.get("verification_method", "evaluator")),
+            "verification_method": r.get(
+                "verification method", r.get("verification_method", "evaluator")
+            ),
             "input": {},
             "expected_behavior": {},
             "confidence": 1.0,
@@ -186,13 +187,9 @@ class SyncResult:
         status = "would update" if self.dry_run else "synced"
         parts: list[str] = []
         if self.reqs_changed:
-            parts.append(
-                f"requirements.json: {self.reqs_before} → {self.reqs_after} entries"
-            )
+            parts.append(f"requirements.json: {self.reqs_before} → {self.reqs_after} entries")
         if self.tests_changed:
-            parts.append(
-                f"testcases.json: {self.tests_before} → {self.tests_after} entries"
-            )
+            parts.append(f"testcases.json: {self.tests_before} → {self.tests_after} entries")
         if parts:
             return f"Machine state {status}: " + "; ".join(parts)
         return "Machine state already in sync."
@@ -220,30 +217,26 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     tests_json_path = state_dir / "testcases.json"
 
     # Parse markdown sources (best-effort: missing files produce empty lists)
-    new_reqs: list[dict] = []
+    new_reqs: list[dict[str, Any]] = []
     if reqs_md_path.exists():
         new_reqs = parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
 
-    new_tests: list[dict] = []
+    new_tests: list[dict[str, Any]] = []
     if tests_md_path.exists():
         new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
 
     # Load existing JSON for comparison (and to preserve hand-crafted fields)
-    old_reqs: list[dict] = []
+    old_reqs: list[dict[str, Any]] = []
     if reqs_json_path.exists():
-        try:
+        with contextlib.suppress(OSError, ValueError):
             old_reqs = json.loads(reqs_json_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            pass
 
-    old_tests: list[dict] = []
-    existing_test_map: dict[str, dict] = {}
+    old_tests: list[dict[str, Any]] = []
+    existing_test_map: dict[str, dict[str, Any]] = {}
     if tests_json_path.exists():
-        try:
+        with contextlib.suppress(OSError, ValueError):
             old_tests = json.loads(tests_json_path.read_text(encoding="utf-8"))
             existing_test_map = {t["id"]: t for t in old_tests if isinstance(t, dict)}
-        except (OSError, ValueError):
-            pass
 
     # Merge: preserve existing input/expected_behavior for tests that already
     # have hand-crafted content so we don't clobber kairos-style detailed specs.
@@ -257,12 +250,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     # Detect drift (compare by serialising to canonical JSON)
     reqs_before = len(old_reqs)
     tests_before = len(old_tests)
-    reqs_changed = json.dumps(new_reqs, sort_keys=True) != json.dumps(
-        old_reqs, sort_keys=True
-    )
-    tests_changed = json.dumps(new_tests, sort_keys=True) != json.dumps(
-        old_tests, sort_keys=True
-    )
+    reqs_changed = json.dumps(new_reqs, sort_keys=True) != json.dumps(old_reqs, sort_keys=True)
+    tests_changed = json.dumps(new_tests, sort_keys=True) != json.dumps(old_tests, sort_keys=True)
 
     if not dry_run and (reqs_changed or tests_changed):
         state_dir.mkdir(parents=True, exist_ok=True)
