@@ -5137,8 +5137,7 @@ def config_editor_cmd(
         if not candidates:
             console.print("[yellow]No editors detected on this machine.[/yellow]")
             console.print(
-                "  Install VS Code, Neovim, or another editor and re-run, "
-                "or set $EDITOR manually."
+                "  Install VS Code, Neovim, or another editor and re-run, or set $EDITOR manually."
             )
             return
         console.print("[bold]Detected editors:[/bold]\n")
@@ -5162,17 +5161,13 @@ def config_editor_cmd(
         console.print(f"  Command:  [bold]{resolved}[/bold]")
     else:
         console.print("  [yellow]No editor resolved.[/yellow]")
-        console.print(
-            "  Set $EDITOR or run [bold]specsmith config editor --set <command>[/bold]."
-        )
+        console.print("  Set $EDITOR or run [bold]specsmith config editor --set <command>[/bold].")
     console.print()
     console.print(
         "  [dim]Override: set $EDITOR, or run "
         "'specsmith config editor --set <cmd>' to persist.[/dim]"
     )
-    console.print(
-        "  [dim]List available editors: 'specsmith config editor --list'[/dim]"
-    )
+    console.print("  [dim]List available editors: 'specsmith config editor --list'[/dim]")
 
 
 main.add_command(config_group)
