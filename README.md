@@ -199,6 +199,33 @@ specsmith run
 > delete the entire dist directory            # destructive -> needs clarification
 ```
 
+---
+
+## Nexus
+
+The Nexus runtime is specsmith's local-first agentic REPL — a
+governance-gated broker that sits between you and the LLM.
+
+Every utterance passes through `specsmith preflight` before execution.
+The broker classifies intent, matches requirements, and gates the action.
+After execution, `specsmith verify` checks equilibrium. The `/why` command
+shows the full governance trace.
+
+```bash
+# Interactive REPL with governance
+specsmith run
+nexus> fix the cleanup bug         # broker classifies → accepts → executes → verifies
+nexus> /why                         # show governance trace for last action
+nexus> /exit
+```
+
+The Nexus broker:
+- **Preflight gate**: every change goes through `specsmith preflight`
+- **Bounded retry**: failed actions retry up to 3× with strategy classification
+- **Execution trace**: every action is sealed in the cryptographic trace vault
+- **`/why` toggle**: shows governance rationale in human-readable form
+```
+
 **How it works.** A natural-language **broker** classifies intent, infers scope from
 your requirements, and asks Specsmith to **preflight** the request. Only when the
 preflight decision is `accepted` does Nexus drive the AG2 orchestrator — and it does so
