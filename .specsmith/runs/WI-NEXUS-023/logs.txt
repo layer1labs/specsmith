@@ -1,7 +1,0 @@
-CI security baseline + dependabot review on develop
-
-$ gh api /repos/BitConcepts/specsmith/dependabot/alerts --jq '...'
-[]
-
-$ pip-audit --ignore-vuln CVE-2026-3219
-(no specsmith runtime dependency advisories outstanding)

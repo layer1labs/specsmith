@@ -5067,6 +5067,118 @@ main.add_command(instinct_group)
 
 
 # ---------------------------------------------------------------------------
+# specsmith config — global configuration (editor, etc.)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="config")
+def config_group() -> None:
+    """Manage global specsmith configuration.
+
+    Settings are stored in ``~/.specsmith/config.toml``.
+    """
+
+
+@config_group.command(name="editor")
+@click.argument("command", required=False, default=None)
+@click.option(
+    "--list",
+    "list_editors",
+    is_flag=True,
+    default=False,
+    help="List all editors detected on this machine.",
+)
+@click.option(
+    "--set",
+    "set_cmd",
+    default="",
+    help="Set the preferred editor (saved to ~/.specsmith/config.toml).",
+)
+def config_editor_cmd(
+    command: str | None,
+    list_editors: bool,
+    set_cmd: str,
+) -> None:
+    """Manage the editor used by specsmith to open files.
+
+    \b
+    Resolution order:
+      1. $EDITOR environment variable  (highest priority)
+      2. 'editor' key in ~/.specsmith/config.toml
+      3. Auto-detected editor for this platform
+
+    \b
+    Examples:
+      specsmith config editor           # show currently resolved editor
+      specsmith config editor --list    # show all detected editors
+      specsmith config editor --set code  # set VS Code as preferred editor
+    """
+    from specsmith.editor import (
+        list_detected_editors,
+        resolve_editor,
+        set_editor_preference,
+    )
+
+    # --set flag takes precedence
+    if set_cmd or (command and not list_editors):
+        target = set_cmd or command or ""
+        if not target:
+            console.print("[red]Error:[/red] specify a command, e.g. --set code")
+            raise SystemExit(1)
+        saved_path = set_editor_preference(target)
+        console.print(
+            f"[green]\u2713[/green] Saved editor preference: [bold]{target}[/bold]\n"
+            f"  Config: {saved_path}"
+        )
+        return
+
+    if list_editors:
+        candidates = list_detected_editors()
+        if not candidates:
+            console.print("[yellow]No editors detected on this machine.[/yellow]")
+            console.print(
+                "  Install VS Code, Neovim, or another editor and re-run, "
+                "or set $EDITOR manually."
+            )
+            return
+        console.print("[bold]Detected editors:[/bold]\n")
+        for c in candidates:
+            path_hint = f"  [dim]({c.path})[/dim]" if c.path else ""
+            console.print(f"  [cyan]{c.command:<20}[/cyan] {c.name}{path_hint}")
+        return
+
+    # Default: show the currently resolved editor
+    import os
+
+    env_val = os.environ.get("EDITOR", "").strip()
+    resolved = resolve_editor()
+
+    console.print("[bold]Editor configuration[/bold]\n")
+    if env_val:
+        console.print(f"  Source:   [green]$EDITOR[/green] environment variable")
+        console.print(f"  Command:  [bold]{env_val}[/bold]")
+    elif resolved:
+        console.print(f"  Source:   auto-detected")
+        console.print(f"  Command:  [bold]{resolved}[/bold]")
+    else:
+        console.print("  [yellow]No editor resolved.[/yellow]")
+        console.print(
+            "  Set $EDITOR or run [bold]specsmith config editor --set <command>[/bold]."
+        )
+    console.print()
+    console.print(
+        "  [dim]Override: set $EDITOR, or run "
+        "'specsmith config editor --set <cmd>' to persist.[/dim]"
+    )
+    console.print(
+        "  [dim]List available editors: 'specsmith config editor --list'[/dim]"
+    )
+
+
+main.add_command(config_group)
+
+
+# ---------------------------------------------------------------------------
 # Kill-switch / emergency stop (REG-005)
 # ---------------------------------------------------------------------------
 

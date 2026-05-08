@@ -132,7 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--stress` bridge** — preflight optionally runs the AEE `StressTester` over matched requirements and surfaces critical failures as `stress_warnings` (REQ-100).
 - **`.specsmith/config.yml` confidence threshold** — `epistemic.confidence_threshold` is honored as the floor for `confidence_target` in both `preflight` and `verify` (REQ-058, REQ-098).
 - **CI baseline contract** — ruff lint + format clean, mypy strict-clean over 69 source files, and `pip-audit --ignore-vuln CVE-2026-3219` (REQ-101..REQ-103).
-- **VS Code extension parity** — `specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy` (REQ-106; ships in `specsmith-vscode` 0.3.16).
+- **VS Code extension commands** — `specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy` (REQ-106). *The `specsmith-vscode` extension has since been deprecated; Kairos is the flagship client.*
 - **`scripts/sync_workitems.py`** keeps `.specsmith/workitems.json` mirrored to the implemented REQ/TEST set (REQ-104).
 - **103 REQs / 103 TESTs / 259 passing tests + 1 skipped** — governance state synced.
 - **Read the Docs Nexus surface** — `docs/site/commands.md` documents `preflight`, `verify`, the Nexus REPL, the bounded-retry harness, and `/why` (REQ-090).

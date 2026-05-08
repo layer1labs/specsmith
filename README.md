@@ -6,8 +6,6 @@
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-AEE%20Workbench-4ec9b0?logo=visualstudiocode)](https://github.com/BitConcepts/specsmith-vscode)
-
 **Applied Epistemic Engineering toolkit for AI-assisted development.**
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
@@ -70,23 +68,15 @@ specsmith phase set requirements  # jump to a specific phase
 specsmith phase list     # list all phases
 ```
 
-The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the VS Code
-Settings Panel. Each phase has a checklist of file/command criteria, recommended commands,
-and a readiness percentage.
+The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the
+Kairos Governance page. Each phase has a checklist of file/command criteria, recommended
+commands, and a readiness percentage.
 
 ---
 
 ## Install
 
-**Recommended — via the VS Code extension (creates a project-isolated environment):**
-
-1. Install the [specsmith AEE Workbench](https://github.com/BitConcepts/specsmith-vscode) VS Code extension
-2. Open `Ctrl+Shift+,` (⚙ specsmith Settings)
-3. Click **🔒 Create Environment** — creates `~/.specsmith/venv/` with specsmith + your provider packages
-
-The extension uses this environment for all agent sessions and terminal commands.
-
-**Or via pipx (system-wide):**
+**Recommended — via pipx (works with Kairos, any terminal, and CI):**
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
@@ -244,36 +234,20 @@ requirement, test, and work-item identifiers Specsmith assigned.
 
 ---
 
-## VS Code Extension
+## Kairos — Flagship Terminal Client
 
-The **specsmith AEE Workbench** VS Code extension is the flagship client:
+**[Kairos](https://github.com/BitConcepts/kairos)** is the recommended terminal client for specsmith.
+Kairos spawns specsmith as a managed governance child process at startup and routes all
+preflight, verify, and BYOE proxy calls through it. The Governance settings page shows live
+specsmith status, version, and one-click update.
 
+```bash
+# Kairos starts specsmith automatically; or run manually:
+specsmith governance-serve --port 7700 --project-dir .
 ```
-# VS Code: Ctrl+Shift+P → specsmith: New Agent Session
-# Settings:         Ctrl+Shift+,     (⚙ specsmith Settings — global)
-# Project Settings: Ctrl+Shift+G     (⚙ Project Settings — per-project)
-```
 
-**Key features:**
-- **Dual-panel architecture** — **⚙ specsmith Settings** (global: venv, version, Ollama, system)
-  and **⚙ Project Settings** (per-project: scaffold, tools, files, actions, execution)
-- **Global environment management** — `~/.specsmith/venv/` with Create / Update / Rebuild / Delete;
-  persistent restart banner; Remove System Installs cleanup button
-- **VCS context at session start** — git status + recent commits shown in chat and in system prompt
-- **Execution profiles** — safe / standard / open / admin; custom allow/block command lists
-- **AEE phase indicator** — shows current phase with readiness %, Next Phase button, phase selector
-- **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
-- **AG2 agent shell** — Planner/Builder/Verifier agents over Ollama in Actions tab
-- **Agent tab** — per-project provider/model/context/iteration config (overrides global defaults)
-- **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
-- **Ollama model catalog** — 16 models, 4 tiers, GPU-aware recommendations, filter by installed/available
-- **Ollama integration** — model manager (update/remove/update-all), version check, upgrade
-- **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
-- **Tool installer** — scan installed tools; one-click install via winget/brew/apt for missing tools
-- **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain)
-- **Update checker** — PyPI version check, auto-checks on panel open, release channel selector
-
-**[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+The VS Code extension (`specsmith-vscode`) has been **deprecated** in favour of Kairos.
+Use `pipx install specsmith` for standalone CLI usage from any terminal.
 
 ---
 
@@ -281,7 +255,7 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 
 specsmith is open source and built by a small team. Every bit of support helps:
 
-- ⭐ **Star** [specsmith](https://github.com/BitConcepts/specsmith) and [specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode) on GitHub
+- ⭐ **Star** [specsmith](https://github.com/BitConcepts/specsmith) and [kairos](https://github.com/BitConcepts/kairos) on GitHub
 - 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
 - 🐛 **Report bugs** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues) — even small ones help
 - 💡 **Suggest features** via [GitHub Discussions](https://github.com/BitConcepts/specsmith/discussions) — we read every suggestion
@@ -304,8 +278,8 @@ specsmith ollama suggest requirements  # task-based recommendations
 specsmith ollama list                  # show installed models
 ```
 
-GPU-aware context sizing in the VS Code extension: 4K/8K/16K/32K tokens based on detected VRAM.
-Override with `specsmith.ollamaContextLength` in VS Code settings.
+GPU-aware context sizing: 4K/8K/16K/32K tokens based on detected VRAM.
+Override via `SPECSMITH_OLLAMA_CONTEXT_LENGTH` env var or `ollama.context_length` in `.specsmith/config.yml`.
 
 ---
 
@@ -406,20 +380,20 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 
 specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
 in this repo to check its governance health. This means every feature we add to specsmith is
-immediately dogfooded on specsmith itself. The [VS Code extension](https://github.com/BitConcepts/specsmith-vscode)
-is developed alongside it as the flagship client.
+immediately dogfooded on specsmith itself. [Kairos](https://github.com/BitConcepts/kairos)
+is the companion terminal and flagship client.
 
 ## Documentation
 
 **[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full manual: AEE primer,
-command reference, project types, tool registry, governance model, Ollama guide, VS Code extension.
+command reference, project types, tool registry, governance model, Ollama guide, Kairos integration.
 
 ## Links
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
 - [Changelog](CHANGELOG.md)
-- [VS Code Extension](https://github.com/BitConcepts/specsmith-vscode)
+- [Kairos terminal client](https://github.com/BitConcepts/kairos)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
