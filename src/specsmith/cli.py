@@ -7855,5 +7855,24 @@ def rules_list_cmd(project_dir: str, as_json: bool) -> None:
 main.add_command(rules_group)
 
 
+# ---------------------------------------------------------------------------
+# AI Provider & Model Intelligence commands (REQ-220..REQ-223)
+# ---------------------------------------------------------------------------
+try:
+    from specsmith.commands.intelligence import (
+        datasources_group,
+        models_group,
+        profiles_group,
+        providers_group,
+    )
+
+    main.add_command(providers_group)
+    main.add_command(profiles_group)
+    main.add_command(datasources_group)
+    main.add_command(models_group)
+except Exception:  # noqa: BLE001
+    pass  # graceful degradation if commands module has issues
+
+
 if __name__ == "__main__":
     main()
