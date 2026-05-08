@@ -54,6 +54,9 @@ VALID_ROLES = (
     "tester",
     "classifier",
     "generalist",
+    "strategist",
+    "drafter",
+    "ip-analyst",
 )
 
 # Provider “family” groupings used by the diversity guard (G1). Profiles in
@@ -153,6 +156,30 @@ DEFAULT_PRESETS: dict[str, dict[str, Any]] = {
                 "fallback_chain": ["ollama/qwen2.5:3b"],
                 "capabilities": ["fast", "classification"],
             },
+            {
+                "id": "strategist",
+                "role": "strategist",
+                "provider": "anthropic",
+                "model": "claude-opus-4",
+                "fallback_chain": ["gemini/gemini-3-pro", "openai/gpt-5"],
+                "capabilities": ["reasoning", "long-context", "business"],
+            },
+            {
+                "id": "drafter",
+                "role": "drafter",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "fallback_chain": ["gemini/gemini-3-pro", "ollama/qwen2.5:32b"],
+                "capabilities": ["long-form", "coherence"],
+            },
+            {
+                "id": "ip-analyst",
+                "role": "ip-analyst",
+                "provider": "anthropic",
+                "model": "claude-opus-4",
+                "fallback_chain": ["openai/gpt-5", "gemini/gemini-3-pro"],
+                "capabilities": ["patent-analysis", "long-context", "function-calling"],
+            },
         ],
         "routes": {
             "chat": "coder",
@@ -180,6 +207,15 @@ DEFAULT_PRESETS: dict[str, dict[str, Any]] = {
             "phase:release": "editor",
             "predict_next": "classifier",
             "suggest_command": "classifier",
+            "/strategy": "strategist",
+            "/business": "strategist",
+            "/draft": "drafter",
+            "/spec": "drafter",
+            "/report": "drafter",
+            "/patent": "ip-analyst",
+            "/prior-art": "ip-analyst",
+            "/claims": "ip-analyst",
+            "/fto": "ip-analyst",
         },
     },
     "local-only": {
