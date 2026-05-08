@@ -736,15 +736,15 @@
   },
   {
     "id": "REQ-106",
-    "title": "VS Code Extension Must Surface Nexus Broker",
-    "description": "The `specsmith-vscode` extension must expose three commands that wrap the Nexus broker contract: `specsmith.runPreflight` (REQ-085), `specsmith.runVerify` (REQ-097), and `specsmith.toggleWhy` (REQ-094). Each command must be reachable from the command palette and must use the configured `specsmith.executablePath` for terminal invocation.",
-    "source": "specsmith-vscode/package.json, specsmith-vscode/src/extension.ts",
+    "title": "Kairos Must Surface Governance Commands",
+    "description": "The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`. *Note: the legacy `specsmith-vscode` commands (`specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy`) are deprecated; Kairos is the flagship client as of v0.10.1.*",
+    "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
     "status": "defined"
   },
   {
     "id": "REQ-107",
     "title": "ARCHITECTURE.md Must Reflect Current State",
-    "description": "`ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.",
+    "description": "`ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, Kairos governance integration, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.",
     "source": "ARCHITECTURE.md",
     "status": "defined"
   },
@@ -820,9 +820,9 @@
   },
   {
     "id": "REQ-118",
-    "title": "VS Code Extension Must Surface specsmith chat",
-    "description": "`specsmith-vscode` exposes a `specsmith.openChat` command that spawns `specsmith chat --json-events` with the active session's project dir, consumes the JSONL stream, and renders blocks in the existing `SessionPanel`. Extension version >= 0.4.0.",
-    "source": "specsmith-vscode/src/extension.ts, specsmith-vscode/package.json",
+    "title": "Kairos Must Surface specsmith chat Stream",
+    "description": "The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session. *The deprecated `specsmith-vscode` `specsmith.openChat` command served this purpose for the VS Code extension; it has been superseded by the Kairos BYOE proxy.*",
+    "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
     "status": "defined"
   },
   {
@@ -884,8 +884,8 @@
   {
     "id": "REQ-128",
     "title": "Cross-Repo Security Sweep",
-    "description": "`specsmith-vscode` CI (`.github/workflows/ci.yml`) runs `npm audit --omit=dev --audit-level=high` and fails on high-or-critical findings. The Dependabot manifest in both repos is reviewed and any open alert at 1.0 release time is documented.",
-    "source": "specsmith-vscode/.github/workflows/ci.yml",
+    "description": "The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented. *Note: the legacy `specsmith-vscode` npm audit requirement has been retired alongside the extension deprecation.*",
+    "source": ".github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml",
     "status": "defined"
   },
   {

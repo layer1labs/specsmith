@@ -1156,11 +1156,11 @@
   },
   {
     "id": "TEST-106",
-    "title": "VS Code Extension Registers Broker Commands",
-    "description": "`specsmith-vscode/package.json` declares `specsmith.runPreflight`, `specsmith.runVerify`, and `specsmith.toggleWhy`; `src/extension.ts` registers each with `vscode.commands.registerCommand`; `npm run lint` (`tsc --noEmit`) exits zero.",
+    "title": "Kairos Governance Page Surfaces Preflight/Verify/Trace",
+    "description": "The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode` broker command test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-106",
     "type": "integration",
-    "verification_method": "npm",
+    "verification_method": "evaluator",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -1288,11 +1288,11 @@
   },
   {
     "id": "TEST-118",
-    "title": "Extension Declares specsmith.openChat Command",
-    "description": "`specsmith-vscode/package.json` declares the `specsmith.openChat` command; `src/extension.ts` registers a handler for it. Sister-repo gate.",
+    "title": "Kairos BYOE Proxy Consumes Chat Stream",
+    "description": "The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy `specsmith-vscode` openChat command test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-118",
     "type": "integration",
-    "verification_method": "static-check",
+    "verification_method": "evaluator",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -1387,8 +1387,8 @@
   },
   {
     "id": "TEST-128",
-    "title": "specsmith-vscode CI Runs npm audit",
-    "description": "`specsmith-vscode/.github/workflows/ci.yml` includes a step running `npm audit --omit=dev --audit-level=high`. Sister-repo gate.",
+    "title": "Cross-Repo Security Sweep Runs in CI",
+    "description": "Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-128",
     "type": "integration",
     "verification_method": "static-check",
