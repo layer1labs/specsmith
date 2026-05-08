@@ -241,7 +241,7 @@ def run_verify(
 
 
 # ---------------------------------------------------------------------------
-# OpenAI-compatible governance proxy (for Kairos BYOP integration)
+# OpenAI-compatible governance proxy (for Kairos BYOE integration)
 # ---------------------------------------------------------------------------
 
 
@@ -280,7 +280,7 @@ def run_chat_proxy(
     real_api_key: str | None = None,
     real_model: str | None = None,
 ) -> dict:
-    """OpenAI-compatible governance proxy for Kairos BYOP integration.
+    """OpenAI-compatible governance proxy for Kairos BYOE integration.
 
     This is called from the ``POST /v1/chat/completions`` endpoint in
     :class:`GovernanceHTTPServer`.  It intercepts every AI request that
@@ -518,7 +518,7 @@ class GovernanceHTTPServer:
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
                 elif self.path == "/v1/chat/completions":
-                    # Kairos BYOP gateway — intercept, gate, forward.
+                    # Kairos BYOE gateway — intercept, gate, forward.
                     try:
                         result = run_chat_proxy(
                             messages=body.get("messages") or [],
@@ -555,7 +555,7 @@ class GovernanceHTTPServer:
             f"    GET  /health                  liveness probe\n"
             f"    POST /preflight               governance gate\n"
             f"    POST /verify                  post-change verification\n"
-            f"  Kairos BYOP gateway:\n"
+            f"  Kairos BYOE gateway:\n"
             f"    POST /v1/chat/completions     OpenAI-compatible proxy\n"
             f"      Gate: preflight → forward to KAIROS_AI_BASE_URL → verify\n"
             f"  Press Ctrl+C to stop.\n",
