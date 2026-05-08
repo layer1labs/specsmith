@@ -26,7 +26,6 @@ from __future__ import annotations
 import os
 import platform
 import shutil
-import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -121,11 +120,8 @@ def _expand(path_str: str) -> str:
 
 def _probe_command(cmd: str | list[str]) -> str | None:
     """Return the resolved path for *cmd* if it is runnable, else None."""
-    if isinstance(cmd, list):
-        # Multi-token command (e.g. ["open", "-e"]) — probe the first token
-        executable = cmd[0]
-    else:
-        executable = cmd
+    # Multi-token command (e.g. ["open", "-e"]) — probe the first token.
+    executable = cmd[0] if isinstance(cmd, list) else cmd
 
     # Expand env vars in Windows-style paths (%PROGRAMFILES%\...)
     expanded = _expand(executable)

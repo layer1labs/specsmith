@@ -5155,10 +5155,10 @@ def config_editor_cmd(
 
     console.print("[bold]Editor configuration[/bold]\n")
     if env_val:
-        console.print(f"  Source:   [green]$EDITOR[/green] environment variable")
+        console.print("  Source:   [green]$EDITOR[/green] environment variable")
         console.print(f"  Command:  [bold]{env_val}[/bold]")
     elif resolved:
-        console.print(f"  Source:   auto-detected")
+        console.print("  Source:   auto-detected")
         console.print(f"  Command:  [bold]{resolved}[/bold]")
     else:
         console.print("  [yellow]No editor resolved.[/yellow]")
