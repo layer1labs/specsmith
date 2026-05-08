@@ -359,6 +359,12 @@ class AgentRunner:
 
         Respects an explicit per-session profile / endpoint override so
         the ``--agent`` and ``--endpoint`` CLI flags still win.
+
+        When an execution profile is active, the resolved agent profile's
+        provider is checked against the execution profile's allowed
+        provider types / IDs. If not allowed, the profile's fallback
+        chain is tried. This ensures a "local-only" execution profile
+        never routes to a cloud provider.
         """
         if self.profile_id is None and self._routing is None:
             return (None, None)
@@ -368,14 +374,63 @@ class AgentRunner:
             store = ProfileStore.load()
             if self.profile_id:
                 profile = store.get(self.profile_id)
-                return (profile, profile.endpoint_id or None)
+                profile = self._filter_by_execution_profile(profile, store)
+                return (profile, profile.endpoint_id or None) if profile else (None, None)
             target_id = store.routes.get(activity) or store.default_profile_id
             if not target_id:
                 return (None, None)
             profile = store.get(target_id)
-            return (profile, profile.endpoint_id or None)
+            profile = self._filter_by_execution_profile(profile, store)
+            return (profile, profile.endpoint_id or None) if profile else (None, None)
         except Exception:  # noqa: BLE001
             return (None, None)
+
+    def _filter_by_execution_profile(self, profile, store) -> Any:
+        """Check if a profile's provider is allowed by the active execution profile.
+
+        If not allowed, try fallback chain entries. Returns the original
+        profile if no execution profile is loaded (graceful degradation).
+        """
+        try:
+            from specsmith.agent.execution_profiles import ExecutionProfileStore
+
+            ep_store = ExecutionProfileStore.load()
+            exec_profile = ep_store.default()
+
+            # Check if the primary profile's provider is allowed.
+            if exec_profile.allows_provider(profile.provider, profile.provider):
+                return profile
+
+            # Try fallback chain entries.
+            for fallback_str in (profile.fallback_chain or []):
+                parts = fallback_str.split("/", 1)
+                fb_provider = parts[0] if parts else ""
+                if exec_profile.allows_provider(fb_provider, fb_provider):
+                    # Create a modified profile using the fallback.
+                    from specsmith.agent.profiles import Profile
+
+                    fb_model = parts[1] if len(parts) > 1 else ""
+                    return Profile(
+                        id=f"{profile.id}-fallback",
+                        role=profile.role,
+                        provider=fb_provider,
+                        model=fb_model,
+                        endpoint_id=profile.endpoint_id,
+                        capabilities=profile.capabilities,
+                        fallback_chain=[],
+                    )
+
+            # No allowed provider found — return None so caller degrades.
+            self._emit_event(
+                type="system",
+                message=(
+                    f"\u26a0 execution profile '{exec_profile.id}' blocks "
+                    f"provider '{profile.provider}' and all fallbacks"
+                ),
+            )
+            return None
+        except Exception:  # noqa: BLE001 — graceful degradation
+            return profile  # no execution profile loaded → allow everything
 
     def _load_routing(self) -> Any | None:
         try:
