@@ -448,12 +448,18 @@ class TestReq246CompressionThreshold:
     """TEST-224 — fill below hard ceiling returns event (compression threshold signal)."""
 
     def test_fill_below_ceiling_returns_event(self) -> None:
-        """used=3400 with limit=4096 is ~83% — below 85% ceiling, no exception (REQ-246)."""
+        """~83% fill — above the 80% compression threshold, below 85% hard ceiling (REQ-246).
+
+        We use limit=65536 so that the 15% reservation rule governs
+        (0.15 * 65536 = 9830 > MIN_FREE_TOKENS=2048), giving an effective
+        ceiling of 85% rather than the tighter 50% that would apply for
+        small context windows.
+        """
         from specsmith.context_window import ContextFillTracker
 
-        tracker = ContextFillTracker(limit=4096)
-        event = tracker.record(used=3400)
-        # ~83% fill — above the 80% compression threshold, below the 85% hard ceiling
+        # limit=65536: effective_ceiling = 85% (15% rule dominates over 2048 min)
+        tracker = ContextFillTracker(limit=65536)
+        event = tracker.record(used=55000)  # ~83.9% — below the 85% ceiling
         assert event.pct >= 80.0, f"Fill should be >= 80%; got {event.pct}"
         assert event.pct < 85.0, f"Fill should be < 85%; got {event.pct}"
 
@@ -478,16 +484,21 @@ class TestReq247HardCeiling:
     """TEST-225 — ContextFullError raised at hard ceiling."""
 
     def test_context_full_error_at_ceiling(self) -> None:
-        """used=3600 with limit=4096 is ~87.9% — raises ContextFullError (REQ-247)."""
+        """~85.4% fill raises ContextFullError at the hard ceiling (REQ-247).
+
+        Uses limit=65536 so the 15% reservation rule governs (effective ceiling
+        = 85%), matching the intent of the hard-ceiling invariant.
+        """
         from specsmith.context_window import ContextFillTracker, ContextFullError
 
-        tracker = ContextFillTracker(limit=4096)
+        # limit=65536: effective_ceiling = 85% (15% rule dominates)
+        tracker = ContextFillTracker(limit=65536)
         with pytest.raises(ContextFullError) as exc_info:
-            tracker.record(used=3600)
+            tracker.record(used=56000)  # ~85.4% — above the 85% ceiling
 
         err = exc_info.value
-        assert err.used == 3600
-        assert err.limit == 4096
+        assert err.used == 56000
+        assert err.limit == 65536
         assert err.pct >= 85.0, f"pct should be >= 85; got {err.pct}"
 
     def test_min_free_tokens_tightens_ceiling(self) -> None:
