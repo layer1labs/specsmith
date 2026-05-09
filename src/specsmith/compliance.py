@@ -129,16 +129,16 @@ def get_compliance_summary(project_dir: str | Path = ".") -> ComplianceSummary:
     # Build trace matrix
     trace: list[dict[str, Any]] = []
     for req_id, req in sorted(reqs.items()):
-        linked_tests = [
-            t["id"] for t in tests.values() if t.get("requirement_id") == req_id
-        ]
-        trace.append({
-            "requirement_id": req_id,
-            "title": req.get("title", ""),
-            "status": req.get("status", ""),
-            "tests": linked_tests,
-            "covered": len(linked_tests) > 0,
-        })
+        linked_tests = [t["id"] for t in tests.values() if t.get("requirement_id") == req_id]
+        trace.append(
+            {
+                "requirement_id": req_id,
+                "title": req.get("title", ""),
+                "status": req.get("status", ""),
+                "tests": linked_tests,
+                "covered": len(linked_tests) > 0,
+            }
+        )
 
     return ComplianceSummary(
         total_requirements=total,
@@ -159,18 +159,62 @@ def get_governance_rules_status(project_dir: str | Path = ".") -> list[dict[str,
     rules = [
         {"id": "H1", "name": "Ledger required", "description": "No ledger entry = work not done"},
         {"id": "H2", "name": "Proposal required", "description": "No proposal = no execution"},
-        {"id": "H3", "name": "Cross-platform awareness", "description": "All work must consider every target platform"},
-        {"id": "H4", "name": "Environment isolation", "description": "No system-dependent assumptions"},
+        {
+            "id": "H3",
+            "name": "Cross-platform awareness",
+            "description": "All work must consider every target platform",
+        },
+        {
+            "id": "H4",
+            "name": "Environment isolation",
+            "description": "No system-dependent assumptions",
+        },
         {"id": "H5", "name": "Explicit startup", "description": "No hidden service logic"},
-        {"id": "H6", "name": "No silent scope expansion", "description": "If task grows, stop and re-propose"},
-        {"id": "H7", "name": "No undocumented state changes", "description": "Every change must be traceable"},
-        {"id": "H8", "name": "Documentation is implementation", "description": "Architecture changes MUST update docs"},
-        {"id": "H9", "name": "Execution timeout required", "description": "All agent commands must have timeouts"},
-        {"id": "H10", "name": "No hardcoded versions", "description": "Use importlib.metadata at runtime"},
-        {"id": "H11", "name": "No unbounded loops", "description": "Every loop must have a deadline"},
-        {"id": "H12", "name": "Windows automation via .cmd", "description": "Multi-step automation uses .cmd files"},
-        {"id": "H13", "name": "Epistemic boundaries required", "description": "Proposals must state assumptions"},
-        {"id": "H14", "name": "Documentation freshness", "description": "Docs updated in same commit as code"},
+        {
+            "id": "H6",
+            "name": "No silent scope expansion",
+            "description": "If task grows, stop and re-propose",
+        },
+        {
+            "id": "H7",
+            "name": "No undocumented state changes",
+            "description": "Every change must be traceable",
+        },
+        {
+            "id": "H8",
+            "name": "Documentation is implementation",
+            "description": "Architecture changes MUST update docs",
+        },
+        {
+            "id": "H9",
+            "name": "Execution timeout required",
+            "description": "All agent commands must have timeouts",
+        },
+        {
+            "id": "H10",
+            "name": "No hardcoded versions",
+            "description": "Use importlib.metadata at runtime",
+        },
+        {
+            "id": "H11",
+            "name": "No unbounded loops",
+            "description": "Every loop must have a deadline",
+        },
+        {
+            "id": "H12",
+            "name": "Windows automation via .cmd",
+            "description": "Multi-step automation uses .cmd files",
+        },
+        {
+            "id": "H13",
+            "name": "Epistemic boundaries required",
+            "description": "Proposals must state assumptions",
+        },
+        {
+            "id": "H14",
+            "name": "Documentation freshness",
+            "description": "Docs updated in same commit as code",
+        },
     ]
 
     # Quick checks for common violations

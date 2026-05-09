@@ -390,15 +390,27 @@ def session_info(project_dir: str, as_json: bool) -> None:
     if as_json:
         click.echo(json.dumps(ctx.to_dict(), indent=2))
     else:
+        gov = "\u2713" if ctx.is_governed else "\u2717"
         click.echo(f"  Project:    {ctx.project_name}")
-        click.echo(f"  Governed:   {'\u2713' if ctx.is_governed else '\u2717'}")
-        click.echo(f"  Phase:      {ctx.phase_emoji} {ctx.phase_label} ({ctx.phase_readiness_pct}%)")
+        click.echo(f"  Governed:   {gov}")
+        phase = ctx.phase_emoji
+        label = ctx.phase_label
+        pct = ctx.phase_readiness_pct
+        click.echo(f"  Phase:      {phase} {label} ({pct}%)")
         click.echo(f"  Health:     {ctx.health_score}%")
         click.echo(f"  Compliance: {ctx.compliance_score}%")
         click.echo(f"  Profile:    {ctx.active_profile}")
-        click.echo(f"  Providers:  {ctx.reachable_providers}/{ctx.provider_count} reachable")
+        rp = ctx.reachable_providers
+        pc = ctx.provider_count
+        click.echo(f"  Providers:  {rp}/{pc} reachable")
         click.echo(f"  Session:    {ctx.session_id}")
         if ctx.needs_import:
-            click.echo("\n  \u26a0 Not a specsmith project. Run 'specsmith import' to add governance.")
+            click.echo(
+                "\n  \u26a0 Not a specsmith project. Run 'specsmith import' to add governance."
+            )
         if ctx.needs_migration:
-            click.echo(f"\n  \u26a0 Spec version mismatch ({ctx.spec_version} vs {ctx.installed_version}). Run 'specsmith migrate-project'.")
+            sv = ctx.spec_version
+            iv = ctx.installed_version
+            click.echo(
+                f"\n  \u26a0 Spec version mismatch ({sv} vs {iv}). Run 'specsmith migrate-project'."
+            )

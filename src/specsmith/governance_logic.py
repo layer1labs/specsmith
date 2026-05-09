@@ -490,6 +490,7 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/session":
                     try:
                         from specsmith.session_init import init_session
+
                         ctx = init_session(project_dir)
                         self._json_ok(ctx.to_dict())
                     except Exception as exc:  # noqa: BLE001
@@ -499,6 +500,7 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/compliance/summary":
                     try:
                         from specsmith.compliance import get_compliance_summary
+
                         s = get_compliance_summary(project_dir)
                         self._json_ok(s.to_dict())
                     except Exception as exc:  # noqa: BLE001
@@ -506,13 +508,17 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/compliance/gaps":
                     try:
                         from specsmith.compliance import get_compliance_summary
+
                         s = get_compliance_summary(project_dir)
-                        self._json_ok({"uncovered": s.uncovered_requirements, "orphaned": s.orphaned_tests})
+                        self._json_ok(
+                            {"uncovered": s.uncovered_requirements, "orphaned": s.orphaned_tests}
+                        )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
                 elif self.path == "/api/compliance/trace":
                     try:
                         from specsmith.compliance import get_compliance_summary
+
                         s = get_compliance_summary(project_dir)
                         self._json_ok({"trace_matrix": s.trace_matrix})
                     except Exception as exc:  # noqa: BLE001
@@ -522,23 +528,43 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/governance/rules":
                     try:
                         from specsmith.compliance import get_governance_rules_status
+
                         self._json_ok({"rules": get_governance_rules_status(project_dir)})
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
                 elif self.path == "/api/governance/phase":
                     try:
                         from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
+
                         root = Path(project_dir).resolve()
                         key = read_phase(root)
                         phase = PHASE_MAP[key]
-                        self._json_ok({"phase": key, "label": phase.label, "emoji": phase.emoji, "readiness_pct": phase_progress_pct(phase, root)})
+                        self._json_ok(
+                            {
+                                "phase": key,
+                                "label": phase.label,
+                                "emoji": phase.emoji,
+                                "readiness_pct": phase_progress_pct(phase, root),
+                            }
+                        )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
                 elif self.path == "/api/governance/audit":
                     try:
                         from specsmith.auditor import run_audit
+
                         report = run_audit(Path(project_dir).resolve())
-                        self._json_ok({"healthy": report.healthy, "passed": report.passed, "failed": report.failed, "results": [{"passed": r.passed, "message": r.message} for r in report.results]})
+                        self._json_ok(
+                            {
+                                "healthy": report.healthy,
+                                "passed": report.passed,
+                                "failed": report.failed,
+                                "results": [
+                                    {"passed": r.passed, "message": r.message}
+                                    for r in report.results
+                                ],
+                            }
+                        )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 
@@ -546,6 +572,7 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/providers":
                     try:
                         from specsmith.agent.provider_registry import ProviderRegistry
+
                         reg = ProviderRegistry.load()
                         self._json_ok({"providers": [p.to_public_dict() for p in reg.providers]})
                     except Exception as exc:  # noqa: BLE001
@@ -555,22 +582,35 @@ class GovernanceHTTPServer:
                 elif self.path == "/api/profiles":
                     try:
                         from specsmith.agent.execution_profiles import ExecutionProfileStore
+
                         store = ExecutionProfileStore.load()
-                        self._json_ok({"profiles": [p.to_dict() for p in store.profiles], "default": store.default().id})
+                        self._json_ok(
+                            {
+                                "profiles": [p.to_dict() for p in store.profiles],
+                                "default": store.default().id,
+                            }
+                        )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 
                 # ── Model Scores ───────────────────────────────────────
                 elif self.path.startswith("/api/models/scores"):
                     try:
-                        from specsmith.agent.model_intelligence import BASELINE_SCORES, rank_models_for_role
                         import urllib.parse as _up
+
+                        from specsmith.agent.model_intelligence import (
+                            BASELINE_SCORES,
+                            rank_models_for_role,
+                        )
+
                         qs = _up.urlparse(self.path).query
                         params = _up.parse_qs(qs)
                         role = params.get("role", ["coder"])[0]
                         models = list(BASELINE_SCORES.keys())
                         ranked = rank_models_for_role(role, models)
-                        self._json_ok({"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]})
+                        self._json_ok(
+                            {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]}
+                        )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 

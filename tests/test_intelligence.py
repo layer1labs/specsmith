@@ -4,11 +4,7 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Provider Registry (REQ-220)
@@ -20,7 +16,9 @@ class TestProviderRegistry:
         from specsmith.agent.provider_registry import ProviderEntry, ProviderError
 
         # Valid entry
-        e = ProviderEntry(id="test", name="Test", provider_type="byoe", base_url="http://localhost:8000/v1")
+        e = ProviderEntry(
+            id="test", name="Test", provider_type="byoe", base_url="http://localhost:8000/v1"
+        )
         e.validate()  # should not raise
 
         # Invalid: empty id
@@ -63,7 +61,14 @@ class TestProviderRegistry:
 
         path = tmp_path / "providers.json"
         reg = ProviderRegistry(path=path)
-        reg.add(ProviderEntry(id="vllm-1", name="vLLM Home", provider_type="vllm", base_url="http://10.0.0.1:8000/v1"))
+        reg.add(
+            ProviderEntry(
+                id="vllm-1",
+                name="vLLM Home",
+                provider_type="vllm",
+                base_url="http://10.0.0.1:8000/v1",
+            )
+        )
 
         # Reload
         reg2 = ProviderRegistry(path=path)
@@ -73,7 +78,13 @@ class TestProviderRegistry:
     def test_to_public_dict_redacts_key(self):
         from specsmith.agent.provider_registry import ProviderEntry
 
-        e = ProviderEntry(id="test", name="Test", provider_type="cloud", api_key="sk-secret123", base_url="http://api.example.com")
+        e = ProviderEntry(
+            id="test",
+            name="Test",
+            provider_type="cloud",
+            api_key="sk-secret123",
+            base_url="http://api.example.com",
+        )
         d = e.to_public_dict()
         assert d["api_key"] == "***"
         assert d["api_key_set"] is True
@@ -81,7 +92,9 @@ class TestProviderRegistry:
     def test_cloud_provider_auto_fills_url(self):
         from specsmith.agent.provider_registry import ProviderEntry
 
-        e = ProviderEntry(id="my-openai", name="OpenAI", provider_type="cloud", provider_id="openai")
+        e = ProviderEntry(
+            id="my-openai", name="OpenAI", provider_type="cloud", provider_id="openai"
+        )
         e.validate()
         assert "api.openai.com" in e.base_url
 
@@ -257,8 +270,20 @@ class TestDatasources:
         from specsmith.datasources.ppubs import PPUBSClient
         from specsmith.datasources.ptab import PTABClient
 
-        for cls in [PatentsViewClient, PPUBSClient, ODPClient, PFWClient, CitationsClient, FPDClient, PTABClient]:
-            client = cls() if cls in (PPUBSClient, ODPClient, CitationsClient, FPDClient, PTABClient) else cls("")
+        for cls in [
+            PatentsViewClient,
+            PPUBSClient,
+            ODPClient,
+            PFWClient,
+            CitationsClient,
+            FPDClient,
+            PTABClient,
+        ]:
+            client = (
+                cls()
+                if cls in (PPUBSClient, ODPClient, CitationsClient, FPDClient, PTABClient)
+                else cls("")
+            )
             assert hasattr(client, "search")
             assert hasattr(client, "get")
             assert hasattr(client, "test_connection")
