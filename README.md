@@ -6,6 +6,7 @@
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 **Applied Epistemic Engineering toolkit for AI-assisted development.**
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
@@ -14,17 +15,19 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**0.10.1 — Governance REST API, machine-state sync, and least-privilege permissions.**
-Specsmith now serves as the governance backend for Kairos (the epistemically-governed
-Rust terminal) via `specsmith governance-serve`, keeps `.specsmith/` JSON in sync
-with `docs/` Markdown via `specsmith sync`, and gates every agent tool call via
-`specsmith agent permissions-check`. Multi-agent profiles, BYOE endpoints, and the
-AEE phase lifecycle are all fully wired.
+**0.11.0 — EU AI Act / NIST AI RMF compliance, context window management, and governance tools panel.**
+Specsmith now ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
+and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
+every AI-generated output is disclosed, context windows are GPU-aware and protected against
+overflow, and a dedicated governance tools panel in Kairos surfaces compliance settings
+per-session and per-project.
 
 ```bash
 specsmith governance-serve --port 7700     # Kairos governance REST API
 specsmith sync                              # sync .specsmith/ from docs/ markdown
-specsmith agent permissions-check git_push # check tool permission (REG-012)
+specsmith agent permissions-check git_push # check tool permission (REQ-012)
+specsmith ollama gpu                        # detect GPU VRAM, recommend context size
+specsmith export                            # generate full compliance report
 ```
 
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
@@ -166,6 +169,223 @@ agent:
     allow: [read_file, write_file, run_shell, git_status]
     deny:  [git_push, git_create_pr]
 ```
+
+---
+
+## AI Compliance & Governance
+
+specsmith is designed from the ground up for **auditable, explainable, and human-overseen AI**.
+It implements concrete compliance mechanisms mapped to the two major regulatory frameworks
+that govern AI systems in production today.
+
+### Standards Coverage
+
+**EU AI Act (Regulation 2024/1689)** — The world's first comprehensive legal framework for AI,
+enforced across the European Union. High-risk AI systems must provide transparency, auditability,
+human oversight, and robustness. specsmith implements:
+
+| EU AI Act Requirement | specsmith Mechanism |
+|---|---|
+| Art. 9 — Risk Management System | AEE verification loop with confidence scoring and equilibrium checks |
+| Art. 12 — Logging & Record-Keeping | `TraceVault` SHA-256 chained ledger (tamper-evident, append-only) |
+| Art. 13 — Transparency & Explainability | `ai_disclosure` block in every preflight response; `/why` in Nexus REPL |
+| Art. 14 — Human Oversight | Human escalation threshold (`--escalate-threshold`); kill-switch CLI |
+| Art. 15 — Accuracy & Robustness | Bounded retry (max 3×), confidence gates, hard context ceiling (REQ-247) |
+| Art. 53 — GPAI Model Transparency | Provider + model name emitted in every `ai_disclosure` block |
+
+**NIST AI Risk Management Framework 1.0 (AI RMF)** — The US standard for managing AI risk
+across the AI lifecycle. specsmith addresses all four core functions:
+
+| NIST AI RMF Function | specsmith Mechanism |
+|---|---|
+| **GOVERN** — Policies & accountability | Governance rules (H1–H13), permissions profile, `scaffold.yml` policy |
+| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
+| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
+| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
+
+### How Each Compliance Mechanism Works
+
+#### 1. Tamper-Evident Audit Log — `TraceVault` (REQ-206)
+
+Every agent action, decision, milestone, and audit gate is recorded as a JSONL entry in
+`.specsmith/trace.jsonl`. Each entry contains a SHA-256 hash of its own content plus the
+hash of the previous entry, forming a cryptographic chain:
+
+```jsonl
+{"seq":1, "type":"DECISION", "description":"...", "hash":"a3f9...", "prev":"genesis"}
+{"seq":2, "type":"MILESTONE", "description":"...", "hash":"7c2b...", "prev":"a3f9..."}
+```
+
+Any modification to a past entry breaks every subsequent hash. `specsmith trace verify`
+detects and reports the first corrupted entry. The file is append-only — overwrites are
+blocked by `safe_write`. This satisfies **EU AI Act Art. 12** (logging and record-keeping)
+and **NIST AI RMF GOVERN** (accountability trail).
+
+#### 2. AI Disclosure — Every Response (REQ-207)
+
+Every preflight response includes a mandatory `ai_disclosure` block:
+
+```json
+{
+  "ai_disclosure": {
+    "governed_by": "specsmith",
+    "governance_gated": true,
+    "provider": "ollama",
+    "model": "qwen2.5:14b",
+    "spec_version": "0.11.0"
+  }
+}
+```
+
+This ensures every AI-generated output is traceable to its source model and version,
+meeting **EU AI Act Art. 13** (transparency) and **Art. 53** (GPAI transparency).
+It is impossible to suppress — the field is injected at the governance layer before
+any response is returned to the client.
+
+#### 3. Human Escalation — Configurable Threshold (REQ-209)
+
+When an action's confidence is below the escalation threshold, specsmith sets
+`escalation_required: true` and includes an `escalation_reason` in the preflight payload.
+Kairos surfaces this as a confirmation dialog before execution proceeds.
+
+```bash
+specsmith preflight "deploy to production" --escalate-threshold 0.85 --json
+# → escalation_required: true, escalation_reason: "confidence 0.71 < threshold 0.85"
+```
+
+This implements **EU AI Act Art. 14** (human oversight) and **NIST AI RMF MANAGE**.
+
+#### 4. Kill-Switch — Immediate Session Termination (REQ-210)
+
+A `kill-session` CLI command and keyboard shortcut (surfaced in Kairos) immediately
+terminates all active agent sessions and records a timestamped kill event in `LEDGER.md`:
+
+```bash
+specsmith kill-session                   # terminate all sessions, log kill event
+specsmith kill-session --session abc123  # terminate a specific session
+```
+
+This satisfies **EU AI Act Art. 14 §4** (ability to intervene and stop the AI system)
+and is required for certification of high-risk AI systems.
+
+#### 5. Append-Only Safe Write — `safe_write` (REQ-213)
+
+All governance file writes go through `safe_write`, which:
+- **Appends** to `LEDGER.md` and `.specsmith/ledger.jsonl` — never truncates
+- **Backs up** any file before overwriting it (timestamped `.bak` copy)
+- **Prevents** accidental destruction of audit history
+
+This satisfies **EU AI Act Art. 12** (records must be kept for the lifetime of the system)
+and provides recovery capability per **NIST AI RMF MANAGE**.
+
+#### 6. Least-Privilege Permissions (REQ-217, REQ-012)
+
+Every agent tool call is gated through a permission profile. Tools outside the active
+profile are denied with exit code 3 and a ledger entry:
+
+```bash
+specsmith agent permissions-check git_push   # exit 0 = allowed, exit 3 = denied
+specsmith agent permissions                  # show active profile
+```
+
+Four built-in presets (`read_only`, `standard`, `extended`, `admin`) plus full
+custom allow/deny lists in `.specsmith/config.yml`. This implements **NIST AI RMF GOVERN**
+(policy enforcement) and principle of least privilege per standard security practice.
+
+#### 7. Policy Guardrails — `is_safe_command` (REQ-220)
+
+Before any shell command is executed, `agent.safety.is_safe_command()` classifies it
+against a deny list of destructive patterns (`rm -rf`, `git push origin main`,
+`kubectl apply`, `cat .env`, etc.). Denied commands are blocked and logged.
+This implements **NIST AI RMF MANAGE** (risk treatment at the action level).
+
+#### 8. Compliance Export Report (REQ-208, REQ-215)
+
+`specsmith export` generates a full compliance report containing:
+- **AI System Inventory** — all providers, models, and versions used
+- **Risk Classification** — AEE phase, confidence scores, open work items
+- **Human Oversight Controls** — active permission profile, escalation settings, kill-switch state
+- **Audit Trail Summary** — TraceVault chain length, last verification, any tampering
+
+```bash
+specsmith export --format markdown > compliance-report.md
+specsmith export --format json > compliance-report.json
+```
+
+This report is suitable for submission to regulators, internal audit teams, or
+SOC-2 / ISO-42001 reviewers.
+
+### Compliance per Session and per Project
+
+Compliance settings are layered:
+
+1. **Global defaults** — `~/.specsmith/config.yml` (user-level defaults)
+2. **Per-project policy** — `.specsmith/config.yml` (committed to the repo)
+3. **Per-session overrides** — Kairos Governance panel or CLI flags
+
+The Kairos **Governance Tools Panel** (Settings → Governance) exposes all compliance
+controls in a live UI: escalation threshold, permission profile, kill-switch, audit log
+viewer, and context window settings. Changes take effect immediately for the active
+session and can optionally be written back to the per-project `.specsmith/config.yml`.
+
+---
+
+## Context Window Management
+
+specsmith enforces safe, efficient use of LLM context windows — especially critical
+when running local models via Ollama where the context limit directly affects GPU VRAM.
+
+### GPU-Aware Context Sizing (REQ-244)
+
+```bash
+specsmith ollama gpu                    # detect GPU VRAM (NVIDIA + AMD supported)
+specsmith ollama available              # show models within your VRAM budget
+```
+
+VRAM tiers and recommended context sizes:
+
+| VRAM | Recommended Context |
+|---|---|
+| < 6 GB (CPU or low-end GPU) | 4,096 tokens |
+| 6–11 GB | 8,192 tokens |
+| 12–19 GB | 16,384 tokens |
+| 20 GB+ | 32,768 tokens |
+
+Override via `SPECSMITH_OLLAMA_CONTEXT_LENGTH` or `ollama.context_length` in `.specsmith/config.yml`.
+
+### Live Context Fill Indicator (REQ-245)
+
+The context fill tracker emits real-time JSONL events consumed by Kairos:
+
+```jsonl
+{"type": "context_fill", "used": 27500, "limit": 32768, "pct": 83.9}
+```
+
+Kairos displays a compact fill bar in the agent footer. When fill reaches the
+compression threshold (default 80%), specsmith signals that context summarization
+should run before the next turn.
+
+### Auto Context Compression (REQ-246)
+
+When fill reaches the compression threshold, specsmith automatically triggers
+conversation summarization — the current context is condensed to a compact summary
+that preserves key decisions and facts while freeing window space. This happens
+transparently before the next agent turn.
+
+Configure in `.specsmith/config.yml`:
+
+```yaml
+context:
+  compression_threshold_pct: 80   # trigger summarization at 80% fill
+  auto_compress: true             # enable automatic compression
+```
+
+### Hard Context Ceiling — Never 100% Full (REQ-247)
+
+A hard reservation of **15% of the context window** (minimum 2,048 tokens) is always
+held back for the governance layer. Attempts to fill beyond the effective ceiling raise
+`ContextFullError` — making it impossible to reach a state where even a compression
+request cannot be processed. This is a safety invariant, not a configuration option.
 
 ---
 
