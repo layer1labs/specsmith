@@ -14,7 +14,6 @@ to ``unit``.
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
@@ -113,7 +112,8 @@ class TestReq207AiDisclosure:
         payload = json.loads(result.output)
         assert "ai_disclosure" in payload, "ai_disclosure must be present"
         disclosure = payload["ai_disclosure"]
-        for required_key in ("governed_by", "governance_gated", "provider", "model", "spec_version"):
+        required_keys = ("governed_by", "governance_gated", "provider", "model", "spec_version")
+        for required_key in required_keys:
             assert required_key in disclosure, f"ai_disclosure missing key: {required_key}"
         assert disclosure["governed_by"] == "specsmith"
         assert disclosure["governance_gated"] is True
@@ -481,7 +481,7 @@ class TestReq247HardCeiling:
 
     def test_context_full_error_at_ceiling(self) -> None:
         """used=3600 with limit=4096 is ~87.9% — raises ContextFullError (REQ-247)."""
-        from specsmith.context_window import ContextFullError, ContextFillTracker
+        from specsmith.context_window import ContextFillTracker, ContextFullError
 
         tracker = ContextFillTracker(limit=4096)
         with pytest.raises(ContextFullError) as exc_info:
@@ -494,7 +494,7 @@ class TestReq247HardCeiling:
 
     def test_min_free_tokens_tightens_ceiling(self) -> None:
         """With a small context window, min_free_tokens tightens the ceiling below 85% (REQ-247)."""
-        from specsmith.context_window import ContextFullError, ContextFillTracker, MIN_FREE_TOKENS
+        from specsmith.context_window import ContextFillTracker, ContextFullError
 
         # limit=4096, min_free_tokens=2048 → effective ceiling = 50% not 85%
         tracker = ContextFillTracker(limit=4096, min_free_tokens=2048)
