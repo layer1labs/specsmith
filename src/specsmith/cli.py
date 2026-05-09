@@ -7917,7 +7917,7 @@ def rules_list_cmd(project_dir: str, as_json: bool) -> None:
         project / ".specsmith" / "rules",
         project / "docs" / "governance",
     ]
-    workspace_dirs = [project / ".warp" / "rules"]
+    workspace_dirs = [project / ".kairos" / "rules", project / ".warp" / "rules"]
     personal_dirs = [home / "rules"]
     for d in project_dirs:
         if d.is_dir():

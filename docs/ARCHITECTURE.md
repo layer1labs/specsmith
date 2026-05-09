@@ -330,7 +330,45 @@ Phase 3 goals:
 - ledger browser
 - instinct registry
 
-## 14. Architecture Invariants
+## 14. Context Window Management
+Source: `src/specsmith/context_window.py`
+
+Specsmith implements GPU-aware context window management to prevent context overflow and enable auto-compression (REQ-244–247).
+
+**GPU VRAM detection** (`detect_gpu_vram() -> float`): tries `nvidia-smi` for NVIDIA, then `rocm-smi` for AMD. Returns 0.0 when neither is available — safe to call on any platform without raising.
+
+**Context window sizing** (`suggest_context_window(vram_gb) -> int`): maps VRAM to an Ollama `num_ctx` recommendation:
+- ≥ 20 GB → 32 768
+- ≥ 12 GB → 16 384
+- ≥ 6 GB → 8 192
+- < 6 GB / CPU-only → 4 096
+
+**Context fill tracking** (`ContextFillTracker`): accumulates token usage per turn and emits structured JSONL events:
+```json
+{"type": "context_fill", "used": 3200, "limit": 4096, "pct": 78.12}
+```
+When `pct >= effective_ceiling_pct` (default 85 %, tightened by `MIN_FREE_TOKENS=2048`), `record()` raises `ContextFullError` — the caller MUST trigger emergency compression before accepting further input.
+
+**Architecture invariant (I8):** The context window MUST NEVER reach 100 % fill. A minimum of 15 % or 2048 tokens must always remain free.
+
+## 15. Compliance Mechanical Tests
+Source: `tests/test_compliance.py`
+
+`tests/test_compliance.py` provides deterministic pytest coverage for REQ-206 through REQ-220 (EU AI Act / NIST AI RMF compliance mechanisms) and REQ-244 through REQ-247 (context window management). All tests run in CI without LLM access.
+
+Coverage summary:
+- **REQ-206** — `TraceVault` SHA-256 chain: create seals → verify intact; tamper → verify fails.
+- **REQ-207** — Preflight JSON includes `ai_disclosure` with required keys.
+- **REQ-208** — `run_export()` contains "AI System Inventory", "Risk Classification", "Human Oversight Controls".
+- **REQ-209** — Preflight `--escalate-threshold` above `confidence_target` sets `escalation_required: true`.
+- **REQ-210** — `kill-session` CLI exits 0 with no active sessions and writes kill-switch ledger entry.
+- **REQ-213** — `safe_write.append_file()` preserves prior content; `safe_overwrite()` creates `.bak` before replacing.
+- **REQ-215** — `run_export()` produces all required compliance sections.
+- **REQ-217** — `agent permissions-check <tool>` exits 3 (denied) / 0 (allowed) correctly.
+- **REQ-220** — `is_safe_command()` blocks dangerous commands; allows safe ones.
+- **REQ-244–247** — `suggest_context_window`, `detect_gpu_vram`, `ContextFillTracker`, `ContextFullError`.
+
+## 16. Architecture Invariants
 
 The following invariants must hold:
 

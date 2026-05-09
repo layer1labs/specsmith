@@ -1668,3 +1668,32 @@
 - **Description:** ProjectOperations MUST be cross-platform (Windows, Linux, macOS) without platform-specific code branches at call sites.
 - **Source:** PLANNED-REQUIREMENTS.md [OPS-006]
 - **Status:** defined
+
+
+## 244. GPU-Aware Context Window Sizing
+- **ID:** REQ-244
+- **Title:** GPU-Aware Context Window Sizing
+- **Description:** Before starting an Ollama agent session, specsmith MUST detect available GPU VRAM (NVIDIA via nvidia-smi, AMD via rocm-smi) and recommend a num_ctx value. VRAM tiers: <6 GB → 4096, 6-12 GB → 8192, 12-20 GB → 16384, >=20 GB → 32768. CPU-only defaults to 4096. The function MUST never raise on any platform.
+- **Source:** Plan 0ca40db4 [CTX-001]
+- **Status:** defined
+
+## 245. Live Context Fill Indicator
+- **ID:** REQ-245
+- **Title:** Live Context Fill Indicator
+- **Description:** Every active agent conversation MUST track and emit context fill events with schema: {type: context_fill, used: int, limit: int, pct: float}. The fill percentage MUST be surfaced in the terminal UI as a compact progress bar (green 0-60%, yellow 60-80%, orange 80-90%, red >90%).
+- **Source:** Plan 0ca40db4 [CTX-002]
+- **Status:** defined
+
+## 246. Auto Context Compression at Configurable Threshold
+- **ID:** REQ-246
+- **Title:** Auto Context Compression at Configurable Threshold
+- **Description:** When context fill reaches the configurable compression threshold (default 80%, range 50-95%), specsmith MUST automatically trigger context summarization. Compression MUST emit a context_compressed event with before/after token counts. Auto-compression MUST be togglable; when off, only a warning is surfaced.
+- **Source:** Plan 0ca40db4 [CTX-003]
+- **Status:** defined
+
+## 247. Hard Context Reservation — Never 100% Fill
+- **ID:** REQ-247
+- **Title:** Hard Context Reservation — Never 100% Fill
+- **Description:** The context window MUST NEVER be allowed to reach 100% fill. A hard reservation of 15% (or MIN_FREE_TOKENS=2048, whichever is more restrictive) MUST remain free. When fill reaches the hard ceiling (default 85%), ContextFullError MUST be raised and emergency compression triggered regardless of the auto-compress toggle.
+- **Source:** Plan 0ca40db4 [CTX-004]
+- **Status:** defined

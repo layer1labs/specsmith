@@ -69,7 +69,8 @@ PROTECTED_PATHS = frozenset(
         ".github",
         ".vscode",
         ".agents",
-        ".warp",
+        ".kairos",
+        ".warp",  # legacy — kept for backward compat with projects scaffolded pre-0.5.0
         ".editorconfig",
         ".gitignore",
         ".gitattributes",

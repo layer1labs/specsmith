@@ -2383,3 +2383,59 @@
 - **Input:** {}
 - **Expected Behavior:** {}
 - **Confidence:** 1.0
+
+
+## TEST-221. GPU-Aware Context Window — VRAM Tiers
+- **ID:** TEST-221
+- **Title:** GPU-Aware Context Window — VRAM Tiers
+- **Description:** suggest_context_window(5.0) returns 4096; suggest_context_window(8.0) returns 8192; suggest_context_window(14.0) returns 16384; suggest_context_window(24.0) returns 32768.
+- **Requirement ID:** REQ-244
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** vram_gb values [5.0, 8.0, 14.0, 24.0]
+- **Expected Behavior:** [4096, 8192, 16384, 32768]
+- **Confidence:** 1.0
+
+## TEST-222. GPU VRAM Detection Never Raises
+- **ID:** TEST-222
+- **Title:** GPU VRAM Detection Never Raises
+- **Description:** detect_gpu_vram() returns a float >= 0 on any platform regardless of whether nvidia-smi or rocm-smi is present. Must not raise any exception.
+- **Requirement ID:** REQ-244
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** {}
+- **Expected Behavior:** float >= 0.0, no exception raised
+- **Confidence:** 1.0
+
+## TEST-223. ContextFillTracker Records Fill Events
+- **ID:** TEST-223
+- **Title:** ContextFillTracker Records Fill Events
+- **Description:** ContextFillTracker(limit=4096).record(used=1000) returns a ContextFillEvent with type == "context_fill", used == 1000, limit == 4096, pct approximately 24.4.
+- **Requirement ID:** REQ-245
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** limit=4096, used=1000
+- **Expected Behavior:** event.type=="context_fill", event.pct approx 24.4
+- **Confidence:** 1.0
+
+## TEST-224. ContextFillTracker Compression Threshold Warning
+- **ID:** TEST-224
+- **Title:** ContextFillTracker Compression Threshold Warning
+- **Description:** ContextFillTracker(limit=4096).record(used=3400) returns a fill event at ~83% fill without raising (below default 85% hard ceiling). A fill event at pct >= compression threshold (80%) is returned for caller dispatch.
+- **Requirement ID:** REQ-246
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** limit=4096, used=3400
+- **Expected Behavior:** event returned, pct >= 80, no exception for used=3400
+- **Confidence:** 1.0
+
+## TEST-225. ContextFullError at Hard Ceiling
+- **ID:** TEST-225
+- **Title:** ContextFullError at Hard Ceiling
+- **Description:** ContextFillTracker(limit=4096).record(used=3600) raises ContextFullError when fill >= 85% (hard ceiling). The error carries used, limit, and pct attributes. The caller MUST trigger emergency compression.
+- **Requirement ID:** REQ-247
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** limit=4096, used=3600
+- **Expected Behavior:** raises ContextFullError with pct >= 85
+- **Confidence:** 1.0
