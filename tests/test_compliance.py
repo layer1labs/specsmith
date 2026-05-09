@@ -152,9 +152,7 @@ class TestReq208ComplianceExport:
 class TestReq209EscalationThreshold:
     """TEST-209 — preflight --escalate-threshold sets escalation_required."""
 
-    def test_escalation_required_when_threshold_above_confidence(
-        self, tmp_path: Path
-    ) -> None:
+    def test_escalation_required_when_threshold_above_confidence(self, tmp_path: Path) -> None:
         """When escalation threshold > confidence_target, escalation_required is True (REQ-209)."""
         from click.testing import CliRunner
 

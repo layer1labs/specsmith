@@ -40,8 +40,8 @@ MIN_FREE_TOKENS: int = 2048
 _VRAM_TIERS: list[tuple[float, int]] = [
     (20.0, 32768),
     (12.0, 16384),
-    (6.0,   8192),
-    (0.0,   4096),   # CPU-only or very low VRAM
+    (6.0, 8192),
+    (0.0, 4096),  # CPU-only or very low VRAM
 ]
 
 
@@ -111,7 +111,7 @@ def _detect_amd_vram() -> float:
                 total_bytes += value
             except ValueError:
                 continue
-    return total_bytes / (1024 ** 3) if total_bytes else 0.0
+    return total_bytes / (1024**3) if total_bytes else 0.0
 
 
 def detect_gpu_vram() -> float:
