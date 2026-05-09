@@ -12,7 +12,7 @@ All methods use stdlib urllib — no external dependencies.
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any
+from typing import Any, cast
 
 from specsmith.datasources.base import DataSourceError, http_get
 
@@ -80,7 +80,11 @@ class PatentsViewClient:
     def test_connection(self) -> dict[str, Any]:
         """Check PatentsView API availability."""
         try:
-            url = f"{BASE_URL}/patent/?q={{\"_gte\":{{\"patent_date\":\"2024-01-01\"}}}}&f=[\"patent_id\"]&o={{\"per_page\":1}}"
+            url = (
+                f"{BASE_URL}/patent/"
+                '?q={"_gte":{"patent_date":"2024-01-01"}}'
+                '&f=["patent_id"]&o={"per_page":1}'
+            )
             data = http_get(url, headers=self._headers(), timeout=10)
             count = data.get("total_patent_count", 0)
             return {
@@ -128,7 +132,10 @@ class PatentsViewClient:
 
         import json
 
-        url = f"{BASE_URL}/patent/?q={urllib.parse.quote(json.dumps(params['q']))}&f={urllib.parse.quote(json.dumps(params['f']))}&o={urllib.parse.quote(json.dumps(params['o']))}"
+        q_enc = urllib.parse.quote(json.dumps(params["q"]))
+        f_enc = urllib.parse.quote(json.dumps(params["f"]))
+        o_enc = urllib.parse.quote(json.dumps(params["o"]))
+        url = f"{BASE_URL}/patent/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         try:
             data = http_get(url, headers=self._headers())
@@ -150,13 +157,17 @@ class PatentsViewClient:
 
         q = {"patent_id": patent_id}
         f = COMPLETE_FIELDS
-        url = f"{BASE_URL}/patent/?q={urllib.parse.quote(json.dumps(q))}&f={urllib.parse.quote(json.dumps(f))}&o={urllib.parse.quote(json.dumps({'per_page': 1}))}"
+        o = {"per_page": 1}
+        q_enc = urllib.parse.quote(json.dumps(q))
+        f_enc = urllib.parse.quote(json.dumps(f))
+        o_enc = urllib.parse.quote(json.dumps(o))
+        url = f"{BASE_URL}/patent/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         data = http_get(url, headers=self._headers())
         patents = data.get("patents", [])
         if not patents:
             raise DataSourceError(f"Patent {patent_id} not found")
-        return patents[0]
+        return cast(dict[str, Any], patents[0])
 
     def get_claims(self, patent_id: str) -> dict[str, Any]:
         """Get all claims text for a patent."""
@@ -164,7 +175,11 @@ class PatentsViewClient:
 
         q = {"patent_id": patent_id}
         f = ["patent_id", "claims.claim_text", "claims.claim_sequence"]
-        url = f"{BASE_URL}/patent/?q={urllib.parse.quote(json.dumps(q))}&f={urllib.parse.quote(json.dumps(f))}&o={urllib.parse.quote(json.dumps({'per_page': 1}))}"
+        o = {"per_page": 1}
+        q_enc = urllib.parse.quote(json.dumps(q))
+        f_enc = urllib.parse.quote(json.dumps(f))
+        o_enc = urllib.parse.quote(json.dumps(o))
+        url = f"{BASE_URL}/patent/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         data = http_get(url, headers=self._headers())
         patents = data.get("patents", [])
@@ -176,7 +191,10 @@ class PatentsViewClient:
         }
 
     def search_inventors(
-        self, name: str, *, limit: int = 100,
+        self,
+        name: str,
+        *,
+        limit: int = 100,
     ) -> dict[str, Any]:
         """Search for disambiguated inventors by name."""
         import json
@@ -189,7 +207,10 @@ class PatentsViewClient:
             "inventor_total_num_patents",
         ]
         o = {"per_page": min(limit, 1000)}
-        url = f"{BASE_URL}/inventor/?q={urllib.parse.quote(json.dumps(q))}&f={urllib.parse.quote(json.dumps(f))}&o={urllib.parse.quote(json.dumps(o))}"
+        q_enc = urllib.parse.quote(json.dumps(q))
+        f_enc = urllib.parse.quote(json.dumps(f))
+        o_enc = urllib.parse.quote(json.dumps(o))
+        url = f"{BASE_URL}/inventor/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         data = http_get(url, headers=self._headers())
         return {
@@ -199,7 +220,10 @@ class PatentsViewClient:
         }
 
     def search_assignees(
-        self, name: str, *, limit: int = 100,
+        self,
+        name: str,
+        *,
+        limit: int = 100,
     ) -> dict[str, Any]:
         """Search for disambiguated assignees (companies) by name."""
         import json
@@ -211,7 +235,10 @@ class PatentsViewClient:
             "assignee_total_num_patents",
         ]
         o = {"per_page": min(limit, 1000)}
-        url = f"{BASE_URL}/assignee/?q={urllib.parse.quote(json.dumps(q))}&f={urllib.parse.quote(json.dumps(f))}&o={urllib.parse.quote(json.dumps(o))}"
+        q_enc = urllib.parse.quote(json.dumps(q))
+        f_enc = urllib.parse.quote(json.dumps(f))
+        o_enc = urllib.parse.quote(json.dumps(o))
+        url = f"{BASE_URL}/assignee/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         data = http_get(url, headers=self._headers())
         return {
@@ -221,7 +248,10 @@ class PatentsViewClient:
         }
 
     def search_by_cpc(
-        self, cpc_code: str, *, limit: int = 100,
+        self,
+        cpc_code: str,
+        *,
+        limit: int = 100,
     ) -> dict[str, Any]:
         """Search patents by CPC classification code."""
         import json
@@ -229,7 +259,10 @@ class PatentsViewClient:
         q = {"_begins": {"cpc_group_id": cpc_code}}
         f = BALANCED_FIELDS
         o = {"per_page": min(limit, 1000)}
-        url = f"{BASE_URL}/patent/?q={urllib.parse.quote(json.dumps(q))}&f={urllib.parse.quote(json.dumps(f))}&o={urllib.parse.quote(json.dumps(o))}"
+        q_enc = urllib.parse.quote(json.dumps(q))
+        f_enc = urllib.parse.quote(json.dumps(f))
+        o_enc = urllib.parse.quote(json.dumps(o))
+        url = f"{BASE_URL}/patent/?q={q_enc}&f={f_enc}&o={o_enc}"
 
         data = http_get(url, headers=self._headers())
         return {

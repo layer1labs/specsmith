@@ -13,10 +13,8 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any
 
 import click
-
 
 # ---------------------------------------------------------------------------
 # specsmith providers
@@ -52,14 +50,24 @@ def providers_list(as_json: bool, enabled_only: bool) -> None:
 @providers_group.command("add")
 @click.argument("provider_id")
 @click.option("--name", default="", help="Display name.")
-@click.option("--type", "provider_type", default="byoe", help="Provider type (cloud/ollama/vllm/byoe/huggingface).")
+@click.option(
+    "--type",
+    "provider_type",
+    default="byoe",
+    help="Provider type (cloud/ollama/vllm/byoe/huggingface).",
+)
 @click.option("--cloud-id", default="", help="Cloud provider ID (openai/anthropic/etc).")
 @click.option("--url", "base_url", default="", help="Base URL.")
 @click.option("--key", "api_key", default="", help="API key.")
 @click.option("--tag", "tags", multiple=True, help="Tags (repeatable).")
 def providers_add(
-    provider_id: str, name: str, provider_type: str, cloud_id: str,
-    base_url: str, api_key: str, tags: tuple[str, ...],
+    provider_id: str,
+    name: str,
+    provider_type: str,
+    cloud_id: str,
+    base_url: str,
+    api_key: str,
+    tags: tuple[str, ...],
 ) -> None:
     """Register a new AI provider."""
     from specsmith.agent.provider_registry import ProviderEntry, ProviderRegistry
@@ -141,7 +149,10 @@ def profiles_list(as_json: bool) -> None:
             default = " (default)" if p.is_default else ""
             builtin = " [built-in]" if p.is_builtin else ""
             types = ", ".join(p.allowed_provider_types) if p.allowed_provider_types else "all"
-            click.echo(f"  {'→' if p.is_default else ' '} {p.id:<15} {p.name:<20} types={types}{builtin}{default}")
+            click.echo(
+                f"  {'→' if p.is_default else ' '} {p.id:<15} {p.name:<20}"
+                f" types={types}{builtin}{default}"
+            )
 
 
 @profiles_group.command("set-default")
@@ -172,6 +183,7 @@ def datasources_group() -> None:
 @datasources_group.command("list")
 def datasources_list() -> None:
     """List all available data sources."""
+    from specsmith.datasources.base import DataSource
     from specsmith.datasources.citations import CitationsClient
     from specsmith.datasources.fpd import FPDClient
     from specsmith.datasources.odp import ODPClient
@@ -180,7 +192,15 @@ def datasources_list() -> None:
     from specsmith.datasources.ppubs import PPUBSClient
     from specsmith.datasources.ptab import PTABClient
 
-    sources = [PatentsViewClient(), PPUBSClient(), ODPClient(), PFWClient(), CitationsClient(), FPDClient(), PTABClient()]
+    sources: list[DataSource] = [
+        PatentsViewClient(),
+        PPUBSClient(),
+        ODPClient(),
+        PFWClient(),
+        CitationsClient(),
+        FPDClient(),
+        PTABClient(),
+    ]
     for s in sources:
         click.echo(f"  {s.source_id:<15} {s.name}")
 
@@ -189,6 +209,7 @@ def datasources_list() -> None:
 @click.argument("source_id", default="all")
 def datasources_test(source_id: str) -> None:
     """Test connectivity to data sources."""
+    from specsmith.datasources.base import DataSource
     from specsmith.datasources.citations import CitationsClient
     from specsmith.datasources.fpd import FPDClient
     from specsmith.datasources.odp import ODPClient
@@ -197,7 +218,7 @@ def datasources_test(source_id: str) -> None:
     from specsmith.datasources.ppubs import PPUBSClient
     from specsmith.datasources.ptab import PTABClient
 
-    all_sources = {
+    all_sources: dict[str, DataSource] = {
         "patentsview": PatentsViewClient(),
         "ppubs": PPUBSClient(),
         "odp": ODPClient(),
@@ -252,7 +273,7 @@ def models_scores(role: str, as_json: bool) -> None:
 @click.option("--provider-type", default="", help="Filter by provider type.")
 def models_rank(role: str, provider_type: str) -> None:
     """Rank available models for a specific role."""
-    from specsmith.agent.model_intelligence import ModelScoreStore, rank_models_for_role
+    from specsmith.agent.model_intelligence import ModelScoreStore
     from specsmith.agent.provider_registry import ProviderRegistry
 
     reg = ProviderRegistry.load()

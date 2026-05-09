@@ -182,6 +182,7 @@ module = [
     "specsmith.serve",
     "specsmith.toolrules",
     "specsmith.tool_installer",
+    "specsmith.commands.intelligence",
 ]
 ignore_errors = true
 

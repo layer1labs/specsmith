@@ -1,7 +1,0 @@
-ruff lint baseline clean on develop
-
-$ ruff check src/ tests/
-All checks passed!
-
-$ ruff format --check src/ tests/
-112 files already formatted

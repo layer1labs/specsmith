@@ -82,7 +82,7 @@ All changes follow: **propose → check → execute → verify → record**.
 - Lint: ruff | Types: mypy (strict) | Tests: pytest + pytest-cov
 - CI: GitHub Actions (3 OS × 3 Python) | Docs: specsmith.readthedocs.io
 - Agent runtime: AG2 0.12.0 + Ollama / vLLM (BYOE endpoints)
-- Kairos terminal (Rust, Warp BYOE fork — BitConcepts/kairos) — uses `specsmith serve` as governance backend
+- Kairos terminal (Rust — BitConcepts/kairos) — uses `specsmith serve` as governance backend
 
 ## AI Providers
 | Role | Primary | Fallback chain |
@@ -119,8 +119,8 @@ Use relative paths to reference each other across machines (absolute paths vary)
 - kairos: `../kairos/`
 
 **Session management**: Both repos are currently governed from this specsmith chat session
-and Warp context. When opening kairos, treat the specsmith session as the authoritative
-agent context. This arrangement holds until kairos has its own stable Warp session/agent
+and Kairos context. When opening kairos, treat the specsmith session as the authoritative
+agent context. This arrangement holds until kairos has its own stable Kairos session/agent
 setup. Changes to kairos made in this session are recorded in this specsmith LEDGER.md
 until kairos carries its own session ledger independently.
 

@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import urllib.request
+from dataclasses import dataclass
+from dataclasses import field as _dc_field
 from pathlib import Path
 
 from specsmith.agent.safety import (
@@ -175,7 +177,6 @@ def remember_project_fact(key: str, value: str, cwd: str | None = None) -> str:
 # ---------------------------------------------------------------------------
 # Tool specification (REG-001 / REG-002)
 # ---------------------------------------------------------------------------
-from dataclasses import dataclass, field as _dc_field
 
 
 @dataclass
@@ -204,7 +205,9 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
     return [
         ToolSpec(
             name="run_shell",
-            description="Execute a shell command. Safety-checked; destructive commands are blocked.",
+            description=(
+                "Execute a shell command. Safety-checked; destructive commands are blocked."
+            ),
             func=run_shell,
             epistemic_claims=["EXEC-001: no python -c for non-trivial code"],
         ),
@@ -280,6 +283,7 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
 # ---------------------------------------------------------------------------
 # REG-001: tamper-evident agent action logging
 # ---------------------------------------------------------------------------
+
 
 def log_agent_action(
     root: "Path | str",

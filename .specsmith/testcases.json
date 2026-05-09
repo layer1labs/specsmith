@@ -1156,11 +1156,11 @@
   },
   {
     "id": "TEST-106",
-    "title": "VS Code Extension Registers Broker Commands",
-    "description": "`specsmith-vscode/package.json` declares `specsmith.runPreflight`, `specsmith.runVerify`, and `specsmith.toggleWhy`; `src/extension.ts` registers each with `vscode.commands.registerCommand`; `npm run lint` (`tsc --noEmit`) exits zero.",
+    "title": "Kairos Governance Page Surfaces Preflight/Verify/Trace",
+    "description": "The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode` broker command test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-106",
     "type": "integration",
-    "verification_method": "npm",
+    "verification_method": "evaluator",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -1288,11 +1288,11 @@
   },
   {
     "id": "TEST-118",
-    "title": "Extension Declares specsmith.openChat Command",
-    "description": "`specsmith-vscode/package.json` declares the `specsmith.openChat` command; `src/extension.ts` registers a handler for it. Sister-repo gate.",
+    "title": "Kairos BYOE Proxy Consumes Chat Stream",
+    "description": "The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy `specsmith-vscode` openChat command test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-118",
     "type": "integration",
-    "verification_method": "static-check",
+    "verification_method": "evaluator",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -1387,8 +1387,8 @@
   },
   {
     "id": "TEST-128",
-    "title": "specsmith-vscode CI Runs npm audit",
-    "description": "`specsmith-vscode/.github/workflows/ci.yml` includes a step running `npm audit --omit=dev --audit-level=high`. Sister-repo gate.",
+    "title": "Cross-Repo Security Sweep Runs in CI",
+    "description": "Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test has been retired alongside the extension deprecation.*",
     "requirement_id": "REQ-128",
     "type": "integration",
     "verification_method": "static-check",
@@ -2404,6 +2404,61 @@
     "requirement_id": "REQ-220",
     "type": "compliance",
     "verification_method": "evaluator",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-221",
+    "title": "GPU-Aware Context Window — VRAM Tiers",
+    "description": "suggest_context_window(5.0) returns 4096; suggest_context_window(8.0) returns 8192; suggest_context_window(14.0) returns 16384; suggest_context_window(24.0) returns 32768.",
+    "requirement_id": "REQ-244",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-222",
+    "title": "GPU VRAM Detection Never Raises",
+    "description": "detect_gpu_vram() returns a float >= 0 on any platform regardless of whether nvidia-smi or rocm-smi is present. Must not raise any exception.",
+    "requirement_id": "REQ-244",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-223",
+    "title": "ContextFillTracker Records Fill Events",
+    "description": "ContextFillTracker(limit=4096).record(used=1000) returns a ContextFillEvent with type == \"context_fill\", used == 1000, limit == 4096, pct approximately 24.4.",
+    "requirement_id": "REQ-245",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-224",
+    "title": "ContextFillTracker Compression Threshold Warning",
+    "description": "ContextFillTracker(limit=4096).record(used=3400) returns a fill event at ~83% fill without raising (below default 85% hard ceiling). A fill event at pct >= compression threshold (80%) is returned for caller dispatch.",
+    "requirement_id": "REQ-246",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-225",
+    "title": "ContextFullError at Hard Ceiling",
+    "description": "ContextFillTracker(limit=4096).record(used=3600) raises ContextFullError when fill >= 85% (hard ceiling). The error carries used, limit, and pct attributes. The caller MUST trigger emergency compression.",
+    "requirement_id": "REQ-247",
+    "type": "unit",
+    "verification_method": "pytest",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0

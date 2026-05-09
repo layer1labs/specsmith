@@ -34,26 +34,46 @@ class PFWClient:
     def test_connection(self) -> dict[str, Any]:
         try:
             data = http_get(f"{BASE_URL}/applications?rows=1", headers=self._headers(), timeout=10)
-            return {"available": True, "message": "PFW online", "latency_ms": data.get("_latency_ms", 0)}
+            return {
+                "available": True,
+                "message": "PFW online",
+                "latency_ms": data.get("_latency_ms", 0),
+            }
         except DataSourceError as exc:
             return {"available": False, "message": str(exc), "latency_ms": 0}
 
     def search(
-        self, query: str, *, detail: str = "minimal", limit: int = 25, offset: int = 0, **kwargs: Any,
+        self,
+        query: str,
+        *,
+        detail: str = "minimal",
+        limit: int = 25,
+        offset: int = 0,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Search patent applications."""
-        params = urllib.parse.urlencode({"searchText": query, "start": offset, "rows": min(limit, 100)})
+        params = urllib.parse.urlencode(
+            {"searchText": query, "start": offset, "rows": min(limit, 100)}
+        )
         data = http_get(f"{BASE_URL}/applications?{params}", headers=self._headers())
         results = data.get("patentFileWrapperDataBag", data.get("results", []))
         if not isinstance(results, list):
             results = [results] if results else []
-        return {"source": self.source_id, "detail": detail, "total": data.get("recordTotalQuantity", len(results)), "results": results, "count": len(results)}
+        return {
+            "source": self.source_id,
+            "detail": detail,
+            "total": data.get("recordTotalQuantity", len(results)),
+            "results": results,
+            "count": len(results),
+        }
 
     def get(self, app_number: str, **kwargs: Any) -> dict[str, Any]:
         """Get application data."""
         return http_get(f"{BASE_URL}/applications/{app_number}", headers=self._headers())
 
-    def get_documents(self, app_number: str, *, document_code: str = "", limit: int = 50) -> dict[str, Any]:
+    def get_documents(
+        self, app_number: str, *, document_code: str = "", limit: int = 50
+    ) -> dict[str, Any]:
         """Get prosecution document metadata for an application."""
         url = f"{BASE_URL}/applications/{app_number}/documents"
         if document_code:

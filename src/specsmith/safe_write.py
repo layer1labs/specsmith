@@ -25,6 +25,7 @@ overwrite so the agent or user can review changes before committing.
 
 from __future__ import annotations
 
+import contextlib
 import difflib
 import hashlib
 import json
@@ -33,7 +34,7 @@ import shutil
 import tempfile
 from datetime import datetime
 from pathlib import Path
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Append-only write (safe path for new data)
@@ -103,14 +104,14 @@ def safe_overwrite(
 # ---------------------------------------------------------------------------
 
 
-def json_append(path: Path, entries: list[dict]) -> None:
+def json_append(path: Path, entries: list[dict[str, Any]]) -> None:
     """Append ``entries`` to a JSON array file (append-only, no backup needed).
 
     Creates the file with an empty array if it does not exist.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
-        existing: list[dict] = json.loads(path.read_text(encoding="utf-8"))
+        existing: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))
     else:
         existing = []
     existing.extend(entries)
@@ -119,7 +120,7 @@ def json_append(path: Path, entries: list[dict]) -> None:
 
 def json_safe_update(
     path: Path,
-    new_data: list[dict],
+    new_data: list[dict[str, Any]],
     *,
     reason: str = "",
 ) -> Path | None:
@@ -182,8 +183,6 @@ def _atomic_write(path: Path, content: str) -> None:
             fh.write(content)
         os.replace(tmp, path)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.unlink(tmp)
-        except OSError:
-            pass
         raise

@@ -195,9 +195,7 @@ class BeliefArtifact:
 _FLEX_REQ_ID = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
 
 # Style A: heading IS the REQ id
-_REQ_HEADING_DIRECT = re.compile(
-    r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\s*(?:[-\u2014]\s*(.+))?$"
-)
+_REQ_HEADING_DIRECT = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\s*(?:[-\u2014]\s*(.+))?$")
 # Style B: numbered section heading (title only, id comes from an inline field)
 _REQ_HEADING_NUMBERED = re.compile(r"^#{1,3}\s+\d+\.\s+(.+?)\s*$")
 # Inline id field inside a Style B section: - **ID:** REQ-001

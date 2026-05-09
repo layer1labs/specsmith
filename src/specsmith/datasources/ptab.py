@@ -9,7 +9,7 @@ proceedings at the Patent Trial and Appeal Board.
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any
+from typing import Any, cast
 
 from specsmith.datasources.base import DataSourceError, http_get
 
@@ -26,12 +26,22 @@ class PTABClient:
         try:
             data = http_get(f"{BASE_URL}/trials?limit=1", timeout=10)
             total = data.get("metadata", {}).get("count", 0)
-            return {"available": True, "message": f"PTAB online ({total:,} trials)", "latency_ms": data.get("_latency_ms", 0)}
+            return {
+                "available": True,
+                "message": f"PTAB online ({total:,} trials)",
+                "latency_ms": data.get("_latency_ms", 0),
+            }
         except DataSourceError as exc:
             return {"available": False, "message": str(exc), "latency_ms": 0}
 
     def search(
-        self, query: str, *, detail: str = "minimal", limit: int = 25, offset: int = 0, **kwargs: Any,
+        self,
+        query: str,
+        *,
+        detail: str = "minimal",
+        limit: int = 25,
+        offset: int = 0,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Search PTAB trial proceedings."""
         return self.search_trials(patent_number=query, limit=limit, offset=offset)
@@ -42,7 +52,7 @@ class PTABClient:
         results = data.get("results", [])
         if not results:
             raise DataSourceError(f"Trial {trial_number} not found")
-        return results[0]
+        return cast(dict[str, Any], results[0])
 
     def search_trials(
         self,
@@ -71,7 +81,12 @@ class PTABClient:
         url = f"{BASE_URL}/trials?{urllib.parse.urlencode(params)}"
         data = http_get(url)
         results = data.get("results", [])
-        return {"source": self.source_id, "total": data.get("metadata", {}).get("count", 0), "results": results, "count": len(results)}
+        return {
+            "source": self.source_id,
+            "total": data.get("metadata", {}).get("count", 0),
+            "results": results,
+            "count": len(results),
+        }
 
     def search_appeals(
         self,
@@ -93,10 +108,19 @@ class PTABClient:
         url = f"{BASE_URL}/appeals?{urllib.parse.urlencode(params)}"
         data = http_get(url)
         results = data.get("results", [])
-        return {"source": self.source_id, "total": data.get("metadata", {}).get("count", 0), "results": results, "count": len(results)}
+        return {
+            "source": self.source_id,
+            "total": data.get("metadata", {}).get("count", 0),
+            "results": results,
+            "count": len(results),
+        }
 
     def get_documents(self, trial_number: str, *, limit: int = 50) -> dict[str, Any]:
         """Get document list for a trial."""
         url = f"{BASE_URL}/trials/{trial_number}/documents?limit={limit}"
         data = http_get(url)
-        return {"trial_number": trial_number, "documents": data.get("results", []), "count": len(data.get("results", []))}
+        return {
+            "trial_number": trial_number,
+            "documents": data.get("results", []),
+            "count": len(data.get("results", [])),
+        }

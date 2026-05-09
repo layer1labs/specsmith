@@ -406,6 +406,7 @@ def _get_thresholds(root: Path) -> dict[str, int]:
     """Get governance size thresholds, scaled by project type if available."""
     thresholds = dict(_DEFAULT_THRESHOLDS)
     from specsmith.paths import find_scaffold
+
     scaffold_path = find_scaffold(root)
     if scaffold_path and scaffold_path.exists():
         try:
@@ -625,6 +626,7 @@ def check_phase_readiness(root: Path) -> list[AuditResult]:
     """Check AEE phase readiness (advisory — failed checks are warnings)."""
     results: list[AuditResult] = []
     from specsmith.paths import find_scaffold
+
     if not find_scaffold(root):
         return results
 

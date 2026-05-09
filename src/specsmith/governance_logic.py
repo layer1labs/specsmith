@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 def run_preflight(
@@ -250,7 +250,7 @@ def _build_openai_response(
     content: str,
     role: str = "assistant",
     finish_reason: str = "stop",
-) -> dict:
+) -> dict[str, Any]:
     """Build a minimal OpenAI-compatible /v1/chat/completions response."""
     import time
     import uuid
@@ -272,14 +272,14 @@ def _build_openai_response(
 
 
 def run_chat_proxy(
-    messages: list[dict],
+    messages: list[dict[str, Any]],
     model: str,
     project_dir: str | None = None,
     *,
     real_base_url: str | None = None,
     real_api_key: str | None = None,
     real_model: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """OpenAI-compatible governance proxy for Kairos BYOE integration.
 
     This is called from the ``POST /v1/chat/completions`` endpoint in
@@ -302,10 +302,9 @@ def run_chat_proxy(
     Falls back to a stub response when no real provider is configured
     (useful for local dev / governance-only testing without a real LLM).
     """
+    import json as _json
     import os
     import urllib.request
-    import json as _json
-    from pathlib import Path
 
     # ── 1. Extract utterance from last user message ─────────────────────────
     utterance = ""
@@ -321,7 +320,7 @@ def run_chat_proxy(
     effective_project = project_dir or os.getcwd()
     preflight = run_preflight(utterance, effective_project)
 
-    if preflight.get("decision") not in ("accepted", ):
+    if preflight.get("decision") not in ("accepted",):
         # Not accepted — return governance refusal, do NOT forward to AI.
         instruction = preflight.get("instruction", "Request not accepted by governance.")
         refusal = (
@@ -333,10 +332,7 @@ def run_chat_proxy(
         return _build_openai_response(model, refusal, finish_reason="governance_stop")
 
     # ── 3. Forward to real AI provider ──────────────────────────────────
-    base_url = (
-        real_base_url
-        or os.environ.get("KAIROS_AI_BASE_URL", "")
-    ).rstrip("/")
+    base_url = (real_base_url or os.environ.get("KAIROS_AI_BASE_URL", "")).rstrip("/")
     api_key = real_api_key or os.environ.get("KAIROS_AI_API_KEY", "")
     effective_model = real_model or os.environ.get("KAIROS_AI_MODEL", "") or model
 
@@ -350,11 +346,13 @@ def run_chat_proxy(
         return _build_openai_response(effective_model, stub)
 
     try:
-        payload = _json.dumps({
-            "model": effective_model,
-            "messages": messages,
-            "stream": False,
-        }).encode()
+        payload = _json.dumps(
+            {
+                "model": effective_model,
+                "messages": messages,
+                "stream": False,
+            }
+        ).encode()
         headers = {
             "Content-Type": "application/json",
             "Content-Length": str(len(payload)),
@@ -369,7 +367,7 @@ def run_chat_proxy(
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310
-            ai_response: dict = _json.loads(resp.read())
+            ai_response: dict[str, Any] = cast(dict[str, Any], _json.loads(resp.read()))
     except Exception as exc:  # noqa: BLE001
         # Forward failure — return governance-accepted stub with error note.
         error_stub = (
@@ -380,11 +378,7 @@ def run_chat_proxy(
 
     # ── 4. Post-response verify (best-effort) ─────────────────────────────
     try:
-        ai_text = (
-            ai_response.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-        )
+        ai_text = ai_response.get("choices", [{}])[0].get("message", {}).get("content", "")
         run_verify(
             diff=f"[AI response to: {utterance[:100]}]",
             files_changed=[],
@@ -408,7 +402,7 @@ def make_governance_server(
     project_dir: str = ".",
     port: int = 7700,
     host: str = "127.0.0.1",
-) -> "GovernanceHTTPServer":
+) -> GovernanceHTTPServer:
     """Build a ``GovernanceHTTPServer`` that handles /health, /preflight, /verify.
 
     This server is separate from the chat ``specsmith serve`` (port 8421).
@@ -454,7 +448,7 @@ class GovernanceHTTPServer:
             def log_message(self, fmt: str, *args: object) -> None:  # noqa: A002
                 pass  # suppress default stderr access log
 
-            def _json_ok(self, data: dict) -> None:
+            def _json_ok(self, data: dict[str, Any]) -> None:
                 import json
 
                 body = json.dumps(data, ensure_ascii=False).encode()
@@ -475,14 +469,14 @@ class GovernanceHTTPServer:
                 self.end_headers()
                 self.wfile.write(body)
 
-            def _read_json(self) -> dict:
+            def _read_json(self) -> dict[str, Any]:
                 import json
 
                 length = int(self.headers.get("Content-Length", 0))
                 if not length:
                     return {}
                 try:
-                    return json.loads(self.rfile.read(length))
+                    return cast(dict[str, Any], json.loads(self.rfile.read(length)))
                 except (ValueError, OSError):
                     return {}
 
@@ -526,6 +520,7 @@ class GovernanceHTTPServer:
                             project_dir=body.get("project_dir") or project_dir,
                         )
                         import json as _j
+
                         raw = _j.dumps(result, ensure_ascii=False).encode()
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
@@ -562,11 +557,11 @@ class GovernanceHTTPServer:
             file=sys.stderr,
         )
         try:
-            self._server.serve_forever()  # type: ignore[union-attr]
+            self._server.serve_forever()
         except KeyboardInterrupt:
             pass
         finally:
-            self._server.shutdown()  # type: ignore[union-attr]
+            self._server.shutdown()
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,0 @@
-mypy typecheck baseline clean on develop
-
-$ mypy src/specsmith/
-Success: no issues found in 69 source files

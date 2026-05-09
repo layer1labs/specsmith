@@ -21,13 +21,10 @@ import yaml
 from click.testing import CliRunner
 
 from specsmith.agent.permissions import (
-    DEFAULT_ALLOWED,
-    DEFAULT_DENIED,
     AgentPermissions,
     load_permissions,
 )
 from specsmith.cli import main
-
 
 # ---------------------------------------------------------------------------
 # AgentPermissions.is_allowed
@@ -282,9 +279,7 @@ class TestSummary:
 class TestCLIPermissionsShow:
     def test_permissions_show_human_readable(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["agent", "permissions", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["agent", "permissions", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "Permission Profile" in result.output
         assert "standard" in result.output.lower()

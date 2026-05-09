@@ -15,6 +15,7 @@
     "clean",
     "commit",
     "compress",
+    "config",
     "credits",
     "datasources",
     "diff",

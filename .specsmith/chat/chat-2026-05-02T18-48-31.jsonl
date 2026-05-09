@@ -1,6 +1,0 @@
-{"role":"error","text":"[May 2, 02:48:54 PM] Agent process ended (signal SIGTERM) — send a message to restart","ts":"2026-05-02T18:48:54.604Z"}
-{"role":"error","text":"specsmith not responding (tried: \"C:\\Users\\trist\\.specsmith\\venv\\Scripts\\specsmith.exe\").\nChoose Restart Session to retry, Open Settings to reinstall, or Reload Window if the problem persists.","ts":"2026-05-02T18:49:14.608Z"}
-{"role":"user","text":"audit","ts":"2026-05-02T18:49:44.470Z"}
-{"role":"user","text":"audit","ts":"2026-05-02T18:49:49.650Z"}
-{"role":"error","text":"specsmith not responding (tried: \"C:\\Users\\trist\\.specsmith\\venv\\Scripts\\specsmith.exe\").\nChoose Restart Session to retry, Open Settings to reinstall, or Reload Window if the problem persists.","ts":"2026-05-02T18:50:10.408Z"}
-{"role":"error","text":"[May 2, 02:57:32 PM] Agent process ended (signal SIGTERM) — send a message to restart","ts":"2026-05-02T18:57:32.608Z"}

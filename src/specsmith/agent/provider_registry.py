@@ -205,7 +205,11 @@ def probe_openai_compatible(
             data = json.loads(resp.read().decode())
         models: list[str] = []
         for entry in data.get("data") or data.get("models") or []:
-            mid = entry.get("id") or entry.get("name") or "" if isinstance(entry, dict) else str(entry)
+            mid = (
+                entry.get("id") or entry.get("name") or ""
+                if isinstance(entry, dict)
+                else str(entry)
+            )
             if mid:
                 models.append(str(mid))
         return {"valid": True, "message": f"OK — {len(models)} model(s)", "models": models[:200]}
@@ -282,9 +286,7 @@ class ProviderRegistry:
             return
         try:
             raw = json.loads(self._path.read_text(encoding="utf-8"))
-            self._providers = [
-                ProviderEntry.from_dict(e) for e in raw.get("providers", [])
-            ]
+            self._providers = [ProviderEntry.from_dict(e) for e in raw.get("providers", [])]
         except Exception:  # noqa: BLE001
             _log.warning("Failed to load provider registry from %s", self._path)
             self._providers = []

@@ -96,11 +96,15 @@ def run_upgrade(
         UpgradeResult with details of the operation.
     """
     from specsmith.paths import find_scaffold
+
     scaffold_path = find_scaffold(root)
 
     if not scaffold_path or not scaffold_path.exists():
         return UpgradeResult(
-            message="No scaffold config found (docs/SPECSMITH.yml or scaffold.yml). Cannot determine project configuration for upgrade."
+            message=(
+                "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml)."
+                " Cannot determine project configuration for upgrade."
+            )
         )
 
     with open(scaffold_path) as f:
@@ -144,6 +148,7 @@ def run_upgrade(
     # Regenerate governance templates (always overwritten — they're spec-managed).
     # REG-007: safe_overwrite creates a timestamped .bak before each write.
     from specsmith.safe_write import safe_overwrite as _safe_overwrite
+
     for template_name, output_rel in _GOVERNANCE_TEMPLATES:
         output_path = root / output_rel
         output_path.parent.mkdir(parents=True, exist_ok=True)

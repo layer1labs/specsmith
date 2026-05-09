@@ -14,7 +14,7 @@ import logging
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 _log = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def http_get(
         data = json.loads(body)
         if isinstance(data, dict):
             data["_latency_ms"] = latency_ms
-        return data
+        return cast(dict[str, Any], data)
     except urllib.error.HTTPError as exc:
         raise DataSourceError(f"HTTP {exc.code}: {exc.reason} — {url}") from exc
     except urllib.error.URLError as exc:
@@ -132,7 +132,7 @@ def http_post(
         data = json.loads(resp_body)
         if isinstance(data, dict):
             data["_latency_ms"] = latency_ms
-        return data
+        return cast(dict[str, Any], data)
     except urllib.error.HTTPError as exc:
         raise DataSourceError(f"HTTP {exc.code}: {exc.reason} — {url}") from exc
     except urllib.error.URLError as exc:

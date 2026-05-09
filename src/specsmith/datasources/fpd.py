@@ -8,7 +8,7 @@ Search and retrieve petition decisions from the USPTO Director's office.
 from __future__ import annotations
 
 import urllib.parse
-from typing import Any
+from typing import Any, cast
 
 from specsmith.datasources.base import DataSourceError, http_get
 
@@ -25,19 +25,37 @@ class FPDClient:
         try:
             data = http_get(f"{BASE_URL}?criteria=*:*&rows=1", timeout=10)
             total = data.get("response", {}).get("numFound", 0)
-            return {"available": True, "message": f"FPD online ({total:,} decisions)", "latency_ms": data.get("_latency_ms", 0)}
+            return {
+                "available": True,
+                "message": f"FPD online ({total:,} decisions)",
+                "latency_ms": data.get("_latency_ms", 0),
+            }
         except DataSourceError as exc:
             return {"available": False, "message": str(exc), "latency_ms": 0}
 
     def search(
-        self, query: str, *, detail: str = "minimal", limit: int = 25, offset: int = 0, **kwargs: Any,
+        self,
+        query: str,
+        *,
+        detail: str = "minimal",
+        limit: int = 25,
+        offset: int = 0,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Search petition decisions."""
-        params = urllib.parse.urlencode({"criteria": query or "*:*", "start": offset, "rows": min(limit, 200)})
+        params = urllib.parse.urlencode(
+            {"criteria": query or "*:*", "start": offset, "rows": min(limit, 200)}
+        )
         data = http_get(f"{BASE_URL}?{params}")
         resp = data.get("response", {})
         results = resp.get("docs", [])
-        return {"source": self.source_id, "detail": detail, "total": resp.get("numFound", 0), "results": results, "count": len(results)}
+        return {
+            "source": self.source_id,
+            "detail": detail,
+            "total": resp.get("numFound", 0),
+            "results": results,
+            "count": len(results),
+        }
 
     def get(self, petition_id: str, **kwargs: Any) -> dict[str, Any]:
         """Get a specific petition decision."""
@@ -45,8 +63,10 @@ class FPDClient:
         docs = data.get("response", {}).get("docs", [])
         if not docs:
             raise DataSourceError(f"Petition {petition_id} not found")
-        return docs[0]
+        return cast(dict[str, Any], docs[0])
 
     def search_by_application(self, app_number: str, **kwargs: Any) -> dict[str, Any]:
         """Get all petitions for an application."""
-        return self.search(f"applicationNumberText:{app_number}", detail="balanced", limit=50, **kwargs)
+        return self.search(
+            f"applicationNumberText:{app_number}", detail="balanced", limit=50, **kwargs
+        )

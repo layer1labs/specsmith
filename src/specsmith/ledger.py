@@ -42,7 +42,9 @@ def add_entry(
     belief_artifacts: str = "",
 ) -> str:
     """Append a structured entry to LEDGER.md with cryptographic chaining."""
-    from specsmith.paths import find_ledger, ledger_path as canonical_ledger
+    from specsmith.paths import find_ledger
+    from specsmith.paths import ledger_path as canonical_ledger
+
     # Use existing ledger location (backward compat) or create at canonical docs/ path
     ledger_path = find_ledger(root) or canonical_ledger(root)
     now = datetime.now().strftime("%Y-%m-%dT%H:%M")
@@ -68,6 +70,7 @@ def add_entry(
     entry += f"- **Chain hash**: `{entry_hash[:16]}...`\n"
 
     from specsmith.safe_write import append_file
+
     if ledger_path.exists():
         append_file(ledger_path, entry)
     else:
@@ -130,6 +133,7 @@ class CryptoAuditChain:
 def list_entries(root: Path, *, since: str = "") -> list[dict[str, str]]:
     """Parse LEDGER.md and return structured entries."""
     from specsmith.paths import find_ledger
+
     ledger_path = find_ledger(root)
     if not ledger_path or not ledger_path.exists():
         return []

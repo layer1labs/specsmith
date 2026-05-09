@@ -402,7 +402,7 @@ class AgentRunner:
                 return profile
 
             # Try fallback chain entries.
-            for fallback_str in (profile.fallback_chain or []):
+            for fallback_str in profile.fallback_chain or []:
                 parts = fallback_str.split("/", 1)
                 fb_provider = parts[0] if parts else ""
                 if exec_profile.allows_provider(fb_provider, fb_provider):

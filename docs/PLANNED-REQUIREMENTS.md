@@ -138,4 +138,4 @@
 - PRX-003: Praxis MUST call `specsmith preflight` via the REST API before executing any governance-gated action.
 - PRX-004: Praxis MUST call `specsmith verify` via the REST API after changes and display confidence scores in the terminal UI.
 - PRX-005: Praxis settings and governance dashboard MUST be implemented as a WebView panel for Playwright testability.
-- PRX-006: The Praxis terminal MUST be based on the open-source Warp fork that includes BYOE endpoint support.
+- PRX-006: The Praxis terminal MUST be based on Kairos (BitConcepts/kairos), the open-source terminal with BYOE endpoint support.

@@ -729,16 +729,16 @@
 - **Description:** A live or honestly-skipped invocation of `scripts/nexus_smoke.py` against the configured `l1-nexus` model must be captured under `.specsmith/runs/WI-NEXUS-011/logs.txt`. The skip note must include a fresh probe attempt, a timestamp, and the hardware/environment reason the live container could not be reached.
 - **Source:** .specsmith/runs/WI-NEXUS-011/logs.txt, scripts/nexus_smoke.py
 - **Status:** defined
-## 106. VS Code Extension Must Surface Nexus Broker
+## 106. Kairos Must Surface Governance Commands
 - **ID:** REQ-106
-- **Title:** VS Code Extension Must Surface Nexus Broker
-- **Description:** The `specsmith-vscode` extension must expose three commands that wrap the Nexus broker contract: `specsmith.runPreflight` (REQ-085), `specsmith.runVerify` (REQ-097), and `specsmith.toggleWhy` (REQ-094). Each command must be reachable from the command palette and must use the configured `specsmith.executablePath` for terminal invocation.
-- **Source:** specsmith-vscode/package.json, specsmith-vscode/src/extension.ts
+- **Title:** Kairos Must Surface Governance Commands
+- **Description:** The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`. *Note: the legacy `specsmith-vscode` commands (`specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy`) are deprecated; Kairos is the flagship client as of v0.10.1.*
+- **Source:** app/src/settings_view/governance_page.rs, kairos_governance crate
 - **Status:** defined
 ## 107. ARCHITECTURE.md Must Reflect Current State
 - **ID:** REQ-107
 - **Title:** ARCHITECTURE.md Must Reflect Current State
-- **Description:** `ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.
+- **Description:** `ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, Kairos governance integration, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.
 - **Source:** ARCHITECTURE.md
 - **Status:** defined
 ## 108. Real Verifier Signal Must Drive Confidence
@@ -801,11 +801,11 @@
 - **Description:** `specsmith preflight <utterance> --predict-only --json` returns the same JSON shape as the canonical `preflight` (intent, requirement_ids, instruction, etc.) but with `work_item_id == ''`, no ledger event written, and a new `predicted_refinement` field that suggests a tightened utterance. Used by IDE autocomplete.
 - **Source:** src/specsmith/cli.py
 - **Status:** defined
-## 118. VS Code Extension Must Surface specsmith chat
+## 118. Kairos Must Surface specsmith chat Stream
 - **ID:** REQ-118
-- **Title:** VS Code Extension Must Surface specsmith chat
-- **Description:** `specsmith-vscode` exposes a `specsmith.openChat` command that spawns `specsmith chat --json-events` with the active session's project dir, consumes the JSONL stream, and renders blocks in the existing `SessionPanel`. Extension version >= 0.4.0.
-- **Source:** specsmith-vscode/src/extension.ts, specsmith-vscode/package.json
+- **Title:** Kairos Must Surface specsmith chat Stream
+- **Description:** The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session. *The deprecated `specsmith-vscode` `specsmith.openChat` command served this purpose for the VS Code extension; it has been superseded by the Kairos BYOE proxy.*
+- **Source:** app/src/settings_view/governance_page.rs, kairos_governance crate
 - **Status:** defined
 ## 119. Project Rules Must Auto-Inject Into the System Prompt
 - **ID:** REQ-119
@@ -858,8 +858,8 @@
 ## 128. Cross-Repo Security Sweep
 - **ID:** REQ-128
 - **Title:** Cross-Repo Security Sweep
-- **Description:** `specsmith-vscode` CI (`.github/workflows/ci.yml`) runs `npm audit --omit=dev --audit-level=high` and fails on high-or-critical findings. The Dependabot manifest in both repos is reviewed and any open alert at 1.0 release time is documented.
-- **Source:** specsmith-vscode/.github/workflows/ci.yml
+- **Description:** The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented. *Note: the legacy `specsmith-vscode` npm audit requirement has been retired alongside the extension deprecation.*
+- **Source:** .github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml
 - **Status:** defined
 ## 129. 1.0 API Stability Commitment
 - **ID:** REQ-129
@@ -1667,4 +1667,33 @@
 - **Title:** Cross-Platform ProjectOperations
 - **Description:** ProjectOperations MUST be cross-platform (Windows, Linux, macOS) without platform-specific code branches at call sites.
 - **Source:** PLANNED-REQUIREMENTS.md [OPS-006]
+- **Status:** defined
+
+
+## 244. GPU-Aware Context Window Sizing
+- **ID:** REQ-244
+- **Title:** GPU-Aware Context Window Sizing
+- **Description:** Before starting an Ollama agent session, specsmith MUST detect available GPU VRAM (NVIDIA via nvidia-smi, AMD via rocm-smi) and recommend a num_ctx value. VRAM tiers: <6 GB → 4096, 6-12 GB → 8192, 12-20 GB → 16384, >=20 GB → 32768. CPU-only defaults to 4096. The function MUST never raise on any platform.
+- **Source:** Plan 0ca40db4 [CTX-001]
+- **Status:** defined
+
+## 245. Live Context Fill Indicator
+- **ID:** REQ-245
+- **Title:** Live Context Fill Indicator
+- **Description:** Every active agent conversation MUST track and emit context fill events with schema: {type: context_fill, used: int, limit: int, pct: float}. The fill percentage MUST be surfaced in the terminal UI as a compact progress bar (green 0-60%, yellow 60-80%, orange 80-90%, red >90%).
+- **Source:** Plan 0ca40db4 [CTX-002]
+- **Status:** defined
+
+## 246. Auto Context Compression at Configurable Threshold
+- **ID:** REQ-246
+- **Title:** Auto Context Compression at Configurable Threshold
+- **Description:** When context fill reaches the configurable compression threshold (default 80%, range 50-95%), specsmith MUST automatically trigger context summarization. Compression MUST emit a context_compressed event with before/after token counts. Auto-compression MUST be togglable; when off, only a warning is surfaced.
+- **Source:** Plan 0ca40db4 [CTX-003]
+- **Status:** defined
+
+## 247. Hard Context Reservation — Never 100% Fill
+- **ID:** REQ-247
+- **Title:** Hard Context Reservation — Never 100% Fill
+- **Description:** The context window MUST NEVER be allowed to reach 100% fill. A hard reservation of 15% (or MIN_FREE_TOKENS=2048, whichever is more restrictive) MUST remain free. When fill reaches the hard ceiling (default 85%), ContextFullError MUST be raised and emergency compression triggered regardless of the auto-compress toggle.
+- **Source:** Plan 0ca40db4 [CTX-004]
 - **Status:** defined

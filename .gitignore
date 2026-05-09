@@ -43,19 +43,24 @@ temp/
 .repo-index/
 
 # .specsmith/ split: committed (audit chain) vs gitignored (runtime cache)
-# Keep committed: trace.jsonl, ledger-chain.txt, config.yml,
-#                 requirements.json, testcases.json (snapshot of docs/)
-# Gitignore: runtime-only volatile files
+# Keep committed: config.yml, requirements.json, testcases.json
+# All runtime-only / regeneratable artifacts are gitignored:
 .specsmith/workitems.json
 .specsmith/runs/
 .specsmith/chat/
 .specsmith/perf/
 .specsmith/recovery/
 .specsmith/ledger.jsonl
+.specsmith/ledger-chain.txt
+.specsmith/trace.jsonl
+.specsmith/credit-budget.json
+.specsmith/credits.json
+.specsmith/model-rate-limits.json
 .specsmith/pids/
 .specsmith/logs/
 .specsmith/sessions/
-.specsmith/credits.json
-.specsmith/model-rate-limits.json
 .specsmith/agent-reports/
+
+# Old Warp branding directory — renamed to .kairos/; prevent accidental re-creation
+.warp/
 
