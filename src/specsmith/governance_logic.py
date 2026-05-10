@@ -614,6 +614,46 @@ class GovernanceHTTPServer:
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 
+                # ── Skills ───────────────────────────────────────────
+                elif self.path == "/api/skills":
+                    try:
+                        from specsmith.skills_builder import list_skills
+
+                        skills = list_skills(project_dir)
+                        self._json_ok({"skills": [s.to_dict() for s in skills]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Eval ────────────────────────────────────────────
+                elif self.path == "/api/eval/suites":
+                    try:
+                        from specsmith.eval.builtins import list_suites
+
+                        suites = list_suites()
+                        self._json_ok({"suites": [s.to_dict() for s in suites]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Teams ───────────────────────────────────────────
+                elif self.path == "/api/teams":
+                    try:
+                        from specsmith.agent.teams import list_teams
+
+                        teams = list_teams()
+                        self._json_ok({"teams": [t.to_dict() for t in teams]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── MCP Servers ─────────────────────────────────────
+                elif self.path == "/api/mcp/servers":
+                    try:
+                        from specsmith.mcp_generator import list_mcp_servers
+
+                        servers = list_mcp_servers(project_dir)
+                        self._json_ok({"servers": [s.to_dict() for s in servers]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
                 # ── ESDB ──────────────────────────────────────────────
                 elif self.path == "/api/esdb/status":
                     try:

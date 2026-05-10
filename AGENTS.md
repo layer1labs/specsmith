@@ -56,7 +56,7 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/epistemic/` — compatibility shim
 - `src/specsmith/integrations/` — agent platform adapters (agent-skill)
 - `src/specsmith/templates/` — Jinja2 scaffold templates
-- `tests/` — 570 tests (pytest)
+- `tests/` — 582 tests (pytest)
 - **All governance files live in `docs/`** (except AGENTS.md at root):
 - `docs/SPECSMITH.yml` — project scaffold config (canonical; uppercase like all governance files)
 - `docs/ARCHITECTURE.md` — architecture reference
