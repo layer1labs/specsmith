@@ -53,7 +53,8 @@ def load_cached_scores(project_dir: str | Path = ".") -> dict[str, Any]:
     if not path.is_file():
         return {}
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        result: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return result
     except (OSError, ValueError):
         return {}
 
@@ -78,7 +79,8 @@ def fetch_hf_model_info(model_id: str, timeout: int = 10) -> dict[str, Any]:
     try:
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
-            return json.loads(resp.read())
+            result: dict[str, Any] = json.loads(resp.read())
+            return result
     except Exception:  # noqa: BLE001
         return {}
 
@@ -116,7 +118,7 @@ def sync_scores(
     project_dir: str | Path = ".",
     models: list[str] | None = None,
     timeout: int = 10,
-) -> dict[str, dict[str, float]]:
+) -> dict[str, Any]:
     """Sync model scores from HuggingFace.
 
     For HF-hosted models, fetches real benchmark data from model cards.
@@ -127,7 +129,7 @@ def sync_scores(
     from specsmith.agent.model_intelligence import BASELINE_SCORES
 
     target_models = models or TRACKED_MODELS
-    all_scores: dict[str, dict[str, float]] = {}
+    all_scores: dict[str, Any] = {}
 
     for model_id in target_models:
         # For non-HF models, use baseline scores
