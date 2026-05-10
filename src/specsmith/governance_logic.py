@@ -614,6 +614,24 @@ class GovernanceHTTPServer:
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 
+                # ── ESDB ──────────────────────────────────────────────
+                elif self.path == "/api/esdb/status":
+                    try:
+                        from specsmith.esdb.bridge import EsdbBridge
+
+                        bridge = EsdbBridge(project_dir)
+                        self._json_ok(bridge.status().to_dict())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/esdb/counts":
+                    try:
+                        from specsmith.esdb.bridge import EsdbBridge
+
+                        bridge = EsdbBridge(project_dir)
+                        self._json_ok(bridge.record_counts())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
                 # ── Datasources ────────────────────────────────────────
                 elif self.path == "/api/datasources":
                     try:
