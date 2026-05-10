@@ -659,6 +659,13 @@ class GovernanceHTTPServer:
                 elif self.path == "/v1/chat/completions":
                     # Kairos BYOE gateway — intercept, gate, forward.
                     try:
+                        # Detect role from request header or infer from system prompt.
+                        req_role = self.headers.get("X-Specsmith-Role", "")
+                        if not req_role:
+                            req_role = _infer_role_from_messages(
+                                body.get("messages") or []
+                            )
+
                         result = run_chat_proxy(
                             messages=body.get("messages") or [],
                             model=body.get("model", "kairos"),
@@ -667,10 +674,15 @@ class GovernanceHTTPServer:
                         import json as _j
 
                         raw = _j.dumps(result, ensure_ascii=False).encode()
+                        effective_model = result.get("model", body.get("model", ""))
+                        effective_provider = _resolve_provider_name()
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
                         self.send_header("Content-Length", str(len(raw)))
                         self.send_header("x-kairos-governance", "gated")
+                        self.send_header("X-Specsmith-Role", req_role or "coder")
+                        self.send_header("X-Specsmith-Model", effective_model)
+                        self.send_header("X-Specsmith-Provider", effective_provider)
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         self.wfile.write(raw)
@@ -712,6 +724,54 @@ class GovernanceHTTPServer:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+# Role keywords used by _infer_role_from_messages to detect intent from system prompts.
+_ROLE_KEYWORDS: dict[str, list[str]] = {
+    "coder": ["write code", "implement", "code", "function", "diff"],
+    "architect": ["design", "architecture", "system", "trade-off"],
+    "reviewer": ["review", "feedback", "quality", "pr"],
+    "editor": ["edit", "format", "refactor", "fix"],
+    "researcher": ["research", "documentation", "lookup", "search"],
+    "tester": ["test", "coverage", "assertion", "spec"],
+    "classifier": ["classify", "categorize", "intent"],
+    "strategist": ["strategy", "business", "competitive", "market"],
+    "drafter": ["draft", "specification", "proposal", "report"],
+    "ip-analyst": ["patent", "claims", "prior art", "ip", "freedom"],
+}
+
+
+def _infer_role_from_messages(messages: list[dict[str, Any]]) -> str:
+    """Best-effort role inference from system prompt keywords."""
+    system_text = ""
+    for msg in messages:
+        if isinstance(msg, dict) and msg.get("role") == "system":
+            content = msg.get("content", "")
+            system_text += (content if isinstance(content, str) else str(content)).lower()
+    if not system_text:
+        return "coder"
+    best_role = "coder"
+    best_count = 0
+    for role, keywords in _ROLE_KEYWORDS.items():
+        count = sum(1 for kw in keywords if kw in system_text)
+        if count > best_count:
+            best_count = count
+            best_role = role
+    return best_role
+
+
+def _resolve_provider_name() -> str:
+    """Return the configured AI provider name for attribution headers."""
+    provider = os.environ.get("KAIROS_AI_BASE_URL", "")
+    if not provider:
+        return "specsmith-local"
+    if "openai" in provider:
+        return "openai"
+    if "anthropic" in provider:
+        return "anthropic"
+    if "localhost" in provider or "127.0.0.1" in provider:
+        return "local"
+    return "byoe"
 
 
 def _read_confidence_threshold(root: Path) -> float | None:
