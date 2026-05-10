@@ -662,9 +662,7 @@ class GovernanceHTTPServer:
                         # Detect role from request header or infer from system prompt.
                         req_role = self.headers.get("X-Specsmith-Role", "")
                         if not req_role:
-                            req_role = _infer_role_from_messages(
-                                body.get("messages") or []
-                            )
+                            req_role = _infer_role_from_messages(body.get("messages") or [])
 
                         result = run_chat_proxy(
                             messages=body.get("messages") or [],
