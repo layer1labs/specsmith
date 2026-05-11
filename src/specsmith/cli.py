@@ -8311,8 +8311,6 @@ def skills_delete_cmd(skill_id: str, project_dir: str, auto_yes: bool) -> None:
     else:
         console.print(f"[red]Skill not found:[/red] {skill_id}")
         raise SystemExit(1)
-
-
 main.add_command(skills_group)
 
 
@@ -8516,7 +8514,7 @@ def esdb_replay_cmd(project_dir: str) -> None:
     console.print(f"[bold]Replay check:[/bold] {st.backend}")
     console.print(f"  Records: {st.record_count}")
     if st.chain_valid:
-        console.print("[green]\u2714[/green] WAL chain valid \u2014 state consistent.")
+        console.print("[green]\u2714[/green] WAL chain valid — state consistent.")
     else:
         console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
 
