@@ -11,11 +11,14 @@ from specsmith import __version__
 
 
 def get_update_channel() -> str:
-    """Determine update channel from installed version.
+    """Return the effective update channel (persistent preference or version inference).
 
-    Returns 'dev' if current version has .dev suffix, else 'stable'.
+    Delegates to :func:`specsmith.channel.effective_channel` so that a user's
+    ``specsmith channel set`` preference is respected.
     """
-    return "dev" if ".dev" in __version__ else "stable"
+    from specsmith.channel import effective_channel
+
+    return effective_channel()
 
 
 def check_latest_version(

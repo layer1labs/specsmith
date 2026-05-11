@@ -2203,6 +2203,105 @@ def pull_cmd(project_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Channel — dev / stable release-channel selection
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="channel")
+def channel_group() -> None:
+    """Manage the specsmith update channel (stable or dev).
+
+    The channel controls which releases ``specsmith self-update`` targets:
+
+    \b
+      stable  — production releases (default unless a .devN version is installed)
+      dev     — pre-releases and nightly builds
+
+    Setting a channel persists your preference to ``~/.specsmith/channel`` so
+    it survives upgrades and applies regardless of the installed version.
+    """
+
+
+@channel_group.command(name="get")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit result as JSON.",
+)
+def channel_get_cmd(as_json: bool) -> None:
+    """Show the current effective update channel.
+
+    Indicates whether the channel comes from a user preference
+    (``~/.specsmith/channel``) or from the installed version string.
+    """
+    import json as _json
+
+    from specsmith.channel import effective_channel_with_source
+
+    channel, source = effective_channel_with_source()
+    source_label = "user preference" if source == "user" else "version inference"
+
+    if as_json:
+        click.echo(_json.dumps({"channel": channel, "source": source}, indent=2))
+        return
+
+    channel_color = "cyan" if channel == "dev" else "green"
+    console.print(
+        f"  Channel: [{channel_color}]{channel}[/{channel_color}]  [dim]({source_label})[/dim]"
+    )
+    if source == "version":
+        console.print(
+            "  [dim]Run [bold]specsmith channel set stable[/bold] or"
+            " [bold]specsmith channel set dev[/bold] to pin a preference.[/dim]"
+        )
+
+
+@channel_group.command(name="set")
+@click.argument("channel", type=click.Choice(["stable", "dev"]))
+def channel_set_cmd(channel: str) -> None:
+    """Pin the update channel to STABLE or DEV.
+
+    \b
+    CHANNEL  stable   Production releases only
+             dev      Pre-releases and nightly builds
+
+    The preference is stored in ``~/.specsmith/channel`` and takes effect
+    immediately for all subsequent ``specsmith self-update`` / ``update`` calls.
+    """
+    from specsmith.channel import set_persisted_channel
+
+    set_persisted_channel(channel)
+    channel_color = "cyan" if channel == "dev" else "green"
+    console.print(
+        f"[green]\u2713[/green] Channel set to"
+        f" [{channel_color}]{channel}[/{channel_color}]."
+        f" Saved to [dim]~/.specsmith/channel[/dim]."
+    )
+    if channel == "dev":
+        console.print("  [dim]specsmith self-update will now target pre-release builds.[/dim]")
+    else:
+        console.print("  [dim]specsmith self-update will now target stable releases only.[/dim]")
+
+
+@channel_group.command(name="clear")
+def channel_clear_cmd() -> None:
+    """Remove a pinned channel preference (revert to auto-detect from version)."""
+    from specsmith.channel import clear_persisted_channel, effective_channel_with_source
+
+    clear_persisted_channel()
+    channel, source = effective_channel_with_source()
+    console.print(
+        f"[green]\u2713[/green] Channel preference cleared."
+        f" Effective channel: [bold]{channel}[/bold] (from {source})."
+    )
+
+
+main.add_command(channel_group)
+
+
 @main.command(name="update")
 @click.option("--check", "check_only", is_flag=True, default=False, help="Check only.")
 @click.option("--yes", "auto_yes", is_flag=True, default=False, help="Skip confirmation.")
