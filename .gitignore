@@ -64,3 +64,6 @@ temp/
 # Old Warp branding directory — renamed to .kairos/; prevent accidental re-creation
 .warp/
 
+# Rust build artifacts (chronomemory crate)
+crates/chronomemory/target/
+
