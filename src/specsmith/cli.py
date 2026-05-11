@@ -8521,7 +8521,11 @@ def esdb_replay_cmd(project_dir: str) -> None:
 
 @esdb_group.command(name="export")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--output", default="", help="Output file path (default: <project>/.specsmith/esdb_export.json)")
+@click.option(
+    "--output",
+    default="",
+    help="Output file path (default: <project>/.specsmith/esdb_export.json)",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
 def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
     """Export the full ESDB to a JSON file."""
@@ -8576,13 +8580,20 @@ def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
-        console.print(f"[green]\u2714[/green] Import validated: {reqs} requirements, {tests} test cases")
+        console.print(
+            f"[green]\u2714[/green] Import validated: {reqs} requirements, {tests} test cases"
+        )
         console.print(f"  Staged at {dest} \u2014 run `specsmith esdb migrate` to apply.")
 
 
 @esdb_group.command(name="backup")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--dir", "backup_dir", default="", help="Directory for backup files (default: .specsmith/backups/)")
+@click.option(
+    "--dir",
+    "backup_dir",
+    default="",
+    help="Directory for backup files (default: .specsmith/backups/)",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
 def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     """Create a timestamped snapshot backup of the ESDB."""
@@ -8594,7 +8605,11 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     bridge = EsdbBridge(project_dir)
     st = bridge.status()
     ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    dest_dir = Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
+    dest_dir = (
+        Path(backup_dir)
+        if backup_dir
+        else Path(project_dir).resolve() / ".specsmith" / "backups"
+    )
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
     reqs = bridge.requirements()
@@ -8638,7 +8653,9 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     else:
         console.print(f"[yellow]\u26a0[/yellow] Rollback {steps} step(s) requested on {st.backend}")
         console.print(f"  Records before: {st.record_count}")
-        console.print("  [dim]Full rollback active when ChronoMemory native engine is linked.[/dim]")
+        console.print(
+            "  [dim]Full rollback active when ChronoMemory native engine is linked.[/dim]"
+        )
 
 
 @esdb_group.command(name="compact")
@@ -8661,8 +8678,13 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
-        console.print(f"[green]\u2714[/green] Compact requested on {st.backend}  ({st.record_count} records)")
-        console.print("  [dim]Full compaction active when ChronoMemory native engine is linked.[/dim]")
+        console.print(
+            f"[green]\u2714[/green] Compact requested on {st.backend}"
+            f"  ({st.record_count} records)"
+        )
+        console.print(
+            "  [dim]Full compaction active when ChronoMemory native engine is linked.[/dim]"
+        )
 
 
 main.add_command(esdb_group)

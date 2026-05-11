@@ -218,4 +218,11 @@ def delete_skill(skill_id: str, project_dir: str = ".") -> bool:
         return False
 
 
-__all__ = ["SkillSpec", "activate_skill", "build_skill", "deactivate_skill", "delete_skill", "list_skills"]
+__all__ = [
+    "SkillSpec",
+    "activate_skill",
+    "build_skill",
+    "deactivate_skill",
+    "delete_skill",
+    "list_skills",
+]
