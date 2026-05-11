@@ -136,13 +136,15 @@ def _build_skill_with_llm(description: str, tags: list[str]) -> SkillSpec | None
     # Detect whether any provider is configured.
     has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
     has_openai = bool(os.environ.get("OPENAI_API_KEY"))
-    has_ollama = bool(os.environ.get("OLLAMA_HOST") or os.environ.get("SPECSMITH_PROVIDER") == "ollama")
+    has_ollama = bool(
+        os.environ.get("OLLAMA_HOST") or os.environ.get("SPECSMITH_PROVIDER") == "ollama"
+    )
 
     if not (has_anthropic or has_openai or has_ollama):
         return None  # No provider — skip LLM, fall through to stub
 
     try:
-        from specsmith.agent.runner import AgentRunner  # type: ignore[import]
+        from specsmith.agent.runner import AgentRunner
 
         runner = AgentRunner(project_dir=".")
         prompt = _SKILL_PROMPT.format(description=description)

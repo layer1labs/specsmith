@@ -8717,7 +8717,9 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
-        console.print(f"[green]\u2714[/green] Restored from backup: [bold]{backup_path.name}[/bold]")
+        console.print(
+            f"[green]\u2714[/green] Restored from backup: [bold]{backup_path.name}[/bold]"
+        )
         console.print(f"  Requirements: {len(reqs)}  \u00b7  Test cases: {len(tests)}")
 
 
