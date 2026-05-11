@@ -3253,6 +3253,7 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
     # Route based on keywords
     if any(k in lower for k in ("compliance", "coverage", "gaps", "requirements", "trace")):
         from specsmith.compliance import get_compliance_summary
+
         try:
             s = get_compliance_summary(project_dir)
             reply = (
@@ -3266,6 +3267,7 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
             reply = f"Compliance data unavailable: {exc}"
     elif any(k in lower for k in ("audit", "health", "governance", "drift")):
         from specsmith.auditor import run_audit
+
         try:
             report = run_audit(Path(project_dir).resolve())
             status = "healthy" if report.healthy else f"{report.failed} issue(s) found"
@@ -3275,12 +3277,13 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
             reply = f"Audit unavailable: {exc}"
     elif any(k in lower for k in ("skill", "build skill", "create skill")):
         reply = (
-            'Use the Skills builder in Settings → Specsmith → Skills, \'\'\''
-            'or run: specsmith skills build \"<description>\"'
+            "Use the Skills builder in Settings → Specsmith → Skills, '''"
+            'or run: specsmith skills build "<description>"'
         )
         action = "skills_hint"
     elif any(k in lower for k in ("esdb", "database", "backup", "export", "records")):
         from specsmith.esdb.bridge import EsdbBridge
+
         try:
             bridge = EsdbBridge(project_dir)
             st = bridge.status()
@@ -3291,12 +3294,13 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
     elif any(k in lower for k in ("mcp", "server", "tool server")):
         reply = (
             "Use the MCP AI Builder in Settings → Agents → MCP servers, "
-            'or run: specsmith mcp generate \"<description>\"'
+            'or run: specsmith mcp generate "<description>"'
         )
         action = "mcp_hint"
     elif any(k in lower for k in ("session", "phase", "status", "project")):
         try:
             from specsmith.session_init import init_session
+
             ctx = init_session(project_dir)
             reply = (
                 f"Project: {ctx.project_name} | "
@@ -3310,7 +3314,7 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
     else:
         reply = (
             f"I can help with: audit, compliance, skills, ESDB, MCP servers, session status. "
-            f"Your prompt: \"{prompt}\" \u2014 try one of those topics."
+            f'Your prompt: "{prompt}" \u2014 try one of those topics.'
         )
         action = "unknown"
 
@@ -8046,9 +8050,7 @@ def mcp_generate_cmd(description: str, as_json: bool) -> None:
     else:
         console.print(f"[green]\u2713[/green] Generated server stub: [bold]{server_id}[/bold]")
         console.print(_json.dumps(server, indent=2))
-        console.print(
-            "\n[dim]Add to [bold]~/.specsmith/mcp.json[/bold] after review.[/dim]"
-        )
+        console.print("\n[dim]Add to [bold]~/.specsmith/mcp.json[/bold] after review.[/dim]")
 
 
 @mcp_group.command(name="list")
@@ -8311,6 +8313,8 @@ def skills_delete_cmd(skill_id: str, project_dir: str, auto_yes: bool) -> None:
     else:
         console.print(f"[red]Skill not found:[/red] {skill_id}")
         raise SystemExit(1)
+
+
 main.add_command(skills_group)
 
 
@@ -8606,9 +8610,7 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     st = bridge.status()
     ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     dest_dir = (
-        Path(backup_dir)
-        if backup_dir
-        else Path(project_dir).resolve() / ".specsmith" / "backups"
+        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
     )
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
@@ -8679,8 +8681,7 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
         click.echo(_json.dumps(result, indent=2))
     else:
         console.print(
-            f"[green]\u2714[/green] Compact requested on {st.backend}"
-            f"  ({st.record_count} records)"
+            f"[green]\u2714[/green] Compact requested on {st.backend}  ({st.record_count} records)"
         )
         console.print(
             "  [dim]Full compaction active when ChronoMemory native engine is linked.[/dim]"
