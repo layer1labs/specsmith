@@ -30,7 +30,7 @@ fn estimate_tokens(record: &Record) -> u64 {
 pub fn compile(
     request: &ContextPackRequest,
     store: &Store,
-    dep_graph: &DepGraph,
+    _dep_graph: &DepGraph,
 ) -> ContextPackOutput {
     let mut entries: Vec<PackEntry> = Vec::new();
     let mut total_tokens: u64 = 0;
