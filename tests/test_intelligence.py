@@ -98,10 +98,12 @@ class TestProviderRegistry:
             id="my-openai", name="OpenAI", provider_type="cloud", provider_id="openai"
         )
         e.validate()
-        # Use proper URL parsing instead of substring check to avoid
-        # py/incomplete-url-substring-sanitization (CodeQL).
+        # Use exact hostname match to satisfy CodeQL py/incomplete-url-substring-sanitization.
+        # A substring check ("openai.com" in host) would match "evil.openai.com.attacker.com".
         parsed = urlparse(e.base_url)
-        assert parsed.hostname is not None and "openai.com" in parsed.hostname
+        assert parsed.hostname is not None and (
+            parsed.hostname == "openai.com" or parsed.hostname.endswith(".openai.com")
+        )
 
 
 # ---------------------------------------------------------------------------
