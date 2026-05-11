@@ -114,3 +114,11 @@
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `ccc21c85ec4a8807...`
+
+
+## 2026-05-11T17:45 --- WI-0511: Sprint complete (REQ-248..REQ-262)
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-248,REQ-249,REQ-250,REQ-251,REQ-252,REQ-253,REQ-254,REQ-255,REQ-256,REQ-257,REQ-258,REQ-259,REQ-260,REQ-261,REQ-262
+- **Status**: complete
+- **Chain hash**: auto
