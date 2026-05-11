@@ -7965,16 +7965,20 @@ main.add_command(rules_group)
 # ---------------------------------------------------------------------------
 try:
     from specsmith.commands.intelligence import (
+        compliance_group,
         datasources_group,
         models_group,
         profiles_group,
         providers_group,
+        session_group,
     )
 
     main.add_command(providers_group)
     main.add_command(profiles_group)
     main.add_command(datasources_group)
     main.add_command(models_group)
+    main.add_command(compliance_group)
+    main.add_command(session_group)
 except Exception:  # noqa: BLE001
     pass  # graceful degradation if commands module has issues
 

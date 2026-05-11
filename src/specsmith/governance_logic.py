@@ -485,6 +485,209 @@ class GovernanceHTTPServer:
 
                 if self.path in ("/health", "/api/health"):
                     self._json_ok({"status": "ok", "version": __version__})
+
+                # ── Session ────────────────────────────────────────────
+                elif self.path == "/api/session":
+                    try:
+                        from specsmith.session_init import init_session
+
+                        ctx = init_session(project_dir)
+                        self._json_ok(ctx.to_dict())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Compliance ─────────────────────────────────────────
+                elif self.path == "/api/compliance/summary":
+                    try:
+                        from specsmith.compliance import get_compliance_summary
+
+                        s = get_compliance_summary(project_dir)
+                        self._json_ok(s.to_dict())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/compliance/gaps":
+                    try:
+                        from specsmith.compliance import get_compliance_summary
+
+                        s = get_compliance_summary(project_dir)
+                        self._json_ok(
+                            {"uncovered": s.uncovered_requirements, "orphaned": s.orphaned_tests}
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/compliance/trace":
+                    try:
+                        from specsmith.compliance import get_compliance_summary
+
+                        s = get_compliance_summary(project_dir)
+                        self._json_ok({"trace_matrix": s.trace_matrix})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Governance ─────────────────────────────────────────
+                elif self.path == "/api/governance/rules":
+                    try:
+                        from specsmith.compliance import get_governance_rules_status
+
+                        self._json_ok({"rules": get_governance_rules_status(project_dir)})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/governance/phase":
+                    try:
+                        from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
+
+                        root = Path(project_dir).resolve()
+                        key = read_phase(root)
+                        phase = PHASE_MAP[key]
+                        self._json_ok(
+                            {
+                                "phase": key,
+                                "label": phase.label,
+                                "emoji": phase.emoji,
+                                "readiness_pct": phase_progress_pct(phase, root),
+                            }
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/governance/audit":
+                    try:
+                        from specsmith.auditor import run_audit
+
+                        report = run_audit(Path(project_dir).resolve())
+                        self._json_ok(
+                            {
+                                "healthy": report.healthy,
+                                "passed": report.passed,
+                                "failed": report.failed,
+                                "results": [
+                                    {"passed": r.passed, "message": r.message}
+                                    for r in report.results
+                                ],
+                            }
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Providers ──────────────────────────────────────────
+                elif self.path == "/api/providers":
+                    try:
+                        from specsmith.agent.provider_registry import ProviderRegistry
+
+                        reg = ProviderRegistry.load()
+                        self._json_ok({"providers": [p.to_public_dict() for p in reg.providers]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Profiles ───────────────────────────────────────────
+                elif self.path == "/api/profiles":
+                    try:
+                        from specsmith.agent.execution_profiles import ExecutionProfileStore
+
+                        store = ExecutionProfileStore.load()
+                        self._json_ok(
+                            {
+                                "profiles": [p.to_dict() for p in store.profiles],
+                                "default": store.default().id,
+                            }
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Model Scores ───────────────────────────────────────
+                elif self.path.startswith("/api/models/scores"):
+                    try:
+                        import urllib.parse as _up
+
+                        from specsmith.agent.model_intelligence import (
+                            BASELINE_SCORES,
+                            rank_models_for_role,
+                        )
+
+                        qs = _up.urlparse(self.path).query
+                        params = _up.parse_qs(qs)
+                        role = params.get("role", ["coder"])[0]
+                        models = list(BASELINE_SCORES.keys())
+                        ranked = rank_models_for_role(role, models)
+                        self._json_ok(
+                            {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]}
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Skills ───────────────────────────────────────────
+                elif self.path == "/api/skills":
+                    try:
+                        from specsmith.skills_builder import list_skills
+
+                        skills = list_skills(project_dir)
+                        self._json_ok({"skills": [s.to_dict() for s in skills]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Eval ────────────────────────────────────────────
+                elif self.path == "/api/eval/suites":
+                    try:
+                        from specsmith.eval.builtins import list_suites
+
+                        suites = list_suites()
+                        self._json_ok({"suites": [s.to_dict() for s in suites]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Teams ───────────────────────────────────────────
+                elif self.path == "/api/teams":
+                    try:
+                        from specsmith.agent.teams import list_teams
+
+                        teams = list_teams()
+                        self._json_ok({"teams": [t.to_dict() for t in teams]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── MCP Servers ─────────────────────────────────────
+                elif self.path == "/api/mcp/servers":
+                    try:
+                        from specsmith.mcp_generator import list_mcp_servers
+
+                        servers = list_mcp_servers(project_dir)
+                        self._json_ok({"servers": [s.to_dict() for s in servers]})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── ESDB ──────────────────────────────────────────────
+                elif self.path == "/api/esdb/status":
+                    try:
+                        from specsmith.esdb.bridge import EsdbBridge
+
+                        bridge = EsdbBridge(project_dir)
+                        self._json_ok(bridge.status().to_dict())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/esdb/counts":
+                    try:
+                        from specsmith.esdb.bridge import EsdbBridge
+
+                        bridge = EsdbBridge(project_dir)
+                        self._json_ok(bridge.record_counts())
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
+                # ── Datasources ────────────────────────────────────────
+                elif self.path == "/api/datasources":
+                    try:
+                        sources = [
+                            {"id": "patentsview", "name": "PatentsView"},
+                            {"id": "ppubs", "name": "Patent Public Search (PPUBS)"},
+                            {"id": "odp", "name": "USPTO Open Data Portal"},
+                            {"id": "pfw", "name": "Patent File Wrapper"},
+                            {"id": "citations", "name": "USPTO Enriched Citations"},
+                            {"id": "fpd", "name": "Final Petition Decisions"},
+                            {"id": "ptab", "name": "USPTO PTAB"},
+                        ]
+                        self._json_ok({"datasources": sources})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
                 else:
                     self.send_error(404)
 
@@ -514,6 +717,11 @@ class GovernanceHTTPServer:
                 elif self.path == "/v1/chat/completions":
                     # Kairos BYOE gateway — intercept, gate, forward.
                     try:
+                        # Detect role from request header or infer from system prompt.
+                        req_role = self.headers.get("X-Specsmith-Role", "")
+                        if not req_role:
+                            req_role = _infer_role_from_messages(body.get("messages") or [])
+
                         result = run_chat_proxy(
                             messages=body.get("messages") or [],
                             model=body.get("model", "kairos"),
@@ -522,10 +730,15 @@ class GovernanceHTTPServer:
                         import json as _j
 
                         raw = _j.dumps(result, ensure_ascii=False).encode()
+                        effective_model = result.get("model", body.get("model", ""))
+                        effective_provider = _resolve_provider_name()
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
                         self.send_header("Content-Length", str(len(raw)))
                         self.send_header("x-kairos-governance", "gated")
+                        self.send_header("X-Specsmith-Role", req_role or "coder")
+                        self.send_header("X-Specsmith-Model", effective_model)
+                        self.send_header("X-Specsmith-Provider", effective_provider)
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         self.wfile.write(raw)
@@ -567,6 +780,54 @@ class GovernanceHTTPServer:
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+
+# Role keywords used by _infer_role_from_messages to detect intent from system prompts.
+_ROLE_KEYWORDS: dict[str, list[str]] = {
+    "coder": ["write code", "implement", "code", "function", "diff"],
+    "architect": ["design", "architecture", "system", "trade-off"],
+    "reviewer": ["review", "feedback", "quality", "pr"],
+    "editor": ["edit", "format", "refactor", "fix"],
+    "researcher": ["research", "documentation", "lookup", "search"],
+    "tester": ["test", "coverage", "assertion", "spec"],
+    "classifier": ["classify", "categorize", "intent"],
+    "strategist": ["strategy", "business", "competitive", "market"],
+    "drafter": ["draft", "specification", "proposal", "report"],
+    "ip-analyst": ["patent", "claims", "prior art", "ip", "freedom"],
+}
+
+
+def _infer_role_from_messages(messages: list[dict[str, Any]]) -> str:
+    """Best-effort role inference from system prompt keywords."""
+    system_text = ""
+    for msg in messages:
+        if isinstance(msg, dict) and msg.get("role") == "system":
+            content = msg.get("content", "")
+            system_text += (content if isinstance(content, str) else str(content)).lower()
+    if not system_text:
+        return "coder"
+    best_role = "coder"
+    best_count = 0
+    for role, keywords in _ROLE_KEYWORDS.items():
+        count = sum(1 for kw in keywords if kw in system_text)
+        if count > best_count:
+            best_count = count
+            best_role = role
+    return best_role
+
+
+def _resolve_provider_name() -> str:
+    """Return the configured AI provider name for attribution headers."""
+    provider = os.environ.get("KAIROS_AI_BASE_URL", "")
+    if not provider:
+        return "specsmith-local"
+    if "openai" in provider:
+        return "openai"
+    if "anthropic" in provider:
+        return "anthropic"
+    if "localhost" in provider or "127.0.0.1" in provider:
+        return "local"
+    return "byoe"
 
 
 def _read_confidence_threshold(root: Path) -> float | None:

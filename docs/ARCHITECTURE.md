@@ -420,3 +420,52 @@ During bootstrap, do not yet implement:
 - hidden background governance loops
 
 Bootstrap is limited to making Specsmith capable of governing its own future development.
+
+## 17. ChronoMemory ESDB
+
+ChronoMemory is a Rust Epistemic State Database engine (`crates/chronomemory/`) that replaces flat JSON state files with governed, replayable, dependency-aware epistemic cognition.
+
+Core modules:
+- `types.rs` — 26 record types (Fact, Hypothesis, Requirement, TestCase, etc.), EsdbId, RecordStatus, Confidence, EdgeType
+- `wal.rs` — append-only WAL with SHA-256 hash chain (Invariant 8)
+- `store.rs` — in-memory materialized state with BTreeMap indexes
+- `projection.rs` — projection engine gating all canonical state transitions (Invariants 1, 3, 4, 5)
+- `dependency.rs` — directed graph with 9 edge types + transitive closure
+- `rollback.rs` — dependency-aware cascade invalidation (Invariants 2, 9)
+- `context_pack.rs` — minimal verified context compiler (Invariant 7)
+- `replay.rs` — deterministic state reconstruction
+- `metrics.rs` — token-per-success optimization
+- `query.rs` — semantic query API
+
+Python bridge: `src/specsmith/esdb/bridge.py` reads `.specsmith/*.json` through ESDB-compatible query interfaces.
+
+REST endpoints: `GET /api/esdb/status`, `GET /api/esdb/counts`.
+
+10 system invariants enforced: anti-hallucination, no-forgetfulness, no-stale-override, no-duplicate-work, stop-on-violation, replay-visible tombstones, dependency-linked actions, replayable state, context-pack freshness, action-linked governance.
+
+## 18. AI Skills Builder
+
+Source: `src/specsmith/skills_builder.py`
+
+Builds agent skills from natural-language descriptions following the SkillNet-style ontology. Each skill is a folder containing `SKILL.md` + `skill.json` with structured metadata: name, purpose, activation rules, input/output schema, epistemic contract, tools used, tests required, stop conditions.
+
+REST endpoint: `GET /api/skills`.
+
+## 19. MCP Server Generator
+
+Source: `src/specsmith/mcp_generator.py`
+
+Auto-scaffolds Model Context Protocol servers from natural-language tool descriptions using the FastMCP pattern. Generates `server.py`, `tool_schema.json`, `README.md` per server. Supports stdio and Streamable HTTP transports.
+
+REST endpoint: `GET /api/mcp/servers`.
+
+## 20. Kairos UX Integration
+
+Kairos Settings pages that expose specsmith features via the governance REST API:
+
+- **Governance page** — specsmith health, BYOE endpoint, project context, updater, bug report links
+- **Compliance page** — requirement coverage, test coverage, gaps, traceability matrix
+- **ESDB page** — ChronoMemory status, record counts, backend type, refresh
+- Skills, Eval, Teams pages consume `GET /api/skills`, `GET /api/eval/suites`, `GET /api/teams`
+
+All pages use async health polling via `GovernanceClient.get_json()` and follow the monolith SettingsWidget pattern.

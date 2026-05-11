@@ -56,7 +56,15 @@ All changes follow: **propose → check → execute → verify → record**.
 - `src/specsmith/epistemic/` — compatibility shim
 - `src/specsmith/integrations/` — agent platform adapters (agent-skill)
 - `src/specsmith/templates/` — Jinja2 scaffold templates
-- `tests/` — 448 tests (pytest)
+- `src/specsmith/esdb/` — ChronoMemory ESDB Python bridge (bridge.py)
+- `src/specsmith/eval/` — Eval-Driven Development framework (builtins, runner)
+- `src/specsmith/skills_builder.py` — AI-powered Skills Builder (SkillNet ontology)
+- `src/specsmith/mcp_generator.py` — MCP Server Generator (FastMCP scaffolding)
+- `src/specsmith/agent/hf_sync.py` — HuggingFace leaderboard sync
+- `src/specsmith/agent/spawner.py` — Sub-agent spawner with role-based tool subsets
+- `src/specsmith/agent/teams.py` — Predefined agent team compositions
+- `crates/chronomemory/` — ChronoMemory ESDB Rust engine (WAL, projection, dependency, rollback, context packs)
+- `tests/` — 582 Python tests + 19 Rust ESDB tests
 - **All governance files live in `docs/`** (except AGENTS.md at root):
 - `docs/SPECSMITH.yml` — project scaffold config (canonical; uppercase like all governance files)
 - `docs/ARCHITECTURE.md` — architecture reference

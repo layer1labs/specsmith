@@ -290,3 +290,127 @@ def models_rank(role: str, provider_type: str) -> None:
     click.echo(f"Top models for '{role}':")
     for model, score in ranked[:10]:
         click.echo(f"  {score:5.1f}  {model}")
+
+
+# ---------------------------------------------------------------------------
+# specsmith compliance
+# ---------------------------------------------------------------------------
+
+
+@click.group("compliance")
+def compliance_group() -> None:
+    """Compliance scoring, gaps, and traceability."""
+
+
+@compliance_group.command("summary")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json-output", "as_json", is_flag=True)
+def compliance_summary(project_dir: str, as_json: bool) -> None:
+    """Show overall compliance score and coverage."""
+    from specsmith.compliance import get_compliance_summary
+
+    s = get_compliance_summary(project_dir)
+    if as_json:
+        click.echo(json.dumps(s.to_dict(), indent=2))
+    else:
+        click.echo(f"  Requirements: {s.covered_requirements}/{s.total_requirements} covered")
+        click.echo(f"  Tests:        {s.total_tests}")
+        click.echo(f"  Coverage:     {s.requirement_coverage_pct}%")
+        click.echo(f"  Score:        {s.compliance_score}%")
+        if s.uncovered_requirements:
+            click.echo(f"  Uncovered:    {', '.join(s.uncovered_requirements[:10])}")
+
+
+@compliance_group.command("gaps")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def compliance_gaps(project_dir: str) -> None:
+    """Show uncovered requirements and orphaned tests."""
+    from specsmith.compliance import get_compliance_summary
+
+    s = get_compliance_summary(project_dir)
+    if s.uncovered_requirements:
+        click.echo(f"Uncovered requirements ({len(s.uncovered_requirements)}):")
+        for r in s.uncovered_requirements:
+            click.echo(f"  \u2717 {r}")
+    else:
+        click.echo("\u2713 All requirements have test coverage.")
+    if s.orphaned_tests:
+        click.echo(f"\nOrphaned tests ({len(s.orphaned_tests)}):")
+        for t in s.orphaned_tests:
+            click.echo(f"  \u26a0 {t}")
+
+
+@compliance_group.command("trace")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json-output", "as_json", is_flag=True)
+def compliance_trace(project_dir: str, as_json: bool) -> None:
+    """Show REQ \u2192 TEST traceability matrix."""
+    from specsmith.compliance import get_compliance_summary
+
+    s = get_compliance_summary(project_dir)
+    if as_json:
+        click.echo(json.dumps(s.trace_matrix, indent=2))
+    else:
+        for entry in s.trace_matrix:
+            icon = "\u2713" if entry["covered"] else "\u2717"
+            tests = ", ".join(entry["tests"]) if entry["tests"] else "(none)"
+            click.echo(f"  {icon} {entry['requirement_id']:<12} \u2192 {tests}")
+
+
+@compliance_group.command("rules")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def compliance_rules(project_dir: str) -> None:
+    """Show governance hard rules status (H1-H14)."""
+    from specsmith.compliance import get_governance_rules_status
+
+    rules = get_governance_rules_status(project_dir)
+    for r in rules:
+        icon = {"ok": "\u2713", "warning": "\u26a0", "violation": "\u2717"}.get(r["status"], "?")
+        click.echo(f"  {icon} {r['id']}: {r['name']}")
+
+
+# ---------------------------------------------------------------------------
+# specsmith session
+# ---------------------------------------------------------------------------
+
+
+@click.group("session")
+def session_group() -> None:
+    """Session lifecycle management."""
+
+
+@session_group.command("info")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json-output", "as_json", is_flag=True)
+def session_info(project_dir: str, as_json: bool) -> None:
+    """Show current session context."""
+    from specsmith.session_init import init_session
+
+    ctx = init_session(project_dir)
+    if as_json:
+        click.echo(json.dumps(ctx.to_dict(), indent=2))
+    else:
+        gov = "\u2713" if ctx.is_governed else "\u2717"
+        click.echo(f"  Project:    {ctx.project_name}")
+        click.echo(f"  Governed:   {gov}")
+        phase = ctx.phase_emoji
+        label = ctx.phase_label
+        pct = ctx.phase_readiness_pct
+        click.echo(f"  Phase:      {phase} {label} ({pct}%)")
+        click.echo(f"  Health:     {ctx.health_score}%")
+        click.echo(f"  Compliance: {ctx.compliance_score}%")
+        click.echo(f"  Profile:    {ctx.active_profile}")
+        rp = ctx.reachable_providers
+        pc = ctx.provider_count
+        click.echo(f"  Providers:  {rp}/{pc} reachable")
+        click.echo(f"  Session:    {ctx.session_id}")
+        if ctx.needs_import:
+            click.echo(
+                "\n  \u26a0 Not a specsmith project. Run 'specsmith import' to add governance."
+            )
+        if ctx.needs_migration:
+            sv = ctx.spec_version
+            iv = ctx.installed_version
+            click.echo(
+                f"\n  \u26a0 Spec version mismatch ({sv} vs {iv}). Run 'specsmith migrate-project'."
+            )
