@@ -8516,13 +8516,271 @@ def esdb_replay_cmd(project_dir: str) -> None:
     console.print(f"[bold]Replay check:[/bold] {st.backend}")
     console.print(f"  Records: {st.record_count}")
     if st.chain_valid:
-        console.print("[green]\u2714[/green] WAL chain valid — state consistent.")
+        console.print("[green]\u2714[/green] WAL chain valid \u2014 state consistent.")
     else:
         console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
 
 
+@esdb_group.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--output",
+    default="",
+    help="Output file path (default: <project>/.specsmith/esdb_export.json)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
+    """Export the full ESDB to a JSON file."""
+    import json as _json
 
->>>>>>> 968261582aa77adba116f3c092ae13c2449a4df8
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() for r in reqs],
+        "testcases": [t.to_dict() for t in tests],
+    }
+    dest = output or str(Path(project_dir).resolve() / ".specsmith" / "esdb_export.json")
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    Path(dest).write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    if as_json:
+        click.echo(_json.dumps({"ok": True, "path": dest, "records": st.record_count}, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Exported {st.record_count} records to {dest}")
+
+
+@esdb_group.command(name="import")
+@click.argument("source")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
+    """Import an ESDB JSON export into the project store."""
+    import json as _json
+
+    src = Path(source)
+    if not src.is_file():
+        console.print(f"[red]File not found:[/red] {source}")
+        raise SystemExit(1)
+    try:
+        data = _json.loads(src.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        console.print(f"[red]Invalid JSON:[/red] {exc}")
+        raise SystemExit(1) from exc
+
+    reqs = data.get("requirements", [])
+    tests = data.get("testcases", [])
+    specsmith_dir = Path(project_dir).resolve() / ".specsmith"
+    specsmith_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write requirements and testcases directly to the live JSON stores.
+    # Existing data is replaced with the imported snapshot.
+    reqs_path = specsmith_dir / "requirements.json"
+    tests_path = specsmith_dir / "testcases.json"
+    reqs_path.write_text(_json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8")
+    tests_path.write_text(_json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    result = {"ok": True, "requirements": len(reqs), "testcases": len(tests)}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]\u2714[/green] Imported {len(reqs)} requirements, {len(tests)} test cases."
+        )
+        console.print(f"  Wrote .specsmith/requirements.json and .specsmith/testcases.json")
+
+
+@esdb_group.command(name="backup")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dir",
+    "backup_dir",
+    default="",
+    help="Directory for backup files (default: .specsmith/backups/)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
+    """Create a timestamped snapshot backup of the ESDB."""
+    import datetime
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest_dir = (
+        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
+    )
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"esdb_backup_{ts}.json"
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "timestamp": ts,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() for r in reqs],
+        "testcases": [t.to_dict() for t in tests],
+    }
+    dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    result = {"ok": True, "path": str(dest), "timestamp": ts, "records": st.record_count}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+
+
+@esdb_group.command(name="rollback")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--steps", default=1, show_default=True, help="Number of backups to roll back (default: 1 = latest backup).")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
+    """Restore the ESDB from the most recent backup snapshot.
+
+    Finds the N-th most recent backup in .specsmith/backups/ (N = --steps)
+    and restores requirements.json + testcases.json from it.
+    """
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    root = Path(project_dir).resolve()
+    backups_dir = root / ".specsmith" / "backups"
+    if not backups_dir.is_dir():
+        result = {"ok": False, "error": "No backups directory found. Run `specsmith esdb backup` first."}
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {result['error']}")
+        raise SystemExit(1)
+
+    backup_files = sorted(backups_dir.glob("esdb_backup_*.json"), reverse=True)
+    if not backup_files:
+        result = {"ok": False, "error": "No backup files found in .specsmith/backups/."}
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {result['error']}")
+        raise SystemExit(1)
+
+    target_idx = min(steps - 1, len(backup_files) - 1)
+    backup_path = backup_files[target_idx]
+
+    try:
+        data = _json.loads(backup_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        result = {"ok": False, "error": f"Cannot read backup {backup_path.name}: {exc}"}
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {result['error']}")
+        raise SystemExit(1) from exc
+
+    reqs = data.get("requirements", [])
+    tests = data.get("testcases", [])
+    specsmith_dir = root / ".specsmith"
+    specsmith_dir.mkdir(parents=True, exist_ok=True)
+    (specsmith_dir / "requirements.json").write_text(
+        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    (specsmith_dir / "testcases.json").write_text(
+        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    # Invalidate the bridge cache so any subsequent bridge calls reflect the restore.
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+
+    result = {
+        "ok": True,
+        "restored_from": backup_path.name,
+        "timestamp": data.get("timestamp", ""),
+        "requirements": len(reqs),
+        "testcases": len(tests),
+        "records_after": st.record_count,
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Restored from backup: [bold]{backup_path.name}[/bold]")
+        console.print(f"  Requirements: {len(reqs)}  \u00b7  Test cases: {len(tests)}")
+
+
+@esdb_group.command(name="compact")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
+    """Compact the ESDB: deduplicate records and remove empty entries.
+
+    Reads .specsmith/requirements.json and .specsmith/testcases.json,
+    deduplicates by ID (last-write-wins), drops records with no ID,
+    and writes the compacted lists back to disk.
+    """
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    specsmith_dir = root / ".specsmith"
+
+    removed_reqs = 0
+    removed_tests = 0
+
+    for filename, kind in (("requirements.json", "requirements"), ("testcases.json", "testcases")):
+        path = specsmith_dir / filename
+        if not path.is_file():
+            continue
+        try:
+            records = _json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(records, list):
+            continue
+        before = len(records)
+        # Deduplicate by ID (last occurrence wins); drop entries with no ID.
+        seen: dict[str, object] = {}
+        for rec in records:
+            if not isinstance(rec, dict):
+                continue
+            rid = rec.get("id") or rec.get("req_id") or ""
+            if not rid:
+                continue
+            seen[rid] = rec
+        compacted = list(seen.values())
+        after = len(compacted)
+        if kind == "requirements":
+            removed_reqs = before - after
+        else:
+            removed_tests = before - after
+        path.write_text(_json.dumps(compacted, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+
+    result = {
+        "ok": True,
+        "backend": st.backend,
+        "records_after": st.record_count,
+        "removed_duplicate_requirements": removed_reqs,
+        "removed_duplicate_testcases": removed_tests,
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        total_removed = removed_reqs + removed_tests
+        console.print(
+            f"[green]\u2714[/green] Compact complete on {st.backend}  "
+            f"({st.record_count} records, {total_removed} duplicates removed)"
+        )
+
+
 main.add_command(esdb_group)
 
 

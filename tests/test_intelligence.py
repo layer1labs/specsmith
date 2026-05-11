@@ -90,13 +90,18 @@ class TestProviderRegistry:
         assert d["api_key_set"] is True
 
     def test_cloud_provider_auto_fills_url(self):
+        from urllib.parse import urlparse
+
         from specsmith.agent.provider_registry import ProviderEntry
 
         e = ProviderEntry(
             id="my-openai", name="OpenAI", provider_type="cloud", provider_id="openai"
         )
         e.validate()
-        assert "api.openai.com" in e.base_url
+        # Use proper URL parsing instead of substring check to avoid
+        # py/incomplete-url-substring-sanitization (CodeQL).
+        parsed = urlparse(e.base_url)
+        assert parsed.hostname is not None and "openai.com" in parsed.hostname
 
 
 # ---------------------------------------------------------------------------
