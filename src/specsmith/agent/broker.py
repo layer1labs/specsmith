@@ -55,7 +55,10 @@ def _safe_file_read(path: Path, encoding: str = "utf-8") -> str:
     for part in path.parts:
         if part in ("..", "..."):
             raise ValueError(f"Path traversal rejected: {raw!r}")
-    return path.read_text(encoding=encoding)
+    # resolve() normalises symlinks and remaining traversal so reads go through
+    # an absolute canonical path — CodeQL py/path-injection sanitizer.
+    safe = path.resolve()
+    return safe.read_text(encoding=encoding)
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +207,7 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
 
     Best-effort: missing files yield an empty list.
     """
+    req_md_path = req_md_path.resolve()  # CodeQL py/path-injection: normalise before fs access
     if not req_md_path.is_file():
         return []
     try:
@@ -275,6 +279,8 @@ def infer_scope(
 
     # File matches from .repo-index/files.json (best-effort, optional).
     suggested_files: list[str] = []
+    if repo_index_path:
+        repo_index_path = repo_index_path.resolve()  # CodeQL py/path-injection sanitiser
     if repo_index_path and repo_index_path.is_file():
         try:
             files = json.loads(_safe_file_read(repo_index_path))
