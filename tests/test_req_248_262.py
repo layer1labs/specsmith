@@ -176,11 +176,13 @@ class TestREQ250EsdbImport:
         assert data["requirements"] == 1
         assert data["testcases"] == 1
 
-    def test_esdb_import_stages_file(self, tmp_path: Path) -> None:
+    def test_esdb_import_writes_to_live_store(self, tmp_path: Path) -> None:
+        """Import now writes directly to requirements.json and testcases.json."""
         export_file = self._make_export(tmp_path)
         _run(["esdb", "import", str(export_file), "--project-dir", str(tmp_path)])
-        staged = tmp_path / ".specsmith" / "esdb_import.json"
-        assert staged.is_file()
+        # Real persistence: files written to the live .specsmith/ store.
+        assert (tmp_path / ".specsmith" / "requirements.json").is_file()
+        assert (tmp_path / ".specsmith" / "testcases.json").is_file()
 
     def test_esdb_import_missing_file_exits_nonzero(self, tmp_path: Path) -> None:
         result = _run(
@@ -266,33 +268,52 @@ class TestREQ251EsdbBackup:
 
 
 class TestREQ252EsdbRollback:
-    """REQ-252: esdb rollback reports WAL events without modifying state."""
+    """REQ-252: esdb rollback restores from the most recent backup."""
+
+    def _make_backup(self, tmp_path: Path) -> None:
+        """Create a backup file so rollback has something to restore from."""
+        _run(["esdb", "backup", "--project-dir", str(tmp_path)])
 
     def test_esdb_rollback_json_flag(self, tmp_path: Path) -> None:
+        self._make_backup(tmp_path)
         result = _run(["esdb", "rollback", "--project-dir", str(tmp_path), "--json"])
         assert result.exit_code == 0, result.output
         data = json.loads(result.output)
         assert data["ok"] is True
-        assert "steps_requested" in data
-        assert "records_before" in data
+        assert "restored_from" in data
+        assert "records_after" in data
 
     def test_esdb_rollback_default_steps(self, tmp_path: Path) -> None:
+        self._make_backup(tmp_path)
         result = _run(["esdb", "rollback", "--project-dir", str(tmp_path), "--json"])
+        assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["steps_requested"] == 1
+        assert data["ok"] is True
+        assert "restored_from" in data
 
     def test_esdb_rollback_custom_steps(self, tmp_path: Path) -> None:
+        # Create 3 backups so --steps 3 can pick the oldest.
+        self._make_backup(tmp_path)
+        self._make_backup(tmp_path)
+        self._make_backup(tmp_path)
         result = _run(
             ["esdb", "rollback", "--project-dir", str(tmp_path), "--steps", "3", "--json"]
         )
+        assert result.exit_code == 0
         data = json.loads(result.output)
-        assert data["steps_requested"] == 3
+        assert data["ok"] is True
 
     def test_esdb_rollback_human_output(self, tmp_path: Path) -> None:
+        self._make_backup(tmp_path)
         result = _run(["esdb", "rollback", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         output_lower = result.output.lower()
-        assert "rollback" in output_lower or "step" in output_lower
+        assert "restor" in output_lower or "backup" in output_lower
+
+    def test_esdb_rollback_no_backups_exits_nonzero(self, tmp_path: Path) -> None:
+        """Rollback with no backup files should exit non-zero."""
+        result = _run(["esdb", "rollback", "--project-dir", str(tmp_path), "--json"])
+        assert result.exit_code != 0
 
 
 # ===========================================================================
@@ -309,18 +330,18 @@ class TestREQ253EsdbCompact:
         data = json.loads(result.output)
         assert data["ok"] is True
         assert "backend" in data
-        assert "records" in data
+        assert "records_after" in data
 
     def test_esdb_compact_human_output(self, tmp_path: Path) -> None:
         result = _run(["esdb", "compact", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "compact" in result.output.lower() or "Compact" in result.output
 
-    def test_esdb_compact_note_in_json(self, tmp_path: Path) -> None:
+    def test_esdb_compact_records_after_in_json(self, tmp_path: Path) -> None:
         result = _run(["esdb", "compact", "--project-dir", str(tmp_path), "--json"])
         data = json.loads(result.output)
-        assert "note" in data
-        assert len(data["note"]) > 0
+        assert "records_after" in data
+        assert isinstance(data["records_after"], int)
 
 
 # ===========================================================================
