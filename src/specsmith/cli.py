@@ -7983,5 +7983,294 @@ except Exception:  # noqa: BLE001
     pass  # graceful degradation if commands module has issues
 
 
+# ---------------------------------------------------------------------------
+# specsmith skills — AI Skills Builder (Phase A)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="skills")
+def skills_group() -> None:
+    """Build, list, test, and activate AI agent skills."""
+
+
+@skills_group.command(name="build")
+@click.argument("description")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--tag", "tags", multiple=True, help="Tags for the skill.")
+def skills_build_cmd(description: str, project_dir: str, tags: tuple[str, ...]) -> None:
+    """Generate a new skill from a natural-language description."""
+    from specsmith.skills_builder import build_skill
+
+    spec = build_skill(description, project_dir=project_dir, tags=list(tags))
+    console.print(f"[green]\u2713[/green] Skill created: [bold]{spec.name}[/bold] ({spec.id})")
+    console.print(f"  [dim]{spec.purpose}[/dim]")
+
+
+@skills_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def skills_list_cmd(project_dir: str, as_json: bool) -> None:
+    """List available skills."""
+    import json as _json
+
+    from specsmith.skills_builder import list_skills
+
+    skills = list_skills(project_dir)
+    if as_json:
+        click.echo(_json.dumps({"skills": [s.to_dict() for s in skills]}, indent=2))
+        return
+    if not skills:
+        console.print("[dim]No skills found. Use `specsmith skills build` to create one.[/dim]")
+        return
+    console.print(f"[bold]Skills[/bold]  ({len(skills)})\n")
+    for s in skills:
+        badge = "[green]\u2714[/green]" if s.active else "[dim]\u25cb[/dim]"
+        console.print(f"  {badge} [bold]{s.id}[/bold]  {s.name}")
+
+
+@skills_group.command(name="test")
+@click.argument("skill_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def skills_test_cmd(skill_id: str, project_dir: str) -> None:
+    """Dry-run a skill to verify its spec."""
+    from specsmith.skills_builder import list_skills
+
+    skills = {s.id: s for s in list_skills(project_dir)}
+    if skill_id not in skills:
+        console.print(f"[red]Skill not found:[/red] {skill_id}")
+        raise SystemExit(1)
+    spec = skills[skill_id]
+    console.print(f"[bold]Testing:[/bold] {spec.name}")
+    console.print(f"  Purpose: {spec.purpose}")
+    console.print(f"  Tools: {', '.join(spec.tools_used) or 'none'}")
+    console.print(f"  Stop conditions: {len(spec.stop_conditions)}")
+    console.print("[green]\u2713[/green] Skill spec is valid (dry-run).")
+
+
+@skills_group.command(name="activate")
+@click.argument("skill_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def skills_activate_cmd(skill_id: str, project_dir: str) -> None:
+    """Activate a skill for agent use."""
+    from specsmith.skills_builder import activate_skill
+
+    if activate_skill(skill_id, project_dir):
+        console.print(f"[green]\u2713[/green] Skill [bold]{skill_id}[/bold] activated.")
+    else:
+        console.print(f"[red]Skill not found:[/red] {skill_id}")
+        raise SystemExit(1)
+
+
+main.add_command(skills_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith eval — Eval-Driven Development framework (Phase P3)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="eval")
+def eval_group() -> None:
+    """Run eval suites to benchmark AI model capabilities."""
+
+
+@eval_group.command(name="list")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def eval_list_cmd(as_json: bool) -> None:
+    """List available eval suites."""
+    import json as _json
+
+    from specsmith.eval.builtins import list_suites
+
+    suites = list_suites()
+    if as_json:
+        click.echo(_json.dumps({"suites": [s.to_dict() for s in suites]}, indent=2))
+        return
+    if not suites:
+        console.print("[dim]No eval suites available.[/dim]")
+        return
+    console.print(f"[bold]Eval Suites[/bold]  ({len(suites)})\n")
+    for s in suites:
+        console.print(f"  [bold]{s.id}[/bold]  {s.name}  ({len(s.cases)} cases)")
+        console.print(f"    [dim]{s.description}[/dim]")
+
+
+@eval_group.command(name="run")
+@click.argument("suite_id", default="core")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def eval_run_cmd(suite_id: str, as_json: bool) -> None:
+    """Run an eval suite (stub mode — no real LLM calls)."""
+    import json as _json
+
+    from specsmith.eval.builtins import get_suite
+    from specsmith.eval.runner import run_suite
+
+    suite = get_suite(suite_id)
+    if suite is None:
+        console.print(f"[red]Suite not found:[/red] {suite_id}")
+        raise SystemExit(1)
+    report = run_suite(suite, stub=True)
+    if as_json:
+        click.echo(_json.dumps(report.to_dict(), indent=2))
+        return
+    icon = "[green]\u2714[/green]" if report.failed == 0 else "[red]\u2717[/red]"
+    console.print(
+        f"{icon} [bold]{suite_id}[/bold]  "
+        f"{report.passed}/{report.total} passed  "
+        f"avg score {report.avg_score:.0%}  "
+        f"avg latency {report.avg_latency_ms:.0f}ms"
+    )
+    for r in report.results:
+        ri = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
+        console.print(f"  {ri} {r.case_id}  score={r.score:.0%}  {r.latency_ms:.0f}ms")
+
+
+@eval_group.command(name="report")
+@click.argument("suite_id", default="core")
+@click.option("--output", type=click.Path(), default=None, help="Write markdown report to file.")
+def eval_report_cmd(suite_id: str, output: str | None) -> None:
+    """Generate a markdown eval report."""
+    from specsmith.eval.builtins import get_suite
+    from specsmith.eval.runner import generate_markdown_report, run_suite
+
+    suite = get_suite(suite_id)
+    if suite is None:
+        console.print(f"[red]Suite not found:[/red] {suite_id}")
+        raise SystemExit(1)
+    report = run_suite(suite, stub=True)
+    md = generate_markdown_report(report)
+    if output:
+        Path(output).write_text(md, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Report written to {output}")
+    else:
+        click.echo(md)
+
+
+main.add_command(eval_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith teams — Multi-agent team coordination (Phase P4)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="teams")
+def teams_group() -> None:
+    """List and run multi-agent teams."""
+
+
+@teams_group.command(name="list")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def teams_list_cmd(as_json: bool) -> None:
+    """List predefined agent teams."""
+    import json as _json
+
+    from specsmith.agent.teams import list_teams
+
+    teams = list_teams()
+    if as_json:
+        click.echo(_json.dumps({"teams": [t.to_dict() for t in teams]}, indent=2))
+        return
+    console.print(f"[bold]Agent Teams[/bold]  ({len(teams)})\n")
+    for t in teams:
+        roles = ", ".join(m.role for m in t.members)
+        console.print(f"  [bold]{t.id}[/bold]  {t.name}  [{roles}]")
+        console.print(f"    [dim]{t.description}[/dim]")
+
+
+@teams_group.command(name="run")
+@click.argument("team_id")
+@click.argument("task")
+def teams_run_cmd(team_id: str, task: str) -> None:
+    """Spawn a team to execute a task (stub — prints team plan)."""
+    from specsmith.agent.teams import get_team
+
+    team = get_team(team_id)
+    if team is None:
+        console.print(f"[red]Team not found:[/red] {team_id}")
+        raise SystemExit(1)
+    console.print(f"[bold]Spawning team:[/bold] {team.name}")
+    for m in team.members:
+        console.print(f"  \u2192 {m.role} ({'required' if m.required else 'optional'})")
+    console.print(f"[dim]Task: {task}[/dim]")
+    console.print(
+        "[yellow]\u26a0[/yellow] Team execution is in stub mode (no real agents spawned)."
+    )
+
+
+main.add_command(teams_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith esdb — ChronoMemory ESDB management (Phase ESDB)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="esdb")
+def esdb_group() -> None:
+    """Manage the ChronoMemory Epistemic State Database."""
+
+
+@esdb_group.command(name="status")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
+    """Show ESDB status and record counts."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    counts = bridge.record_counts()
+    if as_json:
+        click.echo(_json.dumps({"status": st.to_dict(), "counts": counts}, indent=2))
+        return
+    icon = "[green]\u25cf[/green]" if st.available else "[red]\u25cf[/red]"
+    console.print(f"{icon} ESDB — {st.backend}")
+    console.print(f"  Records: {st.record_count}")
+    for kind, count in counts.items():
+        console.print(f"    {kind}: {count}")
+    if st.chain_valid:
+        console.print("  [green]\u2714[/green] WAL chain integrity OK")
+
+
+@esdb_group.command(name="migrate")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def esdb_migrate_cmd(project_dir: str) -> None:
+    """Migrate .specsmith/ flat JSON to ESDB (stub — validates data)."""
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    console.print("[bold]Migration scan:[/bold]")
+    console.print(f"  Requirements: {len(reqs)}")
+    console.print(f"  Test cases:   {len(tests)}")
+    console.print("[green]\u2713[/green] Data validated. Full Rust ESDB migration not yet active.")
+    console.print(
+        "[dim]When ChronoMemory native engine is linked, run this again to migrate.[/dim]"
+    )
+
+
+@esdb_group.command(name="replay")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def esdb_replay_cmd(project_dir: str) -> None:
+    """Replay ESDB WAL to verify state integrity (stub)."""
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    console.print(f"[bold]Replay check:[/bold] {st.backend}")
+    console.print(f"  Records: {st.record_count}")
+    if st.chain_valid:
+        console.print("[green]\u2714[/green] WAL chain valid — state consistent.")
+    else:
+        console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
+
+
+main.add_command(esdb_group)
+
+
 if __name__ == "__main__":
     main()

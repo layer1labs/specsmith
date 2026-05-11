@@ -69,7 +69,7 @@ class EsdbBridge:
         tests = self._load_testcases()
         return EsdbStatus(
             available=True,
-            backend="json-fallback",
+            backend=".specsmith/ JSON (ChronoMemory native pending)",
             record_count=len(reqs) + len(tests),
         )
 
