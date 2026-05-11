@@ -8592,7 +8592,7 @@ def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
         console.print(
             f"[green]\u2714[/green] Imported {len(reqs)} requirements, {len(tests)} test cases."
         )
-        console.print(f"  Wrote .specsmith/requirements.json and .specsmith/testcases.json")
+        console.print("  Wrote .specsmith/requirements.json and .specsmith/testcases.json")
 
 
 @esdb_group.command(name="backup")
@@ -8639,7 +8639,12 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
 
 @esdb_group.command(name="rollback")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--steps", default=1, show_default=True, help="Number of backups to roll back (default: 1 = latest backup).")
+@click.option(
+    "--steps",
+    default=1,
+    show_default=True,
+    help="Number of backups to roll back (1 = latest).",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
 def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     """Restore the ESDB from the most recent backup snapshot.
@@ -8654,7 +8659,10 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     root = Path(project_dir).resolve()
     backups_dir = root / ".specsmith" / "backups"
     if not backups_dir.is_dir():
-        result = {"ok": False, "error": "No backups directory found. Run `specsmith esdb backup` first."}
+        result = {
+            "ok": False,
+            "error": "No backups directory found. Run `specsmith esdb backup` first.",
+        }
         if as_json:
             click.echo(_json.dumps(result, indent=2))
         else:
