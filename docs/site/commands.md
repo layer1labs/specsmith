@@ -1,6 +1,6 @@
 # CLI Commands
 
-specsmith has 40+ commands. Every command that operates on a project accepts `--project-dir PATH` (default: current directory).
+specsmith has 50+ commands. Every command that operates on a project accepts `--project-dir PATH` (default: current directory).
 
 ## `specsmith preflight`
 
