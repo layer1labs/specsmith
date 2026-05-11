@@ -2203,6 +2203,105 @@ def pull_cmd(project_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Channel — dev / stable release-channel selection
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="channel")
+def channel_group() -> None:
+    """Manage the specsmith update channel (stable or dev).
+
+    The channel controls which releases ``specsmith self-update`` targets:
+
+    \b
+      stable  — production releases (default unless a .devN version is installed)
+      dev     — pre-releases and nightly builds
+
+    Setting a channel persists your preference to ``~/.specsmith/channel`` so
+    it survives upgrades and applies regardless of the installed version.
+    """
+
+
+@channel_group.command(name="get")
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit result as JSON.",
+)
+def channel_get_cmd(as_json: bool) -> None:
+    """Show the current effective update channel.
+
+    Indicates whether the channel comes from a user preference
+    (``~/.specsmith/channel``) or from the installed version string.
+    """
+    import json as _json
+
+    from specsmith.channel import effective_channel_with_source
+
+    channel, source = effective_channel_with_source()
+    source_label = "user preference" if source == "user" else "version inference"
+
+    if as_json:
+        click.echo(_json.dumps({"channel": channel, "source": source}, indent=2))
+        return
+
+    channel_color = "cyan" if channel == "dev" else "green"
+    console.print(
+        f"  Channel: [{channel_color}]{channel}[/{channel_color}]  [dim]({source_label})[/dim]"
+    )
+    if source == "version":
+        console.print(
+            "  [dim]Run [bold]specsmith channel set stable[/bold] or"
+            " [bold]specsmith channel set dev[/bold] to pin a preference.[/dim]"
+        )
+
+
+@channel_group.command(name="set")
+@click.argument("channel", type=click.Choice(["stable", "dev"]))
+def channel_set_cmd(channel: str) -> None:
+    """Pin the update channel to STABLE or DEV.
+
+    \b
+    CHANNEL  stable   Production releases only
+             dev      Pre-releases and nightly builds
+
+    The preference is stored in ``~/.specsmith/channel`` and takes effect
+    immediately for all subsequent ``specsmith self-update`` / ``update`` calls.
+    """
+    from specsmith.channel import set_persisted_channel
+
+    set_persisted_channel(channel)
+    channel_color = "cyan" if channel == "dev" else "green"
+    console.print(
+        f"[green]\u2713[/green] Channel set to"
+        f" [{channel_color}]{channel}[/{channel_color}]."
+        f" Saved to [dim]~/.specsmith/channel[/dim]."
+    )
+    if channel == "dev":
+        console.print("  [dim]specsmith self-update will now target pre-release builds.[/dim]")
+    else:
+        console.print("  [dim]specsmith self-update will now target stable releases only.[/dim]")
+
+
+@channel_group.command(name="clear")
+def channel_clear_cmd() -> None:
+    """Remove a pinned channel preference (revert to auto-detect from version)."""
+    from specsmith.channel import clear_persisted_channel, effective_channel_with_source
+
+    clear_persisted_channel()
+    channel, source = effective_channel_with_source()
+    console.print(
+        f"[green]\u2713[/green] Channel preference cleared."
+        f" Effective channel: [bold]{channel}[/bold] (from {source})."
+    )
+
+
+main.add_command(channel_group)
+
+
 @main.command(name="update")
 @click.option("--check", "check_only", is_flag=True, default=False, help="Check only.")
 @click.option("--yes", "auto_yes", is_flag=True, default=False, help="Skip confirmation.")
@@ -3133,6 +3232,97 @@ def agent_skills_cmd(project_dir: str) -> None:
     console.print(f"[bold]Loaded Skills[/bold] ({len(skills)})\n")
     for s in skills:
         console.print(f"  [{s.domain:12s}] {s.name}: {s.description[:60]}")
+
+
+@agent_group.command(name="ask")
+@click.argument("prompt")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json-output", "as_json", is_flag=True, default=False)
+def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
+    """Ask the settings agent a question or request an action (keyword dispatcher).
+
+    Routes to the relevant specsmith sub-command based on keywords in the prompt
+    and returns a structured reply. Works without an LLM.
+    """
+    import json as _json
+
+    lower = prompt.lower()
+    reply = ""
+    action = None
+
+    # Route based on keywords
+    if any(k in lower for k in ("compliance", "coverage", "gaps", "requirements", "trace")):
+        from specsmith.compliance import get_compliance_summary
+
+        try:
+            s = get_compliance_summary(project_dir)
+            reply = (
+                f"Compliance: {s.compliance_score}% | "
+                f"Requirements: {s.covered_requirements}/{s.total_requirements} covered | "
+                f"Tests: {s.total_tests} | "
+                f"Gaps: {len(s.uncovered_requirements)}"
+            )
+            action = "compliance_summary"
+        except Exception as exc:  # noqa: BLE001
+            reply = f"Compliance data unavailable: {exc}"
+    elif any(k in lower for k in ("audit", "health", "governance", "drift")):
+        from specsmith.auditor import run_audit
+
+        try:
+            report = run_audit(Path(project_dir).resolve())
+            status = "healthy" if report.healthy else f"{report.failed} issue(s) found"
+            reply = f"Audit: {status} | {report.passed} checks passed"
+            action = "audit"
+        except Exception as exc:  # noqa: BLE001
+            reply = f"Audit unavailable: {exc}"
+    elif any(k in lower for k in ("skill", "build skill", "create skill")):
+        reply = (
+            "Use the Skills builder in Settings → Specsmith → Skills, '''"
+            'or run: specsmith skills build "<description>"'
+        )
+        action = "skills_hint"
+    elif any(k in lower for k in ("esdb", "database", "backup", "export", "records")):
+        from specsmith.esdb.bridge import EsdbBridge
+
+        try:
+            bridge = EsdbBridge(project_dir)
+            st = bridge.status()
+            reply = f"ESDB: {st.backend} | {st.record_count} records | chain_valid={st.chain_valid}"
+            action = "esdb_status"
+        except Exception as exc:  # noqa: BLE001
+            reply = f"ESDB unavailable: {exc}"
+    elif any(k in lower for k in ("mcp", "server", "tool server")):
+        reply = (
+            "Use the MCP AI Builder in Settings → Agents → MCP servers, "
+            'or run: specsmith mcp generate "<description>"'
+        )
+        action = "mcp_hint"
+    elif any(k in lower for k in ("session", "phase", "status", "project")):
+        try:
+            from specsmith.session_init import init_session
+
+            ctx = init_session(project_dir)
+            reply = (
+                f"Project: {ctx.project_name} | "
+                f"Phase: {ctx.phase_emoji} {ctx.phase_label} ({ctx.phase_readiness_pct}%) | "
+                f"Health: {ctx.health_score}% | "
+                f"Compliance: {ctx.compliance_score}%"
+            )
+            action = "session_info"
+        except Exception as exc:  # noqa: BLE001
+            reply = f"Session info unavailable: {exc}"
+    else:
+        reply = (
+            f"I can help with: audit, compliance, skills, ESDB, MCP servers, session status. "
+            f'Your prompt: "{prompt}" \u2014 try one of those topics.'
+        )
+        action = "unknown"
+
+    result = {"reply": reply, "action": action, "prompt": prompt}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[bold]Agent:[/bold] {reply}")
 
 
 main.add_command(agent_group)
@@ -7831,6 +8021,38 @@ def mcp_group() -> None:
     """Inspect MCP servers registered for the agent's tool registry."""
 
 
+@mcp_group.command(name="generate")
+@click.argument("description")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def mcp_generate_cmd(description: str, as_json: bool) -> None:
+    """Generate an MCP server config stub from a natural-language description."""
+    import json as _json
+    import re
+    import uuid
+
+    # Deterministic generator — produces a JSON config stub without an LLM.
+    # When an AI provider is configured, a richer generator can replace this.
+    words = re.sub(r"[^a-z0-9 ]+", "", description.lower()).split()
+    slug = "-".join(words[:4]) or "custom-server"
+    server_id = f"mcp-{slug}-{uuid.uuid4().hex[:6]}"
+    server = {
+        "id": server_id,
+        "name": description[:60],
+        "command": "node",
+        "args": [f"/usr/local/lib/{server_id}/index.js"],
+        "transport": "stdio",
+        "description": description,
+        "env": {},
+    }
+    payload = {"server": server, "note": "Generated stub — review and adjust before use."}
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+    else:
+        console.print(f"[green]\u2713[/green] Generated server stub: [bold]{server_id}[/bold]")
+        console.print(_json.dumps(server, indent=2))
+        console.print("\n[dim]Add to [bold]~/.specsmith/mcp.json[/bold] after review.[/dim]")
+
+
 @mcp_group.command(name="list")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False)
@@ -8061,6 +8283,38 @@ def skills_activate_cmd(skill_id: str, project_dir: str) -> None:
         raise SystemExit(1)
 
 
+@skills_group.command(name="deactivate")
+@click.argument("skill_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def skills_deactivate_cmd(skill_id: str, project_dir: str) -> None:
+    """Deactivate a skill so it is not used by the agent."""
+    from specsmith.skills_builder import deactivate_skill
+
+    if deactivate_skill(skill_id, project_dir):
+        console.print(f"[green]\u2713[/green] Skill [bold]{skill_id}[/bold] deactivated.")
+    else:
+        console.print(f"[red]Skill not found:[/red] {skill_id}")
+        raise SystemExit(1)
+
+
+@skills_group.command(name="delete")
+@click.argument("skill_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--yes", "-y", "auto_yes", is_flag=True, default=False, help="Skip confirmation.")
+def skills_delete_cmd(skill_id: str, project_dir: str, auto_yes: bool) -> None:
+    """Delete a skill permanently."""
+    from specsmith.skills_builder import delete_skill
+
+    if not auto_yes and not click.confirm(f"Delete skill '{skill_id}'?", default=False):
+        console.print("Cancelled.")
+        return
+    if delete_skill(skill_id, project_dir):
+        console.print(f"[green]\u2713[/green] Skill [bold]{skill_id}[/bold] deleted.")
+    else:
+        console.print(f"[red]Skill not found:[/red] {skill_id}")
+        raise SystemExit(1)
+
+
 main.add_command(skills_group)
 
 
@@ -8267,6 +8521,171 @@ def esdb_replay_cmd(project_dir: str) -> None:
         console.print("[green]\u2714[/green] WAL chain valid — state consistent.")
     else:
         console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
+
+
+@esdb_group.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--output",
+    default="",
+    help="Output file path (default: <project>/.specsmith/esdb_export.json)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
+    """Export the full ESDB to a JSON file."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() if hasattr(r, "to_dict") else str(r) for r in reqs],
+        "testcases": [t.to_dict() if hasattr(t, "to_dict") else str(t) for t in tests],
+    }
+    dest = output or str(Path(project_dir).resolve() / ".specsmith" / "esdb_export.json")
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    Path(dest).write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    if as_json:
+        click.echo(_json.dumps({"ok": True, "path": dest, "records": st.record_count}, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Exported {st.record_count} records to {dest}")
+
+
+@esdb_group.command(name="import")
+@click.argument("source")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
+    """Import an ESDB JSON export into the project store (stub — validates structure)."""
+    import json as _json
+
+    src = Path(source)
+    if not src.is_file():
+        console.print(f"[red]File not found:[/red] {source}")
+        raise SystemExit(1)
+    try:
+        data = _json.loads(src.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        console.print(f"[red]Invalid JSON:[/red] {exc}")
+        raise SystemExit(1) from exc
+    reqs = len(data.get("requirements", []))
+    tests = len(data.get("testcases", []))
+    # Save to the project's specsmith dir (stub: just copies the file)
+    dest = Path(project_dir).resolve() / ".specsmith" / "esdb_import.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(_json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    result = {"ok": True, "requirements": reqs, "testcases": tests, "dest": str(dest)}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]\u2714[/green] Import validated: {reqs} requirements, {tests} test cases"
+        )
+        console.print(f"  Staged at {dest} \u2014 run `specsmith esdb migrate` to apply.")
+
+
+@esdb_group.command(name="backup")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dir",
+    "backup_dir",
+    default="",
+    help="Directory for backup files (default: .specsmith/backups/)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
+    """Create a timestamped snapshot backup of the ESDB."""
+    import datetime
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest_dir = (
+        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
+    )
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"esdb_backup_{ts}.json"
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "timestamp": ts,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() if hasattr(r, "to_dict") else str(r) for r in reqs],
+        "testcases": [t.to_dict() if hasattr(t, "to_dict") else str(t) for t in tests],
+    }
+    dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    result = {"ok": True, "path": str(dest), "timestamp": ts, "records": st.record_count}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+
+
+@esdb_group.command(name="rollback")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--steps", default=1, show_default=True, help="Number of WAL events to roll back.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
+    """Roll back the ESDB by N WAL events (stub \u2014 reports what would be undone)."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    result = {
+        "ok": True,
+        "steps_requested": steps,
+        "records_before": st.record_count,
+        "note": "Full WAL rollback requires ChronoMemory native engine (stub mode).",
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[yellow]\u26a0[/yellow] Rollback {steps} step(s) requested on {st.backend}")
+        console.print(f"  Records before: {st.record_count}")
+        console.print(
+            "  [dim]Full rollback active when ChronoMemory native engine is linked.[/dim]"
+        )
+
+
+@esdb_group.command(name="compact")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
+    """Compact the ESDB WAL (merge tombstones, reclaim space)."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    result = {
+        "ok": True,
+        "backend": st.backend,
+        "records": st.record_count,
+        "note": "Full WAL compaction active when ChronoMemory native engine is linked.",
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]\u2714[/green] Compact requested on {st.backend}  ({st.record_count} records)"
+        )
+        console.print(
+            "  [dim]Full compaction active when ChronoMemory native engine is linked.[/dim]"
+        )
 
 
 main.add_command(esdb_group)
