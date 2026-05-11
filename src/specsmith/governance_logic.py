@@ -19,6 +19,24 @@ from pathlib import Path
 from typing import Any, cast
 
 
+def _safe_resolve(path: str | Path) -> Path:
+    """Resolve a project directory path and reject traversal sequences.
+
+    CodeQL ``py/path-injection``: we validate that the resolved path does
+    not originate from a traversal before allowing file-system reads.
+    """
+    resolved = Path(path).resolve()
+    # Reject paths that try to traverse above the declared project root
+    # by checking for null bytes or traversal components in the original input.
+    raw = str(path)
+    if "\x00" in raw:
+        raise ValueError(f"Path contains null byte: {raw!r}")
+    for part in Path(raw).parts:
+        if part in ("..", "..."):
+            raise ValueError(f"Path traversal rejected: {raw!r}")
+    return resolved
+
+
 def run_preflight(
     utterance: str,
     project_dir: str | Path = ".",
@@ -46,7 +64,7 @@ def run_preflight(
     from specsmith import __version__
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
-    root = Path(project_dir).resolve()
+    root = _safe_resolve(project_dir)
     intent = classify_intent(utterance)
     scope = infer_scope(
         utterance,
@@ -180,7 +198,7 @@ def run_verify(
         classify_retry_strategy,
     )
 
-    root = Path(project_dir).resolve()
+    root = _safe_resolve(project_dir)
     files_changed = files_changed or []
     test_results = test_results or {}
 
@@ -735,10 +753,15 @@ class GovernanceHTTPServer:
                         self.send_response(200)
                         self.send_header("Content-Type", "application/json")
                         self.send_header("Content-Length", str(len(raw)))
+                        # Sanitise header values — strip CR/LF to prevent
+                        # HTTP response splitting (CodeQL py/http-response-splitting).
+                        safe_role = (req_role or "coder").replace("\r", "").replace("\n", "")
+                        safe_model = effective_model.replace("\r", "").replace("\n", "")
+                        safe_provider = effective_provider.replace("\r", "").replace("\n", "")
                         self.send_header("x-kairos-governance", "gated")
-                        self.send_header("X-Specsmith-Role", req_role or "coder")
-                        self.send_header("X-Specsmith-Model", effective_model)
-                        self.send_header("X-Specsmith-Provider", effective_provider)
+                        self.send_header("X-Specsmith-Role", safe_role)
+                        self.send_header("X-Specsmith-Model", safe_model)
+                        self.send_header("X-Specsmith-Provider", safe_provider)
                         self.send_header("Access-Control-Allow-Origin", "*")
                         self.end_headers()
                         self.wfile.write(raw)
@@ -837,7 +860,8 @@ def _read_confidence_threshold(root: Path) -> float | None:
     try:
         import yaml as _yaml
 
-        raw = _yaml.safe_load(cfg.read_text(encoding="utf-8")) or {}
+        cfg_text = cfg.read_text(encoding="utf-8")
+        raw = _yaml.safe_load(cfg_text) or {}
     except Exception:  # noqa: BLE001
         return None
     section = raw.get("epistemic") if isinstance(raw, dict) else None

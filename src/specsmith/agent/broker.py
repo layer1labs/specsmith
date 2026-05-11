@@ -42,6 +42,21 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+
+def _safe_file_read(path: Path, encoding: str = "utf-8") -> str:
+    """Read a file after validating it contains no path-traversal components.
+
+    CodeQL ``py/path-injection``: reject any path whose components include
+    ``..`` or null bytes before performing the read.
+    """
+    raw = str(path)
+    if "\x00" in raw:
+        raise ValueError(f"Path contains null byte: {raw!r}")
+    for part in path.parts:
+        if part in ("..", "..."):
+            raise ValueError(f"Path traversal rejected: {raw!r}")
+    return path.read_text(encoding=encoding)
+
 # ---------------------------------------------------------------------------
 # Intent classification
 # ---------------------------------------------------------------------------
@@ -190,7 +205,10 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
     """
     if not req_md_path.is_file():
         return []
-    text = req_md_path.read_text(encoding="utf-8")
+    try:
+        text = _safe_file_read(req_md_path)
+    except ValueError:
+        return []
     out: list[RequirementSummary] = []
     blocks = re.split(r"^##\s+\d+\.\s+", text, flags=re.MULTILINE)[1:]
     for block in blocks:
@@ -258,8 +276,8 @@ def infer_scope(
     suggested_files: list[str] = []
     if repo_index_path and repo_index_path.is_file():
         try:
-            files = json.loads(repo_index_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            files = json.loads(_safe_file_read(repo_index_path))
+        except (OSError, json.JSONDecodeError, ValueError):
             files = []
         for f in files:
             if not isinstance(f, str):
