@@ -1,7 +1,7 @@
 # specsmith
 
-[![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
-[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=github)](https://github.com/sponsors/BitConcepts)
+[![CI](https://github.com/layer1labs/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/layer1labs/specsmith/actions/workflows/ci.yml)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=github)](https://github.com/sponsors/layer1labs)
 [![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
@@ -28,6 +28,29 @@ specsmith sync                              # sync .specsmith/ from docs/ markdo
 specsmith agent permissions-check git_push # check tool permission (REQ-012)
 specsmith ollama gpu                        # detect GPU VRAM, recommend context size
 specsmith export                            # generate full compliance report
+
+# Update channel management (REQ-248)
+specsmith channel set stable               # pin to stable releases
+specsmith channel set dev                  # opt in to dev/pre-release builds
+specsmith channel get --json               # show current channel + source
+
+# ESDB extended lifecycle (REQ-249..253)
+specsmith esdb export --json               # dump all records to JSON snapshot
+specsmith esdb import backup.json          # validate + stage an import
+specsmith esdb backup                      # create timestamped snapshot
+specsmith esdb rollback --steps 2          # report WAL rollback (stub)
+specsmith esdb compact                     # request WAL compaction
+
+# Skills lifecycle (REQ-254..255)
+specsmith skills deactivate <skill-id>     # set active=false in skill.json
+specsmith skills delete <skill-id> --yes   # permanently remove skill
+
+# MCP config generation (REQ-256)
+specsmith mcp generate "Search USPTO patents" --json  # JSON config stub
+
+# Agent ask dispatcher — no LLM required (REQ-257)
+specsmith agent ask "show esdb status" --json-output
+specsmith agent ask "build skill for summarizing"
 ```
 
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
