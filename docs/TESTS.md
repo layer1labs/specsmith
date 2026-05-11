@@ -2604,3 +2604,212 @@
 - **Input:** expand AI Builder; enter description; click Generate; click Add to config
 - **Expected Behavior:** JSON stub displayed; file updated after add
 - **Confidence:** 0.8
+
+## TEST-263. HF Leaderboard Static Fallback Loads Without Network
+- **ID:** TEST-263
+- **Title:** HF Leaderboard Static Fallback Loads Without Network
+- **Description:** Calling `sync_from_huggingface_blocking(force_static=True)` on an isolated tmp store (no HF network access) returns `{"synced": N, "errors": 0, "message": "...static..."}` with N >= 40 and the store contains scores for "gpt-4o" and "llama3.3:70b".
+- **Requirement ID:** REQ-266
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** isolated ModelScoreStore + force_static=True
+- **Expected Behavior:** synced >= 40; both models present in store
+- **Confidence:** 1.0
+
+## TEST-264. HF Rate-Limit Header Parsing
+- **ID:** TEST-264
+- **Title:** HF Rate-Limit Header Parsing
+- **Description:** `_parse_ratelimit_reset({"RateLimit": '"api";r=5;t=42'})` returns 43.0 (+1 s safety margin). `_parse_ratelimit_reset({})` returns None.
+- **Requirement ID:** REQ-264
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** header string '"api";r=5;t=42'; empty dict
+- **Expected Behavior:** 43.0; None
+- **Confidence:** 1.0
+
+## TEST-265. Bucket Scoring Engine Correct Weights
+- **ID:** TEST-265
+- **Title:** Bucket Scoring Engine Correct Weights
+- **Description:** `_compute_bucket_scores({"ifeval": 80, "bbh": 70, "math": 60, "gpqa": 50, "musr": 40, "mmlu_pro": 30})` returns reasoning == round(0.35*60 + 0.30*50 + 0.25*70 + 0.10*80, 2), conversational == round(0.40*80 + 0.35*30 + 0.25*70, 2), longform == round(0.35*40 + 0.35*80 + 0.30*30, 2).
+- **Requirement ID:** REQ-267
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** benchmark dict with all 6 keys
+- **Expected Behavior:** reasoning==57.5; conversational==67.0; longform==51.0
+- **Confidence:** 1.0
+
+## TEST-266. Model Intelligence Recommendations Returns Top-10
+- **ID:** TEST-266
+- **Title:** Model Intelligence Recommendations Returns Top-10
+- **Description:** `get_recommendations(bucket="reasoning")` on a store with 15 entries returns a list of <=10 items sorted by `reasoning_score` descending. The highest-scoring model is first.
+- **Requirement ID:** REQ-268
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** store with 15 models; bucket=reasoning
+- **Expected Behavior:** list length <= 10; descending order; best model first
+- **Confidence:** 1.0
+
+## TEST-267. Model Intel CLI Scores Subcommand
+- **ID:** TEST-267
+- **Title:** Model Intel CLI Scores Subcommand
+- **Description:** `specsmith model-intel scores --json` exits 0 and returns a dict with key `"scores"` containing a list. `specsmith model-intel scores --model gpt-4o --json` returns `{"score": {...}}` with `"model_name": "gpt-4o"`.
+- **Requirement ID:** REQ-269
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** model-intel scores --json; model-intel scores --model gpt-4o --json
+- **Expected Behavior:** scores list present; specific model score returned
+- **Confidence:** 1.0
+
+## TEST-268. Model Intel CLI Sync Subcommand
+- **ID:** TEST-268
+- **Title:** Model Intel CLI Sync Subcommand
+- **Description:** `specsmith model-intel sync --json` exits 0 and returns `{"synced": N, "errors": 0, "message": "..."}` with N >= 0. The command does NOT fail when HF is unreachable (falls back to static).
+- **Requirement ID:** REQ-269
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** model-intel sync --json (no HF network)
+- **Expected Behavior:** exits 0; synced >= 0; message non-empty
+- **Confidence:** 1.0
+
+## TEST-269. Model Capability Profile Prefix Resolution
+- **ID:** TEST-269
+- **Title:** Model Capability Profile Prefix Resolution
+- **Description:** `get_profile("qwen2.5:14b")` returns a profile with `max_tokens == 4096` and `prompt_style == "sections"`. `get_profile("gpt-4o")` returns `prompt_style == "sections"`. `get_profile("claude-3-5-sonnet-20241022")` returns `prompt_style == "xml"`. `get_profile("unknown-xyz")` returns the default profile.
+- **Requirement ID:** REQ-270
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** four model name strings
+- **Expected Behavior:** correct profile fields; default returned for unknown
+- **Confidence:** 1.0
+
+## TEST-270. Context History Trimmer Preserves System Messages
+- **ID:** TEST-270
+- **Title:** Context History Trimmer Preserves System Messages
+- **Description:** `trim_history([{role:system, content:"S"*5000}, {role:user, content:"U"*4000}, {role:assistant, content:"A"*4000}], budget_chars=4000)` returns a list where system message is intact and older turns are summarised in an assistant summary message.
+- **Requirement ID:** REQ-271
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** messages list exceeding budget; budget_chars=4000
+- **Expected Behavior:** system message preserved; summary assistant message injected
+- **Confidence:** 1.0
+
+## TEST-271. AI Pacer EMA Fields Present in Snapshot
+- **ID:** TEST-271
+- **Title:** AI Pacer EMA Fields Present in Snapshot
+- **Description:** After two `acquire/release` cycles on a pacer with rpm_limit=10, tpm_limit=5000, `snapshot("test-model")` includes keys `"rpm_ema"` and `"tpm_ema"` both >= 0.0 and both < 1.0.
+- **Requirement ID:** REQ-272
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** acquire/release x2 then snapshot
+- **Expected Behavior:** rpm_ema and tpm_ema present, 0 <= v < 1
+- **Confidence:** 1.0
+
+## TEST-272. AI Pacer on_rate_limit Decreases Dynamic Concurrency
+- **ID:** TEST-272
+- **Title:** AI Pacer on_rate_limit Decreases Dynamic Concurrency
+- **Description:** Given a pacer with `max_concurrency=4`, after `on_rate_limit("m", err, attempt=1)` the dynamic concurrency in `snapshot()` decreases by 1 (min 1) and the returned delay is > 0.
+- **Requirement ID:** REQ-273
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** on_rate_limit on pacer with max_concurrency=4
+- **Expected Behavior:** dynamic_concurrency reduced; delay > 0
+- **Confidence:** 1.0
+
+## TEST-273. AI Pacer Image Token Estimation
+- **ID:** TEST-273
+- **Title:** AI Pacer Image Token Estimation
+- **Description:** `estimate_request_tokens(model="m", prompt="hello", image_count=2)` returns a value >= 2 * 4096 (the default image_token_estimate). With `image_count=0` the result equals the text token estimate only.
+- **Requirement ID:** REQ-274
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** estimate with image_count=2; estimate with image_count=0
+- **Expected Behavior:** image count adds 8192 tokens; text-only estimate returned for 0 images
+- **Confidence:** 1.0
+
+## TEST-274. LLM Client Fallback on 429
+- **ID:** TEST-274
+- **Title:** LLM Client Fallback on 429
+- **Description:** `LLMClient([FailingProvider(429), MockProvider("ok")])`.chat([{role:user,content:"hi"}]) returns an LLMResult from MockProvider without raising. A `FailingProvider(401)` also triggers fallback.
+- **Requirement ID:** REQ-275
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** LLMClient with failing primary and mock fallback
+- **Expected Behavior:** MockProvider result returned; no exception
+- **Confidence:** 1.0
+
+## TEST-275. LLM Client O-Series Parameter Translation
+- **ID:** TEST-275
+- **Title:** LLM Client O-Series Parameter Translation
+- **Description:** When `model="o3-mini"` is used, the outgoing request body captured by a capturing mock must contain `"max_completion_tokens"` (not `"max_tokens"`), `"temperature": 1`, and any system message must have `"role": "developer"`.
+- **Requirement ID:** REQ-276
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** LLMClient with capturing mock; messages=[{role:system,...},{role:user,...}]; model=o3-mini
+- **Expected Behavior:** max_completion_tokens present; temperature==1; role==developer
+- **Confidence:** 1.0
+
+## TEST-276. LLM Client vLLM Guided-JSON Payload
+- **ID:** TEST-276
+- **Title:** LLM Client vLLM Guided-JSON Payload
+- **Description:** When provider_type is `byoe` and a `json_schema` dict is passed, the outgoing request body must contain `"guided_json"` and `"chat_template_kwargs": {"enable_thinking": false}`.
+- **Requirement ID:** REQ-277
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** byoe provider; json_schema={"type":"object"}; capturing mock
+- **Expected Behavior:** guided_json present; chat_template_kwargs.enable_thinking==false
+- **Confidence:** 1.0
+
+## TEST-277. Endpoint Preset Registry Contains Required Presets
+- **ID:** TEST-277
+- **Title:** Endpoint Preset Registry Contains Required Presets
+- **Description:** `ENDPOINT_PRESETS` contains entries with ids including `vllm`, `lm_studio`, `llama_cpp`, `openrouter`, `together`, `groq`, `fireworks`, `deepinfra`, `perplexity`, `azure_openai`. Each entry has `id`, `label`, `base_url`, `endpoint_kind`, `needs_key`.
+- **Requirement ID:** REQ-278
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** import ENDPOINT_PRESETS
+- **Expected Behavior:** 10+ entries; all required preset ids present
+- **Confidence:** 1.0
+
+## TEST-278. Endpoint Probe Returns models_detail With context_length
+- **ID:** TEST-278
+- **Title:** Endpoint Probe Returns models_detail With context_length
+- **Description:** `probe_openai_compatible()` against a stub HTTP server returning `{"data": [{"id": "m", "max_model_len": 131072}]}` includes `models_detail[0]["context_length"] == 131072` in the result.
+- **Requirement ID:** REQ-279
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** httpserver stub returning vLLM-style /v1/models response
+- **Expected Behavior:** models_detail[0].context_length == 131072
+- **Confidence:** 1.0
+
+## TEST-279. Suggested Profiles Inspects Cloud Env
+- **ID:** TEST-279
+- **Title:** Suggested Profiles Inspects Cloud Env
+- **Description:** `suggest_profiles()` with `OPENAI_API_KEY` set in environment returns at least 3 suggestions of `provider_type=="cloud"` covering distinct roles. Suggestions MUST include `reasoning`, `conversational`, or `longform` in their notes or tags.
+- **Requirement ID:** REQ-280
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** OPENAI_API_KEY in env; no Ollama; no BYOE providers
+- **Expected Behavior:** >= 3 cloud suggestions; distinct roles; inert (not persisted)
+- **Confidence:** 1.0
+
+## TEST-280. Kairos Model Intel Governance Endpoint
+- **ID:** TEST-280
+- **Title:** Kairos Model Intel Governance Endpoint
+- **Description:** The specsmith governance HTTP server (GovernanceHTTPServer) exposes `GET /api/model-intel/scores` returning `{"scores": [...]}` and `GET /api/model-intel/recommendations` returning `{"recommendations": [...], "bucket": "reasoning"}`.
+- **Requirement ID:** REQ-268
+- **Type:** integration
+- **Verification Method:** pytest (HTTP client against test server)
+- **Input:** GET /api/model-intel/scores; GET /api/model-intel/recommendations
+- **Expected Behavior:** 200 with correct JSON shapes
+- **Confidence:** 1.0
+
+## TEST-281. Kairos AI Providers Bucket Score Section Compiles
+- **ID:** TEST-281
+- **Title:** Kairos AI Providers Bucket Score Section Compiles
+- **Description:** The updated `ai_providers_page.rs` in Kairos compiles without errors under `cargo check --package kairos`. The file must contain `model_intel` function call or `bucket_score` field rendering code.
+- **Requirement ID:** REQ-281
+- **Type:** build
+- **Verification Method:** cargo check
+- **Input:** cargo check --package kairos
+- **Expected Behavior:** exit 0; no compile errors
+- **Confidence:** 1.0
