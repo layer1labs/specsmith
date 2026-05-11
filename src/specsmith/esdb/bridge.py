@@ -29,13 +29,17 @@ class EsdbRecord:
 
     def to_dict(self) -> dict[str, Any]:
         """Return the original source data dict (used for export/backup)."""
-        return self.data if self.data else {
-            "id": self.id,
-            "kind": self.kind,
-            "status": self.status,
-            "confidence": self.confidence,
-            "label": self.label,
-        }
+        return (
+            self.data
+            if self.data
+            else {
+                "id": self.id,
+                "kind": self.kind,
+                "status": self.status,
+                "confidence": self.confidence,
+                "label": self.label,
+            }
+        )
 
 
 @dataclass

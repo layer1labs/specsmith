@@ -57,6 +57,7 @@ def _safe_file_read(path: Path, encoding: str = "utf-8") -> str:
             raise ValueError(f"Path traversal rejected: {raw!r}")
     return path.read_text(encoding=encoding)
 
+
 # ---------------------------------------------------------------------------
 # Intent classification
 # ---------------------------------------------------------------------------
