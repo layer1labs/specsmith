@@ -2439,3 +2439,168 @@
 - **Input:** limit=4096, used=3600
 - **Expected Behavior:** raises ContextFullError with pct >= 85
 - **Confidence:** 1.0
+
+## TEST-248. Dev/Stable Channel Persistence CLI Round-trip
+- **ID:** TEST-248
+- **Title:** Dev/Stable Channel Persistence CLI Round-trip
+- **Description:** specsmith channel set dev persists the preference; channel get --json returns channel==dev source==user; channel clear reverts source to version.
+- **Requirement ID:** REQ-248
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ248ChannelCLI, test_channel.py)
+- **Input:** channel set dev; channel get --json; channel clear; channel get --json
+- **Expected Behavior:** persisted channel returned; source=="user" then reverts to "version"
+- **Confidence:** 1.0
+
+## TEST-249. ESDB Export Creates Versioned JSON File
+- **ID:** TEST-249
+- **Title:** ESDB Export Creates Versioned JSON File
+- **Description:** specsmith esdb export --json exits 0, returns ok==true + path; the written file contains esdb_version==1, backend, record_count, requirements, testcases.
+- **Requirement ID:** REQ-249
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ249EsdbExport)
+- **Input:** esdb export --project-dir <tmp> --json
+- **Expected Behavior:** ok==true; file written with required keys
+- **Confidence:** 1.0
+
+## TEST-250. ESDB Import Validates and Stages JSON
+- **ID:** TEST-250
+- **Title:** ESDB Import Validates and Stages JSON
+- **Description:** specsmith esdb import <file> --json exits 0 for valid JSON export, staging it at .specsmith/esdb_import.json. Exits non-zero for missing or invalid JSON files.
+- **Requirement ID:** REQ-250
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ250EsdbImport)
+- **Input:** esdb import <valid-export.json>; esdb import <nonexistent>; esdb import <bad-json>
+- **Expected Behavior:** staged on success; non-zero on missing/invalid file
+- **Confidence:** 1.0
+
+## TEST-251. ESDB Backup Creates Timestamped Snapshot
+- **ID:** TEST-251
+- **Title:** ESDB Backup Creates Timestamped Snapshot
+- **Description:** specsmith esdb backup --json exits 0, creates a file matching esdb_backup_\d{8}T\d{6}Z.json with all required payload keys.
+- **Requirement ID:** REQ-251
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ251EsdbBackup)
+- **Input:** esdb backup --project-dir <tmp> --json
+- **Expected Behavior:** file created; timestamp matches YYYYMMDDTHHMMSSZ format
+- **Confidence:** 1.0
+
+## TEST-252. ESDB Rollback Reports Steps Without State Change
+- **ID:** TEST-252
+- **Title:** ESDB Rollback Reports Steps Without State Change
+- **Description:** specsmith esdb rollback --steps N --json exits 0 and returns ok==true, steps_requested==N, records_before. State is unchanged (stub mode).
+- **Requirement ID:** REQ-252
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ252EsdbRollback)
+- **Input:** esdb rollback --steps 3 --json
+- **Expected Behavior:** steps_requested==3; ok==true; no error
+- **Confidence:** 1.0
+
+## TEST-253. ESDB Compact Returns OK With Note
+- **ID:** TEST-253
+- **Title:** ESDB Compact Returns OK With Note
+- **Description:** specsmith esdb compact --json exits 0 and returns ok==true, backend, records, note. Human-readable output contains "compact".
+- **Requirement ID:** REQ-253
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ253EsdbCompact)
+- **Input:** esdb compact --project-dir <tmp> --json
+- **Expected Behavior:** ok==true; note present and non-empty
+- **Confidence:** 1.0
+
+## TEST-254. Skills Deactivate Sets active=false
+- **ID:** TEST-254
+- **Title:** Skills Deactivate Sets active=false
+- **Description:** After skills activate <id>, skills deactivate <id> exits 0 and the skill's skill.json has active==false. Non-existent skill exits non-zero.
+- **Requirement ID:** REQ-254
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ254SkillsDeactivate, TestSkillsBuilderDeactivateDelete)
+- **Input:** skills activate <id>; skills deactivate <id>; read skill.json
+- **Expected Behavior:** active==false in skill.json; exit 0
+- **Confidence:** 1.0
+
+## TEST-255. Skills Delete Removes Directory
+- **ID:** TEST-255
+- **Title:** Skills Delete Removes Directory
+- **Description:** skills delete <id> --yes exits 0 and permanently removes the skill directory. Non-existent skill exits non-zero. Sibling skills are preserved.
+- **Requirement ID:** REQ-255
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ255SkillsDelete, TestSkillsBuilderDeactivateDelete)
+- **Input:** skills delete <id> --yes
+- **Expected Behavior:** directory removed; siblings untouched; non-zero for missing
+- **Confidence:** 1.0
+
+## TEST-256. MCP Generate Produces Stub With Required Fields
+- **ID:** TEST-256
+- **Title:** MCP Generate Produces Stub With Required Fields
+- **Description:** mcp generate <desc> --json exits 0 and returns a dict containing id, name, command, args (in server sub-object or flat). Description field is stable; different descriptions produce different descriptions.
+- **Requirement ID:** REQ-256
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ256McpGenerate)
+- **Input:** mcp generate "Search USPTO patents by keyword" --json
+- **Expected Behavior:** JSON dict with id/name/command/args present
+- **Confidence:** 1.0
+
+## TEST-257. Agent Ask Routes By Keyword And Returns Structured Output
+- **ID:** TEST-257
+- **Title:** Agent Ask Routes By Keyword And Returns Structured Output
+- **Description:** gent ask <prompt> --json-output exits 0 and returns {reply, action, prompt}. Keywords esdb/mcp/skill/compliance route to appropriate actions. Unknown prompt routes to action=="unknown".
+- **Requirement ID:** REQ-257
+- **Type:** cli
+- **Verification Method:** pytest (test_req_248_262.py::TestREQ257AgentAsk)
+- **Input:** agent ask "show esdb status" --json-output; agent ask "xyzzy" --json-output
+- **Expected Behavior:** action=="esdb_status" or "unknown"; reply non-empty; prompt echoed
+- **Confidence:** 1.0
+
+## TEST-258. Kairos ESDB Settings Page Renders Without Overflow
+- **ID:** TEST-258
+- **Title:** Kairos ESDB Settings Page Renders Without Overflow
+- **Description:** The Kairos Settings > Specsmith > ESDB page renders the status row, action buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without layout errors.
+- **Requirement ID:** REQ-258
+- **Type:** integration
+- **Verification Method:** manual (Rust UI build required)
+- **Input:** navigate to Settings > Specsmith > ESDB
+- **Expected Behavior:** all buttons visible; status text displayed
+- **Confidence:** 0.8
+
+## TEST-259. Kairos Skills Settings Page Renders
+- **ID:** TEST-259
+- **Title:** Kairos Skills Settings Page Renders
+- **Description:** The Kairos Settings > Specsmith > Skills page renders header, description, and CLI hint without errors.
+- **Requirement ID:** REQ-259
+- **Type:** integration
+- **Verification Method:** manual (Rust UI build required)
+- **Input:** navigate to Settings > Specsmith > Skills
+- **Expected Behavior:** page content displayed without crash
+- **Confidence:** 0.8
+
+## TEST-260. Kairos Eval Settings Page Renders
+- **ID:** TEST-260
+- **Title:** Kairos Eval Settings Page Renders
+- **Description:** The Kairos Settings > Specsmith > Eval page renders header, description, and CLI hint without errors.
+- **Requirement ID:** REQ-260
+- **Type:** integration
+- **Verification Method:** manual (Rust UI build required)
+- **Input:** navigate to Settings > Specsmith > Eval
+- **Expected Behavior:** page content displayed without crash
+- **Confidence:** 0.8
+
+## TEST-261. Kairos AI Providers Table Does Not Overflow Long Model Names
+- **ID:** TEST-261
+- **Title:** Kairos AI Providers Table Does Not Overflow Long Model Names
+- **Description:** In the Kairos Agents > Providers table, the model name "o4-mini-deep-research" is clipped to its column width (200px) and does not bleed into the Model ID column.
+- **Requirement ID:** REQ-261
+- **Type:** integration
+- **Verification Method:** manual (Rust UI build + visual inspection)
+- **Input:** navigate to Agents > Providers; observe o4-mini-deep-research row
+- **Expected Behavior:** text clipped; no horizontal overlap with adjacent column
+- **Confidence:** 0.8
+
+## TEST-262. Kairos MCP AI Builder Card Generates And Saves Stub
+- **ID:** TEST-262
+- **Title:** Kairos MCP AI Builder Card Generates And Saves Stub
+- **Description:** In the Kairos Agents > MCP servers list, the AI Builder card accepts a description, generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json on 'Add to config' click.
+- **Requirement ID:** REQ-262
+- **Type:** integration
+- **Verification Method:** manual (Rust UI build required)
+- **Input:** expand AI Builder; enter description; click Generate; click Add to config
+- **Expected Behavior:** JSON stub displayed; file updated after add
+- **Confidence:** 0.8
