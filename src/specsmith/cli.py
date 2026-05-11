@@ -8313,6 +8313,8 @@ def skills_delete_cmd(skill_id: str, project_dir: str, auto_yes: bool) -> None:
     else:
         console.print(f"[red]Skill not found:[/red] {skill_id}")
         raise SystemExit(1)
+
+
 main.add_command(skills_group)
 
 
