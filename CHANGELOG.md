@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-05-11
+### Added
+- **`specsmith channel` group (REQ-248)** — `channel set {stable|dev}`, `channel get [--json]`, `channel clear`. Persists preferred update channel to `~/.specsmith/channel`; `self-update` and project-update checks honour the resolved channel.
+- **ESDB extended lifecycle (REQ-249..253)** — five new `esdb` subcommands with `--json` flag:
+  - `esdb export [--output PATH]` — JSON snapshot of all records.
+  - `esdb import <source>` — validate + stage a JSON export.
+  - `esdb backup [--dir DIR]` — timestamped snapshot (ISO UTC filename).
+  - `esdb rollback [--steps N]` — WAL rollback report (stub mode).
+  - `esdb compact` — WAL compaction request (stub mode).
+- **Skills lifecycle (REQ-254..255)** — two new `skills` subcommands:
+  - `skills deactivate <skill-id>` — set `active: false` in `skill.json`.
+  - `skills delete <skill-id> [--yes]` — permanently remove skill directory.
+- **`specsmith mcp generate <description> [--json]` (REQ-256)** — deterministic MCP server config stub from natural-language description.
+- **`specsmith agent ask <prompt> [--json-output]` (REQ-257)** — keyword dispatcher routes compliance/audit/skills/esdb/mcp/session queries without an LLM.
+- **Kairos settings integration (REQ-258..262)** — Specsmith umbrella in sidebar (ESDB, Skills, Eval pages), AI Providers table with column clipping, MCP AI Builder card.
+- **60 new pytest tests** (`tests/test_req_248_262.py`) — regression coverage for REQ-248..257; Kairos UI tests registered as xfail.
+- **docs/REQUIREMENTS.md** — REQ-248..REQ-262 defined and linked to architecture.
+- **docs/TESTS.md** — TEST-248..TEST-262 with pytest cross-references.
+- **ARCHITECTURE.md** — new sections: Update Channel, AI Skills Builder Phase A, ESDB Extended, MCP Generator, Agent Ask Dispatcher, Kairos Settings Extensions.
+- **docs/site/commands.md** — documented `channel`, extended `esdb`, extended `skills`, `mcp generate`, `agent ask`.
+### Changed
+- CI badge and sponsor links updated from `BitConcepts` → `layer1labs`.
+- Kairos repo migrated to `layer1labs/kairos`; specsmith repo to `layer1labs/specsmith`.
+- `specsmith-vscode` extension deprecated; Kairos is the flagship client.
+### Validation
+- `pytest`: **669 passed, 2 skipped, 5 xfailed**.
+- `ruff check` + `ruff format --check`: clean.
+- `api-surface` snapshot: updated.
+
 ## [0.11.0] — 2026-05-07
 ### Added
 - **Governance structure overhaul** — all governance files (REQUIREMENTS.md, TESTS.md, LEDGER.md, scaffold config) moved to `docs/`; `AGENTS.md` remains the only root-level governance file. Backward compatibility preserved via `find_scaffold()` / `find_ledger()` helpers.

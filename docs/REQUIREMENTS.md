@@ -1697,3 +1697,109 @@
 - **Description:** The context window MUST NEVER be allowed to reach 100% fill. A hard reservation of 15% (or MIN_FREE_TOKENS=2048, whichever is more restrictive) MUST remain free. When fill reaches the hard ceiling (default 85%), ContextFullError MUST be raised and emergency compression triggered regardless of the auto-compress toggle.
 - **Source:** Plan 0ca40db4 [CTX-004]
 - **Status:** defined
+
+## 248. Dev/Stable Update Channel Persistence
+- **ID:** REQ-248
+- **Title:** Dev/Stable Update Channel Persistence
+- **Description:** specsmith MUST persist a user-chosen update channel (stable or dev) to ~/.specsmith/channel. specsmith channel set {stable|dev} writes the file; channel clear removes it. effective_channel_with_source() MUST return (channel, source) where source is user when the file exists, otherwise ersion derived from the installed version string (.devN suffix ? dev, else stable).
+- **Source:** ARCHITECTURE.md [Update Channel Selection]
+- **Status:** implemented
+
+## 249. ESDB JSON Export Command
+- **ID:** REQ-249
+- **Title:** ESDB JSON Export Command
+- **Description:** specsmith esdb export [--output PATH] [--json] MUST dump all ESDB records (requirements and testcases) to a versioned JSON payload at the specified path, or default to <project>/.specsmith/esdb_export.json. Output includes esdb_version, ackend, ecord_count, equirements, and 	estcases arrays.
+- **Source:** ARCHITECTURE.md [ESDB Extended Management]
+- **Status:** implemented
+
+## 250. ESDB JSON Import Command
+- **ID:** REQ-250
+- **Title:** ESDB JSON Import Command
+- **Description:** specsmith esdb import <source> [--json] MUST validate a JSON export file (checking for equirements and 	estcases keys), stage it at .specsmith/esdb_import.json, and report counts. It MUST NOT apply the import automatically; specsmith esdb migrate applies staged data.
+- **Source:** ARCHITECTURE.md [ESDB Extended Management]
+- **Status:** implemented
+
+## 251. ESDB Timestamped Backup Command
+- **ID:** REQ-251
+- **Title:** ESDB Timestamped Backup Command
+- **Description:** specsmith esdb backup [--dir DIR] [--json] MUST create a timestamped snapshot at <dir>/esdb_backup_<YYYYMMDDTHHMMSSZ>.json (default dir: .specsmith/backups/). The snapshot payload MUST include esdb_version, 	imestamp, ackend, ecord_count, equirements, and 	estcases.
+- **Source:** ARCHITECTURE.md [ESDB Extended Management]
+- **Status:** implemented
+
+## 252. ESDB WAL Rollback Command
+- **ID:** REQ-252
+- **Title:** ESDB WAL Rollback Command
+- **Description:** specsmith esdb rollback [--steps N] [--json] MUST report the number of WAL events that would be undone. In stub mode (ChronoMemory native engine not linked) it MUST return {ok: true, steps_requested: N, records_before: N, note: "..."} without modifying state.
+- **Source:** ARCHITECTURE.md [ESDB Extended Management]
+- **Status:** implemented
+
+## 253. ESDB WAL Compact Command
+- **ID:** REQ-253
+- **Title:** ESDB WAL Compact Command
+- **Description:** specsmith esdb compact [--json] MUST request WAL compaction. In stub mode it MUST return {ok: true, backend: "...", records: N, note: "..."} without error.
+- **Source:** ARCHITECTURE.md [ESDB Extended Management]
+- **Status:** implemented
+
+## 254. Skills Deactivate Command
+- **ID:** REQ-254
+- **Title:** Skills Deactivate Command
+- **Description:** specsmith skills deactivate <skill-id> [--project-dir DIR] MUST set ctive: false in the skill's skill.json, return True on success, and exit non-zero with an error message if the skill is not found.
+- **Source:** ARCHITECTURE.md [AI Skills Builder]
+- **Status:** implemented
+
+## 255. Skills Delete Command
+- **ID:** REQ-255
+- **Title:** Skills Delete Command
+- **Description:** specsmith skills delete <skill-id> [--project-dir DIR] [--yes] MUST prompt for confirmation unless --yes is provided, then permanently remove the skill directory under .specsmith/skills/. Returns non-zero if the skill is not found.
+- **Source:** ARCHITECTURE.md [AI Skills Builder]
+- **Status:** implemented
+
+## 256. MCP Server Config Generation Command
+- **ID:** REQ-256
+- **Title:** MCP Server Config Generation Command
+- **Description:** specsmith mcp generate <description> [--json] MUST produce a deterministic MCP server configuration stub with id, 
+ame, command, and rgs fields derived from the description. The stub MUST be valid JSON ready to append to ~/.specsmith/mcp.json.
+- **Source:** ARCHITECTURE.md [MCP Server Generator]
+- **Status:** implemented
+
+## 257. Agent Ask Keyword Dispatcher
+- **ID:** REQ-257
+- **Title:** Agent Ask Keyword Dispatcher
+- **Description:** specsmith agent ask <prompt> [--project-dir DIR] [--json-output] MUST route prompts to the appropriate subsystem by keyword matching (compliance, audit, skill, esdb, mcp, session) without requiring an LLM. It MUST return {reply, action, prompt} and print human-readable output unless --json-output is set.
+- **Source:** ARCHITECTURE.md [Agent Ask Dispatcher]
+- **Status:** implemented
+
+## 258. Kairos ESDB Settings Page
+- **ID:** REQ-258
+- **Title:** Kairos ESDB Settings Page
+- **Description:** The Kairos settings sidebar MUST include an ESDB page under the Specsmith umbrella group. The page MUST display current ESDB status (record count, backend, chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup, Rollback, and Compact.
+- **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
+- **Status:** implemented
+
+## 259. Kairos Skills Settings Page
+- **ID:** REQ-259
+- **Title:** Kairos Skills Settings Page
+- **Description:** The Kairos settings sidebar MUST include a Skills page under the Specsmith umbrella group. The page MUST display a description of the Skills system and instructions for using specsmith skills build and related commands.
+- **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
+- **Status:** implemented
+
+## 260. Kairos Eval Settings Page
+- **ID:** REQ-260
+- **Title:** Kairos Eval Settings Page
+- **Description:** The Kairos settings sidebar MUST include an Eval page under the Specsmith umbrella group. The page MUST describe the evaluation tracking system and direct users to specsmith eval run for generating reports.
+- **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
+- **Status:** implemented
+
+## 261. Kairos AI Providers Table Without Column Overflow
+- **ID:** REQ-261
+- **Title:** Kairos AI Providers Table Without Column Overflow
+- **Description:** The Kairos Agents > Providers settings page MUST display AI models in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research MUST NOT overflow into adjacent columns.
+- **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
+- **Status:** implemented
+
+## 262. Kairos MCP AI Builder Card
+- **ID:** REQ-262
+- **Title:** Kairos MCP AI Builder Card
+- **Description:** The Kairos Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.
+- **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
+- **Status:** implemented

@@ -190,4 +190,39 @@ def activate_skill(skill_id: str, project_dir: str = ".") -> bool:
         return False
 
 
-__all__ = ["SkillSpec", "activate_skill", "build_skill", "list_skills"]
+def deactivate_skill(skill_id: str, project_dir: str = ".") -> bool:
+    """Deactivate a skill by ID."""
+    meta_path = Path(project_dir).resolve() / ".specsmith" / "skills" / skill_id / "skill.json"
+    if not meta_path.is_file():
+        return False
+    try:
+        raw = json.loads(meta_path.read_text(encoding="utf-8"))
+        raw["active"] = False
+        meta_path.write_text(json.dumps(raw, indent=2, ensure_ascii=False), encoding="utf-8")
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def delete_skill(skill_id: str, project_dir: str = ".") -> bool:
+    """Delete a skill and its directory."""
+    import shutil
+
+    skill_dir = Path(project_dir).resolve() / ".specsmith" / "skills" / skill_id
+    if not skill_dir.is_dir():
+        return False
+    try:
+        shutil.rmtree(skill_dir)
+        return True
+    except OSError:
+        return False
+
+
+__all__ = [
+    "SkillSpec",
+    "activate_skill",
+    "build_skill",
+    "deactivate_skill",
+    "delete_skill",
+    "list_skills",
+]

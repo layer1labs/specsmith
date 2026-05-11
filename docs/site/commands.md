@@ -708,3 +708,119 @@ specsmith workspace export --dir ./my-org --output compliance.md
 specsmith --version
 # specsmith, version {{ version }}
 ```
+
+## `specsmith channel` (REQ-248)
+
+Manage the specsmith update channel. The channel controls whether `specsmith self-update` targets stable releases or dev/pre-release builds. Persisted to `~/.specsmith/channel`.
+
+```bash
+specsmith channel get              # show effective channel + source
+specsmith channel get --json       # JSON: {"channel": "stable", "source": "version"}
+specsmith channel set stable       # pin to stable releases
+specsmith channel set dev          # opt in to dev/pre-release builds
+specsmith channel clear            # remove persisted preference (revert to auto-detect)
+```
+
+**Source values:** `user` when a preference file exists; `version` when inferred from the installed version string (`.devN` suffix ? dev, otherwise stable).
+
+## `specsmith esdb` — Extended ESDB Lifecycle (REQ-249..253)
+
+Full lifecycle management for the ChronoMemory Epistemic State Database. All new commands accept `--json` for machine-readable output.
+
+```bash
+# Existing commands
+specsmith esdb status [--json]           # status and record counts
+specsmith esdb migrate                   # validate flat JSON ? ESDB migration
+specsmith esdb replay                    # verify WAL chain integrity
+
+# New commands (REQ-249..253)
+specsmith esdb export [--output PATH] [--json]
+  # Dump all records to <project>/.specsmith/esdb_export.json (or --output).
+  # Payload: {esdb_version, backend, record_count, requirements[], testcases[]}
+
+specsmith esdb import <source> [--json]
+  # Validate a JSON export and stage it at .specsmith/esdb_import.json.
+  # Exits non-zero for missing or invalid files.
+
+specsmith esdb backup [--dir DIR] [--json]
+  # Create a timestamped snapshot at .specsmith/backups/esdb_backup_<UTC>.json.
+  # Payload includes: esdb_version, timestamp, backend, record_count, requirements[], testcases[]
+
+specsmith esdb rollback [--steps N] [--json]
+  # Report WAL events that would be undone (stub mode — does not modify state).
+  # JSON: {ok, steps_requested, records_before, note}
+
+specsmith esdb compact [--json]
+  # Request WAL compaction (stub mode). JSON: {ok, backend, records, note}
+```
+
+## `specsmith skills` — Full Lifecycle (REQ-254..255)
+
+```bash
+# Existing commands
+specsmith skills build <description>     # generate skill from natural-language description
+specsmith skills list [--json]           # list skills with active/inactive badge
+specsmith skills test <skill-id>         # dry-run validation
+specsmith skills activate <skill-id>     # set active=true
+
+# New commands (REQ-254..255)
+specsmith skills deactivate <skill-id>   # set active=false in skill.json
+specsmith skills delete <skill-id> [--yes]  # permanently remove skill directory
+```
+
+**Notes:**
+- `deactivate` exits non-zero if the skill is not found.
+- `delete` prompts for confirmation unless `--yes` is passed.
+- Sibling skills are unaffected by `delete`.
+
+## `specsmith mcp generate` (REQ-256)
+
+Generate a deterministic MCP server configuration stub from a natural-language description.
+
+```bash
+specsmith mcp generate "Search USPTO patents by keyword"
+specsmith mcp generate "Calculate BMI" --json
+```
+
+**JSON output schema:**
+```json
+{
+  "server": {
+    "id": "mcp-calculate-bmi-<hex>",
+    "name": "calculate-bmi",
+    "command": "node",
+    "args": ["/usr/local/lib/mcp-calculate-bmi-<hex>/index.js"],
+    "description": "Calculate BMI",
+    "env": {}
+  },
+  "note": "Generated stub — review and adjust before use."
+}
+```
+
+The generated stub can be appended to `~/.specsmith/mcp.json` for use with the Kairos AI Builder card.
+
+## `specsmith agent ask` (REQ-257)
+
+Keyword-based routing dispatcher that answers settings and status queries without requiring an LLM. Useful for IDE integrations and the Kairos settings agent widget.
+
+```bash
+specsmith agent ask "show esdb status" --json-output
+specsmith agent ask "build skill for summarizing" --project-dir .
+specsmith agent ask "check compliance gaps" --json-output
+```
+
+**Routing table:**
+
+| Keywords | Action | Subsystem called |
+|---|---|---|
+| compliance / coverage / gaps / trace | `compliance_summary` | `get_compliance_summary()` |
+| audit / health / governance / drift | `audit` | `run_audit()` |
+| skill / build skill / create skill | `skills_hint` | hint to `skills build` |
+| esdb / database / backup / export / records | `esdb_status` | `EsdbBridge.status()` |
+| mcp / server / tool server | `mcp_hint` | hint to `mcp generate` |
+| session / phase / status / project | `session_info` | `init_session()` |
+| (no match) | `unknown` | help text |
+
+**JSON output:** `{"reply": "...", "action": "...", "prompt": "..."}`
+
+**Exit code:** always 0 (the dispatcher is best-effort).
