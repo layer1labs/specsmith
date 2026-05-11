@@ -85,6 +85,100 @@ CLOUD_PROVIDERS: dict[str, dict[str, str]] = {
 
 VALID_PROVIDER_TYPES = ("cloud", "ollama", "vllm", "byoe", "huggingface")
 
+# ── Endpoint presets (REQ-278) ─────────────────────────────────────────────
+# Built-in connection presets for common local and hosted inference backends.
+
+ENDPOINT_PRESETS: list[dict[str, Any]] = [
+    {
+        "id": "vllm",
+        "label": "vLLM (local)",
+        "description": "Self-hosted vLLM OpenAI-compatible server.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "http://localhost:8000/v1",
+        "needs_key": False,
+    },
+    {
+        "id": "lm_studio",
+        "label": "LM Studio (local)",
+        "description": "LM Studio\u2019s OpenAI-compatible local server.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "http://localhost:1234/v1",
+        "needs_key": False,
+    },
+    {
+        "id": "llama_cpp",
+        "label": "llama.cpp server (local)",
+        "description": "llama.cpp \u2018server\u2019 binary OpenAI-compatible mode.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "http://localhost:8080/v1",
+        "needs_key": False,
+    },
+    {
+        "id": "openrouter",
+        "label": "OpenRouter",
+        "description": "Unified gateway over many cloud LLMs.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://openrouter.ai/api/v1",
+        "needs_key": True,
+    },
+    {
+        "id": "together",
+        "label": "Together AI",
+        "description": "Together.ai OpenAI-compatible inference endpoint.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://api.together.xyz/v1",
+        "needs_key": True,
+    },
+    {
+        "id": "groq",
+        "label": "Groq",
+        "description": "Groq LPU OpenAI-compatible inference.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://api.groq.com/openai/v1",
+        "needs_key": True,
+    },
+    {
+        "id": "fireworks",
+        "label": "Fireworks AI",
+        "description": "Fireworks.ai OpenAI-compatible inference.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://api.fireworks.ai/inference/v1",
+        "needs_key": True,
+    },
+    {
+        "id": "deepinfra",
+        "label": "DeepInfra",
+        "description": "DeepInfra OpenAI-compatible inference.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://api.deepinfra.com/v1/openai",
+        "needs_key": True,
+    },
+    {
+        "id": "perplexity",
+        "label": "Perplexity",
+        "description": "Perplexity OpenAI-compatible inference.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "https://api.perplexity.ai",
+        "needs_key": True,
+    },
+    {
+        "id": "azure_openai",
+        "label": "Azure OpenAI",
+        "description": "Azure OpenAI deployment (set deployment URL as base_url).",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "",
+        "needs_key": True,
+    },
+    {
+        "id": "custom",
+        "label": "Custom",
+        "description": "Any other OpenAI-compatible HTTP endpoint.",
+        "endpoint_kind": "openai_compatible",
+        "base_url": "",
+        "needs_key": False,
+    },
+]
+
 
 class ProviderError(RuntimeError):
     """Raised for user-facing provider registry errors."""
@@ -191,7 +285,12 @@ def probe_openai_compatible(
     *,
     timeout: float = 8.0,
 ) -> dict[str, Any]:
-    """Probe an OpenAI-compatible endpoint for available models."""
+    """Probe an OpenAI-compatible endpoint for available models.
+
+    Returns ``models_detail`` list with ``id``, ``owner``, ``context_length``
+    (from ``max_model_len`` on vLLM), and ``description`` (REQ-279).
+    Cap: 200 models.
+    """
     base = (base_url or "").strip().rstrip("/")
     url = f"{base}/models" if base.endswith("/v1") else f"{base}/v1/models"
     req_headers: dict[str, str] = {"Accept": "application/json"}
@@ -204,22 +303,55 @@ def probe_openai_compatible(
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             data = json.loads(resp.read().decode())
         models: list[str] = []
+        models_detail: list[dict[str, Any]] = []
         for entry in data.get("data") or data.get("models") or []:
-            mid = (
-                entry.get("id") or entry.get("name") or ""
-                if isinstance(entry, dict)
-                else str(entry)
-            )
-            if mid:
-                models.append(str(mid))
-        return {"valid": True, "message": f"OK — {len(models)} model(s)", "models": models[:200]}
+            if isinstance(entry, dict):
+                mid = entry.get("id") or entry.get("name") or entry.get("model") or ""
+                if mid:
+                    mid_s = str(mid)
+                    models.append(mid_s)
+                    # vLLM exposes max_model_len; other providers use context_length/context_window
+                    ctx = (
+                        entry.get("max_model_len")
+                        or entry.get("context_length")
+                        or entry.get("context_window")
+                        or 0
+                    )
+                    models_detail.append(
+                        {
+                            "id": mid_s,
+                            "owner": str(entry.get("owned_by") or entry.get("owner") or ""),
+                            "context_length": int(ctx)
+                            if isinstance(ctx, (int, float)) and ctx
+                            else 0,
+                            "description": str(
+                                entry.get("description") or entry.get("summary") or ""
+                            ),
+                        }
+                    )
+            elif isinstance(entry, str):
+                models.append(entry)
+                models_detail.append(
+                    {"id": entry, "owner": "", "context_length": 0, "description": ""}
+                )
+        return {
+            "valid": True,
+            "message": f"OK \u2014 {len(models)} model(s)",
+            "models": models[:200],
+            "models_detail": models_detail[:200],
+        }
     except urllib.error.HTTPError as exc:
         msg = f"HTTP {exc.code}: {exc.reason}"
         if exc.code in (401, 403):
             msg = f"Unauthorized (HTTP {exc.code}). Check API key."
-        return {"valid": False, "message": msg, "models": []}
+        return {"valid": False, "message": msg, "models": [], "models_detail": []}
     except Exception as exc:  # noqa: BLE001
-        return {"valid": False, "message": f"Connection error: {exc}", "models": []}
+        return {
+            "valid": False,
+            "message": f"Connection error: {exc}",
+            "models": [],
+            "models_detail": [],
+        }
 
 
 def probe_ollama(base_url: str = "", *, timeout: float = 5.0) -> dict[str, Any]:
@@ -364,3 +496,167 @@ class ProviderRegistry:
     @classmethod
     def load(cls, path: Path | None = None) -> ProviderRegistry:
         return cls(path=path)
+
+
+# ── Profile suggestions (REQ-280) ─────────────────────────────────────────
+
+
+_BUCKET_ROLE_TUNING: dict[str, dict[str, Any]] = {
+    "reasoning": {
+        "temperature": 0.15,
+        "max_tokens": 4096,
+        "notes": "Low temperature for repeatable reasoning and analysis.",
+    },
+    "conversational": {
+        "temperature": 0.50,
+        "max_tokens": 2000,
+        "notes": "Balanced temperature for natural conversation.",
+    },
+    "longform": {
+        "temperature": 0.30,
+        "max_tokens": 4096,
+        "notes": "Moderate temperature for long-form writing and synthesis.",
+    },
+}
+
+_CLOUD_DEFAULT_MODELS_BY_BUCKET: dict[str, dict[str, str]] = {
+    "openai": {
+        "reasoning": "gpt-4.1",
+        "conversational": "gpt-4.1-mini",
+        "longform": "gpt-4.1",
+    },
+    "anthropic": {
+        "reasoning": "claude-sonnet-4-20250514",
+        "conversational": "claude-haiku-4-5",
+        "longform": "claude-sonnet-4-20250514",
+    },
+    "gemini": {
+        "reasoning": "gemini-2.5-pro",
+        "conversational": "gemini-2.5-flash",
+        "longform": "gemini-2.5-pro",
+    },
+    "mistral": {
+        "reasoning": "mistral-large-latest",
+        "conversational": "mistral-small-latest",
+        "longform": "mistral-large-latest",
+    },
+}
+
+
+def suggest_profiles(
+    registry_path: Path | None = None,
+    ollama_base_url: str = "http://localhost:11434",
+) -> list[dict[str, Any]]:
+    """Inspect available backends and return inert profile suggestions (REQ-280).
+
+    Does NOT persist anything.  Callers use these suggestions to display a
+    preview and then call ``ProviderRegistry.add()`` for the ones the user
+    accepts.
+
+    Returns a list of dicts with:
+      ``id``, ``name``, ``provider_type``, ``provider_id``, ``base_url``,
+      ``bucket``, ``params``, ``tags``, ``notes``, ``rationale``.
+    """
+    import os  # noqa: PLC0415
+
+    suggestions: list[dict[str, Any]] = []
+
+    # 1. Cloud API keys from environment
+    for prov in ("openai", "anthropic", "gemini", "mistral"):
+        env_key = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "gemini": "GOOGLE_API_KEY",
+            "mistral": "MISTRAL_API_KEY",
+        }.get(prov, "")
+        if not (env_key and os.environ.get(env_key)):
+            continue
+        for bucket, tuning in _BUCKET_ROLE_TUNING.items():
+            model = _CLOUD_DEFAULT_MODELS_BY_BUCKET.get(prov, {}).get(bucket, "")
+            if not model:
+                continue
+            suggestions.append(
+                {
+                    "id": f"suggested-{prov}-{bucket}",
+                    "name": f"{prov.title()} · {bucket.title()}",
+                    "provider_type": "cloud",
+                    "provider_id": prov,
+                    "base_url": CLOUD_PROVIDERS.get(prov, {}).get("base_url", ""),
+                    "bucket": bucket,
+                    "params": {k: v for k, v in tuning.items() if k != "notes"},
+                    "tags": ["cloud", prov, bucket, "suggested"],
+                    "notes": tuning["notes"],
+                    "rationale": (
+                        f"You have a {prov.title()} API key configured. "
+                        f"{model} is the recommended model for the {bucket} bucket."
+                    ),
+                }
+            )
+
+    # 2. Ollama installed models
+    ollama_models: list[str] = []
+    try:
+        result = probe_ollama(ollama_base_url, timeout=2)
+        if result["valid"]:
+            ollama_models = result["models"]
+    except Exception:  # noqa: BLE001
+        pass
+
+    if ollama_models:
+        # Pick largest (by name heuristic) + smallest
+        sized = sorted(ollama_models, key=len)
+        small = sized[0] if sized else ""
+        large = sized[-1] if sized else small
+        plan = [
+            ("reasoning", large),
+            ("conversational", large),
+            ("longform", large),
+        ]
+        for bucket, model in plan:
+            if not model:
+                continue
+            tuning = _BUCKET_ROLE_TUNING[bucket]
+            suggestions.append(
+                {
+                    "id": f"suggested-ollama-{bucket}",
+                    "name": f"Local Ollama · {bucket.title()}",
+                    "provider_type": "ollama",
+                    "provider_id": "ollama",
+                    "base_url": ollama_base_url,
+                    "bucket": bucket,
+                    "params": {k: v for k, v in tuning.items() if k != "notes"},
+                    "tags": ["ollama", "local", bucket, "suggested"],
+                    "notes": tuning["notes"],
+                    "rationale": (
+                        f"You have Ollama installed with {model}. "
+                        f"Using it locally for {bucket} tasks saves cloud API costs."
+                    ),
+                }
+            )
+
+    # 3. Saved BYOE endpoints
+    try:
+        registry = ProviderRegistry(registry_path)
+        for entry in registry.by_type("byoe")[:3]:  # cap at 3
+            tuning = _BUCKET_ROLE_TUNING["conversational"]
+            suggestions.append(
+                {
+                    "id": f"suggested-byoe-{entry.id}-conversational",
+                    "name": f"{entry.name} · Conversational",
+                    "provider_type": "byoe",
+                    "provider_id": "",
+                    "base_url": entry.base_url,
+                    "bucket": "conversational",
+                    "params": {k: v for k, v in tuning.items() if k != "notes"},
+                    "tags": ["byoe", "custom", "conversational", "suggested"],
+                    "notes": tuning["notes"],
+                    "rationale": (
+                        f"Custom endpoint \u2018{entry.name}\u2019 is enabled. "
+                        "Using it for conversational tasks avoids cloud dependency."
+                    ),
+                }
+            )
+    except Exception:  # noqa: BLE001
+        pass
+
+    return suggestions

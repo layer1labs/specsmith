@@ -96,6 +96,9 @@ class RateLimitReservation:
     waited_seconds: float = 0.0
 
 
+_DEFAULT_IMAGE_TOKEN_ESTIMATE = 4096
+
+
 @dataclass(slots=True)
 class RateLimitSnapshot:
     """Current rolling-window and moving-average state for a model."""
@@ -115,6 +118,11 @@ class RateLimitSnapshot:
     base_concurrency_cap: int
     current_concurrency_cap: int
     in_flight: int
+    # EMA utilisation fields (REQ-272): normalised 0.0–1.0
+    rpm_ema: float = 0.0
+    tpm_ema: float = 0.0
+    # Adaptive concurrency state
+    dynamic_concurrency: int = 0
 
 
 @dataclass(slots=True)
@@ -144,6 +152,11 @@ class _ModelRuntimeState:
     success_streak: int = 0
     moving_average_requests: float = 0.0
     moving_average_tokens: float = 0.0
+    # EMA utilisation (normalised 0.0–1.0) — REQ-272
+    rpm_ema: float = 0.0
+    tpm_ema: float = 0.0
+    # Adaptive concurrency: timestamp until which concurrency is reduced — REQ-273
+    reduced_until: float = 0.0
 
 
 def _normalize_key_part(value: str) -> str:
@@ -459,7 +472,72 @@ class RateLimitScheduler:
             base_concurrency_cap=profile.concurrency_cap,
             current_concurrency_cap=state.current_concurrency_cap,
             in_flight=state.in_flight,
+            rpm_ema=state.rpm_ema,
+            tpm_ema=state.tpm_ema,
+            dynamic_concurrency=state.current_concurrency_cap,
         )
+
+    # ── Glossa-Lab-style convenience API (REQ-272..REQ-274) ──────────────
+
+    def on_rate_limit(self, model: str, error: object, attempt: int) -> float:
+        """Decrease dynamic concurrency by 1 and return suggested retry delay.
+
+        Conforms to the glossa-lab AIModelPacer.on_rate_limit() contract:
+        - Decreases dynamic_concurrency by 1 (minimum 1)
+        - Sets ``reduced_until`` to now + 120 s so concurrency can be
+          restored by ``_maybe_restore_concurrency``
+        - Returns a float delay (seconds) for the caller to sleep
+        """
+        try:
+            profile = self._resolve_profile("*", model)
+        except KeyError:
+            profile = next(iter(self._profiles.values())) if self._profiles else None
+            if profile is None:
+                return min(30.0, 2**attempt)
+        state = self._get_state(profile)
+        now = self._clock()
+        state.current_concurrency_cap = max(1, state.current_concurrency_cap - 1)
+        state.reduced_until = now + 120.0
+        retry_after = parse_retry_after_seconds(str(error))
+        base = retry_after if retry_after is not None else min(30.0, 2**attempt)
+        import random as _random  # noqa: PLC0415
+
+        jitter = _random.uniform(0.0, max(0.25, base * 0.25))
+        return base + jitter
+
+    def estimate_request_tokens(
+        self,
+        *,
+        provider: str = "*",
+        model: str = "*",
+        prompt: str | None = None,
+        messages: list[dict[str, object]] | None = None,
+        max_output_tokens: int = 0,
+        image_count: int = 0,
+        image_token_estimate: int = _DEFAULT_IMAGE_TOKEN_ESTIMATE,
+    ) -> int:
+        """Estimate total token reservation for a request (REQ-274).
+
+        Includes text tokens (approx. 4 chars/token), image tokens
+        (``image_count × image_token_estimate``), and ``max_output_tokens``.
+        """
+        estimate = 0
+        if prompt:
+            estimate += max(1, math.ceil(len(prompt) / 4))
+        if messages:
+            for msg in messages:
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    estimate += max(1, math.ceil(len(content) / 4)) + 8
+                elif isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict):
+                            if item.get("type") in ("image_url", "input_image"):
+                                estimate += image_token_estimate
+                            else:
+                                estimate += max(1, math.ceil(len(str(item.get("text", item))) / 4))
+        estimate += image_count * image_token_estimate
+        return estimate + max_output_tokens
 
     def _resolve_profile(self, provider: str, model: str) -> ModelRateLimitProfile:
         provider = _normalize_key_part(provider)
@@ -566,6 +644,26 @@ class RateLimitScheduler:
         state.moving_average_tokens = (_MOVING_AVERAGE_ALPHA * current_tokens) + (
             (1 - _MOVING_AVERAGE_ALPHA) * state.moving_average_tokens
         )
+        # Normalised EMA utilisation (REQ-272)
+        for profile in self._profiles.values():
+            if self._get_state(profile) is state:
+                if profile.rpm_limit > 0:
+                    rpm_util = current_requests / profile.rpm_limit
+                    state.rpm_ema = (
+                        rpm_util
+                        if state.rpm_ema == 0
+                        else _MOVING_AVERAGE_ALPHA * rpm_util
+                        + (1 - _MOVING_AVERAGE_ALPHA) * state.rpm_ema
+                    )
+                if profile.tpm_limit > 0:
+                    tpm_util = current_tokens / profile.tpm_limit
+                    state.tpm_ema = (
+                        tpm_util
+                        if state.tpm_ema == 0
+                        else _MOVING_AVERAGE_ALPHA * tpm_util
+                        + (1 - _MOVING_AVERAGE_ALPHA) * state.tpm_ema
+                    )
+                break
 
     def _next_reservation_id(self) -> str:
         self._reservation_counter += 1
@@ -782,3 +880,16 @@ def save_rate_limit_scheduler(root: Path, scheduler: RateLimitScheduler) -> None
     """Persist current runtime scheduler state."""
     path = _get_runtime_state_path(root)
     path.write_text(json.dumps(scheduler.export_state(), indent=2), encoding="utf-8")
+
+
+def parse_retry_after_seconds(message: str) -> float | None:
+    """Extract retry delay from a provider error string.
+
+    Matches patterns like ``"try again in 5s"`` or ``"retry in 30 seconds"``.
+    Returns ``None`` when no match is found.
+    """
+    return _parse_retry_after_message(message)
+
+
+# Alias for glossa-lab-style API compatibility (REQ-272..REQ-274)
+ModelRateLimitScheduler = RateLimitScheduler

@@ -673,6 +673,49 @@ class GovernanceHTTPServer:
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
 
+                # ── Model Intelligence ─────────────────────────────────
+                elif self.path == "/api/model-intel/scores" or self.path.startswith(
+                    "/api/model-intel/scores?"
+                ):
+                    try:
+                        import urllib.parse as _up  # noqa: PLC0415
+
+                        from specsmith.agent.hf_leaderboard import list_scores  # noqa: PLC0415
+
+                        qs = _up.urlparse(self.path).query
+                        params = _up.parse_qs(qs)
+                        source = params.get("source", [None])[0]
+                        rows = list_scores(source=source)
+                        self._json_ok({"scores": rows})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path.startswith("/api/model-intel/scores/"):
+                    try:
+                        from specsmith.agent.hf_leaderboard import get_score  # noqa: PLC0415
+
+                        model_name = self.path.split("/api/model-intel/scores/", 1)[1]
+                        row = get_score(model_name)
+                        self._json_ok({"score": row, "model_name": model_name})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/model-intel/recommendations" or self.path.startswith(
+                    "/api/model-intel/recommendations?"
+                ):
+                    try:
+                        import urllib.parse as _up  # noqa: PLC0415
+
+                        from specsmith.agent.hf_leaderboard import (
+                            get_recommendations,  # noqa: PLC0415
+                        )
+
+                        qs = _up.urlparse(self.path).query
+                        params = _up.parse_qs(qs)
+                        bucket = params.get("bucket", ["reasoning"])[0]
+                        recs = get_recommendations(bucket)
+                        self._json_ok({"bucket": bucket, "recommendations": recs})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+
                 # ── ESDB ──────────────────────────────────────────────
                 elif self.path == "/api/esdb/status":
                     try:
@@ -730,6 +773,16 @@ class GovernanceHTTPServer:
                             project_dir=body.get("project_dir") or project_dir,
                             work_item_id=body.get("work_item_id", ""),
                         )
+                        self._json_ok(result)
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_err(str(exc), code=500)
+                elif self.path == "/api/model-intel/sync":
+                    try:
+                        from specsmith.agent.hf_leaderboard import (  # noqa: PLC0415
+                            sync_from_huggingface_blocking,
+                        )
+
+                        result = sync_from_huggingface_blocking()
                         self._json_ok(result)
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)

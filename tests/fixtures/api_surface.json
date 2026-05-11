@@ -45,6 +45,7 @@
     "mcp",
     "migrate",
     "migrate-project",
+    "model-intel",
     "models",
     "notebook",
     "ollama",

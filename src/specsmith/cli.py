@@ -8796,5 +8796,187 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
 main.add_command(esdb_group)
 
 
+# ---------------------------------------------------------------------------
+# model-intel — HuggingFace leaderboard + bucket scoring (REQ-269)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="model-intel")
+def model_intel_group() -> None:
+    """HuggingFace Open LLM Leaderboard sync and bucket-score recommendations."""
+
+
+@model_intel_group.command(name="sync")
+@click.option("--json", "as_json", is_flag=True, default=False)
+@click.option(
+    "--static", "force_static", is_flag=True, default=False, help="Use built-in static scores only."
+)
+def model_intel_sync_cmd(as_json: bool, force_static: bool) -> None:
+    """Sync model scores from HuggingFace Open LLM Leaderboard.
+
+    Falls back to built-in static scores when HF is unreachable.
+    """
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.hf_leaderboard import sync_from_huggingface_blocking  # noqa: PLC0415
+
+    result = sync_from_huggingface_blocking(force_static=force_static)
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        icon = (
+            "[green]\u2714[/green]" if (result.get("errors", 0) == 0) else "[yellow]\u26a0[/yellow]"
+        )
+        console.print(f"{icon} {result.get('message', 'Done')}")  # type: ignore[arg-type]
+
+
+@model_intel_group.command(name="scores")
+@click.option("--model", default="", help="Show scores for a specific model name.")
+@click.option("--source", default="", help="Filter by score source (huggingface, static_fallback).")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
+    """List cached bucket scores, optionally filtered by model name or source."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.hf_leaderboard import get_score, list_scores  # noqa: PLC0415
+
+    if model:
+        row = get_score(model)
+        if as_json:
+            click.echo(_json.dumps({"score": row}, indent=2))
+        else:
+            if row:
+                console.print(f"[bold]{row['model_name']}[/bold]")
+                console.print(f"  Reasoning:     {row.get('reasoning_score', 0):.2f}")
+                console.print(f"  Conversational:{row.get('conversational_score', 0):.2f}")
+                console.print(f"  Longform:      {row.get('longform_score', 0):.2f}")
+            else:
+                console.print(f"[yellow]No scores found for '{model}'[/yellow]")
+        return
+
+    rows = list_scores(source=source or None)
+    if as_json:
+        click.echo(_json.dumps({"scores": rows, "count": len(rows)}, indent=2))
+    else:
+        console.print(f"[bold]Model Scores[/bold] ({len(rows)} entries)\n")
+        for r in sorted(rows, key=lambda x: x.get("reasoning_score", 0), reverse=True)[:20]:
+            console.print(
+                f"  {r['model_name']:<40s}  "
+                f"R:{r.get('reasoning_score', 0):5.1f}  "
+                f"C:{r.get('conversational_score', 0):5.1f}  "
+                f"L:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
+            )
+        if len(rows) > 20:
+            console.print(f"  ... {len(rows) - 20} more (use --json for full list)")
+
+
+@model_intel_group.command(name="recommendations")
+@click.option(
+    "--bucket",
+    default="reasoning",
+    type=click.Choice(["reasoning", "conversational", "longform"]),
+    show_default=True,
+)
+@click.option("--top", default=10, help="Number of models to return.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def model_intel_recommendations_cmd(bucket: str, top: int, as_json: bool) -> None:
+    """Return top models for the requested task bucket."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.hf_leaderboard import get_recommendations  # noqa: PLC0415
+
+    recs = get_recommendations(bucket, top_k=top)
+    if as_json:
+        click.echo(_json.dumps({"bucket": bucket, "recommendations": recs}, indent=2))
+    else:
+        console.print(f"[bold]Top-{top} for [cyan]{bucket}[/cyan][/bold]\n")
+        for i, r in enumerate(recs, 1):
+            console.print(f"  {i:2}. {r['model']:<40s}  {r['score']:5.1f}  [{r.get('source', '')}]")
+
+
+@model_intel_group.command(name="test-hf")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def model_intel_test_hf_cmd(as_json: bool) -> None:
+    """Test HuggingFace API connectivity and token validity."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.hf_leaderboard import test_hf_connection  # noqa: PLC0415
+
+    result = test_hf_connection()
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        icon = "[green]\u2714[/green]" if result.get("valid") else "[yellow]\u26a0[/yellow]"
+        console.print(f"{icon} {result.get('message', '')}")
+        if result.get("token_valid") and result.get("username"):
+            console.print(f"  User: [bold]{result['username']}[/bold]")
+
+
+main.add_command(model_intel_group)
+
+
+# ---------------------------------------------------------------------------
+# agent suggest-profiles + endpoint-presets (REQ-278, REQ-280)
+# ---------------------------------------------------------------------------
+
+
+@agent_group.command(name="suggest-profiles")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agent_suggest_profiles_cmd(as_json: bool) -> None:
+    """Suggest provider profiles based on configured backends.
+
+    Inspects cloud env vars (OPENAI_API_KEY etc.), Ollama, and saved
+    BYOE endpoints.  Suggestions are NOT auto-saved; use 'agent providers add'
+    to persist the ones you want.
+    """
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.provider_registry import suggest_profiles  # noqa: PLC0415
+
+    suggestions = suggest_profiles()
+    if as_json:
+        click.echo(_json.dumps({"suggestions": suggestions, "count": len(suggestions)}, indent=2))
+    else:
+        if not suggestions:
+            console.print(
+                "[yellow]No backends detected.[/yellow] "
+                "Set OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY / MISTRAL_API_KEY, "
+                "install Ollama models, or add a BYOE endpoint."
+            )
+            return
+        console.print(f"[bold]Suggested profiles[/bold] ({len(suggestions)})\n")
+        for s in suggestions:
+            console.print(
+                f"  [cyan]{s['bucket']:<14s}[/cyan]  {s['name']:<35s}  [{s['provider_type']}]"
+            )
+            console.print(f"  [dim]{s['rationale'][:90]}[/dim]")
+        console.print(
+            "\n[dim]Use [bold]specsmith agent providers add[/bold] "
+            "to persist the ones you want.[/dim]"
+        )
+
+
+@agent_group.command(name="endpoint-presets")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def agent_endpoint_presets_cmd(as_json: bool) -> None:
+    """List built-in endpoint presets for common local and hosted backends."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.agent.provider_registry import ENDPOINT_PRESETS  # noqa: PLC0415
+
+    if as_json:
+        click.echo(_json.dumps({"presets": ENDPOINT_PRESETS}, indent=2))
+    else:
+        console.print(f"[bold]Endpoint Presets[/bold] ({len(ENDPOINT_PRESETS)})\n")
+        for p in ENDPOINT_PRESETS:
+            key_note = (
+                "[dim](API key required)[/dim]" if p.get("needs_key") else "[dim](no key)[/dim]"
+            )
+            url_base = p.get("base_url", "")
+            console.print(
+                f"  [cyan]{p['id']:<15s}[/cyan]  {p['label']:<25s}  {url_base:<40s}  {key_note}"
+            )
+
+
 if __name__ == "__main__":
     main()

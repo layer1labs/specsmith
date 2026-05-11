@@ -469,3 +469,127 @@ Kairos Settings pages that expose specsmith features via the governance REST API
 - Skills, Eval, Teams pages consume `GET /api/skills`, `GET /api/eval/suites`, `GET /api/teams`
 
 All pages use async health polling via `GovernanceClient.get_json()` and follow the monolith SettingsWidget pattern.
+
+## 21. HuggingFace Open LLM Leaderboard Integration
+
+Source: `src/specsmith/agent/hf_leaderboard.py`
+
+Syncs model benchmark data from the HuggingFace Datasets Server (`datasets-server.huggingface.co/rows?dataset=open-llm-leaderboard/contents`). Supports paginated fetch, exponential-backoff 429 handling with `RateLimit: t=` header parsing, optional HF API token (doubles rate limit to 1000 req/5min), and a static fallback of 50+ known models for offline operation.
+
+Background task runs 15 s after startup then every 24 h. Scores are persisted to `~/.specsmith/model_scores.json` under a `bucket_scores` key alongside existing role scores.
+
+Benchmarks mapped: IFEval, BBH, MATH Lvl 5, GPQA, MUSR, MMLU-PRO (HF field names → internal keys).
+
+REST endpoints exposed by governance server:
+- `GET /api/model-intel/scores` — all cached scores
+- `GET /api/model-intel/scores/{name}` — one model
+- `GET /api/model-intel/recommendations?bucket=reasoning` — top-10
+- `POST /api/model-intel/sync` — force re-sync
+- `POST /api/model-intel/test-hf` — connectivity + token probe
+
+CLI: `specsmith model-intel sync | scores | recommendations | test-hf`
+
+## 22. Bucket Scoring Engine
+
+Source: `src/specsmith/agent/hf_leaderboard.py` (`_compute_bucket_scores`)
+
+Three task-bucket scores computed from raw benchmark values (normalised 0–100):
+
+- **Reasoning** = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval
+- **Conversational** = 0.40×IFEval + 0.35×MMLU-PRO + 0.25×BBH
+- **Longform** = 0.35×MUSR + 0.35×IFEval + 0.30×MMLU-PRO
+
+Ranked recommendation returns the top-10 models for a requested bucket. The engine merges HF-synced data with the existing `BASELINE_SCORES` so both cloud and local Ollama models appear in rankings.
+
+Base+org-prefix deduplication: `Qwen/Qwen3-14B` is stored under both its full name and `Qwen3-14B` so vLLM-style repo-ID model names match correctly.
+
+## 23. Model Capability Profiles
+
+Source: `src/specsmith/agent/model_profiles.py`
+
+Per-model capability descriptors resolved by prefix matching (longest key wins):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `max_tokens` | int | Max completion tokens to request |
+| `temperature` | float | Sampling temperature |
+| `ctx_budget` | int | Approx. chars of conversation history to keep |
+| `action_capable` | bool | Reliably produces structured actions/JSON |
+| `prompt_style` | str | `plain` \| `sections` \| `xml` |
+
+Covers 40+ models across Ollama (Mistral, Qwen, Llama, Gemma, Phi, DeepSeek), cloud (OpenAI o-series, Claude, Mistral API), and a `_DEFAULT` fallback.
+
+Context history trimmer (`trim_history`) summarises dropped turns into a compact `[Earlier conversation summary — N turns condensed]` assistant message to preserve research continuity.
+
+## 24. AI Model Pacer v2
+
+Source: `src/specsmith/rate_limits.py` (upgraded `ModelRateLimitScheduler`)
+
+Enhancements over the existing rolling-window scheduler:
+
+- **EMA utilisation tracking** — exponentially-weighted moving average of RPM/TPM utilisation (`alpha=0.25`) surfaced in `snapshot()`
+- **Adaptive concurrency** — `dynamic_concurrency` decreases on `on_rate_limit()`, restores after 120 s (incrementally, 60 s between steps)
+- **Retry-After parsing** — `parse_retry_after_seconds()` extracts `"try again in Xs"` from provider error strings; used when exponential backoff alone is insufficient
+- **Image token estimation** — `estimate_request_tokens()` accepts `image_count` and multiplies by a per-model `image_token_estimate` (default 4096)
+- **Pre-dispatch budget check** — `acquire()` blocks until RPM + TPM budgets allow dispatch; `release()` wakes waiting callers
+
+All operations are guarded by a single `threading.Condition` lock so the pacer is safe for concurrent agent sessions.
+
+## 25. Multi-Provider LLM Client with Fallback
+
+Source: `src/specsmith/agent/llm_client.py`
+
+Provider-agnostic chat client that tries a configurable ordered list of providers, falling back on 401/403/429/5xx. No optional packages required — uses `urllib` only.
+
+**LLMProvider ABC**: `name`, `key_name`, `default_model`, `is_configured()`, `chat()`.
+
+Concrete providers: `MistralProvider`, `OpenAIProvider`, `GoogleProvider`, `OllamaProvider`, `MockProvider` (test-only).
+
+**O-series translation**: OpenAI o1/o3/o4 models receive `max_completion_tokens` instead of `max_tokens` and their `system` messages are renamed to `developer`.
+
+**vLLM guided-JSON**: endpoints of type `byoe` or `huggingface` receive `guided_json` + `chat_template_kwargs: {enable_thinking: false}` when a JSON schema is provided.
+
+**Gemini parts extraction**: handles models that return answer text in `parts` rather than `content`.
+
+**JSON extraction helper** (`_extract_json`): tries direct parse → `\`\`\`json` fence → first balanced `{}` block before raising.
+
+Provider fallback decision: `_is_fallback_status(code)` returns True for 401, 403, 404, 408, 409, 425, 429, 5xx.
+
+## 26. Endpoint Preset Registry
+
+Source: `src/specsmith/agent/provider_registry.py` (`ENDPOINT_PRESETS`)
+
+Built-in connection presets for common local and hosted inference backends:
+
+| Preset | Base URL | Key needed |
+|---|---|---|
+| vLLM (local) | `http://localhost:8000/v1` | No |
+| LM Studio | `http://localhost:1234/v1` | No |
+| llama.cpp server | `http://localhost:8080/v1` | No |
+| OpenRouter | `https://openrouter.ai/api/v1` | Yes |
+| Together AI | `https://api.together.xyz/v1` | Yes |
+| Groq | `https://api.groq.com/openai/v1` | Yes |
+| Fireworks AI | `https://api.fireworks.ai/inference/v1` | Yes |
+| DeepInfra | `https://api.deepinfra.com/v1/openai` | Yes |
+| Perplexity | `https://api.perplexity.ai` | Yes |
+| Azure OpenAI | _(user-supplied)_ | Yes |
+
+Probe function enriches model list with `context_length` (from `max_model_len` on vLLM), `owner`, and `description` fields.
+
+CLI: `specsmith agent endpoint-presets`.
+
+## 27. Suggested Profile Generation
+
+Source: `src/specsmith/agent/provider_registry.py` (`suggest_profiles`)
+
+Generates a list of ready-to-add `ProviderEntry` suggestions by inspecting:
+
+1. Cloud API keys present in environment variables
+2. Ollama models currently installed (`/api/tags`)
+3. Custom BYOE endpoints in `providers.json`
+
+For each backend, role-tuned parameter sets (temperature, max_tokens) are proposed following the AEE bucket taxonomy: `reasoning`, `conversational`, `longform`.
+
+Suggestions are inert previews — the user calls `specsmith agent providers add` to persist.
+
+CLI: `specsmith agent suggest-profiles`.

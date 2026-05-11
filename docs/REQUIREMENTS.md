@@ -1803,3 +1803,136 @@ ame, command, and rgs fields derived from the description. The stub MUST be val
 - **Description:** The Kairos Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.
 - **Source:** ARCHITECTURE.md [Kairos Settings Extensions]
 - **Status:** implemented
+
+## 263. HuggingFace Open LLM Leaderboard Sync
+- **ID:** REQ-263
+- **Title:** HuggingFace Open LLM Leaderboard Sync
+- **Description:** specsmith MUST implement `src/specsmith/agent/hf_leaderboard.py` that fetches model benchmark data from the HuggingFace Datasets Server (`datasets-server.huggingface.co/rows?dataset=open-llm-leaderboard/contents`). The sync MUST be paginated (100 rows/page) and persist results to `~/.specsmith/model_scores.json` under a `bucket_scores` key.
+- **Source:** ARCHITECTURE.md §21 [HF-001]
+- **Status:** defined
+
+## 264. HF Leaderboard Rate-Limit Handling
+- **ID:** REQ-264
+- **Title:** HF Leaderboard Rate-Limit Handling
+- **Description:** The HF leaderboard sync MUST handle HTTP 429 with exponential-backoff retry (up to 4 attempts). It MUST parse the `RateLimit: "api";r=X;t=Y` header to extract the exact reset window and wait accordingly. A +1 s safety margin MUST be added to the `t=` value.
+- **Source:** ARCHITECTURE.md §21 [HF-002]
+- **Status:** defined
+
+## 265. HF API Token Support
+- **ID:** REQ-265
+- **Title:** HF API Token Support
+- **Description:** When `SPECSMITH_HF_TOKEN` or `hf_api_token` is configured, the HF sync MUST include an `Authorization: Bearer <token>` header. The CLI `specsmith model-intel test-hf` MUST validate the token via `huggingface.co/api/whoami-v2` and report whether the Datasets Server is reachable.
+- **Source:** ARCHITECTURE.md §21 [HF-003]
+- **Status:** defined
+
+## 266. HF Leaderboard Static Fallback
+- **ID:** REQ-266
+- **Title:** HF Leaderboard Static Fallback
+- **Description:** When HF is unreachable (network error, 5xx, or zero parseable rows), specsmith MUST load built-in static benchmark scores covering at least 40 models (OpenAI GPT-4o/mini, Claude 3.5 sonnet/haiku, Gemini 2.x, Mistral, Qwen, Llama, DeepSeek, Phi). The fallback MUST be transparent to callers.
+- **Source:** ARCHITECTURE.md §21 [HF-004]
+- **Status:** defined
+
+## 267. Bucket Scoring Engine
+- **ID:** REQ-267
+- **Title:** Bucket Scoring Engine
+- **Description:** specsmith MUST compute three task-bucket scores from raw benchmark values (0–100 scale): Reasoning = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval; Conversational = 0.40×IFEval + 0.35×MMLU-PRO + 0.25×BBH; Longform = 0.35×MUSR + 0.35×IFEval + 0.30×MMLU-PRO. Scores MUST be rounded to 2 decimal places.
+- **Source:** ARCHITECTURE.md §22 [BKT-001]
+- **Status:** defined
+
+## 268. Model Intelligence Recommendations
+- **ID:** REQ-268
+- **Title:** Model Intelligence Recommendations
+- **Description:** `specsmith model-intel recommendations [--bucket reasoning|conversational|longform]` MUST return the top-10 models sorted by the requested bucket score. The governance HTTP server MUST expose `GET /api/model-intel/recommendations?bucket=<name>` returning the same data.
+- **Source:** ARCHITECTURE.md §22 [BKT-002]
+- **Status:** defined
+
+## 269. Model Intelligence CLI Commands
+- **ID:** REQ-269
+- **Title:** Model Intelligence CLI Commands
+- **Description:** specsmith MUST provide a `model-intel` CLI group with subcommands: `sync` (run HF sync), `scores [--model NAME]` (list/get cached scores), `recommendations [--bucket NAME]` (top-10 per bucket), `test-hf` (connectivity probe). All commands MUST support `--json` flag.
+- **Source:** ARCHITECTURE.md §21 [HF-005]
+- **Status:** defined
+
+## 270. Model Capability Profiles
+- **ID:** REQ-270
+- **Title:** Model Capability Profiles
+- **Description:** specsmith MUST implement `src/specsmith/agent/model_profiles.py` with a `ModelProfile` TypedDict containing `max_tokens`, `temperature`, `ctx_budget`, `action_capable`, `prompt_style` fields. A `get_profile(model)` function MUST resolve by prefix matching (longest key first) over ≥40 known models.
+- **Source:** ARCHITECTURE.md §23 [PRF-001]
+- **Status:** defined
+
+## 271. Context History Trimmer
+- **ID:** REQ-271
+- **Title:** Context History Trimmer
+- **Description:** `trim_history(messages, budget_chars)` in `model_profiles.py` MUST trim conversation history to fit within `budget_chars`. Oldest turns MUST be summarised into a compact `[Earlier conversation summary — N turns condensed]` assistant message rather than silently dropped. System messages MUST always be preserved.
+- **Source:** ARCHITECTURE.md §23 [PRF-002]
+- **Status:** defined
+
+## 272. AI Model Pacer EMA Utilisation
+- **ID:** REQ-272
+- **Title:** AI Model Pacer EMA Utilisation
+- **Description:** The `ModelRateLimitScheduler` MUST track RPM and TPM utilisation as exponentially-weighted moving averages (alpha=0.25) and expose them in `snapshot()` as `rpm_ema` and `tpm_ema` fields.
+- **Source:** ARCHITECTURE.md §24 [PCR-001]
+- **Status:** defined
+
+## 273. AI Model Pacer Adaptive Concurrency
+- **ID:** REQ-273
+- **Title:** AI Model Pacer Adaptive Concurrency
+- **Description:** `on_rate_limit(model, error, attempt)` MUST decrease `dynamic_concurrency` by 1 (minimum=1) and set `reduced_until` to now+120 s. Concurrency MUST restore incrementally (1 step per 60 s) once `reduced_until` has passed. The method MUST return a float delay for the caller to sleep.
+- **Source:** ARCHITECTURE.md §24 [PCR-002]
+- **Status:** defined
+
+## 274. AI Model Pacer Image Token Estimation
+- **ID:** REQ-274
+- **Title:** AI Model Pacer Image Token Estimation
+- **Description:** `estimate_request_tokens()` MUST accept an `image_count` parameter and include `image_count × image_token_estimate` tokens in the reservation. The default `image_token_estimate` MUST be 4096.
+- **Source:** ARCHITECTURE.md §24 [PCR-003]
+- **Status:** defined
+
+## 275. Multi-Provider LLM Client with Fallback
+- **ID:** REQ-275
+- **Title:** Multi-Provider LLM Client with Fallback
+- **Description:** specsmith MUST implement `src/specsmith/agent/llm_client.py` with a `LLMProvider` ABC and `LLMClient` that tries providers in order, falling back on HTTP 401/403/429/5xx. Concrete providers MUST cover Mistral, OpenAI, Google Gemini, and Ollama. A `MockProvider` MUST be available for tests.
+- **Source:** ARCHITECTURE.md §25 [LLM-001]
+- **Status:** defined
+
+## 276. LLM Client O-Series Translation
+- **ID:** REQ-276
+- **Title:** LLM Client O-Series Translation
+- **Description:** When the model name starts with `o1`, `o3`, or `o4`, or contains `-o1-`/`-o3-`/`-o4-`, the LLM client MUST use `max_completion_tokens` instead of `max_tokens`, force temperature to 1, and rename `system` role messages to `developer`.
+- **Source:** ARCHITECTURE.md §25 [LLM-002]
+- **Status:** defined
+
+## 277. LLM Client vLLM Guided-JSON Mode
+- **ID:** REQ-277
+- **Title:** LLM Client vLLM Guided-JSON Mode
+- **Description:** When a JSON schema is provided and the provider type is `byoe` or `huggingface`, the request MUST include `guided_json` and `chat_template_kwargs: {"enable_thinking": false}` to suppress chain-of-thought tokens and enforce structured output.
+- **Source:** ARCHITECTURE.md §25 [LLM-003]
+- **Status:** defined
+
+## 278. Endpoint Preset Registry
+- **ID:** REQ-278
+- **Title:** Endpoint Preset Registry
+- **Description:** `src/specsmith/agent/provider_registry.py` MUST export `ENDPOINT_PRESETS` — a list of built-in connection presets for at least: vLLM (localhost:8000), LM Studio (localhost:1234), llama.cpp (localhost:8080), OpenRouter, Together AI, Groq, Fireworks, DeepInfra, Perplexity, and Azure OpenAI. Each preset MUST include `id`, `label`, `base_url`, `endpoint_kind`, and `needs_key`.
+- **Source:** ARCHITECTURE.md §26 [PRE-001]
+- **Status:** defined
+
+## 279. Endpoint Probe Enriched Metadata
+- **ID:** REQ-279
+- **Title:** Endpoint Probe Enriched Metadata
+- **Description:** `probe_openai_compatible()` MUST return a `models_detail` list where each entry includes `id`, `owner`, `context_length` (from `max_model_len` on vLLM, `context_length` or `context_window` otherwise), and `description`. The cap MUST be 200 models.
+- **Source:** ARCHITECTURE.md §26 [PRE-002]
+- **Status:** defined
+
+## 280. Suggested Profile Generation
+- **ID:** REQ-280
+- **Title:** Suggested Profile Generation
+- **Description:** `specsmith agent suggest-profiles` MUST inspect available backends (cloud env vars, installed Ollama models, saved BYOE endpoints) and propose ready-to-add `ProviderEntry` suggestions with role-tuned temperature and max_tokens for the reasoning/conversational/longform AEE buckets. Suggestions MUST be inert (not auto-saved).
+- **Source:** ARCHITECTURE.md §27 [SGP-001]
+- **Status:** defined
+
+## 281. Kairos AI Settings Bucket Score Display
+- **ID:** REQ-281
+- **Title:** Kairos AI Settings Bucket Score Display
+- **Description:** The Kairos Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.
+- **Source:** ARCHITECTURE.md §20–21 [KAI-001]
+- **Status:** defined
