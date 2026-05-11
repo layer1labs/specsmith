@@ -8516,13 +8516,183 @@ def esdb_replay_cmd(project_dir: str) -> None:
     console.print(f"[bold]Replay check:[/bold] {st.backend}")
     console.print(f"  Records: {st.record_count}")
     if st.chain_valid:
-        console.print("[green]\u2714[/green] WAL chain valid — state consistent.")
+        console.print("[green]\u2714[/green] WAL chain valid \u2014 state consistent.")
     else:
         console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
 
 
+@esdb_group.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--output",
+    default="",
+    help="Output file path (default: <project>/.specsmith/esdb_export.json)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
+    """Export the full ESDB to a JSON file."""
+    import json as _json
 
->>>>>>> 968261582aa77adba116f3c092ae13c2449a4df8
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() for r in reqs],
+        "testcases": [t.to_dict() for t in tests],
+    }
+    dest = output or str(Path(project_dir).resolve() / ".specsmith" / "esdb_export.json")
+    Path(dest).parent.mkdir(parents=True, exist_ok=True)
+    Path(dest).write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    if as_json:
+        click.echo(_json.dumps({"ok": True, "path": dest, "records": st.record_count}, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Exported {st.record_count} records to {dest}")
+
+
+@esdb_group.command(name="import")
+@click.argument("source")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
+    """Import an ESDB JSON export into the project store."""
+    import json as _json
+
+    src = Path(source)
+    if not src.is_file():
+        console.print(f"[red]File not found:[/red] {source}")
+        raise SystemExit(1)
+    try:
+        data = _json.loads(src.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        console.print(f"[red]Invalid JSON:[/red] {exc}")
+        raise SystemExit(1) from exc
+
+    reqs = data.get("requirements", [])
+    tests = data.get("testcases", [])
+    specsmith_dir = Path(project_dir).resolve() / ".specsmith"
+    specsmith_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write requirements and testcases directly to the live JSON stores.
+    # Existing data is replaced with the imported snapshot.
+    reqs_path = specsmith_dir / "requirements.json"
+    tests_path = specsmith_dir / "testcases.json"
+    reqs_path.write_text(_json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8")
+    tests_path.write_text(_json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    result = {"ok": True, "requirements": len(reqs), "testcases": len(tests)}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]\u2714[/green] Imported {len(reqs)} requirements, {len(tests)} test cases."
+        )
+        console.print(f"  Wrote .specsmith/requirements.json and .specsmith/testcases.json")
+
+
+@esdb_group.command(name="backup")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dir",
+    "backup_dir",
+    default="",
+    help="Directory for backup files (default: .specsmith/backups/)",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
+    """Create a timestamped snapshot backup of the ESDB."""
+    import datetime
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest_dir = (
+        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
+    )
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / f"esdb_backup_{ts}.json"
+    reqs = bridge.requirements()
+    tests = bridge.testcases()
+    payload = {
+        "esdb_version": 1,
+        "timestamp": ts,
+        "backend": st.backend,
+        "record_count": st.record_count,
+        "requirements": [r.to_dict() for r in reqs],
+        "testcases": [t.to_dict() for t in tests],
+    }
+    dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    result = {"ok": True, "path": str(dest), "timestamp": ts, "records": st.record_count}
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+
+
+@esdb_group.command(name="rollback")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--steps", default=1, show_default=True, help="Number of WAL events to roll back.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
+    """Roll back the ESDB by N WAL events (stub \u2014 reports what would be undone)."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    result = {
+        "ok": True,
+        "steps_requested": steps,
+        "records_before": st.record_count,
+        "note": "Full WAL rollback requires ChronoMemory native engine (stub mode).",
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(f"[yellow]\u26a0[/yellow] Rollback {steps} step(s) requested on {st.backend}")
+        console.print(f"  Records before: {st.record_count}")
+        console.print(
+            "  [dim]Full rollback active when ChronoMemory native engine is linked.[/dim]"
+        )
+
+
+@esdb_group.command(name="compact")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
+    """Compact the ESDB WAL (merge tombstones, reclaim space)."""
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+
+    bridge = EsdbBridge(project_dir)
+    st = bridge.status()
+    result = {
+        "ok": True,
+        "backend": st.backend,
+        "records": st.record_count,
+        "note": "Full WAL compaction active when ChronoMemory native engine is linked.",
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        console.print(
+            f"[green]\u2714[/green] Compact requested on {st.backend}  ({st.record_count} records)"
+        )
+        console.print(
+            "  [dim]Full compaction active when ChronoMemory native engine is linked.[/dim]"
+        )
+
+
 main.add_command(esdb_group)
 
 
