@@ -3,7 +3,7 @@
 //! Integration tests for ChronoMemory ESDB — TEST-ESDB-001 through TEST-ESDB-020.
 
 use chronomemory::context_pack::ContextPackRequest;
-use chronomemory::projection::{Proposal, ProjectionConfig};
+use chronomemory::projection::Proposal;
 use chronomemory::types::*;
 use chronomemory::Esdb;
 use tempfile::TempDir;
@@ -295,7 +295,7 @@ fn test_confidence_decay_on_rollback() {
     let result = db.rollback(&root_id, "wrong").unwrap();
     assert!(!result.confidence_degraded.is_empty());
     // Dependent should have degraded confidence
-    for (id, old, new) in &result.confidence_degraded {
+    for (_id, old, new) in &result.confidence_degraded {
         assert!(new < old);
     }
 }
