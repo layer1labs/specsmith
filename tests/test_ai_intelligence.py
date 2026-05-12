@@ -594,11 +594,8 @@ class TestHFTokenInHeaders:
         # Verify that at least one request included the Authorization header
         assert captured_headers, "urlopen must have been called at least once"
         auth_values = [
-            v
-            for hdrs in captured_headers
-            for k, v in hdrs.items()
-            if k.lower() == "authorization"
+            v for hdrs in captured_headers for k, v in hdrs.items() if k.lower() == "authorization"
         ]
-        assert any(
-            "Bearer hf_test_token" in v for v in auth_values
-        ), f"No Authorization header found in captured requests: {captured_headers}"
+        assert any("Bearer hf_test_token" in v for v in auth_values), (
+            f"No Authorization header found in captured requests: {captured_headers}"
+        )
