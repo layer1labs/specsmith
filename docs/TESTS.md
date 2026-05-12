@@ -2605,6 +2605,28 @@
 - **Expected Behavior:** JSON stub displayed; file updated after add
 - **Confidence:** 0.8
 
+## TEST-282. HF Leaderboard Sync Persists Bucket Scores to JSON
+- **ID:** TEST-282
+- **Title:** HF Leaderboard Sync Persists Bucket Scores to JSON
+- **Description:** `sync_from_huggingface_blocking(force_static=True, scores_path=tmp_path/"scores.json")` creates the file at the given path, whose JSON root contains a `"bucket_scores"` dict. Each entry has `reasoning_score`, `conversational_score`, `longform_score`, and `model_name` keys.
+- **Requirement ID:** REQ-263
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** tmp_path/"scores.json" as scores_path; force_static=True
+- **Expected Behavior:** file created; contains bucket_scores dict; at least one entry with all required keys
+- **Confidence:** 1.0
+
+## TEST-283. HF Token Included in Request Headers When Set
+- **ID:** TEST-283
+- **Title:** HF Token Included in Request Headers When Set
+- **Description:** When `SPECSMITH_HF_TOKEN` is set to a non-empty string, `test_hf_connection()` returns `{"token_set": true}` and the rate_limit_tier includes "authenticated". The `_fetch_page` request (captured via mock) includes `Authorization: Bearer <token>` in its headers.
+- **Requirement ID:** REQ-265
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** SPECSMITH_HF_TOKEN="hf_test_token" in environment
+- **Expected Behavior:** token_set==true; rate_limit_tier contains "authenticated"
+- **Confidence:** 1.0
+
 ## TEST-263. HF Leaderboard Static Fallback Loads Without Network
 - **ID:** TEST-263
 - **Title:** HF Leaderboard Static Fallback Loads Without Network

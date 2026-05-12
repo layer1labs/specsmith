@@ -2629,6 +2629,28 @@
     "confidence": 1.0
   },
   {
+    "id": "TEST-282",
+    "title": "HF Leaderboard Sync Persists Bucket Scores to JSON",
+    "description": "`sync_from_huggingface_blocking(force_static=True, scores_path=tmp_path/\"scores.json\")` creates the file at the given path, whose JSON root contains a `\"bucket_scores\"` dict. Each entry has `reasoning_score`, `conversational_score`, `longform_score`, and `model_name` keys.",
+    "requirement_id": "REQ-263",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-283",
+    "title": "HF Token Included in Request Headers When Set",
+    "description": "When `SPECSMITH_HF_TOKEN` is set to a non-empty string, `test_hf_connection()` returns `{\"token_set\": true}` and the rate_limit_tier includes \"authenticated\". The `_fetch_page` request (captured via mock) includes `Authorization: Bearer <token>` in its headers.",
+    "requirement_id": "REQ-265",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
     "id": "TEST-263",
     "title": "HF Leaderboard Static Fallback Loads Without Network",
     "description": "Calling `sync_from_huggingface_blocking(force_static=True)` on an isolated tmp store (no HF network access) returns `{\"synced\": N, \"errors\": 0, \"message\": \"...static...\"}` with N >= 40 and the store contains scores for \"gpt-4o\" and \"llama3.3:70b\".",

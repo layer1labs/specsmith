@@ -482,3 +482,123 @@ class TestSuggestProfiles:
             assert not providers_path.exists() or True  # safe: we didn't create it
         else:
             assert providers_path.read_text() == content_before
+
+
+# ---------------------------------------------------------------------------
+# TEST-282 — HF sync persists bucket scores to JSON (REQ-263)
+# ---------------------------------------------------------------------------
+
+
+class TestHFSyncPersistsBucketScores:
+    def test_scores_file_created_with_bucket_scores_key(self, tmp_path: Path) -> None:
+        """TEST-282: sync creates file with bucket_scores dict containing required keys."""
+        import json
+
+        from specsmith.agent.hf_leaderboard import sync_from_huggingface_blocking
+
+        scores_path = tmp_path / "scores.json"
+        sync_from_huggingface_blocking(scores_path=scores_path, force_static=True)
+
+        assert scores_path.is_file(), "scores.json must be created"
+        data = json.loads(scores_path.read_text(encoding="utf-8"))
+        assert "bucket_scores" in data, "file must have 'bucket_scores' dict"
+
+    def test_each_entry_has_required_keys(self, tmp_path: Path) -> None:
+        """TEST-282: each bucket_scores entry has reasoning_score, conversational_score, etc."""
+        import json
+
+        from specsmith.agent.hf_leaderboard import sync_from_huggingface_blocking
+
+        scores_path = tmp_path / "scores.json"
+        sync_from_huggingface_blocking(scores_path=scores_path, force_static=True)
+
+        data = json.loads(scores_path.read_text(encoding="utf-8"))
+        bucket_scores = data["bucket_scores"]
+        assert len(bucket_scores) >= 1
+
+        required_keys = {"reasoning_score", "conversational_score", "longform_score", "model_name"}
+        for model_name, entry in bucket_scores.items():
+            missing = required_keys - set(entry.keys())
+            assert not missing, f"Entry '{model_name}' missing keys: {missing}"
+
+
+# ---------------------------------------------------------------------------
+# TEST-283 — HF token included in request headers when set (REQ-265)
+# ---------------------------------------------------------------------------
+
+
+class TestHFTokenInHeaders:
+    def test_token_set_returns_true_when_configured(self) -> None:
+        """TEST-283: token_set==True and rate_limit_tier contains 'authenticated'."""
+        import urllib.error
+
+        from specsmith.agent.hf_leaderboard import test_hf_connection
+
+        # Mock urlopen to avoid network: raise URLError so the probe short-circuits
+        with (
+            patch.dict(os.environ, {"SPECSMITH_HF_TOKEN": "hf_test_token"}, clear=False),
+            patch(
+                "specsmith.agent.hf_leaderboard.urllib.request.urlopen",
+                side_effect=urllib.error.URLError("offline"),
+            ),
+        ):
+            result = test_hf_connection()
+
+        assert result["token_set"] is True
+        assert "authenticated" in result["rate_limit_tier"]
+
+    def test_token_absent_returns_false_and_anonymous_tier(self) -> None:
+        """TEST-283: no token → token_set==False and tier contains 'anonymous'."""
+        import urllib.error
+
+        from specsmith.agent.hf_leaderboard import test_hf_connection
+
+        env = {k: v for k, v in os.environ.items() if k != "SPECSMITH_HF_TOKEN"}
+        with (
+            patch.dict(os.environ, env, clear=True),
+            patch(
+                "specsmith.agent.hf_leaderboard.urllib.request.urlopen",
+                side_effect=urllib.error.URLError("offline"),
+            ),
+        ):
+            result = test_hf_connection()
+
+        assert result["token_set"] is False
+        assert "anonymous" in result["rate_limit_tier"]
+
+    def test_fetch_page_sends_authorization_header(self) -> None:
+        """TEST-283: _sync_inner sends Authorization: Bearer <token> when token is set."""
+        import urllib.error
+
+        from specsmith.agent.hf_leaderboard import sync_from_huggingface_blocking
+
+        captured_headers: list[dict[str, str]] = []
+
+        def fake_urlopen(req: object, **kwargs: object) -> object:  # noqa: ANN001
+            # Capture headers from the request and raise to abort the sync
+            captured_headers.append(dict(getattr(req, "headers", {})))
+            raise urllib.error.URLError("offline")
+
+        with (
+            patch.dict(os.environ, {"SPECSMITH_HF_TOKEN": "hf_test_token"}, clear=False),
+            patch(
+                "specsmith.agent.hf_leaderboard.urllib.request.urlopen",
+                side_effect=fake_urlopen,
+            ),
+        ):
+            # force_static=False so _fetch_page is actually invoked
+            result = sync_from_huggingface_blocking(force_static=False)
+
+        # sync falls back to static when network is unavailable
+        assert result["errors"] == 0
+        # Verify that at least one request included the Authorization header
+        assert captured_headers, "urlopen must have been called at least once"
+        auth_values = [
+            v
+            for hdrs in captured_headers
+            for k, v in hdrs.items()
+            if k.lower() == "authorization"
+        ]
+        assert any(
+            "Bearer hf_test_token" in v for v in auth_values
+        ), f"No Authorization header found in captured requests: {captured_headers}"
