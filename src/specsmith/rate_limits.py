@@ -491,9 +491,10 @@ class RateLimitScheduler:
         try:
             profile = self._resolve_profile("*", model)
         except KeyError:
-            profile = next(iter(self._profiles.values())) if self._profiles else None
-            if profile is None:
-                return min(30.0, 2**attempt)
+            fallback = next(iter(self._profiles.values())) if self._profiles else None
+            if fallback is None:
+                return float(min(30.0, 2.0**attempt))
+            profile = fallback
         state = self._get_state(profile)
         now = self._clock()
         state.current_concurrency_cap = max(1, state.current_concurrency_cap - 1)
