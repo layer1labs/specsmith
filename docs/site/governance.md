@@ -116,3 +116,75 @@ Every loop or blocking wait in agent-written scripts and automation must have an
 On Windows, multi-step or heavily-quoted automation sequences must be written to a temporary `.cmd` file and executed from there. Inline multi-line quoting on Windows is fragile and causes avoidable hangs. Do not use `.ps1` files for this class of automation unless there is a concrete PowerShell-only requirement.
 
 See `docs/governance/RULES.md` in any governed project for the full set of H1–H12 rules and stop conditions.
+
+## YAML-First Governance (v0.12+)
+
+As of specsmith v0.12 the governance authority has flipped from Markdown-primary to **YAML-primary**. If your project has a `.specsmith/governance-mode` file containing `yaml`, then:
+
+- `docs/requirements/*.yml` and `docs/tests/*.yml` are the **canonical sources** — edit these, not the Markdown files.
+- `docs/REQUIREMENTS.md` and `docs/TESTS.md` are **generated artifacts** — they are overwritten on every sync.
+- `.specsmith/requirements.json` and `.specsmith/testcases.json` are JSON caches updated by `specsmith sync`.
+
+### The sync pipeline
+
+```bash
+# Full pipeline: YAML → JSON cache → Markdown artifacts
+specsmith sync
+
+# Regenerate only Markdown (skip JSON rewrite)
+specsmith generate docs
+
+# Dry-run: see what would change without writing
+specsmith generate docs --check
+
+# CI gate: exits 1 if JSON cache is out of sync with YAML
+specsmith sync --check
+```
+
+### Strict schema validation
+
+```bash
+specsmith validate --strict           # human-readable output
+specsmith validate --strict --json    # structured {ok, strict_errors, strict_warnings}
+```
+
+Enforces 8 checks: duplicate REQ IDs, duplicate TEST IDs, missing required fields, orphaned TESTs (reference non-existent REQ), untested REQs (warning), duplicate titles (warning), machine-state drift (warning). Exits 1 on errors; warnings do not block.
+
+### Domain YAML files
+
+Requirements are split into domain files, each covering a logical range of REQ IDs:
+
+| File | REQ range | Domain |
+|---|---|---|
+| `docs/requirements/governance.yml` | REQ-001..064 | Core AEE governance |
+| `docs/requirements/agent.yml` | REQ-065..129 | Nexus + CI |
+| `docs/requirements/harness.yml` | REQ-130..160 | Slash commands + subagents |
+| `docs/requirements/intelligence.yml` | REQ-161..220 | Instinct, eval, memory |
+| `docs/requirements/context.yml` | REQ-244..247 | Context window |
+| `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
+| `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
+| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+
+To add a new requirement, edit the appropriate domain YAML file and run `specsmith sync`.
+
+### Migrating from Markdown-primary
+
+```bash
+python scripts/migrate_governance_to_yaml.py
+```
+
+This idempotent script: removes duplicate REQs from REQUIREMENTS.md, re-syncs JSON, exports JSON to grouped YAML files, and writes `.specsmith/governance-mode = yaml`. Safe to re-run.
+
+### CI enforcement
+
+The `validate-strict` and `sync-check` jobs in `.github/workflows/ci.yml` run on every push and PR:
+
+```yaml
+- name: Validate governance schema (strict)
+  run: specsmith validate --strict --json
+
+- name: Check machine state sync
+  run: specsmith sync --check
+```
+
+Both jobs block the build on failure. See [YAML Governance Reference](yaml-governance.md) for the full API.

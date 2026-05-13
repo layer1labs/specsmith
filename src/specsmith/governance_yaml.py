@@ -44,6 +44,7 @@ _REQ_GROUPS: list[tuple[str, list[tuple[int, int]]]] = [
     ("context", [(244, 247)]),
     ("esdb", [(248, 262)]),
     ("ai_intelligence", [(263, 299)]),
+    ("yaml_governance", [(300, 399)]),
 ]
 _OVERFLOW_GROUP = "overflow"
 

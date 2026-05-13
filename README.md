@@ -24,7 +24,9 @@ per-session and per-project.
 
 ```bash
 specsmith governance-serve --port 7700     # Kairos governance REST API
-specsmith sync                              # sync .specsmith/ from docs/ markdown
+specsmith sync                              # sync YAML → JSON → MD (YAML-first mode)
+specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md from YAML
+specsmith validate --strict                 # YAML schema checks: dup IDs, orphans, coverage
 specsmith agent permissions-check git_push # check tool permission (REQ-012)
 specsmith ollama gpu                        # detect GPU VRAM, recommend context size
 specsmith export                            # generate full compliance report
@@ -164,16 +166,44 @@ specsmith phase --project-dir ./my-project
 
 ---
 
-## Machine State Sync
+## Machine State Sync + YAML Governance
 
-`.specsmith/` always mirrors the human-readable `docs/` governance files.
-Run `specsmith sync` after any change to `docs/REQUIREMENTS.md` or `docs/TESTS.md`:
+As of v0.12, specsmith uses **YAML-first governance**: `docs/requirements/*.yml`
+and `docs/tests/*.yml` are the canonical sources. `REQUIREMENTS.md` and `TESTS.md`
+are **generated artifacts** — do not hand-edit them.
 
 ```bash
-specsmith sync                     # regenerate .specsmith/requirements.json + testcases.json
-specsmith sync --check             # CI mode: exits 1 if out of sync without writing
-specsmith sync --json              # emit sync result as JSON
+# YAML-first pipeline (v0.12+)
+specsmith sync                     # YAML → .specsmith/*.json → docs/*.md (all in one)
+specsmith generate docs            # regenerate only the Markdown artifacts from YAML
+specsmith generate docs --check    # dry-run: report what would change
+specsmith validate --strict        # enforce schema: dup IDs, orphans, missing fields
+specsmith validate --strict --json # machine-readable validation result
+
+# CI guard (already in .github/workflows/ci.yml)
+specsmith sync --check             # exits 1 if JSON cache is out of sync with YAML
 ```
+
+**To add a new requirement**, edit the appropriate `docs/requirements/<domain>.yml`
+file and run `specsmith sync`. **Never** hand-edit `docs/REQUIREMENTS.md` — it will
+be overwritten by the next sync.
+
+**Domain files:**
+
+| File | REQ range | Domain |
+|---|---|---|
+| `docs/requirements/governance.yml` | REQ-001..064 | Core AEE governance |
+| `docs/requirements/agent.yml` | REQ-065..129 | Nexus + CI |
+| `docs/requirements/harness.yml` | REQ-130..160 | Slash commands + subagents |
+| `docs/requirements/intelligence.yml` | REQ-161..220 | Instinct, eval, memory |
+| `docs/requirements/context.yml` | REQ-244..247 | Context window |
+| `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
+| `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
+| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+
+**Migration from Markdown-primary:** Run
+`scripts/migrate_governance_to_yaml.py` once to convert an existing project.
+Idempotent — safe to re-run.
 
 ## Least-Privilege Agent Permissions (REG-012)
 
