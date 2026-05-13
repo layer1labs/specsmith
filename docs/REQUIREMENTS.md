@@ -1799,3 +1799,38 @@
 - **Status:** defined
 - **Source:** ARCHITECTURE.md §20–21 [KAI-001]
 
+## REQ-300. YAML-First Governance Sync Pipeline
+- **ID:** REQ-300
+- **Title:** YAML-First Governance Sync Pipeline
+- **Description:** When `.specsmith/governance-mode` contains `yaml`, `specsmith sync` MUST read docs/requirements/*.yml and docs/tests/*.yml as canonical sources, write .specsmith/requirements.json + testcases.json as JSON caches, and regenerate docs/REQUIREMENTS.md + docs/TESTS.md as derived artifacts. Legacy Markdown mode (governance-mode absent or `markdown`) MUST still work for backward compatibility.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+
+## REQ-301. Strict Governance Schema Validation
+- **ID:** REQ-301
+- **Title:** Strict Governance Schema Validation
+- **Description:** `specsmith validate --strict` MUST enforce 8 governance schema checks: (1) duplicate REQ IDs, (2) duplicate TEST IDs, (3) missing required REQ fields (id/title/status), (4) missing required TEST fields (id/title/requirement_id), (5) orphaned TESTs (reference non-existent REQ), (6) untested REQs (warning), (7) duplicate REQ titles (warning), (8) machine-state drift between YAML and JSON (warning). Exits 1 on errors; warnings do not block. `--json` flag emits structured output.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+
+## REQ-302. Generate Docs Command Renders YAML to Markdown
+- **ID:** REQ-302
+- **Title:** Generate Docs Command Renders YAML to Markdown
+- **Description:** `specsmith generate docs` MUST read docs/requirements/*.yml and docs/tests/*.yml in YAML-first mode, render the canonical Markdown artifacts docs/REQUIREMENTS.md and docs/TESTS.md, and also re-sync the JSON machine state. `--check` flag MUST report what would change without writing. Only available when governance-mode is `yaml`.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+
+## REQ-303. Governance Mode Flag Controls Authority Direction
+- **ID:** REQ-303
+- **Title:** Governance Mode Flag Controls Authority Direction
+- **Description:** `.specsmith/governance-mode` MUST contain `yaml` to activate YAML-first mode. `is_yaml_mode(root)` in `specsmith.governance_yaml` reads this flag. Absence of the file or value `markdown` activates legacy Markdown-primary mode. The flag is written by `scripts/migrate_governance_to_yaml.py`.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+
+## REQ-304. YAML Governance Migration Script
+- **ID:** REQ-304
+- **Title:** YAML Governance Migration Script
+- **Description:** `scripts/migrate_governance_to_yaml.py` MUST be idempotent and execute the following steps in order: (1) remove duplicate REQs from REQUIREMENTS.md, (2) re-sync .specsmith/ JSON from cleaned MD, (3) export JSON to grouped YAML files under docs/requirements/ and docs/tests/, (4) write .specsmith/governance-mode = yaml. Re-running must not corrupt the governance state.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+

@@ -84,24 +84,27 @@ specsmith phase next     # advance to next phase (checks prerequisites first)
 specsmith phase list     # list all 7 phases
 ```
 
-The active phase is shown in the VS Code Settings Panel as a colored pill with readiness % and a Next Phase button.
+The active phase is shown in the Kairos Governance panel as a colored pill with readiness % and a Next Phase button.
 
-## VS Code Extension
+## Kairos — Recommended Terminal Client
 
-The **specsmith AEE Workbench** VS Code extension is the recommended client:
+**[Kairos](https://github.com/BitConcepts/kairos)** is the recommended client for specsmith — a fully local, governance-ready terminal with zero cloud dependencies.
 
-- **6-tab Settings panel** — Project, Tools (FPGA/HDL), Files, Updates & System, Actions & AI, Execution
-- **AEE phase indicator** — live phase pill with Next Phase and phase selector
-- **AI agent sessions** — per-project JSONL bridge to specsmith CLI
-- **Ollama integration** — GPU-aware catalog, model download, task-based suggestions
-- **API key management** — OS credential store
+- **Governance Tools Panel** — live compliance controls, kill-switch, permission profile, audit log viewer
+- **Context window fill indicator** — real-time fill bar; auto-compression at 80%; hard 15% ceiling
+- **AI Providers table** — bucket score columns (R/C/L) sourced from HF leaderboard sync
+- **ESDB, Skills, Eval, MCP pages** — full specsmith feature surface under Settings → Specsmith
+- **BYOE** — any OpenAI-compatible endpoint; defaults to local specsmith on `127.0.0.1:7700`
+- **Zero telemetry, zero login** — credentials stay local; no account required
 
 ```bash
-# Ctrl+Shift+G — open Settings Panel
-# Ctrl+Shift+; — new agent session
+cargo run --release --bin kairos   # build and run from source
 ```
 
-**[→ VS Code Extension docs](vscode-extension.md)**
+**[→ Kairos on GitHub](https://github.com/BitConcepts/kairos)**
+
+!!! note "VS Code Extension deprecated"
+    The specsmith VS Code extension has been deprecated in favour of Kairos. Existing installs continue to work but will not receive new features.
 
 ## Quick Start
 
@@ -164,6 +167,7 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
 | [Configuration](configuration.md) | Every scaffold.yml field explained with examples |
 | [Governance Model](governance.md) | The closed-loop workflow, file hierarchy, modular governance |
+| [YAML Governance](yaml-governance.md) | YAML-first governance: domain files, sync pipeline, strict validation, migration |
 | [Export & Compliance](export.md) | Generating coverage reports, understanding the output |
 | [Troubleshooting](troubleshooting.md) | Common issues and solutions |
 | [Contributing](contributing.md) | Adding project types, code standards, PR process |

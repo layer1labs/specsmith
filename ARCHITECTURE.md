@@ -48,10 +48,49 @@ Profiles constrain which providers a session can use (unrestricted,
 local-only, budget, performance, air-gapped).
 See `specsmith.agent.execution_profiles`.
 
-### Model Intelligence
+### Model Intelligence — HF Leaderboard Sync
 
-Role-based scoring engine using HuggingFace benchmark data.
-10 roles × benchmark weights. See `specsmith.agent.model_intelligence`.
+Syncs benchmark data from the HuggingFace Open LLM Leaderboard and computes
+three task-specific bucket scores per model:
+- **Reasoning** = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval
+- **Conversational** = 0.40×IFEval + 0.35×MMLU-PRO + 0.25×BBH
+- **Longform** = 0.35×MUSR + 0.35×IFEval + 0.30×MMLU-PRO
+
+Falls back to 40+ built-in static scores when HF is unreachable.
+Background sync runs 15 s after startup, then daily. CLI:
+`specsmith model-intel sync/scores/recommendations/connection`.
+See `specsmith.agent.hf_leaderboard` (REQ-263..REQ-269).
+
+### Model Capability Profiles
+
+40+ pre-built profiles for all major providers (OpenAI, Anthropic, Google,
+Mistral, Llama, Qwen, DeepSeek, Ollama variants). Each profile carries:
+`max_tokens`, `prompt_style`, `supports_vision`, `supports_tool_calls`,
+`reasoning_mode`, `context_window`. Context-aware `trim_history()` preserves
+system messages while summarising older turns. See `specsmith.agent.model_profiles`
+(REQ-270..REQ-271).
+
+### LLM Client
+
+`LLMClient` wraps multiple providers with automatic fallback on 429/401,
+O-series parameter translation (`max_completion_tokens`, temperature=1,
+developer role), and vLLM guided-JSON payload injection.
+See `specsmith.agent.llm_client` (REQ-275..REQ-277).
+
+### Rate Limit Scheduler
+
+EMA-based adaptive rate limit scheduler with per-model RPM/TPM profiles,
+rolling-window tracking, dynamic concurrency backoff on 429, and image
+token estimation. See `specsmith.rate_limits` (REQ-272..REQ-274).
+
+### Endpoint Preset Registry
+
+10+ built-in presets for common OpenAI-compatible providers (vllm, lm_studio,
+llama_cpp, openrouter, together, groq, fireworks, deepinfra, perplexity,
+azure_openai). Each preset has `id`, `label`, `base_url`, `endpoint_kind`,
+`needs_key`. `suggest_profiles()` inspects env for API keys and Ollama
+availability and returns inert (never-persisted) suggestions.
+See `specsmith.agent.provider_registry` (REQ-278..REQ-280).
 
 ### USPTO Data Sources
 
@@ -129,6 +168,102 @@ Routing table (evaluated in order):
 6. `session / phase / status / project` → `init_session()`
 
 Returns `{"reply": "...", "action": "...", "prompt": "..."}`.
+
+## Context Window Management
+
+GPU-aware context sizing, live fill tracking, auto-compression, and hard
+ceiling enforcement. Implemented in `specsmith.context_window`.
+
+### VRAM Tiers (REQ-244)
+
+`detect_gpu_vram()` reads NVIDIA/AMD VRAM via nvidia-smi/rocm-smi, falls
+back to 0.0 on any error. `suggest_context_window(vram_gb)` maps:
+<6 GB → 4096, 6–11 GB → 8192, 12–19 GB → 16384, ≥20 GB → 32768 tokens.
+
+### Context Fill Tracker (REQ-245..REQ-247)
+
+`ContextFillTracker(limit=N)` emits `ContextFillEvent` on every `record(used)`
+call. At ≥ compression_threshold (default 80%) the event signals that
+summarisation should run. At ≥ 85% (hard ceiling), `ContextFullError` is
+raised — the caller must trigger emergency compression before proceeding.
+
+## YAML-Native Governance Layer
+
+The most significant architectural change in v0.12: governance files
+(REQUIREMENTS.md, TESTS.md) are now **derived artifacts** generated from
+canonical YAML sources. This is the authority flip from Markdown-primary
+to YAML-primary governance.
+
+### Authority Hierarchy (REQ-300..REQ-304)
+
+```
+docs/requirements/*.yml  ← CANONICAL (edit here)
+docs/tests/*.yml         ← CANONICAL (edit here)
+        │
+        ▼  specsmith sync (YAML-first mode)
+.specsmith/requirements.json  ← machine cache
+.specsmith/testcases.json     ← machine cache
+        │
+        ▼  specsmith generate docs
+docs/REQUIREMENTS.md  ← generated artifact (do not hand-edit)
+docs/TESTS.md         ← generated artifact (do not hand-edit)
+```
+
+### Governance Mode Flag
+
+`.specsmith/governance-mode` contains `yaml` when YAML-first mode is active.
+`is_yaml_mode(root)` in `specsmith.governance_yaml` reads this flag.
+In legacy Markdown mode (flag absent or `markdown`), the old sync behaviour
+is preserved for backward compatibility with projects not yet migrated.
+
+### YAML File Groups
+
+Requirements and tests are grouped into domain files under
+`docs/requirements/` and `docs/tests/` (7 files each):
+
+| Stem | REQ Range | Domain |
+|---|---|---|
+| governance | REQ-001..064 | Core AEE governance |
+| agent | REQ-065..129 | Nexus + CI |
+| harness | REQ-130..160 | Slash commands + subagents |
+| intelligence | REQ-161..220 | Instinct, eval, memory |
+| context | REQ-244..247 | Context window management |
+| esdb | REQ-248..262 | ESDB + skills + MCP builder |
+| ai_intelligence | REQ-263..299 | AI model intelligence |
+
+### Strict Validation (REQ-301)
+
+`specsmith validate --strict` runs 8 schema checks:
+1. Duplicate REQ IDs (errors)
+2. Duplicate TEST IDs (errors)
+3. Missing required REQ fields: `id`, `title`, `status` (errors)
+4. Missing required TEST fields: `id`, `title`, `requirement_id` (errors)
+5. Orphaned TESTs (TEST references non-existent REQ) (errors)
+6. Untested REQs (REQs with no TEST) (warnings)
+7. Duplicate REQ titles (warnings)
+8. Machine-state drift (YAML ≠ JSON) (warnings)
+
+Gated in CI via the `validate-strict` job in `.github/workflows/ci.yml`.
+
+### Sync Pipeline (REQ-300)
+
+In YAML-first mode, `specsmith sync` executes:
+1. `load_yaml_requirements(root)` + `load_yaml_tests(root)` — read YAML
+2. Normalise to `{id, title, description, source, status}` schema
+3. Compare against existing JSON (detect drift)
+4. Write `.specsmith/requirements.json` + `testcases.json` (JSON cache)
+5. `generate_requirements_md()` + `generate_tests_md()` — render MD
+6. Write `docs/REQUIREMENTS.md` + `docs/TESTS.md` (derived artifacts)
+
+Legacy Markdown mode (steps 1–4 only, MD → JSON).
+
+### Migration
+
+`scripts/migrate_governance_to_yaml.py` is the idempotent migration script:
+1. Removes duplicate REQs from REQUIREMENTS.md
+2. Re-syncs machine state from cleaned MD
+3. Exports JSON → grouped YAML files
+4. Writes `.specsmith/governance-mode = yaml`
 
 ## Kairos Integration
 

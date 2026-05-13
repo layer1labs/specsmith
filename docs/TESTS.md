@@ -2340,3 +2340,58 @@
 - **Verification Method:** pytest
 - **Confidence:** 1.0
 
+## TEST-300. YAML-First Sync Reads YAML and Writes JSON + MD
+- **ID:** TEST-300
+- **Title:** YAML-First Sync Reads YAML and Writes JSON + MD
+- **Description:** When `.specsmith/governance-mode` == `yaml` and docs/requirements/*.yml exist, `specsmith sync` reads from YAML files, writes .specsmith/ requirements.json + testcases.json, and regenerates docs/REQUIREMENTS.md + docs/TESTS.md. `specsmith sync --check` exits 0 after sync. In legacy mode (no governance-mode file), sync reads from REQUIREMENTS.md as before.
+- **Requirement ID:** REQ-300
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** tmp_path with YAML files + governance-mode=yaml
+- **Expected Behavior:** JSON updated; REQUIREMENTS.md regenerated; sync --check exits 0
+- **Confidence:** 1.0
+
+## TEST-301. validate --strict Enforces All 8 Schema Checks
+- **ID:** TEST-301
+- **Title:** validate --strict Enforces All 8 Schema Checks
+- **Description:** `specsmith validate --strict --json` returns `{ok: true, strict_errors: 0}` on a clean project. When a duplicate REQ ID is injected, strict_errors > 0 and exit code is 1. When an untested REQ exists, strict_warnings > 0 but exit code is still 0. The `validate-strict` CI job runs this gate on every push.
+- **Requirement ID:** REQ-301
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith validate --strict --json; inject duplicate REQ; inject untested REQ
+- **Expected Behavior:** clean project exits 0 strict_errors=0; dup exits 1; untested exits 0 with warning
+- **Confidence:** 1.0
+
+## TEST-302. generate docs Renders YAML to REQUIREMENTS.md and TESTS.md
+- **ID:** TEST-302
+- **Title:** generate docs Renders YAML to REQUIREMENTS.md and TESTS.md
+- **Description:** `specsmith generate docs --json` in YAML-first mode exits 0 and returns `{ok: true, reqs: N, tests: M}`. The regenerated docs/REQUIREMENTS.md contains a heading for each REQ in the YAML files. `--check` flag reports changes without writing.
+- **Requirement ID:** REQ-302
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith generate docs --json; specsmith generate docs --check --json
+- **Expected Behavior:** exits 0; ok=true; REQUIREMENTS.md updated; check exits 0 with dry_run=true
+- **Confidence:** 1.0
+
+## TEST-303. governance-mode Flag Controls YAML vs Markdown Authority
+- **ID:** TEST-303
+- **Title:** governance-mode Flag Controls YAML vs Markdown Authority
+- **Description:** `is_yaml_mode(root)` returns True when `.specsmith/governance-mode` == `yaml` and False when the file is absent or contains `markdown`. `specsmith sync` uses YAML sources when yaml_mode=True and Markdown sources when False. The flag is preserved across specsmith upgrades.
+- **Requirement ID:** REQ-303
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** governance-mode = yaml; governance-mode absent; governance-mode = markdown
+- **Expected Behavior:** is_yaml_mode returns True/False/False respectively
+- **Confidence:** 1.0
+
+## TEST-304. Migration Script Is Idempotent
+- **ID:** TEST-304
+- **Title:** Migration Script Is Idempotent
+- **Description:** Running `scripts/migrate_governance_to_yaml.py` twice produces the same result as running it once. After migration: docs/requirements/ and docs/tests/ contain YAML files, .specsmith/governance-mode == `yaml`, and `specsmith sync --check` exits 0.
+- **Requirement ID:** REQ-304
+- **Type:** integration
+- **Verification Method:** script
+- **Input:** scripts/migrate_governance_to_yaml.py run twice on same project
+- **Expected Behavior:** second run produces no changes; governance-mode=yaml; sync --check exits 0
+- **Confidence:** 1.0
+

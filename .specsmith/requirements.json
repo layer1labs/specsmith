@@ -1797,5 +1797,40 @@
     "description": "The Kairos Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.",
     "source": "ARCHITECTURE.md §20–21 [KAI-001]",
     "status": "defined"
+  },
+  {
+    "id": "REQ-300",
+    "title": "YAML-First Governance Sync Pipeline",
+    "description": "When `.specsmith/governance-mode` contains `yaml`, `specsmith sync` MUST read docs/requirements/*.yml and docs/tests/*.yml as canonical sources, write .specsmith/requirements.json + testcases.json as JSON caches, and regenerate docs/REQUIREMENTS.md + docs/TESTS.md as derived artifacts. Legacy Markdown mode (governance-mode absent or `markdown`) MUST still work for backward compatibility.",
+    "source": "ARCHITECTURE.md §YAML-Native Governance Layer",
+    "status": "implemented"
+  },
+  {
+    "id": "REQ-301",
+    "title": "Strict Governance Schema Validation",
+    "description": "`specsmith validate --strict` MUST enforce 8 governance schema checks: (1) duplicate REQ IDs, (2) duplicate TEST IDs, (3) missing required REQ fields (id/title/status), (4) missing required TEST fields (id/title/requirement_id), (5) orphaned TESTs (reference non-existent REQ), (6) untested REQs (warning), (7) duplicate REQ titles (warning), (8) machine-state drift between YAML and JSON (warning). Exits 1 on errors; warnings do not block. `--json` flag emits structured output.",
+    "source": "ARCHITECTURE.md §YAML-Native Governance Layer",
+    "status": "implemented"
+  },
+  {
+    "id": "REQ-302",
+    "title": "Generate Docs Command Renders YAML to Markdown",
+    "description": "`specsmith generate docs` MUST read docs/requirements/*.yml and docs/tests/*.yml in YAML-first mode, render the canonical Markdown artifacts docs/REQUIREMENTS.md and docs/TESTS.md, and also re-sync the JSON machine state. `--check` flag MUST report what would change without writing. Only available when governance-mode is `yaml`.",
+    "source": "ARCHITECTURE.md §YAML-Native Governance Layer",
+    "status": "implemented"
+  },
+  {
+    "id": "REQ-303",
+    "title": "Governance Mode Flag Controls Authority Direction",
+    "description": "`.specsmith/governance-mode` MUST contain `yaml` to activate YAML-first mode. `is_yaml_mode(root)` in `specsmith.governance_yaml` reads this flag. Absence of the file or value `markdown` activates legacy Markdown-primary mode. The flag is written by `scripts/migrate_governance_to_yaml.py`.",
+    "source": "ARCHITECTURE.md §YAML-Native Governance Layer",
+    "status": "implemented"
+  },
+  {
+    "id": "REQ-304",
+    "title": "YAML Governance Migration Script",
+    "description": "`scripts/migrate_governance_to_yaml.py` MUST be idempotent and execute the following steps in order: (1) remove duplicate REQs from REQUIREMENTS.md, (2) re-sync .specsmith/ JSON from cleaned MD, (3) export JSON to grouped YAML files under docs/requirements/ and docs/tests/, (4) write .specsmith/governance-mode = yaml. Re-running must not corrupt the governance state.",
+    "source": "ARCHITECTURE.md §YAML-Native Governance Layer",
+    "status": "implemented"
   }
 ]
