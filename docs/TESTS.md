@@ -7,8 +7,6 @@
 - **Requirement ID:** REQ-001
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-002. Governance Files Must Be Owned by Specsmith
@@ -18,8 +16,6 @@
 - **Requirement ID:** REQ-002
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-003. Machine State Must Reflect Governance State
@@ -29,8 +25,6 @@
 - **Requirement ID:** REQ-003
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-004. Requirements Must Be Derived from Architecture
@@ -40,8 +34,6 @@
 - **Requirement ID:** REQ-004
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-005. Requirement IDs Must Be Stable
@@ -51,8 +43,6 @@
 - **Requirement ID:** REQ-005
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-006. Preflight Validation Must Be Performed
@@ -62,8 +52,6 @@
 - **Requirement ID:** REQ-006
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-007. Test Cases Must Be Generated from Requirements
@@ -73,8 +61,6 @@
 - **Requirement ID:** REQ-007
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-008. Each Requirement Must Link to At Least One Test
@@ -84,8 +70,6 @@
 - **Requirement ID:** REQ-008
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-009. Work Items Must Be Created for Accepted Requirements
@@ -95,8 +79,6 @@
 - **Requirement ID:** REQ-009
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-010. Requirements Must Include Priority and Status
@@ -106,8 +88,6 @@
 - **Requirement ID:** REQ-010
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-011. Verification Must Include Confidence Scoring
@@ -117,8 +97,6 @@
 - **Requirement ID:** REQ-011
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-012. Equilibrium Must Be Reached Before Finalizing
@@ -128,8 +106,6 @@
 - **Requirement ID:** REQ-012
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-013. Retry Recommendations Must Be Provided
@@ -139,8 +115,6 @@
 - **Requirement ID:** REQ-013
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-014. Retries Must Be Bounded
@@ -150,8 +124,6 @@
 - **Requirement ID:** REQ-014
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-015. Every Governance Action Must Record a Ledger Event
@@ -161,8 +133,6 @@
 - **Requirement ID:** REQ-015
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-016. Trace Chain Must Be Tamper‑Evident
@@ -172,8 +142,6 @@
 - **Requirement ID:** REQ-016
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-017. OpenCode Must Own Execution and Tools
@@ -183,8 +151,6 @@
 - **Requirement ID:** REQ-017
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-018. Specsmith Core Must Be Integration‑Agnostic
@@ -194,8 +160,6 @@
 - **Requirement ID:** REQ-018
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-019. Verification Must Evaluate Changed Files
@@ -205,8 +169,6 @@
 - **Requirement ID:** REQ-019
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-020. Verification Must Evaluate Diff Relevance
@@ -216,8 +178,6 @@
 - **Requirement ID:** REQ-020
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-021. Verification Must Evaluate Test Results
@@ -227,8 +187,6 @@
 - **Requirement ID:** REQ-021
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-022. Verification Must Evaluate Contradictions and Uncertainty
@@ -238,8 +196,6 @@
 - **Requirement ID:** REQ-022
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-023. Requirement Schema Must Include Source Location, Type, Priority, Confidence, Status, and Timestamps
@@ -249,8 +205,6 @@
 - **Requirement ID:** REQ-023
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-024. Test Case Model Must Include Required Fields
@@ -260,8 +214,6 @@
 - **Requirement ID:** REQ-024
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-025. Work Item Model Must Include Required Fields
@@ -271,8 +223,6 @@
 - **Requirement ID:** REQ-025
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-026. Preflight Output Schema Must Include Decision, Work Item ID, Priority, Requirement IDs, Test Case IDs, Confidence Target
@@ -282,8 +232,6 @@
 - **Requirement ID:** REQ-026
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-027. Verification Input Must Include Diffs, Tests, Logs, and Changed Files
@@ -293,8 +241,6 @@
 - **Requirement ID:** REQ-027
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-028. Retry Strategy Mapping Must Be Defined
@@ -304,8 +250,6 @@
 - **Requirement ID:** REQ-028
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-029. Integration Adapter Interface Must Provide Capabilities
@@ -315,8 +259,6 @@
 - **Requirement ID:** REQ-029
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-030. Specsmith CLI Commands Must Be Explicitly Defined
@@ -326,8 +268,6 @@
 - **Requirement ID:** REQ-030
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-031. Sequencing Rules Must Enforce Valid States
@@ -337,8 +277,6 @@
 - **Requirement ID:** REQ-031
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-032. Configuration Settings for Optional Features
@@ -348,8 +286,6 @@
 - **Requirement ID:** REQ-032
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-033. Default Enablement of Optional Features
@@ -359,8 +295,6 @@
 - **Requirement ID:** REQ-033
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-034. Evidence ZIP Archive Generation
@@ -370,8 +304,6 @@
 - **Requirement ID:** REQ-034
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-035. Evidence Manifest Generation
@@ -381,8 +313,6 @@
 - **Requirement ID:** REQ-035
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-036. Per‑File SHA‑256 Hashing in Evidence
@@ -392,8 +322,6 @@
 - **Requirement ID:** REQ-036
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-037. Final Evidence ZIP SHA‑256 Hash
@@ -403,8 +331,6 @@
 - **Requirement ID:** REQ-037
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-038. Author/Owner Metadata Capture
@@ -414,8 +340,6 @@
 - **Requirement ID:** REQ-038
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-039. Git Commit Metadata Inclusion
@@ -425,8 +349,6 @@
 - **Requirement ID:** REQ-039
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-040. Ledger Reference Inclusion
@@ -436,8 +358,6 @@
 - **Requirement ID:** REQ-040
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-041. Trusted Timestamp Token Support
@@ -447,8 +367,6 @@
 - **Requirement ID:** REQ-041
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-042. Legal/IP Disclaimer Requirement
@@ -458,8 +376,6 @@
 - **Requirement ID:** REQ-042
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-043. Ledger Event Hash Chaining
@@ -469,8 +385,6 @@
 - **Requirement ID:** REQ-043
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-044. Ledger Event on Work Proposal
@@ -480,8 +394,6 @@
 - **Requirement ID:** REQ-044
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-045. Ledger Event on Work Completion
@@ -491,8 +403,6 @@
 - **Requirement ID:** REQ-045
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-046. README.md Generation and Synchronization
@@ -502,8 +412,6 @@
 - **Requirement ID:** REQ-046
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-047. CHANGELOG.md Generation and Synchronization
@@ -513,8 +421,6 @@
 - **Requirement ID:** REQ-047
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-048. Keep a Changelog Compliance
@@ -524,8 +430,6 @@
 - **Requirement ID:** REQ-048
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-049. Semantic Versioning Support
@@ -535,8 +439,6 @@
 - **Requirement ID:** REQ-049
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-050. Guided Version Bump Workflow
@@ -546,8 +448,6 @@
 - **Requirement ID:** REQ-050
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-051. Guided Release Strategy Workflow
@@ -557,8 +457,6 @@
 - **Requirement ID:** REQ-051
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-052. Guided Branching Strategy Workflow
@@ -568,8 +466,6 @@
 - **Requirement ID:** REQ-052
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-053. Default GitFlow Branching Model
@@ -579,8 +475,6 @@
 - **Requirement ID:** REQ-053
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-054. Guided Branching Modification
@@ -590,8 +484,6 @@
 - **Requirement ID:** REQ-054
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-055. GitHub License Generation
@@ -601,8 +493,6 @@
 - **Requirement ID:** REQ-055
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-056. Commercial License Drafting Guidance
@@ -612,8 +502,6 @@
 - **Requirement ID:** REQ-056
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-057. Local Git Commit After Work
@@ -623,8 +511,6 @@
 - **Requirement ID:** REQ-057
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-058. Confidence Threshold Configuration
@@ -634,8 +520,6 @@
 - **Requirement ID:** REQ-058
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-059. Iteration Continuation Until Threshold
@@ -645,8 +529,6 @@
 - **Requirement ID:** REQ-059
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-060. Indefinite Iteration Default
@@ -656,8 +538,6 @@
 - **Requirement ID:** REQ-060
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-061. Max Iterations Configuration
@@ -667,8 +547,6 @@
 - **Requirement ID:** REQ-061
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-062. Token/Cost/Time Limits Configuration
@@ -678,8 +556,6 @@
 - **Requirement ID:** REQ-062
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-063. Stop‑and‑Align Behavior
@@ -689,8 +565,6 @@
 - **Requirement ID:** REQ-063
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-064. Interactive Correction Workflow
@@ -700,8 +574,6 @@
 - **Requirement ID:** REQ-064
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-065. Nexus Runtime Must Not Own Governance
@@ -711,8 +583,6 @@
 - **Requirement ID:** REQ-065
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** orchestrator.__doc__
-- **Expected Behavior:** Module docstring contains "Specsmith governs" and "Nexus only executes"
 - **Confidence:** 1.0
 
 ## TEST-066. Nexus Must Provide Required Agent Roles
@@ -722,8 +592,6 @@
 - **Requirement ID:** REQ-066
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** Mocked Orchestrator
-- **Expected Behavior:** All eight agents present.
 - **Confidence:** 1.0
 
 ## TEST-067. Nexus Tool Layer Must Expose Required Tools
@@ -733,8 +601,6 @@
 - **Requirement ID:** REQ-067
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** AVAILABLE_TOOLS
-- **Expected Behavior:** Names match the canonical Nexus tool list.
 - **Confidence:** 1.0
 
 ## TEST-068. Nexus Safety Middleware Must Block Unsafe Commands
@@ -744,8 +610,6 @@
 - **Requirement ID:** REQ-068
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** sample commands
-- **Expected Behavior:** Unsafe blocked; safe allowed.
 - **Confidence:** 1.0
 
 ## TEST-069. Nexus Tool Arguments Must Be JSON Validated
@@ -755,8 +619,6 @@
 - **Requirement ID:** REQ-069
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** non-JSON-serializable args
-- **Expected Behavior:** ValueError raised.
 - **Confidence:** 1.0
 
 ## TEST-070. Nexus Must Normalize File Paths
@@ -766,8 +628,6 @@
 - **Requirement ID:** REQ-070
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** relative paths
-- **Expected Behavior:** Absolute resolved Path returned.
 - **Confidence:** 1.0
 
 ## TEST-071. Nexus Must Index the Repository
@@ -777,8 +637,6 @@
 - **Requirement ID:** REQ-071
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** Temporary working directory
-- **Expected Behavior:** Index files created.
 - **Confidence:** 1.0
 
 ## TEST-072. Nexus REPL Must Support Slash Commands
@@ -788,8 +646,6 @@
 - **Requirement ID:** REQ-072
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** repl module source
-- **Expected Behavior:** All slash command tokens present.
 - **Confidence:** 1.0
 
 ## TEST-073. Nexus Output Contract
@@ -799,8 +655,6 @@
 - **Requirement ID:** REQ-073
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** Orchestrator source
-- **Expected Behavior:** Plan, Commands to run, Files changed, Diff, Test results, Next action present.
 - **Confidence:** 1.0
 
 ## TEST-074. vLLM Image Must Be Pinned
@@ -810,8 +664,6 @@
 - **Requirement ID:** REQ-074
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** docker-compose.yml
-- **Expected Behavior:** Pinned tag present, latest absent.
 - **Confidence:** 1.0
 
 ## TEST-075. vLLM Must Serve l1-nexus Model
@@ -821,8 +673,6 @@
 - **Requirement ID:** REQ-075
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** docker-compose.yml
-- **Expected Behavior:** l1-nexus and hermes tokens present.
 - **Confidence:** 1.0
 
 ## TEST-076. Nexus Tool Executor Registration Must Be Unique
@@ -832,8 +682,6 @@
 - **Requirement ID:** REQ-076
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** Mocked AG2 agents
-- **Expected Behavior:** register_for_execution call count equals number of tools.
 - **Confidence:** 1.0
 
 ## TEST-077. Safe Cleanup Defaults to Dry-Run
@@ -843,8 +691,6 @@
 - **Requirement ID:** REQ-077
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path with __pycache__ created
-- **Expected Behavior:** Directory still exists after dry-run; report.dry_run is True.
 - **Confidence:** 1.0
 
 ## TEST-078. Safe Cleanup Uses Hard-Coded Target List
@@ -854,8 +700,6 @@
 - **Requirement ID:** REQ-078
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** cleanup module
-- **Expected Behavior:** Only canonical targets considered.
 - **Confidence:** 1.0
 
 ## TEST-079. Safe Cleanup Protects Governance and Source
@@ -865,8 +709,6 @@
 - **Requirement ID:** REQ-079
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path resembling a real repo
-- **Expected Behavior:** All protected paths still exist after apply.
 - **Confidence:** 1.0
 
 ## TEST-080. Safe Cleanup Emits Structured Report
@@ -876,8 +718,6 @@
 - **Requirement ID:** REQ-080
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path
-- **Expected Behavior:** Report exposes the required fields.
 - **Confidence:** 1.0
 
 ## TEST-081. specsmith clean CLI Subcommand
@@ -887,8 +727,6 @@
 - **Requirement ID:** REQ-081
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over isolated tmp_path
-- **Expected Behavior:** Exit code 0; correct mode flags; ledger entry on apply.
 - **Confidence:** 1.0
 
 ## TEST-082. UTF-8 Safe Console Factory
@@ -898,8 +736,6 @@
 - **Requirement ID:** REQ-082
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** make_console with file=io.StringIO
-- **Expected Behavior:** Console.print of the test glyphs returns without error and the captured output contains them.
 - **Confidence:** 1.0
 
 ## TEST-083. Canonical Test Spec File Is TESTS.md
@@ -909,8 +745,6 @@
 - **Requirement ID:** REQ-083
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** repository tree
-- **Expected Behavior:** Canonical `TESTS.md` files exist, legacy names absent from active source/docs/templates, key modules reference the new name.
 - **Confidence:** 1.0
 
 ## TEST-084. Natural-Language Governance Broker
@@ -920,8 +754,6 @@
 - **Requirement ID:** REQ-084
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** Mocked Specsmith CLI + tmp-path REQUIREMENTS.md
-- **Expected Behavior:** Broker classifies, scopes, preflights, narrates without IDs, and bounds retries per REQ-014.
 - **Confidence:** 1.0
 
 ## TEST-085. specsmith preflight CLI Emits Required JSON
@@ -931,8 +763,6 @@
 - **Requirement ID:** REQ-085
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over isolated tmp_path
-- **Expected Behavior:** JSON parses; required keys present; decisions match intent.
 - **Confidence:** 1.0
 
 ## TEST-086. REPL Gates Execution on Preflight Acceptance
@@ -942,8 +772,6 @@
 - **Requirement ID:** REQ-086
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** repl module source
-- **Expected Behavior:** Source contains a guard checking `decision.accepted` (or equivalent) before `orchestrator.run_task` is invoked from the broker branch.
 - **Confidence:** 1.0
 
 ## TEST-087. REPL Drives Orchestrator via Bounded-Retry Harness
@@ -953,8 +781,6 @@
 - **Requirement ID:** REQ-087
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** repl module source
-- **Expected Behavior:** Source imports `execute_with_governance`, calls it inside the broker branch, and the only `orchestrator.run_task(` call appears inside the executor closure.
 - **Confidence:** 1.0
 
 ## TEST-088. specsmith preflight Resolves Test Case IDs From Machine State
@@ -964,8 +790,6 @@
 - **Requirement ID:** REQ-088
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over isolated tmp_path with seeded testcases.json
-- **Expected Behavior:** `test_case_ids` is non-empty and contains the joined TEST id; unknown ids never appear.
 - **Confidence:** 1.0
 
 ## TEST-089. Nexus Live l1-nexus Smoke Test Script
@@ -975,8 +799,6 @@
 - **Requirement ID:** REQ-089
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** scripts/nexus_smoke.py
-- **Expected Behavior:** Module importable; `smoke_test` callable; integration test skipped offline; live test passes when container is up.
 - **Confidence:** 1.0
 
 ## TEST-090. Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
@@ -986,8 +808,6 @@
 - **Requirement ID:** REQ-090
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** ARCHITECTURE.md, README.md
-- **Expected Behavior:** Each file mentions the broker concept, the preflight CLI, the gate, and the `/why` toggle.
 - **Confidence:** 1.0
 
 ## TEST-091. Orchestrator.run_task Returns a Structured TaskResult
@@ -997,8 +817,6 @@
 - **Requirement ID:** REQ-091
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** orchestrator module + REPL source
-- **Expected Behavior:** TaskResult dataclass exposes the required fields; REPL source references `result.equilibrium` and `result.confidence`.
 - **Confidence:** 1.0
 
 ## TEST-092. specsmith preflight CLI Returns Decision-Specific Exit Codes
@@ -1008,8 +826,6 @@
 - **Requirement ID:** REQ-092
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over isolated tmp_path
-- **Expected Behavior:** Exit code matches the decision; JSON parses on stdout for both 0 and 2 exits.
 - **Confidence:** 1.0
 
 ## TEST-093. Accepted preflight Records a Ledger Event
@@ -1019,8 +835,6 @@
 - **Requirement ID:** REQ-093
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner with seeded LEDGER.md
-- **Expected Behavior:** LEDGER.md grows on accept; LEDGER.md unchanged on needs_clarification.
 - **Confidence:** 1.0
 
 ## TEST-094. /why Surfaces Post-Run Governance Block in REPL
@@ -1030,8 +844,6 @@
 - **Requirement ID:** REQ-094
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** repl module source
-- **Expected Behavior:** Source contains a `[/why]` block guarded by verbose_governance and referencing the required keys.
 - **Confidence:** 1.0
 
 ## TEST-095. Nexus Live Smoke Evidence Captured
@@ -1041,8 +853,6 @@
 - **Requirement ID:** REQ-095
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** .specsmith/runs/WI-NEXUS-011/logs.txt
-- **Expected Behavior:** Log file present and non-empty; mentions either ok=true/false from the smoke script.
 - **Confidence:** 1.0
 
 ## TEST-096. execute_with_governance Maps Failures to Retry Strategies
@@ -1052,8 +862,6 @@
 - **Requirement ID:** REQ-096
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** mocked executor returning failure reports
-- **Expected Behavior:** `result.strategy` is a canonical label; `result.clarifying_question` references it.
 - **Confidence:** 1.0
 
 ## TEST-097. specsmith verify CLI Emits Required JSON
@@ -1063,8 +871,6 @@
 - **Requirement ID:** REQ-097
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner with stdin JSON
-- **Expected Behavior:** JSON parses; required keys present; exit code matches verification outcome.
 - **Confidence:** 1.0
 
 ## TEST-098. Confidence Threshold Read From .specsmith/config.yml
@@ -1074,8 +880,6 @@
 - **Requirement ID:** REQ-098
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over tmp_path with seeded config.yml
-- **Expected Behavior:** confidence_target floor matches the config when present; falls back to heuristic when absent.
 - **Confidence:** 1.0
 
 ## TEST-099. Accepted Preflight Records work_proposal Event Once
@@ -1085,8 +889,6 @@
 - **Requirement ID:** REQ-099
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over tmp_path with LEDGER.md
-- **Expected Behavior:** LEDGER.md contains a `work_proposal` entry referencing REQ-044, REQ-085, and the work_item_id; subsequent acceptance with a different id appends another work_proposal.
 - **Confidence:** 1.0
 
 ## TEST-100. Broker Scope Inference Surfaces Stress Warnings Under --stress
@@ -1096,9 +898,8 @@
 - **Requirement ID:** REQ-100
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over tmp_path with seeded REQUIREMENTS.md
-- **Expected Behavior:** `stress_warnings` populated under --stress when StressTester reports critical failures; absent or empty otherwise.
 - **Confidence:** 1.0
+
 ## TEST-101. Lint Baseline Is Clean on develop
 - **ID:** TEST-101
 - **Title:** Lint Baseline Is Clean on develop
@@ -1106,9 +907,8 @@
 - **Requirement ID:** REQ-101
 - **Type:** integration
 - **Verification Method:** ci
-- **Input:** working tree on develop
-- **Expected Behavior:** Both ruff invocations exit 0; CI lint job is green on PRs targeting develop.
 - **Confidence:** 1.0
+
 ## TEST-102. Type-Check Baseline Is Clean on develop
 - **ID:** TEST-102
 - **Title:** Type-Check Baseline Is Clean on develop
@@ -1116,9 +916,8 @@
 - **Requirement ID:** REQ-102
 - **Type:** integration
 - **Verification Method:** ci
-- **Input:** working tree on develop
-- **Expected Behavior:** mypy exits 0; CI typecheck job is green on PRs targeting develop.
 - **Confidence:** 1.0
+
 ## TEST-103. Security Job Passes With pip-audit ignore-vuln
 - **ID:** TEST-103
 - **Title:** Security Job Passes With pip-audit ignore-vuln
@@ -1126,9 +925,8 @@
 - **Requirement ID:** REQ-103
 - **Type:** integration
 - **Verification Method:** ci
-- **Input:** working tree on develop
-- **Expected Behavior:** pip-audit exits 0 under the documented ignore-vuln flag; CI security job is green on PRs targeting develop.
 - **Confidence:** 1.0
+
 ## TEST-104. workitems.json Mirrors Implemented REQs
 - **ID:** TEST-104
 - **Title:** workitems.json Mirrors Implemented REQs
@@ -1136,9 +934,8 @@
 - **Requirement ID:** REQ-104
 - **Type:** integration
 - **Verification Method:** script
-- **Input:** developer workstation
-- **Expected Behavior:** Sync prints `Synced N work items (N complete, 0 pending)` where N == REQ count.
 - **Confidence:** 1.0
+
 ## TEST-105. Live Smoke Logs Document Skip Reason
 - **ID:** TEST-105
 - **Title:** Live Smoke Logs Document Skip Reason
@@ -1146,9 +943,8 @@
 - **Requirement ID:** REQ-105
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** .specsmith/runs/WI-NEXUS-011/logs.txt
-- **Expected Behavior:** Logs file references either ok=true or ok=false / NEXUS_LIVE; documents the skip reason when applicable.
 - **Confidence:** 1.0
+
 ## TEST-106. Kairos Governance Page Surfaces Preflight/Verify/Trace
 - **ID:** TEST-106
 - **Title:** Kairos Governance Page Surfaces Preflight/Verify/Trace
@@ -1156,9 +952,8 @@
 - **Requirement ID:** REQ-106
 - **Type:** integration
 - **Verification Method:** evaluator
-- **Input:** Kairos Settings > Governance page
-- **Expected Behavior:** Governance page loads with status indicator, endpoint row, and updater section.
 - **Confidence:** 1.0
+
 ## TEST-107. ARCHITECTURE.md Has Current State Section
 - **ID:** TEST-107
 - **Title:** ARCHITECTURE.md Has Current State Section
@@ -1166,9 +961,8 @@
 - **Requirement ID:** REQ-107
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** ARCHITECTURE.md
-- **Expected Behavior:** Section present and references all six post-WI-NEXUS-023 facets.
 - **Confidence:** 1.0
+
 ## TEST-108. Verifier Scores Confidence From Tests/Lint/Type Outputs
 - **ID:** TEST-108
 - **Title:** Verifier Scores Confidence From Tests/Lint/Type Outputs
@@ -1176,9 +970,8 @@
 - **Requirement ID:** REQ-108
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** synthetic verifier reports
-- **Expected Behavior:** confidence and equilibrium reflect inputs deterministically.
 - **Confidence:** 1.0
+
 ## TEST-109. Smoke Overlay File Pins 7B Q4 Model
 - **ID:** TEST-109
 - **Title:** Smoke Overlay File Pins 7B Q4 Model
@@ -1186,9 +979,8 @@
 - **Requirement ID:** REQ-109
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** docker-compose.smoke.yml
-- **Expected Behavior:** Overlay present; file references 7B + Int4 + l1-nexus.
 - **Confidence:** 1.0
+
 ## TEST-110. End-to-End Nexus Path Reaches Equilibrium
 - **ID:** TEST-110
 - **Title:** End-to-End Nexus Path Reaches Equilibrium
@@ -1196,9 +988,8 @@
 - **Requirement ID:** REQ-110
 - **Type:** integration
 - **Verification Method:** pytest
-- **Input:** tmp_path with REQUIREMENTS.md + LEDGER.md + FakeOrchestrator
-- **Expected Behavior:** end-to-end success; ledger written.
 - **Confidence:** 1.0
+
 ## TEST-111. Mypy Strict Carveout Reduced
 - **ID:** TEST-111
 - **Title:** Mypy Strict Carveout Reduced
@@ -1206,9 +997,8 @@
 - **Requirement ID:** REQ-111
 - **Type:** integration
 - **Verification Method:** pytest
-- **Input:** pyproject.toml
-- **Expected Behavior:** Listed modules absent from carveout.
 - **Confidence:** 1.0
+
 ## TEST-112. Streaming Chat Emits Required JSONL Event Types
 - **ID:** TEST-112
 - **Title:** Streaming Chat Emits Required JSONL Event Types
@@ -1216,9 +1006,8 @@
 - **Requirement ID:** REQ-112
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner over tmp_path with stub orchestrator
-- **Expected Behavior:** Required event kinds present in JSONL output.
 - **Confidence:** 1.0
+
 ## TEST-113. Block Schema Has block_id, kind, agent, timestamp
 - **ID:** TEST-113
 - **Title:** Block Schema Has block_id, kind, agent, timestamp
@@ -1226,9 +1015,8 @@
 - **Requirement ID:** REQ-113
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** stub event stream
-- **Expected Behavior:** Schema satisfied.
 - **Confidence:** 1.0
+
 ## TEST-114. Plan Block Surfaces Steps with Status Transitions
 - **ID:** TEST-114
 - **Title:** Plan Block Surfaces Steps with Status Transitions
@@ -1236,9 +1024,8 @@
 - **Requirement ID:** REQ-114
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** stub orchestrator emitting plan steps
-- **Expected Behavior:** plan event present; step transitions emitted.
 - **Confidence:** 1.0
+
 ## TEST-115. --profile Flag Is Honored And Recorded
 - **ID:** TEST-115
 - **Title:** --profile Flag Is Honored And Recorded
@@ -1246,9 +1033,8 @@
 - **Requirement ID:** REQ-115
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner
-- **Expected Behavior:** Selected profile reflected in stream.
 - **Confidence:** 1.0
+
 ## TEST-116. Inline Diff Round-Trip
 - **ID:** TEST-116
 - **Title:** Inline Diff Round-Trip
@@ -1256,9 +1042,8 @@
 - **Requirement ID:** REQ-116
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner verify with --comment
-- **Expected Behavior:** Comment persisted.
 - **Confidence:** 1.0
+
 ## TEST-117. Predict-Only Preflight Does Not Allocate Work Item
 - **ID:** TEST-117
 - **Title:** Predict-Only Preflight Does Not Allocate Work Item
@@ -1266,9 +1051,8 @@
 - **Requirement ID:** REQ-117
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner preflight with --predict-only
-- **Expected Behavior:** No work_item_id, no ledger writes, predicted_refinement present.
 - **Confidence:** 1.0
+
 ## TEST-118. Kairos BYOE Proxy Consumes Chat Stream
 - **ID:** TEST-118
 - **Title:** Kairos BYOE Proxy Consumes Chat Stream
@@ -1276,9 +1060,8 @@
 - **Requirement ID:** REQ-118
 - **Type:** integration
 - **Verification Method:** evaluator
-- **Input:** Kairos BYOE endpoint + specsmith governance-serve running
-- **Expected Behavior:** Requests pass through governance proxy and return preflight-gated responses.
 - **Confidence:** 1.0
+
 ## TEST-119. Rules Loader Returns Project Rules As System-Prompt Prefix
 - **ID:** TEST-119
 - **Title:** Rules Loader Returns Project Rules As System-Prompt Prefix
@@ -1286,9 +1069,8 @@
 - **Requirement ID:** REQ-119
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path with seeded governance docs
-- **Expected Behavior:** Returned string contains the seeded rule text.
 - **Confidence:** 1.0
+
 ## TEST-120. Memory Append/Read Round-Trip
 - **ID:** TEST-120
 - **Title:** Memory Append/Read Round-Trip
@@ -1296,9 +1078,8 @@
 - **Requirement ID:** REQ-120
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path session
-- **Expected Behavior:** Round-trip works; cap honored.
 - **Confidence:** 1.0
+
 ## TEST-121. MCP Loader Reads .specsmith/mcp.yml
 - **ID:** TEST-121
 - **Title:** MCP Loader Reads .specsmith/mcp.yml
@@ -1306,9 +1087,8 @@
 - **Requirement ID:** REQ-121
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path with mcp.yml
-- **Expected Behavior:** Loader returns one tool; safety wrapper applied.
 - **Confidence:** 1.0
+
 ## TEST-122. Router Picks Tier From Intent
 - **ID:** TEST-122
 - **Title:** Router Picks Tier From Intent
@@ -1316,9 +1096,8 @@
 - **Requirement ID:** REQ-122
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** synthetic intents + config
-- **Expected Behavior:** Tier matches mapping; override wins.
 - **Confidence:** 1.0
+
 ## TEST-123. Notebook Record Writes docs/notebooks/<slug>.md
 - **ID:** TEST-123
 - **Title:** Notebook Record Writes docs/notebooks/<slug>.md
@@ -1326,9 +1105,8 @@
 - **Requirement ID:** REQ-123
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path with seeded session
-- **Expected Behavior:** Notebook file written with turns.
 - **Confidence:** 1.0
+
 ## TEST-124. Perf Smoke Writes Baseline JSON
 - **ID:** TEST-124
 - **Title:** Perf Smoke Writes Baseline JSON
@@ -1336,9 +1114,8 @@
 - **Requirement ID:** REQ-124
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path output
-- **Expected Behavior:** File written; required keys present.
 - **Confidence:** 1.0
+
 ## TEST-125. Multi-Session Parent/Child Wiring
 - **ID:** TEST-125
 - **Title:** Multi-Session Parent/Child Wiring
@@ -1346,9 +1123,8 @@
 - **Requirement ID:** REQ-125
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** tmp_path with parent + child sessions
-- **Expected Behavior:** Parent session log contains sub_session_complete entry.
 - **Confidence:** 1.0
+
 ## TEST-127. Onboarding Doctor Has Required Checks
 - **ID:** TEST-127
 - **Title:** Onboarding Doctor Has Required Checks
@@ -1356,9 +1132,8 @@
 - **Requirement ID:** REQ-127
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** click.testing.CliRunner doctor --onboarding
-- **Expected Behavior:** Required check labels appear in stdout.
 - **Confidence:** 1.0
+
 ## TEST-128. Cross-Repo Security Sweep Runs in CI
 - **ID:** TEST-128
 - **Title:** Cross-Repo Security Sweep Runs in CI
@@ -1366,9 +1141,8 @@
 - **Requirement ID:** REQ-128
 - **Type:** integration
 - **Verification Method:** static-check
-- **Input:** .github/workflows/ci.yml (specsmith + kairos)
-- **Expected Behavior:** Security audit steps present in both repos.
 - **Confidence:** 1.0
+
 ## TEST-129. API Stability Doc Enumerates Frozen Surface
 - **ID:** TEST-129
 - **Title:** API Stability Doc Enumerates Frozen Surface
@@ -1376,11 +1150,7 @@
 - **Requirement ID:** REQ-129
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** docs/site/api-stability.md, pyproject.toml
-- **Expected Behavior:** All six API surfaces enumerated; version+classifier match.
 - **Confidence:** 1.0
-
-
 
 ## TEST-130. Typed ProjectOperations Layer
 - **ID:** TEST-130
@@ -1389,8 +1159,6 @@
 - **Requirement ID:** REQ-130
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-131. ProjectOperations File Operations via pathlib
@@ -1400,8 +1168,6 @@
 - **Requirement ID:** REQ-131
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-132. ProjectOperations Git/VCS Operations
@@ -1411,8 +1177,6 @@
 - **Requirement ID:** REQ-132
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-133. ProjectOperations Typed Result Objects
@@ -1422,8 +1186,6 @@
 - **Requirement ID:** REQ-133
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-134. executor.py run_tracked Preserved as Narrow Fallback
@@ -1433,8 +1195,6 @@
 - **Requirement ID:** REQ-134
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-135. ProjectOperations Cross-Platform
@@ -1444,8 +1204,6 @@
 - **Requirement ID:** REQ-135
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-136. Harness Slash Commands Package
@@ -1455,8 +1213,6 @@
 - **Requirement ID:** REQ-136
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-137. Session Management Slash Commands
@@ -1466,8 +1222,6 @@
 - **Requirement ID:** REQ-137
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-138. Multi-Agent Slash Commands
@@ -1477,8 +1231,6 @@
 - **Requirement ID:** REQ-138
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-139. Continuous Learning Slash Commands
@@ -1488,8 +1240,6 @@
 - **Requirement ID:** REQ-139
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-140. Evaluation Slash Commands
@@ -1499,8 +1249,6 @@
 - **Requirement ID:** REQ-140
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-141. Orchestration Slash Commands
@@ -1510,8 +1258,6 @@
 - **Requirement ID:** REQ-141
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-142. Hook Control Slash Commands
@@ -1521,8 +1267,6 @@
 - **Requirement ID:** REQ-142
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-143. MCP Slash Commands
@@ -1532,8 +1276,6 @@
 - **Requirement ID:** REQ-143
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-144. Security Slash Commands
@@ -1543,8 +1285,6 @@
 - **Requirement ID:** REQ-144
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-145. AgentTool for Subagent Spawning
@@ -1554,8 +1294,6 @@
 - **Requirement ID:** REQ-145
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-146. Hub-and-Spoke and Agent-Teams Coordination
@@ -1565,8 +1303,6 @@
 - **Requirement ID:** REQ-146
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-147. Filesystem Mailbox for Agent Teams
@@ -1576,8 +1312,6 @@
 - **Requirement ID:** REQ-147
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-148. Git Worktree Isolation for Subagents
@@ -1587,8 +1321,6 @@
 - **Requirement ID:** REQ-148
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-149. No Recursive Subagent Nesting
@@ -1598,8 +1330,6 @@
 - **Requirement ID:** REQ-149
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-150. Distilled Summary from Subagents
@@ -1609,8 +1339,6 @@
 - **Requirement ID:** REQ-150
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-151. Agent Teams Feature Flag Gated
@@ -1620,8 +1348,6 @@
 - **Requirement ID:** REQ-151
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-152. Orchestrator Meta-Agent for Routing
@@ -1631,8 +1357,6 @@
 - **Requirement ID:** REQ-152
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-153. Orchestrator Defaults to Local Ollama
@@ -1642,8 +1366,6 @@
 - **Requirement ID:** REQ-153
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-154. Agent Registry with Capability Metadata
@@ -1653,8 +1375,6 @@
 - **Requirement ID:** REQ-154
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-155. Orchestrator Emits One Structured Next-Action
@@ -1664,8 +1384,6 @@
 - **Requirement ID:** REQ-155
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-156. Cost-Aware Routing
@@ -1675,8 +1393,6 @@
 - **Requirement ID:** REQ-156
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-157. Post-Session Self-Evaluation for Routing Thresholds
@@ -1686,8 +1402,6 @@
 - **Requirement ID:** REQ-157
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-158. Feature Flag System for Tool Schema Visibility
@@ -1697,8 +1411,6 @@
 - **Requirement ID:** REQ-158
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-159. Feature Flags via Environment and scaffold.yml
@@ -1708,8 +1420,6 @@
 - **Requirement ID:** REQ-159
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-160. Agent Teams and Advanced Features Flag-Gated
@@ -1719,8 +1429,6 @@
 - **Requirement ID:** REQ-160
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-161. Instinct Persistence System
@@ -1730,8 +1438,6 @@
 - **Requirement ID:** REQ-161
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-162. Instinct Record Schema
@@ -1741,8 +1447,6 @@
 - **Requirement ID:** REQ-162
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-163. SESSION_END Hook Extracts Candidate Instincts
@@ -1752,8 +1456,6 @@
 - **Requirement ID:** REQ-163
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-164. /learn Command Promotes Pattern to Instinct
@@ -1763,8 +1465,6 @@
 - **Requirement ID:** REQ-164
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-165. Instinct Confidence Updated on Application
@@ -1774,8 +1474,6 @@
 - **Requirement ID:** REQ-165
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-166. Instincts Importable and Exportable as Markdown
@@ -1785,8 +1483,6 @@
 - **Requirement ID:** REQ-166
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-167. /instinct-status Displays Active Instincts
@@ -1796,8 +1492,6 @@
 - **Requirement ID:** REQ-167
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-168. Eval Harness Module
@@ -1807,8 +1501,6 @@
 - **Requirement ID:** REQ-168
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-169. Eval Data Model
@@ -1818,8 +1510,6 @@
 - **Requirement ID:** REQ-169
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-170. Eval Tasks Stored as Markdown
@@ -1829,8 +1519,6 @@
 - **Requirement ID:** REQ-170
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-171. Three Grader Types
@@ -1840,8 +1528,6 @@
 - **Requirement ID:** REQ-171
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-172. pass@k and pass^k Metrics
@@ -1851,8 +1537,6 @@
 - **Requirement ID:** REQ-172
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-173. Git-Based Outcome Grading by Default
@@ -1862,8 +1546,6 @@
 - **Requirement ID:** REQ-173
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-174. /eval run --trials k
@@ -1873,8 +1555,6 @@
 - **Requirement ID:** REQ-174
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-175. Capability vs Regression Eval Distinction
@@ -1884,8 +1564,6 @@
 - **Requirement ID:** REQ-175
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-176. Cross-Session Agent Memory
@@ -1895,8 +1573,6 @@
 - **Requirement ID:** REQ-176
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-177. Agent Memory Structured JSON
@@ -1906,8 +1582,6 @@
 - **Requirement ID:** REQ-177
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-178. SESSION_START Hook Injects Memories into System Prompt
@@ -1917,8 +1591,6 @@
 - **Requirement ID:** REQ-178
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-179. Agent Memory Compatible with Theia AI Convention
@@ -1928,8 +1600,6 @@
 - **Requirement ID:** REQ-179
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-180. Runtime Hook Enable/Disable
@@ -1939,8 +1609,6 @@
 - **Requirement ID:** REQ-180
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-181. Hook Profiles via /hook-profile
@@ -1950,8 +1618,6 @@
 - **Requirement ID:** REQ-181
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-182. New Hook Trigger Events
@@ -1961,8 +1627,6 @@
 - **Requirement ID:** REQ-182
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-183. SUBAGENT_START Hook Can Block Spawn
@@ -1972,8 +1636,6 @@
 - **Requirement ID:** REQ-183
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-184. SUBAGENT_STOP Hook on Completion
@@ -1983,8 +1645,6 @@
 - **Requirement ID:** REQ-184
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-185. CONTEXT_COMPACT Hook Before Trimming
@@ -1994,8 +1654,6 @@
 - **Requirement ID:** REQ-185
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-186. specsmith serve Command
@@ -2005,8 +1663,6 @@
 - **Requirement ID:** REQ-186
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-187. REST Endpoints for Session and Agent Management
@@ -2016,8 +1672,6 @@
 - **Requirement ID:** REQ-187
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-188. WebSocket Endpoint for Live Session I/O
@@ -2027,8 +1681,6 @@
 - **Requirement ID:** REQ-188
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-189. EventSink Protocol for Stdout and WebSocket
@@ -2038,8 +1690,6 @@
 - **Requirement ID:** REQ-189
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-190. Kairos Terminal Connects via HTTP/WebSocket
@@ -2049,8 +1699,6 @@
 - **Requirement ID:** REQ-190
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-191. BM25 Retrieval Ranking
@@ -2060,8 +1708,6 @@
 - **Requirement ID:** REQ-191
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-192. File-Watcher Based Index Refresh
@@ -2071,8 +1717,6 @@
 - **Requirement ID:** REQ-192
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-193. Token-Counted Retrieval Results
@@ -2082,8 +1726,6 @@
 - **Requirement ID:** REQ-193
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-194. MCP Server Configuration Templates
@@ -2093,8 +1735,6 @@
 - **Requirement ID:** REQ-194
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-195. MCP Server Registry with Status
@@ -2104,8 +1744,6 @@
 - **Requirement ID:** REQ-195
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-196. MCP Configuration in scaffold.yml
@@ -2115,8 +1753,6 @@
 - **Requirement ID:** REQ-196
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-197. /security-scan Command
@@ -2126,8 +1762,6 @@
 - **Requirement ID:** REQ-197
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-198. Security Scan Coverage
@@ -2137,8 +1771,6 @@
 - **Requirement ID:** REQ-198
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-199. /audit-prompt for Injection Analysis
@@ -2148,8 +1780,6 @@
 - **Requirement ID:** REQ-199
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-200. Security Scan Results Stored Structurally
@@ -2159,8 +1789,6 @@
 - **Requirement ID:** REQ-200
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-201. specsmith-ide Theia Application
@@ -2170,8 +1798,6 @@
 - **Requirement ID:** REQ-201
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-202. specsmith-ide Extension Packages
@@ -2181,8 +1807,6 @@
 - **Requirement ID:** REQ-202
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-203. specsmith-ide WebSocket Connection to specsmith serve
@@ -2192,8 +1816,6 @@
 - **Requirement ID:** REQ-203
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-204. specsmith-ide Leverages Theia AI Native Tooling
@@ -2203,8 +1825,6 @@
 - **Requirement ID:** REQ-204
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-205. specsmith-ide Electron Desktop Packaging
@@ -2214,10 +1834,7 @@
 - **Requirement ID:** REQ-205
 - **Type:** unit
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
-
 
 ## TEST-206. Tamper-Evident Agent Action Log
 - **ID:** TEST-206
@@ -2226,8 +1843,6 @@
 - **Requirement ID:** REQ-206
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-207. Explanation Artifacts for Governance Decisions
@@ -2237,8 +1852,6 @@
 - **Requirement ID:** REQ-207
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-208. Action Log Replay and Export
@@ -2248,8 +1861,6 @@
 - **Requirement ID:** REQ-208
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-209. Human Escalation Threshold
@@ -2259,8 +1870,6 @@
 - **Requirement ID:** REQ-209
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-210. Emergency Kill-Switch and Circuit-Breaker
@@ -2270,8 +1879,6 @@
 - **Requirement ID:** REQ-210
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-211. Post-Market Behavioral Monitoring and Alerting
@@ -2281,8 +1888,6 @@
 - **Requirement ID:** REQ-211
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-212. One-Click Rollback for File-Modifying Actions
@@ -2292,8 +1897,6 @@
 - **Requirement ID:** REQ-212
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-213. Safe Append-Only Write for New Governance Entries
@@ -2303,8 +1906,6 @@
 - **Requirement ID:** REQ-213
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-214. AI Disclosure Metadata in Agent Outputs
@@ -2314,8 +1915,6 @@
 - **Requirement ID:** REQ-214
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-215. Regulatory Compliance Export Report
@@ -2325,8 +1924,6 @@
 - **Requirement ID:** REQ-215
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-216. Agent Risk Classification Before Deployment
@@ -2336,8 +1933,6 @@
 - **Requirement ID:** REQ-216
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-217. Least-Privilege Agent Permissions
@@ -2347,8 +1942,6 @@
 - **Requirement ID:** REQ-217
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-218. Self-Optimization Bounded by Iteration Budget
@@ -2358,8 +1951,6 @@
 - **Requirement ID:** REQ-218
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-219. Local-First Model Routing for Governance Tasks
@@ -2369,8 +1960,6 @@
 - **Requirement ID:** REQ-219
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
 
 ## TEST-220. Policy Guardrails at the Interface Layer
@@ -2380,10 +1969,7 @@
 - **Requirement ID:** REQ-220
 - **Type:** compliance
 - **Verification Method:** evaluator
-- **Input:** {}
-- **Expected Behavior:** {}
 - **Confidence:** 1.0
-
 
 ## TEST-221. GPU-Aware Context Window — VRAM Tiers
 - **ID:** TEST-221
@@ -2392,8 +1978,6 @@
 - **Requirement ID:** REQ-244
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** vram_gb values [5.0, 8.0, 14.0, 24.0]
-- **Expected Behavior:** [4096, 8192, 16384, 32768]
 - **Confidence:** 1.0
 
 ## TEST-222. GPU VRAM Detection Never Raises
@@ -2403,8 +1987,6 @@
 - **Requirement ID:** REQ-244
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** {}
-- **Expected Behavior:** float >= 0.0, no exception raised
 - **Confidence:** 1.0
 
 ## TEST-223. ContextFillTracker Records Fill Events
@@ -2414,8 +1996,6 @@
 - **Requirement ID:** REQ-245
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** limit=4096, used=1000
-- **Expected Behavior:** event.type=="context_fill", event.pct approx 24.4
 - **Confidence:** 1.0
 
 ## TEST-224. ContextFillTracker Compression Threshold Warning
@@ -2425,8 +2005,6 @@
 - **Requirement ID:** REQ-246
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** limit=4096, used=3400
-- **Expected Behavior:** event returned, pct >= 80, no exception for used=3400
 - **Confidence:** 1.0
 
 ## TEST-225. ContextFullError at Hard Ceiling
@@ -2436,8 +2014,6 @@
 - **Requirement ID:** REQ-247
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** limit=4096, used=3600
-- **Expected Behavior:** raises ContextFullError with pct >= 85
 - **Confidence:** 1.0
 
 ## TEST-248. Dev/Stable Channel Persistence CLI Round-trip
@@ -2447,8 +2023,6 @@
 - **Requirement ID:** REQ-248
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ248ChannelCLI, test_channel.py)
-- **Input:** channel set dev; channel get --json; channel clear; channel get --json
-- **Expected Behavior:** persisted channel returned; source=="user" then reverts to "version"
 - **Confidence:** 1.0
 
 ## TEST-249. ESDB Export Creates Versioned JSON File
@@ -2458,8 +2032,6 @@
 - **Requirement ID:** REQ-249
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ249EsdbExport)
-- **Input:** esdb export --project-dir <tmp> --json
-- **Expected Behavior:** ok==true; file written with required keys
 - **Confidence:** 1.0
 
 ## TEST-250. ESDB Import Validates and Stages JSON
@@ -2469,8 +2041,6 @@
 - **Requirement ID:** REQ-250
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ250EsdbImport)
-- **Input:** esdb import <valid-export.json>; esdb import <nonexistent>; esdb import <bad-json>
-- **Expected Behavior:** staged on success; non-zero on missing/invalid file
 - **Confidence:** 1.0
 
 ## TEST-251. ESDB Backup Creates Timestamped Snapshot
@@ -2480,8 +2050,6 @@
 - **Requirement ID:** REQ-251
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ251EsdbBackup)
-- **Input:** esdb backup --project-dir <tmp> --json
-- **Expected Behavior:** file created; timestamp matches YYYYMMDDTHHMMSSZ format
 - **Confidence:** 1.0
 
 ## TEST-252. ESDB Rollback Reports Steps Without State Change
@@ -2491,8 +2059,6 @@
 - **Requirement ID:** REQ-252
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ252EsdbRollback)
-- **Input:** esdb rollback --steps 3 --json
-- **Expected Behavior:** steps_requested==3; ok==true; no error
 - **Confidence:** 1.0
 
 ## TEST-253. ESDB Compact Returns OK With Note
@@ -2502,8 +2068,6 @@
 - **Requirement ID:** REQ-253
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ253EsdbCompact)
-- **Input:** esdb compact --project-dir <tmp> --json
-- **Expected Behavior:** ok==true; note present and non-empty
 - **Confidence:** 1.0
 
 ## TEST-254. Skills Deactivate Sets active=false
@@ -2513,8 +2077,6 @@
 - **Requirement ID:** REQ-254
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ254SkillsDeactivate, TestSkillsBuilderDeactivateDelete)
-- **Input:** skills activate <id>; skills deactivate <id>; read skill.json
-- **Expected Behavior:** active==false in skill.json; exit 0
 - **Confidence:** 1.0
 
 ## TEST-255. Skills Delete Removes Directory
@@ -2524,8 +2086,6 @@
 - **Requirement ID:** REQ-255
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ255SkillsDelete, TestSkillsBuilderDeactivateDelete)
-- **Input:** skills delete <id> --yes
-- **Expected Behavior:** directory removed; siblings untouched; non-zero for missing
 - **Confidence:** 1.0
 
 ## TEST-256. MCP Generate Produces Stub With Required Fields
@@ -2535,8 +2095,6 @@
 - **Requirement ID:** REQ-256
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ256McpGenerate)
-- **Input:** mcp generate "Search USPTO patents by keyword" --json
-- **Expected Behavior:** JSON dict with id/name/command/args present
 - **Confidence:** 1.0
 
 ## TEST-257. Agent Ask Routes By Keyword And Returns Structured Output
@@ -2546,8 +2104,6 @@
 - **Requirement ID:** REQ-257
 - **Type:** cli
 - **Verification Method:** pytest (test_req_248_262.py::TestREQ257AgentAsk)
-- **Input:** agent ask "show esdb status" --json-output; agent ask "xyzzy" --json-output
-- **Expected Behavior:** action=="esdb_status" or "unknown"; reply non-empty; prompt echoed
 - **Confidence:** 1.0
 
 ## TEST-258. Kairos ESDB Settings Page Renders Without Overflow
@@ -2557,9 +2113,7 @@
 - **Requirement ID:** REQ-258
 - **Type:** integration
 - **Verification Method:** manual (Rust UI build required)
-- **Input:** navigate to Settings > Specsmith > ESDB
-- **Expected Behavior:** all buttons visible; status text displayed
-- **Confidence:** 0.8
+- **Confidence:** 1.0
 
 ## TEST-259. Kairos Skills Settings Page Renders
 - **ID:** TEST-259
@@ -2568,9 +2122,7 @@
 - **Requirement ID:** REQ-259
 - **Type:** integration
 - **Verification Method:** manual (Rust UI build required)
-- **Input:** navigate to Settings > Specsmith > Skills
-- **Expected Behavior:** page content displayed without crash
-- **Confidence:** 0.8
+- **Confidence:** 1.0
 
 ## TEST-260. Kairos Eval Settings Page Renders
 - **ID:** TEST-260
@@ -2579,9 +2131,7 @@
 - **Requirement ID:** REQ-260
 - **Type:** integration
 - **Verification Method:** manual (Rust UI build required)
-- **Input:** navigate to Settings > Specsmith > Eval
-- **Expected Behavior:** page content displayed without crash
-- **Confidence:** 0.8
+- **Confidence:** 1.0
 
 ## TEST-261. Kairos AI Providers Table Does Not Overflow Long Model Names
 - **ID:** TEST-261
@@ -2590,9 +2140,7 @@
 - **Requirement ID:** REQ-261
 - **Type:** integration
 - **Verification Method:** manual (Rust UI build + visual inspection)
-- **Input:** navigate to Agents > Providers; observe o4-mini-deep-research row
-- **Expected Behavior:** text clipped; no horizontal overlap with adjacent column
-- **Confidence:** 0.8
+- **Confidence:** 1.0
 
 ## TEST-262. Kairos MCP AI Builder Card Generates And Saves Stub
 - **ID:** TEST-262
@@ -2601,30 +2149,6 @@
 - **Requirement ID:** REQ-262
 - **Type:** integration
 - **Verification Method:** manual (Rust UI build required)
-- **Input:** expand AI Builder; enter description; click Generate; click Add to config
-- **Expected Behavior:** JSON stub displayed; file updated after add
-- **Confidence:** 0.8
-
-## TEST-282. HF Leaderboard Sync Persists Bucket Scores to JSON
-- **ID:** TEST-282
-- **Title:** HF Leaderboard Sync Persists Bucket Scores to JSON
-- **Description:** `sync_from_huggingface_blocking(force_static=True, scores_path=tmp_path/"scores.json")` creates the file at the given path, whose JSON root contains a `"bucket_scores"` dict. Each entry has `reasoning_score`, `conversational_score`, `longform_score`, and `model_name` keys.
-- **Requirement ID:** REQ-263
-- **Type:** unit
-- **Verification Method:** pytest
-- **Input:** tmp_path/"scores.json" as scores_path; force_static=True
-- **Expected Behavior:** file created; contains bucket_scores dict; at least one entry with all required keys
-- **Confidence:** 1.0
-
-## TEST-283. HF Token Included in Request Headers When Set
-- **ID:** TEST-283
-- **Title:** HF Token Included in Request Headers When Set
-- **Description:** When `SPECSMITH_HF_TOKEN` is set to a non-empty string, `test_hf_connection()` returns `{"token_set": true}` and the rate_limit_tier includes "authenticated". The `_fetch_page` request (captured via mock) includes `Authorization: Bearer <token>` in its headers.
-- **Requirement ID:** REQ-265
-- **Type:** unit
-- **Verification Method:** pytest
-- **Input:** SPECSMITH_HF_TOKEN="hf_test_token" in environment
-- **Expected Behavior:** token_set==true; rate_limit_tier contains "authenticated"
 - **Confidence:** 1.0
 
 ## TEST-263. HF Leaderboard Static Fallback Loads Without Network
@@ -2634,8 +2158,6 @@
 - **Requirement ID:** REQ-266
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** isolated ModelScoreStore + force_static=True
-- **Expected Behavior:** synced >= 40; both models present in store
 - **Confidence:** 1.0
 
 ## TEST-264. HF Rate-Limit Header Parsing
@@ -2645,8 +2167,6 @@
 - **Requirement ID:** REQ-264
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** header string '"api";r=5;t=42'; empty dict
-- **Expected Behavior:** 43.0; None
 - **Confidence:** 1.0
 
 ## TEST-265. Bucket Scoring Engine Correct Weights
@@ -2656,8 +2176,6 @@
 - **Requirement ID:** REQ-267
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** benchmark dict with all 6 keys
-- **Expected Behavior:** reasoning==57.5; conversational==67.0; longform==51.0
 - **Confidence:** 1.0
 
 ## TEST-266. Model Intelligence Recommendations Returns Top-10
@@ -2667,8 +2185,6 @@
 - **Requirement ID:** REQ-268
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** store with 15 models; bucket=reasoning
-- **Expected Behavior:** list length <= 10; descending order; best model first
 - **Confidence:** 1.0
 
 ## TEST-267. Model Intel CLI Scores Subcommand
@@ -2678,8 +2194,6 @@
 - **Requirement ID:** REQ-269
 - **Type:** cli
 - **Verification Method:** pytest
-- **Input:** model-intel scores --json; model-intel scores --model gpt-4o --json
-- **Expected Behavior:** scores list present; specific model score returned
 - **Confidence:** 1.0
 
 ## TEST-268. Model Intel CLI Sync Subcommand
@@ -2689,8 +2203,6 @@
 - **Requirement ID:** REQ-269
 - **Type:** cli
 - **Verification Method:** pytest
-- **Input:** model-intel sync --json (no HF network)
-- **Expected Behavior:** exits 0; synced >= 0; message non-empty
 - **Confidence:** 1.0
 
 ## TEST-269. Model Capability Profile Prefix Resolution
@@ -2700,8 +2212,6 @@
 - **Requirement ID:** REQ-270
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** four model name strings
-- **Expected Behavior:** correct profile fields; default returned for unknown
 - **Confidence:** 1.0
 
 ## TEST-270. Context History Trimmer Preserves System Messages
@@ -2711,8 +2221,6 @@
 - **Requirement ID:** REQ-271
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** messages list exceeding budget; budget_chars=4000
-- **Expected Behavior:** system message preserved; summary assistant message injected
 - **Confidence:** 1.0
 
 ## TEST-271. AI Pacer EMA Fields Present in Snapshot
@@ -2722,8 +2230,6 @@
 - **Requirement ID:** REQ-272
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** acquire/release x2 then snapshot
-- **Expected Behavior:** rpm_ema and tpm_ema present, 0 <= v < 1
 - **Confidence:** 1.0
 
 ## TEST-272. AI Pacer on_rate_limit Decreases Dynamic Concurrency
@@ -2733,8 +2239,6 @@
 - **Requirement ID:** REQ-273
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** on_rate_limit on pacer with max_concurrency=4
-- **Expected Behavior:** dynamic_concurrency reduced; delay > 0
 - **Confidence:** 1.0
 
 ## TEST-273. AI Pacer Image Token Estimation
@@ -2744,8 +2248,6 @@
 - **Requirement ID:** REQ-274
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** estimate with image_count=2; estimate with image_count=0
-- **Expected Behavior:** image count adds 8192 tokens; text-only estimate returned for 0 images
 - **Confidence:** 1.0
 
 ## TEST-274. LLM Client Fallback on 429
@@ -2755,8 +2257,6 @@
 - **Requirement ID:** REQ-275
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** LLMClient with failing primary and mock fallback
-- **Expected Behavior:** MockProvider result returned; no exception
 - **Confidence:** 1.0
 
 ## TEST-275. LLM Client O-Series Parameter Translation
@@ -2766,8 +2266,6 @@
 - **Requirement ID:** REQ-276
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** LLMClient with capturing mock; messages=[{role:system,...},{role:user,...}]; model=o3-mini
-- **Expected Behavior:** max_completion_tokens present; temperature==1; role==developer
 - **Confidence:** 1.0
 
 ## TEST-276. LLM Client vLLM Guided-JSON Payload
@@ -2777,8 +2275,6 @@
 - **Requirement ID:** REQ-277
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** byoe provider; json_schema={"type":"object"}; capturing mock
-- **Expected Behavior:** guided_json present; chat_template_kwargs.enable_thinking==false
 - **Confidence:** 1.0
 
 ## TEST-277. Endpoint Preset Registry Contains Required Presets
@@ -2788,8 +2284,6 @@
 - **Requirement ID:** REQ-278
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** import ENDPOINT_PRESETS
-- **Expected Behavior:** 10+ entries; all required preset ids present
 - **Confidence:** 1.0
 
 ## TEST-278. Endpoint Probe Returns models_detail With context_length
@@ -2799,8 +2293,6 @@
 - **Requirement ID:** REQ-279
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** httpserver stub returning vLLM-style /v1/models response
-- **Expected Behavior:** models_detail[0].context_length == 131072
 - **Confidence:** 1.0
 
 ## TEST-279. Suggested Profiles Inspects Cloud Env
@@ -2810,8 +2302,6 @@
 - **Requirement ID:** REQ-280
 - **Type:** unit
 - **Verification Method:** pytest
-- **Input:** OPENAI_API_KEY in env; no Ollama; no BYOE providers
-- **Expected Behavior:** >= 3 cloud suggestions; distinct roles; inert (not persisted)
 - **Confidence:** 1.0
 
 ## TEST-280. Kairos Model Intel Governance Endpoint
@@ -2821,8 +2311,6 @@
 - **Requirement ID:** REQ-268
 - **Type:** integration
 - **Verification Method:** pytest (HTTP client against test server)
-- **Input:** GET /api/model-intel/scores; GET /api/model-intel/recommendations
-- **Expected Behavior:** 200 with correct JSON shapes
 - **Confidence:** 1.0
 
 ## TEST-281. Kairos AI Providers Bucket Score Section Compiles
@@ -2832,6 +2320,23 @@
 - **Requirement ID:** REQ-281
 - **Type:** build
 - **Verification Method:** cargo check
-- **Input:** cargo check --package kairos
-- **Expected Behavior:** exit 0; no compile errors
 - **Confidence:** 1.0
+
+## TEST-282. HF Leaderboard Sync Persists Bucket Scores to JSON
+- **ID:** TEST-282
+- **Title:** HF Leaderboard Sync Persists Bucket Scores to JSON
+- **Description:** `sync_from_huggingface_blocking(force_static=True, scores_path=tmp_path/"scores.json")` creates the file at the given path, whose JSON root contains a `"bucket_scores"` dict. Each entry has `reasoning_score`, `conversational_score`, `longform_score`, and `model_name` keys.
+- **Requirement ID:** REQ-263
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-283. HF Token Included in Request Headers When Set
+- **ID:** TEST-283
+- **Title:** HF Token Included in Request Headers When Set
+- **Description:** When `SPECSMITH_HF_TOKEN` is set to a non-empty string, `test_hf_connection()` returns `{"token_set": true}` and the rate_limit_tier includes "authenticated". The `_fetch_page` request (captured via mock) includes `Authorization: Bearer <token>` in its headers.
+- **Requirement ID:** REQ-265
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+

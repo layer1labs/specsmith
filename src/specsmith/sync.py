@@ -1,19 +1,20 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
-"""Machine state sync — keeps .specsmith/ JSON in sync with docs/ Markdown.
+"""Machine state sync — keeps .specsmith/ JSON in sync with governance sources.
 
 Implements REQ-003 (Machine State Must Reflect Governance State).
 
-Canonical sources:
-  docs/REQUIREMENTS.md  ->  .specsmith/requirements.json
-  docs/TESTS.md         ->  .specsmith/testcases.json
+Canonical sources (YAML-first, Markdown fallback):
+  docs/requirements/*.yml  ->  .specsmith/requirements.json  ->  docs/REQUIREMENTS.md
+  docs/tests/*.yml         ->  .specsmith/testcases.json     ->  docs/TESTS.md
 
 Design contract:
-  - JSON is a *derived cache* of Markdown — Markdown is always the source of truth.
-  - ``run_sync`` regenerates both JSON files completely from Markdown.
-  - ``check_sync`` returns drift information without writing anything (used by audit).
+  - When .specsmith/governance-mode == "yaml" (YAML-first mode):
+    YAML files are the source of truth.  JSON is a derived cache, MD is generated.
+  - When governance-mode is absent/"markdown" (legacy mode):
+    Markdown is the source of truth.  JSON is a derived cache.
   - Existing ``input`` / ``expected_behavior`` fields in testcases.json are preserved
-    so hand-crafted test specs (e.g. kairos) are not clobbered.
+    so hand-crafted test specs are not clobbered.
   - workitems.json is NOT managed here — it is runtime state only and should
     be gitignored.  Preflight allocates WI IDs dynamically at runtime.
 """
@@ -201,7 +202,16 @@ class SyncResult:
 
 
 def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
-    """Regenerate .specsmith/requirements.json and testcases.json from docs/.
+    """Regenerate .specsmith/requirements.json and testcases.json from governance sources.
+
+    In YAML-first mode (governance-mode == "yaml"):
+      1. Reads docs/requirements/*.yml and docs/tests/*.yml
+      2. Writes .specsmith/requirements.json and testcases.json
+      3. Regenerates docs/REQUIREMENTS.md and docs/TESTS.md as artifacts
+
+    In legacy Markdown mode:
+      1. Reads docs/REQUIREMENTS.md and docs/TESTS.md
+      2. Writes .specsmith/requirements.json and testcases.json
 
     Args:
         root:    Project root directory.
@@ -210,20 +220,63 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     Returns:
         A :class:`SyncResult` describing what changed.
     """
+    from specsmith.governance_yaml import (
+        generate_requirements_md,
+        generate_tests_md,
+        is_yaml_mode,
+        load_yaml_requirements,
+        load_yaml_tests,
+    )
+
     state_dir = root / ".specsmith"
     reqs_md_path = root / "docs" / "REQUIREMENTS.md"
     tests_md_path = root / "docs" / "TESTS.md"
     reqs_json_path = state_dir / "requirements.json"
     tests_json_path = state_dir / "testcases.json"
 
-    # Parse markdown sources (best-effort: missing files produce empty lists)
-    new_reqs: list[dict[str, Any]] = []
-    if reqs_md_path.exists():
-        new_reqs = parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
+    if is_yaml_mode(root):
+        # ── YAML-first mode ─────────────────────────────────────────────────
+        new_reqs = load_yaml_requirements(root)
+        new_tests = load_yaml_tests(root)
 
-    new_tests: list[dict[str, Any]] = []
-    if tests_md_path.exists():
-        new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+        # Normalise to the same schema that the Markdown path produces
+        new_reqs = [
+            {
+                "id": r["id"],
+                "title": r.get("title", r["id"]),
+                "description": str(r.get("description", "")),
+                "source": r.get("source", "docs/requirements/"),
+                "status": str(r.get("status", "defined")),
+            }
+            for r in new_reqs
+        ]
+        new_tests = [
+            {
+                "id": t["id"],
+                "title": t.get("title", t["id"]),
+                "description": str(t.get("description", "")),
+                "requirement_id": str(t.get("requirement_id", "")),
+                "type": str(t.get("type", "unit")),
+                "verification_method": str(t.get("verification_method", "evaluator")),
+                "input": t.get("input") or {},
+                "expected_behavior": t.get("expected_behavior") or {},
+                "confidence": float(t.get("confidence", 1.0)),
+            }
+            for t in new_tests
+        ]
+    else:
+        # ── Legacy Markdown mode ─────────────────────────────────────────────
+        new_reqs = []
+        if reqs_md_path.exists():
+            new_reqs = parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
+
+        new_tests = []
+        if tests_md_path.exists():
+            new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+
+    # Placeholder so the variable is always defined for the merge step below
+    new_reqs_obj: list[dict[str, Any]] = new_reqs
+    new_tests_obj: list[dict[str, Any]] = new_tests
 
     # Load existing JSON for comparison (and to preserve hand-crafted fields)
     old_reqs: list[dict[str, Any]] = []
@@ -240,7 +293,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
 
     # Merge: preserve existing input/expected_behavior for tests that already
     # have hand-crafted content so we don't clobber kairos-style detailed specs.
-    for tc in new_tests:
+    for tc in new_tests_obj:
         existing = existing_test_map.get(tc["id"], {})
         if existing.get("input"):
             tc["input"] = existing["input"]
@@ -250,27 +303,39 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     # Detect drift (compare by serialising to canonical JSON)
     reqs_before = len(old_reqs)
     tests_before = len(old_tests)
-    reqs_changed = json.dumps(new_reqs, sort_keys=True) != json.dumps(old_reqs, sort_keys=True)
-    tests_changed = json.dumps(new_tests, sort_keys=True) != json.dumps(old_tests, sort_keys=True)
+    reqs_changed = json.dumps(new_reqs_obj, sort_keys=True) != json.dumps(old_reqs, sort_keys=True)
+    tests_changed = json.dumps(new_tests_obj, sort_keys=True) != json.dumps(
+        old_tests, sort_keys=True
+    )
 
-    if not dry_run and (reqs_changed or tests_changed):
+    if not dry_run:
         state_dir.mkdir(parents=True, exist_ok=True)
         if reqs_changed:
             reqs_json_path.write_text(
-                json.dumps(new_reqs, indent=2, ensure_ascii=False),
+                json.dumps(new_reqs_obj, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
         if tests_changed:
             tests_json_path.write_text(
-                json.dumps(new_tests, indent=2, ensure_ascii=False),
+                json.dumps(new_tests_obj, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
+        # In YAML-first mode also regenerate the Markdown as a derived artifact
+        from specsmith.governance_yaml import is_yaml_mode
+
+        if is_yaml_mode(root):
+            md_reqs = generate_requirements_md(new_reqs_obj)
+            md_tests = generate_tests_md(new_tests_obj)
+            reqs_md_path.parent.mkdir(parents=True, exist_ok=True)
+            reqs_md_path.write_text(md_reqs, encoding="utf-8")
+            tests_md_path.parent.mkdir(parents=True, exist_ok=True)
+            tests_md_path.write_text(md_tests, encoding="utf-8")
 
     return SyncResult(
         reqs_before=reqs_before,
-        reqs_after=len(new_reqs),
+        reqs_after=len(new_reqs_obj),
         tests_before=tests_before,
-        tests_after=len(new_tests),
+        tests_after=len(new_tests_obj),
         reqs_changed=reqs_changed,
         tests_changed=tests_changed,
         dry_run=dry_run,

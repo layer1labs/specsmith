@@ -1,0 +1,357 @@
+# specsmith requirements — governance
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+#
+# Schema: id (REQ-NNN), title, description, source, status
+# Required fields: id, title, status
+- id: REQ-001
+  title: Specsmith Must Govern Itself
+  description: Specsmith must govern its own governance layer and use it for all changes.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-002
+  title: Governance Files Must Be Owned by Specsmith
+  description: Only Specsmith may create, update, or delete the human‑readable governance
+    files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TESTS.md`, and `LEDGER.md`.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-003
+  title: Machine State Must Reflect Governance State
+  description: Every machine‑readable state file under `.specsmith/` must be derived
+    from its corresponding human‑readable governance file and remain in sync.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-004
+  title: Requirements Must Be Derived from Architecture
+  description: Specsmith must parse `ARCHITECTURE.md` to produce initial requirements.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-005
+  title: Requirement IDs Must Be Stable
+  description: Once assigned, a requirement ID must never change or be reused.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-006
+  title: Preflight Validation Must Be Performed
+  description: Before any governance action, the system must validate inputs and produce
+    structured output with required fields.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-007
+  title: Test Cases Must Be Generated from Requirements
+  description: For each requirement, Specsmith must create or link a test case that
+    can prove the requirement.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-008
+  title: Each Requirement Must Link to At Least One Test
+  description: Each requirement must be traceable to at least one test case.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-009
+  title: Work Items Must Be Created for Accepted Requirements
+  description: When a requirement is accepted, a unique work item must be created.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-010
+  title: Requirements Must Include Priority and Status
+  description: Each requirement record must contain `priority` and `status` attributes.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-011
+  title: Verification Must Include Confidence Scoring
+  description: Every verification run must produce a numeric confidence score along
+    with pass/fail.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-012
+  title: Equilibrium Must Be Reached Before Finalizing
+  description: A work item may be marked finished only when its verification confidence
+    meets or exceeds the configured threshold and no contradictions remain.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-013
+  title: Retry Recommendations Must Be Provided
+  description: Specsmith must output retry recommendations when verification fails.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-014
+  title: Retries Must Be Bounded
+  description: Each retry mechanism may not exceed a fixed maximum number of attempts.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-015
+  title: Every Governance Action Must Record a Ledger Event
+  description: All changes are logged to `LEDGER.md` and `.specsmith/ledger.jsonl`
+    with timestamp and type.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-016
+  title: Trace Chain Must Be Tamper‑Evident
+  description: The trace chain must use chained cryptographic hashes to provide tamper
+    evidence.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-017
+  title: OpenCode Must Own Execution and Tools
+  description: All filesystem operations and tool executions are performed by OpenCode,
+    not Specsmith directly.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-018
+  title: Specsmith Core Must Be Integration‑Agnostic
+  description: The core logic must run without dependency on any particular integration
+    implementation.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-019
+  title: Verification Must Evaluate Changed Files
+  description: Verification must analyze which files were changed and only evaluate
+    affected test cases.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-020
+  title: Verification Must Evaluate Diff Relevance
+  description: Verification must determine whether a diff impacts any requirement
+    or test case and ignore irrelevant changes.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-021
+  title: Verification Must Evaluate Test Results
+  description: Verification must compare actual output against expected and quantify
+    failures.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-022
+  title: Verification Must Evaluate Contradictions and Uncertainty
+  description: Verification must identify logical contradictions and uncertainty metrics.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-023
+  title: Requirement Schema Must Include Source Location, Type, Priority, Confidence,
+    Status, and Timestamps
+  description: Each requirement record must contain these schema fields.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-024
+  title: Test Case Model Must Include Required Fields
+  description: All test case records must contain all required fields.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-025
+  title: Work Item Model Must Include Required Fields
+  description: Each work item record must contain required fields such as id, status,
+    priority.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-026
+  title: Preflight Output Schema Must Include Decision, Work Item ID, Priority, Requirement
+    IDs, Test Case IDs, Confidence Target
+  description: Structured preflight output must list these fields.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-027
+  title: Verification Input Must Include Diffs, Tests, Logs, and Changed Files
+  description: Verification input must contain file diffs, test results, execution
+    logs, and list of changed files.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-028
+  title: Retry Strategy Mapping Must Be Defined
+  description: Retries map failures to strategies such as narrow_scope, expand_scope,
+    fix_tests, rollback, and stop.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-029
+  title: Integration Adapter Interface Must Provide Required Capabilities
+  description: Specsmith must provide filesystem and shell execution functions via
+    the integration adapter.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-030
+  title: Specsmith CLI Commands Must Be Explicitly Defined
+  description: Specsmith CLI must expose commands such as preflight, verify, requirements
+    list/show/accept/reject, tests generate/list, status, and ledger list.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-031
+  title: Sequencing Rules Must Enforce Valid States
+  description: Bootstrap and sequence transitions must follow the defined order.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-032
+  title: Configuration Settings for Optional Features
+  description: Specsmith must read optional feature flags from .specsmith/config.yml.
+  source: .specsmith/config.yml, ARCHITECTURE.md
+  status: defined
+- id: REQ-033
+  title: Default Enablement of Optional Features
+  description: All optional Specsmith features must be enabled by default unless overridden.
+  source: .specsmith/config.yml, ARCHITECTURE.md
+  status: defined
+- id: REQ-034
+  title: Evidence ZIP Archive Generation
+  description: Specsmith must generate evidence ZIP archive for selected artifacts.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-035
+  title: Evidence Manifest Generation
+  description: Manifest must list artifacts and metadata in evidence archive.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-036
+  title: Per‑File SHA‑256 Hashing in Evidence
+  description: Every file in evidence archive must have a SHA‑256 hash.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-037
+  title: Final Evidence ZIP SHA‑256 Hash
+  description: The final evidence ZIP archive must have a computed SHA‑256 hash.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-038
+  title: Author/Owner Metadata Capture
+  description: Evidence archive must record author/owner information for each artifact.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-039
+  title: Git Commit Metadata Inclusion
+  description: Evidence archive must incorporate current git commit hash when available.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-040
+  title: Ledger Reference Inclusion
+  description: Evidence archive must reference relevant ledger entries for traceability.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-041
+  title: Trusted Timestamp Token Support
+  description: Evidence archive may include an RFC 3161 trusted timestamp token if
+    enabled.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-042
+  title: Legal/IP Disclaimer Requirement
+  description: Specsmith must provide a disclaimer that evidence does not guarantee
+    legal ownership.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-043
+  title: Ledger Event Hash Chaining
+  description: Each ledger event must be hashed and chained to previous event for
+    tamper evidence.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-044
+  title: Ledger Event on Work Proposal
+  description: Specsmith must create ledger event when a work item is proposed.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-045
+  title: Ledger Event on Work Completion
+  description: Specsmith must create ledger event upon completion of each work item
+    or batch.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-046
+  title: README.md Generation and Synchronization
+  description: Specsmith must generate README.md if missing and keep it synchronized.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-047
+  title: CHANGELOG.md Generation and Synchronization
+  description: Specsmith must generate CHANGELOG.md following Keep a Changelog and
+    keep it updated.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-048
+  title: Keep a Changelog Compliance
+  description: CHANGELOG.md must follow Keep a Changelog format.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-049
+  title: Semantic Versioning Support
+  description: Specsmith must understand and support Semantic Versioning for releases.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-050
+  title: Guided Version Bump Workflow
+  description: Specsmith must provide a guided workflow for bumping version numbers.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-051
+  title: Guided Release Strategy Workflow
+  description: Specsmith must offer a guided workflow to determine release strategy.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-052
+  title: Guided Branching Strategy Workflow
+  description: Specsmith must offer a guided workflow for selecting a branching strategy.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-053
+  title: Default GitFlow Branching Model
+  description: Specsmith’s default branching model is GitFlow unless overridden.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-054
+  title: Guided Branching Modification
+  description: Specsmith must allow guided modifications to the branching model.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-055
+  title: GitHub License Generation
+  description: Specsmith must generate license files compatible with GitHub/choosealicense.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-056
+  title: Commercial License Drafting Guidance
+  description: Specsmith must provide guidance for drafting commercial licenses, including
+    disclaimer.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-057
+  title: Local Git Commit After Work
+  description: Specsmith should commit local changes after each completed work item
+    or batch.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-058
+  title: Confidence Threshold Configuration
+  description: Specsmith must allow configuring epistemic confidence threshold via
+    config file.
+  source: .specsmith/config.yml, ARCHITECTURE.md
+  status: defined
+- id: REQ-059
+  title: Iteration Continuation Until Threshold
+  description: Work iterations continue until epistemic confidence reaches threshold.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-060
+  title: Indefinite Iteration Default
+  description: Specsmith defaults to indefinite iteration unless user sets limits.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-061
+  title: Max Iterations Configuration
+  description: Specsmith must allow configuring maximum iterations.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-062
+  title: Token/Cost/Time Limits Configuration
+  description: Specsmith must allow configuring token spend, session cost, and elapsed
+    time limits.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-063
+  title: Stop‑and‑Align Behavior
+  description: Specsmith must stop when confidence cannot improve and engage user
+    for alignment.
+  source: ARCHITECTURE.md
+  status: defined
+- id: REQ-064
+  title: Interactive Correction Workflow
+  description: After stopping, Specsmith should provide an interactive correction
+    workflow.
+  source: ARCHITECTURE.md
+  status: defined

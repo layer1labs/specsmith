@@ -1,0 +1,593 @@
+# specsmith test cases — governance
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-001
+  title: Specsmith Must Govern Itself
+  description: Specsmith must govern its own governance layer and use it for all changes.
+  requirement_id: REQ-001
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-002
+  title: Governance Files Must Be Owned by Specsmith
+  description: Only Specsmith may create, update, or delete the human‑readable governance
+    files `ARCHITECTURE.md`, `REQUIREMENTS.md`, `TESTS.md`, and `LEDGER.md`.
+  requirement_id: REQ-002
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-003
+  title: Machine State Must Reflect Governance State
+  description: Every machine‑readable state file under `.specsmith/` must be derived
+    from its corresponding human‑readable governance file and remain in sync.
+  requirement_id: REQ-003
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-004
+  title: Requirements Must Be Derived from Architecture
+  description: Specsmith must parse `ARCHITECTURE.md` to produce initial requirements.
+  requirement_id: REQ-004
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-005
+  title: Requirement IDs Must Be Stable
+  description: Once assigned, a requirement ID must never change or be reused.
+  requirement_id: REQ-005
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-006
+  title: Preflight Validation Must Be Performed
+  description: Before any governance action, the system must validate inputs and produce
+    structured output with required fields.
+  requirement_id: REQ-006
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-007
+  title: Test Cases Must Be Generated from Requirements
+  description: For each requirement, Specsmith must create or link a test case that
+    can prove the requirement.
+  requirement_id: REQ-007
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-008
+  title: Each Requirement Must Link to At Least One Test
+  description: Each requirement must be traceable to at least one test case.
+  requirement_id: REQ-008
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-009
+  title: Work Items Must Be Created for Accepted Requirements
+  description: When a requirement is accepted, a unique work item must be created.
+  requirement_id: REQ-009
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-010
+  title: Requirements Must Include Priority and Status
+  description: Each requirement record must contain `priority` and `status` attributes.
+  requirement_id: REQ-010
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-011
+  title: Verification Must Include Confidence Scoring
+  description: Every verification run must produce a numeric confidence score along
+    with pass/fail.
+  requirement_id: REQ-011
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-012
+  title: Equilibrium Must Be Reached Before Finalizing
+  description: A work item may be marked finished only when its verification confidence
+    meets or exceeds the configured threshold and no contradictions remain.
+  requirement_id: REQ-012
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-013
+  title: Retry Recommendations Must Be Provided
+  description: Specsmith must output retry recommendations when verification fails.
+  requirement_id: REQ-013
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-014
+  title: Retries Must Be Bounded
+  description: Each retry mechanism may not exceed a fixed maximum number of attempts.
+  requirement_id: REQ-014
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-015
+  title: Every Governance Action Must Record a Ledger Event
+  description: All changes are logged to `LEDGER.md` and `.specsmith/ledger.jsonl`
+    with timestamp and type.
+  requirement_id: REQ-015
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-016
+  title: Trace Chain Must Be Tamper‑Evident
+  description: The trace chain must use chained cryptographic hashes to provide tamper
+    evidence.
+  requirement_id: REQ-016
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-017
+  title: OpenCode Must Own Execution and Tools
+  description: All filesystem operations and tool executions are performed by OpenCode.
+  requirement_id: REQ-017
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-018
+  title: Specsmith Core Must Be Integration‑Agnostic
+  description: The core logic must run without dependency on any implementation.
+  requirement_id: REQ-018
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-019
+  title: Verification Must Evaluate Changed Files
+  description: Verification must analyze file changes.
+  requirement_id: REQ-019
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-020
+  title: Verification Must Evaluate Diff Relevance
+  description: Verification must ignore irrelevant diffs.
+  requirement_id: REQ-020
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-021
+  title: Verification Must Evaluate Test Results
+  description: Verification must compare outputs.
+  requirement_id: REQ-021
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-022
+  title: Verification Must Evaluate Contradictions and Uncertainty
+  description: Identify contradictions.
+  requirement_id: REQ-022
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-023
+  title: Requirement Schema Must Include Source Location, Type, Priority, Confidence,
+    Status, and Timestamps
+  description: Schema must include these.
+  requirement_id: REQ-023
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-024
+  title: Test Case Model Must Include Required Fields
+  description: All test case records must contain required fields.
+  requirement_id: REQ-024
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-025
+  title: Work Item Model Must Include Required Fields
+  description: Each work item record must contain required fields.
+  requirement_id: REQ-025
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-026
+  title: Preflight Output Schema Must Include Decision, Work Item ID, Priority, Requirement
+    IDs, Test Case IDs, Confidence Target
+  description: Structured preflight output.
+  requirement_id: REQ-026
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-027
+  title: Verification Input Must Include Diffs, Tests, Logs, and Changed Files
+  description: Input contains diffs, logs.
+  requirement_id: REQ-027
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-028
+  title: Retry Strategy Mapping Must Be Defined
+  description: Map strategies.
+  requirement_id: REQ-028
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-029
+  title: Integration Adapter Interface Must Provide Capabilities
+  description: Provide adapter.
+  requirement_id: REQ-029
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-030
+  title: Specsmith CLI Commands Must Be Explicitly Defined
+  description: Expose commands.
+  requirement_id: REQ-030
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-031
+  title: Sequencing Rules Must Enforce Valid States
+  description: Bootstrap sequencing.
+  requirement_id: REQ-031
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-032
+  title: Configuration Settings for Optional Features
+  description: Read config.
+  requirement_id: REQ-032
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-033
+  title: Default Enablement of Optional Features
+  description: Enabled by default.
+  requirement_id: REQ-033
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-034
+  title: Evidence ZIP Archive Generation
+  description: Generate evidence ZIP.
+  requirement_id: REQ-034
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-035
+  title: Evidence Manifest Generation
+  description: Generate evidence manifest.
+  requirement_id: REQ-035
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-036
+  title: Per‑File SHA‑256 Hashing in Evidence
+  description: Hash every file.
+  requirement_id: REQ-036
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-037
+  title: Final Evidence ZIP SHA‑256 Hash
+  description: Hash final zip.
+  requirement_id: REQ-037
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-038
+  title: Author/Owner Metadata Capture
+  description: Capture metadata.
+  requirement_id: REQ-038
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-039
+  title: Git Commit Metadata Inclusion
+  description: Include git commit.
+  requirement_id: REQ-039
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-040
+  title: Ledger Reference Inclusion
+  description: Reference ledger.
+  requirement_id: REQ-040
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-041
+  title: Trusted Timestamp Token Support
+  description: Include timestamp token.
+  requirement_id: REQ-041
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-042
+  title: Legal/IP Disclaimer Requirement
+  description: Provide disclaimer.
+  requirement_id: REQ-042
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-043
+  title: Ledger Event Hash Chaining
+  description: Chain events.
+  requirement_id: REQ-043
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-044
+  title: Ledger Event on Work Proposal
+  description: Create event on proposal.
+  requirement_id: REQ-044
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-045
+  title: Ledger Event on Work Completion
+  description: Create event on completion.
+  requirement_id: REQ-045
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-046
+  title: README.md Generation and Synchronization
+  description: Generate README.
+  requirement_id: REQ-046
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-047
+  title: CHANGELOG.md Generation and Synchronization
+  description: Generate CHANGELOG.
+  requirement_id: REQ-047
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-048
+  title: Keep a Changelog Compliance
+  description: Compliance.
+  requirement_id: REQ-048
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-049
+  title: Semantic Versioning Support
+  description: Support semantic versioning.
+  requirement_id: REQ-049
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-050
+  title: Guided Version Bump Workflow
+  description: Guided bump.
+  requirement_id: REQ-050
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-051
+  title: Guided Release Strategy Workflow
+  description: Guided release.
+  requirement_id: REQ-051
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-052
+  title: Guided Branching Strategy Workflow
+  description: Guided branching.
+  requirement_id: REQ-052
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-053
+  title: Default GitFlow Branching Model
+  description: Default GitFlow.
+  requirement_id: REQ-053
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-054
+  title: Guided Branching Modification
+  description: Guided branching mod.
+  requirement_id: REQ-054
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-055
+  title: GitHub License Generation
+  description: Generate GitHub license.
+  requirement_id: REQ-055
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-056
+  title: Commercial License Drafting Guidance
+  description: Draft commercial license.
+  requirement_id: REQ-056
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-057
+  title: Local Git Commit After Work
+  description: Commit after work.
+  requirement_id: REQ-057
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-058
+  title: Confidence Threshold Configuration
+  description: Configure threshold.
+  requirement_id: REQ-058
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-059
+  title: Iteration Continuation Until Threshold
+  description: Continue until threshold.
+  requirement_id: REQ-059
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-060
+  title: Indefinite Iteration Default
+  description: Indefinite iteration default.
+  requirement_id: REQ-060
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-061
+  title: Max Iterations Configuration
+  description: Max iterations config.
+  requirement_id: REQ-061
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-062
+  title: Token/Cost/Time Limits Configuration
+  description: Token/Cost/Time limits.
+  requirement_id: REQ-062
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-063
+  title: Stop‑and‑Align Behavior
+  description: Stop‑align behavior.
+  requirement_id: REQ-063
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-064
+  title: Interactive Correction Workflow
+  description: Interactive correction workflow.
+  requirement_id: REQ-064
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
