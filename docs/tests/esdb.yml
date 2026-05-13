@@ -1,0 +1,162 @@
+# specsmith test cases — esdb
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-248
+  title: Dev/Stable Channel Persistence CLI Round-trip
+  description: specsmith channel set dev persists the preference; channel get --json
+    returns channel==dev source==user; channel clear reverts source to version.
+  requirement_id: REQ-248
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ248ChannelCLI, test_channel.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-249
+  title: ESDB Export Creates Versioned JSON File
+  description: specsmith esdb export --json exits 0, returns ok==true + path; the
+    written file contains esdb_version==1, backend, record_count, requirements, testcases.
+  requirement_id: REQ-249
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ249EsdbExport)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-250
+  title: ESDB Import Validates and Stages JSON
+  description: specsmith esdb import <file> --json exits 0 for valid JSON export,
+    staging it at .specsmith/esdb_import.json. Exits non-zero for missing or invalid
+    JSON files.
+  requirement_id: REQ-250
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ250EsdbImport)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-251
+  title: ESDB Backup Creates Timestamped Snapshot
+  description: specsmith esdb backup --json exits 0, creates a file matching esdb_backup_\d{8}T\d{6}Z.json
+    with all required payload keys.
+  requirement_id: REQ-251
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ251EsdbBackup)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-252
+  title: ESDB Rollback Reports Steps Without State Change
+  description: specsmith esdb rollback --steps N --json exits 0 and returns ok==true,
+    steps_requested==N, records_before. State is unchanged (stub mode).
+  requirement_id: REQ-252
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ252EsdbRollback)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-253
+  title: ESDB Compact Returns OK With Note
+  description: specsmith esdb compact --json exits 0 and returns ok==true, backend,
+    records, note. Human-readable output contains "compact".
+  requirement_id: REQ-253
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ253EsdbCompact)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-254
+  title: Skills Deactivate Sets active=false
+  description: After skills activate <id>, skills deactivate <id> exits 0 and the
+    skill's skill.json has active==false. Non-existent skill exits non-zero.
+  requirement_id: REQ-254
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ254SkillsDeactivate, TestSkillsBuilderDeactivateDelete)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-255
+  title: Skills Delete Removes Directory
+  description: skills delete <id> --yes exits 0 and permanently removes the skill
+    directory. Non-existent skill exits non-zero. Sibling skills are preserved.
+  requirement_id: REQ-255
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ255SkillsDelete, TestSkillsBuilderDeactivateDelete)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-256
+  title: MCP Generate Produces Stub With Required Fields
+  description: mcp generate <desc> --json exits 0 and returns a dict containing id,
+    name, command, args (in server sub-object or flat). Description field is stable;
+    different descriptions produce different descriptions.
+  requirement_id: REQ-256
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ256McpGenerate)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-257
+  title: Agent Ask Routes By Keyword And Returns Structured Output
+  description: "\agent ask <prompt> --json-output exits 0 and returns {reply, action,\
+    \ prompt}. Keywords esdb/mcp/skill/compliance route to appropriate actions. Unknown\
+    \ prompt routes to action==\"unknown\"."
+  requirement_id: REQ-257
+  type: cli
+  verification_method: pytest (test_req_248_262.py::TestREQ257AgentAsk)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-258
+  title: Kairos ESDB Settings Page Renders Without Overflow
+  description: The Kairos Settings > Specsmith > ESDB page renders the status row,
+    action buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without
+    layout errors.
+  requirement_id: REQ-258
+  type: integration
+  verification_method: manual (Rust UI build required)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-259
+  title: Kairos Skills Settings Page Renders
+  description: The Kairos Settings > Specsmith > Skills page renders header, description,
+    and CLI hint without errors.
+  requirement_id: REQ-259
+  type: integration
+  verification_method: manual (Rust UI build required)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-260
+  title: Kairos Eval Settings Page Renders
+  description: The Kairos Settings > Specsmith > Eval page renders header, description,
+    and CLI hint without errors.
+  requirement_id: REQ-260
+  type: integration
+  verification_method: manual (Rust UI build required)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-261
+  title: Kairos AI Providers Table Does Not Overflow Long Model Names
+  description: In the Kairos Agents > Providers table, the model name "o4-mini-deep-research"
+    is clipped to its column width (200px) and does not bleed into the Model ID column.
+  requirement_id: REQ-261
+  type: integration
+  verification_method: manual (Rust UI build + visual inspection)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-262
+  title: Kairos MCP AI Builder Card Generates And Saves Stub
+  description: In the Kairos Agents > MCP servers list, the AI Builder card accepts
+    a description, generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json
+    on 'Add to config' click.
+  requirement_id: REQ-262
+  type: integration
+  verification_method: manual (Rust UI build required)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

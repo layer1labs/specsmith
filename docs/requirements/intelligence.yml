@@ -1,0 +1,376 @@
+# specsmith requirements — intelligence
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+#
+# Schema: id (REQ-NNN), title, description, source, status
+# Required fields: id, title, status
+- id: REQ-161
+  title: Instinct Persistence System
+  description: specsmith MUST implement an instinct persistence system in `src/specsmith/instinct.py`.
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-001)
+  status: defined
+- id: REQ-162
+  title: Instinct Record Schema
+  description: 'Each instinct record MUST contain: id, trigger_pattern, content, confidence,
+    project_scope, created, last_used, use_count.'
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-002)
+  status: defined
+- id: REQ-163
+  title: SESSION_END Hook Extracts Candidate Instincts
+  description: The `SESSION_END` hook MUST extract candidate instincts for user review.
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-003)
+  status: defined
+- id: REQ-164
+  title: /learn Command Promotes Pattern to Instinct
+  description: The `/learn` command MUST promote a pattern to an instinct with an
+    initial confidence score.
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-004)
+  status: defined
+- id: REQ-165
+  title: Instinct Confidence Updated on Application
+  description: Instinct confidence MUST be updated based on application success/rejection.
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-005)
+  status: defined
+- id: REQ-166
+  title: Instincts Importable and Exportable as Markdown
+  description: Instincts MUST be importable and exportable as `.md` files.
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-006)
+  status: defined
+- id: REQ-167
+  title: /instinct-status Displays Active Instincts
+  description: '`/instinct-status` MUST display all active instincts sorted by confidence.'
+  source: docs/PLANNED-REQUIREMENTS.md (LRN-007)
+  status: defined
+- id: REQ-168
+  title: Eval Harness Module
+  description: specsmith MUST implement an eval harness in `src/specsmith/eval/`.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-001)
+  status: defined
+- id: REQ-169
+  title: Eval Data Model
+  description: 'The eval model MUST define: Task, Trial, Grader, Transcript, Outcome.'
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-002)
+  status: defined
+- id: REQ-170
+  title: Eval Tasks Stored as Markdown
+  description: Tasks MUST be stored as Markdown at `.specsmith/evals/{feature}.md`
+    with YAML frontmatter.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-003)
+  status: defined
+- id: REQ-171
+  title: Three Grader Types
+  description: The harness MUST support CodeGrader, ModelGrader, and HumanFlag grader
+    types.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-004)
+  status: defined
+- id: REQ-172
+  title: pass@k and pass^k Metrics
+  description: The harness MUST compute `pass@k` and `pass^k` metrics.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-005)
+  status: defined
+- id: REQ-173
+  title: Git-Based Outcome Grading by Default
+  description: Default grading MUST be git-based outcome grading, not execution-path
+    assertion.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-006)
+  status: defined
+- id: REQ-174
+  title: /eval run --trials k
+  description: '`/eval run --trials k` MUST run k independent trials and report results.'
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-007)
+  status: defined
+- id: REQ-175
+  title: Capability vs Regression Eval Distinction
+  description: The harness MUST distinguish capability evals from regression evals.
+  source: docs/PLANNED-REQUIREMENTS.md (EDD-008)
+  status: defined
+- id: REQ-176
+  title: Cross-Session Agent Memory
+  description: specsmith MUST implement cross-session agent memory in `src/specsmith/memory.py`.
+  source: docs/PLANNED-REQUIREMENTS.md (MEM-001)
+  status: defined
+- id: REQ-177
+  title: Agent Memory Structured JSON
+  description: Agent memory MUST be structured JSON with accumulated patterns, preferred
+    approaches, known project facts, and failure history.
+  source: docs/PLANNED-REQUIREMENTS.md (MEM-002)
+  status: defined
+- id: REQ-178
+  title: SESSION_START Hook Injects Memories into System Prompt
+  description: The `SESSION_START` hook MUST inject relevant memories into the system
+    prompt (token-budget-aware).
+  source: docs/PLANNED-REQUIREMENTS.md (MEM-003)
+  status: defined
+- id: REQ-179
+  title: Agent Memory Compatible with Theia AI Convention
+  description: Agent memory layout MUST be compatible with Theia AI's `~/.theia/agent-memory/`
+    convention.
+  source: docs/PLANNED-REQUIREMENTS.md (MEM-004)
+  status: defined
+- id: REQ-180
+  title: Runtime Hook Enable/Disable
+  description: Hooks MUST be enable/disable-able at runtime without restarting the
+    session.
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-001)
+  status: defined
+- id: REQ-181
+  title: Hook Profiles via /hook-profile
+  description: Hook profiles MUST be loadable via `/hook-profile`.
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-002)
+  status: defined
+- id: REQ-182
+  title: New Hook Trigger Events
+  description: 'New triggers: `SUBAGENT_START`, `SUBAGENT_STOP`, `CONTEXT_COMPACT`,
+    `EVAL_PASS`, `EVAL_FAIL`.'
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-003)
+  status: defined
+- id: REQ-183
+  title: SUBAGENT_START Hook Can Block Spawn
+  description: '`SUBAGENT_START` MUST fire before spawning; a hook MAY block the spawn.'
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-004)
+  status: defined
+- id: REQ-184
+  title: SUBAGENT_STOP Hook on Completion
+  description: '`SUBAGENT_STOP` MUST fire when a subagent completes.'
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-005)
+  status: defined
+- id: REQ-185
+  title: CONTEXT_COMPACT Hook Before Trimming
+  description: '`CONTEXT_COMPACT` MUST fire before context trimming.'
+  source: docs/PLANNED-REQUIREMENTS.md (HRK-006)
+  status: defined
+- id: REQ-186
+  title: specsmith serve Command
+  description: specsmith MUST provide a `specsmith serve` command (already shipped
+    in v0.7.0).
+  source: docs/PLANNED-REQUIREMENTS.md (SRV-001)
+  status: defined
+- id: REQ-187
+  title: REST Endpoints for Session and Agent Management
+  description: 'REST endpoints: `GET/POST /sessions`, `GET /agents`, `GET /instincts`,
+    `GET /evals`, `POST /index`, `GET /health`.'
+  source: docs/PLANNED-REQUIREMENTS.md (SRV-002)
+  status: defined
+- id: REQ-188
+  title: WebSocket Endpoint for Live Session I/O
+  description: WebSocket endpoint at `/ws/session/{id}` for live session I/O using
+    the existing JSONL event schema.
+  source: docs/PLANNED-REQUIREMENTS.md (SRV-003)
+  status: defined
+- id: REQ-189
+  title: EventSink Protocol for Stdout and WebSocket
+  description: '`AgentRunner._emit_event()` MUST use an `EventSink` protocol (`StdoutSink`
+    / `WebSocketSink`).'
+  source: docs/PLANNED-REQUIREMENTS.md (SRV-004)
+  status: defined
+- id: REQ-190
+  title: Kairos Terminal Connects via HTTP/WebSocket
+  description: The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket
+    for all governance operations.
+  source: docs/PLANNED-REQUIREMENTS.md (SRV-005)
+  status: defined
+- id: REQ-191
+  title: BM25 Retrieval Ranking
+  description: '`retrieval.py` MUST be upgraded from term-frequency to BM25 ranking
+    using `rank_bm25`.'
+  source: docs/PLANNED-REQUIREMENTS.md (RTR-001)
+  status: defined
+- id: REQ-192
+  title: File-Watcher Based Index Refresh
+  description: The retrieval index MUST support file-watcher-based refresh.
+  source: docs/PLANNED-REQUIREMENTS.md (RTR-002)
+  status: defined
+- id: REQ-193
+  title: Token-Counted Retrieval Results
+  description: Retrieval results MUST be token-counted before injection to prevent
+    context budget overruns.
+  source: docs/PLANNED-REQUIREMENTS.md (RTR-003)
+  status: defined
+- id: REQ-194
+  title: MCP Server Configuration Templates
+  description: specsmith MUST provide MCP server configuration templates via `/mcp-add`
+    or `specsmith mcp add`.
+  source: docs/PLANNED-REQUIREMENTS.md (MCP-001)
+  status: defined
+- id: REQ-195
+  title: MCP Server Registry with Status
+  description: The MCP server registry MUST list configured servers with status and
+    tool surfaces.
+  source: docs/PLANNED-REQUIREMENTS.md (MCP-002)
+  status: defined
+- id: REQ-196
+  title: MCP Configuration in scaffold.yml
+  description: MCP configuration MUST be storable in `scaffold.yml` under `agent.mcp_servers`.
+  source: docs/PLANNED-REQUIREMENTS.md (MCP-003)
+  status: defined
+- id: REQ-197
+  title: /security-scan Command
+  description: specsmith MUST provide a `/security-scan` command running a dedicated
+    security analysis agent.
+  source: docs/PLANNED-REQUIREMENTS.md (SEC-001)
+  status: defined
+- id: REQ-198
+  title: Security Scan Coverage
+  description: The security scan MUST check dependency vulnerabilities, OWASP-style
+    code patterns, and exposed secrets.
+  source: docs/PLANNED-REQUIREMENTS.md (SEC-002)
+  status: defined
+- id: REQ-199
+  title: /audit-prompt for Injection Analysis
+  description: '`/audit-prompt` MUST analyze a prompt string for injection vectors.'
+  source: docs/PLANNED-REQUIREMENTS.md (SEC-003)
+  status: defined
+- id: REQ-200
+  title: Security Scan Results Stored Structurally
+  description: Security scan results MUST be structured and stored at `.specsmith/security-reports/`.
+  source: docs/PLANNED-REQUIREMENTS.md (SEC-004)
+  status: defined
+- id: REQ-201
+  title: specsmith-ide Theia Application
+  description: A `specsmith-ide` application MUST be created on Eclipse Theia with
+    `@theia/ai-core`, `@theia/ai-chat`, `@theia/ai-ide`.
+  source: docs/PLANNED-REQUIREMENTS.md (IDE-001)
+  status: defined
+- id: REQ-202
+  title: specsmith-ide Extension Packages
+  description: 'specsmith-ide MUST ship: `@specsmith/ai-agents`, `@specsmith/epistemic-ui`,
+    `@specsmith/eval-ui`, `@specsmith/service-client`.'
+  source: docs/PLANNED-REQUIREMENTS.md (IDE-002)
+  status: defined
+- id: REQ-203
+  title: specsmith-ide WebSocket Connection to specsmith serve
+  description: specsmith-ide MUST connect to `specsmith serve` over WebSocket.
+  source: docs/PLANNED-REQUIREMENTS.md (IDE-003)
+  status: defined
+- id: REQ-204
+  title: specsmith-ide Leverages Theia AI Native Tooling
+  description: specsmith-ide MUST leverage Theia AI's existing MCP support, ShellExecutionTool,
+    and agent skills system.
+  source: docs/PLANNED-REQUIREMENTS.md (IDE-004)
+  status: defined
+- id: REQ-205
+  title: specsmith-ide Electron Desktop Packaging
+  description: specsmith-ide MUST be packageable as an Electron desktop application.
+  source: docs/PLANNED-REQUIREMENTS.md (IDE-005)
+  status: defined
+- id: REQ-206
+  title: Tamper-Evident Agent Action Log
+  description: specsmith MUST maintain a tamper-evident, append-only agent action
+    log capturing every governance decision, tool invocation, input, and output. The
+    log chain MUST use SHA-256 chaining so any modification is detectable. Satisfies
+    EU AI Act Art. 12 (logging obligations) and NIST AI RMF (GO-6).
+  source: BTWS-2027 AI Governance Report [REG-001]
+  status: defined
+- id: REQ-207
+  title: Explanation Artifacts for Governance Decisions
+  description: 'Every governance decision (preflight, verify, classify) MUST produce
+    an ''explanation artifact'' recording: what data was used, which requirements
+    were matched, why the decision was reached, and the confidence score. Satisfies
+    EU AI Act Art. 13 (transparency), CFPB adverse-action requirements.'
+  source: BTWS-2027 AI Governance Report [REG-002]
+  status: defined
+- id: REQ-208
+  title: Action Log Replay and Export
+  description: specsmith MUST support structured replay and export of agent action
+    logs for external audit, regulatory submission, or incident investigation. Export
+    format MUST be machine-readable (JSONL) and human-readable (Markdown). Satisfies
+    OMB M-24-10 (AI use case inventories) and EU AI Act post-market monitoring.
+  source: BTWS-2027 AI Governance Report [REG-003]
+  status: defined
+- id: REQ-209
+  title: Human Escalation Threshold
+  description: specsmith MUST provide a configurable human-escalation threshold. When
+    preflight confidence is below the threshold, or when a destructive/release intent
+    is detected, execution MUST pause and route to human review. Satisfies NIST AI
+    RMF (GO-4), OMB M-24-10 human-in-the-loop requirements.
+  source: BTWS-2027 AI Governance Report [REG-004]
+  status: defined
+- id: REQ-210
+  title: Emergency Kill-Switch and Circuit-Breaker
+  description: 'specsmith MUST implement an emergency kill-switch that immediately
+    halts agent activity when: (a) the user invokes a stop command, (b) an anomaly
+    detector triggers, or (c) the retry budget is exhausted. The kill-switch MUST
+    be reachable from both the CLI and the REST API. Satisfies EU AI Act Art. 14 (human
+    oversight), NIST AI RMF.'
+  source: BTWS-2027 AI Governance Report [REG-005]
+  status: defined
+- id: REQ-211
+  title: Post-Market Behavioral Monitoring and Alerting
+  description: 'specsmith MUST monitor agent behavior across sessions and alert when
+    anomalous patterns are detected: unexpected confidence regression, unusual tool
+    usage rates, or systematic requirement mismatches. Satisfies EU AI Act Art. 72
+    (post-market monitoring) and OMB M-24-10.'
+  source: BTWS-2027 AI Governance Report [REG-006]
+  status: defined
+- id: REQ-212
+  title: One-Click Rollback for File-Modifying Actions
+  description: Every agent action that modifies governance files MUST create a timestamped
+    backup before overwriting, and MUST expose a rollback command that restores the
+    pre-action state. Satisfies NIST AI GenAI Profile (rollback and compensation),
+    CFPB.
+  source: BTWS-2027 AI Governance Report [REG-007]
+  status: defined
+- id: REQ-213
+  title: Safe Append-Only Write for New Governance Entries
+  description: All new entries appended to governance files (LEDGER.md, REQUIREMENTS.md,
+    TESTS.md) MUST use append-only mode — never truncating or overwriting existing
+    content. Protects against data loss from agent errors. Satisfies EU AI Act technical
+    controls and data integrity requirements.
+  source: BTWS-2027 AI Governance Report [REG-008]
+  status: defined
+- id: REQ-214
+  title: AI Disclosure Metadata in Agent Outputs
+  description: 'Outputs generated by specsmith agents MUST include AI disclosure metadata
+    when surfaced to end-users: which model was used, provider, confidence level,
+    and whether the output was governance-gated. Satisfies FTC Operation AI Comply,
+    Utah SB149 (2024) disclosure requirements.'
+  source: BTWS-2027 AI Governance Report [REG-009]
+  status: defined
+- id: REQ-215
+  title: Regulatory Compliance Export Report
+  description: 'specsmith MUST generate a structured compliance export report covering:
+    AI system inventory, risk classification, human oversight controls, audit log
+    summary, and incident history. Satisfies OMB M-24-10, Colorado SB24-205 impact
+    assessments, EU AI Act technical docs.'
+  source: BTWS-2027 AI Governance Report [REG-010]
+  status: defined
+- id: REQ-216
+  title: Agent Risk Classification Before Deployment
+  description: Before activating a governance profile or agent session, specsmith
+    MUST classify the intended use case against EU AI Act risk tiers (prohibited,
+    high-risk Annex III, GPAI systemic-risk, or minimal-risk). High-risk use cases
+    MUST require additional confirmation. Satisfies EU AI Act Art. 6 risk-based approach.
+  source: BTWS-2027 AI Governance Report [REG-011]
+  status: defined
+- id: REQ-217
+  title: Least-Privilege Agent Permissions
+  description: Every agent session MUST operate with the minimum permissions required.
+    Agent capabilities MUST be explicitly declared, and sensitive operations (commit,
+    push, create PR, external calls) MUST be individually gated. Satisfies EU AI Act
+    agent registration, NIST AI RMF least-privilege principle.
+  source: BTWS-2027 AI Governance Report [REG-012]
+  status: defined
+- id: REQ-218
+  title: Self-Optimization Bounded by Iteration Budget
+  description: All self-improvement loops (agent improve, eval harness, continuous
+    learning) MUST be bounded by a configurable iteration budget. Unbounded recursion
+    or runaway optimisation MUST be prevented. Satisfies EU AI Act systemic risk controls
+    (GPAISR) and credit spend governance.
+  source: BTWS-2027 AI Governance Report [REG-013]
+  status: defined
+- id: REQ-219
+  title: Local-First Model Routing for Governance Tasks
+  description: Governance classification tasks (preflight, verify, classify_intent)
+    MUST default to a local Ollama model (zero cloud cost) and only escalate to cloud
+    APIs when local confidence is below threshold. Reduces credit spend and avoids
+    unnecessary data transfer to third parties.
+  source: BTWS-2027 AI Governance Report [REG-014]
+  status: defined
+- id: REQ-220
+  title: Policy Guardrails at the Interface Layer
+  description: specsmith MUST enforce allow/deny lists for tool categories and data
+    access patterns at the agent interface layer — not just within prompts. Agents
+    MUST NOT access live production databases or unmanaged data sources. Satisfies
+    EU AI Act technical controls, California ADMT data governance requirements.
+  source: BTWS-2027 AI Governance Report [REG-015]
+  status: defined

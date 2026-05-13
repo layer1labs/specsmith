@@ -122,3 +122,21 @@
 - **REQs affected**: REQ-248,REQ-249,REQ-250,REQ-251,REQ-252,REQ-253,REQ-254,REQ-255,REQ-256,REQ-257,REQ-258,REQ-259,REQ-260,REQ-261,REQ-262
 - **Status**: complete
 - **Chain hash**: auto
+
+
+## 2026-05-12T13:00 --- WI-0512-AI: Glossa-lab AI patterns ported to specsmith (REQ-263..REQ-281)
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-263,REQ-264,REQ-265,REQ-266,REQ-267,REQ-268,REQ-269,REQ-270,REQ-271,REQ-272,REQ-273,REQ-274,REQ-275,REQ-276,REQ-277,REQ-278,REQ-279,REQ-280,REQ-281
+- **Description**: Ported 7 AI intelligence systems from glossa-lab: HF Open LLM Leaderboard sync with paginated fetch, bucket scoring (reasoning/conversational/longform), static fallback, and CLI (`model-intel scores/sync/recommendations/connection`); 40+ model capability profiles with context-aware history trimming; LLMClient with O-series parameter translation, vLLM guided-JSON, and provider fallback; EMA-based rate limit scheduler with adaptive concurrency; endpoint preset registry (10+ presets) with `/api/model-intel/*` REST endpoints; `agent suggest-profiles` and `agent endpoint-presets` CLI commands; Kairos AI Providers page bucket score columns and Sync Scores button. ARCHITECTURE.md §21-27 added. 280 REQs, 258 TESTs. All CI green.
+- **Status**: complete
+- **Chain hash**: auto
+
+
+## 2026-05-12T13:06 --- WI-0512-GAPS: Arch/req/test gap audit + TEST-282/TEST-283 added (REQ-263, REQ-265)
+- **Author**: oz-agent
+- **Type**: test
+- **REQs affected**: REQ-263,REQ-265
+- **Description**: Audit revealed REQ-263 (HF paginated sync persists bucket scores) and REQ-265 (HF API token in Authorization header) lacked explicit pytest coverage. Added TEST-282 (`TestHFSyncPersistsBucketScores` — verifies scores.json created with bucket_scores dict and all required keys per entry) and TEST-283 (`TestHFTokenInHeaders` — verifies token_set flag, rate_limit_tier, and Authorization header capture via mock). Both entries added to docs/TESTS.md. `specsmith sync` updated testcases.json to 260 entries.
+- **Status**: complete
+- **Chain hash**: auto

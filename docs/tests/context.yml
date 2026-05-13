@@ -1,0 +1,60 @@
+# specsmith test cases — context
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-221
+  title: GPU-Aware Context Window — VRAM Tiers
+  description: suggest_context_window(5.0) returns 4096; suggest_context_window(8.0)
+    returns 8192; suggest_context_window(14.0) returns 16384; suggest_context_window(24.0)
+    returns 32768.
+  requirement_id: REQ-244
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-222
+  title: GPU VRAM Detection Never Raises
+  description: detect_gpu_vram() returns a float >= 0 on any platform regardless of
+    whether nvidia-smi or rocm-smi is present. Must not raise any exception.
+  requirement_id: REQ-244
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-223
+  title: ContextFillTracker Records Fill Events
+  description: ContextFillTracker(limit=4096).record(used=1000) returns a ContextFillEvent
+    with type == "context_fill", used == 1000, limit == 4096, pct approximately 24.4.
+  requirement_id: REQ-245
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-224
+  title: ContextFillTracker Compression Threshold Warning
+  description: ContextFillTracker(limit=4096).record(used=3400) returns a fill event
+    at ~83% fill without raising (below default 85% hard ceiling). A fill event at
+    pct >= compression threshold (80%) is returned for caller dispatch.
+  requirement_id: REQ-246
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-225
+  title: ContextFullError at Hard Ceiling
+  description: ContextFillTracker(limit=4096).record(used=3600) raises ContextFullError
+    when fill >= 85% (hard ceiling). The error carries used, limit, and pct attributes.
+    The caller MUST trigger emergency compression.
+  requirement_id: REQ-247
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

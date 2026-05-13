@@ -477,6 +477,92 @@ requirement, test, and work-item identifiers Specsmith assigned.
 
 ---
 
+## AI Model Intelligence
+
+specsmith ships a complete AI model intelligence layer for tracking, scoring, and routing
+to the best available LLM for each task type.
+
+### HF Open LLM Leaderboard Sync (REQ-263..REQ-269)
+
+Syncs benchmark data from the HuggingFace Open LLM Leaderboard and computes three
+task-specific bucket scores — **reasoning**, **conversational**, and **longform** — for
+every model. A 40+ model static fallback ensures scores are always available even without
+network access.
+
+```bash
+specsmith model-intel sync                  # sync from HF leaderboard (static fallback if offline)
+specsmith model-intel scores                # list all cached bucket scores
+specsmith model-intel scores --model gpt-4o # show scores for a specific model
+specsmith model-intel recommendations       # top-10 models for reasoning bucket
+specsmith model-intel recommendations --bucket conversational  # or longform
+specsmith model-intel connection            # test HF API connectivity + token status
+```
+
+Set `SPECSMITH_HF_TOKEN` for authenticated access (1000 req/5min instead of 500).
+Scores persist to `~/.specsmith/model_scores.json`. Background sync runs 15s after startup
+then daily.
+
+**Bucket formulas (normalised 0-100):**
+- Reasoning = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval
+- Conversational = 0.40×IFEval + 0.35×MMLU-PRO + 0.25×BBH
+- Longform = 0.35×MUSR + 0.35×IFEval + 0.30×MMLU-PRO
+
+### Model Capability Profiles (REQ-270..REQ-271)
+
+40+ pre-built model profiles cover all major providers (OpenAI, Anthropic, Google, Mistral,
+Meta Llama, Qwen, DeepSeek, and local Ollama variants). Each profile specifies:
+`max_tokens`, `prompt_style` (sections/xml/markdown), `supports_vision`,
+`supports_tool_calls`, `reasoning_mode`, and `context_window`.
+
+Context-aware history trimming preserves system messages while summarising older turns when
+the token budget is exceeded:
+
+```python
+from specsmith.agent.model_profiles import get_profile, trim_history
+
+profile = get_profile("qwen2.5:14b")   # exact or prefix match; returns default if unknown
+messages = trim_history(messages, budget_chars=12000)
+```
+
+### LLM Client with Provider Fallback (REQ-275..REQ-277)
+
+`LLMClient` wraps multiple providers with automatic fallback on 429 / 401 errors,
+O-series parameter translation (`max_completion_tokens`, temperature=1, developer role),
+and vLLM guided-JSON payload injection:
+
+```python
+from specsmith.agent.llm_client import LLMClient
+
+client = LLMClient([
+    {"provider_type": "cloud", "model": "gpt-4o", ...},
+    {"provider_type": "ollama", "model": "qwen2.5:14b", ...},  # local fallback
+])
+result = client.chat([{"role": "user", "content": "hello"}])
+```
+
+### Endpoint Presets + Suggest Profiles (REQ-278..REQ-280)
+
+A registry of 10+ pre-configured endpoint presets for common cloud and local LLM providers:
+
+```bash
+specsmith agent endpoint-presets            # list all presets (vllm, lm_studio, openrouter, etc.)
+specsmith agent endpoint-presets --json     # machine-readable output
+specsmith agent suggest-profiles            # suggest optimal profiles based on env (API keys, hardware)
+specsmith agent suggest-profiles --json     # structured suggestions with bucket/role annotations
+```
+
+Suggestions are read-only (never persisted) and inspect `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
+`GOOGLE_API_KEY`, and local Ollama availability.
+
+### Kairos AI Providers — Bucket Score Columns (REQ-281)
+
+The Kairos **Agents > AI Providers** table gained three new columns — **R** (reasoning),
+**C** (conversational), **L** (longform) — showing each provider's HF bucket scores inline.
+A **Sync Scores** button triggers a background sync from the HF leaderboard without
+interrupting the active session.
+
+---
+
 ## Kairos — Flagship Terminal Client
 
 **[Kairos](https://github.com/BitConcepts/kairos)** is the recommended terminal client for specsmith.
@@ -556,7 +642,9 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
 
-**Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills`
+**Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills` `agent suggest-profiles` `agent endpoint-presets`
+
+**Model Intel:** `model-intel sync` `model-intel scores` `model-intel recommendations` `model-intel connection`
 
 **Ollama:** `ollama list/available/gpu/pull/suggest`
 

@@ -1,0 +1,717 @@
+# specsmith test cases — agent
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-065
+  title: Nexus Runtime Must Not Own Governance
+  description: Nexus orchestrator module documents that Specsmith owns governance
+    and Nexus only executes.
+  requirement_id: REQ-065
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-066
+  title: Nexus Must Provide Required Agent Roles
+  description: Orchestrator instantiates Planner, Shell, Code, Reviewer, Memory, Git,
+    HumanProxy, and Executor agents.
+  requirement_id: REQ-066
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-067
+  title: Nexus Tool Layer Must Expose Required Tools
+  description: specsmith.agent.tools.AVAILABLE_TOOLS contains the 12 required tools
+    by name.
+  requirement_id: REQ-067
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-068
+  title: Nexus Safety Middleware Must Block Unsafe Commands
+  description: is_safe_command returns False for unsafe patterns and True for safe
+    ones.
+  requirement_id: REQ-068
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-069
+  title: Nexus Tool Arguments Must Be JSON Validated
+  description: validate_json_args raises ValueError for non-serializable arguments.
+  requirement_id: REQ-069
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-070
+  title: Nexus Must Normalize File Paths
+  description: normalize_path returns absolute resolved paths.
+  requirement_id: REQ-070
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-071
+  title: Nexus Must Index the Repository
+  description: generate_index populates files.json, architecture.md, and conventions.md
+    in .repo-index/.
+  requirement_id: REQ-071
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-072
+  title: Nexus REPL Must Support Slash Commands
+  description: repl.py source defines /plan, /ask, /fix, /test, /commit, /pr, /undo,
+    /context, /exit handlers.
+  requirement_id: REQ-072
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-073
+  title: Nexus Output Contract
+  description: Orchestrator.run_task issues an initial message containing the required
+    sections.
+  requirement_id: REQ-073
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-074
+  title: vLLM Image Must Be Pinned
+  description: docker-compose.yml uses vllm/vllm-openai:v0.8.5 and does not use :latest.
+  requirement_id: REQ-074
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-075
+  title: vLLM Must Serve l1-nexus Model
+  description: docker-compose.yml configures --served-model-name l1-nexus and --tool-call-parser
+    hermes.
+  requirement_id: REQ-075
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-076
+  title: Nexus Tool Executor Registration Must Be Unique
+  description: Orchestrator.register_tools calls executor.register_for_execution exactly
+    once per tool.
+  requirement_id: REQ-076
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-077
+  title: Safe Cleanup Defaults to Dry-Run
+  description: clean_repo(apply=False) must not delete files even if matching targets
+    exist.
+  requirement_id: REQ-077
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-078
+  title: Safe Cleanup Uses Hard-Coded Target List
+  description: clean_repo enumerates only canonical targets defined in the module
+    CANONICAL_TARGETS constant.
+  requirement_id: REQ-078
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-079
+  title: Safe Cleanup Protects Governance and Source
+  description: clean_repo with apply=True must not delete .git, .specsmith, governance
+    files, pyproject.toml, README.md, LICENSE, CHANGELOG.md, src/, tests/, docs/.
+  requirement_id: REQ-079
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-080
+  title: Safe Cleanup Emits Structured Report
+  description: clean_repo returns a CleanupReport with removed, skipped, and bytes_reclaimed
+    fields.
+  requirement_id: REQ-080
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-081
+  title: specsmith clean CLI Subcommand
+  description: Invoking `specsmith clean` via click's CliRunner returns 0; defaults
+    to dry-run; `--apply` removes targets and appends a `cleanup` ledger event referencing
+    REQ-077..REQ-080. `--json` emits a parseable JSON report.
+  requirement_id: REQ-081
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-082
+  title: UTF-8 Safe Console Factory
+  description: make_console returns a rich.console.Console instance with legacy_windows
+    disabled and printing common glyphs (⚠, →, ✓, ✗) to a captured buffer must not
+    raise UnicodeEncodeError.
+  requirement_id: REQ-082
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-083
+  title: Canonical Test Spec File Is TESTS.md
+  description: The repository must contain `TESTS.md` and `docs/TESTS.md` (not `TEST_SPEC.md`/`TEST-SPECS.md`/`TEST-SPEC.md`);
+    the source tree (excluding `.specsmith/runs/*.patch` historical evidence) must
+    contain no remaining references to the legacy names; the scaffolder, auditor,
+    importer, retrieval, exporter, requirements, phase, recovery, and stress-tester
+    modules must reference `TESTS.md`.
+  requirement_id: REQ-083
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-084
+  title: Natural-Language Governance Broker
+  description: '`specsmith.agent.broker.classify_intent` correctly tags read-only/change/release/destructive
+    utterances; `infer_scope` returns relevant existing REQ IDs from a tmp-path REQUIREMENTS.md;
+    `run_preflight` invokes the Specsmith CLI and parses its JSON; `narrate_plan`
+    renders a plain-language plan that does NOT contain REQ-/TEST-/WI- tokens by default;
+    `execute_with_governance` honors the configured retry budget and escalates with
+    a single clarifying question on stop-and-align.'
+  requirement_id: REQ-084
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-085
+  title: specsmith preflight CLI Emits Required JSON
+  description: Invoking `specsmith preflight <utterance> --json --project-dir <tmp_path>`
+    via click's CliRunner returns exit code 0 and a JSON object with all required
+    keys; read-only asks resolve to `accepted`, destructive utterances resolve to
+    `needs_clarification`, and an utterance with no matching scope also resolves to
+    `needs_clarification` with a non-empty `instruction`.
+  requirement_id: REQ-085
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-086
+  title: REPL Gates Execution on Preflight Acceptance
+  description: The Nexus REPL source must guard the orchestrator call so that `run_task`
+    is only invoked when the preflight decision is `accepted`; any other decision
+    must short-circuit and return to the prompt.
+  requirement_id: REQ-086
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-087
+  title: REPL Drives Orchestrator via Bounded-Retry Harness
+  description: The REPL module must invoke `execute_with_governance` from the broker
+    branch, passing the preflight decision and an executor closure built around `orchestrator.run_task`;
+    `orchestrator.run_task` must not be called directly from the broker branch (only
+    via the harness's executor argument).
+  requirement_id: REQ-087
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-088
+  title: specsmith preflight Resolves Test Case IDs From Machine State
+  description: Invoking `specsmith preflight` over a tmp project that contains a REQUIREMENTS.md
+    (REQ-077) and a matching `.specsmith/testcases.json` (TEST-077 → REQ-077) must
+    emit a JSON payload whose `test_case_ids` includes `TEST-077` when the change
+    is accepted; the CLI must never emit ids absent from machine state.
+  requirement_id: REQ-088
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-089
+  title: Nexus Live l1-nexus Smoke Test Script
+  description: '`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)`
+    function that POSTs a chat-completions request and returns a dict with `ok`, `content`,
+    and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked
+    offline, the script must surface a clear error rather than crash. Static checks
+    must confirm the script exists and exposes the expected callable.'
+  requirement_id: REQ-089
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-090
+  title: Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
+  description: '`ARCHITECTURE.md` and `README.md` must each contain a ''Nexus'' section
+    that mentions the broker, `specsmith preflight`, the REPL execution gate, and
+    the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens
+    outside fenced governance examples.'
+  requirement_id: REQ-090
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-091
+  title: Orchestrator.run_task Returns a Structured TaskResult
+  description: '`orchestrator.run_task` must return a `TaskResult` instance whose
+    attributes include `equilibrium`, `confidence`, `summary`, `files_changed`, and
+    `test_results`. The REPL source must consume that result inside the executor closure
+    (`result.equilibrium`, `result.confidence`) rather than computing equilibrium
+    from `bool(summary)`.'
+  requirement_id: REQ-091
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-092
+  title: specsmith preflight CLI Returns Decision-Specific Exit Codes
+  description: Invoking `specsmith preflight` over a tmp project must exit 0 for `accepted`
+    decisions, 2 for `needs_clarification`, and 3 for `blocked`/`rejected`. The JSON
+    payload must continue to be emitted on stdout regardless of exit code.
+  requirement_id: REQ-092
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-093
+  title: Accepted preflight Records a Ledger Event
+  description: When the preflight decision is `accepted` and `LEDGER.md` exists in
+    the tmp project root, invoking the CLI must append a new ledger entry tagged with
+    `REQ-085` and the matched `requirement_ids`. When the decision is `needs_clarification`,
+    the ledger must not gain an entry.
+  requirement_id: REQ-093
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-094
+  title: /why Surfaces Post-Run Governance Block in REPL
+  description: Inspecting the REPL source must show a `[/why]` post-run block guarded
+    by `verbose_governance` after `execute_with_governance` returns; the block must
+    reference `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence`, and
+    `equilibrium`.
+  requirement_id: REQ-094
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-095
+  title: Nexus Live Smoke Evidence Captured
+  description: '`.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either
+    a successful live smoke (`ok: true`) or an honest reason the live container could
+    not be reached.'
+  requirement_id: REQ-095
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-096
+  title: execute_with_governance Maps Failures to Retry Strategies
+  description: 'When the executor never reaches equilibrium, `execute_with_governance`
+    must populate `RunResult.strategy` with one of the canonical labels: `narrow_scope`,
+    `expand_scope`, `fix_tests`, `rollback`, or `stop`. The clarifying question must
+    mention the chosen label.'
+  requirement_id: REQ-096
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-097
+  title: specsmith verify CLI Emits Required JSON
+  description: Invoking `specsmith verify --stdin --json` with a JSON verification
+    payload via click's CliRunner must return a JSON object containing `equilibrium`,
+    `confidence`, `summary`, `files_changed`, `test_results`, and `retry_strategy`.
+    Exit code is 0 when equilibrium and confidence ≥ threshold, 2 when retry is recommended,
+    and 3 on stop-and-align.
+  requirement_id: REQ-097
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-098
+  title: Confidence Threshold Read From .specsmith/config.yml
+  description: 'When `.specsmith/config.yml` sets `epistemic.confidence_threshold:
+    0.95` (well above the heuristic default), invoking `specsmith preflight` over
+    a tmp project must return `confidence_target >= 0.95`. When the config file is
+    absent, the heuristic default still applies.'
+  requirement_id: REQ-098
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-099
+  title: Accepted Preflight Records work_proposal Event Once
+  description: When the preflight decision is `accepted` and the assigned `work_item_id`
+    is not already in `LEDGER.md`, the CLI must emit BOTH a `preflight` ledger entry
+    AND a `work_proposal` ledger entry tagged with `REQ-044` and `REQ-085`. A subsequent
+    invocation that surfaces a different work_item_id must emit a second work_proposal
+    entry.
+  requirement_id: REQ-099
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-100
+  title: Broker Scope Inference Surfaces Stress Warnings Under --stress
+  description: Invoking `specsmith preflight "fix the cleanup bug" --stress` over
+    a tmp project that has matched requirements with at least one synthetic critical
+    failure must include a non-empty `stress_warnings` list in the JSON payload. Without
+    `--stress`, the field is absent (or empty).
+  requirement_id: REQ-100
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-101
+  title: Lint Baseline Is Clean on develop
+  description: '`ruff check src/ tests/` and `ruff format --check src/ tests/` both
+    exit zero on `develop`. The CI workflow''s `lint` job is the canonical gate; running
+    both commands locally produces "All checks passed!" and "112 files already formatted"
+    (or equivalent for the current file count).'
+  requirement_id: REQ-101
+  type: integration
+  verification_method: ci
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-102
+  title: Type-Check Baseline Is Clean on develop
+  description: '`mypy src/specsmith/` exits zero on `develop`. The CI workflow''s
+    `typecheck` job is the canonical gate. Modules added to the `ignore_errors=true`
+    overrides in `pyproject.toml` (REQ-102) must remain enumerated; new modules must
+    justify any addition with a comment.'
+  requirement_id: REQ-102
+  type: integration
+  verification_method: ci
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-103
+  title: Security Job Passes With pip-audit ignore-vuln
+  description: The CI security job upgrades pip to the latest release, installs `pip-audit`,
+    installs specsmith with its runtime dependencies, then runs `pip-audit --ignore-vuln
+    CVE-2026-3219`. The job exits zero on `develop`.
+  requirement_id: REQ-103
+  type: integration
+  verification_method: ci
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-104
+  title: workitems.json Mirrors Implemented REQs
+  description: Running `python scripts/sync_workitems.py` produces a `.specsmith/workitems.json`
+    whose count matches the REQ count, every entry has `status=complete`, and every
+    entry's `test_case_ids` lists the TEST ids that share the matching `requirement_id`.
+  requirement_id: REQ-104
+  type: integration
+  verification_method: script
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-105
+  title: Live Smoke Logs Document Skip Reason
+  description: '`.specsmith/runs/WI-NEXUS-011/logs.txt` contains a fresh `nexus_smoke.py`
+    probe output (with `"ok": false` or `"ok": true`), a UTC timestamp, the host''s
+    docker + GPU info, and a documented reason if the container could not be reached.'
+  requirement_id: REQ-105
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-106
+  title: Kairos Governance Page Surfaces Preflight/Verify/Trace
+  description: The Kairos Governance settings page shows the governance-serve health
+    status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode`
+    broker command test has been retired alongside the extension deprecation.*
+  requirement_id: REQ-106
+  type: integration
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-107
+  title: ARCHITECTURE.md Has Current State Section
+  description: '`ARCHITECTURE.md` contains a heading whose text begins with ''Current
+    State'' and whose body references the broker, retry strategies, CI baseline, VS
+    Code extension parity, live-smoke evidence, and documentation surface.'
+  requirement_id: REQ-107
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-108
+  title: Verifier Scores Confidence From Tests/Lint/Type Outputs
+  description: '`verifier.score(report)` returns higher confidence when test_results
+    report 0 failures, ruff_errors=0, mypy_errors=0; lower confidence when failures
+    > 0; equilibrium=True only when all three gates are clean and confidence >= target.'
+  requirement_id: REQ-108
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-109
+  title: Smoke Overlay File Pins 7B Q4 Model
+  description: '`docker-compose.smoke.yml` exists and references a 7B GPTQ-Int4 model
+    + `--served-model-name l1-nexus`. Evidence file `.specsmith/runs/WI-NEXUS-029/logs.txt`
+    exists and references the overlay.'
+  requirement_id: REQ-109
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-110
+  title: End-to-End Nexus Path Reaches Equilibrium
+  description: Driving a `FakeOrchestrator` through `execute_with_governance` with
+    scripted attempt-1 failure and attempt-2 success yields `RunResult.success=True`,
+    ledger gains a preflight + work_proposal entry, and retry strategy is empty.
+  requirement_id: REQ-110
+  type: integration
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-111
+  title: Mypy Strict Carveout Reduced
+  description: '`pyproject.toml`''s `[[tool.mypy.overrides]] ignore_errors=true` block
+    does NOT include `specsmith.agent.broker`, `specsmith.agent.safety`, `specsmith.console_utils`,
+    or `specsmith.agent.indexer`. `mypy src/specsmith/` exits zero.'
+  requirement_id: REQ-111
+  type: integration
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-112
+  title: Streaming Chat Emits Required JSONL Event Types
+  description: Invoking `specsmith chat <utterance> --json-events --project-dir <tmp>`
+    (against a stub orchestrator) emits at least one `block_start`, one `block_complete`,
+    and one `task_complete` event on stdout.
+  requirement_id: REQ-112
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-113
+  title: Block Schema Has block_id, kind, agent, timestamp
+  description: Every emitted `block_start` event has all four required keys; the matching
+    `block_complete` event reuses the same `block_id` value.
+  requirement_id: REQ-113
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-114
+  title: Plan Block Surfaces Steps with Status Transitions
+  description: When the broker classifies a `change` and the orchestrator runs, a
+    `plan` block is emitted with at least one step; subsequent `plan_step` events
+    reference the step by id and end with `status=done` or `status=failed`.
+  requirement_id: REQ-114
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-115
+  title: --profile Flag Is Honored And Recorded
+  description: 'Passing `--profile safe` to `specsmith chat` causes the chat-event
+    stream to include a `profile` field on the `task_complete` event matching `safe`.
+    Passing `--profile open` gives `profile: open`.'
+  requirement_id: REQ-115
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-116
+  title: Inline Diff Round-Trip
+  description: '`specsmith verify --comment ''fix the off-by-one''` records the comment
+    in `task_complete.comments` (or, in chat mode, the next harness retry surfaces
+    it via memory).'
+  requirement_id: REQ-116
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-117
+  title: Predict-Only Preflight Does Not Allocate Work Item
+  description: '`specsmith preflight ''fix the cleanup'' --predict-only --json` returns
+    `work_item_id == ''''`, includes a `predicted_refinement` field, and does NOT
+    modify `LEDGER.md`.'
+  requirement_id: REQ-117
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-118
+  title: Kairos BYOE Proxy Consumes Chat Stream
+  description: The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions`
+    accepts agent requests and forwards them through specsmith preflight/verify. *The
+    legacy `specsmith-vscode` openChat command test has been retired alongside the
+    extension deprecation.*
+  requirement_id: REQ-118
+  type: integration
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-119
+  title: Rules Loader Returns Project Rules As System-Prompt Prefix
+  description: '`rules.load_rules(tmp_path)` reads the seeded `docs/governance/RULES.md`
+    plus AGENTS.md H-rules and returns a non-empty string that contains the rule body
+    verbatim.'
+  requirement_id: REQ-119
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-120
+  title: Memory Append/Read Round-Trip
+  description: '`memory.append_turn(session_id, turn)` followed by `memory.recent_turns(session_id,
+    max_chars=10000)` returns the appended turn''s content; capping by `max_chars`
+    truncates oldest first.'
+  requirement_id: REQ-120
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-121
+  title: MCP Loader Reads .specsmith/mcp.yml
+  description: '`mcp.load_mcp_tools(tmp_path)` reads a seeded `.specsmith/mcp.yml`
+    with one entry and returns one tool wrapper whose name matches the configured
+    server.'
+  requirement_id: REQ-121
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-122
+  title: Router Picks Tier From Intent
+  description: '`router.choose_tier(''change'', scope, retry_count=0)` returns `coder`;
+    `choose_tier(''release'', ...)` returns `heavy`; `choose_tier(''read_only_ask'',
+    ...)` returns `fast`. Override via `.specsmith/config.yml routing:` is honored.'
+  requirement_id: REQ-122
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-123
+  title: Notebook Record Writes docs/notebooks/<slug>.md
+  description: '`specsmith notebook record --session-id S --slug demo --project-dir
+    <tmp>` reads `.specsmith/sessions/S/turns.jsonl` and writes a markdown notebook
+    to `docs/notebooks/demo.md` containing each turn.'
+  requirement_id: REQ-123
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-124
+  title: Perf Smoke Writes Baseline JSON
+  description: Running `scripts/perf_smoke.py --runs 3 --reqs 50 --output <tmp>/baseline.json`
+    writes a JSON file with `p50`, `p95`, `p99` numeric keys.
+  requirement_id: REQ-124
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-125
+  title: Multi-Session Parent/Child Wiring
+  description: '`specsmith chat ... --session-id child --parent-session parent` causes
+    the `task_complete` event to also write a `sub_session_complete` line into the
+    parent session''s turns.jsonl.'
+  requirement_id: REQ-125
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-127
+  title: Onboarding Doctor Has Required Checks
+  description: '`specsmith doctor --onboarding --project-dir <tmp>` prints a checklist
+    that includes lines for ''CLI installed'', ''scaffold.yml'', ''REQUIREMENTS.md'',
+    and ''LEDGER.md''.'
+  requirement_id: REQ-127
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-128
+  title: Cross-Repo Security Sweep Runs in CI
+  description: Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit`
+    and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test
+    has been retired alongside the extension deprecation.*
+  requirement_id: REQ-128
+  type: integration
+  verification_method: static-check
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-129
+  title: API Stability Doc Enumerates Frozen Surface
+  description: '`docs/site/api-stability.md` exists and enumerates: CLI subcommands,
+    exit codes, JSON payload schemas, broker module API, ledger event schemas, VS
+    Code extension command IDs. `pyproject.toml` version is `1.0.0` and classifier
+    is `Production/Stable`.'
+  requirement_id: REQ-129
+  type: unit
+  verification_method: pytest
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

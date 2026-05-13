@@ -87,6 +87,23 @@ jobs:
           SPECSMITH_PYPI_CHECKED: "1"
         run: python -m specsmith sync --check --project-dir .
 
+  validate-strict:
+    # YAML governance schema guard: duplicate IDs, orphan tests, missing fields.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[dev]"
+      - name: Strict governance schema validation
+        env:
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+          SPECSMITH_PYPI_CHECKED: "1"
+        run: python -m specsmith validate --strict --json --project-dir .
+
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
     # if the live output drifts from the committed fixture. Catches accidental

@@ -1,0 +1,617 @@
+# specsmith test cases — intelligence
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-161
+  title: Instinct Persistence System
+  description: specsmith MUST implement an instinct persistence system in `src/specsmith/instinct.py`.
+  requirement_id: REQ-161
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-162
+  title: Instinct Record Schema
+  description: 'Each instinct record MUST contain: id, trigger_pattern, content, confidence,
+    project_scope, created, last_used, use_count.'
+  requirement_id: REQ-162
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-163
+  title: SESSION_END Hook Extracts Candidate Instincts
+  description: The `SESSION_END` hook MUST extract candidate instincts for user review.
+  requirement_id: REQ-163
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-164
+  title: /learn Command Promotes Pattern to Instinct
+  description: The `/learn` command MUST promote a pattern to an instinct with an
+    initial confidence score.
+  requirement_id: REQ-164
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-165
+  title: Instinct Confidence Updated on Application
+  description: Instinct confidence MUST be updated based on application success/rejection.
+  requirement_id: REQ-165
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-166
+  title: Instincts Importable and Exportable as Markdown
+  description: Instincts MUST be importable and exportable as `.md` files.
+  requirement_id: REQ-166
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-167
+  title: /instinct-status Displays Active Instincts
+  description: '`/instinct-status` MUST display all active instincts sorted by confidence.'
+  requirement_id: REQ-167
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-168
+  title: Eval Harness Module
+  description: specsmith MUST implement an eval harness in `src/specsmith/eval/`.
+  requirement_id: REQ-168
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-169
+  title: Eval Data Model
+  description: 'The eval model MUST define: Task, Trial, Grader, Transcript, Outcome.'
+  requirement_id: REQ-169
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-170
+  title: Eval Tasks Stored as Markdown
+  description: Tasks MUST be stored as Markdown at `.specsmith/evals/{feature}.md`
+    with YAML frontmatter.
+  requirement_id: REQ-170
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-171
+  title: Three Grader Types
+  description: The harness MUST support CodeGrader, ModelGrader, and HumanFlag grader
+    types.
+  requirement_id: REQ-171
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-172
+  title: pass@k and pass^k Metrics
+  description: The harness MUST compute `pass@k` and `pass^k` metrics.
+  requirement_id: REQ-172
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-173
+  title: Git-Based Outcome Grading by Default
+  description: Default grading MUST be git-based outcome grading, not execution-path
+    assertion.
+  requirement_id: REQ-173
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-174
+  title: /eval run --trials k
+  description: '`/eval run --trials k` MUST run k independent trials and report results.'
+  requirement_id: REQ-174
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-175
+  title: Capability vs Regression Eval Distinction
+  description: The harness MUST distinguish capability evals from regression evals.
+  requirement_id: REQ-175
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-176
+  title: Cross-Session Agent Memory
+  description: specsmith MUST implement cross-session agent memory in `src/specsmith/memory.py`.
+  requirement_id: REQ-176
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-177
+  title: Agent Memory Structured JSON
+  description: Agent memory MUST be structured JSON with accumulated patterns, preferred
+    approaches, known project facts, and failure history.
+  requirement_id: REQ-177
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-178
+  title: SESSION_START Hook Injects Memories into System Prompt
+  description: The `SESSION_START` hook MUST inject relevant memories into the system
+    prompt (token-budget-aware).
+  requirement_id: REQ-178
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-179
+  title: Agent Memory Compatible with Theia AI Convention
+  description: Agent memory layout MUST be compatible with Theia AI's `~/.theia/agent-memory/`
+    convention.
+  requirement_id: REQ-179
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-180
+  title: Runtime Hook Enable/Disable
+  description: Hooks MUST be enable/disable-able at runtime without restarting the
+    session.
+  requirement_id: REQ-180
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-181
+  title: Hook Profiles via /hook-profile
+  description: Hook profiles MUST be loadable via `/hook-profile`.
+  requirement_id: REQ-181
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-182
+  title: New Hook Trigger Events
+  description: 'New triggers: `SUBAGENT_START`, `SUBAGENT_STOP`, `CONTEXT_COMPACT`,
+    `EVAL_PASS`, `EVAL_FAIL`.'
+  requirement_id: REQ-182
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-183
+  title: SUBAGENT_START Hook Can Block Spawn
+  description: '`SUBAGENT_START` MUST fire before spawning; a hook MAY block the spawn.'
+  requirement_id: REQ-183
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-184
+  title: SUBAGENT_STOP Hook on Completion
+  description: '`SUBAGENT_STOP` MUST fire when a subagent completes.'
+  requirement_id: REQ-184
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-185
+  title: CONTEXT_COMPACT Hook Before Trimming
+  description: '`CONTEXT_COMPACT` MUST fire before context trimming.'
+  requirement_id: REQ-185
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-186
+  title: specsmith serve Command
+  description: specsmith MUST provide a `specsmith serve` command (already shipped
+    in v0.7.0).
+  requirement_id: REQ-186
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-187
+  title: REST Endpoints for Session and Agent Management
+  description: 'REST endpoints: `GET/POST /sessions`, `GET /agents`, `GET /instincts`,
+    `GET /evals`, `POST /index`, `GET /health`.'
+  requirement_id: REQ-187
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-188
+  title: WebSocket Endpoint for Live Session I/O
+  description: WebSocket endpoint at `/ws/session/{id}` for live session I/O using
+    the existing JSONL event schema.
+  requirement_id: REQ-188
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-189
+  title: EventSink Protocol for Stdout and WebSocket
+  description: '`AgentRunner._emit_event()` MUST use an `EventSink` protocol (`StdoutSink`
+    / `WebSocketSink`).'
+  requirement_id: REQ-189
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-190
+  title: Kairos Terminal Connects via HTTP/WebSocket
+  description: The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket
+    for all governance operations.
+  requirement_id: REQ-190
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-191
+  title: BM25 Retrieval Ranking
+  description: '`retrieval.py` MUST be upgraded from term-frequency to BM25 ranking
+    using `rank_bm25`.'
+  requirement_id: REQ-191
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-192
+  title: File-Watcher Based Index Refresh
+  description: The retrieval index MUST support file-watcher-based refresh.
+  requirement_id: REQ-192
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-193
+  title: Token-Counted Retrieval Results
+  description: Retrieval results MUST be token-counted before injection to prevent
+    context budget overruns.
+  requirement_id: REQ-193
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-194
+  title: MCP Server Configuration Templates
+  description: specsmith MUST provide MCP server configuration templates via `/mcp-add`
+    or `specsmith mcp add`.
+  requirement_id: REQ-194
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-195
+  title: MCP Server Registry with Status
+  description: The MCP server registry MUST list configured servers with status and
+    tool surfaces.
+  requirement_id: REQ-195
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-196
+  title: MCP Configuration in scaffold.yml
+  description: MCP configuration MUST be storable in `scaffold.yml` under `agent.mcp_servers`.
+  requirement_id: REQ-196
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-197
+  title: /security-scan Command
+  description: specsmith MUST provide a `/security-scan` command running a dedicated
+    security analysis agent.
+  requirement_id: REQ-197
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-198
+  title: Security Scan Coverage
+  description: The security scan MUST check dependency vulnerabilities, OWASP-style
+    code patterns, and exposed secrets.
+  requirement_id: REQ-198
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-199
+  title: /audit-prompt for Injection Analysis
+  description: '`/audit-prompt` MUST analyze a prompt string for injection vectors.'
+  requirement_id: REQ-199
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-200
+  title: Security Scan Results Stored Structurally
+  description: Security scan results MUST be structured and stored at `.specsmith/security-reports/`.
+  requirement_id: REQ-200
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-201
+  title: specsmith-ide Theia Application
+  description: A `specsmith-ide` application MUST be created on Eclipse Theia with
+    `@theia/ai-core`, `@theia/ai-chat`, `@theia/ai-ide`.
+  requirement_id: REQ-201
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-202
+  title: specsmith-ide Extension Packages
+  description: 'specsmith-ide MUST ship: `@specsmith/ai-agents`, `@specsmith/epistemic-ui`,
+    `@specsmith/eval-ui`, `@specsmith/service-client`.'
+  requirement_id: REQ-202
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-203
+  title: specsmith-ide WebSocket Connection to specsmith serve
+  description: specsmith-ide MUST connect to `specsmith serve` over WebSocket.
+  requirement_id: REQ-203
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-204
+  title: specsmith-ide Leverages Theia AI Native Tooling
+  description: specsmith-ide MUST leverage Theia AI's existing MCP support, ShellExecutionTool,
+    and agent skills system.
+  requirement_id: REQ-204
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-205
+  title: specsmith-ide Electron Desktop Packaging
+  description: specsmith-ide MUST be packageable as an Electron desktop application.
+  requirement_id: REQ-205
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-206
+  title: Tamper-Evident Agent Action Log
+  description: specsmith MUST maintain a tamper-evident, append-only agent action
+    log capturing every governance decision, tool invocation, input, and output. The
+    log chain MUST use SHA-256 chaining so any modification is detectable. Satisfies
+    EU AI Act Art. 12 (logging obligations) and NIST AI RMF (GO-6).
+  requirement_id: REQ-206
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-207
+  title: Explanation Artifacts for Governance Decisions
+  description: 'Every governance decision (preflight, verify, classify) MUST produce
+    an ''explanation artifact'' recording: what data was used, which requirements
+    were matched, why the decision was reached, and the confidence score. Satisfies
+    EU AI Act Art. 13 (transparency), CFPB adverse-action requirements.'
+  requirement_id: REQ-207
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-208
+  title: Action Log Replay and Export
+  description: specsmith MUST support structured replay and export of agent action
+    logs for external audit, regulatory submission, or incident investigation. Export
+    format MUST be machine-readable (JSONL) and human-readable (Markdown). Satisfies
+    OMB M-24-10 (AI use case inventories) and EU AI Act post-market monitoring.
+  requirement_id: REQ-208
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-209
+  title: Human Escalation Threshold
+  description: specsmith MUST provide a configurable human-escalation threshold. When
+    preflight confidence is below the threshold, or when a destructive/release intent
+    is detected, execution MUST pause and route to human review. Satisfies NIST AI
+    RMF (GO-4), OMB M-24-10 human-in-the-loop requirements.
+  requirement_id: REQ-209
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-210
+  title: Emergency Kill-Switch and Circuit-Breaker
+  description: 'specsmith MUST implement an emergency kill-switch that immediately
+    halts agent activity when: (a) the user invokes a stop command, (b) an anomaly
+    detector triggers, or (c) the retry budget is exhausted. The kill-switch MUST
+    be reachable from both the CLI and the REST API. Satisfies EU AI Act Art. 14 (human
+    oversight), NIST AI RMF.'
+  requirement_id: REQ-210
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-211
+  title: Post-Market Behavioral Monitoring and Alerting
+  description: 'specsmith MUST monitor agent behavior across sessions and alert when
+    anomalous patterns are detected: unexpected confidence regression, unusual tool
+    usage rates, or systematic requirement mismatches. Satisfies EU AI Act Art. 72
+    (post-market monitoring) and OMB M-24-10.'
+  requirement_id: REQ-211
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-212
+  title: One-Click Rollback for File-Modifying Actions
+  description: Every agent action that modifies governance files MUST create a timestamped
+    backup before overwriting, and MUST expose a rollback command that restores the
+    pre-action state. Satisfies NIST AI GenAI Profile (rollback and compensation),
+    CFPB.
+  requirement_id: REQ-212
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-213
+  title: Safe Append-Only Write for New Governance Entries
+  description: All new entries appended to governance files (LEDGER.md, REQUIREMENTS.md,
+    TESTS.md) MUST use append-only mode — never truncating or overwriting existing
+    content. Protects against data loss from agent errors. Satisfies EU AI Act technical
+    controls and data integrity requirements.
+  requirement_id: REQ-213
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-214
+  title: AI Disclosure Metadata in Agent Outputs
+  description: 'Outputs generated by specsmith agents MUST include AI disclosure metadata
+    when surfaced to end-users: which model was used, provider, confidence level,
+    and whether the output was governance-gated. Satisfies FTC Operation AI Comply,
+    Utah SB149 (2024) disclosure requirements.'
+  requirement_id: REQ-214
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-215
+  title: Regulatory Compliance Export Report
+  description: 'specsmith MUST generate a structured compliance export report covering:
+    AI system inventory, risk classification, human oversight controls, audit log
+    summary, and incident history. Satisfies OMB M-24-10, Colorado SB24-205 impact
+    assessments, EU AI Act technical docs.'
+  requirement_id: REQ-215
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-216
+  title: Agent Risk Classification Before Deployment
+  description: Before activating a governance profile or agent session, specsmith
+    MUST classify the intended use case against EU AI Act risk tiers (prohibited,
+    high-risk Annex III, GPAI systemic-risk, or minimal-risk). High-risk use cases
+    MUST require additional confirmation. Satisfies EU AI Act Art. 6 risk-based approach.
+  requirement_id: REQ-216
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-217
+  title: Least-Privilege Agent Permissions
+  description: Every agent session MUST operate with the minimum permissions required.
+    Agent capabilities MUST be explicitly declared, and sensitive operations (commit,
+    push, create PR, external calls) MUST be individually gated. Satisfies EU AI Act
+    agent registration, NIST AI RMF least-privilege principle.
+  requirement_id: REQ-217
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-218
+  title: Self-Optimization Bounded by Iteration Budget
+  description: All self-improvement loops (agent improve, eval harness, continuous
+    learning) MUST be bounded by a configurable iteration budget. Unbounded recursion
+    or runaway optimisation MUST be prevented. Satisfies EU AI Act systemic risk controls
+    (GPAISR) and credit spend governance.
+  requirement_id: REQ-218
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-219
+  title: Local-First Model Routing for Governance Tasks
+  description: Governance classification tasks (preflight, verify, classify_intent)
+    MUST default to a local Ollama model (zero cloud cost) and only escalate to cloud
+    APIs when local confidence is below threshold. Reduces credit spend and avoids
+    unnecessary data transfer to third parties.
+  requirement_id: REQ-219
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-220
+  title: Policy Guardrails at the Interface Layer
+  description: specsmith MUST enforce allow/deny lists for tool categories and data
+    access patterns at the agent interface layer — not just within prompts. Agents
+    MUST NOT access live production databases or unmanaged data sources. Satisfies
+    EU AI Act technical controls, California ADMT data governance requirements.
+  requirement_id: REQ-220
+  type: compliance
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

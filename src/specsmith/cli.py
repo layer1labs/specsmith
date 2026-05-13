@@ -1020,26 +1020,233 @@ def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
     default=".",
     help="Project root directory.",
 )
-def validate(project_dir: str) -> None:
-    """Check governance file consistency (req ↔ test ↔ arch)."""
+@click.option(
+    "--strict",
+    "strict_mode",
+    is_flag=True,
+    default=False,
+    help=(
+        "Strict schema checks: duplicate IDs, orphaned tests, untested REQs, "
+        "missing required fields, title duplicates, sync drift."
+    ),
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit results as JSON.",
+)
+def validate(project_dir: str, strict_mode: bool, as_json: bool) -> None:
+    """Check governance file consistency (req ↔ test ↔ arch).
+
+    Without --strict: runs the standard governance checks (scaffold.yml,
+    AGENTS.md references, unique REQ IDs, architecture linkage, script safety).
+
+    With --strict: additionally runs YAML schema validation — duplicate IDs,
+    orphaned tests, untested REQs, missing required fields, title duplicates,
+    and machine-state drift.  Exits 1 if any errors are found; warnings are
+    printed but do not cause a non-zero exit by default.
+    """
+    import json as _json
+
     from specsmith.validator import run_validate
 
     root = Path(project_dir).resolve()
-    console.print(f"[bold]Validating[/bold] {root}\n")
+
+    if not as_json:
+        console.print(f"[bold]Validating[/bold] {root}\n")
+
     report = run_validate(root)
+    std_ok = report.valid
 
-    for r in report.results:
-        icon = "[green]✓[/green]" if r.passed else "[red]✗[/red]"
-        console.print(f"  {icon} {r.message}")
+    strict_errors = 0
+    strict_warnings = 0
 
-    console.print()
-    if report.valid:
-        console.print(f"[bold green]Valid.[/bold green] {report.passed} checks passed.")
+    if strict_mode:
+        from specsmith.governance_yaml import strict_validate
+
+        sv = strict_validate(root)
+        strict_errors = len(sv.errors)
+        strict_warnings = len(sv.warnings)
+
+        if as_json:
+            result = {
+                "std_passed": report.passed,
+                "std_failed": report.failed,
+                "strict_errors": strict_errors,
+                "strict_warnings": strict_warnings,
+                "ok": std_ok and sv.ok,
+                "violations": [
+                    {"check": v.check, "message": v.message, "severity": v.severity}
+                    for v in sv.violations
+                ],
+                "std_results": [
+                    {"name": r.name, "passed": r.passed, "message": r.message}
+                    for r in report.results
+                ],
+            }
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            # Print standard results
+            for r in report.results:
+                icon = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
+                console.print(f"  {icon} {r.message}")
+            console.print()
+            console.print("[bold]Strict governance checks[/bold]\n")
+            for v in sv.violations:
+                if v.severity == "error":
+                    console.print(f"  [red]\u2717[/red] [{v.check}] {v.message}")
+                else:
+                    console.print(f"  [yellow]\u26a0[/yellow] [{v.check}] {v.message}")
+            console.print()
+            if std_ok and sv.ok:
+                console.print(
+                    f"[bold green]Valid.[/bold green] {report.passed} std + "
+                    f"{strict_warnings} warnings (strict)."
+                )
+            else:
+                console.print(
+                    f"[bold red]{report.failed} std issue(s), "
+                    f"{strict_errors} strict error(s), "
+                    f"{strict_warnings} warning(s).[/bold red]"
+                )
     else:
-        console.print(
-            f"[bold red]{report.failed} issue(s)[/bold red] found. {report.passed} checks passed."
-        )
+        if as_json:
+            result = {
+                "std_passed": report.passed,
+                "std_failed": report.failed,
+                "ok": std_ok,
+                "std_results": [
+                    {"name": r.name, "passed": r.passed, "message": r.message}
+                    for r in report.results
+                ],
+            }
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            for r in report.results:
+                icon = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
+                console.print(f"  {icon} {r.message}")
+            console.print()
+            if std_ok:
+                console.print(f"[bold green]Valid.[/bold green] {report.passed} checks passed.")
+            else:
+                console.print(
+                    f"[bold red]{report.failed} issue(s)[/bold red] found. "
+                    f"{report.passed} checks passed."
+                )
+
+    if not std_ok or (strict_mode and strict_errors > 0):
         raise SystemExit(1)
+
+
+@main.group(name="generate")
+def generate_group() -> None:
+    """Generate derived artifacts from canonical governance sources."""
+
+
+@generate_group.command(name="docs")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--check",
+    "check_only",
+    is_flag=True,
+    default=False,
+    help="Report what would change without writing.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit result as JSON.",
+)
+def generate_docs_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
+    """Regenerate docs/REQUIREMENTS.md and docs/TESTS.md from YAML sources.
+
+    Reads docs/requirements/*.yml and docs/tests/*.yml (YAML-first mode)
+    and regenerates the corresponding Markdown files as derived artifacts.
+
+    Also re-syncs .specsmith/requirements.json and testcases.json.
+
+    This is the YAML-first equivalent of `specsmith sync`.
+    In legacy Markdown mode, `specsmith sync` continues to work as before.
+    """
+    import json as _json
+
+    from specsmith.governance_yaml import (
+        generate_requirements_md,
+        generate_tests_md,
+        is_yaml_mode,
+        load_yaml_requirements,
+        load_yaml_tests,
+    )
+    from specsmith.sync import run_sync
+
+    root = Path(project_dir).resolve()
+
+    if not is_yaml_mode(root):
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {"ok": False, "error": "Not in YAML mode. Run the migration script first."},
+                    indent=2,
+                )
+            )
+        else:
+            console.print(
+                "[yellow]\u26a0[/yellow] Not in YAML mode. "
+                "Run scripts/migrate_governance_to_yaml.py first, "
+                "or set .specsmith/governance-mode = yaml."
+            )
+        raise SystemExit(1)
+
+    reqs = load_yaml_requirements(root)
+    tests = load_yaml_tests(root)
+    md_reqs = generate_requirements_md(reqs)
+    md_tests = generate_tests_md(tests)
+
+    reqs_md = root / "docs" / "REQUIREMENTS.md"
+    tests_md = root / "docs" / "TESTS.md"
+
+    reqs_changed = not reqs_md.exists() or reqs_md.read_text(encoding="utf-8") != md_reqs
+    tests_changed = not tests_md.exists() or tests_md.read_text(encoding="utf-8") != md_tests
+
+    if not check_only:
+        if reqs_changed:
+            reqs_md.parent.mkdir(parents=True, exist_ok=True)
+            reqs_md.write_text(md_reqs, encoding="utf-8")
+        if tests_changed:
+            tests_md.parent.mkdir(parents=True, exist_ok=True)
+            tests_md.write_text(md_tests, encoding="utf-8")
+        # Also sync the JSON machine state
+        run_sync(root)
+
+    result = {
+        "reqs": len(reqs),
+        "tests": len(tests),
+        "reqs_md_changed": reqs_changed,
+        "tests_md_changed": tests_changed,
+        "dry_run": check_only,
+        "ok": True,
+    }
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        status = "[dim](dry run)[/dim]" if check_only else ""
+        reqs_icon = "[yellow]\u25b6[/yellow]" if reqs_changed else "[green]\u2713[/green]"
+        tests_icon = "[yellow]\u25b6[/yellow]" if tests_changed else "[green]\u2713[/green]"
+        console.print(f"[bold]specsmith generate docs[/bold] {status}")
+        console.print(f"  {reqs_icon} REQUIREMENTS.md ({len(reqs)} reqs)")
+        console.print(f"  {tests_icon} TESTS.md ({len(tests)} tests)")
+        if not check_only:
+            verb = "regenerated" if (reqs_changed or tests_changed) else "already up to date"
+            console.print(f"  [green]\u2713[/green] {verb}")
 
 
 @main.command()

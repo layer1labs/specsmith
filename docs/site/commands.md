@@ -1,6 +1,6 @@
 # CLI Commands
 
-specsmith has 40+ commands. Every command that operates on a project accepts `--project-dir PATH` (default: current directory).
+specsmith has 50+ commands. Every command that operates on a project accepts `--project-dir PATH` (default: current directory).
 
 ## `specsmith preflight`
 
@@ -824,3 +824,82 @@ specsmith agent ask "check compliance gaps" --json-output
 **JSON output:** `{"reply": "...", "action": "...", "prompt": "..."}`
 
 **Exit code:** always 0 (the dispatcher is best-effort).
+
+
+---
+
+## model-intel
+
+AI model intelligence — HuggingFace Open LLM Leaderboard sync, bucket scoring, and recommendations.
+
+### model-intel sync
+
+```bash
+specsmith model-intel sync [--json] [--project-dir DIR]
+```
+
+Fetch benchmark data from the HF Datasets Server and compute bucket scores for all models.
+Falls back to 40+ built-in static scores when HF is unreachable. Exits 0 even without network access.
+
+**JSON output:** `{"synced": N, "errors": 0, "message": "..."}`
+
+### model-intel scores
+
+```bash
+specsmith model-intel scores [--model MODEL] [--bucket BUCKET] [--json] [--project-dir DIR]
+```
+
+List all cached bucket scores or show scores for a specific model.
+
+**Without --model:** `{"scores": [{"model_name": ..., "reasoning_score": ..., "conversational_score": ..., "longform_score": ...}]}`
+
+**With --model:** `{"score": {"model_name": ..., "reasoning_score": ..., "conversational_score": ..., "longform_score": ...}}`
+
+### model-intel recommendations
+
+```bash
+specsmith model-intel recommendations [--bucket BUCKET] [--top-k N] [--json] [--project-dir DIR]
+```
+
+Return the top-k models for a given bucket (reasoning/conversational/longform), sorted descending by score.
+Default bucket: `reasoning`. Default top-k: 10.
+
+**JSON output:** `{"recommendations": [{"model": ..., "score": ..., "reasoning": ..., "conversational": ..., "longform": ...}], "bucket": "..."}`
+
+### model-intel connection
+
+```bash
+specsmith model-intel connection [--json] [--project-dir DIR]
+```
+
+Probe HuggingFace API connectivity and validate `SPECSMITH_HF_TOKEN`.
+
+**JSON output:** `{"valid": bool, "token_set": bool, "token_valid": bool, "rate_limit_tier": "...", "dataset_server_ok": bool, "message": "..."}`
+
+---
+
+## agent suggest-profiles
+
+```bash
+specsmith agent suggest-profiles [--json] [--project-dir DIR]
+```
+
+Suggest optimal model profiles based on available API keys and hardware (Ollama, BYOE endpoints).
+Suggestions are **read-only** — never persisted to providers.json.
+
+Each suggestion includes: `provider_type`, `model`, `bucket`, `role`, `notes`.
+
+---
+
+## agent endpoint-presets
+
+```bash
+specsmith agent endpoint-presets [--json] [--project-dir DIR]
+```
+
+List all built-in endpoint presets for common OpenAI-compatible LLM providers.
+
+Includes: `vllm`, `lm_studio`, `llama_cpp`, `openrouter`, `together`, `groq`,
+`fireworks`, `deepinfra`, `perplexity`, `azure_openai` (10+ presets).
+
+Each preset: `{"id": ..., "label": ..., "base_url": ..., "endpoint_kind": ..., "needs_key": bool}`
