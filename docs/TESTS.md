@@ -741,7 +741,7 @@
 ## TEST-083. Canonical Test Spec File Is TESTS.md
 - **ID:** TEST-083
 - **Title:** Canonical Test Spec File Is TESTS.md
-- **Description:** The repository must contain `TESTS.md` and `docs/TESTS.md` (not `TEST_SPEC.md`/`TEST-SPECS.md`/`TEST-SPEC.md`); the source tree (excluding `.specsmith/runs/*.patch` historical evidence) must contain no remaining references to the legacy names; the scaffolder, auditor, importer, retrieval, exporter, requirements, phase, recovery, and stress-tester modules must reference `TESTS.md`.
+- **Description:** The repository must contain `TESTS.md` and `docs/TESTS.md` (not `TESTS.md`/`TEST-SPECS.md`/`TEST-SPEC.md`); the source tree (excluding `.specsmith/runs/*.patch` historical evidence) must contain no remaining references to the legacy names; the scaffolder, auditor, importer, retrieval, exporter, requirements, phase, recovery, and stress-tester modules must reference `TESTS.md`.
 - **Requirement ID:** REQ-083
 - **Type:** unit
 - **Verification Method:** pytest
