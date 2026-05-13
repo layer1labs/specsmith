@@ -1998,23 +1998,83 @@ def req_list(project_dir: str) -> None:
 
 
 @req.command(name="add")
-@click.argument("req_id")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--component", default="")
-@click.option("--priority", default="medium")
-@click.option("--description", default="")
-def req_add(req_id: str, project_dir: str, component: str, priority: str, description: str) -> None:
-    """Add a new requirement."""
-    from specsmith.requirements import add_req
+@click.option("--title", default="", help="Short title for the requirement (YAML mode).")
+@click.option(
+    "--status",
+    default="planned",
+    type=click.Choice(["planned", "implemented", "partial", "deprecated"]),
+    help="Requirement status (YAML mode).",
+)
+@click.option("--description", default="", help="Full description.")
+@click.option("--source", default="", help="Architecture source reference.")
+@click.option("--id", "req_id_override", default="", help="Override the auto-generated ID.")
+# Legacy Markdown-mode options (ignored in YAML mode)
+@click.option("--component", default="", hidden=True)
+@click.option("--priority", default="medium", hidden=True)
+@click.argument("req_id", required=False, default="")
+def req_add(
+    project_dir: str,
+    title: str,
+    status: str,
+    description: str,
+    source: str,
+    req_id_override: str,
+    component: str,
+    priority: str,
+    req_id: str,
+) -> None:
+    """Add a requirement.
 
-    add_req(
-        Path(project_dir).resolve(),
-        req_id,
-        component=component,
-        priority=priority,
-        description=description,
-    )
-    console.print(f"[green]Added {req_id}[/green]")
+    In YAML-first mode (governance-mode=yaml): auto-increments the next REQ ID,
+    writes to the appropriate domain YAML file, and runs sync.
+
+    \b
+    YAML mode (recommended):
+      specsmith req add --title "My requirement" --status planned
+      specsmith req add --title "Custom ID" --id REQ-042
+
+    Legacy Markdown mode:
+      specsmith req add REQ-042 --description "description"
+    """
+    root = Path(project_dir).resolve()
+
+    from specsmith.governance_yaml import add_requirement, is_yaml_mode
+
+    if is_yaml_mode(root):
+        if not title:
+            console.print("[red]--title is required in YAML-first mode.[/red]")
+            raise SystemExit(1)
+        new_id = add_requirement(
+            root,
+            title=title,
+            status=status,
+            description=description,
+            source=source,
+            req_id=req_id_override or None,
+        )
+        console.print(f"[green]\u2713[/green] Added [bold]{new_id}[/bold]: {title}")
+        console.print("  Running sync...")
+        from specsmith.sync import run_sync
+
+        run_sync(root)
+        console.print(f"  [dim]Synced. Edit docs/requirements/*.yml to modify {new_id}.[/dim]")
+    else:
+        # Legacy Markdown mode
+        effective_id = req_id or req_id_override
+        if not effective_id:
+            console.print("[red]Provide a REQ ID argument in legacy mode (e.g. REQ-042).[/red]")
+            raise SystemExit(1)
+        from specsmith.requirements import add_req
+
+        add_req(
+            root,
+            effective_id,
+            component=component,
+            priority=priority,
+            description=description,
+        )
+        console.print(f"[green]Added {effective_id}[/green]")
 
 
 @req.command(name="trace")
@@ -2060,6 +2120,78 @@ def req_orphans(project_dir: str) -> None:
 
 
 main.add_command(req)
+
+
+# ---------------------------------------------------------------------------
+# Test subcommands (YAML-first: test add)
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def test() -> None:  # type: ignore[misc]
+    """Manage test cases."""
+
+
+@test.command(name="add")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--req", "req_id", required=True, help="REQ ID this test covers (e.g. REQ-042).")
+@click.option("--title", required=True, help="Short title for the test case.")
+@click.option(
+    "--type",
+    "test_type",
+    default="integration",
+    type=click.Choice(["unit", "integration", "cli", "e2e", "build", "manual", "script"]),
+    help="Test type.",
+)
+@click.option("--verification-method", default="pytest", help="How the test is verified.")
+@click.option("--description", default="", help="Full description.")
+@click.option("--id", "test_id_override", default="", help="Override the auto-generated ID.")
+def test_add(
+    project_dir: str,
+    req_id: str,
+    title: str,
+    test_type: str,
+    verification_method: str,
+    description: str,
+    test_id_override: str,
+) -> None:
+    """Add a test case linked to a requirement (YAML-first mode only).
+
+    \b
+    Examples:
+      specsmith test add --req REQ-042 --title "Verify sync exits 0 after edit"
+      specsmith test add --req REQ-042 --title "CLI smoke test" --type cli
+      specsmith test add --req REQ-042 --title "Manual check" --type manual --id TEST-999
+    """
+    root = Path(project_dir).resolve()
+
+    from specsmith.governance_yaml import add_test, is_yaml_mode
+
+    if not is_yaml_mode(root):
+        console.print(
+            "[red]test add requires YAML-first mode.[/red] "
+            "Run scripts/migrate_governance_to_yaml.py first."
+        )
+        raise SystemExit(1)
+
+    new_id = add_test(
+        root,
+        title=title,
+        requirement_id=req_id,
+        test_type=test_type,
+        verification_method=verification_method,
+        description=description,
+        test_id=test_id_override or None,
+    )
+    console.print(f"[green]\u2713[/green] Added [bold]{new_id}[/bold] \u2192 {req_id}: {title}")
+    console.print("  Running sync...")
+    from specsmith.sync import run_sync
+
+    run_sync(root)
+    console.print(f"  [dim]Synced. Edit docs/tests/*.yml to modify {new_id}.[/dim]")
+
+
+main.add_command(test)
 
 
 # ---------------------------------------------------------------------------

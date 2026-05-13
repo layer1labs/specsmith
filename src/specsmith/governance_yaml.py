@@ -293,6 +293,81 @@ class StrictValidationReport:
         self.violations.append(StrictViolation(check, message, severity))
 
 
+def next_req_id(root: Path) -> str:
+    """Return the next available REQ-NNN ID (max existing + 1, minimum REQ-001)."""
+    reqs = load_yaml_requirements(root)
+    if not reqs:
+        return "REQ-001"
+    nums = [_req_num(str(r.get("id", ""))) for r in reqs if _req_num(str(r.get("id", ""))) < 9999]
+    return f"REQ-{max(nums) + 1:03d}" if nums else "REQ-001"
+
+
+def next_test_id(root: Path) -> str:
+    """Return the next available TEST-NNN ID (max existing + 1, minimum TEST-001)."""
+    tests = load_yaml_tests(root)
+    if not tests:
+        return "TEST-001"
+    nums = [
+        _test_num(str(t.get("id", ""))) for t in tests if _test_num(str(t.get("id", ""))) < 9999
+    ]
+    return f"TEST-{max(nums) + 1:03d}" if nums else "TEST-001"
+
+
+def add_requirement(
+    root: Path,
+    title: str,
+    status: str = "planned",
+    description: str = "",
+    source: str = "",
+    req_id: str | None = None,
+) -> str:
+    """Append a new requirement to the appropriate YAML domain file and return its ID.
+
+    Only works in YAML-first mode. Raises RuntimeError if not in YAML mode.
+    """
+    if not is_yaml_mode(root):
+        raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
+    new_id = req_id if req_id else next_req_id(root)
+    entry: dict[str, Any] = {"id": new_id, "title": title, "status": status}
+    if description:
+        entry["description"] = description
+    if source:
+        entry["source"] = source
+    reqs = load_yaml_requirements(root)
+    reqs.append(entry)
+    save_yaml_requirements(root, reqs)
+    return new_id
+
+
+def add_test(
+    root: Path,
+    title: str,
+    requirement_id: str,
+    test_type: str = "integration",
+    verification_method: str = "",
+    description: str = "",
+    test_id: str | None = None,
+) -> str:
+    """Append a new test case to the appropriate YAML domain file and return its ID.
+
+    Only works in YAML-first mode. Raises RuntimeError if not in YAML mode.
+    """
+    if not is_yaml_mode(root):
+        raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
+    new_id = test_id if test_id else next_test_id(root)
+    entry: dict[str, Any] = {"id": new_id, "title": title, "requirement_id": requirement_id}
+    if test_type:
+        entry["type"] = test_type
+    if verification_method:
+        entry["verification_method"] = verification_method
+    if description:
+        entry["description"] = description
+    tests = load_yaml_tests(root)
+    tests.append(entry)
+    save_yaml_tests(root, tests)
+    return new_id
+
+
 def strict_validate(root: Path) -> StrictValidationReport:
     """Run the strict governance schema checks.
 
