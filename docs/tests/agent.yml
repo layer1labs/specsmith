@@ -186,7 +186,7 @@
   confidence: 1.0
 - id: TEST-083
   title: Canonical Test Spec File Is TESTS.md
-  description: The repository must contain `TESTS.md` and `docs/TESTS.md` (not `TEST_SPEC.md`/`TEST-SPECS.md`/`TEST-SPEC.md`);
+  description: The repository must contain `TESTS.md` and `docs/TESTS.md` (not `TESTS.md`/`TEST-SPECS.md`/`TEST-SPEC.md`);
     the source tree (excluding `.specsmith/runs/*.patch` historical evidence) must
     contain no remaining references to the legacy names; the scaffolder, auditor,
     importer, retrieval, exporter, requirements, phase, recovery, and stress-tester

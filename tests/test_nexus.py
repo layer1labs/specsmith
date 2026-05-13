@@ -552,6 +552,11 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("docs") / "ledger-archive.md",  # archived history; contains rename chronicle
     Path(".specsmith") / "requirements.json",
     Path(".specsmith") / "testcases.json",
+    # YAML governance source files — these are the canonical equivalents of
+    # docs/REQUIREMENTS.md and docs/TESTS.md; REQ-083/TEST-083 descriptions
+    # legitimately reference legacy names while documenting the rename.
+    Path("docs") / "requirements" / "agent.yml",
+    Path("docs") / "tests" / "agent.yml",
 }
 
 
