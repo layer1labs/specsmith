@@ -8830,36 +8830,188 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
 
 @esdb_group.command(name="migrate")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def esdb_migrate_cmd(project_dir: str) -> None:
-    """Migrate .specsmith/ flat JSON to ESDB (stub — validates data)."""
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
+    """Validate .specsmith/ JSON state and write a migration manifest.
+
+    Reads requirements.json and testcases.json, validates record schema
+    (required fields, duplicate IDs, orphaned tests), and writes a
+    .specsmith/esdb_migration_manifest.json file recording the validation
+    state. This prepares the project for native Rust ChronoMemory ingestion.
+    """
+    import datetime
+    import json as _json
+
     from specsmith.esdb.bridge import EsdbBridge
 
+    root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
     reqs = bridge.requirements()
     tests = bridge.testcases()
-    console.print("[bold]Migration scan:[/bold]")
+
+    req_ids: set[str] = set()
+    issues: list[dict[str, str]] = []
+
+    # Validate requirements
+    req_id_counts: dict[str, int] = {}
+    for r in reqs:
+        if not r.id:
+            issues.append({"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"})  # noqa: E501
+            continue
+        req_id_counts[r.id] = req_id_counts.get(r.id, 0) + 1
+        req_ids.add(r.id)
+        if not r.label:
+            issues.append({"kind": "req-missing-title", "detail": f"{r.id} has no title"})
+    for rid, count in req_id_counts.items():
+        if count > 1:
+            issues.append({"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"})  # noqa: E501
+
+    # Validate testcases
+    test_id_counts: dict[str, int] = {}
+    for t in tests:
+        if not t.id:
+            issues.append({"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"})
+            continue
+        test_id_counts[t.id] = test_id_counts.get(t.id, 0) + 1
+        if not t.label:
+            issues.append({"kind": "test-missing-title", "detail": f"{t.id} has no title"})
+        req_ref = t.data.get("requirement_id", "")
+        if req_ref and req_ref not in req_ids:
+            issues.append({"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"})
+    for tid, count in test_id_counts.items():
+        if count > 1:
+            issues.append({"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"})
+
+    errors = [i for i in issues if i["kind"] not in ("req-missing-title", "test-missing-title")]
+    ok = len(errors) == 0
+    ts = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+
+    manifest = {
+        "schema_version": 1,
+        "timestamp": ts,
+        "ok": ok,
+        "requirements": len(reqs),
+        "testcases": len(tests),
+        "issues": issues,
+        "error_count": len(errors),
+        "warning_count": len(issues) - len(errors),
+        "backend": "json-flat (.specsmith/)",
+        "next_step": (
+            "Ready for ChronoMemory native ingestion."
+            if ok
+            else "Fix errors above, then re-run to update the manifest."
+        ),
+    }
+
+    manifest_path = root / ".specsmith" / "esdb_migration_manifest.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    if as_json:
+        click.echo(_json.dumps(manifest, indent=2))
+        if not ok:
+            raise SystemExit(1)
+        return
+
+    icon = "[green]\u2713[/green]" if ok else "[red]\u2717[/red]"
+    console.print(f"{icon} [bold]ESDB migration scan[/bold]")
     console.print(f"  Requirements: {len(reqs)}")
     console.print(f"  Test cases:   {len(tests)}")
-    console.print("[green]\u2713[/green] Data validated. Full Rust ESDB migration not yet active.")
-    console.print(
-        "[dim]When ChronoMemory native engine is linked, run this again to migrate.[/dim]"
-    )
+    if issues:
+        console.print(f"\n  [{'red' if errors else 'yellow'}]{len(issues)} issue(s):[/{'red' if errors else 'yellow'}]")
+        for issue in issues[:10]:
+            prefix = "[red]\u2717[/red]" if issue["kind"] not in ("req-missing-title", "test-missing-title") else "[yellow]\u26a0[/yellow]"
+            console.print(f"    {prefix} [{issue['kind']}] {issue['detail']}")
+        if len(issues) > 10:
+            console.print(f"    [dim]... and {len(issues) - 10} more[/dim]")
+    else:
+        console.print("  [green]\u2714[/green] All records valid")
+    console.print(f"\n  Manifest written: {manifest_path.relative_to(root)}")
+    if not ok:
+        raise SystemExit(1)
 
 
 @esdb_group.command(name="replay")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def esdb_replay_cmd(project_dir: str) -> None:
-    """Replay ESDB WAL to verify state integrity (stub)."""
-    from specsmith.esdb.bridge import EsdbBridge
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_replay_cmd(project_dir: str, as_json: bool) -> None:
+    """Replay the trace vault WAL and verify SHA-256 hash chain integrity.
 
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
-    console.print(f"[bold]Replay check:[/bold] {st.backend}")
-    console.print(f"  Records: {st.record_count}")
-    if st.chain_valid:
-        console.print("[green]\u2714[/green] WAL chain valid \u2014 state consistent.")
+    Reads .specsmith/trace.jsonl and walks every seal entry, recomputing
+    each entry_hash from its stored content_hash + prev_hash and comparing
+    to the stored value. Any mismatch indicates tampering or corruption.
+    Also reports ledger.jsonl entry count as a secondary consistency signal.
+    """
+    import json as _json
+
+    from specsmith.trace import TraceVault
+
+    root = Path(project_dir).resolve()
+    vault = TraceVault(root)
+    seal_count = vault.count()
+
+    if seal_count == 0:
+        result = {
+            "ok": True,
+            "seal_count": 0,
+            "errors": [],
+            "ledger_entries": _count_ledger_entries(root),
+            "message": "Trace vault is empty — nothing to replay.",
+        }
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print("[dim]Trace vault is empty \u2014 nothing to replay.[/dim]")
+        return
+
+    valid, errors = vault.verify()
+    ledger_entries = _count_ledger_entries(root)
+
+    result = {
+        "ok": valid,
+        "seal_count": seal_count,
+        "errors": errors,
+        "ledger_entries": ledger_entries,
+        "message": "Chain intact." if valid else f"{len(errors)} integrity error(s) detected.",
+    }
+
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+        if not valid:
+            raise SystemExit(1)
+        return
+
+    icon = "[green]\u2714[/green]" if valid else "[red]\u2717[/red]"
+    console.print(f"{icon} [bold]WAL replay[/bold]: {seal_count} seal(s)")
+    if errors:
+        for err in errors:
+            console.print(f"  [red]\u2717[/red] {err}")
     else:
-        console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
+        console.print("  [green]\u2714[/green] Hash chain intact \u2014 state consistent.")
+    if ledger_entries:
+        console.print(f"  Ledger entries: {ledger_entries}")
+    if not valid:
+        raise SystemExit(1)
+
+
+def _count_ledger_entries(root: Path) -> int:
+    """Count entries in .specsmith/ledger.jsonl (best-effort)."""
+    import contextlib
+    import json as _json
+
+    ledger = root / ".specsmith" / "ledger.jsonl"
+    if not ledger.is_file():
+        return 0
+    count = 0
+    with contextlib.suppress(OSError):
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            with contextlib.suppress(ValueError):
+                _json.loads(line)
+                count += 1
+    return count
 
 
 @esdb_group.command(name="export")
