@@ -133,6 +133,15 @@
 - **Chain hash**: auto
 
 
+## 2026-05-14T10:55 --- WI-0514: v0.11.3 release prep (REQ-302)
+- **Author**: oz-agent
+- **Type**: release
+- **REQs affected**: REQ-302
+- **Description**: Session cleanup and release. Added `_diag_*.py` to .gitignore (diagnostic-only script, never commit). Documented 4 unreleased post-v0.11.2 commits in CHANGELOG [0.11.3]: YAML-first `specsmith req add` / `specsmith test add` commands (REQ-302), real `esdb migrate` + `esdb replay` implementations (stub removal), lint/format fixes. Bumped pyproject.toml and __init__.py from 0.11.2 to 0.11.3. CI was already green; Dependabot clean.
+- **Status**: complete
+- **Chain hash**: auto
+
+
 ## 2026-05-12T13:06 --- WI-0512-GAPS: Arch/req/test gap audit + TEST-282/TEST-283 added (REQ-263, REQ-265)
 - **Author**: oz-agent
 - **Type**: test

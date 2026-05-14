@@ -41,6 +41,8 @@ temp/
 # Secrets and local-only artifacts
 .env
 .repo-index/
+# Local diagnostic / one-off scripts (absolute paths, never commit)
+_diag_*.py
 
 # .specsmith/ split: committed (audit chain) vs gitignored (runtime cache)
 # Keep committed: config.yml, requirements.json, testcases.json

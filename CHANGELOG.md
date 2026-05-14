@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] — 2026-05-14
+### Added
+- **`specsmith req add` + `specsmith test add` (REQ-302)** — YAML-first CLI commands that append a new requirement or test case directly to the canonical `docs/requirements/*.yml` / `docs/tests/*.yml` groups when the project is in YAML-mode governance. Requires `.specsmith/governance-mode == yaml`. Prints the assigned ID on success. Wired to `governance_yaml.add_requirement` / `governance_yaml.add_test`.
+### Changed
+- **`esdb migrate` / `esdb replay` real implementations** — both commands now execute against the live ChronoMemory ESDB backend instead of returning stub responses. Stubs fully removed.
+### Fixed
+- ruff E501 violations in `esdb migrate` command output strings.
+- ruff format drift in `cli.py`.
+
 ## [0.11.2] — 2026-05-11
 ### Added
 - **esdb rollback real restore (REQ-252)** — now finds the N-th most recent backup in .specsmith/backups/ and restores equirements.json + 	estcases.json from it. Exits non-zero when no backups exist.
