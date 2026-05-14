@@ -8856,7 +8856,9 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     req_id_counts: dict[str, int] = {}
     for r in reqs:
         if not r.id:
-            issues.append({"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"})  # noqa: E501
+            issues.append(
+                {"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"}
+            )  # noqa: E501
             continue
         req_id_counts[r.id] = req_id_counts.get(r.id, 0) + 1
         req_ids.add(r.id)
@@ -8864,7 +8866,9 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
             issues.append({"kind": "req-missing-title", "detail": f"{r.id} has no title"})
     for rid, count in req_id_counts.items():
         if count > 1:
-            issues.append({"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"})  # noqa: E501
+            issues.append(
+                {"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"}
+            )  # noqa: E501
 
     # Validate testcases
     test_id_counts: dict[str, int] = {}
@@ -8924,7 +8928,7 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     console.print(f"  Requirements: {len(reqs)}")
     console.print(f"  Test cases:   {len(tests)}")
     if issues:
-        color = 'red' if errors else 'yellow'
+        color = "red" if errors else "yellow"
         console.print(f"\n  [{color}]{len(issues)} issue(s):[/{color}]")
         _warn_kinds = ("req-missing-title", "test-missing-title")
         for issue in issues[:10]:
