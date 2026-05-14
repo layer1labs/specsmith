@@ -8870,17 +8870,23 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     test_id_counts: dict[str, int] = {}
     for t in tests:
         if not t.id:
-            issues.append({"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"})
+            issues.append(  # noqa: E501
+                {"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"}
+            )
             continue
         test_id_counts[t.id] = test_id_counts.get(t.id, 0) + 1
         if not t.label:
             issues.append({"kind": "test-missing-title", "detail": f"{t.id} has no title"})
         req_ref = t.data.get("requirement_id", "")
         if req_ref and req_ref not in req_ids:
-            issues.append({"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"})
+            issues.append(
+                {"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"}
+            )
     for tid, count in test_id_counts.items():
         if count > 1:
-            issues.append({"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"})
+            issues.append(
+                {"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"}
+            )
 
     errors = [i for i in issues if i["kind"] not in ("req-missing-title", "test-missing-title")]
     ok = len(errors) == 0
@@ -8918,9 +8924,12 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     console.print(f"  Requirements: {len(reqs)}")
     console.print(f"  Test cases:   {len(tests)}")
     if issues:
-        console.print(f"\n  [{'red' if errors else 'yellow'}]{len(issues)} issue(s):[/{'red' if errors else 'yellow'}]")
+        color = 'red' if errors else 'yellow'
+        console.print(f"\n  [{color}]{len(issues)} issue(s):[/{color}]")
+        _warn_kinds = ("req-missing-title", "test-missing-title")
         for issue in issues[:10]:
-            prefix = "[red]\u2717[/red]" if issue["kind"] not in ("req-missing-title", "test-missing-title") else "[yellow]\u26a0[/yellow]"
+            is_err = issue["kind"] not in _warn_kinds
+            prefix = "[red]\u2717[/red]" if is_err else "[yellow]\u26a0[/yellow]"
             console.print(f"    {prefix} [{issue['kind']}] {issue['detail']}")
         if len(issues) > 10:
             console.print(f"    [dim]... and {len(issues) - 10} more[/dim]")
