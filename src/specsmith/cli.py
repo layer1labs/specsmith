@@ -9482,5 +9482,208 @@ def agent_endpoint_presets_cmd(as_json: bool) -> None:
             )
 
 
+# ---------------------------------------------------------------------------
+# issue — duplicate-guarded GitHub issue filing (REQ-303, REQ-304)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="issue")
+def issue_group() -> None:
+    """File and search GitHub issues with duplicate detection.
+
+    All commands check BitConcepts/kairos and BitConcepts/specsmith repos.
+    Duplicate detection uses title-word Jaccard similarity; issues with
+    similarity ≥ 0.60 block filing unless --force is passed.
+
+    Requires `gh` CLI for filing (github.com/cli/cli).  Search/check work
+    with unauthenticated GitHub REST when `gh` is absent.
+    """
+
+
+@issue_group.command(name="check")
+@click.argument("title")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+    help="Target repository.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
+    """Check for duplicate open issues matching TITLE.
+
+    Returns two lists: 'duplicates' (Jaccard ≥ 0.60, blocks filing)
+    and 'similar' (Jaccard ≥ 0.30, informational only).
+    """
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.issue_reporter import check_duplicate  # noqa: PLC0415
+
+    result = check_duplicate(repo, title)
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    if result.error:
+        console.print(f"[red]Error:[/red] {result.error}")
+        return
+
+    if result.duplicates:
+        console.print(
+            f"[red]\u26a0  {len(result.duplicates)} likely duplicate(s) found"
+            f" — filing blocked (use --force to override)[/red]"
+        )
+        for d in result.duplicates:
+            console.print(
+                f"  [bold]#{d['number']}[/bold]  {d['title']}  "
+                f"[dim](similarity {d['similarity']:.0%})[/dim]"
+            )
+            console.print(f"  [blue]{d['html_url']}[/blue]")
+    elif result.similar:
+        console.print(
+            f"[yellow]\u26a0  {len(result.similar)} similar issue(s) found "
+            f"(below duplicate threshold — filing allowed)[/yellow]"
+        )
+        for s in result.similar:
+            console.print(
+                f"  [bold]#{s['number']}[/bold]  {s['title']}  "
+                f"[dim](similarity {s['similarity']:.0%})[/dim]"
+            )
+            console.print(f"  [blue]{s['html_url']}[/blue]")
+    else:
+        console.print("[green]\u2714  No similar issues found — clear to file.[/green]")
+
+
+@issue_group.command(name="file")
+@click.argument("title")
+@click.option("--body", default="", help="Issue body / description.")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+)
+@click.option(
+    "--label",
+    "labels",
+    multiple=True,
+    help="One or more GitHub labels to apply (repeat for multiple).",
+)
+@click.option(
+    "--ai",
+    is_flag=True,
+    default=False,
+    help="Use the configured LLM to improve the issue title and body before filing.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="File even when likely duplicates exist.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_file_cmd(
+    title: str,
+    body: str,
+    repo: str,
+    labels: tuple[str, ...],
+    ai: bool,
+    force: bool,
+    as_json: bool,
+) -> None:
+    """File a new issue in REPO, blocked if likely duplicates exist.
+
+    Requires the `gh` CLI to be installed and authenticated.
+    Pass --ai to use the configured LLM to format the report.
+    Pass --force to bypass the duplicate guard.
+    """
+    import json as _json  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    from specsmith.issue_reporter import (  # noqa: PLC0415
+        DuplicateBlockedError,
+        ai_enhance_report,
+        file_issue,
+    )
+
+    if ai:
+        if not as_json:
+            console.print("[dim]\u2728 Enhancing report with AI\u2026[/dim]")
+        title, body = ai_enhance_report(title, body)
+
+    try:
+        result = file_issue(repo, title, body, labels=labels, force=force)
+    except DuplicateBlockedError as exc:
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {"ok": False, "error": str(exc), **exc.result.to_dict()},
+                    indent=2,
+                )
+            )
+        else:
+            console.print(f"[red]\u26a0  Blocked:[/red] {exc}")
+            for d in exc.result.duplicates:
+                console.print(f"  #{d['number']}  {d['title']}  {d['html_url']}")
+            console.print("[dim]Use --force to file anyway.[/dim]")
+        sys.exit(3)
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        sys.exit(0 if result.ok else 1)
+
+    if result.ok:
+        console.print(
+            f"[green]\u2714  Filed:[/green] [bold]#{result.number}[/bold] "
+            f"{result.title}\n  [blue]{result.html_url}[/blue]"
+        )
+    else:
+        console.print(f"[red]Error filing issue:[/red] {result.error}")
+        sys.exit(1)
+
+
+@issue_group.command(name="search")
+@click.argument("query")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+)
+@click.option(
+    "--max",
+    "max_results",
+    default=10,
+    show_default=True,
+    help="Maximum number of results.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> None:
+    """Search open issues in REPO by QUERY.  No similarity threshold applied."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.issue_reporter import search_issues  # noqa: PLC0415
+
+    results = search_issues(repo, query, max_results=max_results)
+    if as_json:
+        click.echo(_json.dumps({"issues": results, "count": len(results)}, indent=2))
+        return
+
+    if not results:
+        console.print("[dim]No open issues found.[/dim]")
+        return
+
+    console.print(f"[bold]Open issues in {repo}[/bold] ({len(results)} results)\n")
+    for issue in results:
+        console.print(
+            f"  [bold]#{issue['number']}[/bold]  {issue['title']}"
+        )
+        console.print(f"  [blue]{issue['html_url']}[/blue]")
+
+
+main.add_command(issue_group)
+
+
 if __name__ == "__main__":
     main()

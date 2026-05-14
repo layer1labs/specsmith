@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.3] — 2026-05-14
+## [0.11.3-post1] — 2026-05-14
+### Added
+- **`specsmith issue` group (REQ-303, REQ-304)** — duplicate-guarded GitHub issue filing with three subcommands:
+  - `specsmith issue check <title> --repo kairos|specsmith` — Jaccard similarity search against open GitHub issues; prints duplicates (≥ 0.60) and similar (≥ 0.30) with URLs.
+  - `specsmith issue file <title> --body TEXT --repo REPO [--ai] [--force]` — checks for duplicates then files via `gh` CLI; `--force` bypasses the check; `--ai` improves the body using the configured LLM.
+  - `specsmith issue search <query> --repo REPO` — raw GitHub issue search, no threshold applied.
+- **`src/specsmith/issue_reporter.py`** — core module (`search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report`). Uses `gh` CLI for auth-backed calls; falls back to unauthenticated GitHub REST for public repos. Temporary payload files written via `tempfile` to comply with H12 (no inline shell quoting on Windows).
+- **32 new pytest tests** (`tests/test_issue_reporter.py`) covering similarity helpers, duplicate thresholds, `--force` bypass, `--ai` fallback, error capture.
+
+## [0.11.3]
 ### Added
 - **`specsmith req add` + `specsmith test add` (REQ-302)** — YAML-first CLI commands that append a new requirement or test case directly to the canonical `docs/requirements/*.yml` / `docs/tests/*.yml` groups when the project is in YAML-mode governance. Requires `.specsmith/governance-mode == yaml`. Prints the assigned ID on success. Wired to `governance_yaml.add_requirement` / `governance_yaml.add_test`.
 ### Changed

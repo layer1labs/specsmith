@@ -133,6 +133,15 @@
 - **Chain hash**: auto
 
 
+## 2026-05-14T12:42 --- WI-0514b: specsmith issue group + kairos bug report page (REQ-303, REQ-304)
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-303,REQ-304
+- **Description**: Added duplicate-guarded GitHub issue filing. `src/specsmith/issue_reporter.py`: `search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report` (Jaccard similarity, `gh` CLI + unauthenticated REST fallback). `specsmith issue` CLI group (check/file/search, all with --json). 32 passing tests. api_surface.json updated. CHANGELOG [0.11.3-post1] added. kairos `bug_report_page.rs` added: in-app form with repo selector, title/description inputs, Check Duplicates, File Report; `SettingsSection::BugReport` wired into settings infrastructure; Help menu updated. kairos FTL strings, REQ-019/TEST-019 added.
+- **Status**: complete
+- **Chain hash**: auto
+
+
 ## 2026-05-14T10:55 --- WI-0514: v0.11.3 release prep (REQ-302)
 - **Author**: oz-agent
 - **Type**: release
