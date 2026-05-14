@@ -133,6 +133,22 @@
 - **Chain hash**: auto
 
 
+## 2026-05-14T16:00 --- WI-0514c: Phase 2 Token/Context UX — kairos REQ-020/021/022
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: kairos REQ-020, REQ-021, REQ-022
+- **Description**: Phase 2 Token/Context UX landed in kairos. New `ContextFillState`
+  singleton (`kairos_context_fill.rs`) tracks fill % and num_ctx; registered in
+  `initialize_app()`. New Settings → Token Usage page (`token_usage_page.rs`) fetches
+  `specsmith credits summary --json` and displays tokens, cost, per-model breakdown,
+  budget. Governance page enhanced with Context Window card: real-time fill dot from
+  `ContextFillState`, editable num_ctx input saved via `specsmith config set
+  ollama.num_ctx`. Docs: REQ-019..022 and TEST-019..022 added to kairos governance
+  artifacts. kairos commit: 1025ed5.
+- **Status**: complete
+- **Chain hash**: auto
+
+
 ## 2026-05-14T12:42 --- WI-0514b: specsmith issue group + kairos bug report page (REQ-303, REQ-304)
 - **Author**: oz-agent
 - **Type**: feature
