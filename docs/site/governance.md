@@ -45,7 +45,7 @@ When AGENTS.md is kept small (~100-150 lines), governance details are delegated 
 
 | File | Content | When Loaded |
 |------|---------|-------------|
-| `RULES.md` | Hard rules H1-H11, stop conditions | Every session start |
+| `RULES.md` | Hard rules H1-H22, stop conditions | Every session start |
 | `WORKFLOW.md` | Session lifecycle, proposal format, ledger format | Every session start |
 | `ROLES.md` | Agent role boundaries, behavioral rules | Every session start |
 | `CONTEXT-BUDGET.md` | Context management, credit optimization | Every session start |
@@ -111,11 +111,68 @@ Every loop or blocking wait in agent-written scripts and automation must have an
 
 `specsmith validate` enforces this by scanning `.sh`, `.cmd`, `.ps1`, and `.bash` files under `scripts/` and the project root for infinite-loop patterns without a recognised deadline/timeout guard.
 
-**H12 — Windows multi-step automation via .cmd files**
+**H12 — Platform-aware automation (updated)**
 
-On Windows, multi-step or heavily-quoted automation sequences must be written to a temporary `.cmd` file and executed from there. Inline multi-line quoting on Windows is fragile and causes avoidable hangs. Do not use `.ps1` files for this class of automation unless there is a concrete PowerShell-only requirement.
+Automation scripts must use the platform-appropriate shell: sh/bash on Unix and macOS, `.cmd` or `.ps1` on Windows. Inline multi-line quoting on Windows is fragile and causes avoidable hangs.
 
-See `docs/governance/RULES.md` in any governed project for the full set of H1–H12 rules and stop conditions.
+See `docs/governance/RULES.md` in any governed project for the full set of H1–H22 rules and stop conditions.
+
+---
+
+## Anti-Hallucination Rules (H15–H22) — OEA Framework
+
+Specsmith v0.11.3+ ships eight additional governance rules derived from empirical research
+on AI hallucination and semantic drift in production LLM systems.
+
+### Research Background
+
+The *"Ontology-Epistemic-Agentic (OEA) Recursive Generative Stability"* study
+(BitConcepts Research, 2026) identified the root causes of LLM hallucination and drift
+through controlled ablation experiments across multiple model families. It validated that
+four primary intervention categories reliably suppress hallucination in production systems:
+
+1. **Epistemic calibration** — expressing uncertainty proportional to evidence quality
+2. **Scope bounding** — refusing to extend claims beyond verified knowledge
+3. **Retrieval filtering** — discarding low-relevance context before injection
+4. **Recursion guarding** — capping autonomous generation chain depth
+
+Specsmith encodes each OEA finding as an enforceable H-rule rather than a recommendation.
+
+### H15 — Epistemic Scope Bounding
+No claims outside verified knowledge. Respond with explicit uncertainty rather than
+fabricating plausible-sounding but unverified content. Checked via `specsmith epistemic-audit`.
+
+### H16 — Anti-Drift Recursion Guard
+Max 5 autonomous generation steps before a human checkpoint. Recursive self-refinement
+loops require confidence above the project threshold. Unbound recursion is a stop condition.
+
+### H17 — Calibration Direction
+Express uncertainty proportional to evidence quality. False confidence is a harder failure
+than acknowledged uncertainty. `specsmith preflight` escalates when confidence falls
+below `escalate_threshold`.
+
+### H18 — RAG Retrieval Filtering
+External context (vector search, web, files) must pass relevance validation
+(similarity ≥ 0.6) before inclusion. Chunks must be tagged with source, timestamp,
+and confidence tier.
+
+### H19 — Synthetic Contamination Prevention
+Synthetically generated data must never be silently mixed with real ground-truth data in
+evaluation or fine-tuning pipelines. Every dataset entry must carry `source_type`.
+
+### H20 — Falsifiability Required
+All factual agent claims must cite a verifiable source or be explicitly flagged as
+`[HYPOTHESIS]`. Unflagged claims without sources are a H7 violation.
+
+### H21 — No Undisclosed Model Assumptions
+Context window size, instruction format, tool-call support, temperature, and
+provider/model version must be disclosed when they affect output correctness.
+
+### H22 — Cross-Platform CI Enforcement
+CI must run on both Linux/macOS AND Windows. Green on a single platform alone does not
+constitute cross-platform coverage.
+
+---
 
 ## YAML-First Governance (v0.12+)
 

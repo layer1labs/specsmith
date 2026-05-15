@@ -167,6 +167,26 @@
 - **Chain hash**: auto
 
 
+## 2026-05-15T12:42 --- WI-0515-GOV: Governance H15–H22 + OEA paper integration
+- **Author**: oz-agent
+- **Type**: docs / governance
+- **REQs affected**: REQ-001 (governance rules)
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Extended specsmith governance hard rules from H1–H14 to H1–H22.
+  H12 updated for cross-platform coverage (Windows `.cmd/.ps1`, macOS/Linux `sh/bash`).
+  H15–H22 added covering anti-hallucination principles from the OEA Recursive Generative
+  Stability research (BitConcepts Research, 2026): epistemic scope bounding (H15),
+  anti-drift recursion guard (H16), calibration direction (H17), RAG retrieval filtering (H18),
+  synthetic contamination prevention (H19), falsifiability required (H20), no undisclosed
+  model assumptions (H21), cross-platform CI enforcement (H22).
+  Documentation updated across: `docs/governance/RULES.md`, `docs/site/governance.md`,
+  `docs/site/index.md`, `docs/governance/EPISTEMIC-AXIOMS.md`, `docs/ARCHITECTURE.md §28`,
+  `README.md`. Kairos compliance page header range updated to H1–H22.
+  OEA paper cited as external empirical validation of the five AEE axioms via
+  axiom↔OEA control mechanism correspondence table in `EPISTEMIC-AXIOMS.md`.
+
+
 ## 2026-05-12T13:06 --- WI-0512-GAPS: Arch/req/test gap audit + TEST-282/TEST-283 added (REQ-263, REQ-265)
 - **Author**: oz-agent
 - **Type**: test
