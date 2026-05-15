@@ -604,7 +604,7 @@ class RateLimitScheduler:
 
         tokens_to_free = current_tokens + estimated_total_tokens - token_limit
         freed_tokens = 0
-        wait_seconds = 0.0
+        wait_seconds: float
         for event in state.token_events:
             freed_tokens += event.tokens
             wait_seconds = max(0.0, event.timestamp + self._window_seconds - now)

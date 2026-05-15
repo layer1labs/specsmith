@@ -94,8 +94,10 @@ def run_preflight(
                     test_case_ids.append(rec["id"])
 
     # Decision policy (deterministic, no LLM)
-    decision_str = "accepted"
-    instruction = ""
+    # decision_str and instruction are always set by the intent dispatch below;
+    # declare types so static analysis knows they'll be bound before use.
+    decision_str: str
+    instruction: str
     confidence_target = 0.7
 
     if intent == Intent.READ_ONLY_ASK:
