@@ -167,6 +167,45 @@
 - **Chain hash**: auto
 
 
+## 2026-05-15T14:08 --- WI-0516: EU/NA compliance, governance consolidation, AGENTS.md slim, migration framework
+- **Author**: oz-agent
+- **Type**: feature / governance / docs
+- **REQs affected**: REQ-313,REQ-314,REQ-315,REQ-316,REQ-317,REQ-318,REQ-319,REQ-320
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Major compliance and governance consolidation sprint:
+
+  **Compliance package** (`src/specsmith/compliance/`): Structured regulation definitions for
+  8 EU/NA regulations (May 2026): EU AI Act 2024/1689 (Arts. 5/9/12/13/14/15/52/72),
+  NIST AI RMF 1.0 + AI 600-1 GenAI Profile, OMB M-24-10, Colorado SB24-205 (eff. Feb 2026),
+  Texas HB 1709 (eff. Sep 2025), Illinois AIETA, California ADMT, NYC LL 144.
+  ESDB-backed evidence collection (EvidenceCollector), per-regulation compliance checking
+  (ComplianceChecker), JSON/Markdown/HTML report generation (ComplianceReporter).
+  CLI: `specsmith compliance check/report/audit/list`. REST: `GET /api/compliance/status`.
+  Compliance results stored as ChronoRecord(kind=compliance_result) in ESDB.
+  Old `compliance.py` content moved to `compliance/_compat.py` and re-exported.
+
+  **Governance consolidation** (`src/specsmith/governance_store.py`): GovernanceStore reads
+  `.specsmith/governance/*.yaml` (preferred) with fallback to `docs/governance/*.md`.
+  `.specsmith/governance/rules.yaml` written with H1-H22 as structured YAML.
+  REST: `GET /api/governance/rules`.
+
+  **AGENTS.md slim**: `templates/agents.md.j2` → minimal 20-line specsmith-delegation template.
+  specsmith `AGENTS.md` updated to slim format. Original backed up by M002 migration.
+
+  **Migration framework** (`src/specsmith/migrations/`): Versioned, isolated, droppable.
+  4 migrations: M001 (governance YAML), M002 (slim AGENTS.md), M003 (compliance init),
+  M004 (ledger ESDB). Runner tracks applied versions in `.specsmith/migration-state.json`.
+  `specsmith migrate list/run` CLI. `upgrader.py` runs `MigrationRunner.run_pending()`.
+  Drop path: delete `src/specsmith/migrations/` + one line in upgrader.py for v1.0 release.
+
+  **`serve.py`**: `GET /api/compliance/status`, `GET /api/governance/rules` added.
+
+  **`tests/fixtures/api_surface.json`**: +compliance, +migrate commands.
+
+  **`.specsmith/governance/rules.yaml`**: H1-H22 rules as canonical YAML.
+
+
 ## 2026-05-15T13:30 --- WI-0515-INFRA: ESDB write layer, CI/CD automation, context orchestration, session persistence, OEA hardening
 - **Author**: oz-agent
 - **Type**: feature

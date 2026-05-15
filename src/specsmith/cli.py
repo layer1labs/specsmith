@@ -9925,5 +9925,277 @@ def context_optimize_cmd(project_dir: str, dry_run: bool, as_json: bool) -> None
 main.add_command(context_group)
 
 
+# ---------------------------------------------------------------------------
+# specsmith compliance — EU and North American AI regulation compliance
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="compliance")
+def compliance_group() -> None:
+    """EU and North American AI regulation compliance checking and reporting.
+
+    Supported regulations (May 2026):\n
+      eu-ai-act       EU AI Act 2024/1689\n
+      nist-rmf        NIST AI RMF 1.0 + AI 600-1 GenAI Profile\n
+      omb-m-24-10     OMB M-24-10 (Federal AI governance)\n
+      colorado-sb24-205  Colorado AI Act (effective Feb 2026)\n
+      texas-hb1709    Texas AI Transparency Act (effective Sep 2025)\n
+      illinois-aieta  Illinois AI Employment Transparency Act\n
+      california-admt California ADMT Regulations\n
+      nyc-ll144       NYC Local Law 144
+    """
+
+
+@compliance_group.command(name="list")
+def compliance_list_cmd() -> None:
+    """List all supported regulations."""
+    from specsmith.compliance.regulations import REGULATIONS
+
+    console.print("[bold]Supported AI Regulations (May 2026)[/bold]\n")
+    for reg in REGULATIONS.values():
+        console.print(
+            f"  [cyan]{reg.id:25s}[/cyan]  [{reg.jurisdiction}] "
+            f"{reg.name}  [dim](effective {reg.effective})[/dim]"
+        )
+
+
+@compliance_group.command(name="check")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--regulation",
+    default="all",
+    help="Regulation ID to check, or 'all' (default).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> None:
+    """Check compliance for one or all regulations.
+
+    Inspects the project's governance controls, ESDB records, and CI
+    configuration to assess compliance with each regulation's articles.
+    Results are returned as compliant / partial / gap status.
+    """
+    import json as _json
+
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.regulations import REGULATIONS
+
+    checker = ComplianceChecker(project_dir)
+
+    if regulation == "all":
+        results = checker.check_all()
+    else:
+        if regulation not in REGULATIONS:
+            console.print(
+                f"[red]Unknown regulation '{regulation}'.[/red] "
+                f"Valid IDs: {', '.join(REGULATIONS)}"
+            )
+            raise SystemExit(1)
+        results = [checker.check_regulation(regulation)]
+
+    if as_json:
+        output = {
+            "results": [r.to_dict() for r in results],
+            "checked": len(results),
+        }
+        click.echo(_json.dumps(output, indent=2))
+        return
+
+    _STATUS_ICON = {"compliant": "[green]\u2714[/green]", "partial": "[yellow]\u26a0[/yellow]",
+                    "gap": "[red]\u2717[/red]", "n_a": "[dim]\u2014[/dim]"}
+
+    for result in results:
+        icon = _STATUS_ICON.get(result.overall_status, "?")
+        console.print(
+            f"  {icon} [bold]{result.regulation_name}[/bold]  "
+            f"[dim]{result.jurisdiction}[/dim]  "
+            f"confidence={result.overall_confidence:.0%}  "
+            f"gaps={result.gap_count}"
+        )
+        for ar in result.article_results:
+            a_icon = _STATUS_ICON.get(ar.status, "?")
+            console.print(
+                f"      {a_icon} {ar.article_id:15s}  {ar.title[:50]}"
+            )
+
+    gap_total = sum(r.gap_count for r in results)
+    if gap_total == 0:
+        console.print("\n[bold green]All regulations: compliant or partial.[/bold green]")
+    else:
+        console.print(f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report")
+
+
+@compliance_group.command(name="report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--format",
+    "output_format",
+    default="md",
+    type=click.Choice(["md", "json", "html"]),
+    help="Report format (default: md).",
+)
+@click.option("--output", default="", help="Write report to file instead of stdout.")
+@click.option(
+    "--regulation",
+    default="all",
+    help="Regulation ID to report, or 'all' (default).",
+)
+def compliance_report_cmd(
+    project_dir: str, output_format: str, output: str, regulation: str
+) -> None:
+    """Generate an AI compliance report (Markdown, JSON, or HTML).
+
+    The HTML format produces a self-contained file with no external
+    dependencies, suitable for offline viewing or regulatory submission.
+    """
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.regulations import REGULATIONS
+    from specsmith.compliance.reporter import ComplianceReporter
+
+    checker = ComplianceChecker(project_dir)
+    if regulation == "all":
+        results = checker.check_all()
+    else:
+        if regulation not in REGULATIONS:
+            console.print(f"[red]Unknown regulation '{regulation}'.[/red]")
+            raise SystemExit(1)
+        results = [checker.check_regulation(regulation)]
+
+    reporter = ComplianceReporter(results)
+
+    if output_format == "json":
+        content = reporter.to_json()
+    elif output_format == "html":
+        content = reporter.to_html()
+    else:
+        content = reporter.to_markdown()
+
+    if output:
+        from pathlib import Path
+        Path(output).write_text(content, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Report written to {output}")
+    else:
+        console.print(content)
+
+
+@compliance_group.command(name="audit")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
+    """Run a full compliance audit: check all regulations and persist results to ESDB.
+
+    Results are stored as ChronoRecord(kind='compliance_result') in the project's
+    ChronoStore so they contribute to the tamper-evident audit trail.
+    Exits non-zero if any regulation has gaps.
+    """
+    import json as _json
+    import sys
+
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.reporter import ComplianceReporter
+
+    checker = ComplianceChecker(project_dir)
+    results = checker.check_all()
+    written = checker.store_results_to_esdb(results)
+
+    reporter = ComplianceReporter(results)
+    summary = reporter._summary_dict()
+    summary["esdb_records_written"] = written
+
+    if as_json:
+        click.echo(_json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2))
+    else:
+        _STATUS_ICON = {"compliant": "[green]\u2714[/green]", "partial": "[yellow]\u26a0[/yellow]",
+                        "gap": "[red]\u2717[/red]", "n_a": "[dim]\u2014[/dim]"}
+        icon = _STATUS_ICON.get(summary["overall_status"], "?")
+        console.print(f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}")
+        console.print(
+            f"  Compliant: {summary['compliant']}  "
+            f"Partial: {summary['partial']}  "
+            f"Gaps: {summary['gaps']}"
+        )
+        if written > 0:
+            console.print(f"  [green]\u2713[/green] {written} result(s) stored to ESDB")
+
+    if summary["gaps"] > 0:
+        raise SystemExit(1)
+
+
+main.add_command(compliance_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith migrate — versioned migration framework (REQ-318)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="migrate")
+def migrate_group() -> None:
+    """Run versioned project migrations.
+
+    Migrations move governance data from legacy locations to the
+    .specsmith/ directory, slim down AGENTS.md, initialize compliance
+    structures, and ensure ESDB is populated.
+
+    Migration state is tracked in .specsmith/migration-state.json.
+    """
+
+
+@migrate_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def migrate_list_cmd(project_dir: str) -> None:
+    """List available migrations and their status."""
+    from pathlib import Path
+    from specsmith.migrations import MigrationRegistry
+    from specsmith.migrations.runner import MigrationRunner
+
+    root = Path(project_dir).resolve()
+    runner = MigrationRunner(root)
+    applied = runner.applied_versions()
+    all_migrations = MigrationRegistry.all()
+
+    console.print("[bold]Available migrations[/bold]\n")
+    for m in all_migrations:
+        status = "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"
+        console.print(f"  v{m.version:03d}  {status}  {m.title}")
+
+
+@migrate_group.command(name="run")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--version", type=int, default=0, help="Run a specific migration version only.")
+@click.option("--dry-run", is_flag=True, default=False)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool) -> None:
+    """Run pending migrations (or a specific version)."""
+    import json as _json
+    from pathlib import Path
+    from specsmith.migrations.runner import MigrationRunner
+
+    root = Path(project_dir).resolve()
+    runner = MigrationRunner(root)
+
+    if version:
+        results = [runner.run_one(version, dry_run=dry_run)]
+    else:
+        results = runner.run_pending(dry_run=dry_run)
+
+    if as_json:
+        click.echo(_json.dumps([r.to_dict() for r in results], indent=2))
+        return
+
+    if not results:
+        console.print("[dim]No pending migrations.[/dim]")
+        return
+
+    for r in results:
+        icon = "[green]\u2713[/green]" if r.success else "[red]\u2717[/red]"
+        dry = " [dim](dry run)[/dim]" if dry_run else ""
+        console.print(f"  {icon} v{r.version:03d} {r.title}{dry}")
+        if r.message:
+            console.print(f"      {r.message}")
+
+
+main.add_command(migrate_group)
+
+
 if __name__ == "__main__":
     main()

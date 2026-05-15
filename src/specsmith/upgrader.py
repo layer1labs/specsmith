@@ -194,6 +194,21 @@ def run_upgrade(
     if full:
         result.updated_files.extend(_sync_full(root, config, env, ctx))
 
+    # Run pending migrations (versioned, auto-apply, droppable)
+    # Drop path: remove migrations/ package + this block for v1.0 release
+    try:
+        from specsmith.migrations.runner import MigrationRunner
+
+        runner = MigrationRunner(root)
+        migration_results = runner.run_pending()
+        for mr in migration_results:
+            if mr.success and mr.files_created:
+                result.updated_files.extend(
+                    f"[migration v{mr.version}] {f}" for f in mr.files_created
+                )
+    except Exception:  # noqa: BLE001
+        pass  # Migrations are non-critical
+
     result.message = (
         f"Upgraded from {old_version} to {new_version}. "
         f"{len(result.updated_files)} files updated, {len(result.skipped_files)} skipped."

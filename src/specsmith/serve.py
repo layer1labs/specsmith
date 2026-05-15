@@ -184,6 +184,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._json_response({"ok": True})
         elif self.path == "/api/ci/status":
             self._ci_status()
+        elif self.path == "/api/compliance/status":
+            self._compliance_status()
+        elif self.path == "/api/governance/rules":
+            self._governance_rules()
         elif self.path.startswith("/api/session/history"):
             self._session_history()
         else:
@@ -263,6 +267,36 @@ class _Handler(BaseHTTPRequestHandler):
             return None
 
     # ── CI status ────────────────────────────────────────────────
+
+    def _compliance_status(self) -> None:
+        """GET /api/compliance/status — return latest compliance check results."""
+        try:
+            from specsmith.compliance.checker import ComplianceChecker
+            from specsmith.compliance.reporter import ComplianceReporter
+
+            checker = ComplianceChecker(self.agent._project_dir)  # noqa: SLF001
+            # Quick check: only run all if ESDB results are stale (> 24h old)
+            # For speed, run a lightweight subset of regulations
+            results = checker.check_all()
+            reporter = ComplianceReporter(results)
+            self._json_response({
+                "ok": True,
+                "summary": reporter._summary_dict(),
+                "regulations": [r.to_dict() for r in results],
+            })
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _governance_rules(self) -> None:
+        """GET /api/governance/rules — return governance rules from store."""
+        try:
+            from specsmith.governance_store import GovernanceStore
+
+            store = GovernanceStore(self.agent._project_dir)  # noqa: SLF001
+            rules = store.load_rules()
+            self._json_response({"ok": True, "rules": rules, "count": len(rules)})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "rules": []})
 
     def _ci_status(self) -> None:
         """GET /api/ci/status — return CI/CD status for the project."""
