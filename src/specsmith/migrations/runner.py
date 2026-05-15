@@ -13,13 +13,13 @@ State is written atomically (temp-rename) to survive crashes.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
 from pathlib import Path
 
 from specsmith.migrations import Migration, MigrationRegistry, MigrationResult
-
 
 _STATE_PATH = ".specsmith/migration-state.json"
 
@@ -110,9 +110,7 @@ class MigrationRunner:
 
         if result.success and not dry_run:
             applied.add(migration.version)
-            try:
+            with contextlib.suppress(Exception):
                 self._save_state(applied)
-            except Exception:  # noqa: BLE001
-                pass  # State save failure is non-fatal
 
         return result

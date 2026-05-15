@@ -15,8 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from specsmith.compliance.evidence import EvidenceCollector, EvidenceItem
-from specsmith.compliance.regulations import Article, REGULATIONS, Regulation
-
+from specsmith.compliance.regulations import REGULATIONS, Article, Regulation
 
 # ---------------------------------------------------------------------------
 # Result model
@@ -222,10 +221,7 @@ class ComplianceChecker:
         present = [e for e in relevant if e.present]
         absent = [e for e in relevant if not e.present]
 
-        if not present:
-            avg_confidence = 0.0
-        else:
-            avg_confidence = sum(e.confidence for e in present) / len(present)
+        avg_confidence = 0.0 if not present else sum(e.confidence for e in present) / len(present)
 
         # Generate findings for absent evidence
         for ev in absent:
@@ -293,7 +289,6 @@ class ComplianceChecker:
             return 0  # ESDB not initialized — skip silently
 
         try:
-            import json
             from specsmith.esdb.store import ChronoRecord, ChronoStore
 
             written = 0

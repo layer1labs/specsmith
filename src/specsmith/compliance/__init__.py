@@ -21,6 +21,11 @@ Supported regulations (May 2026):
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from specsmith.compliance.regulations import Regulation
+
 __all__ = [
     "ComplianceChecker",
     "ComplianceResult",
@@ -43,7 +48,7 @@ from specsmith.compliance._compat import (  # noqa: E402
 )
 
 
-def get_regulation(regulation_id: str):  # type: ignore[return]
+def get_regulation(regulation_id: str) -> Regulation:
     """Return a Regulation by ID (e.g. 'eu-ai-act', 'nist-rmf', 'colorado')."""
     from specsmith.compliance.regulations import REGULATIONS
 

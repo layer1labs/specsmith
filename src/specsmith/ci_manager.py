@@ -296,7 +296,6 @@ class CiManager:
 
 def _write_codeql_workflow(config: Any, root: Path) -> Path | None:
     """Write a CodeQL workflow if one doesn't already exist."""
-    from specsmith.config import ProjectConfig  # type: ignore[attr-defined]
 
     wf_dir = root / ".github" / "workflows"
     wf_dir.mkdir(parents=True, exist_ok=True)

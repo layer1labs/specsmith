@@ -10,11 +10,9 @@ or ESDB record IDs.
 
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Evidence model
@@ -298,7 +296,7 @@ class EvidenceCollector:
         items.append(EvidenceItem(
             control_id="MEASURE-1",
             regulation_id="*",
-            description=f"ESDB records with confidence scoring (ChronoStore)",
+            description="ESDB records with confidence scoring (ChronoStore)",
             source=".chronomemory/events.wal",
             source_type="esdb",
             confidence=0.9 if esdb_count > 0 else 0.3,

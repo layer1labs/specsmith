@@ -25,7 +25,6 @@ REQ-312: specsmith context optimize CLI command
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -72,7 +71,7 @@ class ContextOrchestrator:
         self,
         fill_pct: float,
         history: list[dict[str, Any]] | None = None,
-    ) -> "OptimizeResultEx":
+    ) -> OptimizeResultEx:
         """Run the appropriate optimization tier for the current fill percentage.
 
         Args:
@@ -93,7 +92,7 @@ class ContextOrchestrator:
 
         return result
 
-    def optimize_all(self, *, dry_run: bool = False) -> "OptimizeResultEx":
+    def optimize_all(self, *, dry_run: bool = False) -> OptimizeResultEx:
         """Run all three tiers unconditionally (used by specsmith context optimize).
 
         Args:
@@ -120,7 +119,7 @@ class ContextOrchestrator:
     # Tier implementations
     # ------------------------------------------------------------------
 
-    def _run_tier1(self, result: "OptimizeResultEx") -> None:
+    def _run_tier1(self, result: OptimizeResultEx) -> None:
         """Tier 1 (60–79%): compress LEDGER.md history."""
         result.tier = max(result.tier, 1)
         try:
@@ -141,7 +140,7 @@ class ContextOrchestrator:
         except Exception as exc:  # noqa: BLE001
             result.actions.append(f"Tier 1: ledger compress skipped ({exc})")
 
-    def _run_tier2(self, result: "OptimizeResultEx") -> None:
+    def _run_tier2(self, result: OptimizeResultEx) -> None:
         """Tier 2 (80–84%): summarize old history + evict low-confidence ESDB records."""
         result.tier = max(result.tier, 2)
 
@@ -172,7 +171,7 @@ class ContextOrchestrator:
                 f"(~{freed_esdb} tokens freed)"
             )
 
-    def _run_tier3(self, result: "OptimizeResultEx") -> None:
+    def _run_tier3(self, result: OptimizeResultEx) -> None:
         """Tier 3 (≥85%): emergency — protect critical records, evict the rest."""
         result.tier = max(result.tier, 3)
 
@@ -228,7 +227,6 @@ class ContextOrchestrator:
 
         Returns the count of records that would be evicted.
         """
-        from pathlib import Path
 
         wal = self.root / ".chronomemory" / "events.wal"
         if not wal.exists():

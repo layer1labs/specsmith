@@ -32,7 +32,7 @@ import json
 import os
 import shutil
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -84,7 +84,7 @@ class ChronoRecord:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "ChronoRecord":
+    def from_dict(cls, d: dict[str, Any]) -> ChronoRecord:
         known = {f.name for f in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
         filtered = {k: v for k, v in d.items() if k in known}
         return cls(**filtered)
@@ -134,7 +134,7 @@ class WalEvent:
         return json.dumps(asdict(self), ensure_ascii=False)
 
     @classmethod
-    def from_json_line(cls, line: str) -> "WalEvent":
+    def from_json_line(cls, line: str) -> WalEvent:
         d = json.loads(line)
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})  # type: ignore[attr-defined]
 
@@ -176,7 +176,7 @@ class ChronoStore:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def open(self) -> "ChronoStore":
+    def open(self) -> ChronoStore:
         """Load snapshot + replay WAL tail into memory."""
         self._db_dir.mkdir(parents=True, exist_ok=True)
         self._load_snapshot()
@@ -190,7 +190,7 @@ class ChronoStore:
             self._write_snapshot()
         self._open = False
 
-    def __enter__(self) -> "ChronoStore":
+    def __enter__(self) -> ChronoStore:
         return self.open()
 
     def __exit__(self, *_: Any) -> None:
@@ -533,7 +533,11 @@ class ChronoStore:
             with open(tmp_path, mode, encoding="utf-8") as f:
                 if mode == "a":
                     # Write temp file as full WAL + new line
-                    existing = self._wal_path.read_text(encoding="utf-8") if self._wal_path.exists() else ""
+                    existing = (
+                        self._wal_path.read_text(encoding="utf-8")
+                        if self._wal_path.exists()
+                        else ""
+                    )
                     tmp_path.write_text(existing + line, encoding="utf-8")
                 else:
                     f.write(line)

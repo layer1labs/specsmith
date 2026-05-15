@@ -13,7 +13,6 @@ from pathlib import Path
 
 from specsmith.migrations import Migration, MigrationResult
 
-
 _COMPLIANCE_README = """\
 # .specsmith/compliance/
 

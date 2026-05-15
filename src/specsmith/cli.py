@@ -9804,7 +9804,9 @@ def ci_enable_cmd(project_dir: str, platform: str | None, force: bool, as_json: 
             for f in created:
                 console.print(f"  [green]\u2713[/green] {f}")
             if not created:
-                console.print("  [dim]All configs already up to date. Use --force to regenerate.[/dim]")
+                console.print(  # noqa: E501
+                    "  [dim]All configs already up to date. Use --force to regenerate.[/dim]"
+                )
     except RuntimeError as exc:
         if as_json:
             click.echo(_json.dumps({"ok": False, "error": str(exc)}, indent=2))
@@ -9832,7 +9834,9 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
         console.print(f"[yellow]\u26a0[/yellow] {result.error}")
         return
 
-    status_color = "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
+    status_color = (  # noqa: E501
+        "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
+    )
     icon = "\u25cf"
     console.print(f"  [{status_color}]{icon}[/{status_color}] CI: {result.last_run_status}")
     if result.last_run_name:
@@ -9853,7 +9857,6 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
 @click.option("--interval", type=int, default=15, help="Poll interval in seconds (default: 15).")
 def ci_watch_cmd(project_dir: str, timeout: int, interval: int) -> None:
     """Wait for the current CI run to complete and report result."""
-    import json as _json
     import sys
 
     from specsmith.ci_manager import CiManager
@@ -10000,8 +10003,12 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
         click.echo(_json.dumps(output, indent=2))
         return
 
-    _STATUS_ICON = {"compliant": "[green]\u2714[/green]", "partial": "[yellow]\u26a0[/yellow]",
-                    "gap": "[red]\u2717[/red]", "n_a": "[dim]\u2014[/dim]"}
+    _STATUS_ICON = {
+        "compliant": "[green]\u2714[/green]",
+        "partial": "[yellow]\u26a0[/yellow]",
+        "gap": "[red]\u2717[/red]",
+        "n_a": "[dim]\u2014[/dim]",
+    }
 
     for result in results:
         icon = _STATUS_ICON.get(result.overall_status, "?")
@@ -10021,7 +10028,9 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     if gap_total == 0:
         console.print("\n[bold green]All regulations: compliant or partial.[/bold green]")
     else:
-        console.print(f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report")
+        console.print(  # noqa: E501
+            f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report"
+        )
 
 
 @compliance_group.command(name="report")
@@ -10088,7 +10097,6 @@ def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
     Exits non-zero if any regulation has gaps.
     """
     import json as _json
-    import sys
 
     from specsmith.compliance.checker import ComplianceChecker
     from specsmith.compliance.reporter import ComplianceReporter
@@ -10102,12 +10110,20 @@ def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
     summary["esdb_records_written"] = written
 
     if as_json:
-        click.echo(_json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2))
+        click.echo(  # noqa: E501
+            _json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2)
+        )
     else:
-        _STATUS_ICON = {"compliant": "[green]\u2714[/green]", "partial": "[yellow]\u26a0[/yellow]",
-                        "gap": "[red]\u2717[/red]", "n_a": "[dim]\u2014[/dim]"}
+        _STATUS_ICON = {
+            "compliant": "[green]\u2714[/green]",
+            "partial": "[yellow]\u26a0[/yellow]",
+            "gap": "[red]\u2717[/red]",
+            "n_a": "[dim]\u2014[/dim]",
+        }
         icon = _STATUS_ICON.get(summary["overall_status"], "?")
-        console.print(f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}")
+        console.print(  # noqa: E501
+            f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}"
+        )
         console.print(
             f"  Compliant: {summary['compliant']}  "
             f"Partial: {summary['partial']}  "
@@ -10145,6 +10161,7 @@ def migrate_group() -> None:
 def migrate_list_cmd(project_dir: str) -> None:
     """List available migrations and their status."""
     from pathlib import Path
+
     from specsmith.migrations import MigrationRegistry
     from specsmith.migrations.runner import MigrationRunner
 
@@ -10155,7 +10172,7 @@ def migrate_list_cmd(project_dir: str) -> None:
 
     console.print("[bold]Available migrations[/bold]\n")
     for m in all_migrations:
-        status = "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"
+        status = "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"  # noqa: E501
         console.print(f"  v{m.version:03d}  {status}  {m.title}")
 
 
@@ -10166,8 +10183,9 @@ def migrate_list_cmd(project_dir: str) -> None:
 @click.option("--json", "as_json", is_flag=True, default=False)
 def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool) -> None:
     """Run pending migrations (or a specific version)."""
-    import json as _json
+    import json as _json  # noqa: PLC0415
     from pathlib import Path
+
     from specsmith.migrations.runner import MigrationRunner
 
     root = Path(project_dir).resolve()
