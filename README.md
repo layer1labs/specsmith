@@ -250,11 +250,11 @@ human oversight, and robustness. specsmith implements:
 across the AI lifecycle. specsmith addresses all four core functions:
 
 | NIST AI RMF Function | specsmith Mechanism |
-|---|---|
-| **GOVERN** — Policies & accountability | Governance rules (H1–H13), permissions profile, `scaffold.yml` policy |
-| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
-| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
-| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
+||---|
+|| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
+|| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
+|| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
+|| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
 
 ### How Each Compliance Mechanism Works
 
@@ -727,13 +727,42 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 
 ---
 
-## Governance Rules (H1–H13)
+## Governance Rules (H1–H22)
 
-13 hard rules enforced by `specsmith validate`:
+22 hard rules enforced by `specsmith validate` and `specsmith audit`.
+Full rule text: [`docs/governance/RULES.md`](docs/governance/RULES.md)
 
-- **H11** — Every loop or blocking wait must have a timeout, fallback exit, and diagnostic message.
-- **H12** — Windows multi-step automation goes into `.cmd` files, not inline shell invocations.
-- **H13** — Agent tools must declare epistemic contracts (what they claim and what they cannot detect).
+**H1–H14 — Core engineering and traceability rules:**
+- **H1** — No ledger entry = work not done.
+- **H2** — No proposal = no execution.
+- **H3** — All work must consider every target platform.
+- **H4** — No system-dependent assumptions; virtual environments required.
+- **H5** — No hidden service logic.
+- **H6** — If the task grows beyond the proposal, stop and re-propose.
+- **H7** — Every state change must be traceable and recorded.
+- **H8** — Architecture changes MUST update docs in the same work cycle.
+- **H9** — Every agent command must have a timeout.
+- **H10** — No hardcoded version strings outside `pyproject.toml`.
+- **H11** — Every loop must have a deadline; no unbounded blocking I/O.
+- **H12** — Platform-aware automation: sh/bash on Unix, `.cmd`/`.ps1` on Windows.
+- **H13** — Every proposal must declare its epistemic boundaries and assumptions.
+- **H14** — Documentation must be updated in the same work cycle as code changes.
+
+**H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
+
+Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
+Generative Stability"* study (BitConcepts Research, 2026), which empirically validated
+the primary control mechanisms for preventing hallucination and semantic drift in
+production LLM systems:
+
+- **H15** — Epistemic scope bounding: no claims outside verified knowledge; say "unknown" rather than fabricate.
+- **H16** — Anti-drift recursion guard: max 5 autonomous generation steps before a human checkpoint.
+- **H17** — Calibration direction: express uncertainty, not false confidence.
+- **H18** — RAG retrieval filtering: validate context relevance (similarity ≥ 0.6) before injection.
+- **H19** — Synthetic contamination prevention: never mix synthetic and real data silently.
+- **H20** — Falsifiability required: cite sources or flag claims as `[HYPOTHESIS]`.
+- **H21** — Disclose all model-specific assumptions (context window, format, temperature).
+- **H22** — Cross-platform CI: green on one OS ≠ cross-platform coverage.
 
 ---
 

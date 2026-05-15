@@ -53,7 +53,7 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 
 **Governance Infrastructure:**
 
-- **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required)
+- **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required) and H15–H22 (OEA anti-hallucination rules)
 - **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
 - **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
 - **docs/REQUIREMENTS.md** — requirements parseable as `BeliefArtifact` instances

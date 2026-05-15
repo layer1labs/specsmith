@@ -182,6 +182,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._json_response(self.agent.status())
         elif self.path == "/api/health":
             self._json_response({"ok": True})
+        elif self.path == "/api/ci/status":
+            self._ci_status()
+        elif self.path.startswith("/api/session/history"):
+            self._session_history()
         else:
             self.send_error(404)
 
@@ -200,6 +204,8 @@ class _Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/stop":
             self.agent.stop_turn()
             self._json_response({"ok": True})
+        elif self.path == "/api/session/save":
+            self._session_save()
         else:
             self.send_error(404)
 
@@ -255,6 +261,58 @@ class _Handler(BaseHTTPRequestHandler):
             return result
         except json.JSONDecodeError:
             return None
+
+    # ── CI status ────────────────────────────────────────────────
+
+    def _ci_status(self) -> None:
+        """GET /api/ci/status — return CI/CD status for the project."""
+        try:
+            from specsmith.ci_manager import CiManager
+
+            manager = CiManager(self.agent._project_dir)  # noqa: SLF001
+            result = manager.status()
+            self._json_response(result.to_dict())
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"error": str(exc), "ci_available": False})
+
+    # ── Session history ───────────────────────────────────────────
+
+    def _session_history(self) -> None:
+        """GET /api/session/history — return stored conversation history."""
+        try:
+            from pathlib import Path
+
+            from specsmith.session_store import load_session
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            ctx_dict, history = load_session(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "has_previous_session": ctx_dict is not None,
+                    "session_context": ctx_dict or {},
+                    "history": history,
+                    "turn_count": len(history),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "history": []})
+
+    def _session_save(self) -> None:
+        """POST /api/session/save — persist current session state."""
+        try:
+            from pathlib import Path
+
+            from specsmith.session_store import save_if_governed
+
+            body = self._read_json() or {}
+            history = body.get("history", [])
+            ctx_dict = self.agent.status()
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            saved = save_if_governed(root, ctx_dict, history)
+            self._json_response({"ok": True, "saved": saved})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
 
     def _json_response(
         self,

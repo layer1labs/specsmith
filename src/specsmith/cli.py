@@ -8941,6 +8941,19 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
+    # --- Phase 2: migrate into ChronoStore WAL (if validation passed) ---
+    migrate_counts: dict[str, int] = {}
+    if ok:
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                migrate_counts = store.migrate_from_json(root / ".specsmith")
+            manifest["chrono_migrated"] = migrate_counts
+            manifest["chrono_backend"] = "ChronoStore WAL (.chronomemory/)"
+        except Exception as _me:  # noqa: BLE001
+            manifest["chrono_error"] = str(_me)
+
     if as_json:
         click.echo(_json.dumps(manifest, indent=2))
         if not ok:
@@ -8963,6 +8976,15 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
             console.print(f"    [dim]... and {len(issues) - 10} more[/dim]")
     else:
         console.print("  [green]\u2714[/green] All records valid")
+    if migrate_counts:
+        reqs_m = migrate_counts.get("requirements", 0)
+        tests_m = migrate_counts.get("testcases", 0)
+        skip_m = migrate_counts.get("skipped", 0)
+        console.print(
+            f"  [green]\u2714[/green] ChronoStore WAL: "
+            f"{reqs_m} reqs + {tests_m} tests migrated ({skip_m} skipped)"
+        )
+        console.print(f"  DB path: {root / '.chronomemory'}")
     console.print(f"\n  Manifest written: {manifest_path.relative_to(root)}")
     if not ok:
         raise SystemExit(1)
@@ -9141,11 +9163,26 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
 
     from specsmith.esdb.bridge import EsdbBridge
 
+    root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
     st = bridge.status()
     ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    # Prefer ChronoStore backup when WAL is available
+    chrono_backup_path: str = ""
+    wal = root / ".chronomemory" / "events.wal"
+    if wal.exists():
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                bp = store.backup()
+                chrono_backup_path = str(bp)
+        except Exception:  # noqa: BLE001
+            pass
+
     dest_dir = (
-        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
+        Path(backup_dir) if backup_dir else root / ".specsmith" / "backups"
     )
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
@@ -9160,11 +9197,19 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
         "testcases": [t.to_dict() for t in tests],
     }
     dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    result = {"ok": True, "path": str(dest), "timestamp": ts, "records": st.record_count}
+    result = {
+        "ok": True,
+        "path": str(dest),
+        "timestamp": ts,
+        "records": st.record_count,
+        "chrono_backup": chrono_backup_path,
+    }
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
         console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+        if chrono_backup_path:
+            console.print(f"  ChronoStore WAL backup: {chrono_backup_path}")
 
 
 @esdb_group.command(name="rollback")
@@ -9705,6 +9750,179 @@ def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> 
 
 
 main.add_command(issue_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith ci — CI/CD automation (REQ-309)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="ci")
+def ci_group() -> None:
+    """Manage CI/CD automation for the current project."""
+
+
+@ci_group.command(name="enable")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--platform",
+    default=None,
+    type=click.Choice(["github", "gitlab", "bitbucket"]),
+    help="Override auto-detected platform.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing CI config.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def ci_enable_cmd(project_dir: str, platform: str | None, force: bool, as_json: bool) -> None:
+    """Generate or update CI/CD, Dependabot, and security configs.
+
+    Auto-detects the git platform from the remote URL. Writes
+    .github/workflows/ci.yml (or equivalent), dependabot.yml,
+    and CodeQL for Python/JS/TS/Go projects.
+    """
+    import json as _json
+
+    from specsmith.ci_manager import CiManager
+
+    try:
+        manager = CiManager(project_dir)
+        created = manager.enable(platform=platform, force=force)
+        result = {
+            "ok": True,
+            "platform": manager.platform_name,
+            "files_created": created,
+            "count": len(created),
+        }
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print(f"[green]\u2714[/green] CI automation enabled ({manager.platform_name})")
+            for f in created:
+                console.print(f"  [green]\u2713[/green] {f}")
+            if not created:
+                console.print("  [dim]All configs already up to date. Use --force to regenerate.[/dim]")
+    except RuntimeError as exc:
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {exc}")
+        raise SystemExit(1) from None
+
+
+@ci_group.command(name="status")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def ci_status_cmd(project_dir: str, as_json: bool) -> None:
+    """Show last CI run status, dependency alerts, and security alerts."""
+    import json as _json
+
+    from specsmith.ci_manager import CiManager
+
+    manager = CiManager(project_dir)
+    result = manager.status()
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    if result.error:
+        console.print(f"[yellow]\u26a0[/yellow] {result.error}")
+        return
+
+    status_color = "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
+    icon = "\u25cf"
+    console.print(f"  [{status_color}]{icon}[/{status_color}] CI: {result.last_run_status}")
+    if result.last_run_name:
+        console.print(f"    Run: {result.last_run_name}")
+    if result.last_run_url:
+        console.print(f"    URL: [blue]{result.last_run_url}[/blue]")
+    if result.open_dep_alerts > 0:
+        console.print(f"  [yellow]\u26a0[/yellow] Dependabot alerts: {result.open_dep_alerts}")
+    if result.open_security_alerts > 0:
+        console.print(f"  [red]\u26a0[/red] Security alerts: {result.open_security_alerts}")
+    if result.open_prs > 0:
+        console.print(f"  Open PRs: {result.open_prs}")
+
+
+@ci_group.command(name="watch")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--timeout", type=int, default=300, help="Max seconds to wait (default: 300).")
+@click.option("--interval", type=int, default=15, help="Poll interval in seconds (default: 15).")
+def ci_watch_cmd(project_dir: str, timeout: int, interval: int) -> None:
+    """Wait for the current CI run to complete and report result."""
+    import json as _json
+    import sys
+
+    from specsmith.ci_manager import CiManager
+
+    manager = CiManager(project_dir)
+    console.print(f"[bold]Watching CI[/bold] (timeout={timeout}s, poll={interval}s) …")
+
+    def _on_event(event: dict) -> None:
+        ts = event.get("timestamp", "")
+        status = event.get("status", "?")
+        console.print(f"  [{ts}] {status}")
+        sys.stdout.flush()
+
+    result = manager.watch(timeout=timeout, poll_interval=interval, on_event=_on_event)
+    if result.ci_passing:
+        console.print("[green]\u2714[/green] CI passed.")
+    elif result.ci_passing is False:
+        console.print("[red]\u2717[/red] CI failed.")
+        raise SystemExit(1)
+    else:
+        console.print("[yellow]\u2014[/yellow] CI status unknown after timeout.")
+
+
+main.add_command(ci_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith context — context window management (REQ-308/312)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="context")
+def context_group() -> None:
+    """Context window management and optimization."""
+
+
+@context_group.command(name="optimize")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Report what would be done without writing.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def context_optimize_cmd(project_dir: str, dry_run: bool, as_json: bool) -> None:
+    """Run all context optimization tiers: compress ledger, summarize history,
+    protect critical ESDB records, and free context window space.
+
+    Tiers:
+      Tier 1: compress LEDGER.md history (free ~20% context)
+      Tier 2: summarize conversation history + evict low-confidence records
+      Tier 3: emergency protection of critical records (confidence >= 0.7)
+    """
+    import json as _json
+
+    from specsmith.context_orchestrator import ContextOrchestrator
+
+    orchestrator = ContextOrchestrator(project_dir)
+    result = orchestrator.optimize_all(dry_run=dry_run)
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    console.print(result.summary())
+
+
+main.add_command(context_group)
 
 
 if __name__ == "__main__":

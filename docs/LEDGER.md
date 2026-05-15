@@ -167,6 +167,43 @@
 - **Chain hash**: auto
 
 
+## 2026-05-15T13:30 --- WI-0515-INFRA: ESDB write layer, CI/CD automation, context orchestration, session persistence, OEA hardening
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-305,REQ-306,REQ-307,REQ-308,REQ-309,REQ-310,REQ-311,REQ-312
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Major infrastructure sprint across 9 workstreams:
+
+  **Phase A — CI/CD fixes**: Fixed all GitHub Actions version references in specsmith and kairos CIs
+  (checkout@v6→v4, setup-python@v6→v5, cache@v5→v4, upload-artifact@v7→v4, download-artifact@v8→v4).
+  Added `.github/dependabot.yml` to both repos. Added CodeQL workflow to specsmith. Added
+  `cargo audit` job to kairos CI. Added `specsmith ci enable/status/watch` commands via
+  `src/specsmith/ci_manager.py`. Added `GET /api/ci/status` to serve.py. Updated
+  `vcs/github.py` CI generator to emit correct action versions.
+
+  **Phase B — ChronoStore ESDB**: Implemented `src/specsmith/esdb/store.py` with
+  `ChronoStore` — a pure-Python WAL-based per-project ESDB at `.chronomemory/events.wal`.
+  SHA-256 hash chain, crash-safe atomic WAL appends, snapshot.json every 50 events.
+  All records carry OEA anti-hallucination fields: source_type (H19), confidence (H17),
+  evidence (H20), epistemic_boundary (H15), is_hypothesis (H20), model_assumptions (H21),
+  recursion_depth (H16). `EsdbBridge` updated to delegate to `ChronoStore` when available.
+  `esdb migrate` updated to call `ChronoStore.migrate_from_json()`. `upgrader.py` auto-migrates
+  on `specsmith upgrade`. `retrieval.py` injects only confidence >= 0.6 records (H18).
+  `tests/fixtures/api_surface.json` updated with ci + context commands.
+
+  **Phase C — Session persistence**: New `src/specsmith/session_store.py`: atomic
+  `.specsmith/session-state.json` + `.specsmith/conversation-history.jsonl` (200-turn cap).
+  `GET /api/session/history` and `POST /api/session/save` added to serve.py.
+
+  **Phase D — Context orchestrator**: New `src/specsmith/context_orchestrator.py` with
+  three-tier auto-optimization (Tier1@60%, Tier2@80%, Tier3@85% emergency). `specsmith
+  context optimize [--dry-run]` CLI command. "Never delete from WAL" invariant enforced.
+
+  **Phase F — Governance**: REQ-305 through REQ-312 added to `docs/REQUIREMENTS.md`.
+  Governance invariants I-ESDB-1/2, I-SES-1, I-CTX-1, I-CI-1 added to `docs/governance/RULES.md`.
+
+
 ## 2026-05-15T12:42 --- WI-0515-GOV: Governance H15–H22 + OEA paper integration
 - **Author**: oz-agent
 - **Type**: docs / governance

@@ -594,7 +594,41 @@ Suggestions are inert previews — the user calls `specsmith agent providers add
 
 CLI: `specsmith agent suggest-profiles`.
 
-## 28. YAML-Native Governance Layer
+## 28. OEA Anti-Hallucination Governance Layer
+
+Source: `src/specsmith/compliance.py` §`get_governance_rules_status`; rules `H15`–`H22`
+
+Specsmith v0.11.3 integrates the findings of the *"Ontology-Epistemic-Agentic (OEA)
+Recursive Generative Stability"* study (BitConcepts Research, 2026) as eight enforceable
+governance rules, extending the core H1–H14 engineering rules:
+
+| Rule | Name | Primary OEA Control |
+|---|---|---|
+| H15 | Epistemic Scope Bounding | Epistemic calibration |
+| H16 | Anti-Drift Recursion Guard | Recursion guarding |
+| H17 | Calibration Direction | Epistemic calibration |
+| H18 | RAG Retrieval Filtering | Retrieval filtering |
+| H19 | Synthetic Contamination Prevention | Data provenance |
+| H20 | Falsifiability Required | Epistemic calibration |
+| H21 | No Undisclosed Model Assumptions | Scope bounding |
+| H22 | Cross-Platform CI Enforcement | Infrastructure validity |
+
+The OEA study validated through ablation that these four control categories are the
+primary levers for suppressing hallucination rates across model families:
+
+1. **Epistemic calibration** (H17, H15, H20) — uncertainty expression
+2. **Scope bounding** (H15, H21) — refusing out-of-domain claims
+3. **Retrieval filtering** (H18) — relevance threshold before RAG injection
+4. **Recursion guarding** (H16) — chain depth limit
+
+Statusof H15–H22 is surfaced in the Kairos Compliance page
+(Settings → Compliance → Governance Hard Rules H1–H22) alongside H1–H14.
+
+**Architecture invariant (I9):** The compliance rule set MUST cover all four OEA control
+categories. Adding or removing categories requires an explicit OEA-impact assessment
+recorded in LEDGER.md.
+
+## 29. YAML-Native Governance Layer
 Source: `src/specsmith/governance_yaml.py`, `scripts/migrate_governance_to_yaml.py`
 
 As of v0.12, specsmith operates in **YAML-first governance mode** when `.specsmith/governance-mode` contains `yaml`.

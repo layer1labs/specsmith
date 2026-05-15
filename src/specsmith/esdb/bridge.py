@@ -2,9 +2,14 @@
 # Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
 """ESDB bridge — adapter between .specsmith/ JSON and ESDB concepts.
 
-This module provides read-only access to the current .specsmith/ flat JSON
-state through ESDB-compatible query interfaces. It allows specsmith's
-governance logic to work with either backend transparently.
+Delegation strategy:
+  1. If .chronomemory/events.wal exists → delegate to ChronoStore (full
+     WAL-based engine with OEA anti-hallucination fields).
+  2. Otherwise → read flat .specsmith/*.json files (legacy fallback).
+
+Write operations (upsert_record, delete_record) are only available when
+ChronoStore is active. Callers should run ``specsmith esdb migrate`` to
+convert a legacy project before calling write paths.
 """
 
 from __future__ import annotations
@@ -65,42 +70,135 @@ class EsdbStatus:
 
 
 class EsdbBridge:
-    """Read-only bridge to .specsmith/ JSON files using ESDB semantics.
+    """Unified bridge to ESDB: delegates to ChronoStore when available.
 
-    When the Rust ESDB engine is available (via PyO3 bindings), this
-    class delegates to it. Otherwise, it reads the flat JSON files
-    directly and presents them through an ESDB-compatible interface.
+    Delegation strategy:
+      - ChronoStore (.chronomemory/events.wal): full WAL engine, all writes
+      - JSON fallback (.specsmith/*.json): legacy read-only access
     """
 
     def __init__(self, project_dir: str = ".") -> None:
         self.root = Path(project_dir).resolve()
         self._requirements: list[EsdbRecord] | None = None
         self._testcases: list[EsdbRecord] | None = None
+        self._store: Any = None  # ChronoStore | None
+
+    def _get_store(self) -> Any:
+        """Return an open ChronoStore if available, else None."""
+        if self._store is not None:
+            return self._store
+        wal = self.root / ".chronomemory" / "events.wal"
+        if wal.exists():
+            try:
+                from specsmith.esdb.store import ChronoStore
+
+                self._store = ChronoStore(self.root).open()
+            except Exception:  # noqa: BLE001
+                self._store = None
+        return self._store
 
     def status(self) -> EsdbStatus:
         """Return ESDB status."""
+        store = self._get_store()
+        if store is not None:
+            return EsdbStatus(
+                available=True,
+                backend="ChronoStore WAL",
+                record_count=store.record_count(),
+                wal_seq=store.wal_seq(),
+                chain_valid=store.chain_valid(),
+            )
+        # Legacy JSON fallback
         reqs = self._load_requirements()
         tests = self._load_testcases()
         return EsdbStatus(
             available=True,
-            backend=".specsmith/ JSON (ChronoMemory native pending)",
+            backend=".specsmith/ JSON (run esdb migrate to upgrade)",
             record_count=len(reqs) + len(tests),
         )
 
     def requirements(self) -> list[EsdbRecord]:
         """Load requirements as ESDB records."""
+        store = self._get_store()
+        if store is not None:
+            return [
+                EsdbRecord(
+                    id=r.id,
+                    kind=r.kind,
+                    status=r.status,
+                    confidence=r.confidence,
+                    label=r.label,
+                    data=r.data,
+                    source_ids=r.evidence,
+                )
+                for r in store.query(kind="requirement")
+            ]
         return self._load_requirements()
 
     def testcases(self) -> list[EsdbRecord]:
         """Load test cases as ESDB records."""
+        store = self._get_store()
+        if store is not None:
+            return [
+                EsdbRecord(
+                    id=r.id,
+                    kind=r.kind,
+                    status=r.status,
+                    confidence=r.confidence,
+                    label=r.label,
+                    data=r.data,
+                    source_ids=r.evidence,
+                )
+                for r in store.query(kind="testcase")
+            ]
         return self._load_testcases()
 
     def record_counts(self) -> dict[str, int]:
         """Record counts by kind (for dashboard)."""
+        store = self._get_store()
+        if store is not None:
+            records = store.query()
+            counts: dict[str, int] = {}
+            for r in records:
+                counts[r.kind] = counts.get(r.kind, 0) + 1
+            return counts
         return {
             "requirements": len(self._load_requirements()),
             "testcases": len(self._load_testcases()),
         }
+
+    def upsert_record(self, record: EsdbRecord) -> bool:
+        """Write or update a record. Returns True if ChronoStore is active."""
+        store = self._get_store()
+        if store is None:
+            return False
+        try:
+            from specsmith.esdb.store import ChronoRecord
+
+            chrono_rec = ChronoRecord(
+                id=record.id,
+                kind=record.kind,
+                status=record.status,
+                confidence=record.confidence,
+                label=record.label,
+                data=record.data,
+                evidence=record.source_ids,
+            )
+            store.upsert(chrono_rec)
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+
+    def delete_record(self, record_id: str) -> bool:
+        """Tombstone a record. Returns True if ChronoStore is active."""
+        store = self._get_store()
+        if store is None:
+            return False
+        try:
+            store.delete(record_id)
+            return True
+        except Exception:  # noqa: BLE001
+            return False
 
     def _load_requirements(self) -> list[EsdbRecord]:
         if self._requirements is not None:

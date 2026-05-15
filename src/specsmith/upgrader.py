@@ -136,6 +136,25 @@ def run_upgrade(
 
     result = UpgradeResult()
 
+    # ESDB auto-migration: if .specsmith/ exists but .chronomemory/ does not,
+    # migrate flat JSON to ChronoStore WAL automatically.
+    specsmith_dir = root / ".specsmith"
+    chronomemory_wal = root / ".chronomemory" / "events.wal"
+    if specsmith_dir.is_dir() and not chronomemory_wal.exists():
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                counts = store.migrate_from_json(specsmith_dir)
+            reqs_m = counts.get("requirements", 0)
+            tests_m = counts.get("testcases", 0)
+            if reqs_m + tests_m > 0:
+                result.updated_files.append(
+                    f".chronomemory/events.wal (migrated {reqs_m} reqs + {tests_m} tests from JSON)"
+                )
+        except Exception:  # noqa: BLE001
+            pass  # Non-fatal — JSON fallback still works
+
     # Migrate legacy filenames (including WORKFLOW.md → SESSION-PROTOCOL.md)
     _migrate_legacy_filenames(root, result)
 

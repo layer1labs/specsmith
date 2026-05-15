@@ -1834,3 +1834,59 @@
 - **Status:** implemented
 - **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
 
+## REQ-305. ChronoStore WAL-Based ESDB Write Layer
+- **ID:** REQ-305
+- **Title:** ChronoStore WAL-Based ESDB Write Layer
+- **Description:** specsmith MUST implement `src/specsmith/esdb/store.py` with a `ChronoStore` class providing a WAL-based per-project epistemic state database. The WAL MUST be stored at `<project>/.chronomemory/events.wal` as NDJSON with SHA-256 hash chaining. A materialized snapshot MUST be written every 50 events at `snapshot.json`. WAL append MUST be crash-safe via write-to-temp-then-rename.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [ESDB-001]
+
+## REQ-306. ESDB Must Be Per-Project
+- **ID:** REQ-306
+- **Title:** ESDB Must Be Per-Project
+- **Description:** Each governed project MUST have its own ESDB at `<project_root>/.chronomemory/`. Global or shared ESDB instances are not permitted. `EsdbBridge` MUST delegate to `ChronoStore` when `events.wal` exists, and fall back to flat JSON read-only mode otherwise.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [ESDB-002]
+
+## REQ-307. Session State Must Survive Restart
+- **ID:** REQ-307
+- **Title:** Session State Must Survive Restart
+- **Description:** specsmith MUST persist session context to `.specsmith/session-state.json` and conversation history to `.specsmith/conversation-history.jsonl` (capped at 200 turns). On `init_session()`, the previous session context MUST be loaded and a synthetic resume message injected as the first history entry. `GET /api/session/history` MUST return the stored history.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [SES-001]
+
+## REQ-308. Context Orchestrator with Tiered Auto-Optimization
+- **ID:** REQ-308
+- **Title:** Context Orchestrator with Tiered Auto-Optimization
+- **Description:** specsmith MUST implement `src/specsmith/context_orchestrator.py` with a `ContextOrchestrator` that applies three tiers of context optimization: Tier 1 (60–79% fill) compresses LEDGER.md history; Tier 2 (80–84%) summarizes conversation history and evicts low-confidence ESDB records from context; Tier 3 (≥85%) protects critical records (confidence ≥ 0.7) and emergency-drops the rest. Data on disk MUST NEVER be deleted by optimization.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [CTX-001]
+
+## REQ-309. CI Automation Togglable Per Project
+- **ID:** REQ-309
+- **Title:** CI Automation Togglable Per Project
+- **Description:** `specsmith ci enable [--platform github|gitlab|bitbucket] [--force]` MUST generate or update CI, Dependabot, and CodeQL configs for the current project. `specsmith ci status [--json]` MUST poll the last CI run conclusion, dependency alerts, and security alert counts. `specsmith ci watch [--timeout]` MUST poll until the run completes. CI automation state MUST be persisted to `.specsmith/config.yml`.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [CI-001]
+
+## REQ-310. OEA Anti-Hallucination Fields on ESDB Records
+- **ID:** REQ-310
+- **Title:** OEA Anti-Hallucination Fields on ESDB Records
+- **Description:** Every `ChronoRecord` MUST carry OEA anti-hallucination fields: `source_type` (observed/inferred/hypothesis/synthetic, H19), `confidence` (float 0–1, H17), `evidence` (list of source references, H20), `epistemic_boundary` (scope constraints, H15), `is_hypothesis` (bool, H20), `model_assumptions` (context_window/temperature/provider, H21), `recursion_depth` (int, H16). All fields MUST default to safe non-blocking values for records migrated from legacy JSON.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [OEA-001]
+
+## REQ-311. RAG Retrieval Must Filter by Confidence
+- **ID:** REQ-311
+- **Title:** RAG Retrieval Must Filter by Confidence
+- **Description:** When `build_index()` runs and a `ChronoStore` is available for the project, only records with `confidence >= 0.6` MUST be included in the retrieval index (H18). Each injected record MUST carry `source_type` and `confidence` metadata tags in the index entry.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [RAG-001]
+
+## REQ-312. Context Optimize Command
+- **ID:** REQ-312
+- **Title:** Context Optimize Command
+- **Description:** `specsmith context optimize [--dry-run] [--json]` MUST run all three optimization tiers unconditionally and report the tokens freed estimate, records evicted, and critical records protected. `--dry-run` MUST describe what would happen without writing. The command MUST be callable from Kairos Settings → Governance → Optimize button.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §28 [CTX-002]
+

@@ -33,8 +33,36 @@ _SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "build", "
 
 
 def build_index(root: Path, *, include_ledger: bool = False, external: str = "") -> str:
-    """Build or refresh the local retrieval index."""
+    """Build or refresh the local retrieval index.
+
+    H18 (RAG retrieval filtering): when ChronoStore is available, only records
+    with confidence >= 0.6 are included in the retrieval context.
+    """
     entries: list[dict[str, str]] = []
+
+    # H18: inject high-confidence ESDB records as retrieval context
+    wal = root / ".chronomemory" / "events.wal"
+    if wal.exists():
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                for rec in store.query(rag_filter=True):  # confidence >= 0.6
+                    if rec.data:
+                        content = (
+                            f"[{rec.kind.upper()} {rec.id}] {rec.label}\n"
+                            + str(rec.data.get("description", rec.data.get("title", "")))[:500]
+                        )
+                        entries.append(
+                            {
+                                "path": f".chronomemory/{rec.kind}/{rec.id}",
+                                "content": content,
+                                "source_type": rec.source_type,
+                                "confidence": str(rec.confidence),
+                            }
+                        )
+        except Exception:  # noqa: BLE001
+            pass  # ChronoStore read failure is non-fatal for RAG
     candidates: list[Path] = []
 
     for rel in ["AGENTS.md", "docs/REQUIREMENTS.md", "docs/ARCHITECTURE.md", "docs/TESTS.md"]:

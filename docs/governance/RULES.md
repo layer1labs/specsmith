@@ -4,6 +4,15 @@
 
 These rules are non-negotiable. Violation of any hard rule is a stop condition.
 
+> **Research basis for H15–H22:** Rules H15 through H22 were derived from and
+> empirically validated by the study *"Ontology-Epistemic-Agentic (OEA) Recursive
+> Generative Stability: A Unified Framework for Preventing Hallucination and Drift in
+> Large Language Models"* (BitConcepts Research, 2026). The OEA framework validated
+> that calibration direction, epistemic scope bounding, retrieval filtering, and
+> recursion guard controls are the primary levers for suppressing hallucination and
+> semantic drift in production AI systems. specsmith encodes these findings as
+> enforceable governance rules rather than aspirational guidelines.
+
 ### H1 — Ledger required
 No ledger entry = work not done.
 
@@ -69,6 +78,131 @@ This rule exists because you, the agent, are the only one maintaining these file
 The human operator will never need to read a README file or touch RTD pages — specsmith
 must keep them current automatically. Failure to update documentation is a H7 violation
 (undocumented state change) and a stop condition.
+
+---
+
+## Anti-Hallucination and Epistemic Stability Rules (H15–H22)
+
+These rules implement the **OEA Recursive Generative Stability** framework. They address
+the root causes of hallucination and semantic drift that the OEA study identified across
+multiple LLM families: uncalibrated confidence, unbounded generation recursion, unfiltered
+retrieval injection, and implicit model assumptions leaking into agent outputs.
+
+See also: `docs/governance/EPISTEMIC-AXIOMS.md` and `docs/ARCHITECTURE.md §OEA Layer`.
+
+### H15 — Epistemic Scope Bounding
+The agent MUST NOT make factual claims outside its verified knowledge domain.
+When asked about something outside its scope, it MUST respond with an explicit
+acknowledgement of uncertainty ("I don't know", "I cannot verify this") rather than
+producing a plausible-sounding but unverified answer.
+
+Violating patterns: stating version numbers, dates, or API details not present in the
+current context; extending extrapolated trends as factual assertions; treating training
+data as live ground truth.
+
+`specsmith epistemic-audit` checks for accepted requirements that lack observable evidence,
+which is the structural proxy for out-of-scope claims in governance artifacts.
+
+### H16 — Anti-Drift Recursion Guard
+Multi-step generation chains MUST have a finite iteration limit. No agent output may
+become the sole input to a subsequent generation step without a human checkpoint or a
+structured validation gate between steps.
+
+- Maximum chain depth: 5 autonomous generation steps before a human review point.
+- Recursive self-refinement loops ("improve this output → feed back into the same model")
+  are only permitted when gated by a confidence score above the project threshold.
+- Unbound recursion is a stop condition; record in LEDGER.md and escalate.
+
+Rationale: the OEA study showed that recursive generation without external anchoring
+produces exponentially diverging semantic drift, even in high-accuracy models.
+
+### H17 — Calibration Direction
+Agent outputs MUST express uncertainty proportional to evidence quality. False confidence
+is a harder failure than acknowledged uncertainty.
+
+- If confidence in a claim is below MEDIUM, the output MUST include a hedging phrase.
+- Confidence tokens (`MUST`, `SHOULD`, `MAY`, `PROBABLY`) map to AEE confidence levels
+  and MUST be used consistently with their RFC 2119 meanings.
+- An output with HIGH confidence and insufficient evidence is a stop condition.
+- `specsmith preflight` enforces this by injecting an escalation flag when
+  `confidence < escalate_threshold`.
+
+### H18 — RAG Retrieval Filtering
+Any context retrieved from external sources (vector search, database lookup, web search,
+file read) MUST pass relevance validation before being included in an agent prompt.
+
+- Chunks with cosine similarity < 0.6 (or equivalent relevance score) MUST be discarded.
+- Retrieved content MUST be tagged with its source, timestamp, and confidence tier.
+- Including unvalidated retrieved content in a governed prompt is a stop condition.
+
+Rationale: the OEA study found that low-relevance retrieval is a primary hallucination
+trigger — models fill the incoherence gap between query and retrieved context by
+fabricating connecting content.
+
+### H19 — Synthetic Contamination Prevention
+Synthetically generated data MUST NOT be silently mixed with real ground-truth data in
+evaluation, fine-tuning, or benchmark pipelines.
+
+- Every dataset entry MUST carry a `source_type` tag: `real | synthetic | augmented`.
+- Evaluation metrics MUST be reported separately for real and synthetic subsets.
+- CI pipelines that combine both without explicit separation are a stop condition.
+- `specsmith validate --strict` checks that eval YAML files declare `source_type`.
+
+### H20 — Falsifiability Required
+All factual claims made by an agent in governance artifacts MUST either cite a verifiable
+source or be explicitly flagged as unverified hypotheses.
+
+- **Verifiable source**: a URL, file path + line range, test ID, or external publication.
+- **Unverified hypothesis**: prefixed with `[HYPOTHESIS]` or placed in an
+  `## Assumptions` block with explicit justification for why verification was deferred.
+- Unflagged factual claims without sources are a H7 violation (undocumented state change).
+
+### H21 — No Undisclosed Model Assumptions
+Any model-specific behaviour that an agent or proposal relies on MUST be explicitly stated.
+
+Required disclosures when relevant:
+- Context window size and the fill headroom available for this task
+- Instruction format expected (plain, sections, XML, chat roles)
+- Whether the model supports tool calls / structured output
+- Temperature and sampling settings used
+- Provider and model version (captured in every `ai_disclosure` block)
+
+Failing to disclose these is a stop condition when the behaviour would affect correctness
+or reproducibility of the output.
+
+### H22 — Cross-Platform CI Enforcement
+CI pipelines MUST run on Linux (or macOS) AND Windows. A green result on one platform
+does NOT constitute cross-platform coverage.
+
+- `.github/workflows/ci.yml` MUST include at least one `ubuntu-latest` or `macos-latest`
+  runner AND at least one `windows-latest` runner for any non-trivial project.
+- Platform-specific failures on one runner MUST block the PR even if the other runner passes.
+- Automation scripts MUST use the platform-appropriate shell (sh/bash on Unix;
+  `.cmd` / `.ps1` on Windows) per H12.
+- `specsmith validate --strict` checks for the presence of a `.github/workflows/*.yml`
+  file and emits a warning (H22) when none is found.
+
+---
+
+## Governance Invariants for ESDB and Context Management
+
+These invariants complement the hard rules above and enforce robustness guarantees for
+data persistence and context integrity.
+
+**I-ESDB-1:** ESDB MUST be per-project. Shared or global ESDB instances are not permitted.
+
+**I-ESDB-2:** Optimization (compression, eviction, summarization) MUST NEVER delete records
+from the WAL. It affects only the in-context representation. The WAL is append-only.
+
+**I-SES-1:** Session state (context, conversation history) MUST survive a restart. Any
+work that was in progress MUST be resumable from the last saved state.
+
+**I-CTX-1:** Context window MUST auto-optimize before reaching the hard ceiling. Tier 1
+optimization fires at 60%, Tier 2 at 80%, Tier 3 (emergency) at 85%. The ceiling MUST
+never be breached without triggering emergency compression first.
+
+**I-CI-1:** CI automation state MUST be recorded in `.specsmith/config.yml` so it
+survives session restarts and is reproducible across machines.
 
 ---
 
