@@ -44,9 +44,9 @@ class TestPatentApplicationScaffold:
         assert (project / "figures" / ".gitkeep").exists()
         assert (project / "correspondence" / ".gitkeep").exists()
 
-        # Patent-specific AGENTS.md rules
+        # AGENTS.md should exist with project type info (slimmed template)
         agents = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "Claims" in agents or "claims" in agents.lower()
+        assert "patent" in agents.lower()
 
         # Patent-specific requirements
         reqs = (project / "docs" / "REQUIREMENTS.md").read_text(encoding="utf-8")
@@ -109,9 +109,9 @@ class TestRustCLIScaffold:
         dep = (project / ".github" / "dependabot.yml").read_text(encoding="utf-8")
         assert "cargo" in dep
 
-        # Rust AGENTS.md rules
+        # AGENTS.md should contain project type info (slimmed template)
         agents = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "clippy" in agents.lower() or "cargo" in agents.lower()
+        assert "rust" in agents.lower()
 
         # Verification tools
         v = (project / "docs" / "governance" / "VERIFICATION.md").read_text(encoding="utf-8")
@@ -261,9 +261,9 @@ class TestBusinessPlanScaffold:
         assert "REQ-EXEC-001" in reqs
         assert "REQ-FIN-001" in reqs
 
-        # Business AGENTS.md rules
+        # AGENTS.md should contain project type info (slimmed template)
         agents = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "financial" in agents.lower() or "stakeholder" in agents.lower()
+        assert "business" in agents.lower()
 
 
 class TestAPISpecScaffold:

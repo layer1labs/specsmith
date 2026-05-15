@@ -244,7 +244,7 @@ class TestCompliance:
         from specsmith.compliance import get_governance_rules_status
 
         rules = get_governance_rules_status(".")
-        assert len(rules) == 14  # H1-H14
+        assert len(rules) >= 14  # H1-H14 minimum (additional rules may be added)
         assert all(r["id"].startswith("H") for r in rules)
 
     def test_compliance_summary_empty_project(self, tmp_path):

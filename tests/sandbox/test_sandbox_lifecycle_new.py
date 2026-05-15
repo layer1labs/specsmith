@@ -184,7 +184,7 @@ class TestLifecycleNew:
 
         # AGENTS.md should mention current phase
         agents = (project / "AGENTS.md").read_text(encoding="utf-8")
-        assert "Current Phase" in agents
+        assert "Phase:" in agents  # slimmed template uses **Phase:** not **Current Phase:**
         assert "inception" in agents.lower()
 
         # README.md should have dynamic phase
