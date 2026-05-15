@@ -39,13 +39,21 @@ __all__ = [
     "get_governance_rules_status",
 ]
 
-# Re-export legacy functions from _compat.py so existing code continues to work.
-# These were previously in specsmith/compliance.py before it became a package.
+# Re-export all public names so __all__ is satisfied and star-imports work.
 from specsmith.compliance._compat import (  # noqa: E402
     ComplianceSummary,
     get_compliance_summary,
     get_governance_rules_status,
 )
+from specsmith.compliance.checker import (  # noqa: E402
+    ComplianceChecker as ComplianceChecker,
+)
+from specsmith.compliance.checker import (
+    ComplianceResult as ComplianceResult,
+)
+from specsmith.compliance.evidence import EvidenceCollector as EvidenceCollector  # noqa: E402
+from specsmith.compliance.regulations import REGULATIONS as REGULATIONS  # noqa: E402
+from specsmith.compliance.reporter import ComplianceReporter as ComplianceReporter  # noqa: E402
 
 
 def get_regulation(regulation_id: str) -> Regulation:

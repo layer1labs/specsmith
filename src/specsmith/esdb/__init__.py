@@ -11,6 +11,8 @@ from __future__ import annotations
 
 __all__ = ["EsdbBridge", "is_esdb_available"]
 
+from specsmith.esdb.bridge import EsdbBridge as EsdbBridge  # noqa: E402
+
 
 def is_esdb_available(project_dir: str = ".") -> bool:
     """Check if an ESDB exists for the given project."""

@@ -109,11 +109,11 @@ def _generate_skill_id(name: str) -> str:
 _SKILL_PROMPT = """
 You are an expert agent-skill designer for the specsmith AEE framework.
 Given a description, produce a JSON object (no markdown fences) with these exact keys:
-  name         - short title (≤ 60 chars)
+  name         - short title (\u2264 60 chars)
   purpose      - one-sentence purpose
   activation_rules - list of 2-4 strings describing when to activate
-  input_schema - dict of {field: type description}
-  output_schema - dict of {field: type description}
+  input_schema - dict of {{field: type description}}
+  output_schema - dict of {{field: type description}}
   epistemic_contract - one sentence about verifiability guarantees
   tools_used   - list of tool names (e.g. read_file, run_shell, run_tests)
   tests_required - list of 1-3 test descriptions

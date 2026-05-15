@@ -53,7 +53,8 @@ def test_add_remove_round_trip(tmp_path: Path) -> None:
     loaded = ProfileStore.load(store.path)
     assert loaded.get("custom").model == "claude-sonnet-4-5"
     assert loaded.default_profile_id == "custom"
-    assert loaded.remove("custom") is True
+    removed = loaded.remove("custom")
+    assert removed is True
     assert loaded.profiles == []
 
 
