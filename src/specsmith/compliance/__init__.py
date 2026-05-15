@@ -54,8 +54,5 @@ def get_regulation(regulation_id: str) -> Regulation:
 
     reg = REGULATIONS.get(regulation_id)
     if reg is None:
-        raise KeyError(
-            f"Unknown regulation '{regulation_id}'. "
-            f"Valid IDs: {', '.join(REGULATIONS)}"
-        )
+        raise KeyError(f"Unknown regulation '{regulation_id}'. Valid IDs: {', '.join(REGULATIONS)}")
     return reg

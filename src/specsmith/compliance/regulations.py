@@ -23,11 +23,11 @@ from dataclasses import dataclass, field
 class Article:
     """A single article / control / requirement within a regulation."""
 
-    id: str                              # e.g. "Art.9", "GOVERN-1.1", "Sec.6(a)"
+    id: str  # e.g. "Art.9", "GOVERN-1.1", "Sec.6(a)"
     title: str
     description: str
-    effective_date: str                  # ISO-8601 or "2026-02-01"
-    category: str                        # transparency | risk_management | etc.
+    effective_date: str  # ISO-8601 or "2026-02-01"
+    category: str  # transparency | risk_management | etc.
     specsmith_controls: list[str] = field(default_factory=list)
     # specsmith features / CLI commands that satisfy this control
     notes: str = ""
@@ -37,12 +37,12 @@ class Article:
 class Regulation:
     """A single AI regulation."""
 
-    id: str                              # e.g. "eu-ai-act"
+    id: str  # e.g. "eu-ai-act"
     name: str
     full_name: str
-    jurisdiction: str                    # "EU" | "US-Federal" | "US-Colorado" | etc.
-    enacted: str                         # date enacted / published
-    effective: str                       # primary effective date
+    jurisdiction: str  # "EU" | "US-Federal" | "US-Colorado" | etc.
+    enacted: str  # date enacted / published
+    effective: str  # primary effective date
     url: str
     description: str
     articles: list[Article] = field(default_factory=list)
@@ -234,8 +234,7 @@ _NIST_RMF = Regulation(
     id="nist-rmf",
     name="NIST AI RMF",
     full_name=(
-        "NIST AI Risk Management Framework 1.0 (AI RMF) + "
-        "NIST AI 600-1 Generative AI Profile"
+        "NIST AI Risk Management Framework 1.0 (AI RMF) + NIST AI 600-1 Generative AI Profile"
     ),
     jurisdiction="US-Federal",
     enacted="2023-01-26",
@@ -671,9 +670,7 @@ _ILLINOIS_AIETA = Regulation(
 _CALIFORNIA_ADMT = Regulation(
     id="california-admt",
     name="California ADMT Regulations",
-    full_name=(
-        "California AB 2930 / CPPA Automated Decision-Making Technology Regulations"
-    ),
+    full_name=("California AB 2930 / CPPA Automated Decision-Making Technology Regulations"),
     jurisdiction="US-California",
     enacted="2024-09-01",
     effective="2026-01-01",

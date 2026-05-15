@@ -101,9 +101,7 @@ def make_resume_message(ctx_dict: dict[str, Any]) -> dict[str, Any]:
         f"saved at {saved_at}" if saved_at else "",
         f"Project: {project}" if project else "",
         f"Phase: {phase}" if phase else "",
-        f"Health: {health}%  Compliance: {compliance}%"
-        if isinstance(health, int)
-        else "",
+        f"Health: {health}%  Compliance: {compliance}%" if isinstance(health, int) else "",
     ]
     summary = " | ".join(p for p in parts if p) + "]"
 

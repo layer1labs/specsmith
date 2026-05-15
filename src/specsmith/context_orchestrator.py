@@ -45,7 +45,7 @@ KEEP_LEDGER_ENTRIES = 5
 class OptimizeResult:
     """Result of a context optimization run."""
 
-    tier: int = 0           # Highest tier triggered (0 = nothing needed)
+    tier: int = 0  # Highest tier triggered (0 = nothing needed)
     actions: list[str] = field(default_factory=list)
     tokens_freed_estimate: int = 0
     critical_records_protected: int = 0
@@ -134,9 +134,7 @@ class ContextOrchestrator:
                     f"(~{freed} tokens freed)"
                 )
             else:
-                result.actions.append(
-                    f"Tier 1: {compress_result.message}"
-                )
+                result.actions.append(f"Tier 1: {compress_result.message}")
         except Exception as exc:  # noqa: BLE001
             result.actions.append(f"Tier 1: ledger compress skipped ({exc})")
 
@@ -161,7 +159,9 @@ class ContextOrchestrator:
             )
 
         # Evict low-confidence / synthetic ESDB records from in-context representation
-        evicted = self._evict_low_confidence_records(min_confidence=0.5, source_type_exclude=["synthetic"])
+        evicted = self._evict_low_confidence_records(
+            min_confidence=0.5, source_type_exclude=["synthetic"]
+        )
         if evicted > 0:
             freed_esdb = evicted * 80  # ~80 tokens per record summary
             result.tokens_freed_estimate += freed_esdb
@@ -177,7 +177,7 @@ class ContextOrchestrator:
 
         # Keep only last KEEP_LEDGER_ENTRIES turns of history
         if len(result.history) > KEEP_LEDGER_ENTRIES * 2:
-            kept = result.history[-(KEEP_LEDGER_ENTRIES * 2):]
+            kept = result.history[-(KEEP_LEDGER_ENTRIES * 2) :]
             dropped = len(result.history) - len(kept)
             freed = sum(len(t.get("content", "")) for t in result.history[:dropped]) // 4
             result.history = [
@@ -259,8 +259,7 @@ class ContextOrchestrator:
                 return sum(
                     1
                     for r in store.query()
-                    if r.confidence >= CRITICAL_CONFIDENCE
-                    and r.status == "active"
+                    if r.confidence >= CRITICAL_CONFIDENCE and r.status == "active"
                 )
         except Exception:  # noqa: BLE001
             return 0
@@ -287,7 +286,5 @@ class OptimizeResultEx(OptimizeResult):
             return "Context already optimal — no optimization needed."
         lines = [f"Optimization tier {self.tier} completed:"]
         lines.extend(f"  • {a}" for a in self.actions)
-        lines.append(
-            f"  Total estimated tokens freed: ~{self.tokens_freed_estimate:,}"
-        )
+        lines.append(f"  Total estimated tokens freed: ~{self.tokens_freed_estimate:,}")
         return "\n".join(lines)

@@ -69,12 +69,12 @@ class ChronoRecord:
     confidence: float = 0.7
 
     # OEA anti-hallucination fields
-    source_type: str = "observed"   # observed | inferred | hypothesis | synthetic  (H19)
-    evidence: list[str] = field(default_factory=list)          # (H20)
+    source_type: str = "observed"  # observed | inferred | hypothesis | synthetic  (H19)
+    evidence: list[str] = field(default_factory=list)  # (H20)
     epistemic_boundary: list[str] = field(default_factory=list)  # (H15)
-    is_hypothesis: bool = False                                 # (H20)
+    is_hypothesis: bool = False  # (H20)
     model_assumptions: dict[str, Any] = field(default_factory=dict)  # (H21)
-    recursion_depth: int = 0                                    # (H16)
+    recursion_depth: int = 0  # (H16)
 
     # Source data (original dict from JSON migration or direct write)
     data: dict[str, Any] = field(default_factory=dict)
@@ -104,12 +104,12 @@ class WalEvent:
     """A single WAL log entry."""
 
     seq: int = 0
-    ts: str = ""          # ISO-8601 timestamp
-    op: str = "upsert"    # upsert | delete | compact | migrate
+    ts: str = ""  # ISO-8601 timestamp
+    op: str = "upsert"  # upsert | delete | compact | migrate
     record_id: str = ""
     record: dict[str, Any] = field(default_factory=dict)
-    prev_hash: str = ""   # SHA-256 of previous event's hash
-    hash: str = ""        # SHA-256 of this event (set after construction)
+    prev_hash: str = ""  # SHA-256 of previous event's hash
+    hash: str = ""  # SHA-256 of this event (set after construction)
     recursion_depth: int = 0  # H16
 
     def compute_hash(self) -> str:
@@ -438,7 +438,7 @@ class ChronoStore:
                     label=item.get("title", ""),
                     status=item.get("status", "active"),
                     confidence=float(item.get("confidence", 0.7)),
-                    source_type="observed",   # H19: provenance tagged
+                    source_type="observed",  # H19: provenance tagged
                     evidence=[f"migrated from {filename}"],  # H20
                     data=item,
                 )

@@ -35,7 +35,9 @@ class LedgerEsdbMigration(Migration):
         reqs = specsmith_dir / "requirements.json"
         tests = specsmith_dir / "testcases.json"
         if not reqs.exists() and not tests.exists():
-            result.message = "No .specsmith/requirements.json or testcases.json found — nothing to migrate."
+            result.message = (
+                "No .specsmith/requirements.json or testcases.json found — nothing to migrate."
+            )
             return result
 
         if wal.exists():
@@ -51,6 +53,7 @@ class LedgerEsdbMigration(Migration):
             test_count = 0
             try:
                 import json
+
                 if reqs.exists():
                     req_count = len(json.loads(reqs.read_text(encoding="utf-8")))
                 if tests.exists():

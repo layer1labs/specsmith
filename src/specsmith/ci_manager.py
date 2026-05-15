@@ -147,13 +147,15 @@ class CiManager:
         created: list[str] = []
 
         # CI config
-        ci_exists = bool(
-            list((self.root / ".github" / "workflows").glob("*.yml"))
-            if (self.root / ".github" / "workflows").is_dir()
-            else []
-        ) or (self.root / ".gitlab-ci.yml").exists() or (
-            self.root / "bitbucket-pipelines.yml"
-        ).exists()
+        ci_exists = (
+            bool(
+                list((self.root / ".github" / "workflows").glob("*.yml"))
+                if (self.root / ".github" / "workflows").is_dir()
+                else []
+            )
+            or (self.root / ".gitlab-ci.yml").exists()
+            or (self.root / "bitbucket-pipelines.yml").exists()
+        )
 
         if force or not ci_exists:
             files = platform_obj.generate_ci_config(config, self.root)
@@ -194,7 +196,9 @@ class CiManager:
             return result
 
         if not platform_obj.is_cli_available():
-            result.error = f"{platform_obj.cli_name} CLI not found. Install it to enable CI status polling."
+            result.error = (
+                f"{platform_obj.cli_name} CLI not found. Install it to enable CI status polling."
+            )
             return result
 
         result.ci_available = True
@@ -234,7 +238,7 @@ class CiManager:
                         "api",
                         "repos/{owner}/{repo}/code-scanning/alerts",
                         "--jq",
-                        "[.[] | select(.state==\"open\")] | length",
+                        '[.[] | select(.state=="open")] | length',
                     ]
                 )
                 if sec.success and sec.output.strip().isdigit():

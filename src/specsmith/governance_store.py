@@ -76,6 +76,7 @@ class GovernanceStore:
         if config_yaml.is_file():
             try:
                 import yaml
+
                 raw = yaml.safe_load(config_yaml.read_text(encoding="utf-8")) or {}
                 return raw if isinstance(raw, dict) else {}
             except Exception:  # noqa: BLE001
@@ -86,6 +87,7 @@ class GovernanceStore:
         if specsmith_config.is_file():
             try:
                 import yaml
+
                 raw = yaml.safe_load(specsmith_config.read_text(encoding="utf-8")) or {}
                 return raw if isinstance(raw, dict) else {}
             except Exception:  # noqa: BLE001
@@ -110,6 +112,7 @@ class GovernanceStore:
     def _load_rules_yaml(self, path: Path) -> list[dict[str, Any]]:
         try:
             import yaml
+
             raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             rules = raw.get("rules", [])
             if isinstance(rules, list):
@@ -121,6 +124,7 @@ class GovernanceStore:
     def _load_yaml_list(self, path: Path, key: str) -> list[dict[str, Any]]:
         try:
             import yaml
+
             raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
             items = raw.get(key, [])
             if isinstance(items, list):
@@ -138,12 +142,14 @@ class GovernanceStore:
             re.DOTALL,
         )
         for match in pattern.finditer(text):
-            rules.append({
-                "id": match.group(1),
-                "name": match.group(2).strip(),
-                "description": match.group(3).strip()[:300],
-                "source": "md",
-            })
+            rules.append(
+                {
+                    "id": match.group(1),
+                    "name": match.group(2).strip(),
+                    "description": match.group(3).strip()[:300],
+                    "source": "md",
+                }
+            )
         return rules
 
     def _builtin_rules(self) -> list[dict[str, Any]]:
@@ -152,6 +158,7 @@ class GovernanceStore:
         try:
             # Old compliance.py (root module — has get_governance_rules_status)
             import importlib
+
             mod = importlib.import_module("specsmith.compliance")
             fn = getattr(mod, "get_governance_rules_status", None)
             if callable(fn):

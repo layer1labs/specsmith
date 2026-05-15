@@ -27,7 +27,7 @@ class Finding:
     """A single compliance finding (gap or confirmation)."""
 
     article_id: str
-    severity: str          # "gap" | "partial" | "compliant" | "n_a"
+    severity: str  # "gap" | "partial" | "compliant" | "n_a"
     message: str
     recommendation: str = ""
 
@@ -46,8 +46,8 @@ class ArticleResult:
 
     article_id: str
     title: str
-    status: str             # "compliant" | "partial" | "gap" | "n_a"
-    confidence: float       # aggregate evidence confidence
+    status: str  # "compliant" | "partial" | "gap" | "n_a"
+    confidence: float  # aggregate evidence confidence
     findings: list[Finding] = field(default_factory=list)
     evidence: list[EvidenceItem] = field(default_factory=list)
 
@@ -69,8 +69,8 @@ class ComplianceResult:
     regulation_id: str
     regulation_name: str
     jurisdiction: str
-    checked_at: str          # ISO-8601 timestamp
-    overall_status: str      # "compliant" | "partial" | "gap" | "n_a"
+    checked_at: str  # ISO-8601 timestamp
+    overall_status: str  # "compliant" | "partial" | "gap" | "n_a"
     overall_confidence: float
     article_results: list[ArticleResult] = field(default_factory=list)
     project_dir: str = ""
@@ -185,10 +185,7 @@ class ComplianceChecker:
     ) -> ArticleResult:
         """Check a single article against the collected evidence."""
         # Match evidence items by control_id
-        relevant = [
-            e for e in all_evidence
-            if e.control_id == article.id
-        ]
+        relevant = [e for e in all_evidence if e.control_id == article.id]
 
         if not relevant:
             # No direct evidence — use indirect category-based evidence
@@ -198,16 +195,18 @@ class ComplianceChecker:
 
         if not relevant:
             # No evidence at all
-            findings.append(Finding(
-                article_id=article.id,
-                severity="gap",
-                message=f"No evidence found for {article.id}: {article.title}",
-                recommendation=(
-                    f"Implement: {', '.join(article.specsmith_controls[:2])}"
-                    if article.specsmith_controls else
-                    "Review regulation requirements and implement governance controls."
-                ),
-            ))
+            findings.append(
+                Finding(
+                    article_id=article.id,
+                    severity="gap",
+                    message=f"No evidence found for {article.id}: {article.title}",
+                    recommendation=(
+                        f"Implement: {', '.join(article.specsmith_controls[:2])}"
+                        if article.specsmith_controls
+                        else "Review regulation requirements and implement governance controls."
+                    ),
+                )
+            )
             return ArticleResult(
                 article_id=article.id,
                 title=article.title,
@@ -225,12 +224,14 @@ class ComplianceChecker:
 
         # Generate findings for absent evidence
         for ev in absent:
-            findings.append(Finding(
-                article_id=article.id,
-                severity="gap",
-                message=f"Missing: {ev.description}",
-                recommendation=f"Enable: {ev.source}",
-            ))
+            findings.append(
+                Finding(
+                    article_id=article.id,
+                    severity="gap",
+                    message=f"Missing: {ev.description}",
+                    recommendation=f"Enable: {ev.source}",
+                )
+            )
 
         # Determine status
         if avg_confidence >= self._COMPLIANT_THRESHOLD and not absent:
@@ -238,14 +239,14 @@ class ComplianceChecker:
         elif avg_confidence >= self._PARTIAL_THRESHOLD or (present and absent):
             status = "partial"
             if absent:
-                findings.append(Finding(
-                    article_id=article.id,
-                    severity="partial",
-                    message=f"{len(present)}/{len(relevant)} evidence items present",
-                    recommendation=(
-                        f"Complete: {', '.join(e.source for e in absent[:2])}"
-                    ),
-                ))
+                findings.append(
+                    Finding(
+                        article_id=article.id,
+                        severity="partial",
+                        message=f"{len(present)}/{len(relevant)} evidence items present",
+                        recommendation=(f"Complete: {', '.join(e.source for e in absent[:2])}"),
+                    )
+                )
         else:
             status = "gap"
 
@@ -274,10 +275,7 @@ class ComplianceChecker:
         }
 
         target_controls = category_map.get(article.category, [])
-        return [
-            e for e in all_evidence
-            if e.control_id in target_controls
-        ]
+        return [e for e in all_evidence if e.control_id in target_controls]
 
     def store_results_to_esdb(self, results: list[ComplianceResult]) -> int:
         """Store compliance check results to ChronoStore ESDB.

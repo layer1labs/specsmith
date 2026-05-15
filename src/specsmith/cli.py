@@ -9181,9 +9181,7 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
         except Exception:  # noqa: BLE001
             pass
 
-    dest_dir = (
-        Path(backup_dir) if backup_dir else root / ".specsmith" / "backups"
-    )
+    dest_dir = Path(backup_dir) if backup_dir else root / ".specsmith" / "backups"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
     reqs = bridge.requirements()
@@ -9989,8 +9987,7 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     else:
         if regulation not in REGULATIONS:
             console.print(
-                f"[red]Unknown regulation '{regulation}'.[/red] "
-                f"Valid IDs: {', '.join(REGULATIONS)}"
+                f"[red]Unknown regulation '{regulation}'.[/red] Valid IDs: {', '.join(REGULATIONS)}"
             )
             raise SystemExit(1)
         results = [checker.check_regulation(regulation)]
@@ -10020,9 +10017,7 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
         )
         for ar in result.article_results:
             a_icon = _STATUS_ICON.get(ar.status, "?")
-            console.print(
-                f"      {a_icon} {ar.article_id:15s}  {ar.title[:50]}"
-            )
+            console.print(f"      {a_icon} {ar.article_id:15s}  {ar.title[:50]}")
 
     gap_total = sum(r.gap_count for r in results)
     if gap_total == 0:
@@ -10080,6 +10075,7 @@ def compliance_report_cmd(
 
     if output:
         from pathlib import Path
+
         Path(output).write_text(content, encoding="utf-8")
         console.print(f"[green]\u2713[/green] Report written to {output}")
     else:
@@ -10172,7 +10168,9 @@ def migrate_list_cmd(project_dir: str) -> None:
 
     console.print("[bold]Available migrations[/bold]\n")
     for m in all_migrations:
-        status = "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"  # noqa: E501
+        status = (
+            "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"
+        )  # noqa: E501
         console.print(f"  v{m.version:03d}  {status}  {m.title}")
 
 

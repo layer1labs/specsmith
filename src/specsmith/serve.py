@@ -279,11 +279,13 @@ class _Handler(BaseHTTPRequestHandler):
             # For speed, run a lightweight subset of regulations
             results = checker.check_all()
             reporter = ComplianceReporter(results)
-            self._json_response({
-                "ok": True,
-                "summary": reporter._summary_dict(),
-                "regulations": [r.to_dict() for r in results],
-            })
+            self._json_response(
+                {
+                    "ok": True,
+                    "summary": reporter._summary_dict(),
+                    "regulations": [r.to_dict() for r in results],
+                }
+            )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
 

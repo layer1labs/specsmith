@@ -15,17 +15,17 @@ from typing import Any
 from specsmith.compliance.checker import ComplianceResult
 
 _STATUS_EMOJI = {
-    "compliant": "\u2714",   # ✔
-    "partial": "\u26A0",     # ⚠
-    "gap": "\u2717",         # ✗
-    "n_a": "\u2014",         # —
+    "compliant": "\u2714",  # ✔
+    "partial": "\u26a0",  # ⚠
+    "gap": "\u2717",  # ✗
+    "n_a": "\u2014",  # —
 }
 
 _STATUS_COLOR = {
     "compliant": "#22c55e",  # green
-    "partial": "#f59e0b",    # amber
-    "gap": "#ef4444",        # red
-    "n_a": "#9ca3af",        # grey
+    "partial": "#f59e0b",  # amber
+    "gap": "#ef4444",  # red
+    "n_a": "#9ca3af",  # grey
 }
 
 
@@ -60,9 +60,7 @@ class ComplianceReporter:
             "partial": partial,
             "gaps": gaps,
             "overall_status": (
-                "compliant" if gaps == 0 and partial == 0
-                else "gap" if gaps > 0
-                else "partial"
+                "compliant" if gaps == 0 and partial == 0 else "gap" if gaps > 0 else "partial"
             ),
         }
 
@@ -92,10 +90,7 @@ class ComplianceReporter:
 
         for result in self.results:
             icon = _STATUS_EMOJI.get(result.overall_status, "?")
-            lines.append(
-                f"## {icon} {result.regulation_name}  "
-                f"*({result.jurisdiction})*"
-            )
+            lines.append(f"## {icon} {result.regulation_name}  *({result.jurisdiction})*")
             lines.append(
                 f"**Status:** {result.overall_status}  "
                 f"**Confidence:** {result.overall_confidence:.0%}  "
@@ -116,7 +111,9 @@ class ComplianceReporter:
 
             # Findings
             all_findings = [
-                f for ar in result.article_results for f in ar.findings
+                f
+                for ar in result.article_results
+                for f in ar.findings
                 if f.severity in ("gap", "partial")
             ]
             if all_findings:
@@ -150,14 +147,16 @@ class ComplianceReporter:
                     f"<td><code>{ar.article_id}</code></td>"
                     f"<td>{ar.title}</td>"
                     f"<td style='color:{ar_color};font-weight:bold'>"
-                    f"{_STATUS_EMOJI.get(ar.status,'?')} {ar.status}</td>"
+                    f"{_STATUS_EMOJI.get(ar.status, '?')} {ar.status}</td>"
                     f"<td>{ar.confidence:.0%}</td>"
                     f"</tr>"
                 )
 
             findings_html = ""
             all_findings = [
-                f for ar in result.article_results for f in ar.findings
+                f
+                for ar in result.article_results
+                for f in ar.findings
                 if f.severity in ("gap", "partial")
             ]
             if all_findings:
@@ -170,8 +169,7 @@ class ComplianceReporter:
                     )
                     if finding.recommendation:
                         items += (
-                            f"<br><em style='color:#6b7280'>"
-                            f"\u2192 {finding.recommendation}</em>"
+                            f"<br><em style='color:#6b7280'>\u2192 {finding.recommendation}</em>"
                         )
                     items += "</li>"
                 findings_html = (
@@ -181,13 +179,13 @@ class ComplianceReporter:
 
             reg_html += f"""
 <div class='regulation' style='border-left:4px solid {status_color};padding-left:16px;margin-bottom:24px'>
-  <h2 style='color:{status_color}'>{_STATUS_EMOJI.get(result.overall_status,'?')} {result.regulation_name}
+  <h2 style='color:{status_color}'>{_STATUS_EMOJI.get(result.overall_status, "?")} {result.regulation_name}
     <span style='font-size:0.7em;color:#6b7280'> {result.jurisdiction}</span>
   </h2>
   <p><strong>Status:</strong> {result.overall_status}
   &nbsp;&nbsp;<strong>Confidence:</strong> {result.overall_confidence:.0%}
   &nbsp;&nbsp;<strong>Checked:</strong> {result.checked_at}</p>
-  {f'<blockquote style="color:#6b7280">{result.notes}</blockquote>' if result.notes else ''}
+  {f'<blockquote style="color:#6b7280">{result.notes}</blockquote>' if result.notes else ""}
   <table style='border-collapse:collapse;width:100%;font-size:0.9em'>
     <thead><tr style='background:#f3f4f6'>
       <th style='text-align:left;padding:8px'>Article</th>
@@ -228,7 +226,7 @@ class ComplianceReporter:
 
 <div class='summary-card'>
   <div class='stat'>
-    <div class='num' style='color:{overall_color}'>{_STATUS_EMOJI.get(summary["overall_status"],"?")}</div>
+    <div class='num' style='color:{overall_color}'>{_STATUS_EMOJI.get(summary["overall_status"], "?")}</div>
     <div class='label'>Overall</div>
   </div>
   <div class='stat'>
