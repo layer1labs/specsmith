@@ -208,6 +208,33 @@ def _estimate_tokens(text: str) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Simple single-prompt public entry point
+# ---------------------------------------------------------------------------
+
+
+def run_single_prompt(prompt: str, *, max_tokens: int = 500) -> str | None:  # noqa: ARG001
+    """One-shot single prompt with no history or project context.
+
+    Returns the raw text response, or ``None`` if no provider is reachable.
+    Used by lightweight callers such as the AI bug-report enhancer.
+    Falls back through the same provider chain as :func:`run_chat`.
+    The ``max_tokens`` parameter is accepted for API compatibility but
+    is not forwarded to providers that don't expose a token cap in their
+    driver signature.
+    """
+    messages: list[dict[str, str]] = [{"role": "user", "content": prompt}]
+    emitter = EventEmitter()  # no-op sink — caller doesn't consume events
+    for provider in (_run_ollama, _run_anthropic, _run_openai, _run_gemini):
+        try:
+            full_text, _ = provider(messages, emitter, "")
+        except Exception:  # noqa: BLE001
+            continue
+        if full_text:
+            return full_text
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Provider drivers — each returns the full assembled text or None
 # ---------------------------------------------------------------------------
 

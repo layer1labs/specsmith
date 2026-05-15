@@ -22,7 +22,6 @@ from specsmith.issue_reporter import (
     search_issues,
 )
 
-
 # ── Similarity helpers ────────────────────────────────────────────────────────
 
 
@@ -106,7 +105,12 @@ class TestSearchIssues:
         self, mock_run: MagicMock, _mock_avail: MagicMock
     ) -> None:
         items = [
-            {"number": 1, "title": "crash on startup", "html_url": "https://github.com/x/1", "state": "open"},
+            {
+                "number": 1,
+                "title": "crash on startup",
+                "html_url": "https://github.com/x/1",
+                "state": "open",
+            },
         ]
         mock_run.return_value = self._make_gh_response(items)
         results = search_issues("kairos", "crash startup")
@@ -129,7 +133,8 @@ class TestSearchIssues:
     ) -> None:
         mock = MagicMock()
         mock.returncode = 0
-        mock.stdout = json.dumps({"items": ["not_a_dict", {"number": 5, "title": "real", "html_url": "u", "state": "open"}]})
+        real_item = {"number": 5, "title": "real", "html_url": "u", "state": "open"}
+        mock.stdout = json.dumps({"items": ["not_a_dict", real_item]})
         mock_run.return_value = mock
         results = search_issues("kairos", "real")
         assert len(results) == 1
@@ -179,7 +184,8 @@ class TestCheckDuplicate:
         # Enough word overlap to be SIMILAR but not a DUPLICATE
         # Our title: "crash during startup", candidate: "crash when launching app"
         # Words: {crash, during, startup} vs {crash, when, launching, app}
-        # intersection={crash}, union={crash,during,startup,when,launching,app} → 1/6 ≈ 0.17 < SIMILAR
+        # intersection={crash}, union={crash,during,startup,when,launching,app}
+        # → 1/6 ≈ 0.17 < SIMILAR
         # Let's use a closer pair: "settings page crash" vs "crash settings page"
         # both → {settings, page, crash} → Jaccard = 1.0 → duplicate
         # Try: "specsmith preflight fails" vs "preflight command error"
@@ -188,10 +194,12 @@ class TestCheckDuplicate:
         # "kairos window crash bug" vs "kairos crash window"
         # {kairos,window,crash,bug} vs {kairos,crash,window} → inter=3, union=4 → 0.75 ≥ DUPLICATE
         # For SIMILAR test, need 0.30 ≤ J < 0.60
-        # "kairos crash settings" {kairos,crash,settings} vs "kairos crashes network" {kairos,crashes,network}
+        # "kairos crash settings" {kairos,crash,settings}
+        # vs "kairos crashes network" {kairos,crashes,network}
         # inter={kairos}, union={kairos,crash,settings,crashes,network}=5 → 0.2 < SIMILAR
         # Let's just patch at the Jaccard level by controlling exact titles:
-        # "window crash" vs "window bug" → inter={window}, union={window,crash,bug}=3 → 0.33 ≥ SIMILAR < DUPLICATE
+        # "window crash" vs "window bug"
+        # → inter={window}, union={window,crash,bug}=3 → 0.33 ≥ SIMILAR < DUPLICATE
         self._patch_search(
             monkeypatch,
             [{"number": 2, "title": "window bug", "html_url": "u", "state": "open"}],
@@ -204,7 +212,14 @@ class TestCheckDuplicate:
     def test_low_similarity_ignored(self, monkeypatch: pytest.MonkeyPatch) -> None:
         self._patch_search(
             monkeypatch,
-            [{"number": 3, "title": "completely unrelated topic", "html_url": "u", "state": "open"}],
+            [
+                {
+                    "number": 3,
+                    "title": "completely unrelated topic",
+                    "html_url": "u",
+                    "state": "open",
+                },
+            ],
         )
         result = check_duplicate("kairos", "specific crash bug")
         # Minimal/zero word overlap → neither similar nor duplicate
@@ -248,7 +263,11 @@ class TestFileIssue:
         )
         monkeypatch.setattr(
             "specsmith.issue_reporter._gh_api_post",
-            lambda path, payload: {"number": 99, "html_url": "https://github.com/BitConcepts/kairos/issues/99", "title": payload["title"]},
+            lambda path, payload: {
+                "number": 99,
+                "html_url": "https://github.com/BitConcepts/kairos/issues/99",
+                "title": payload["title"],
+            },
         )
         result = file_issue("kairos", "title", "body", force=True)
         assert result.ok is True
