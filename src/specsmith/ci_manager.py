@@ -50,9 +50,40 @@ class CiRunResult:
         }
 
 
+def _platform_from_remote_url(url: str) -> str | None:
+    """Detect VCS platform from a remote URL using exact hostname matching.
+
+    Handles both HTTPS (https://github.com/...) and SSH (git@github.com:...) formats.
+    Uses exact hostname comparison to avoid substring-in-URL false matches
+    (CWE-20 / CodeQL py/incomplete-url-substring-sanitization).
+    """
+    from urllib.parse import urlparse
+
+    url = url.strip()
+    # SSH format: git@host:user/repo.git → normalise to parseable form
+    if url.startswith("git@"):
+        try:
+            host = url.split("@", 1)[1].split(":")[0].lower()
+        except IndexError:
+            return None
+    else:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+
+    if not host:
+        return None
+    # Exact hostname match or valid subdomain of known hosts
+    if host == "github.com" or host.endswith(".github.com"):
+        return "github"
+    if host == "gitlab.com" or host.endswith(".gitlab.com") or "gitlab" in host:
+        return "gitlab"
+    if host == "bitbucket.org" or host.endswith(".bitbucket.org") or "bitbucket" in host:
+        return "bitbucket"
+    return None
+
+
 def _detect_platform(root: Path) -> str:
     """Detect the git platform from remote URL or config files."""
-    # Try git remote
     import subprocess
 
     try:
@@ -63,13 +94,9 @@ def _detect_platform(root: Path) -> str:
             timeout=5,
             cwd=str(root),
         )
-        url = result.stdout.strip().lower()
-        if "github.com" in url:
-            return "github"
-        if "gitlab.com" in url or "gitlab" in url:
-            return "gitlab"
-        if "bitbucket.org" in url or "bitbucket" in url:
-            return "bitbucket"
+        platform = _platform_from_remote_url(result.stdout)
+        if platform:
+            return platform
     except Exception:  # noqa: BLE001
         pass
 
@@ -333,16 +360,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: {lang}
           queries: security-extended,security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:{lang}"
 """
