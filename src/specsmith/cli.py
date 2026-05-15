@@ -2787,12 +2787,36 @@ def credits() -> None:
 @credits.command(name="summary")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--month", default="", help="Filter by month (YYYY-MM).")
-def credits_summary(project_dir: str, month: str) -> None:
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit summary as JSON.")
+def credits_summary(project_dir: str, month: str, as_json: bool) -> None:
     """Show credit spend summary."""
-    from specsmith.credits import get_summary
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.credits import get_summary  # noqa: PLC0415
 
     root = Path(project_dir).resolve()
     s = get_summary(root, month=month)
+
+    if as_json:
+        result = {
+            "total_tokens_in": s.total_tokens_in,
+            "total_tokens_out": s.total_tokens_out,
+            "total_cost_usd": round(s.total_cost_usd, 6),
+            "session_count": s.session_count,
+            "entry_count": s.entry_count,
+            "by_model": s.by_model,
+            "by_provider": s.by_provider,
+            "alerts": s.alerts,
+            "budget": {
+                "monthly_cap_usd": (s.budget.monthly_cap_usd if s.budget else 0.0),
+                "enforcement_mode": (s.budget.enforcement_mode if s.budget else "soft"),
+            }
+            if s.budget
+            else None,
+        }
+        click.echo(_json.dumps(result, indent=2))
+        return
+
     console.print(f"  Tokens in:  {s.total_tokens_in:,}")
     console.print(f"  Tokens out: {s.total_tokens_out:,}")
     console.print(f"  Cost:       ${s.total_cost_usd:.4f}")
@@ -9676,9 +9700,7 @@ def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> 
 
     console.print(f"[bold]Open issues in {repo}[/bold] ({len(results)} results)\n")
     for issue in results:
-        console.print(
-            f"  [bold]#{issue['number']}[/bold]  {issue['title']}"
-        )
+        console.print(f"  [bold]#{issue['number']}[/bold]  {issue['title']}")
         console.print(f"  [blue]{issue['html_url']}[/blue]")
 
 

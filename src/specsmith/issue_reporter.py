@@ -27,6 +27,7 @@ Public surface
 - ``ai_enhance_report(title, body)`` → tuple[str, str]
 - ``DuplicateBlockedError`` — raised by file_issue when duplicates exist
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -126,18 +127,20 @@ def _gh_api_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         # Write payload to a temp file to avoid Windows quoting issues (H12)
         import tempfile  # noqa: PLC0415
 
-        with tempfile.NamedTemporaryFile(
-            mode="wb", suffix=".json", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".json", delete=False) as tmp:
             tmp.write(encoded)
             tmp_path = tmp.name
 
         result = subprocess.run(
             [
-                "gh", "api",
-                "--method", "POST",
-                "-H", "Accept: application/vnd.github+json",
-                "--input", tmp_path,
+                "gh",
+                "api",
+                "--method",
+                "POST",
+                "-H",
+                "Accept: application/vnd.github+json",
+                "--input",
+                tmp_path,
                 path,
             ],
             capture_output=True,
@@ -221,10 +224,7 @@ class DuplicateBlockedError(Exception):
     def __init__(self, result: DuplicateCheckResult) -> None:
         self.result = result
         titles = [d["title"] for d in result.duplicates[:3]]
-        super().__init__(
-            f"Likely duplicate(s) found: {titles!r}. "
-            "Use --force to file anyway."
-        )
+        super().__init__(f"Likely duplicate(s) found: {titles!r}. Use --force to file anyway.")
 
 
 # ── Core functions ───────────────────────────────────────────────────────────

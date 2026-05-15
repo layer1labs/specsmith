@@ -101,9 +101,7 @@ class TestSearchIssues:
 
     @patch("specsmith.issue_reporter._gh_available", return_value=True)
     @patch("specsmith.issue_reporter.subprocess.run")
-    def test_returns_list_of_dicts(
-        self, mock_run: MagicMock, _mock_avail: MagicMock
-    ) -> None:
+    def test_returns_list_of_dicts(self, mock_run: MagicMock, _mock_avail: MagicMock) -> None:
         items = [
             {
                 "number": 1,
@@ -120,17 +118,13 @@ class TestSearchIssues:
 
     @patch("specsmith.issue_reporter._gh_available", return_value=True)
     @patch("specsmith.issue_reporter.subprocess.run")
-    def test_empty_items(
-        self, mock_run: MagicMock, _mock_avail: MagicMock
-    ) -> None:
+    def test_empty_items(self, mock_run: MagicMock, _mock_avail: MagicMock) -> None:
         mock_run.return_value = self._make_gh_response([])
         assert search_issues("specsmith", "anything") == []
 
     @patch("specsmith.issue_reporter._gh_available", return_value=True)
     @patch("specsmith.issue_reporter.subprocess.run")
-    def test_non_dict_items_skipped(
-        self, mock_run: MagicMock, _mock_avail: MagicMock
-    ) -> None:
+    def test_non_dict_items_skipped(self, mock_run: MagicMock, _mock_avail: MagicMock) -> None:
         mock = MagicMock()
         mock.returncode = 0
         real_item = {"number": 5, "title": "real", "html_url": "u", "state": "open"}
@@ -239,9 +233,7 @@ class TestCheckDuplicate:
 
 
 class TestFileIssue:
-    def test_blocks_on_duplicates_without_force(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_blocks_on_duplicates_without_force(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             "specsmith.issue_reporter.check_duplicate",
             lambda repo, title: DuplicateCheckResult(
@@ -252,9 +244,7 @@ class TestFileIssue:
             file_issue("kairos", "crash on startup", "body text")
         assert exc_info.value.result.blocked is True
 
-    def test_force_bypasses_duplicate_check(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_force_bypasses_duplicate_check(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # check_duplicate should NOT be called when force=True
         called = []
         monkeypatch.setattr(
@@ -274,9 +264,7 @@ class TestFileIssue:
         assert result.number == 99
         assert called == []  # check_duplicate was never called
 
-    def test_file_returns_url_on_success(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_file_returns_url_on_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             "specsmith.issue_reporter.check_duplicate",
             lambda *a, **kw: DuplicateCheckResult(),
@@ -294,9 +282,7 @@ class TestFileIssue:
         assert result.number == 42
         assert "42" in result.html_url
 
-    def test_file_returns_error_on_gh_failure(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_file_returns_error_on_gh_failure(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
             "specsmith.issue_reporter.check_duplicate",
             lambda *a, **kw: DuplicateCheckResult(),
@@ -309,9 +295,7 @@ class TestFileIssue:
         assert result.ok is False
         assert "authentication" in result.error
 
-    def test_labels_passed_to_payload(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_labels_passed_to_payload(self, monkeypatch: pytest.MonkeyPatch) -> None:
         captured: list[dict] = []
         monkeypatch.setattr(
             "specsmith.issue_reporter.check_duplicate",
