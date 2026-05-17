@@ -326,8 +326,12 @@ def parse_requirements_as_beliefs(path: Path) -> list[BeliefArtifact]:  # noqa: 
             elif key == "status":
                 current.status = _map_status(val)
                 current.confidence = _infer_confidence(current.status)
+            elif key == "confidence":
+                current.confidence = _map_confidence(val)
             elif key in ("platform", "platforms"):
                 current.epistemic_boundary = [f"Platform: {val}"]
+            elif key in ("boundary",):
+                current.epistemic_boundary.append(val)
             elif key in ("test", "covers", "tests", "id"):
                 pass  # id already consumed above; tests are external
         else:
@@ -365,6 +369,18 @@ def _map_status(val: str) -> BeliefStatus:
     if "deprecat" in val_lower:
         return BeliefStatus.DEPRECATED
     return BeliefStatus.DRAFT
+
+
+def _map_confidence(val: str) -> ConfidenceLevel:
+    """Map an explicit confidence field value to a ConfidenceLevel."""
+    val_lower = val.strip().lower()
+    if val_lower == "high":
+        return ConfidenceLevel.HIGH
+    if val_lower == "medium":
+        return ConfidenceLevel.MEDIUM
+    if val_lower == "low":
+        return ConfidenceLevel.LOW
+    return ConfidenceLevel.UNKNOWN
 
 
 def _infer_confidence(status: BeliefStatus) -> ConfidenceLevel:
