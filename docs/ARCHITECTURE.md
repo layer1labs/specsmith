@@ -456,7 +456,7 @@ The following invariants must hold:
 - Filesystem mailbox communication MUST remain simple and debuggable.
 - Orchestration SHOULD prefer local Ollama for routing when possible.
 
-## 15. Bootstrap Sequencing Rules
+## 17. Bootstrap Sequencing Rules
 
 Current bootstrap sequence:
 
@@ -473,7 +473,7 @@ Current bootstrap sequence:
 
 Specsmith must not claim to govern itself until architecture, requirements, test specs, work items, and ledger flow are aligned.
 
-## 16. Non-Goals During Bootstrap
+## 18. Non-Goals During Bootstrap
 
 During bootstrap, do not yet implement:
 
@@ -488,7 +488,7 @@ During bootstrap, do not yet implement:
 
 Bootstrap is limited to making Specsmith capable of governing its own future development.
 
-## 17. ChronoMemory ESDB
+## 19. ChronoMemory ESDB
 
 ChronoMemory is a Rust Epistemic State Database engine (`crates/chronomemory/`) that replaces flat JSON state files with governed, replayable, dependency-aware epistemic cognition.
 
@@ -745,7 +745,11 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
-| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+| `docs/requirements/overflow.yml` | REQ-300..312 | YAML governance + ESDB extras |
+| `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
+
+**Reserved ranges:**
+- REQ-313..320: reserved for compliance plan 5939f743 (EU/NA regulation extensions)
 
 **Architecture invariants for YAML governance:**
 - REQUIREMENTS.md and TESTS.md MUST NOT be hand-edited when governance-mode is `yaml`.

@@ -114,3 +114,6 @@
     \ \tier, ctions, and\n\tokens_freed."
   source: ARCHITECTURE.md §Context Orchestrator
   status: implemented
+# NOTE: REQ-313..320 are reserved for compliance plan 5939f743
+# (EU/NA regulation coverage extensions — additional AI Act / NIST AI RMF mechanisms).
+# Do not use these IDs for other purposes; they will be populated when that plan executes.

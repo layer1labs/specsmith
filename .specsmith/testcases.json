@@ -3005,141 +3005,155 @@
   {
     "id": "TEST-321",
     "title": "Orchestrator Is Sole Dispatch Entry Point",
-    "description": "The Orchestrator MUST remain the sole entry point for all dispatched work. Worker agents MUST NOT initiate new dispatches or call AgentDispatcher directly.",
+    "description": "The Orchestrator source MUST document REQ-321 and the sole-entry-point constraint. Worker agents MUST NOT expose a public method to initiate dispatches.",
     "requirement_id": "REQ-321",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "inspect.getsource(orchestrator); check for REQ-321 and 'sole entry point'",
+    "expected_behavior": "Both strings present in source; no AgentDispatcher.run() call outside orchestrator",
+    "confidence": 0.95
   },
   {
     "id": "TEST-322",
     "title": "DAG Decomposition Before Worker Dispatch",
-    "description": "When use_dag=True, the Orchestrator MUST call TaskDAGBuilder.build(task) and validate the resulting TaskDAG is acyclic before dispatching any worker agent. On cycle detection a DAGValidationError MUST be raised and execution MUST fall back to the existing flat GroupChat path with a warning.",
+    "description": "TaskDAGBuilder.build() decomposes task into a valid acyclic DAG. Cycles raise DAGValidationError before any worker starts. Single-node fallback used when no planner output is provided.",
     "requirement_id": "REQ-322",
     "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "verification_method": "pytest",
+    "input": "Build DAG from plan list; build DAG from JSON string; build with cycle; build with no planner output",
+    "expected_behavior": "Valid plan builds DAG; JSON string extracted and built; cycle raises DAGValidationError; no planner builds single-node fallback",
+    "confidence": 1.0
   },
   {
     "id": "TEST-323",
     "title": "TaskNode Must Carry Required Fields",
-    "description": "Each TaskNode MUST carry: a unique string id, a human-readable title, an assigned role matching ROLE_TOOLS, an explicit depends_on list of node ids, a TaskStatus (PENDING | RUNNING | COMPLETED | FAILED | BLOCKED), context_in (list of ESDB record IDs), context_out (ESDB record ID written on completion or None), and result (DispatchResult or None).",
+    "description": "A TaskNode constructed with minimal args MUST default status=PENDING, context_in=[], context_out=None, result=None. to_dict() MUST include all required fields.",
     "requirement_id": "REQ-323",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "TaskNode(id=n, title=T, role=coder, depends_on=[dep])",
+    "expected_behavior": "All 8 REQ-323 fields populated with correct types and defaults",
+    "confidence": 1.0
   },
   {
     "id": "TEST-324",
     "title": "Concurrent Dispatch Bounded by max_workers",
-    "description": "AgentDispatcher MUST execute independent (runnable) TaskNodes concurrently up to max_workers (default 4) using ThreadPoolExecutor. It MUST NOT dispatch more than max_workers nodes simultaneously at any point during a run.",
+    "description": "AgentPool MUST return None when active_count >= max_workers, preventing over-dispatch. Pool with idle workers returns a reused agent without spawning.",
     "requirement_id": "REQ-324",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "Pool at capacity; pool with idle worker",
+    "expected_behavior": "acquire() returns None at cap; acquire() returns idle worker without spawning new agent",
+    "confidence": 1.0
   },
   {
     "id": "TEST-325",
     "title": "Fail-Forward BLOCKED Propagation",
-    "description": "When a TaskNode transitions to FAILED, AgentDispatcher MUST mark all direct and transitive dependent nodes as BLOCKED. Non-dependent sibling nodes that are still PENDING or RUNNING MUST continue executing without interruption.",
+    "description": "When a node transitions to FAILED, all transitive dependents are marked BLOCKED while non-dependent siblings remain PENDING. all_terminal() returns True after full propagation of a single-dependency chain.",
     "requirement_id": "REQ-325",
     "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "verification_method": "pytest",
+    "input": "4-node DAG; fail impl; check review=BLOCKED and test=PENDING",
+    "expected_behavior": "review BLOCKED; test unaffected; all_terminal() True after a+b fail+block",
+    "confidence": 1.0
   },
   {
     "id": "TEST-326",
     "title": "AgentPool Must Reuse Idle Workers",
-    "description": "AgentPool MUST reuse idle ConversableAgent instances for new tasks of the same role rather than spawning unbounded agents. The pool MUST track active and idle workers per role and enforce the max_workers ceiling.",
+    "description": "After release(), a subsequent acquire() for the same role returns the previously released agent object without spawning a new one.",
     "requirement_id": "REQ-326",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "Insert sentinel into pool._idle['coder']; call acquire('coder')",
+    "expected_behavior": "acquire() returns sentinel; active_count increments; release() decrements count and returns sentinel to idle",
+    "confidence": 1.0
   },
   {
     "id": "TEST-327",
     "title": "ESDB Context Written on Node Completion",
-    "description": "On successful TaskNode completion, AgentDispatcher MUST write a ChronoRecord to ChronoStore with kind=dispatch_result containing the DispatchResult payload. Successor tasks MUST receive predecessor ChronoRecord IDs in their context_in and retrieve the records via ESDB query before starting.",
+    "description": "AgentDispatcher calls _write_esdb_record on node completion and sets context_out. Downstream nodes receive context_in populated with predecessor record ID.",
     "requirement_id": "REQ-327",
     "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "verification_method": "pytest",
+    "input": "Single-node DAG with mocked worker; mock _write_esdb_record returning 'rec-xyz'",
+    "expected_behavior": "summary.completed[0].esdb_record_id == 'rec-xyz'; node.context_out set",
+    "confidence": 0.9
   },
   {
     "id": "TEST-328",
     "title": "DAG State Transitions Persisted as JSONL Events",
-    "description": "Every TaskNode state transition (node_started, node_completed, node_failed, node_blocked) and the terminal dag_done event MUST be serialized as a DispatchEvent and appended to .specsmith/dispatch/<dag_id>/events.jsonl. The file MUST be created before the first node starts.",
+    "description": "EventEmitter writes node_started, node_completed, node_failed, and dag_done events as JSONL to .specsmith/dispatch/<dag_id>/events.jsonl. The file is created before the first emit.",
     "requirement_id": "REQ-328",
     "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "verification_method": "pytest",
+    "input": "EventEmitter(tmp_path, 'dag-id'); emit node_started, node_completed, node_failed",
+    "expected_behavior": "events.jsonl exists immediately after construction; 3 JSONL lines with correct event_type values",
+    "confidence": 1.0
   },
   {
     "id": "TEST-329",
     "title": "Per-Node Governance Preflight Before Worker Start",
-    "description": "Before a worker agent begins executing a TaskNode, AgentDispatcher MUST call execute_with_governance (or equivalent preflight check) with the node task description. If governance returns needs_clarification or rejected the node MUST transition to FAILED immediately.",
+    "description": "AgentDispatcher._governance_preflight() is called for each node before worker acquisition. A mock that raises _GovernanceBlockedError causes the node to transition to FAILED without calling _invoke_worker.",
     "requirement_id": "REQ-329",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "Single-node DAG; patch _governance_preflight to raise; mock _invoke_worker",
+    "expected_behavior": "_invoke_worker not called; node.status = FAILED; summary.failed contains node",
+    "confidence": 0.9
   },
   {
     "id": "TEST-330",
     "title": "DAG Run Must Be Resumable from Checkpoint",
-    "description": "A saved DAG run (events.jsonl) MUST be resumable via specsmith dispatch retry. The retry command MUST replay only the FAILED or BLOCKED nodes from the last checkpoint while treating COMPLETED nodes as already done. COMPLETED nodes MUST NOT be re-executed.",
+    "description": "EventEmitter.replay() returns all persisted events for a dag_id. dispatch retry command identifies FAILED/BLOCKED nodes from past events and re-executes only those nodes.",
     "requirement_id": "REQ-330",
     "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "verification_method": "pytest",
+    "input": "EventEmitter(tmp_path, dag); emit node_started+completed+dag_done; call EventEmitter.replay()",
+    "expected_behavior": "replay() returns 3 events in order; list_runs() includes dag_id",
+    "confidence": 1.0
   },
   {
     "id": "TEST-331",
     "title": "Dispatch CLI Group with run/status/list/retry",
-    "description": "specsmith dispatch MUST expose four subcommands: run <TASK> [--max-workers N] [--json] [--no-dag] to start a dispatch; status [--dag-id ID] to print per-node status; list to enumerate all saved DAG runs; retry --node NODE_ID --dag-id ID to re-run a single failed node.",
+    "description": "specsmith dispatch --help lists run, status, list, retry. Each subcommand shows expected options. dispatch list on empty project exits 0. dispatch status with unknown dag_id exits 0.",
     "requirement_id": "REQ-331",
-    "type": "integration",
-    "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "type": "cli",
+    "verification_method": "pytest",
+    "input": "CliRunner invoke dispatch --help; dispatch run --help; dispatch list; dispatch status --dag-id nonexistent",
+    "expected_behavior": "All exit 0; --help shows expected subcommands and options",
+    "confidence": 1.0
   },
   {
     "id": "TEST-332",
     "title": "Kairos Live DAG Graph Panel",
-    "description": "Kairos MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
+    "description": "DispatchApp renders a DAG graph panel subscribed to the SSE stream. Nodes are coloured by status. A node click opens a side panel with role, summary, ESDB record ID.",
     "requirement_id": "REQ-332",
     "type": "integration",
     "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "input": "Kairos DispatchApp with mock SSE events for each NodeStatus variant",
+    "expected_behavior": "Each node rendered in correct colour; side panel opens on click showing node metadata",
+    "confidence": 0.85
   },
   {
     "id": "TEST-333",
     "title": "Kairos Gantt Timeline Strip",
-    "description": "Kairos MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
+    "description": "GanttStrip renders one row per node with a time-proportional bar. Nodes with overlapping started_at/finished_at ranges show visual concurrency.",
     "requirement_id": "REQ-333",
     "type": "integration",
     "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "input": "GanttStrip with 2 nodes having overlapping start/end times",
+    "expected_behavior": "Both nodes show bars; bar widths proportional to duration; overlap visible",
+    "confidence": 0.85
   },
   {
     "id": "TEST-334",
     "title": "Kairos Per-Node Retry and Abort Controls",
-    "description": "Kairos MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
+    "description": "ControlsPanel Retry button is enabled for FAILED/BLOCKED nodes and disabled for others. Abort button is enabled only for RUNNING nodes. Clicking calls the correct POST endpoint.",
     "requirement_id": "REQ-334",
-    "type": "integration",
+    "type": "unit",
     "verification_method": "evaluator",
-    "confidence": 0.85,
-    "status": "defined"
+    "input": "ControlsPanel for each NodeStatus (Pending/Running/Completed/Failed/Blocked)",
+    "expected_behavior": "Retry enabled only for Failed/Blocked; Abort enabled only for Running; click invokes correct action callback",
+    "confidence": 0.9
   }
 ]

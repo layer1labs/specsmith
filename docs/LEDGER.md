@@ -276,3 +276,9 @@
 - **Type**: feature
 - **Status**: complete
 - **Chain hash**: `a412cb4f3ac05f14...`
+
+## 2026-05-17T16:01 — Full traceability sweep: added docs/requirements/dispatch.yml + docs/tests/dispatch.yml (YAML source for REQ-321..334), ran specsmith sync (0 errors, 0 warnings), fixed ARCHITECTURE.md section numbering (duplicate 15/16 corrected), added REQ-313..320 reservation note, updated README.md (dispatch+compiler sections), CHANGELOG.md (v0.11.3-post2), docs/site/commands.md (dispatch group + compiler tools), docs/site/tool-registry.md (agent tools + ROLE_TOOLS). All tests: 777 passed.
+- **Author**: oz-agent
+- **Type**: documentation
+- **Status**: complete
+- **Chain hash**: `e519c3f3fc417915...`

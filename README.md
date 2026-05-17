@@ -593,6 +593,91 @@ interrupting the active session.
 
 ---
 
+## Multi-Agent DAG Dispatcher (REQ-321..334)
+
+The `specsmith dispatch` command group decomposes a task into a **Directed Acyclic Graph** of
+agent work items and executes them concurrently, with fail-forward BLOCKED propagation and
+ESDB context injection between nodes.
+
+```bash
+# Run a task through the DAG dispatcher (default: up to 4 concurrent workers)
+specsmith dispatch run "add API endpoint with tests" --max-workers 4
+
+# Stream JSONL events while the run is in progress
+specsmith dispatch run "refactor auth module" --json
+
+# Check status of a saved run
+specsmith dispatch status --dag-id abc123def456
+
+# List all saved runs
+specsmith dispatch list
+
+# Retry a single failed node from a checkpoint
+specsmith dispatch retry --node impl --dag-id abc123def456
+```
+
+The dispatcher is also available programmatically:
+
+```python
+from specsmith.agent.orchestrator import Orchestrator
+
+orchestrator = Orchestrator()
+
+# Use the DAG path (falls back to GroupChat on cycle detection)
+result = orchestrator.run_task("add feature X", use_dag=True)
+
+# Always use DAG — returns DispatchSummary with per-node outcomes
+summary = orchestrator.run_dispatch(
+    "add feature X",
+    planner_output=[
+        {"id": "arch", "title": "Design", "role": "architect", "depends_on": []},
+        {"id": "impl", "title": "Implement", "role": "coder", "depends_on": ["arch"]},
+        {"id": "test", "title": "Write tests", "role": "tester", "depends_on": ["arch"]},
+    ],
+    max_workers=3,
+)
+print(f"{len(summary.completed)} completed, {len(summary.failed)} failed")
+```
+
+Events are persisted to `.specsmith/dispatch/<dag_id>/events.jsonl` for resume and replay.
+Kairos renders the live dispatch view — see `app/` for build instructions.
+
+---
+
+## Compiler and Tool Support
+
+All agent roles can invoke compiler, linter, and formatter tools. These are registered in
+`AVAILABLE_TOOLS` and wired into `ROLE_TOOLS` for the `coder`, `reviewer`, `tester`, `architect`,
+and `embedded-coder` roles.
+
+| Tool | Function | Default binary |
+|------|----------|-|
+| GCC / G++ | `run_gcc(args, compiler='gcc')` | `gcc` / `g++` |
+| ARM bare-metal | `run_arm_gcc(args, compiler='arm-none-eabi-gcc')` | `arm-none-eabi-gcc` |
+| AArch64 Linux | `run_aarch64_gcc(args, compiler='aarch64-linux-gnu-gcc')` | `aarch64-linux-gnu-gcc` |
+| IAR Embedded | `run_iar_compiler(project_file, executable='IarBuild')` | `IarBuild` |
+| Intel oneAPI | `run_intel_compiler(args, compiler='icx')` | `icx` / `icpx` / `icc` |
+| clang-format | `run_clang_format(files, style='file', in_place=False)` | `clang-format` |
+| clang-tidy | `run_clang_tidy(files, checks='', fix=False)` | `clang-tidy` |
+| VSG (VHDL) | `run_vsg(files, rules=None, fix=False)` | `vsg` |
+
+All tools are usable directly in the agentic REPL and in `specsmith dispatch` worker nodes:
+
+```python
+from specsmith.agent.tools import run_arm_gcc, run_clang_tidy, run_vsg
+
+# Cross-compile for ARM bare-metal
+result = run_arm_gcc("-Wall -O2 main.c -o firmware.elf", compiler="arm-none-eabi-gcc")
+
+# Lint C/C++ with clang-tidy
+result = run_clang_tidy("src/", checks="modernize-*,readability-*")
+
+# Style-check VHDL files
+result = run_vsg("rtl/top.vhd", rules="vsg_rules.yaml")
+```
+
+---
+
 ## Kairos — Flagship Terminal Client
 
 **[Kairos](https://github.com/BitConcepts/kairos)** is the recommended terminal client for specsmith.
@@ -604,6 +689,14 @@ specsmith status, version, and one-click update.
 # Kairos starts specsmith automatically; or run manually:
 specsmith governance-serve --port 7700 --project-dir .
 ```
+
+The Kairos **Dispatch Panel** (`app/` — Rust, egui/eframe) renders the multi-agent DAG live:
+- SVG DAG graph with nodes coloured by status (grey/blue/green/red/amber)
+- Gantt timeline strip showing parallelism
+- Per-node Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
+- Subscribes to `GET /api/dispatch/events?dag_id=` SSE from `specsmith serve`
+
+Build Kairos dispatch panel: `cd app && cargo build --release`
 
 The VS Code extension (`specsmith-vscode`) has been **deprecated** in favour of Kairos.
 Use `pipx install specsmith` for standalone CLI usage from any terminal.
