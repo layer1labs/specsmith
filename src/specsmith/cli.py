@@ -5174,7 +5174,11 @@ def info_cmd(as_json: bool, section: str) -> None:
 
     from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
     from specsmith.languages import EXT_LANG, LANG_CATEGORY, LANG_DISPLAY  # noqa: PLC0415
-    from specsmith.ollama_cmds import CATALOG as OLLAMA_CATALOG  # noqa: PLC0415
+
+    try:
+        from specsmith.ollama_cmds import CATALOG as OLLAMA_CATALOG  # noqa: PLC0415
+    except ImportError:
+        OLLAMA_CATALOG = []  # ollama integration not installed
     from specsmith.phase import PHASES  # noqa: PLC0415
 
     result: dict = {}
