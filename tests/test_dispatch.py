@@ -213,7 +213,7 @@ class TestBlockedPropagation:
 class TestRunnableNodes:
     def test_no_runnable_when_dep_pending(self):
         """Node with PENDING dep is not yet runnable."""
-        from specsmith.agent.dispatch import TaskDAGBuilder, TaskStatus
+        from specsmith.agent.dispatch import TaskDAGBuilder
 
         dag = TaskDAGBuilder.build(
             "f",
@@ -249,14 +249,14 @@ class TestRunnableNodes:
 class TestEventEmitter:
     def test_emitter_creates_jsonl(self, tmp_path: Path):
         """EventEmitter creates events.jsonl before first node (REQ-328)."""
-        from specsmith.agent.dispatch import DispatchEvent, EventEmitter
+        from specsmith.agent.dispatch import EventEmitter
 
-        emitter = EventEmitter(tmp_path, "test-dag-001")
+        EventEmitter(tmp_path, "test-dag-001")
         expected = tmp_path / ".specsmith" / "dispatch" / "test-dag-001" / "events.jsonl"
         assert expected.exists()
 
     def test_emit_writes_jsonl_line(self, tmp_path: Path):
-        from specsmith.agent.dispatch import DispatchEvent, EventEmitter
+        from specsmith.agent.dispatch import EventEmitter
 
         emitter = EventEmitter(tmp_path, "dag-write")
         emitter.node_started("node-1", "coder")
@@ -264,7 +264,7 @@ class TestEventEmitter:
         emitter.node_failed("node-2", "timeout")
 
         path = tmp_path / ".specsmith" / "dispatch" / "dag-write" / "events.jsonl"
-        lines = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+        lines = [json.loads(ln) for ln in path.read_text().splitlines() if ln.strip()]
         assert len(lines) == 3
         assert lines[0]["event_type"] == "node_started"
         assert lines[0]["node_id"] == "node-1"
@@ -576,8 +576,8 @@ class TestAgentDispatcherEndToEnd:
         jsonl = (
             tmp_path / ".specsmith" / "dispatch" / "events-001" / "events.jsonl"
         )
-        lines = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
-        event_types = [l["event_type"] for l in lines]
+        lines = [json.loads(ln) for ln in jsonl.read_text().splitlines() if ln.strip()]
+        event_types = [ln["event_type"] for ln in lines]
         assert "node_started" in event_types
         assert "node_completed" in event_types
         assert "dag_done" in event_types
@@ -596,7 +596,6 @@ class TestCooperativeAbort:
             AgentPool,
             EventEmitter,
             TaskDAGBuilder,
-            TaskStatus,
         )
 
         dag = TaskDAGBuilder.build("job", dag_id="abort-pre")
@@ -618,7 +617,10 @@ class TestCooperativeAbort:
 
     def test_abort_node_returns_false_for_unknown_node(self, tmp_path):
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
         dag = TaskDAGBuilder.build("job", dag_id="abort-unknown")
         emitter = EventEmitter(tmp_path, "abort-unknown")
@@ -632,7 +634,10 @@ class TestCooperativeAbort:
     def test_abort_flag_checked_after_preflight(self, tmp_path):
         """Abort signalled during governance preflight exits before worker acquire."""
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder, TaskStatus
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
 
         dag = TaskDAGBuilder.build("job", dag_id="abort-post-preflight")
@@ -646,7 +651,9 @@ class TestCooperativeAbort:
             # Simulate preflight setting the abort flag mid-execution
             dispatcher.abort_node(node.id)
 
-        with mock.patch.object(dispatcher, "_governance_preflight", side_effect=_preflight_and_abort):
+        with mock.patch.object(
+            dispatcher, "_governance_preflight", side_effect=_preflight_and_abort
+        ):
             summary = dispatcher.run()
 
         # Worker should never have been acquired
@@ -683,7 +690,10 @@ class TestMultiAgentCompliance:
     def test_dispatch_summary_dag_id_traceable(self, tmp_path):
         """DispatchSummary.dag_id must match TaskDAG.dag_id (REQ-315)."""
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
 
         dag = TaskDAGBuilder.build("t", dag_id="trace-315")
@@ -693,8 +703,10 @@ class TestMultiAgentCompliance:
         dispatcher = AgentDispatcher(
             dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
         )
-        with mock.patch.object(dispatcher, "_invoke_worker",
-                               return_value={"summary": "", "files_changed": [], "equilibrium": True}), \
+        with mock.patch.object(
+            dispatcher, "_invoke_worker",
+            return_value={"summary": "", "files_changed": [], "equilibrium": True},
+        ), \
              mock.patch.object(dispatcher, "_write_esdb_record", return_value=None), \
              mock.patch.object(dispatcher, "_governance_preflight"), \
              mock.patch.object(dispatcher, "_write_dispatch_ledger"):
@@ -705,7 +717,10 @@ class TestMultiAgentCompliance:
     def test_governance_block_in_error(self, tmp_path):
         """Governance block must set error to 'Governance preflight blocked' (REQ-316)."""
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
 
         dag = TaskDAGBuilder.build("t", dag_id="gov-316")
@@ -725,11 +740,12 @@ class TestMultiAgentCompliance:
     # REQ-317: context_in populated by _propagate_context
     def test_context_injection_traceable(self):
         """After _propagate_context, child.context_in contains parent's esdb_id (REQ-317)."""
+        import tempfile
+        from pathlib import Path
+
         from specsmith.agent.dispatch import TaskDAGBuilder, TaskStatus
         from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
         from specsmith.agent.dispatch.events import EventEmitter
-        from pathlib import Path
-        import tempfile
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -756,6 +772,7 @@ class TestMultiAgentCompliance:
     def test_retry_refuses_completed_node(self, tmp_path):
         """dispatch retry --node n1 returns error if n1 is already completed (REQ-318)."""
         from click.testing import CliRunner
+
         from specsmith.agent.dispatch import EventEmitter
         from specsmith.cli import main
 
@@ -778,10 +795,8 @@ class TestMultiAgentCompliance:
     # REQ-319: ESDB record contains DAG lineage
     def test_esdb_record_contains_dag_lineage(self, tmp_path):
         """dispatch_result ChronoRecord MUST include dag_id and node_id (REQ-319)."""
+        from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
         from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
-        from specsmith.agent.dispatch import (
-            TaskDAGBuilder, EventEmitter, TaskNode, TaskStatus
-        )
         from specsmith.esdb.store import ChronoStore
 
         dag = TaskDAGBuilder.build("t", dag_id="esdb-319")
@@ -807,7 +822,10 @@ class TestMultiAgentCompliance:
     def test_abort_error_contains_aborted(self, tmp_path):
         """Pre-armed abort_node() produces error containing 'Aborted' (REQ-320)."""
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
 
         dag = TaskDAGBuilder.build("t", dag_id="abort-320")
@@ -828,7 +846,10 @@ class TestMultiAgentCompliance:
     def test_dispatch_ledger_entry_written(self, tmp_path):
         """AgentDispatcher.run() writes a dispatch ledger entry (REQ-313)."""
         from specsmith.agent.dispatch import (
-            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
         )
 
         # Create a minimal LEDGER.md so the ledger writer can find it
