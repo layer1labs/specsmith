@@ -23,33 +23,18 @@ from typing import Any
 _VALID_DAG_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
 
 
-def _path_safe_dag_id(dag_id: str) -> str:
-    """Return a filesystem-safe path component derived from *dag_id*.
+def _assert_safe_dag_id(dag_id: str, safe: str) -> None:
+    """Secondary allow-list guard after os.path.basename() has been applied.
 
-    Two-layer defence against path traversal (CWE-22):
-
-    1. ``os.path.basename()`` — the stdlib call that CodeQL's Python
-       taint-analysis model explicitly whitelists as a path-traversal
-       sanitiser.  It strips any directory separators so the *return
-       value* carries no taint in CodeQL's data-flow graph.  Path
-       components derived from this return value are therefore safe
-       to use in file operations.
-
-    2. Strict allow-list regex + ValueError — secondary validation that
-       rejects anything that survives the basename step but still contains
-       characters outside ``[a-zA-Z0-9_-]`` (e.g. a bare filename that
-       starts with ``..``).
-
-    IMPORTANT: callers **must** use the *return value* in path construction,
-    not the original ``dag_id``, to keep CodeQL's taint chain broken.
+    Must be called with ``safe = os.path.basename(dag_id)`` at the call site
+    so CodeQL's taint engine sees the stdlib sanitiser directly on the source.
+    Raises ``ValueError`` when the basename result still fails the allow-list.
     """
-    safe = os.path.basename(dag_id)  # CodeQL-whitelisted sanitiser
     if not _VALID_DAG_ID_RE.match(safe):
         raise ValueError(
-            f"Invalid dag_id {dag_id!r}: after os.path.basename(), result "
-            f"{safe!r} must match ^[a-zA-Z0-9][a-zA-Z0-9_-]{{0,63}}$"
+            f"Invalid dag_id {dag_id!r}: must match "
+            r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
         )
-    return safe
 
 
 # ---------------------------------------------------------------------------
@@ -121,10 +106,12 @@ class EventEmitter:
     """
 
     def __init__(self, project_root: Path, dag_id: str) -> None:
-        # _path_safe_dag_id() applies os.path.basename() (CodeQL-whitelisted
-        # sanitiser) and returns a clean value.  Use ONLY that return value
-        # in path operations — never dag_id directly — to keep taint broken.
-        safe = _path_safe_dag_id(dag_id)
+        # os.path.basename() is called INLINE here so CodeQL's taint engine
+        # sees the stdlib sanitiser directly on the source variable.
+        # The return value 'safe' carries no taint; dag_id is never used in
+        # path operations below.
+        safe = os.path.basename(dag_id)  # noqa: PTH119 — intentional sanitiser
+        _assert_safe_dag_id(dag_id, safe)  # allow-list + ValueError guard
         self._dag_id = dag_id
         run_dir = project_root / ".specsmith" / "dispatch" / safe
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -222,7 +209,9 @@ class EventEmitter:
     @staticmethod
     def replay(project_root: Path, dag_id: str) -> list[DispatchEvent]:
         """Read and return all persisted events for a DAG run (REQ-330)."""
-        safe = _path_safe_dag_id(dag_id)  # os.path.basename sanitiser — use return value
+        # Inline os.path.basename() so CodeQL sees the sanitiser at this call site.
+        safe = os.path.basename(dag_id)  # noqa: PTH119 — intentional sanitiser
+        _assert_safe_dag_id(dag_id, safe)
         path = project_root / ".specsmith" / "dispatch" / safe / "events.jsonl"
         if not path.exists():
             return []
