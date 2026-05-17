@@ -202,3 +202,55 @@ failed_nodes = [e.node_id for e in events if e.event_type == "node_failed"]
 The `dispatch retry` command and `POST /api/dispatch/retry` both rebuild a
 minimal single-node DAG from the original run's role information and run it
 as a new checkpoint-linked sub-run.
+
+
+## Kairos DAG Panel — Topological Layout
+
+The Kairos dispatch panel (`app/`) uses a **topological layout** algorithm:
+each node is positioned at a horizontal level equal to the depth of its
+longest dependency path. Root nodes (no deps) are at level 0; a node depending
+on a level-2 node sits at level 3. Within each level, nodes are evenly
+distributed vertically.
+
+`depends_on` is included in every `node_started` SSE event payload so Kairos
+can reconstruct the full dependency graph from the live stream without any
+separate graph-structure endpoint.
+
+**Edges** are drawn as cubic bezier curves from the right edge of each parent
+to the left edge of each child, with arrowheads at the child end, rendered
+behind the node layer.
+
+## Abort — Cooperative Cancellation (0.5 s polling)
+
+`POST /api/dispatch/abort` uses **cooperative cancellation**:
+`abort_node(node_id)` sets a per-node `threading.Event`. `_run_node` checks
+this flag at four safe checkpoints — before preflight, after preflight,
+after worker acquire, and **during LLM invocation**.
+
+For the LLM invocation checkpoint, `_invoke_worker_monitored()` runs the AG2
+`initiate_chat` call in a daemon sub-thread and polls the abort flag every
+**0.5 s** via `thread.join(timeout=0.5)`. If the flag fires mid-call,
+`_run_node` raises `_NodeAbortedError` immediately without waiting for the
+sub-thread to finish. The LLM sub-thread completes naturally in the background.
+
+The node always transitions to FAILED with error `"Aborted: ..."` so every
+abort is traceable in events.jsonl (REQ-320).
+
+## Compliance — REQ-313..320 (EU AI Act Art. 12/13/14)
+
+Eight multi-agent governance traceability requirements (compliance plan
+5939f743) are implemented alongside the dispatcher:
+
+| REQ | What is enforced |
+|-----|-----------------|
+| REQ-313 | Every `AgentDispatcher.run()` appends a `dispatch` ledger entry to LEDGER.md (EU AI Act Art. 12 record-keeping) |
+| REQ-314 | `node_started` payload includes worker `role` and `depends_on` for audit trail transparency (Art. 13) |
+| REQ-315 | `DispatchSummary.dag_id` traces every run back to its originating Orchestrator call |
+| REQ-316 | Governance preflight blocks write `"Governance preflight blocked: ..."` to the node error field (Art. 14) |
+| REQ-317 | `context_in` ESDB record IDs are stored in `TaskNode` for traceable information flow between agents |
+| REQ-318 | `events.jsonl` checkpoint prevents re-execution of COMPLETED nodes on retry (REQ-330 correctness) |
+| REQ-319 | ESDB `dispatch_result` records include `dag_id` and `node_id` in both evidence list and data dict |
+| REQ-320 | Aborted nodes set error to `"Aborted: ..."` to distinguish intentional stops from failures (Art. 14 §4) |
+
+All 8 requirements have pytest coverage in `tests/test_dispatch.py`
+(`TestMultiAgentCompliance`).

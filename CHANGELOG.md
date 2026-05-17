@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.3-post2] — 2026-05-17
+## [0.11.3-post3] — 2026-05-17
+### Added
+- **Cooperative abort during LLM invocation** — `_invoke_worker_monitored()` wraps the
+  AG2 `initiate_chat` call in a daemon sub-thread and polls `abort_flag.is_set()` every
+  0.5 s. If `abort_node()` fires mid-LLM-call, `_run_node` raises `_NodeAbortedError`
+  immediately; the sub-thread finishes naturally in the background.
+- **CLI `dispatch run` uses PlannerAgent** when AG2 is installed (Path A): constructs an
+  `Orchestrator` and calls `run_dispatch()` which invokes `_call_planner()` for
+  automatic multi-node DAG decomposition. Falls back to single-node `TaskDAGBuilder`
+  (Path B) when AG2 is not available.
+- **Kairos topological DAG layout** — `depends_on` is now included in the
+  `node_started` event payload; `NodeInfo` in Rust stores it; `compute_levels()`
+  assigns topological levels; `render_dag()` positions nodes left→right by level and
+  draws cubic bezier edges with arrowheads.
+- **REQ-313..320 (compliance plan 5939f743)** — 8 multi-agent governance traceability
+  requirements implemented: dispatch run audit in LEDGER.md, worker identity in
+  events, session traceability, governance block in error, context injection audit,
+  checkpoint completeness, ESDB DAG lineage, abort labelling. 9 new pytest cases.
+  `_write_dispatch_ledger()` writes EU AI Act Art. 12 audit entries after every run.
+### Changed
+- **`specsmith-vscode` removed** — all references to the deprecated VS Code extension
+  replaced with Kairos across 25 files. `docs/site/vscode-extension.md` deleted.
+  `mkdocs.yml` nav updated to `Kairos Client: dispatch.md`.
+### Validation
+- `pytest`: **789 passed, 0 failed**
+- `specsmith validate --strict`: **0 errors, 0 warnings**
+- `specsmith audit`: **28/28 checks, 292 REQs with test coverage**
+
+## [0.11.3-post2]
 ### Added
 - **Multi-Agent DAG Dispatcher (REQ-321..334)** — `specsmith dispatch` command group and
   `src/specsmith/agent/dispatch/` package:
