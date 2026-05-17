@@ -35,9 +35,16 @@ class SpawnedAgent:
 # Compiler/linter tools are listed by their agent tool function name.
 ROLE_TOOLS: dict[str, list[str]] = {
     "coder": [
-        "read_file", "write_file", "run_shell", "apply_diff",
+        "read_file",
+        "write_file",
+        "run_shell",
+        "apply_diff",
         # Compiler / formatter tools
-        "run_gcc", "run_arm_gcc", "run_clang_format", "run_clang_tidy", "run_vsg",
+        "run_gcc",
+        "run_arm_gcc",
+        "run_clang_format",
+        "run_clang_tidy",
+        "run_vsg",
     ],
     "reviewer": ["read_file", "run_shell", "git_diff", "run_clang_tidy", "run_vsg"],
     "tester": ["read_file", "run_shell", "run_tests", "run_gcc", "run_arm_gcc"],
@@ -45,10 +52,17 @@ ROLE_TOOLS: dict[str, list[str]] = {
     "researcher": ["read_file", "search_web", "search_repo"],
     # Embedded / hardware-specific roles
     "embedded-coder": [
-        "read_file", "write_file", "run_shell",
-        "run_gcc", "run_arm_gcc", "run_aarch64_gcc",
-        "run_iar_compiler", "run_intel_compiler",
-        "run_clang_format", "run_clang_tidy", "run_vsg",
+        "read_file",
+        "write_file",
+        "run_shell",
+        "run_gcc",
+        "run_arm_gcc",
+        "run_aarch64_gcc",
+        "run_iar_compiler",
+        "run_intel_compiler",
+        "run_clang_format",
+        "run_clang_tidy",
+        "run_vsg",
     ],
 }
 
@@ -131,8 +145,7 @@ class SubAgentSpawner:
             "architect": "You design system structure and write architecture documents.",
             "researcher": "You search and synthesise information from docs and the web.",
             "embedded-coder": (
-                "You write and compile embedded C/C++ and "
-                "VHDL code for target hardware."
+                "You write and compile embedded C/C++ and VHDL code for target hardware."
             ),
         }
         system_msg = system_messages.get(role, f"You are a {role} agent.")

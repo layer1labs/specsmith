@@ -204,9 +204,7 @@ class EventEmitter:
         if not dispatch_dir.exists():
             return []
         return sorted(
-            d.name
-            for d in dispatch_dir.iterdir()
-            if d.is_dir() and (d / "events.jsonl").exists()
+            d.name for d in dispatch_dir.iterdir() if d.is_dir() and (d / "events.jsonl").exists()
         )
 
 

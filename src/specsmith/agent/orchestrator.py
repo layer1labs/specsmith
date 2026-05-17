@@ -191,12 +191,11 @@ class Orchestrator:
                         f"DAG dispatch complete: {len(summary.completed)} completed, "
                         f"{len(summary.failed)} failed, {len(summary.blocked)} blocked."
                     ),
-                    files_changed=[
-                        f for r in summary.completed for f in r.files_changed
-                    ],
+                    files_changed=[f for r in summary.completed for f in r.files_changed],
                 )
             except Exception as dag_err:  # noqa: BLE001
                 import warnings
+
                 warnings.warn(
                     f"DAG dispatch failed ({dag_err!s}), falling back to flat GroupChat.",
                     stacklevel=2,
@@ -266,9 +265,7 @@ Next action:
         dag = TaskDAGBuilder.build(task, planner_output=planner_output)
         pool = AgentPool(self.llm_config, max_workers=max_workers)
         emitter = EventEmitter(root, dag.dag_id)
-        dispatcher = AgentDispatcher(
-            dag, pool, emitter, project_root=root, max_workers=max_workers
-        )
+        dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
         return dispatcher.run()
 
     def _call_planner(self, task: str) -> str | None:
@@ -306,7 +303,7 @@ Next action:
                 f'  - "id": unique snake_case slug\n'
                 f'  - "title": human-readable description\n'
                 f'  - "role": one of coder | reviewer | tester | '
-                f'architect | researcher | embedded-coder\n'
+                f"architect | researcher | embedded-coder\n"
                 f'  - "depends_on": list of node ids that must finish first ([] for root nodes)\n\n'
                 f"The array MUST be a valid DAG with no cycles. Maximum 8 nodes."
             )

@@ -418,16 +418,16 @@ class AgentDispatcher:
 
         while t.is_alive():
             if abort_flag.is_set():
-                raise _NodeAbortedError(
-                    f"node {node_id!r} abort signalled during LLM invocation"
-                )
+                raise _NodeAbortedError(f"node {node_id!r} abort signalled during LLM invocation")
             t.join(timeout=0.5)  # 500 ms polling interval
 
         if error_holder:
             raise error_holder[0]
-        return result_holder[0] if result_holder else {
-            "summary": "", "files_changed": [], "equilibrium": False
-        }
+        return (
+            result_holder[0]
+            if result_holder
+            else {"summary": "", "files_changed": [], "equilibrium": False}
+        )
 
     def _write_esdb_record(self, node: TaskNode, run_result: dict[str, Any]) -> str | None:
         """Write a ChronoRecord to ESDB and return its ID (REQ-327)."""

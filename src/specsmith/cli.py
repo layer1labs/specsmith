@@ -8840,11 +8840,17 @@ def dispatch_group() -> None:
 @dispatch_group.command(name="run")
 @click.argument("task")
 @click.option(
-    "--max-workers", type=int, default=4, show_default=True,
+    "--max-workers",
+    type=int,
+    default=4,
+    show_default=True,
     help="Max concurrent agents.",
 )
 @click.option(
-    "--json", "as_json", is_flag=True, default=False,
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
     help="Stream JSONL events to stdout.",
 )
 @click.option("--no-dag", is_flag=True, default=False, help="Skip DAG; use flat GroupChat instead.")
@@ -8874,8 +8880,7 @@ def dispatch_run_cmd(
 
     if no_dag:
         console.print(
-            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat"
-            " (use specsmith run)."
+            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run)."
         )
         raise SystemExit(0)
 
@@ -8896,6 +8901,7 @@ def dispatch_run_cmd(
 
             def _run_orch_json() -> None:
                 from specsmith.agent.dispatch import AgentDispatcher, AgentPool
+
                 pool = AgentPool(orch.llm_config, max_workers=max_workers)
                 dispatcher = AgentDispatcher(
                     dag, pool, emitter, project_root=root, max_workers=max_workers
@@ -8921,8 +8927,7 @@ def dispatch_run_cmd(
                 f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
             )
             console.print(
-                f"  equilibrium={summary.equilibrium}"
-                f"  confidence={summary.confidence:.2f}"
+                f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}"
             )
             console.print(f"  dag={summary.dag_id}")
         return
@@ -9013,8 +9018,11 @@ def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
             node_status[evt.node_id] = "blocked"
 
     _STATUS_COLOUR = {
-        "running": "blue", "completed": "green", "failed": "red",
-        "blocked": "yellow", "pending": "dim",
+        "running": "blue",
+        "completed": "green",
+        "failed": "red",
+        "blocked": "yellow",
+        "pending": "dim",
     }
     console.print(f"[bold]Dispatch status[/bold]  dag_id=[cyan]{target}[/cyan]\n")
     for nid, st in node_status.items():

@@ -156,9 +156,7 @@ class TaskDAG:
         for node in self._nodes.values():
             for dep in node.depends_on:
                 if dep not in self._nodes:
-                    raise DAGValidationError(
-                        f"Node {node.id!r} depends on unknown node {dep!r}"
-                    )
+                    raise DAGValidationError(f"Node {node.id!r} depends on unknown node {dep!r}")
                 in_degree[node.id] += 1
 
         queue = [nid for nid, deg in in_degree.items() if deg == 0]
@@ -173,9 +171,7 @@ class TaskDAG:
                         queue.append(candidate.id)
 
         if len(result) != len(self._nodes):
-            raise DAGValidationError(
-                "Cycle detected in task DAG — execution aborted."
-            )
+            raise DAGValidationError("Cycle detected in task DAG — execution aborted.")
         return result
 
     def to_dict(self) -> dict[str, Any]:
@@ -253,9 +249,7 @@ class TaskDAGBuilder:
             if not node_id:
                 raise DAGValidationError("Node is missing required 'id' field.")
             if not _NODE_ID_RE.match(node_id):
-                raise DAGValidationError(
-                    f"Node id {node_id!r} contains invalid characters."
-                )
+                raise DAGValidationError(f"Node id {node_id!r} contains invalid characters.")
             role = str(item.get("role", "coder")).strip()
             dag.add_node(
                 TaskNode(

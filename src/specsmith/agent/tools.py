@@ -298,9 +298,7 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
         ),
         ToolSpec(
             name="run_aarch64_gcc",
-            description=(
-                "Cross-compile for AArch64 Linux (aarch64-linux-gnu-gcc / g++)."
-            ),
+            description=("Cross-compile for AArch64 Linux (aarch64-linux-gnu-gcc / g++)."),
             func=run_aarch64_gcc,
             epistemic_claims=["invokes cross-compiler; produces shared/static libraries"],
         ),
@@ -587,11 +585,11 @@ AVAILABLE_TOOLS = [
     read_file,
     write_file,
     patch_file,
-    apply_diff,        # alias for patch_file (ROLE_TOOLS compat)
+    apply_diff,  # alias for patch_file (ROLE_TOOLS compat)
     list_files,
     grep,
-    search_repo,       # alias for grep (ROLE_TOOLS compat)
-    search_web,        # DuckDuckGo search (ROLE_TOOLS compat)
+    search_repo,  # alias for grep (ROLE_TOOLS compat)
+    search_web,  # DuckDuckGo search (ROLE_TOOLS compat)
     git_diff,
     git_status,
     run_tests,

@@ -78,10 +78,7 @@ class TestTaskDAGBuilder:
         """Planner JSON string → extract array and build DAG (REQ-322)."""
         from specsmith.agent.dispatch import TaskDAGBuilder
 
-        json_str = (
-            'Here is the plan:\n'
-            '[{"id":"x","title":"X","role":"coder","depends_on":[]}]'
-        )
+        json_str = 'Here is the plan:\n[{"id":"x","title":"X","role":"coder","depends_on":[]}]'
         dag = TaskDAGBuilder.build("task", planner_output=json_str)
         assert dag.get("x") is not None
 
@@ -381,6 +378,7 @@ class TestAgentPool:
         pool._idle = {}
         pool._active_count = 0
         import threading
+
         pool._lock = threading.Lock()
 
         sentinel = object()
@@ -405,6 +403,7 @@ class TestAgentPool:
         pool._idle = {}
         pool._active_count = 2  # already at cap
         import threading
+
         pool._lock = threading.Lock()
 
         result = pool.acquire("coder")
@@ -487,19 +486,17 @@ class TestAgentDispatcherEndToEnd:
         mock_worker = mock.MagicMock()
         mock_pool.acquire.return_value = mock_worker
 
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
 
         # Patch _invoke_worker to return a success result without calling AG2
-        with mock.patch.object(
-            dispatcher,
-            "_invoke_worker",
-            return_value={"summary": "done", "files_changed": ["f.py"], "equilibrium": True},
-        ), mock.patch.object(
-            dispatcher, "_write_esdb_record", return_value="rec-xyz"
-        ), mock.patch.object(
-            dispatcher, "_governance_preflight"
+        with (
+            mock.patch.object(
+                dispatcher,
+                "_invoke_worker",
+                return_value={"summary": "done", "files_changed": ["f.py"], "equilibrium": True},
+            ),
+            mock.patch.object(dispatcher, "_write_esdb_record", return_value="rec-xyz"),
+            mock.patch.object(dispatcher, "_governance_preflight"),
         ):
             summary = dispatcher.run()
 
@@ -527,16 +524,15 @@ class TestAgentDispatcherEndToEnd:
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
 
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=2
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=2)
 
-        with mock.patch.object(
-            dispatcher,
-            "_invoke_worker",
-            side_effect=RuntimeError("worker crashed"),
-        ), mock.patch.object(
-            dispatcher, "_governance_preflight"
+        with (
+            mock.patch.object(
+                dispatcher,
+                "_invoke_worker",
+                side_effect=RuntimeError("worker crashed"),
+            ),
+            mock.patch.object(dispatcher, "_governance_preflight"),
         ):
             summary = dispatcher.run()
 
@@ -559,23 +555,19 @@ class TestAgentDispatcherEndToEnd:
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
 
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
-        with mock.patch.object(
-            dispatcher,
-            "_invoke_worker",
-            return_value={"summary": "ok", "files_changed": [], "equilibrium": True},
-        ), mock.patch.object(
-            dispatcher, "_write_esdb_record", return_value=None
-        ), mock.patch.object(
-            dispatcher, "_governance_preflight"
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
+        with (
+            mock.patch.object(
+                dispatcher,
+                "_invoke_worker",
+                return_value={"summary": "ok", "files_changed": [], "equilibrium": True},
+            ),
+            mock.patch.object(dispatcher, "_write_esdb_record", return_value=None),
+            mock.patch.object(dispatcher, "_governance_preflight"),
         ):
             dispatcher.run()
 
-        jsonl = (
-            tmp_path / ".specsmith" / "dispatch" / "events-001" / "events.jsonl"
-        )
+        jsonl = tmp_path / ".specsmith" / "dispatch" / "events-001" / "events.jsonl"
         lines = [json.loads(ln) for ln in jsonl.read_text().splitlines() if ln.strip()]
         event_types = [ln["event_type"] for ln in lines]
         assert "node_started" in event_types
@@ -602,9 +594,7 @@ class TestCooperativeAbort:
         emitter = EventEmitter(tmp_path, "abort-pre")
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
 
         # Pre-arm abort BEFORE the worker starts
         dispatcher.abort_node("task-main")
@@ -622,11 +612,11 @@ class TestCooperativeAbort:
             EventEmitter,
             TaskDAGBuilder,
         )
+
         dag = TaskDAGBuilder.build("job", dag_id="abort-unknown")
         emitter = EventEmitter(tmp_path, "abort-unknown")
         dispatcher = AgentDispatcher(
-            dag, mock.MagicMock(spec=AgentPool), emitter,
-            project_root=tmp_path, max_workers=1
+            dag, mock.MagicMock(spec=AgentPool), emitter, project_root=tmp_path, max_workers=1
         )
         assert dispatcher.abort_node("nonexistent-node") is False
         assert dispatcher.abort_node("task-main") is True
@@ -643,9 +633,7 @@ class TestCooperativeAbort:
         dag = TaskDAGBuilder.build("job", dag_id="abort-post-preflight")
         emitter = EventEmitter(tmp_path, "abort-post-preflight")
         mock_pool = mock.MagicMock(spec=AgentPool)
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
 
         def _preflight_and_abort(node):
             # Simulate preflight setting the abort flag mid-execution
@@ -700,16 +688,17 @@ class TestMultiAgentCompliance:
         emitter = EventEmitter(tmp_path, "trace-315")
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
-        with mock.patch.object(
-            dispatcher, "_invoke_worker",
-            return_value={"summary": "", "files_changed": [], "equilibrium": True},
-        ), \
-             mock.patch.object(dispatcher, "_write_esdb_record", return_value=None), \
-             mock.patch.object(dispatcher, "_governance_preflight"), \
-             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
+        with (
+            mock.patch.object(
+                dispatcher,
+                "_invoke_worker",
+                return_value={"summary": "", "files_changed": [], "equilibrium": True},
+            ),
+            mock.patch.object(dispatcher, "_write_esdb_record", return_value=None),
+            mock.patch.object(dispatcher, "_governance_preflight"),
+            mock.patch.object(dispatcher, "_write_dispatch_ledger"),
+        ):
             summary = dispatcher.run()
         assert summary.dag_id == "trace-315"
 
@@ -726,13 +715,15 @@ class TestMultiAgentCompliance:
         dag = TaskDAGBuilder.build("t", dag_id="gov-316")
         emitter = EventEmitter(tmp_path, "gov-316")
         mock_pool = mock.MagicMock(spec=AgentPool)
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
         from specsmith.agent.dispatch.dispatcher import _GovernanceBlockedError
-        with mock.patch.object(dispatcher, "_governance_preflight",
-                               side_effect=_GovernanceBlockedError("denied")), \
-             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+
+        with (
+            mock.patch.object(
+                dispatcher, "_governance_preflight", side_effect=_GovernanceBlockedError("denied")
+            ),
+            mock.patch.object(dispatcher, "_write_dispatch_ledger"),
+        ):
             summary = dispatcher.run()
         assert len(summary.failed) == 1
         assert summary.failed[0].error.startswith("Governance preflight blocked")
@@ -758,8 +749,7 @@ class TestMultiAgentCompliance:
             )
             emitter = EventEmitter(root, dag.dag_id)
             dispatcher = AgentDispatcher(
-                dag, mock.MagicMock(spec=AgentPool), emitter,
-                project_root=root, max_workers=1
+                dag, mock.MagicMock(spec=AgentPool), emitter, project_root=root, max_workers=1
             )
             # Simulate root completing with an ESDB record
             root_node = dag.get("root")
@@ -785,8 +775,16 @@ class TestMultiAgentCompliance:
         runner = CliRunner()
         result = runner.invoke(
             main,
-            ["dispatch", "retry", "--node", "n1", "--dag-id", "dag-318",
-             "--project-dir", str(tmp_path)],
+            [
+                "dispatch",
+                "retry",
+                "--node",
+                "n1",
+                "--dag-id",
+                "dag-318",
+                "--project-dir",
+                str(tmp_path),
+            ],
         )
         # Should exit 0 but print 'already completed'
         assert result.exit_code == 0
@@ -802,8 +800,7 @@ class TestMultiAgentCompliance:
         dag = TaskDAGBuilder.build("t", dag_id="esdb-319")
         emitter = EventEmitter(tmp_path, "esdb-319")
         dispatcher = AgentDispatcher(
-            dag, mock.MagicMock(spec=AgentPool), emitter,
-            project_root=tmp_path, max_workers=1
+            dag, mock.MagicMock(spec=AgentPool), emitter, project_root=tmp_path, max_workers=1
         )
         node = dag.nodes()[0]
         run_result = {"summary": "ok", "files_changed": []}
@@ -832,12 +829,12 @@ class TestMultiAgentCompliance:
         emitter = EventEmitter(tmp_path, "abort-320")
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
         dispatcher.abort_node("task-main")
-        with mock.patch.object(dispatcher, "_governance_preflight"), \
-             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+        with (
+            mock.patch.object(dispatcher, "_governance_preflight"),
+            mock.patch.object(dispatcher, "_write_dispatch_ledger"),
+        ):
             summary = dispatcher.run()
         assert len(summary.failed) == 1
         assert "Aborted" in (summary.failed[0].error or "")
@@ -860,14 +857,16 @@ class TestMultiAgentCompliance:
         emitter = EventEmitter(tmp_path, "ledger-313")
         mock_pool = mock.MagicMock(spec=AgentPool)
         mock_pool.acquire.return_value = mock.MagicMock()
-        dispatcher = AgentDispatcher(
-            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
-        )
-        with mock.patch.object(
-            dispatcher, "_invoke_worker",
-            return_value={"summary": "ok", "files_changed": [], "equilibrium": True},
-        ), mock.patch.object(dispatcher, "_write_esdb_record", return_value=None), \
-           mock.patch.object(dispatcher, "_governance_preflight"):
+        dispatcher = AgentDispatcher(dag, mock_pool, emitter, project_root=tmp_path, max_workers=1)
+        with (
+            mock.patch.object(
+                dispatcher,
+                "_invoke_worker",
+                return_value={"summary": "ok", "files_changed": [], "equilibrium": True},
+            ),
+            mock.patch.object(dispatcher, "_write_esdb_record", return_value=None),
+            mock.patch.object(dispatcher, "_governance_preflight"),
+        ):
             dispatcher.run()
 
         content = ledger.read_text(encoding="utf-8")
@@ -930,8 +929,16 @@ class TestCompilerTools:
 
         assert "embedded-coder" in ROLE_TOOLS
         embedded = set(ROLE_TOOLS["embedded-coder"])
-        for tool in ("run_gcc", "run_arm_gcc", "run_aarch64_gcc", "run_iar_compiler",
-                     "run_intel_compiler", "run_clang_format", "run_clang_tidy", "run_vsg"):
+        for tool in (
+            "run_gcc",
+            "run_arm_gcc",
+            "run_aarch64_gcc",
+            "run_iar_compiler",
+            "run_intel_compiler",
+            "run_clang_format",
+            "run_clang_tidy",
+            "run_vsg",
+        ):
             assert tool in embedded, f"{tool} missing from embedded-coder"
 
     def test_reviewer_role_has_linters(self):
