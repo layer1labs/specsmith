@@ -745,7 +745,8 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
-| `docs/requirements/overflow.yml` | REQ-300..312 | YAML governance + ESDB extras |
+| `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer (canonical) |
+| `docs/requirements/overflow.yml` | REQ-300..312 | Same REQs as yaml_governance.yml; contains REQ-313..320 reservation note |
 | `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
 
 **Reserved ranges:**

@@ -399,6 +399,32 @@ def log_agent_action(
 
 
 # ---------------------------------------------------------------------------
+# Aliases / stubs for ROLE_TOOLS references
+# (apply_diff, search_web, search_repo were referenced in ROLE_TOOLS before
+#  the compiler tools were added; these bridge them to existing tools.)
+# ---------------------------------------------------------------------------
+
+
+@validate_json_args
+def apply_diff(path: str, diff: str, cwd: str | None = None) -> str:
+    """Apply a unified diff to a file (alias for patch_file)."""
+    return patch_file(path, diff, cwd=cwd)
+
+
+@validate_json_args
+def search_web(query: str) -> str:
+    """Search the web for a query using DuckDuckGo HTML interface."""
+    encoded = query.replace(" ", "+")
+    return open_url(f"https://html.duckduckgo.com/html/?q={encoded}")
+
+
+@validate_json_args
+def search_repo(query: str, path: str = ".", cwd: str | None = None) -> str:
+    """Search for a string across repo files (alias for grep)."""
+    return grep(query, path=path, cwd=cwd)
+
+
+# ---------------------------------------------------------------------------
 # Compiler / linter / formatter tools
 # ---------------------------------------------------------------------------
 
@@ -561,8 +587,11 @@ AVAILABLE_TOOLS = [
     read_file,
     write_file,
     patch_file,
+    apply_diff,        # alias for patch_file (ROLE_TOOLS compat)
     list_files,
     grep,
+    search_repo,       # alias for grep (ROLE_TOOLS compat)
+    search_web,        # DuckDuckGo search (ROLE_TOOLS compat)
     git_diff,
     git_status,
     run_tests,

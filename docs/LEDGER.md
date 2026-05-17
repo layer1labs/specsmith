@@ -282,3 +282,9 @@
 - **Type**: documentation
 - **Status**: complete
 - **Chain hash**: `e519c3f3fc417915...`
+
+## 2026-05-17T16:12 — Final gap sweep: added apply_diff/search_web/search_repo tool stubs to close ROLE_TOOLS vs AVAILABLE_TOOLS mismatch (23 tools total, no refs missing); added Dispatch to README 50+ CLI Commands section; restored yaml_governance.yml row in ARCHITECTURE.md domain table (REQ-300..312); fixed Kairos post_action to spawn background thread (no UI-thread blocking on retry/abort POST).
+- **Author**: oz-agent
+- **Type**: fix
+- **Status**: complete
+- **Chain hash**: `9a0d63f844078d5a...`

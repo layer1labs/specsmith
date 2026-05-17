@@ -246,12 +246,16 @@ impl DispatchApp {
     }
 
     fn post_action(&self, endpoint: &str, dag_id: &str, node_id: &str) {
+        // Spawn a background thread so we never block the egui main loop.
         let url = format!("{}/api/dispatch/{}", self.server_url, endpoint);
         let body = serde_json::json!({ "dag_id": dag_id, "node_id": node_id });
-        let _ = reqwest::blocking::Client::new()
-            .post(&url)
-            .json(&body)
-            .send();
+        std::thread::spawn(move || {
+            let _ = reqwest::blocking::Client::new()
+                .post(&url)
+                .timeout(std::time::Duration::from_secs(10))
+                .json(&body)
+                .send();
+        });
     }
 }
 

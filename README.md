@@ -767,6 +767,8 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills` `agent suggest-profiles` `agent endpoint-presets`
 
+**Dispatch:** `dispatch run` `dispatch status` `dispatch list` `dispatch retry`
+
 **Model Intel:** `model-intel sync` `model-intel scores` `model-intel recommendations` `model-intel connection`
 
 **Ollama:** `ollama list/available/gpu/pull/suggest`
