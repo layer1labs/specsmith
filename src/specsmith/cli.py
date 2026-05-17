@@ -9424,7 +9424,11 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
             if row:
                 console.print(f"[bold]{row['model_name']}[/bold]")
                 console.print(f"  Reasoning:     {row.get('reasoning_score', 0):.2f}")
+                console.print(f"  Coding:        {row.get('coding_score', 0):.2f}")
                 console.print(f"  Conversational:{row.get('conversational_score', 0):.2f}")
+                console.print(f"  Requirements:  {row.get('requirements_score', 0):.2f}")
+                console.print(f"  Architecture:  {row.get('architecture_score', 0):.2f}")
+                console.print(f"  Debugging:     {row.get('debugging_score', 0):.2f}")
                 console.print(f"  Longform:      {row.get('longform_score', 0):.2f}")
             else:
                 console.print(f"[yellow]No scores found for '{model}'[/yellow]")
@@ -9439,8 +9443,12 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
             console.print(
                 f"  {r['model_name']:<40s}  "
                 f"R:{r.get('reasoning_score', 0):5.1f}  "
-                f"C:{r.get('conversational_score', 0):5.1f}  "
-                f"L:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
+                f"Cd:{r.get('coding_score', 0):5.1f}  "
+                f"Cv:{r.get('conversational_score', 0):5.1f}  "
+                f"Rq:{r.get('requirements_score', 0):5.1f}  "
+                f"Ar:{r.get('architecture_score', 0):5.1f}  "
+                f"Db:{r.get('debugging_score', 0):5.1f}  "
+                f"Lf:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
             )
         if len(rows) > 20:
             console.print(f"  ... {len(rows) - 20} more (use --json for full list)")
@@ -9450,7 +9458,10 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
 @click.option(
     "--bucket",
     default="reasoning",
-    type=click.Choice(["reasoning", "conversational", "longform"]),
+    type=click.Choice(
+        ["reasoning", "coding", "conversational", "requirements",
+         "architecture", "debugging", "longform"]
+    ),
     show_default=True,
 )
 @click.option("--top", default=10, help="Number of models to return.")
