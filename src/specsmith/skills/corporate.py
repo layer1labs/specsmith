@@ -12,8 +12,18 @@ SKILLS: list[SkillEntry] = [
             "budget variance analysis, Excel financial models, and reporting."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["budget", "finance", "pl", "cash-flow", "excel", "forecast",
-              "variance", "accounting", "reporting", "kpi"],
+        tags=[
+            "budget",
+            "finance",
+            "pl",
+            "cash-flow",
+            "excel",
+            "forecast",
+            "variance",
+            "accounting",
+            "reporting",
+            "kpi",
+        ],
         prerequisites=[],
         body="""\
 # Budget Tracking Skill
@@ -100,8 +110,18 @@ Favourable variances also need explanation — may indicate under-investment.
             "RACI matrix, risk register, stakeholder communication, and retrospectives."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["project-management", "pm", "agile", "scrum", "kanban",
-              "milestones", "raci", "risk", "stakeholder", "retrospective"],
+        tags=[
+            "project-management",
+            "pm",
+            "agile",
+            "scrum",
+            "kanban",
+            "milestones",
+            "raci",
+            "risk",
+            "stakeholder",
+            "retrospective",
+        ],
         prerequisites=[],
         body="""\
 # Project Management Skill
@@ -219,8 +239,18 @@ Monthly board update | Board | Deck | CEO
             "30/60/90-day onboarding plans, and performance review templates."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["hr", "hiring", "onboarding", "performance", "interviews",
-              "job-description", "culture", "feedback", "pip", "okr"],
+        tags=[
+            "hr",
+            "hiring",
+            "onboarding",
+            "performance",
+            "interviews",
+            "job-description",
+            "culture",
+            "feedback",
+            "pip",
+            "okr",
+        ],
         prerequisites=[],
         body="""\
 # HR & Onboarding Skill
@@ -329,8 +359,18 @@ Goal: operate as a full-speed team member
             "due diligence preparation, term sheet key terms, and post-close."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["fundraising", "vc", "venture-capital", "angel", "pitch",
-              "deck", "term-sheet", "due-diligence", "startup", "investment"],
+        tags=[
+            "fundraising",
+            "vc",
+            "venture-capital",
+            "angel",
+            "pitch",
+            "deck",
+            "term-sheet",
+            "due-diligence",
+            "startup",
+            "investment",
+        ],
         prerequisites=[],
         body="""\
 # Fundraising (VC/Angel) Skill
@@ -447,8 +487,18 @@ Side letter is OK for pro-rata rights; never for preferential treatment.
             "demand generation, SEO basics, paid acquisition, and analytics."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["marketing", "gtm", "icp", "positioning", "content",
-              "seo", "demand-gen", "analytics", "brand", "funnel"],
+        tags=[
+            "marketing",
+            "gtm",
+            "icp",
+            "positioning",
+            "content",
+            "seo",
+            "demand-gen",
+            "analytics",
+            "brand",
+            "funnel",
+        ],
         prerequisites=[],
         body="""\
 # Marketing Go-To-Market Skill
@@ -580,8 +630,18 @@ Revenue:
             "discovery call frameworks, objection handling, and closing."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["sales", "crm", "salesforce", "hubspot", "pipeline",
-              "outbound", "discovery", "objections", "closing", "b2b"],
+        tags=[
+            "sales",
+            "crm",
+            "salesforce",
+            "hubspot",
+            "pipeline",
+            "outbound",
+            "discovery",
+            "objections",
+            "closing",
+            "b2b",
+        ],
         prerequisites=[],
         body="""\
 # Sales CRM Skill
@@ -709,8 +769,18 @@ Rule: acknowledge → ask a question → don't pitch back immediately.
             "IP assignment, open-source compliance, and when to escalate to counsel."
         ),
         domain=SkillDomain.CORPORATE,
-        tags=["legal", "contracts", "nda", "saas", "msa", "ip",
-              "gdpr", "compliance", "open-source", "corporate"],
+        tags=[
+            "legal",
+            "contracts",
+            "nda",
+            "saas",
+            "msa",
+            "ip",
+            "gdpr",
+            "compliance",
+            "open-source",
+            "corporate",
+        ],
         prerequisites=[],
         body="""\
 # Legal Contracts Skill

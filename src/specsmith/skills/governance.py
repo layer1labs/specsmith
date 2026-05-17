@@ -32,8 +32,8 @@ SKILLS: list[SkillEntry] = [
             "- Surface the first failing gate's output verbatim in your response.\n"
             "- If gate 6 fails with a sync-drift warning, run `specsmith sync` first.\n\n"
             "## After all gates pass\n"
-            "```\nspecsmith ledger add \"All gates passed — ready to commit\"\n"
-            "git add -A && git commit -m \"<msg>\"\n```\n"
+            '```\nspecsmith ledger add "All gates passed — ready to commit"\n'
+            'git add -A && git commit -m "<msg>"\n```\n'
         ),
     ),
     SkillEntry(
@@ -107,7 +107,7 @@ SKILLS: list[SkillEntry] = [
             "## Output format\n"
             "```\n🌱 Phase: <phase> (<pct>% ready)\n"
             "📋 Top requirements: ...\n📌 Rules: ...\n"
-            "→ Suggested next: specsmith preflight \"...\"\n```\n"
+            '→ Suggested next: specsmith preflight "..."\n```\n'
         ),
     ),
     SkillEntry(

@@ -12,8 +12,16 @@ SKILLS: list[SkillEntry] = [
             "template library, inbox-zero system, filters, and automation."
         ),
         domain=SkillDomain.PRODUCTIVITY,
-        tags=["email", "communication", "templates", "inbox-zero",
-              "gmail", "outlook", "automation", "productivity"],
+        tags=[
+            "email",
+            "communication",
+            "templates",
+            "inbox-zero",
+            "gmail",
+            "outlook",
+            "automation",
+            "productivity",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=[],
         body="""\
@@ -100,8 +108,17 @@ function labelKeyEmails() {
             "Gamma.ai AI generation, PowerPoint/Keynote, and delivery tips."
         ),
         domain=SkillDomain.PRODUCTIVITY,
-        tags=["presentations", "slides", "powerpoint", "keynote", "gamma",
-              "storytelling", "pitching", "design", "communication"],
+        tags=[
+            "presentations",
+            "slides",
+            "powerpoint",
+            "keynote",
+            "gamma",
+            "storytelling",
+            "pitching",
+            "design",
+            "communication",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=[],
         body="""\
@@ -192,8 +209,18 @@ soffice --headless --convert-to pptx presentation.odp  # convert to PPTX
             "Word document automation, macro scripting, and LibreOffice equivalents."
         ),
         domain=SkillDomain.PRODUCTIVITY,
-        tags=["excel", "word", "powerpoint", "libreoffice", "macros",
-              "vba", "spreadsheet", "office", "automation", "pivot"],
+        tags=[
+            "excel",
+            "word",
+            "powerpoint",
+            "libreoffice",
+            "macros",
+            "vba",
+            "spreadsheet",
+            "office",
+            "automation",
+            "pivot",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=[],
         body="""\

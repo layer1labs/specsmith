@@ -12,8 +12,18 @@ SKILLS: list[SkillEntry] = [
             "port forwarding, ProxyJump chains, SSH agent, and hardening."
         ),
         domain=SkillDomain.SSH,
-        tags=["ssh", "keys", "tunnel", "proxyjump", "agent", "scp",
-              "rsync", "remote", "linux", "security"],
+        tags=[
+            "ssh",
+            "keys",
+            "tunnel",
+            "proxyjump",
+            "agent",
+            "scp",
+            "rsync",
+            "remote",
+            "linux",
+            "security",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["ssh"],
         body="""\
@@ -126,8 +136,17 @@ sudo sshd -t && sudo systemctl restart sshd   # validate config + restart
             "interop, file system access, networking, systemd, and VS Code integration."
         ),
         domain=SkillDomain.SSH,
-        tags=["wsl2", "windows", "linux", "ubuntu", "interop",
-              "vscode", "systemd", "networking", "docker"],
+        tags=[
+            "wsl2",
+            "windows",
+            "linux",
+            "ubuntu",
+            "interop",
+            "vscode",
+            "systemd",
+            "networking",
+            "docker",
+        ],
         platforms=["windows"],
         prerequisites=["wsl"],
         body="""\
@@ -243,8 +262,17 @@ docker compose up  # full Docker Compose works
             "rsync file sync, tmux session persistence, and mosh for unreliable connections."
         ),
         domain=SkillDomain.SSH,
-        tags=["remote-dev", "vscode", "ssh", "rsync", "tmux",
-              "mosh", "tunnel", "remote", "development"],
+        tags=[
+            "remote-dev",
+            "vscode",
+            "ssh",
+            "rsync",
+            "tmux",
+            "mosh",
+            "tunnel",
+            "remote",
+            "development",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["ssh", "rsync"],
         body="""\

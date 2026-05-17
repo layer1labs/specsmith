@@ -42,18 +42,18 @@ class DoctorReport:
 #: Zephyr / west project: detected by presence of west.yml at repo root.
 _ZEPHYR_TOOLS = [
     ("build", "west"),
-    ("test",  "west"),       # west twister
+    ("test", "west"),  # west twister
     ("build", "cmake"),
     ("build", "ninja"),
     ("build", "arm-none-eabi-gcc"),
-    ("build", "dtc"),        # device-tree compiler
+    ("build", "dtc"),  # device-tree compiler
 ]
 
 #: Yocto / KAS project: detected by kas.yml or west.yml-like manifest.
 _YOCTO_TOOLS = [
     ("build", "kas"),
     ("build", "docker"),
-    ("lint",  "oelint-adv"),
+    ("lint", "oelint-adv"),
 ]
 
 #: KiCad PCB project.
@@ -69,19 +69,6 @@ _VIVADO_TOOLS = [
 #: FPGA Intel/Altera Quartus.
 _QUARTUS_TOOLS = [
     ("build", "quartus_sh"),
-]
-
-#: Cloud CLI tools (detected when config has vcs_platform = github/gitlab).
-_CLOUD_TOOLS = [
-    ("vcs",   "gh"),        # GitHub CLI
-    ("vcs",   "git"),
-    ("cloud", "aws"),
-    ("cloud", "az"),
-    ("cloud", "gcloud"),
-    ("infra", "terraform"),
-    ("infra", "docker"),
-    ("infra", "kubectl"),
-    ("infra", "helm"),
 ]
 
 #: Mobile tools.
@@ -107,8 +94,7 @@ def _detect_extra_tools(root: Path) -> list[tuple[str, str]]:
 
     if (root / "west.yml").exists() or (root / "zephyr" / "CMakeLists.txt").exists():
         extras.extend(_ZEPHYR_TOOLS)
-    if any((root / f).exists() for f in ("kas.yml", "kas.yaml"))\
-            or any(root.glob("kas/**/*.yml")):
+    if any((root / f).exists() for f in ("kas.yml", "kas.yaml")) or any(root.glob("kas/**/*.yml")):
         extras.extend(_YOCTO_TOOLS)
     if any(root.glob("*.kicad_pro")) or any(root.glob("**/*.kicad_pro")):
         extras.extend(_KICAD_TOOLS)
@@ -157,12 +143,12 @@ def run_doctor(root: Path) -> DoctorReport:
             tools = get_tools(config)
             seen: set[str] = set()
             for category, cmds in [
-                ("lint",       tools.lint),
-                ("typecheck",  tools.typecheck),
-                ("test",       tools.test),
-                ("security",   tools.security),
-                ("build",      tools.build),
-                ("format",     tools.format),
+                ("lint", tools.lint),
+                ("typecheck", tools.typecheck),
+                ("test", tools.test),
+                ("security", tools.security),
+                ("build", tools.build),
+                ("format", tools.format),
                 ("compliance", tools.compliance),
             ]:
                 for cmd in cmds:

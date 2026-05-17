@@ -245,9 +245,11 @@ def get_vram_gb() -> float:
                     "powershell",
                     "-NoProfile",
                     "-Command",
-                    "Get-WmiObject Win32_VideoController "
-                    "| Sort-Object AdapterRAM -Descending "
-                    "| Select-Object -First 1 -ExpandProperty AdapterRAM",
+                    (
+                        "Get-WmiObject Win32_VideoController"
+                        " | Sort-Object AdapterRAM -Descending"
+                        " | Select-Object -First 1 -ExpandProperty AdapterRAM"
+                    ),
                 ],
                 capture_output=True,
                 text=True,

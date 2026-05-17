@@ -73,6 +73,7 @@ def run_diff(root: Path) -> list[tuple[str, str]]:
     if migration_state.exists():
         try:
             import json
+
             state = json.loads(migration_state.read_text(encoding="utf-8"))
             # v001 migrates docs/governance/*.md files
             v001 = next((m for m in state if m.get("version") == "001" and m.get("success")), None)

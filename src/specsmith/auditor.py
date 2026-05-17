@@ -144,9 +144,13 @@ def check_governance_files(root: Path) -> list[AuditResult]:
     if _scaffold_path.exists():
         try:
             import yaml as _yaml
+
             _raw = _yaml.safe_load(_scaffold_path.read_text(encoding="utf-8")) or {}
             _proprietary_license = str(_raw.get("license", "")).lower() in (
-                "proprietary", "closed-source", "commercial", "all-rights-reserved",
+                "proprietary",
+                "closed-source",
+                "commercial",
+                "all-rights-reserved",
             )
         except Exception:  # noqa: BLE001
             pass
@@ -224,8 +228,7 @@ def check_governance_files(root: Path) -> list[AuditResult]:
 # Pattern: REQ- followed by zero or more UPPERCASE- prefix segments, then digits.
 # Examples: REQ-001, REQ-CTT-001, REQ-AUTH-023, TEST-042, TEST-CORE-007
 _REQ_PATTERN = re.compile(r"\b(REQ-(?:[A-Z]+-)*\d+)\b")
-_TEST_PATTERN = re.compile(r"\b(TEST-(?:[A-Z]+-)*\d+)\b")
-# Match 'Covers: REQ-xxx', '**Requirement:** REQ-xxx', '**Requirement ID:** REQ-xxx',
+# Match 'Covers: REQ-xxx',
 # 'Requirement: REQ-xxx', 'Requirement ID: REQ-xxx'
 # Also handles numeric-only IDs (REQ-001) via the updated _REQ_PATTERN.
 _TEST_COVERS_PATTERN = re.compile(
@@ -466,10 +469,12 @@ _TYPE_LEDGER_THRESHOLDS: dict[str, int] = {
 def _read_scaffold_raw(root: Path) -> dict[str, Any]:
     """Read scaffold.yml (or docs/SPECSMITH.yml) as a raw dict."""
     from specsmith.paths import find_scaffold
+
     scaffold_path = find_scaffold(root)
     if scaffold_path and scaffold_path.exists():
         try:
             import yaml
+
             with open(scaffold_path) as f:
                 return yaml.safe_load(f) or {}
         except Exception:  # noqa: BLE001
@@ -904,21 +909,25 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
         # Check 1: is the secrets file tracked by git?
         if secrets_path.exists() and never_commit:
             import subprocess
+
             try:
                 r = subprocess.run(
                     ["git", "-C", str(root), "ls-files", "--error-unmatch", path_rel],
-                    capture_output=True, timeout=5,
+                    capture_output=True,
+                    timeout=5,
                 )
                 if r.returncode == 0:  # file IS tracked
-                    results.append(AuditResult(
-                        name=f"secrets-tracked:{path_rel}",
-                        passed=False,
-                        message=(
-                            f"SECURITY: {path_rel} is tracked by git but declared "
-                            f"never_commit: true. Run `git rm --cached {path_rel}` and "
-                            "add it to .gitignore."
-                        ),
-                    ))
+                    results.append(
+                        AuditResult(
+                            name=f"secrets-tracked:{path_rel}",
+                            passed=False,
+                            message=(
+                                f"SECURITY: {path_rel} is tracked by git but declared "
+                                f"never_commit: true. Run `git rm --cached {path_rel}` and "
+                                "add it to .gitignore."
+                            ),
+                        )
+                    )
             except Exception:  # noqa: BLE001
                 pass
         # Check 2: .example file exists?
@@ -926,32 +935,38 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
         template_path = root / (path_rel + ".template")
         has_example = example_path.exists() or template_path.exists()
         if not has_example:
-            results.append(AuditResult(
-                name=f"secrets-no-example:{path_rel}",
-                passed=False,
-                message=(
-                    f"No {path_rel}.example found. Create one with placeholder values "
-                    f"so new developers know which secrets are required."
-                ),
-                fixable=True,
-            ))
+            results.append(
+                AuditResult(
+                    name=f"secrets-no-example:{path_rel}",
+                    passed=False,
+                    message=(
+                        f"No {path_rel}.example found. Create one with placeholder values "
+                        f"so new developers know which secrets are required."
+                    ),
+                    fixable=True,
+                )
+            )
         else:
-            results.append(AuditResult(
-                name=f"secrets-example:{path_rel}",
-                passed=True,
-                message=f"Secrets template {path_rel}.example exists",
-            ))
+            results.append(
+                AuditResult(
+                    name=f"secrets-example:{path_rel}",
+                    passed=True,
+                    message=f"Secrets template {path_rel}.example exists",
+                )
+            )
         # Check 3: .gitignore covers the secrets file?
         if never_commit and path_rel not in gitignore_content:
-            results.append(AuditResult(
-                name=f"secrets-gitignore:{path_rel}",
-                passed=False,
-                message=(
-                    f"{path_rel} is declared never_commit but is not in .gitignore. "
-                    "Add it to .gitignore to prevent accidental commits."
-                ),
-                fixable=True,
-            ))
+            results.append(
+                AuditResult(
+                    name=f"secrets-gitignore:{path_rel}",
+                    passed=False,
+                    message=(
+                        f"{path_rel} is declared never_commit but is not in .gitignore. "
+                        "Add it to .gitignore to prevent accidental commits."
+                    ),
+                    fixable=True,
+                )
+            )
     return results
 
 
@@ -979,27 +994,30 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
         return results  # No industrial artifacts found
 
     undeclared = [
-        f for f in found_eds
-        if str(f.relative_to(root)).replace("\\\\", "/") not in declared_paths
+        f for f in found_eds if str(f.relative_to(root)).replace("\\\\", "/") not in declared_paths
     ]
 
     if undeclared:
-        results.append(AuditResult(
-            name="industrial-artifacts-undeclared",
-            passed=False,
-            message=(
-                f"{len(undeclared)} CANopen EDS/XDD file(s) found but not declared in "
-                f"scaffold.yml industrial_artifacts: "
-                + ", ".join(str(f.name) for f in undeclared[:5])
-                + ". Add them to industrial_artifacts.canopen_eds for traceability."
-            ),
-        ))
+        results.append(
+            AuditResult(
+                name="industrial-artifacts-undeclared",
+                passed=False,
+                message=(
+                    f"{len(undeclared)} CANopen EDS/XDD file(s) found but not declared in "
+                    f"scaffold.yml industrial_artifacts: "
+                    + ", ".join(str(f.name) for f in undeclared[:5])
+                    + ". Add them to industrial_artifacts.canopen_eds for traceability."
+                ),
+            )
+        )
     else:
-        results.append(AuditResult(
-            name="industrial-artifacts",
-            passed=True,
-            message=f"{len(found_eds)} industrial artifact(s) declared in scaffold.yml",
-        ))
+        results.append(
+            AuditResult(
+                name="industrial-artifacts",
+                passed=True,
+                message=f"{len(found_eds)} industrial artifact(s) declared in scaffold.yml",
+            )
+        )
     return results
 
 
@@ -1029,24 +1047,30 @@ def check_derived_artifacts(root: Path) -> list[AuditResult]:
         try:
             src_diff = subprocess.run(
                 ["git", "-C", str(root), "diff", "HEAD", "--name-only", "--", source],
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             out_diffs = subprocess.run(
                 ["git", "-C", str(root), "diff", "HEAD", "--name-only", "--"] + outputs,
-                capture_output=True, text=True, timeout=5,
+                capture_output=True,
+                text=True,
+                timeout=5,
             )
             src_changed = bool(src_diff.stdout.strip())
             outputs_changed = [o for o in outputs if o in (out_diffs.stdout or "")]
             if outputs_changed and not src_changed:
-                results.append(AuditResult(
-                    name=f"derived-artifact-manual-edit:{source}",
-                    passed=False,
-                    message=(
-                        f"Hand-edit detected in derived artifact(s) generated from {source}: "
-                        + ", ".join(outputs_changed[:3])
-                        + f". These files are generated by: {entry.get('generator', 'unknown')}"
-                    ),
-                ))
+                results.append(
+                    AuditResult(
+                        name=f"derived-artifact-manual-edit:{source}",
+                        passed=False,
+                        message=(
+                            f"Hand-edit detected in derived artifact(s) generated from {source}: "
+                            + ", ".join(outputs_changed[:3])
+                            + f". These files are generated by: {entry.get('generator', 'unknown')}"
+                        ),
+                    )
+                )
         except Exception:  # noqa: BLE001
             pass  # git not available or other error — skip silently
     return results
@@ -1075,11 +1099,13 @@ def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
         else:
             msgs.append(f"{repo} ({role})")
     if msgs:
-        results.append(AuditResult(
-            name="cross-repo-dependencies",
-            passed=True,
-            message="Cross-repo dependencies declared: " + "; ".join(msgs),
-        ))
+        results.append(
+            AuditResult(
+                name="cross-repo-dependencies",
+                passed=True,
+                message="Cross-repo dependencies declared: " + "; ".join(msgs),
+            )
+        )
     return results
 
 

@@ -191,6 +191,7 @@ def detect_project(root: Path) -> DetectionResult:
     if scaffold_yml.exists():
         try:
             import yaml as _yaml
+
             _sc_raw = _yaml.safe_load(scaffold_yml.read_text(encoding="utf-8")) or {}
             for excl in _sc_raw.get("scan_exclude_dirs", []):
                 skip_dirs.add(excl.strip("/"))
@@ -1159,10 +1160,7 @@ def _infer_type(result: DetectionResult) -> ProjectType:
                 return ProjectType.BACKEND_FRONTEND
             return ProjectType.LIBRARY_PYTHON
         # research-python: no CLI, no pyproject/setuptools, has experiments/ or data/ (#153)
-        if (
-            (result.root / "experiments").is_dir()
-            or (result.root / "data").is_dir()
-        ):
+        if (result.root / "experiments").is_dir() or (result.root / "data").is_dir():
             return ProjectType.RESEARCH_PYTHON
         # embedded-python-hmi: Python project with Qt .ui files or HMI indicators (#109)
         ui_files = list(result.root.rglob("*.ui"))  # Qt Designer files
@@ -1192,7 +1190,9 @@ def _detect_branching_strategy(root: Path) -> str:
         # Check if a develop branch exists remotely
         branches = subprocess.run(
             ["git", "-C", str(root), "branch", "-r"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if branches.returncode == 0:
             remote_branches = branches.stdout
@@ -1202,7 +1202,9 @@ def _detect_branching_strategy(root: Path) -> str:
         # Check git log for PR merge patterns
         log = subprocess.run(
             ["git", "-C", str(root), "log", "--oneline", "-20", "--merges"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if log.returncode == 0 and log.stdout.strip():
             return "github-flow"

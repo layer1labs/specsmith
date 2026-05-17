@@ -121,6 +121,7 @@ def _build_catalog() -> list[SkillEntry]:
         productivity,
         ssh,
     )
+
     return (
         governance.SKILLS
         + embedded.SKILLS
@@ -167,10 +168,15 @@ def search(query: str, *, domain: SkillDomain | None = None) -> list[SkillEntry]
     """
     catalog = _get_catalog()
     needle = query.strip().lower()
-    results = catalog if not needle else [
-        e for e in catalog
-        if needle in " ".join([e.slug, e.name, e.description, *e.tags]).lower()
-    ]
+    results = (
+        catalog
+        if not needle
+        else [
+            e
+            for e in catalog
+            if needle in " ".join([e.slug, e.name, e.description, *e.tags]).lower()
+        ]
+    )
     if domain is not None:
         results = [e for e in results if e.domain == domain]
     return results
@@ -194,10 +200,7 @@ def by_domain(domain: SkillDomain) -> list[SkillEntry]:
 
 def by_project_type(project_type: str) -> list[SkillEntry]:
     """Return skills applicable to *project_type* (includes all-type skills)."""
-    return [
-        e for e in _get_catalog()
-        if not e.project_types or project_type in e.project_types
-    ]
+    return [e for e in _get_catalog() if not e.project_types or project_type in e.project_types]
 
 
 def installed_skills(project_dir: Path) -> list[Path]:
@@ -225,9 +228,7 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
     base.mkdir(parents=True, exist_ok=True)
     target = base / f"{slug}.md"
     if target.exists() and not force:
-        raise FileExistsError(
-            f"Already installed: {target}. Pass force=True to overwrite."
-        )
+        raise FileExistsError(f"Already installed: {target}. Pass force=True to overwrite.")
     target.write_text(entry.body, encoding="utf-8")
     return target
 
@@ -237,6 +238,7 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
 # ---------------------------------------------------------------------------
 # Modules that do ``from specsmith.skills import CATALOG`` get this list.
 # We populate it lazily on first module access via __getattr__.
+
 
 def __getattr__(name: str) -> object:  # noqa: N807
     if name == "CATALOG":

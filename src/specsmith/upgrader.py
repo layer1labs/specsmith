@@ -406,7 +406,7 @@ def _migrate_test_spec_filename(root: Path, result: UpgradeResult) -> None:
                 result.updated_files.append(
                     f"{ref_path.relative_to(root)} (updated TEST_SPEC.md references)"
                 )
-        except OSError:
+        except OSError:  # File not accessible — skip silently
             pass
 
 

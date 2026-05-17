@@ -12,8 +12,20 @@ SKILLS: list[SkillEntry] = [
             "vcpkg/conan dependency management, CMake presets, and CI integration."
         ),
         domain=SkillDomain.CROSS_PLATFORM,
-        tags=["cmake", "vcpkg", "conan", "cross-platform", "c", "cpp",
-              "build", "ninja", "presets", "windows", "linux", "macos"],
+        tags=[
+            "cmake",
+            "vcpkg",
+            "conan",
+            "cross-platform",
+            "c",
+            "cpp",
+            "build",
+            "ninja",
+            "presets",
+            "windows",
+            "linux",
+            "macos",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["cmake", "ninja"],
         body="""\
@@ -154,8 +166,18 @@ cmake --build build-arm
             "winget/scoop/choco (Windows), apt/dnf (Linux), and Nix for reproducibility."
         ),
         domain=SkillDomain.CROSS_PLATFORM,
-        tags=["homebrew", "brew", "winget", "scoop", "chocolatey", "apt",
-              "dnf", "nix", "package-manager", "cross-platform"],
+        tags=[
+            "homebrew",
+            "brew",
+            "winget",
+            "scoop",
+            "chocolatey",
+            "apt",
+            "dnf",
+            "nix",
+            "package-manager",
+            "cross-platform",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=[],
         body="""\

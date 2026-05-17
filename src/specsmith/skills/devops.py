@@ -12,8 +12,16 @@ SKILLS: list[SkillEntry] = [
             "Compose for local dev, image security scanning, and registry push."
         ),
         domain=SkillDomain.DEVOPS,
-        tags=["docker", "containers", "dockerfile", "compose",
-              "registry", "security", "devops", "ci"],
+        tags=[
+            "docker",
+            "containers",
+            "dockerfile",
+            "compose",
+            "registry",
+            "security",
+            "devops",
+            "ci",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["docker"],
         body="""\
@@ -124,8 +132,18 @@ docker buildx build --platform linux/amd64,linux/arm64 \
             "namespace isolation, Ingress routing, and GitOps with ArgoCD/Flux."
         ),
         domain=SkillDomain.DEVOPS,
-        tags=["kubernetes", "kubectl", "helm", "ingress", "gitops",
-              "argocd", "flux", "k8s", "devops", "containers"],
+        tags=[
+            "kubernetes",
+            "kubectl",
+            "helm",
+            "ingress",
+            "gitops",
+            "argocd",
+            "flux",
+            "k8s",
+            "devops",
+            "containers",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["kubectl", "helm"],
         body="""\
@@ -246,8 +264,17 @@ spec:
             "module composition, workspace environments, and CI/CD integration."
         ),
         domain=SkillDomain.DEVOPS,
-        tags=["terraform", "iac", "infrastructure", "devops",
-              "aws", "azure", "gcp", "modules", "workspaces"],
+        tags=[
+            "terraform",
+            "iac",
+            "infrastructure",
+            "devops",
+            "aws",
+            "azure",
+            "gcp",
+            "modules",
+            "workspaces",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["terraform"],
         body="""\
@@ -361,8 +388,17 @@ terraform import aws_instance.web i-0123abc  # import existing resource
             "caching, composite actions, reusable workflows, and deployment gates."
         ),
         domain=SkillDomain.DEVOPS,
-        tags=["github-actions", "ci-cd", "yaml", "workflow", "matrix",
-              "secrets", "caching", "deployment", "automation"],
+        tags=[
+            "github-actions",
+            "ci-cd",
+            "yaml",
+            "workflow",
+            "matrix",
+            "secrets",
+            "caching",
+            "deployment",
+            "automation",
+        ],
         platforms=["windows", "linux", "macos"],
         prerequisites=["gh"],
         body="""\
