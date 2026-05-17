@@ -32,7 +32,8 @@ SKILLS: list[SkillEntry] = [
             "- Surface the first failing gate's output verbatim in your response.\n"
             "- If gate 6 fails with a sync-drift warning, run `specsmith sync` first.\n\n"
             "## After all gates pass\n"
-            "```\nspecsmith ledger add \"All gates passed — ready to commit\"\ngit add -A && git commit -m \"<msg>\"\n```\n"
+            "```\nspecsmith ledger add \"All gates passed — ready to commit\"\n"
+            "git add -A && git commit -m \"<msg>\"\n```\n"
         ),
     ),
     SkillEntry(
@@ -104,7 +105,9 @@ SKILLS: list[SkillEntry] = [
             "4. `specsmith phase show` — report current AEE phase and readiness %.\n"
             "5. Suggest one concrete preflight utterance the user can run next.\n\n"
             "## Output format\n"
-            "```\n🌱 Phase: <phase> (<pct>% ready)\n📋 Top requirements: ...\n📌 Rules: ...\n→ Suggested next: specsmith preflight \"...\"\n```\n"
+            "```\n🌱 Phase: <phase> (<pct>% ready)\n"
+            "📋 Top requirements: ...\n📌 Rules: ...\n"
+            "→ Suggested next: specsmith preflight \"...\"\n```\n"
         ),
     ),
     SkillEntry(
@@ -153,7 +156,8 @@ SKILLS: list[SkillEntry] = [
             "1. `gh issue list --state open --limit 100 --json number,title,labels,createdAt`\n"
             "2. Group by type: bug / enhancement / question / docs.\n"
             "3. Detect duplicates: flag issues with >60% title-word overlap.\n"
-            "4. Score severity: crash/data-loss = P0; broken feature = P1; UX = P2; nice-to-have = P3.\n"
+            "4. Score severity: crash/data-loss = P0; broken feature = P1;"
+            " UX = P2; nice-to-have = P3.\n"
             "5. Emit a prioritised table: `| # | Title | Type | Severity | Duplicate of |`\n"
             "6. Ask: 'Which should I implement first this session?'\n\n"
             "## Rules\n"

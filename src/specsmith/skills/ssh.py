@@ -30,7 +30,9 @@ ssh-keygen -t rsa -b 4096 -C "user@machine" -f ~/.ssh/id_rsa_legacy
 # Copy public key to server
 ssh-copy-id -i ~/.ssh/id_ed25519_work.pub user@server
 # Or manually:
-cat ~/.ssh/id_ed25519_work.pub | ssh user@server "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+cat ~/.ssh/id_ed25519_work.pub | ssh user@server \
+  "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys \
+  && chmod 600 ~/.ssh/authorized_keys"
 ```
 
 ## ~/.ssh/config

@@ -592,9 +592,11 @@ fx_media_flush(&sd_disk);
 ```
 
 ## Common pitfalls
-- `tx_application_define` must create all threads/resources at startup; no dynamic creation after scheduler start (in practice you can, but Microsoft discourages it).
+- `tx_application_define` must create all threads/resources at startup;
+  no dynamic creation after scheduler start (Microsoft discourages it in practice).
 - ThreadX is royalty-free since 2023 under MIT license via Eclipse Foundation.
-- Preemption threshold = priority for standard operation; set < priority only for priority inheritance.
+- Preemption threshold = priority for standard operation;
+  set < priority only for priority inheritance.
 """,
     ),
     # ── RT-Thread ────────────────────────────────────────────────────────────

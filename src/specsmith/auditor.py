@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from specsmith.console_utils import make_console
 
@@ -461,7 +463,7 @@ _TYPE_LEDGER_THRESHOLDS: dict[str, int] = {
 }
 
 
-def _read_scaffold_raw(root: Path) -> dict:
+def _read_scaffold_raw(root: Path) -> dict[str, Any]:
     """Read scaffold.yml (or docs/SPECSMITH.yml) as a raw dict."""
     from specsmith.paths import find_scaffold
     scaffold_path = find_scaffold(root)
@@ -882,17 +884,15 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
     """
     results: list[AuditResult] = []
     raw = _read_scaffold_raw(root)
-    templates: list[dict] = raw.get("secrets_templates", []) or []
+    templates: list[dict[str, Any]] = raw.get("secrets_templates", []) or []
     if not templates:
         return results
     # Load .gitignore for checking
     gitignore_content = ""
     gitignore_path = root / ".gitignore"
     if gitignore_path.exists():
-        try:
+        with contextlib.suppress(OSError):
             gitignore_content = gitignore_path.read_text(encoding="utf-8")
-        except OSError:
-            pass
     for entry in templates:
         if not isinstance(entry, dict):
             continue
@@ -963,7 +963,7 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     """
     results: list[AuditResult] = []
     raw = _read_scaffold_raw(root)
-    declared: dict = raw.get("industrial_artifacts", {}) or {}
+    declared: dict[str, Any] = raw.get("industrial_artifacts", {}) or {}
     declared_eds = declared.get("canopen_eds", []) or []
     declared_paths = {e.get("path", "") for e in declared_eds if isinstance(e, dict)}
 
@@ -1011,7 +1011,7 @@ def check_derived_artifacts(root: Path) -> list[AuditResult]:
     """
     results: list[AuditResult] = []
     raw = _read_scaffold_raw(root)
-    entries: list[dict] = raw.get("derived_artifacts", []) or []
+    entries: list[dict[str, Any]] = raw.get("derived_artifacts", []) or []
     if not entries:
         return results
 
@@ -1060,7 +1060,7 @@ def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
     """
     results: list[AuditResult] = []
     raw = _read_scaffold_raw(root)
-    deps: list[dict] = raw.get("cross_repo_dependencies", []) or []
+    deps: list[dict[str, Any]] = raw.get("cross_repo_dependencies", []) or []
     if not deps:
         return results
     msgs = []
@@ -1071,7 +1071,7 @@ def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
         role = dep.get("role", "dependency")
         prefixes = dep.get("req_prefixes", [])
         if prefixes:
-            msgs.append(f"{repo} ({role}): handles {', '.join(prefixes)}")       
+            msgs.append(f"{repo} ({role}): handles {', '.join(prefixes)}")
         else:
             msgs.append(f"{repo} ({role})")
     if msgs:

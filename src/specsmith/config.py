@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -263,12 +264,13 @@ class ProjectConfig(BaseModel):
         default_factory=list,
         description=(
             "Directories to exclude from specsmith scanning (detection, stats, test discovery). "
-            "Auto-populated from .gitignore on import. e.g. ['external/', 'node_modules/', '.venv/']"
+            "Auto-populated from .gitignore on import. "
+            "e.g. ['external/', 'node_modules/', '.venv/']"
         ),
     )
 
     # Derived artifacts — #126
-    derived_artifacts: list[dict] = Field(
+    derived_artifacts: list[dict[str, Any]] = Field(
         default_factory=list,
         description=(
             "Code-generated files that should not be hand-edited. Each entry: "
@@ -287,7 +289,7 @@ class ProjectConfig(BaseModel):
     )
 
     # Cross-repo dependencies — #161
-    cross_repo_dependencies: list[dict] = Field(
+    cross_repo_dependencies: list[dict[str, Any]] = Field(
         default_factory=list,
         description=(
             "Cross-repo requirement traceability. Each entry: "
@@ -296,7 +298,7 @@ class ProjectConfig(BaseModel):
     )
 
     # Secrets templates — #162
-    secrets_templates: list[dict] = Field(
+    secrets_templates: list[dict[str, Any]] = Field(
         default_factory=list,
         description=(
             "Required-but-uncommitted secrets files. Each entry: "
@@ -305,7 +307,7 @@ class ProjectConfig(BaseModel):
     )
 
     # Industrial artifacts (CANopen EDS/XDD) — #163
-    industrial_artifacts: dict = Field(
+    industrial_artifacts: dict[str, Any] = Field(
         default_factory=dict,
         description=(
             "Industrial protocol artifacts (e.g. CANopen EDS/XDD). "
@@ -323,7 +325,7 @@ class ProjectConfig(BaseModel):
     )
 
     # Research / publication phases — #156
-    publication_phases: dict = Field(
+    publication_phases: dict[str, Any] = Field(
         default_factory=dict,
         description=(
             "Custom publication gates for research projects. "

@@ -32,7 +32,8 @@ RUN python -m pytest tests/ -q
 # Stage 2: minimal runtime image
 FROM python:3.12-slim AS runtime
 WORKDIR /app
-COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
+COPY --from=builder /usr/local/lib/python3.12/site-packages/ \
+    /usr/local/lib/python3.12/site-packages/
 COPY --from=builder /app/src/ src/
 USER nobody   # never run as root
 ENTRYPOINT ["python", "-m", "myapp"]

@@ -262,7 +262,8 @@ vivado -mode tcl   # interactive Tcl shell
 ```
 
 ## Common pitfalls
-- Always set clock constraints before implementing — unconstrained paths cause random timing failures.
+- Always set clock constraints before implementing —
+  unconstrained paths cause random timing failures.
 - Timing path → "Path not covered": check set_false_path and clock groups.
 - IP version mismatch after Vivado upgrade: Project → Report IP Status → Upgrade All.
 - License: Vivado ML Standard is free for smaller devices; larger ones need purchased license.
@@ -543,7 +544,8 @@ openocd ... -c "init; arm semihosting enable; reset run"
 
 ## Common pitfalls
 - Wrong transport: STM32 Nucleo uses SWD, not JTAG — `transport select swd`.
-- Permission error on Linux: add udev rule for USB adapter (copy `openocd.udev` to `/etc/udev/rules.d/`).
+- Permission error on Linux: add udev rule for USB adapter
+  (copy `openocd.udev` to `/etc/udev/rules.d/`).
 - Windows: install WinUSB driver with Zadig for ST-Link/J-Link.
 - Verify after flash: always use `verify` flag to catch write errors.
 """,

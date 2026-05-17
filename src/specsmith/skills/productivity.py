@@ -20,7 +20,8 @@ SKILLS: list[SkillEntry] = [
 # Email Workflow Skill
 
 ## Professional writing principles
-1. **Subject line**: Specific + action-oriented. "Action required: approve Q3 budget by Fri 5pm" > "Budget"
+1. **Subject line**: Specific + action-oriented.
+   "Action required: approve Q3 budget by Fri 5pm" > "Budget"
 2. **First sentence**: State what you need in ≤ 20 words.
 3. **BLUF** (Bottom Line Up Front): conclusion → supporting details → call to action.
 4. **Length**: < 150 words for requests; < 300 words for updates. Longer = send a doc instead.
