@@ -18,18 +18,25 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Path-safe dag_id: alphanumeric, dash, underscore, max 64 chars (CWE-22)
-_SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_-]")
+# Strict allow-list for dag_id used as a filesystem path component (CWE-22).
+# Alphanumeric start; alphanumeric / dash / underscore body; max 64 chars.
+_VALID_DAG_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
 
 
-def _safe_dag_id(dag_id: str) -> str:
-    """Sanitise dag_id for use as a filesystem path component.
+def _check_dag_id(dag_id: str) -> str:
+    """Validate dag_id is safe for filesystem use; raise ValueError otherwise.
 
-    Replaces any character that is not alphanumeric, a dash, or an
-    underscore with '_', then truncates to 64 characters.  This prevents
-    path traversal (e.g. ``../../etc/passwd``) via caller-supplied IDs.
+    This is the CodeQL-recognised taint-breaking pattern: the value is
+    **rejected** (exception raised) rather than transformed when it contains
+    unsafe characters.  After this guard, ``dag_id`` is safe to use as a
+    single path component — it can never contain path separators or ``..``.
     """
-    return _SAFE_ID_RE.sub("_", dag_id)[:64]
+    if not _VALID_DAG_ID_RE.match(dag_id):
+        raise ValueError(
+            f"Invalid dag_id {dag_id!r}: must start with alphanumeric and contain "
+            "only alphanumeric characters, dashes, or underscores (max 64 chars)."
+        )
+    return dag_id
 
 
 # ---------------------------------------------------------------------------
@@ -101,9 +108,9 @@ class EventEmitter:
     """
 
     def __init__(self, project_root: Path, dag_id: str) -> None:
+        _check_dag_id(dag_id)  # raises ValueError if unsafe — taint boundary
         self._dag_id = dag_id
-        safe_id = _safe_dag_id(dag_id)
-        run_dir = project_root / ".specsmith" / "dispatch" / safe_id
+        run_dir = project_root / ".specsmith" / "dispatch" / dag_id
         run_dir.mkdir(parents=True, exist_ok=True)
         self._jsonl_path = run_dir / "events.jsonl"
         # Touch the file so it exists before the first node starts (REQ-328)
@@ -199,7 +206,8 @@ class EventEmitter:
     @staticmethod
     def replay(project_root: Path, dag_id: str) -> list[DispatchEvent]:
         """Read and return all persisted events for a DAG run (REQ-330)."""
-        path = project_root / ".specsmith" / "dispatch" / _safe_dag_id(dag_id) / "events.jsonl"
+        _check_dag_id(dag_id)  # raises ValueError if unsafe — taint boundary
+        path = project_root / ".specsmith" / "dispatch" / dag_id / "events.jsonl"
         if not path.exists():
             return []
         events: list[DispatchEvent] = []
@@ -219,11 +227,11 @@ class EventEmitter:
         dispatch_dir = project_root / ".specsmith" / "dispatch"
         if not dispatch_dir.exists():
             return []
-        # Only return directory names that match the safe pattern (no traversal)
+        # Only return directory names that match the valid dag_id pattern
         return sorted(
             d.name
             for d in dispatch_dir.iterdir()
-            if d.is_dir() and (d / "events.jsonl").exists() and not _SAFE_ID_RE.search(d.name)
+            if d.is_dir() and (d / "events.jsonl").exists() and _VALID_DAG_ID_RE.match(d.name)
         )
 
 
