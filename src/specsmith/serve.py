@@ -339,7 +339,7 @@ class _Handler(BaseHTTPRequestHandler):
                 self.wfile.write(line)
                 self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):
-            pass
+            pass  # client disconnected mid-stream — normal SSE teardown
         finally:
             emitter.unsubscribe(q)
 

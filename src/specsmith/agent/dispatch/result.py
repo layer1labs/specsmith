@@ -7,7 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from specsmith.agent.dispatch.dag import TaskStatus
+from specsmith.agent.dispatch._status import TaskStatus
 
 
 @dataclass

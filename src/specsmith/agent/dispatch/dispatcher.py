@@ -410,7 +410,7 @@ class AgentDispatcher:
         def _run() -> None:
             try:
                 result_holder.append(self._invoke_worker(worker, task))
-            except BaseException as exc:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001 — catches all non-system exceptions from worker
                 error_holder.append(exc)
 
         t = threading.Thread(target=_run, daemon=True, name=f"invoke-{node_id}")

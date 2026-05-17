@@ -12,24 +12,17 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import TYPE_CHECKING, Any, cast
+
+from specsmith.agent.dispatch._status import TaskStatus
 
 if TYPE_CHECKING:
     from specsmith.agent.dispatch.result import DispatchResult
 
 
 # ---------------------------------------------------------------------------
-# Enums
+# Enums — re-exported from _status for backwards compatibility
 # ---------------------------------------------------------------------------
-
-
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    BLOCKED = "blocked"
 
 
 # ---------------------------------------------------------------------------
@@ -295,5 +288,5 @@ __all__ = [
     "TaskDAG",
     "TaskDAGBuilder",
     "TaskNode",
-    "TaskStatus",
+    "TaskStatus",  # re-exported from _status
 ]

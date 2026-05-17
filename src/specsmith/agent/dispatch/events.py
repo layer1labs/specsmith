@@ -11,11 +11,26 @@ from __future__ import annotations
 import contextlib
 import json
 import queue
+import re
 import threading
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+# Path-safe dag_id: alphanumeric, dash, underscore, max 64 chars (CWE-22)
+_SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_-]")
+
+
+def _safe_dag_id(dag_id: str) -> str:
+    """Sanitise dag_id for use as a filesystem path component.
+
+    Replaces any character that is not alphanumeric, a dash, or an
+    underscore with '_', then truncates to 64 characters.  This prevents
+    path traversal (e.g. ``../../etc/passwd``) via caller-supplied IDs.
+    """
+    return _SAFE_ID_RE.sub("_", dag_id)[:64]
+
 
 # ---------------------------------------------------------------------------
 # Event type literals
@@ -87,7 +102,8 @@ class EventEmitter:
 
     def __init__(self, project_root: Path, dag_id: str) -> None:
         self._dag_id = dag_id
-        run_dir = project_root / ".specsmith" / "dispatch" / dag_id
+        safe_id = _safe_dag_id(dag_id)
+        run_dir = project_root / ".specsmith" / "dispatch" / safe_id
         run_dir.mkdir(parents=True, exist_ok=True)
         self._jsonl_path = run_dir / "events.jsonl"
         # Touch the file so it exists before the first node starts (REQ-328)
@@ -183,7 +199,7 @@ class EventEmitter:
     @staticmethod
     def replay(project_root: Path, dag_id: str) -> list[DispatchEvent]:
         """Read and return all persisted events for a DAG run (REQ-330)."""
-        path = project_root / ".specsmith" / "dispatch" / dag_id / "events.jsonl"
+        path = project_root / ".specsmith" / "dispatch" / _safe_dag_id(dag_id) / "events.jsonl"
         if not path.exists():
             return []
         events: list[DispatchEvent] = []
@@ -203,8 +219,11 @@ class EventEmitter:
         dispatch_dir = project_root / ".specsmith" / "dispatch"
         if not dispatch_dir.exists():
             return []
+        # Only return directory names that match the safe pattern (no traversal)
         return sorted(
-            d.name for d in dispatch_dir.iterdir() if d.is_dir() and (d / "events.jsonl").exists()
+            d.name
+            for d in dispatch_dir.iterdir()
+            if d.is_dir() and (d / "events.jsonl").exists() and not _SAFE_ID_RE.search(d.name)
         )
 
 
