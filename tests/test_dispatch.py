@@ -247,9 +247,12 @@ class TestEventEmitter:
     def test_emitter_creates_jsonl(self, tmp_path: Path):
         """EventEmitter creates events.jsonl before first node (REQ-328)."""
         from specsmith.agent.dispatch import EventEmitter
+        from specsmith.agent.dispatch.events import _dag_dir_name
 
         EventEmitter(tmp_path, "test-dag-001")
-        expected = tmp_path / ".specsmith" / "dispatch" / "test-dag-001" / "events.jsonl"
+        expected = (
+            tmp_path / ".specsmith" / "dispatch" / _dag_dir_name("test-dag-001") / "events.jsonl"
+        )
         assert expected.exists()
 
     def test_emit_writes_jsonl_line(self, tmp_path: Path):
@@ -260,7 +263,9 @@ class TestEventEmitter:
         emitter.node_completed("node-1", "rec-abc", "task done")
         emitter.node_failed("node-2", "timeout")
 
-        path = tmp_path / ".specsmith" / "dispatch" / "dag-write" / "events.jsonl"
+        from specsmith.agent.dispatch.events import _dag_dir_name
+
+        path = tmp_path / ".specsmith" / "dispatch" / _dag_dir_name("dag-write") / "events.jsonl"
         lines = [json.loads(ln) for ln in path.read_text().splitlines() if ln.strip()]
         assert len(lines) == 3
         assert lines[0]["event_type"] == "node_started"
@@ -275,7 +280,11 @@ class TestEventEmitter:
         emitter = EventEmitter(tmp_path, "dag-done-test")
         emitter.dag_done({"equilibrium": True, "completed": [], "failed": []})
 
-        path = tmp_path / ".specsmith" / "dispatch" / "dag-done-test" / "events.jsonl"
+        from specsmith.agent.dispatch.events import _dag_dir_name
+
+        path = (
+            tmp_path / ".specsmith" / "dispatch" / _dag_dir_name("dag-done-test") / "events.jsonl"
+        )
         line = json.loads(path.read_text().strip())
         assert line["event_type"] == "dag_done"
 
@@ -567,7 +576,9 @@ class TestAgentDispatcherEndToEnd:
         ):
             dispatcher.run()
 
-        jsonl = tmp_path / ".specsmith" / "dispatch" / "events-001" / "events.jsonl"
+        from specsmith.agent.dispatch.events import _dag_dir_name
+
+        jsonl = tmp_path / ".specsmith" / "dispatch" / _dag_dir_name("events-001") / "events.jsonl"
         lines = [json.loads(ln) for ln in jsonl.read_text().splitlines() if ln.strip()]
         event_types = [ln["event_type"] for ln in lines]
         assert "node_started" in event_types

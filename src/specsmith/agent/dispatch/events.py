@@ -9,8 +9,8 @@ appended to .specsmith/dispatch/<dag_id>/events.jsonl before the SSE queue.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
-import os
 import queue
 import re
 import threading
@@ -19,22 +19,35 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Strict allow-list for dag_id path components (CWE-22 / path-traversal).
+# Allow-list for dag_id values (validation only — dag_id is NEVER used as a
+# filesystem path component; only its SHA-256 digest is, see _dag_dir_name).
 _VALID_DAG_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
 
 
-def _assert_safe_dag_id(dag_id: str, safe: str) -> None:
-    """Secondary allow-list guard after os.path.basename() has been applied.
+def _validate_dag_id(dag_id: str) -> None:
+    """Raise ValueError when dag_id fails the allow-list regex.
 
-    Must be called with ``safe = os.path.basename(dag_id)`` at the call site
-    so CodeQL's taint engine sees the stdlib sanitiser directly on the source.
-    Raises ``ValueError`` when the basename result still fails the allow-list.
+    The dag_id is **never** placed into a filesystem path.  Only the
+    constant-length hex digest produced by ``_dag_dir_name()`` is used,
+    which carries no taint in CodeQL's data-flow graph.
     """
-    if not _VALID_DAG_ID_RE.match(safe):
+    if not _VALID_DAG_ID_RE.match(dag_id):
         raise ValueError(
             f"Invalid dag_id {dag_id!r}: must match "
             r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
         )
+
+
+def _dag_dir_name(dag_id: str) -> str:
+    """Return the filesystem directory name for a DAG run.
+
+    Uses the first 32 hex chars of SHA-256(dag_id).  The dag_id is never
+    placed in a filesystem path; this deterministic hash is used instead.
+    Because the hash is computed from constants (the algorithm and length
+    are fixed) it carries no taint — CodeQL cannot trace ``dag_id`` through
+    a hashlib digest call.
+    """
+    return hashlib.sha256(dag_id.encode("utf-8")).hexdigest()[:32]
 
 
 # ---------------------------------------------------------------------------
@@ -106,16 +119,18 @@ class EventEmitter:
     """
 
     def __init__(self, project_root: Path, dag_id: str) -> None:
-        # os.path.basename() is called INLINE here so CodeQL's taint engine
-        # sees the stdlib sanitiser directly on the source variable.
-        # The return value 'safe' carries no taint; dag_id is never used in
-        # path operations below.
-        safe = os.path.basename(dag_id)  # noqa: PTH119 — intentional sanitiser
-        _assert_safe_dag_id(dag_id, safe)  # allow-list + ValueError guard
+        _validate_dag_id(dag_id)  # reject invalid characters before any I/O
         self._dag_id = dag_id
-        run_dir = project_root / ".specsmith" / "dispatch" / safe
+        # dag_id is NEVER used as a path component.  The SHA-256 digest is
+        # a constant-length hex string that CodeQL cannot trace back to the
+        # user-supplied dag_id, definitively breaking the taint chain.
+        run_dir = project_root / ".specsmith" / "dispatch" / _dag_dir_name(dag_id)
         run_dir.mkdir(parents=True, exist_ok=True)
         self._jsonl_path = run_dir / "events.jsonl"
+        # Write dag_id into a metadata file so list_runs() can recover it.
+        meta = run_dir / "dag_id.txt"
+        if not meta.exists():
+            meta.write_text(dag_id, encoding="utf-8")
         # Touch the file so it exists before the first node starts (REQ-328)
         if not self._jsonl_path.exists():
             self._jsonl_path.write_text("", encoding="utf-8")
@@ -209,10 +224,14 @@ class EventEmitter:
     @staticmethod
     def replay(project_root: Path, dag_id: str) -> list[DispatchEvent]:
         """Read and return all persisted events for a DAG run (REQ-330)."""
-        # Inline os.path.basename() so CodeQL sees the sanitiser at this call site.
-        safe = os.path.basename(dag_id)  # noqa: PTH119 — intentional sanitiser
-        _assert_safe_dag_id(dag_id, safe)
-        path = project_root / ".specsmith" / "dispatch" / safe / "events.jsonl"
+        _validate_dag_id(dag_id)
+        path = (
+            project_root
+            / ".specsmith"
+            / "dispatch"
+            / _dag_dir_name(dag_id)  # hash — dag_id never in path
+            / "events.jsonl"
+        )
         if not path.exists():
             return []
         events: list[DispatchEvent] = []
@@ -232,12 +251,18 @@ class EventEmitter:
         dispatch_dir = project_root / ".specsmith" / "dispatch"
         if not dispatch_dir.exists():
             return []
-        # Only return directory names that match the valid dag_id pattern
-        return sorted(
-            d.name
-            for d in dispatch_dir.iterdir()
-            if d.is_dir() and (d / "events.jsonl").exists() and _VALID_DAG_ID_RE.match(d.name)
-        )
+        # Recover dag_ids from the dag_id.txt metadata file written at creation.
+        # Directory names are SHA-256 hashes, not dag_ids themselves.
+        dag_ids: list[str] = []
+        for d in dispatch_dir.iterdir():
+            if not d.is_dir() or not (d / "events.jsonl").exists():
+                continue
+            meta = d / "dag_id.txt"
+            if meta.exists():
+                raw = meta.read_text(encoding="utf-8").strip()
+                if _VALID_DAG_ID_RE.match(raw):
+                    dag_ids.append(raw)
+        return sorted(dag_ids)
 
 
 __all__ = [
