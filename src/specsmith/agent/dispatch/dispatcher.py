@@ -22,7 +22,6 @@ from specsmith.agent.dispatch.dag import TaskDAG, TaskNode, TaskStatus
 from specsmith.agent.dispatch.events import EventEmitter
 from specsmith.agent.dispatch.result import DispatchResult, DispatchSummary
 
-
 # ---------------------------------------------------------------------------
 # AgentPool  (REQ-326)
 # ---------------------------------------------------------------------------
@@ -178,7 +177,7 @@ class AgentDispatcher:
                         summary.blocked.append(bid)
 
         # Terminate remaining in-flight futures gracefully
-        for future, node in futures.items():
+        for future, _node in futures.items():
             future.cancel()
 
         # Build final summary
@@ -366,7 +365,9 @@ class AgentDispatcher:
         """Invoke the AG2 worker agent and return a result dict."""
         try:
             # If worker is a real ConversableAgent, use it inside a mini GroupChat
-            from autogen import ConversableAgent, GroupChat, GroupChatManager  # type: ignore[import]
+            from autogen import (
+                ConversableAgent,
+            )
 
             executor = ConversableAgent(
                 name="Executor",
@@ -423,7 +424,7 @@ class AgentDispatcher:
             t.join(timeout=0.5)  # 500 ms polling interval
 
         if error_holder:
-            raise error_holder[0]  # type: ignore[misc]
+            raise error_holder[0]
         return result_holder[0] if result_holder else {
             "summary": "", "files_changed": [], "equilibrium": False
         }

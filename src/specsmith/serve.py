@@ -353,11 +353,16 @@ class _Handler(BaseHTTPRequestHandler):
             events = EventEmitter.replay(root, dag_id) if dag_id else []
             node_status: dict[str, str] = {}
             for evt in events:
-                if evt.event_type in ("node_started", "node_completed", "node_failed", "node_blocked"):
+                if evt.event_type in (
+                    "node_started", "node_completed", "node_failed", "node_blocked"
+                ):
                     node_status[evt.node_id] = evt.event_type.replace("node_", "")
             done = sum(1 for s in node_status.values() if s == "completed")
             failed = sum(1 for s in node_status.values() if s == "failed")
-            self._json_response({"dag_id": dag_id, "nodes": node_status, "completed": done, "failed": failed})
+            self._json_response({
+                "dag_id": dag_id, "nodes": node_status,
+                "completed": done, "failed": failed,
+            })
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
 
@@ -383,7 +388,12 @@ class _Handler(BaseHTTPRequestHandler):
         root = Path(project_dir)
 
         try:
-            from specsmith.agent.dispatch import AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+            from specsmith.agent.dispatch import (
+                AgentDispatcher,
+                AgentPool,
+                EventEmitter,
+                TaskDAGBuilder,
+            )
         except ImportError as exc:
             self._json_response({"error": f"dispatch not available: {exc}"}, code=503)
             return
@@ -432,7 +442,11 @@ class _Handler(BaseHTTPRequestHandler):
         root = Path(project_dir)
         try:
             from specsmith.agent.dispatch import (
-                AgentDispatcher, AgentPool, EventEmitter, TaskDAG, TaskNode, TaskStatus
+                AgentDispatcher,
+                AgentPool,
+                EventEmitter,
+                TaskDAG,
+                TaskNode,
             )
             past = EventEmitter.replay(root, dag_id)
             # Reconstruct role for the node from past events
@@ -444,7 +458,10 @@ class _Handler(BaseHTTPRequestHandler):
             node_status = {e.node_id: e.event_type for e in past if e.node_id == node_id}
             last_event = node_status.get(node_id, "")
             if last_event == "node_completed":
-                self._json_response({"ok": False, "error": f"Node {node_id!r} is already completed"})
+                self._json_response({
+                    "ok": False,
+                    "error": f"Node {node_id!r} is already completed",
+                })
                 return
             # Build a single-node retry DAG
             retry_dag_id = f"{dag_id}-retry-{node_id}"
@@ -465,7 +482,10 @@ class _Handler(BaseHTTPRequestHandler):
             import threading
             t = threading.Thread(target=_bg, daemon=True, name=f"retry-{retry_dag_id}")
             t.start()
-            self._json_response({"ok": True, "dag_id": retry_dag_id, "node_id": node_id, "status": "running"})
+            self._json_response({
+                "ok": True, "dag_id": retry_dag_id,
+                "node_id": node_id, "status": "running",
+            })
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
 
@@ -487,9 +507,15 @@ class _Handler(BaseHTTPRequestHandler):
             return
         found = dispatcher.abort_node(node_id)
         if found:
-            self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "abort signalled"})
+            self._json_response({
+                "ok": True, "dag_id": dag_id,
+                "node_id": node_id, "status": "abort signalled",
+            })
         else:
-            self._json_response({"ok": False, "error": f"Node {node_id!r} not found in dag {dag_id!r}"})
+            self._json_response({
+                "ok": False,
+                "error": f"Node {node_id!r} not found in dag {dag_id!r}",
+            })
 
     def _read_json(self) -> dict[str, Any] | None:
         length = int(self.headers.get("Content-Length", 0))

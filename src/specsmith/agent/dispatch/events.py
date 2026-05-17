@@ -8,6 +8,7 @@ appended to .specsmith/dispatch/<dag_id>/events.jsonl before the SSE queue.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import queue
 import threading
@@ -15,7 +16,6 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Event type literals
@@ -60,7 +60,7 @@ class DispatchEvent:
         return json.dumps(self.to_dict(), ensure_ascii=False)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "DispatchEvent":
+    def from_dict(cls, d: dict[str, Any]) -> DispatchEvent:
         return cls(
             dag_id=d.get("dag_id", ""),
             event_type=d.get("event_type", ""),
@@ -106,10 +106,8 @@ class EventEmitter:
             with open(self._jsonl_path, "a", encoding="utf-8") as f:
                 f.write(line)
             for q in list(self._subscribers):
-                try:
+                with contextlib.suppress(queue.Full):
                     q.put_nowait(event)
-                except queue.Full:
-                    pass  # Slow consumer — drop rather than block
 
     def node_started(
         self,
@@ -169,19 +167,16 @@ class EventEmitter:
 
     # -- SSE subscription --------------------------------------------------
 
-    def subscribe(self) -> "queue.Queue[DispatchEvent | None]":
+    def subscribe(self) -> queue.Queue[DispatchEvent | None]:
         """Register a new SSE consumer. Returns a Queue to read events from."""
         q: queue.Queue[DispatchEvent | None] = queue.Queue(maxsize=512)
         with self._lock:
             self._subscribers.append(q)
         return q
 
-    def unsubscribe(self, q: "queue.Queue[DispatchEvent | None]") -> None:
-        with self._lock:
-            try:
-                self._subscribers.remove(q)
-            except ValueError:
-                pass
+    def unsubscribe(self, q: queue.Queue[DispatchEvent | None]) -> None:
+        with self._lock, contextlib.suppress(ValueError):
+            self._subscribers.remove(q)
 
     # -- Replay ------------------------------------------------------------
 

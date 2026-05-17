@@ -13,7 +13,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from specsmith.agent.dispatch.result import DispatchResult
@@ -59,7 +59,7 @@ class TaskNode:
     status: TaskStatus = TaskStatus.PENDING
     context_in: list[str] = field(default_factory=list)
     context_out: str | None = None
-    result: DispatchResult | None = None  # type: ignore[type-arg]
+    result: DispatchResult | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -288,7 +288,7 @@ class TaskDAGBuilder:
                 depth -= 1
                 if depth == 0:
                     try:
-                        return json.loads(text[start : i + 1])
+                        return cast(list[dict[str, Any]], json.loads(text[start : i + 1]))
                     except json.JSONDecodeError as exc:
                         raise DAGValidationError(
                             f"Malformed JSON in planner output: {exc}"

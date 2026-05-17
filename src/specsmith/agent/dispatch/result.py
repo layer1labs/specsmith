@@ -56,7 +56,7 @@ class DispatchSummary:
         }
 
     @classmethod
-    def from_task_result(cls, dag_id: str) -> "DispatchSummary":
+    def from_task_result(cls, dag_id: str) -> DispatchSummary:
         """Create an empty summary for a given DAG run."""
         return cls(dag_id=dag_id)
 

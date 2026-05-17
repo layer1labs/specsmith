@@ -8839,8 +8839,14 @@ def dispatch_group() -> None:
 
 @dispatch_group.command(name="run")
 @click.argument("task")
-@click.option("--max-workers", type=int, default=4, show_default=True, help="Max concurrent agents.")
-@click.option("--json", "as_json", is_flag=True, default=False, help="Stream JSONL events to stdout.")
+@click.option(
+    "--max-workers", type=int, default=4, show_default=True,
+    help="Max concurrent agents.",
+)
+@click.option(
+    "--json", "as_json", is_flag=True, default=False,
+    help="Stream JSONL events to stdout.",
+)
 @click.option("--no-dag", is_flag=True, default=False, help="Skip DAG; use flat GroupChat instead.")
 @click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
 @click.option("--endpoint", default="http://localhost:8000/v1", show_default=True)
@@ -8861,19 +8867,22 @@ def dispatch_run_cmd(
     Falls back to single-node DAG when AG2 is not available.
     """
     import json as _json
-    import threading
     import queue as _queue
+    import threading
 
     root = Path(project_dir).resolve()
 
     if no_dag:
-        console.print("[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run).")
+        console.print(
+            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat"
+            " (use specsmith run)."
+        )
         raise SystemExit(0)
 
     # ── Path A: AG2 available — use Orchestrator for LLM-driven decomposition ─
     try:
-        from specsmith.agent.orchestrator import Orchestrator
         from specsmith.agent.dispatch import EventEmitter
+        from specsmith.agent.orchestrator import Orchestrator
 
         orch = Orchestrator(endpoint=endpoint, model=model)
         if as_json:
@@ -8886,7 +8895,7 @@ def dispatch_run_cmd(
             done_flag = threading.Event()
 
             def _run_orch_json() -> None:
-                from specsmith.agent.dispatch import AgentPool, AgentDispatcher
+                from specsmith.agent.dispatch import AgentDispatcher, AgentPool
                 pool = AgentPool(orch.llm_config, max_workers=max_workers)
                 dispatcher = AgentDispatcher(
                     dag, pool, emitter, project_root=root, max_workers=max_workers
@@ -8911,7 +8920,10 @@ def dispatch_run_cmd(
                 f"{len(summary.completed)} completed  "
                 f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
             )
-            console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
+            console.print(
+                f"  equilibrium={summary.equilibrium}"
+                f"  confidence={summary.confidence:.2f}"
+            )
             console.print(f"  dag={summary.dag_id}")
         return
     except ImportError:
@@ -8933,7 +8945,7 @@ def dispatch_run_cmd(
         dag = TaskDAGBuilder.build(task)
     except Exception as exc:
         console.print(f"[red]DAG build failed:[/red] {exc}")
-        raise SystemExit(1)
+        raise SystemExit(1) from exc
 
     emitter = EventEmitter(root, dag.dag_id)
     pool = AgentPool(llm_config, max_workers=max_workers)
@@ -8972,7 +8984,6 @@ def dispatch_run_cmd(
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
     """Print per-node status for a DAG run."""
-    import json as _json
 
     from specsmith.agent.dispatch.events import EventEmitter
 
@@ -9001,7 +9012,10 @@ def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
         elif et == "node_blocked":
             node_status[evt.node_id] = "blocked"
 
-    _STATUS_COLOUR = {"running": "blue", "completed": "green", "failed": "red", "blocked": "yellow", "pending": "dim"}
+    _STATUS_COLOUR = {
+        "running": "blue", "completed": "green", "failed": "red",
+        "blocked": "yellow", "pending": "dim",
+    }
     console.print(f"[bold]Dispatch status[/bold]  dag_id=[cyan]{target}[/cyan]\n")
     for nid, st in node_status.items():
         col = _STATUS_COLOUR.get(st, "white")
@@ -9050,7 +9064,6 @@ def dispatch_retry_cmd(
         raise SystemExit(1)
 
     # Reconstruct node set from events; honour COMPLETED nodes as-is (REQ-330)
-    node_titles: dict[str, str] = {}
     node_roles: dict[str, str] = {}
     node_statuses: dict[str, TaskStatus] = {}
     for evt in past_events:
@@ -9062,7 +9075,9 @@ def dispatch_retry_cmd(
             elif et == "node_completed":
                 node_statuses[evt.node_id] = TaskStatus.COMPLETED
             elif et in ("node_failed", "node_blocked"):
-                node_statuses[evt.node_id] = TaskStatus.FAILED if et == "node_failed" else TaskStatus.BLOCKED
+                node_statuses[evt.node_id] = (
+                    TaskStatus.FAILED if et == "node_failed" else TaskStatus.BLOCKED
+                )
 
     if node_id not in node_statuses:
         console.print(f"[red]Node {node_id!r} not found in dag_id={dag_id!r}[/red]")

@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from specsmith.agent.dispatch.result import DispatchSummary
 
 try:
     import autogen
@@ -232,9 +237,9 @@ Next action:
         task: str,
         *,
         max_workers: int = 4,
-        planner_output: "str | list | None" = None,
-        project_root: "str | None" = None,
-    ) -> "DispatchSummary":
+        planner_output: str | list | None = None,
+        project_root: str | None = None,
+    ) -> DispatchSummary:
         """Decompose *task* into a TaskDAG and dispatch via AgentDispatcher.
 
         Always uses the DAG path (REQ-321: Orchestrator is the sole entry).
@@ -279,7 +284,7 @@ Next action:
 
             [
               {"id": "arch", "title": "Design API", "role": "architect", "depends_on": []},
-              {"id": "impl", "title": "Implement endpoint", "role": "coder", "depends_on": ["arch"]},
+              {"id": "impl", "title": "Implement the API", "role": "coder", "depends_on": ["arch"]},
               {"id": "test", "title": "Write tests", "role": "tester", "depends_on": ["arch"]}
             ]
         """
@@ -300,7 +305,8 @@ Next action:
                 f"Output ONLY a JSON array. Each element must have:\n"
                 f'  - "id": unique snake_case slug\n'
                 f'  - "title": human-readable description\n'
-                f'  - "role": one of coder | reviewer | tester | architect | researcher | embedded-coder\n'
+                f'  - "role": one of coder | reviewer | tester | '
+                f'architect | researcher | embedded-coder\n'
                 f'  - "depends_on": list of node ids that must finish first ([] for root nodes)\n\n'
                 f"The array MUST be a valid DAG with no cycles. Maximum 8 nodes."
             )

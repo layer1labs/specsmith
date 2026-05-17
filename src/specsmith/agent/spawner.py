@@ -100,7 +100,7 @@ class SubAgentSpawner:
             agent.status = "failed"
             agent.result = {"error": error}
 
-    def spawn_worker(self, role: str, llm_config: dict) -> Any:
+    def spawn_worker(self, role: str, llm_config: dict[str, Any]) -> Any:
         """Create a live ConversableAgent restricted to the role's tool subset.
 
         Wires ``register_for_llm`` and ``register_for_execution`` following the
@@ -110,7 +110,7 @@ class SubAgentSpawner:
         Returns the ConversableAgent.  The caller owns its lifecycle.
         """
         try:
-            from autogen import ConversableAgent  # type: ignore[import]
+            from autogen import ConversableAgent
         except ImportError as exc:
             raise ImportError(
                 "ag2 (autogen) is required for spawn_worker(). "
@@ -122,12 +122,18 @@ class SubAgentSpawner:
         tool_names = set(ROLE_TOOLS.get(role, ROLE_TOOLS.get("coder", [])))
 
         system_messages = {
-            "coder": "You write, read, and patch code files. Use compiler and formatter tools when needed.",
+            "coder": (
+                "You write, read, and patch code files. "
+                "Use compiler and formatter tools when needed."
+            ),
             "reviewer": "You review code changes, run linters/style checks, and report issues.",
             "tester": "You write and run tests, compile test binaries, and report results.",
             "architect": "You design system structure and write architecture documents.",
             "researcher": "You search and synthesise information from docs and the web.",
-            "embedded-coder": "You write and compile embedded C/C++ and VHDL code for target hardware.",
+            "embedded-coder": (
+                "You write and compile embedded C/C++ and "
+                "VHDL code for target hardware."
+            ),
         }
         system_msg = system_messages.get(role, f"You are a {role} agent.")
 
@@ -153,7 +159,7 @@ class SubAgentSpawner:
                 executor.register_for_execution(name=tool.__name__)(tool)
 
         # Attach the executor as a peer so the agent can delegate execution
-        agent._executor_peer = executor  # type: ignore[attr-defined]  # noqa: SLF001
+        agent._executor_peer = executor  # noqa: SLF001
         return agent
 
 
