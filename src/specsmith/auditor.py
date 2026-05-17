@@ -193,13 +193,17 @@ def check_governance_files(root: Path) -> list[AuditResult]:
 # Requirement ↔ Test consistency
 # ---------------------------------------------------------------------------
 
-_REQ_PATTERN = re.compile(r"\b(REQ-[A-Z]+-\d+)\b")
-_TEST_PATTERN = re.compile(r"\b(TEST-[A-Z]+-\d+)\b")
+# REQ/TEST IDs: support both numeric-only (REQ-001) and namespaced (REQ-CTT-001).
+# Pattern: REQ- followed by zero or more UPPERCASE- prefix segments, then digits.
+# Examples: REQ-001, REQ-CTT-001, REQ-AUTH-023, TEST-042, TEST-CORE-007
+_REQ_PATTERN = re.compile(r"\b(REQ-(?:[A-Z]+-)*\d+)\b")
+_TEST_PATTERN = re.compile(r"\b(TEST-(?:[A-Z]+-)*\d+)\b")
 # Match 'Covers: REQ-xxx', '**Requirement:** REQ-xxx', '**Requirement ID:** REQ-xxx',
 # 'Requirement: REQ-xxx', 'Requirement ID: REQ-xxx'
+# Also handles numeric-only IDs (REQ-001) via the updated _REQ_PATTERN.
 _TEST_COVERS_PATTERN = re.compile(
     r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
-    r"(REQ-[A-Z]+-\d+(?:\s*,\s*REQ-[A-Z]+-\d+)*)"
+    r"(REQ-(?:[A-Z]+-)*\d+(?:\s*,\s*REQ-(?:[A-Z]+-)*\d+)*)"
 )
 
 
