@@ -66,22 +66,25 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
     ),
     ProjectType.YOCTO_BSP: ToolSet(
         lint=["oelint-adv"],
-        test=["bitbake -c testimage"],
-        build=["kas build", "bitbake"],
+        test=["kas-container", "bitbake -c testimage"],
+        build=["kas build", "kas-container build", "bitbake"],
         security=[],
         compliance=["yocto-check-layer"],
     ),
     ProjectType.PCB_HARDWARE: ToolSet(
-        lint=[],
-        test=["drc-check", "erc-check"],
-        build=["kicad-cli"],
-        compliance=["bom-validate"],
+        # KiCad CLI for automated DRC/ERC + Gerber generation
+        lint=["kicad-cli pcb drc"],
+        test=["kicad-cli sch erc"],
+        build=["kicad-cli pcb export gerbers"],
+        compliance=["kicad-cli sch export bom"],
     ),
     ProjectType.EMBEDDED_HARDWARE: ToolSet(
+        # Detects Zephyr/west projects at runtime; generic C/C++ fallback.
         lint=["clang-tidy", "cppcheck"],
         typecheck=["cppcheck"],
-        test=["ctest", "unity"],
-        build=["cmake", "make"],
+        # west twister for Zephyr; ctest for bare CMake; unity for bare FreeRTOS
+        test=["west twister", "ctest", "unity"],
+        build=["west build", "cmake", "make"],
         security=["flawfinder"],
         format=["clang-format"],
         compliance=["misra-c"],
@@ -153,11 +156,16 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         build=["dotnet build"],
         format=["dotnet format"],
     ),
-    # Mobile
+    # Mobile (Flutter / React Native / iOS native / Android native)
     ProjectType.MOBILE_APP: ToolSet(
-        lint=["flutter analyze", "eslint"],
+        # Flutter is the common cross-platform case; xcodebuild for iOS-only;
+        # ./gradlew for Android-only; jest/jest-expo for RN
+        lint=["flutter analyze", "dart analyze", "ktlint"],
+        typecheck=["flutter analyze"],
         test=["flutter test", "jest"],
-        build=["flutter build"],
+        build=["flutter build", "xcodebuild", "./gradlew assembleRelease"],
+        security=["mobsfscan"],
+        format=["dart format"],
     ),
     # DevOps / IaC
     ProjectType.DEVOPS_IAC: ToolSet(
