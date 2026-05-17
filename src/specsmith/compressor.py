@@ -97,25 +97,35 @@ def run_compress(
     text = ledger_path.read_text(encoding="utf-8")
     line_count = len(text.splitlines())
 
-    if line_count <= threshold:
+    preamble, entries = _split_ledger(text)
+
+    # #132: trigger on EITHER line count OR entry count exceeding their thresholds.
+    # Previously compress used entry count but audit used line count, causing mismatch.
+    entry_count = len(entries)
+    needs_compress_lines = line_count > threshold
+    needs_compress_entries = entry_count > keep_recent * 2  # >2x the keep-recent window
+
+    if not needs_compress_lines and not needs_compress_entries:
         return CompressResult(
             archived_entries=0,
-            remaining_entries=line_count,
+            remaining_entries=entry_count,
             archive_path=None,
             message=(
-                f"LEDGER.md has {line_count} lines "
-                f"(≤ {threshold} threshold). No compression needed."
+                f"No compression needed. LEDGER.md has {line_count} lines "
+                f"/ {entry_count} entries (≤ {threshold} line threshold)."
             ),
         )
 
-    preamble, entries = _split_ledger(text)
-
-    if len(entries) <= keep_recent:
+    if entry_count <= keep_recent:
         return CompressResult(
             archived_entries=0,
-            remaining_entries=len(entries),
+            remaining_entries=entry_count,
             archive_path=None,
-            message=f"Only {len(entries)} entries — nothing to archive.",
+            message=(
+                f"LEDGER.md has {line_count} lines but only {entry_count} entries "
+                f"(≤ {keep_recent} keep-recent). "
+                "Consider raising `ledger_line_threshold` in scaffold.yml (#145)."
+            ),
         )
 
     # Split into archive and keep

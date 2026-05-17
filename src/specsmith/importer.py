@@ -121,12 +121,45 @@ def _detect_vcs_from_remote(remote_url: str) -> str:
     return ""
 
 
+def _load_gitignore_exclusions(root: Path) -> set[str]:
+    """Parse .gitignore and return a set of directory names to exclude.
+
+    Only directory-style patterns are extracted (e.g. 'external/', 'node_modules').
+    Used by detect_project() to respect .gitignore when scanning. (#135)
+    """
+    excluded: set[str] = set()
+    gitignore = root / ".gitignore"
+    if not gitignore.exists():
+        return excluded
+    try:
+        for line in gitignore.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Normalise: strip leading/trailing slashes, negations
+            if line.startswith("!"):
+                continue
+            # Glob wildcards — skip (too complex to evaluate here)
+            if "*" in line or "?" in line:
+                continue
+            # Bare name or trailing-slash pattern → add as dir exclusion
+            name = line.strip("/")
+            if name:
+                excluded.add(name)
+    except Exception:  # noqa: BLE001
+        pass
+    return excluded
+
+
 def detect_project(root: Path) -> DetectionResult:
     """Walk an existing project and detect its structure.
 
     Returns a DetectionResult with inferred configuration.
     """
     result = DetectionResult(root=root)
+
+    # .gitignore-aware exclusions (#135)
+    gitignore_exclusions = _load_gitignore_exclusions(root)
 
     # Walk directory tree
     lang_counter: Counter[str] = Counter()
@@ -148,6 +181,21 @@ def detect_project(root: Path) -> DetectionResult:
         ".tox",
         ".eggs",
     }
+    # Merge .gitignore-derived exclusions
+    skip_dirs |= gitignore_exclusions
+
+    # Also load scan_exclude_dirs from scaffold.yml if present (#146)
+    scaffold_yml = root / "scaffold.yml"
+    if not scaffold_yml.exists():
+        scaffold_yml = root / "docs" / "SPECSMITH.yml"
+    if scaffold_yml.exists():
+        try:
+            import yaml as _yaml
+            _sc_raw = _yaml.safe_load(scaffold_yml.read_text(encoding="utf-8")) or {}
+            for excl in _sc_raw.get("scan_exclude_dirs", []):
+                skip_dirs.add(excl.strip("/"))
+        except Exception:  # noqa: BLE001
+            pass
 
     for path in root.rglob("*"):
         if any(part in skip_dirs for part in path.parts):
@@ -664,7 +712,14 @@ def _parse_dependencies(root: Path) -> list[str]:
 
 
 def _extract_readme_summary(root: Path) -> str:
-    """Extract first heading + first paragraph from README.md."""
+    """Extract first heading + first paragraph from README.md.
+
+    Strips markdown formatting (bold, italic, backticks, links) so the
+    summary can be safely used as a plain-text scaffold.yml description.
+    Fix: #139 — description was truncated at the first '*' of **bold** markers.
+    """
+    import re
+
     readme = root / "README.md"
     if not readme.exists():
         return ""
@@ -687,7 +742,18 @@ def _extract_readme_summary(root: Path) -> str:
                 # Skip badges
                 if stripped.startswith("[!") or stripped.startswith("[!["):
                     continue
-                summary_parts.append(stripped)
+                # Strip markdown formatting for clean plain-text description (#139):
+                # 1. Remove inline links [text](url) → text
+                stripped = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", stripped)
+                # 2. Remove bold/italic (**text**, *text*, __text__, _text_)
+                stripped = re.sub(r"[*_]{1,3}(`[^`]+`|[^*_]+)[*_]{1,3}", r"\1", stripped)
+                stripped = re.sub(r"[*_]{1,3}", "", stripped)  # stray markers
+                # 3. Remove inline code backticks (keep content)
+                stripped = re.sub(r"`([^`]+)`", r"\1", stripped)
+                # 4. Collapse extra whitespace
+                stripped = re.sub(r" {2,}", " ", stripped).strip()
+                if stripped:
+                    summary_parts.append(stripped)
         return " ".join(summary_parts)[:500]
     except Exception:  # noqa: BLE001
         return ""
@@ -1092,6 +1158,16 @@ def _infer_type(result: DetectionResult) -> ProjectType:
             if (result.root / "manage.py").exists():
                 return ProjectType.BACKEND_FRONTEND
             return ProjectType.LIBRARY_PYTHON
+        # research-python: no CLI, no pyproject/setuptools, has experiments/ or data/ (#153)
+        if (
+            (result.root / "experiments").is_dir()
+            or (result.root / "data").is_dir()
+        ):
+            return ProjectType.RESEARCH_PYTHON
+        # embedded-python-hmi: Python project with Qt .ui files or HMI indicators (#109)
+        ui_files = list(result.root.rglob("*.ui"))  # Qt Designer files
+        if ui_files or (result.root / "kiosk").is_dir() or (result.root / "hmi").is_dir():
+            return ProjectType.EMBEDDED_PYTHON_HMI
         # Check for ML indicators — require strong signals, not just data/ dir
         has_notebooks = any(f.suffix == ".ipynb" for f in result.root.rglob("*.ipynb"))
         has_ml_marker = (result.root / "requirements-ml.txt").exists() or (

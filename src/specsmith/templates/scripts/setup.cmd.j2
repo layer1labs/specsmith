@@ -3,9 +3,13 @@ REM {{ project.name }} — Windows Setup
 setlocal
 
 set "PROJECT_ROOT=%~dp0.."
-set "VENV_DIR=%PROJECT_ROOT%\.venv"
 
 echo {{ project.name }} setup (Windows)
+{% if project.type in ('cli-python', 'library-python', 'backend-frontend',
+                       'backend-frontend-tray', 'research-python', 'data-ml',
+                       'embedded-python-hmi') %}
+REM Python project: create virtual environment and install
+set "VENV_DIR=%PROJECT_ROOT%\.venv"
 
 where python >nul 2>nul
 if %ERRORLEVEL% neq 0 (
@@ -19,5 +23,24 @@ if not exist "%VENV_DIR%" (
 )
 
 call "%VENV_DIR%\Scripts\activate.bat"
-pip install -e "%PROJECT_ROOT%"
+{% if project.detected_build_system in ('pyproject', 'setuptools') %}
+pip install -e "%PROJECT_ROOT%[dev]" 2>nul || pip install -e "%PROJECT_ROOT%"
+{% elif project.detected_build_system == '' and project.type in ('cli-python', 'library-python') %}
+pip install -e "%PROJECT_ROOT%" 2>nul
+{% else %}
+REM No pyproject.toml detected — install from requirements.txt if present
+if exist "%PROJECT_ROOT%\requirements.txt" pip install -r "%PROJECT_ROOT%\requirements.txt"
+if exist "%PROJECT_ROOT%\requirements-dev.txt" pip install -r "%PROJECT_ROOT%\requirements-dev.txt"
+{% endif %}
+{% elif project.type in ('embedded-hardware', 'yocto-bsp', 'fpga-rtl', 'fpga-rtl-amd',
+                         'fpga-rtl-intel', 'fpga-rtl-lattice', 'pcb-hardware',
+                         'safety-critical') %}
+REM Non-Python embedded/hardware project.
+REM Setup depends on your toolchain. Add project-specific setup steps here.
+REM Example: install west, arm toolchain, kas, etc.
+echo NOTE: Edit scripts\setup.cmd to add toolchain-specific setup for {{ project.type }}.
+{% else %}
+REM Non-Python project. Add project-specific setup steps here.
+echo NOTE: Edit scripts\setup.cmd to add setup steps for {{ project.type }}.
+{% endif %}
 echo Setup complete.

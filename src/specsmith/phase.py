@@ -323,7 +323,21 @@ PHASES: list[Phase] = [
             ),
             PhaseCheck("Audit passes", _file_exists("AGENTS.md")),
             PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
-            PhaseCheck("docs/REQUIREMENTS.md exists", _req_count(1)),
+            # #127: use a permissive file-exists check, not _req_count, so Draft-only
+            # projects aren't blocked by the misleading "REQUIREMENTS.md exists" message.
+            # The actual count check is advisory and belongs in check_req_test_consistency.
+            PhaseCheck(
+                "docs/REQUIREMENTS.md has content",
+                lambda root: (
+                    any(
+                        (root / c).exists()
+                        and len(
+                            (root / c).read_text(encoding="utf-8", errors="ignore").strip()
+                        ) > 0
+                        for c in ["docs/REQUIREMENTS.md", "REQUIREMENTS.md"]
+                    )
+                ),
+            ),
         ],
         commands=[
             "specsmith audit --fix",

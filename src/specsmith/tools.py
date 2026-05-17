@@ -188,6 +188,33 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         security=["pip-audit", "npm audit"],
         build=["docker compose build"],
     ),
+    # New project types
+    ProjectType.EMBEDDED_PYTHON_HMI: ToolSet(
+        # Hardware-interfacing Python kiosk — Qt/PySide6 + hardware comms
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+        build=["python -m build"],
+    ),
+    ProjectType.RESEARCH_PYTHON: ToolSet(
+        # Experiment/research packages — no CLI, data integrity checks
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+    ),
+    ProjectType.SAFETY_CRITICAL: ToolSet(
+        # IEC 60204-1/62061/61508 safety-critical embedded
+        lint=["clang-tidy", "cppcheck"],
+        test=["west twister", "ctest"],
+        security=["flawfinder"],
+        build=["cmake --build .", "make"],
+        format=["clang-format"],
+        compliance=["misra-c", "polyspace"],
+    ),
     # --- Document / Knowledge ---
     ProjectType.SPEC_DOCUMENT: ToolSet(
         lint=["vale", "markdownlint", "cspell"],

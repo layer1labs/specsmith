@@ -61,6 +61,10 @@ class ProjectType(str, Enum):
     EPISTEMIC_PIPELINE = "epistemic-pipeline"
     KNOWLEDGE_ENGINEERING = "knowledge-engineering"
     AEE_RESEARCH = "aee-research"
+    # New project types
+    EMBEDDED_PYTHON_HMI = "embedded-python-hmi"  # #109: hardware-interfacing kiosk/HMI
+    RESEARCH_PYTHON = "research-python"  # #153: experiment/research packages (no CLI)
+    SAFETY_CRITICAL = "safety-critical"  # #129: IEC 60204-1/62061/61508 safety-critical
 
 
 class Platform(str, Enum):
@@ -225,6 +229,108 @@ class ProjectConfig(BaseModel):
         description="Agent tool names to always block, regardless of the execution profile.",
     )
 
+    # Audit thresholds (scaffold.yml-configurable) — #124, #145
+    agents_md_line_threshold: int = Field(
+        default=0,
+        description=(
+            "Override AGENTS.md line-count audit threshold. 0 = use type-aware default "
+            "(200 for standard, 350 for embedded/fpga)."
+        ),
+    )
+    ledger_line_threshold: int = Field(
+        default=0,
+        description=(
+            "Override LEDGER.md line-count audit threshold. 0 = use type-aware default "
+            "(500 for standard, 5000 for fpga-rtl)."
+        ),
+    )
+
+    # Configurable doc filenames — #148
+    test_spec_file: str = Field(
+        default="docs/TESTS.md",
+        description=(
+            "Canonical test specification file path. Default: docs/TESTS.md. "
+            "Override with e.g. docs/TEST_SPEC.md."
+        ),
+    )
+    requirements_file: str = Field(
+        default="docs/REQUIREMENTS.md",
+        description="Canonical requirements file path.",
+    )
+
+    # Scanner exclusions — #146
+    scan_exclude_dirs: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Directories to exclude from specsmith scanning (detection, stats, test discovery). "
+            "Auto-populated from .gitignore on import. e.g. ['external/', 'node_modules/', '.venv/']"
+        ),
+    )
+
+    # Derived artifacts — #126
+    derived_artifacts: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "Code-generated files that should not be hand-edited. Each entry: "
+            "{source, generator, outputs: [str], do_not_edit: bool}"
+        ),
+    )
+
+    # Hardware-gated tests — #159
+    hardware_gated_test_attr: str = Field(
+        default="hardware_gated",
+        description=(
+            "Attribute name used in TESTS.md to mark tests as hardware-gated "
+            "(e.g. 'Hardware-gated: true'). Hardware-gated Pending tests are "
+            "not flagged as coverage drift."
+        ),
+    )
+
+    # Cross-repo dependencies — #161
+    cross_repo_dependencies: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "Cross-repo requirement traceability. Each entry: "
+            "{repo, url, role, req_prefixes: [str]}"
+        ),
+    )
+
+    # Secrets templates — #162
+    secrets_templates: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "Required-but-uncommitted secrets files. Each entry: "
+            "{path, description, required_keys: [str], never_commit: bool}"
+        ),
+    )
+
+    # Industrial artifacts (CANopen EDS/XDD) — #163
+    industrial_artifacts: dict = Field(
+        default_factory=dict,
+        description=(
+            "Industrial protocol artifacts (e.g. CANopen EDS/XDD). "
+            "Structure: {canopen_eds: [{path, device, fw_repo?}]}"
+        ),
+    )
+
+    # Rate-limit per-bucket concurrency — #120
+    rate_limit_concurrency_by_bucket: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Per-bucket concurrency caps that override the model-level concurrency_cap. "
+            "Buckets: reasoning, conversational, longform, background."
+        ),
+    )
+
+    # Research / publication phases — #156
+    publication_phases: dict = Field(
+        default_factory=dict,
+        description=(
+            "Custom publication gates for research projects. "
+            "Keys are gate IDs; values describe required_artifacts and checks."
+        ),
+    )
+
     # Applied Epistemic Engineering configuration
     enable_epistemic: bool = Field(
         default=False,
@@ -359,6 +465,10 @@ _TYPE_LABELS: dict[str, str] = {
     ProjectType.EPISTEMIC_PIPELINE: "Epistemic pipeline (AEE + ARE 8-phase)",
     ProjectType.KNOWLEDGE_ENGINEERING: "Knowledge engineering / expert system",
     ProjectType.AEE_RESEARCH: "AEE research project",
+    # New types
+    ProjectType.EMBEDDED_PYTHON_HMI: "Embedded Python HMI / kiosk (hardware-interfacing)",
+    ProjectType.RESEARCH_PYTHON: "Research Python (experiments, no CLI distribution)",
+    ProjectType.SAFETY_CRITICAL: "Safety-critical embedded (IEC 60204-1/62061/61508)",
 }
 
 _SECTION_REFS: dict[str, str] = {

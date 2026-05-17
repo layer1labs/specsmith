@@ -194,6 +194,9 @@ def run_upgrade(
     if full:
         result.updated_files.extend(_sync_full(root, config, env, ctx))
 
+    # Migrate TEST_SPEC.md → TESTS.md for projects upgrading from pre-0.10.1 (#160)
+    _migrate_test_spec_filename(root, result)
+
     # Run pending migrations (versioned, auto-apply, droppable)
     # Drop path: remove migrations/ package + this block for v1.0 release
     try:
@@ -247,16 +250,23 @@ def _sync_full(
 
     from specsmith.scaffolder import _build_community_files
 
+    # Determine which platforms this project targets (#122)
+    _platforms = {p.lower() for p in (config.platforms or [])}
+    _has_unix = bool(_platforms & {"linux", "macos"}) or not _platforms  # default=all
+    _has_windows = bool(_platforms & {"windows"}) or not _platforms  # default=all
+
     # 1. Exec shims — always regenerate (carries PID tracking / abort fixes)
     shim_templates = [
-        ("scripts/exec.cmd.j2", "scripts/exec.cmd"),
-        ("scripts/exec.sh.j2", "scripts/exec.sh"),
-        ("scripts/setup.cmd.j2", "scripts/setup.cmd"),
-        ("scripts/setup.sh.j2", "scripts/setup.sh"),
-        ("scripts/run.cmd.j2", "scripts/run.cmd"),
-        ("scripts/run.sh.j2", "scripts/run.sh"),
+        ("scripts/exec.cmd.j2", "scripts/exec.cmd", _has_windows),
+        ("scripts/exec.sh.j2", "scripts/exec.sh", _has_unix),
+        ("scripts/setup.cmd.j2", "scripts/setup.cmd", _has_windows),
+        ("scripts/setup.sh.j2", "scripts/setup.sh", _has_unix),
+        ("scripts/run.cmd.j2", "scripts/run.cmd", _has_windows),
+        ("scripts/run.sh.j2", "scripts/run.sh", _has_unix),
     ]
-    for tmpl_name, output_rel in shim_templates:
+    for tmpl_name, output_rel, should_generate in shim_templates:
+        if not should_generate:
+            continue  # Skip .sh for windows-only projects (#122)
         out = root / output_rel
         out.parent.mkdir(parents=True, exist_ok=True)
         tmpl = env.get_template(tmpl_name)
@@ -356,6 +366,48 @@ def _sync_full(
         synced.append(".specsmith/credit-budget.json (created)")
 
     return synced
+
+
+def _migrate_test_spec_filename(root: Path, result: UpgradeResult) -> None:
+    """Rename docs/TEST_SPEC.md -> docs/TESTS.md for pre-0.10.1 projects (#160).
+
+    Also updates all references in AGENTS.md, CONTRIBUTING.md, README.md, LEDGER.md.
+    Only runs when TEST_SPEC.md exists and TESTS.md does NOT exist.
+    """
+    import shutil
+
+    old = root / "docs" / "TEST_SPEC.md"
+    new = root / "docs" / "TESTS.md"
+
+    if not old.exists() or new.exists():
+        return  # Nothing to do
+
+    shutil.move(str(old), str(new))
+    result.updated_files.append("docs/TEST_SPEC.md -> docs/TESTS.md")
+
+    # Update references in key docs
+    _ref_targets = [
+        root / "AGENTS.md",
+        root / "CONTRIBUTING.md",
+        root / "README.md",
+        root / "LEDGER.md",
+        root / "docs" / "LEDGER.md",
+        root / "docs" / "governance" / "RULES.md",
+        root / "docs" / "governance" / "VERIFICATION.md",
+    ]
+    for ref_path in _ref_targets:
+        if not ref_path.exists():
+            continue
+        try:
+            text = ref_path.read_text(encoding="utf-8")
+            updated = text.replace("TEST_SPEC.md", "TESTS.md").replace("test_spec.md", "TESTS.md")
+            if updated != text:
+                ref_path.write_text(updated, encoding="utf-8")
+                result.updated_files.append(
+                    f"{ref_path.relative_to(root)} (updated TEST_SPEC.md references)"
+                )
+        except OSError:
+            pass
 
 
 def _migrate_legacy_filenames(root: Path, result: UpgradeResult) -> None:
