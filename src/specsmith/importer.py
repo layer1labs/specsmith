@@ -1104,6 +1104,49 @@ def _infer_type(result: DetectionResult) -> ProjectType:
     return ProjectType.CLI_PYTHON  # Safe default
 
 
+def _detect_branching_strategy(root: Path) -> str:
+    """Infer branching strategy from git history (#107).
+
+    Returns 'gitflow', 'trunk', or 'github-flow' based on:
+    - presence of remote origin/develop branch → gitflow
+    - PR merge commit patterns in log → github-flow
+    - all direct commits to main → trunk
+    """
+    try:
+        # Check if a develop branch exists remotely
+        branches = subprocess.run(
+            ["git", "-C", str(root), "branch", "-r"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if branches.returncode == 0:
+            remote_branches = branches.stdout
+            if "origin/develop" in remote_branches or "origin/dev" in remote_branches:
+                return "gitflow"
+
+        # Check git log for PR merge patterns
+        log = subprocess.run(
+            ["git", "-C", str(root), "log", "--oneline", "-20", "--merges"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if log.returncode == 0 and log.stdout.strip():
+            return "github-flow"
+
+        return "trunk"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return "trunk"  # Safe default for unknown repos
+
+
+def _detect_shell_wrappers(root: Path) -> bool:
+    """Detect shell wrappers in scripts/ or root (#108)."""
+    for search_dir in [root / "scripts", root]:
+        if not search_dir.is_dir():
+            continue
+        for pattern in ("*.cmd", "*.sh", "*.ps1"):
+            if any(search_dir.glob(pattern)):
+                return True
+    return False
+
+
 def generate_import_config(result: DetectionResult) -> ProjectConfig:
     """Generate a ProjectConfig from detection results."""
     # Prefer README summary; fall back to generic description
@@ -1121,6 +1164,19 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         spec_version = _installed_ver
     except Exception:  # noqa: BLE001
         spec_version = "0.3.0"  # safe fallback
+
+    # Detect branching strategy from git history (#107)
+    branching_strategy = _detect_branching_strategy(result.root) if result.has_git else "trunk"
+    # Detect shell wrappers from scripts/ directory (#108)
+    shell_wrappers = _detect_shell_wrappers(result.root)
+    # Detect proprietary license: no LICENSE file + not a known open-source project
+    has_license = (result.root / "LICENSE").exists() or (result.root / "LICENSE.md").exists()
+    inferred_license = "proprietary" if not has_license else "MIT"
+    # Build community_files: exclude 'license' for proprietary projects (#143)
+    community_files = ["contributing", "security", "coc", "pr-template", "issue-templates"]
+    if has_license:
+        community_files.insert(1, "license")
+
     return ProjectConfig(
         name=result.root.name,
         type=result.inferred_type or ProjectType.CLI_PYTHON,
@@ -1132,6 +1188,10 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         vcs_platform=result.vcs_platform,
         detected_build_system=result.build_system,
         detected_test_framework=result.test_framework,
+        branching_strategy=branching_strategy,
+        shell_wrappers=shell_wrappers,
+        license=inferred_license,
+        community_files=community_files,
     )
 
 
@@ -1306,9 +1366,12 @@ def generate_overlay(
     if old_doc_wf.exists():
         old_doc_wf.unlink()  # replaced by LIFECYCLE.md + phase system
 
-    # If existing AGENTS.md is oversized, back it up and replace with a hub.
+    # If existing AGENTS.md is oversized AND --force is explicitly passed,
+    # back it up and replace with a modular hub.
+    # Without --force, we never overwrite AGENTS.md regardless of its size
+    # — this respects the dry-run contract and prevents data loss (#121).
     agents_path = target / "AGENTS.md"
-    if agents_path.exists():
+    if agents_path.exists() and force:
         agents_lines = len(agents_path.read_text(encoding="utf-8").splitlines())
         if agents_lines > 200:
             backup_path = target / "AGENTS.md.bak"

@@ -55,16 +55,51 @@ _OVERFLOW_GROUP = "overflow"
 
 
 def _req_num(req_id: str) -> int:
-    m = re.match(r"REQ-(\d+)$", req_id)
+    """Extract trailing number from any REQ-* format.
+
+    Handles both plain numeric (REQ-001) and namespaced (REQ-CTT-001) IDs.
+    Returns 9999 for unrecognised formats so they sort to the end.
+    """
+    m = re.search(r"(\d+)$", req_id)
     return int(m.group(1)) if m else 9999
 
 
 def _test_num(test_id: str) -> int:
-    m = re.match(r"TEST-(\d+)$", test_id)
+    """Extract trailing number from any TEST-* format."""
+    m = re.search(r"(\d+)$", test_id)
     return int(m.group(1)) if m else 9999
 
 
+def _req_namespace(req_id: str) -> str:
+    """Extract namespace prefix for grouping.
+
+    REQ-001       → 'default'
+    REQ-CTT-001   → 'ctt'
+    REQ-AUTH-023  → 'auth'
+    """
+    parts = req_id.split("-")
+    # At least: ['REQ', 'CTT', '001'] for namespaced; ['REQ', '001'] for plain
+    if len(parts) >= 3:
+        # Namespace = all middle parts (between REQ and the trailing number)
+        trailing = parts[-1]
+        if trailing.isdigit():
+            namespace_parts = parts[1:-1]
+            return "-".join(namespace_parts).lower()
+    return "default"
+
+
 def _group_for_req(req_id: str) -> str:
+    """Return the YAML file stem for a requirement ID.
+
+    For plain numeric IDs (REQ-001) the existing numeric-range table is used so
+    specsmith's own governance files stay in their canonical groups.  For
+    project-namespaced IDs (REQ-CTT-001, REQ-AUTH-023) the namespace prefix
+    ('ctt', 'auth') is used directly as the file stem (#149/#133).
+    """
+    ns = _req_namespace(req_id)
+    if ns != "default":
+        return ns  # Project-namespaced ID → use namespace as stem
+    # Plain numeric ID → look up in specsmith's own group table
     n = _req_num(req_id)
     for stem, ranges in _REQ_GROUPS:
         for lo, hi in ranges:

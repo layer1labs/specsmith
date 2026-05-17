@@ -2170,7 +2170,8 @@ def test_add(
     if not is_yaml_mode(root):
         console.print(
             "[red]test add requires YAML-first mode.[/red] "
-            "Run scripts/migrate_governance_to_yaml.py first."
+            "Run `specsmith migrate-project --yaml` (or `scripts/migrate_governance_to_yaml.py "
+            f"--project-dir {project_dir}`) to migrate this project to YAML-first governance."
         )
         raise SystemExit(1)
 

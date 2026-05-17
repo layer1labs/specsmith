@@ -134,6 +134,21 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                     )
                 )
 
+    # Read scaffold.yml once for LICENSE exception logic
+    _proprietary_license = False
+    _scaffold_path = root / "scaffold.yml"
+    if not _scaffold_path.exists():
+        _scaffold_path = root / "docs" / "SPECSMITH.yml"
+    if _scaffold_path.exists():
+        try:
+            import yaml as _yaml
+            _raw = _yaml.safe_load(_scaffold_path.read_text(encoding="utf-8")) or {}
+            _proprietary_license = str(_raw.get("license", "")).lower() in (
+                "proprietary", "closed-source", "commercial", "all-rights-reserved",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
     for f in RECOMMENDED_FILES:
         path = root / f
         found = path.exists()
@@ -151,6 +166,16 @@ def check_governance_files(root: Path) -> list[AuditResult]:
         # (legacy projects are not penalized for not yet having migrated)
         if not found and f == "docs/SPECSMITH.yml":
             found = (root / "scaffold.yml").exists()
+        # LICENSE: skip the missing-file warning for proprietary projects (#143)
+        if not found and f == "LICENSE" and _proprietary_license:
+            results.append(
+                AuditResult(
+                    name=f"recommended:{f}",
+                    passed=True,
+                    message="LICENSE: proprietary project — no open-source license file required",
+                )
+            )
+            continue
         results.append(
             AuditResult(
                 name=f"recommended:{f}",

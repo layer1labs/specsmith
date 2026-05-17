@@ -240,6 +240,15 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_tests = load_yaml_tests(root)
 
         # Normalise to the same schema that the Markdown path produces
+        # Build req_id → [test_ids] map from the loaded tests so requirements.json
+        # includes test_ids for audit coverage checks (#147).
+        _req_to_tests: dict[str, list[str]] = {}
+        for _t in new_tests:
+            _rid = str(_t.get("requirement_id", ""))
+            _tid = str(_t.get("id", ""))
+            if _rid and _tid:
+                _req_to_tests.setdefault(_rid, []).append(_tid)
+
         new_reqs = [
             {
                 "id": r["id"],
@@ -247,6 +256,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                 "description": str(r.get("description", "")),
                 "source": r.get("source", "docs/requirements/"),
                 "status": str(r.get("status", "defined")),
+                "test_ids": _req_to_tests.get(r["id"], []),
             }
             for r in new_reqs
         ]
@@ -273,6 +283,17 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_tests = []
         if tests_md_path.exists():
             new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+
+        # Inject test_ids into requirements even in Markdown mode (#147)
+        _req_to_tests_md: dict[str, list[str]] = {}
+        for _t in new_tests:
+            _rid = str(_t.get("requirement_id", ""))
+            _tid = str(_t.get("id", ""))
+            if _rid and _tid:
+                _req_to_tests_md.setdefault(_rid, []).append(_tid)
+        for _r in new_reqs:
+            if "test_ids" not in _r:
+                _r["test_ids"] = _req_to_tests_md.get(_r["id"], [])
 
     # Placeholder so the variable is always defined for the merge step below
     new_reqs_obj: list[dict[str, Any]] = new_reqs
