@@ -2395,3 +2395,91 @@
 - **Expected Behavior:** second run produces no changes; governance-mode=yaml; sync --check exits 0
 - **Confidence:** 1.0
 
+## TEST-305. ChronoStore WAL-Based ESDB Write Layer
+- **ID:** TEST-305
+- **Title:** ChronoStore WAL-Based ESDB Write Layer
+- **Description:** ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.
+- **Requirement ID:** REQ-305
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** ChronoStore(tmp_path) append 3 records; EsdbBridge(tmp_path).status()
+- **Expected Behavior:** WAL file exists with chained hashes; chain_valid=True
+- **Confidence:** 0.95
+
+## TEST-306. ESDB Must Be Per-Project
+- **ID:** TEST-306
+- **Title:** ESDB Must Be Per-Project
+- **Description:** Two EsdbBridge instances on separate 	mp_path directories MUST have independent .chronomemory/events.wal files; records from project A are not visible in project B.
+- **Requirement ID:** REQ-306
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** Two EsdbBridge instances on different tmp_path directories
+- **Expected Behavior:** Each project has independent WAL; no cross-contamination
+- **Confidence:** 0.95
+
+## TEST-307. Session State Must Survive Restart
+- **ID:** TEST-307
+- **Title:** Session State Must Survive Restart
+- **Description:** SessionStore MUST persist session context to .specsmith/session-state.json. A new SessionStore instance on the same path MUST load the saved state.
+- **Requirement ID:** REQ-307
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** SessionStore(tmp_path) save; new SessionStore(tmp_path) load
+- **Expected Behavior:** Loaded state matches saved state; session-state.json exists
+- **Confidence:** 0.95
+
+## TEST-308. Context Orchestrator Tiered Auto-Optimization
+- **ID:** TEST-308
+- **Title:** Context Orchestrator Tiered Auto-Optimization
+- **Description:** ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier. Data on disk MUST NEVER be deleted at any tier.
+- **Requirement ID:** REQ-308
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)
+- **Expected Behavior:** Correct tier actions returned; no files deleted from disk
+- **Confidence:** 0.9
+
+## TEST-309. CI Automation Togglable Per Project
+- **ID:** TEST-309
+- **Title:** CI Automation Togglable Per Project
+- **Description:** CiManager.enable(platform=github, force=True) MUST generate CI workflow files and persist ci_automation_enabled=true to .specsmith/config.yml.
+- **Requirement ID:** REQ-309
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** CiManager(tmp_path).enable(platform=github, force=True)
+- **Expected Behavior:** CI files generated; config.yml has ci_automation_enabled=true
+- **Confidence:** 0.9
+
+## TEST-310. OEA Anti-Hallucination Fields on ESDB Records
+- **ID:** TEST-310
+- **Title:** OEA Anti-Hallucination Fields on ESDB Records
+- **Description:** ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default all 7 OEA fields to safe non-blocking values.
+- **Requirement ID:** REQ-310
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** ChronoRecord(kind=test, payload={}) inspect all 7 OEA fields
+- **Expected Behavior:** source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False, recursion_depth=0
+- **Confidence:** 0.95
+
+## TEST-311. RAG Retrieval Must Filter by Confidence
+- **ID:** TEST-311
+- **Title:** RAG Retrieval Must Filter by Confidence
+- **Description:** ESDB retrieval MUST exclude records with confidence < min_confidence. Records at exactly the threshold MUST be included.
+- **Requirement ID:** REQ-311
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Append records with confidence 0.3, 0.7, 0.9; query(min_confidence=0.7)
+- **Expected Behavior:** Only confidence >= 0.7 records returned; 0.3 excluded
+- **Confidence:** 0.9
+
+## TEST-312. Context Optimize Command
+- **ID:** TEST-312
+- **Title:** Context Optimize Command
+- **Description:** specsmith context optimize --fill-pct N --json MUST exit 0 and return JSON with 	ier, ctions, and 	okens_freed.
+- **Requirement ID:** REQ-312
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith context optimize --fill-pct 65 --json --project-dir tmp
+- **Expected Behavior:** Exit 0; JSON contains tier, actions list, tokens_freed integer
+- **Confidence:** 0.9
+

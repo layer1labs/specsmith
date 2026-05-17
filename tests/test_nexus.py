@@ -531,6 +531,7 @@ _LEGACY_SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "node_modules",
+    ".chronomemory",  # ChronoStore ESDB — machine-generated state, not governance docs
 }
 
 _LEGACY_SCAN_SKIP_FILES = {

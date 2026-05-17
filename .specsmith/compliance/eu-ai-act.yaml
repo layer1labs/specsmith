@@ -1,0 +1,17 @@
+# EU AI Act (Regulation 2024/1689) — project overlay
+#
+# This file allows overriding compliance status for this specific project.
+# Leave fields empty to use specsmith's auto-detection.
+#
+# regulation_id: eu-ai-act
+# project notes:
+
+risk_tier: minimal_risk   # prohibited | high_risk | gpai | minimal_risk
+is_gpai: false            # true if this is a General Purpose AI model
+gpai_systemic_risk: false # true if > 10^25 FLOP training compute
+
+# Override specific article status (auto-detected if absent):
+# article_overrides:
+#   Art.9:
+#     status: compliant
+#     notes: "Risk management system via specsmith AEE pipeline"

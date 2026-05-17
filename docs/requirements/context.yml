@@ -11,7 +11,7 @@
     VRAM tiers: <6 GB → 4096, 6-12 GB → 8192, 12-20 GB → 16384, >=20 GB → 32768. CPU-only
     defaults to 4096. The function MUST never raise on any platform.'
   source: Plan 0ca40db4 [CTX-001]
-  status: defined
+  status: implemented
 - id: REQ-245
   title: Live Context Fill Indicator
   description: 'Every active agent conversation MUST track and emit context fill events
@@ -19,7 +19,7 @@
     percentage MUST be surfaced in the terminal UI as a compact progress bar (green
     0-60%, yellow 60-80%, orange 80-90%, red >90%).'
   source: Plan 0ca40db4 [CTX-002]
-  status: defined
+  status: implemented
 - id: REQ-246
   title: Auto Context Compression at Configurable Threshold
   description: When context fill reaches the configurable compression threshold (default
@@ -27,7 +27,7 @@
     Compression MUST emit a context_compressed event with before/after token counts.
     Auto-compression MUST be togglable; when off, only a warning is surfaced.
   source: Plan 0ca40db4 [CTX-003]
-  status: defined
+  status: implemented
 - id: REQ-247
   title: Hard Context Reservation — Never 100% Fill
   description: The context window MUST NEVER be allowed to reach 100% fill. A hard
@@ -36,4 +36,4 @@
     MUST be raised and emergency compression triggered regardless of the auto-compress
     toggle.
   source: Plan 0ca40db4 [CTX-004]
-  status: defined
+  status: implemented

@@ -186,21 +186,27 @@ class BeliefArtifact:
 # Markdown parser — converts REQUIREMENTS.md entries to BeliefArtifacts
 # ---------------------------------------------------------------------------
 
-# Two supported heading styles:
-#   Style A (direct):  ## REQ-001 — Title   or   ## REQ-CLI-001 — Title
-#   Style B (numbered): ## 1. Title\n- **ID:** REQ-001\n...
+# Three supported heading styles:
+#   Style A (direct dash):  ## REQ-001 — Title   or   ## REQ-CLI-001 — Title
+#   Style B (numbered):     ## 1. Title\n- **ID:** REQ-001\n...
+#   Style C (dot-suffix):   ## REQ-001. Title  (YAML-generated format)
 #
 # The flexible REQ id regex handles both two-part (REQ-001) and three-part
 # (REQ-CLI-001 / REG-012) identifiers.
 _FLEX_REQ_ID = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
 
-# Style A: heading IS the REQ id
-_REQ_HEADING_DIRECT = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\s*(?:[-\u2014]\s*(.+))?$")
+# Style A/C: heading IS the REQ id, separated by ` — `, ` - `, or `.`
+# Matches: ## REQ-001 — Title  AND  ## REQ-001. Title  AND  ## REQ-001
+_REQ_HEADING_DIRECT = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\s*(?:[.\-\u2014]\s*(.+))?$")
 # Style B: numbered section heading (title only, id comes from an inline field)
 _REQ_HEADING_NUMBERED = re.compile(r"^#{1,3}\s+\d+\.\s+(.+?)\s*$")
 # Inline id field inside a Style B section: - **ID:** REQ-001
 _INLINE_ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_REQ_ID + r")\s*$")
-_FIELD_LINE = re.compile(r"^\s*-\s+\*\*(.+?)\*\*:\s*(.+)$")
+# Matches two markdown field formats:
+#   - **Key:** value   (colon inside bold — YAML-generated format)
+#   - **Key**: value   (colon outside bold — legacy format)
+# group(1) always captures the key without the trailing colon.
+_FIELD_LINE = re.compile(r"^\s*-\s+\*\*(.+?):?\*\*:?\s*(.+)$")
 
 
 def _component_from_id(req_id: str) -> str:
@@ -348,7 +354,9 @@ def _finalise(artifact: BeliefArtifact, desc: str) -> None:
 
 def _map_status(val: str) -> BeliefStatus:
     val_lower = val.lower()
-    if "accept" in val_lower:
+    if "accept" in val_lower or "implement" in val_lower:
+        # 'implemented' and 'accepted' are both treated as ACCEPTED in AEE:
+        # implemented = claim has been verified as true by the codebase.
         return BeliefStatus.ACCEPTED
     if "stress" in val_lower:
         return BeliefStatus.STRESS_TESTED

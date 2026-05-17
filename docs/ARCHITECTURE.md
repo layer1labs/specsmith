@@ -52,36 +52,69 @@ The runtime layer executes actions through:
 
 The runtime layer performs work, but governance determines whether the work is valid.
 
-## 3. Existing Specsmith System
+## 3. Implemented Specsmith System (Current State)
 
-Specsmith currently includes:
+Specsmith is a fully implemented AEE toolkit as of v0.11.3. This section documents the actual implemented system, not planned behavior.
 
-- Click-based CLI entrypoint
-- scaffold generation
-- governance file generation
-- AEE commands
-- agentic client commands
-- auditor/exporter/importer functionality
-- optional LLM/provider support
-- GUI workbench
-- trace vault and ledger functionality
-- compatibility shim for the standalone `epistemic` package
+### Core CLI and Scaffold Layer
+- `cli.py` — Click-based CLI with 60+ commands (preflight, verify, validate, audit, compliance, migrate, ci, esdb, context, session, etc.)
+- `config.py` — Project configuration and type system
+- `scaffolder.py` — Project scaffold generation for 30+ project types
+- `importer.py` / `exporter.py` — Project import and compliance export
+- `auditor.py` — Governance drift and health checks (28 checks)
+- `ledger.py` — Ledger event management and hash chaining
+- `integrations/` — Adapter layer for GitHub, GitLab, Bitbucket
+- `vcs/` — VCS platform abstraction
 
-Existing major modules include:
+### Agent and Agentic Runtime
+- `src/specsmith/agent/` — Full agentic client: runner, broker, tools, providers, profiles, spawner, teams, permissions, memory, optimizer, model intelligence, rate limits
+- `src/specsmith/agent/broker.py` — Natural-language governance broker (classify intent, infer scope, preflight, verify, execute_with_governance)
+- `src/specsmith/agent/runner.py` — AgentRunner with multi-provider support (Anthropic, OpenAI, Gemini, Ollama)
+- `src/specsmith/agent/execution_profiles.py` — Execution profiles with provider filtering
 
-- `cli.py`
-- `config.py`
-- `scaffolder.py`
-- `tools.py`
-- `importer.py`
-- `exporter.py`
-- `auditor.py`
-- `ledger.py`
-- `integrations/`
-- `vcs/`
-- `src/epistemic/`
-- `src/specsmith/agent/`
-- `src/specsmith/gui/`
+### AEE / Epistemic Layer
+- `src/specsmith/epistemic/` — AEE machinery: BeliefArtifact, StressTester, FailureModeGraph, RecoveryOperator, CertaintyEngine, TraceVault
+- `src/specsmith/trace.py` — STP-inspired cryptographic trace vault (SHA-256 chained seals)
+
+### EU/NA Compliance Package (v0.11)
+- `src/specsmith/compliance/` — 8-regulation AI compliance framework:
+  - `regulations.py` — EU AI Act 2024/1689, NIST AI RMF 1.0, OMB M-24-10, Colorado SB24-205, Texas HB 1709, Illinois AIETA, California AB 2930 / CPPA ADMT, NYC Local Law 144
+  - `checker.py` — Per-regulation compliance checker with ESDB evidence storage
+  - `reporter.py` — Markdown/JSON/HTML compliance report generation
+  - `evidence.py` — Evidence collection from project governance files
+
+### ESDB / ChronoStore (v0.11)
+- `src/specsmith/esdb/` — Epistemic State Database:
+  - `store.py` — `ChronoStore`: WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
+  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore when WAL exists, falls back to flat JSON read-only mode otherwise
+- Every `ChronoRecord` carries OEA anti-hallucination fields: `source_type`, `confidence`, `evidence`, `epistemic_boundary`, `is_hypothesis`, `model_assumptions`, `recursion_depth`
+
+### Session Persistence (v0.11)
+- `src/specsmith/session_store.py` — `SessionStore`: persists session context to `.specsmith/session-state.json` and conversation history to `.specsmith/conversation-history.jsonl` (capped at 200 turns). Injects a synthetic resume message on reload.
+- `src/specsmith/session_init.py` — `init_session()`: loads project state, health score, compliance score, phase readiness into a `SessionContext`
+
+### Context Orchestrator (v0.11)
+- `src/specsmith/context_orchestrator.py` — `ContextOrchestrator`: three-tier auto-optimization:
+  - Tier 1 (60–79% fill): compresses LEDGER.md history
+  - Tier 2 (80–84%): summarizes conversation history and evicts low-confidence ESDB records
+  - Tier 3 (≥85%): emergency-drops records with confidence < 0.7. Data on disk is never deleted.
+
+### Migration Framework (v0.11)
+- `src/specsmith/migrations/` — Versioned migration framework:
+  - `m001_governance_yaml.py` — YAML-first governance migration
+  - `m002_agents_slim.py` — Slim AGENTS.md migration
+  - `m003_compliance_init.py` — Compliance structure initialization
+  - `m004_ledger_esdb.py` — Ledger to ESDB migration
+  - `runner.py` — `MigrationRunner`: tracks applied migrations in `.specsmith/migration-state.json`
+
+### CI Automation Manager (v0.11)
+- `src/specsmith/ci_manager.py` — `CiManager`: generates CI, Dependabot, and CodeQL configs per project. `specsmith ci enable/status/watch`. State persisted to `.specsmith/config.yml`.
+
+### Governance Store (v0.11)
+- `src/specsmith/governance_store.py` — `GovernanceStore`: manages `.specsmith/governance/rules.yaml` for project-level governance rules
+
+### Context Window Management
+- `src/specsmith/context_window.py` — GPU-aware context window sizing, fill tracking, and auto-compression. See Section 14.
 
 ## 4. Governance Files
 
