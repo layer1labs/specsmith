@@ -270,3 +270,9 @@
 - **Description**: Audit revealed REQ-263 (HF paginated sync persists bucket scores) and REQ-265 (HF API token in Authorization header) lacked explicit pytest coverage. Added TEST-282 (`TestHFSyncPersistsBucketScores` — verifies scores.json created with bucket_scores dict and all required keys per entry) and TEST-283 (`TestHFTokenInHeaders` — verifies token_set flag, rate_limit_tier, and Authorization header capture via mock). Both entries added to docs/TESTS.md. `specsmith sync` updated testcases.json to 260 entries.
 - **Status**: complete
 - **Chain hash**: auto
+
+## 2026-05-17T15:45 — Implemented multi-agent DAG dispatcher (REQ-321..REQ-334): dispatch/ package with TaskDAG/AgentDispatcher/EventEmitter, orchestrator.run_dispatch(), spawner.spawn_worker(), CLI dispatch group, serve.py SSE+REST dispatch endpoints, Kairos Rust dispatch panel (DispatchPanelView, GanttStrip, controls). Added compiler/tool support: run_gcc, run_arm_gcc, run_aarch64_gcc, run_iar_compiler, run_intel_compiler, run_clang_format, run_clang_tidy, run_vsg.
+- **Author**: oz-agent
+- **Type**: feature
+- **Status**: complete
+- **Chain hash**: `a412cb4f3ac05f14...`

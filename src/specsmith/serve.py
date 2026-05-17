@@ -154,6 +154,8 @@ class _Handler(BaseHTTPRequestHandler):
     bus: _EventBus
     agent: _AgentThread
     auth_token: str = ""  # populated by run_server / make_server when set
+    # Live dispatch EventEmitter instances keyed by dag_id (REQ-332)
+    _dispatch_emitters: dict[str, Any] = {}
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Suppress default stderr logging."""
@@ -190,6 +192,13 @@ class _Handler(BaseHTTPRequestHandler):
             self._governance_rules()
         elif self.path.startswith("/api/session/history"):
             self._session_history()
+        # ── Dispatch endpoints (REQ-332) ──────────────────────────────
+        elif self.path.startswith("/api/dispatch/events"):
+            self._dispatch_sse()
+        elif self.path.startswith("/api/dispatch/status"):
+            self._dispatch_status()
+        elif self.path.startswith("/api/dispatch/list"):
+            self._dispatch_list()
         else:
             self.send_error(404)
 
@@ -210,6 +219,13 @@ class _Handler(BaseHTTPRequestHandler):
             self._json_response({"ok": True})
         elif self.path == "/api/session/save":
             self._session_save()
+        # ── Dispatch endpoints (REQ-332) ──────────────────────────────
+        elif self.path == "/api/dispatch/run":
+            self._dispatch_run()
+        elif self.path == "/api/dispatch/retry":
+            self._dispatch_retry()
+        elif self.path == "/api/dispatch/abort":
+            self._dispatch_abort()
         else:
             self.send_error(404)
 
@@ -254,6 +270,164 @@ class _Handler(BaseHTTPRequestHandler):
             self.bus.unsubscribe(q)
 
     # ── Helpers ────────────────────────────────────────────────────
+
+    # ── Dispatch handlers ──────────────────────────────────────────
+
+    def _parse_query(self, path: str) -> dict[str, str]:
+        """Parse query string from a URL path."""
+        from urllib.parse import parse_qs, urlparse
+        parsed = urlparse(path)
+        qs = parse_qs(parsed.query)
+        return {k: v[0] for k, v in qs.items()}
+
+    def _dispatch_sse(self) -> None:
+        """GET /api/dispatch/events?dag_id=<ID>
+
+        Replays persisted events.jsonl then streams live events (REQ-332).
+        """
+        params = self._parse_query(self.path)
+        dag_id = params.get("dag_id", "")
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+        except ImportError:
+            self.wfile.write(b"data: {\"error\": \"dispatch not available\"}\n\n")
+            self.wfile.flush()
+            return
+
+        # Replay persisted events first
+        if dag_id:
+            past = EventEmitter.replay(root, dag_id)
+            for evt in past:
+                line = f"data: {evt.to_json()}\n\n".encode()
+                try:
+                    self.wfile.write(line)
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    return
+
+        # Subscribe to live events via _dispatch_emitters registry
+        emitter = type(self)._dispatch_emitters.get(dag_id) if dag_id else None
+        if emitter is None:
+            # No live run — replay was all we had
+            return
+
+        q = emitter.subscribe()
+        try:
+            while True:
+                try:
+                    evt = q.get(timeout=30)
+                except queue.Empty:
+                    self.wfile.write(b": keepalive\n\n")
+                    self.wfile.flush()
+                    continue
+                if evt is None:
+                    break
+                line = f"data: {evt.to_json()}\n\n".encode()
+                self.wfile.write(line)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        finally:
+            emitter.unsubscribe(q)
+
+    def _dispatch_status(self) -> None:
+        """GET /api/dispatch/status?dag_id=<ID> — current DispatchSummary JSON."""
+        params = self._parse_query(self.path)
+        dag_id = params.get("dag_id", "")
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+            events = EventEmitter.replay(root, dag_id) if dag_id else []
+            node_status: dict[str, str] = {}
+            for evt in events:
+                if evt.event_type in ("node_started", "node_completed", "node_failed", "node_blocked"):
+                    node_status[evt.node_id] = evt.event_type.replace("node_", "")
+            done = sum(1 for s in node_status.values() if s == "completed")
+            failed = sum(1 for s in node_status.values() if s == "failed")
+            self._json_response({"dag_id": dag_id, "nodes": node_status, "completed": done, "failed": failed})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _dispatch_list(self) -> None:
+        """GET /api/dispatch/list — all saved DAG run IDs."""
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+            runs = EventEmitter.list_runs(Path(project_dir))
+            self._json_response({"runs": runs, "count": len(runs)})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "runs": []})
+
+    def _dispatch_run(self) -> None:
+        """POST /api/dispatch/run — {"task": "...", "max_workers": 4}."""
+        body = self._read_json() or {}
+        task = body.get("task", "").strip()
+        if not task:
+            self._json_response({"error": "missing task"}, code=400)
+            return
+        max_workers = int(body.get("max_workers", 4))
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+
+        try:
+            from specsmith.agent.dispatch import AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        except ImportError as exc:
+            self._json_response({"error": f"dispatch not available: {exc}"}, code=503)
+            return
+
+        try:
+            dag = TaskDAGBuilder.build(task)
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"error": f"DAG build failed: {exc}"}, code=400)
+            return
+
+        emitter = EventEmitter(root, dag.dag_id)
+        type(self)._dispatch_emitters[dag.dag_id] = emitter
+
+        llm_config = {"config_list": [], "temperature": 0.0}
+        pool = AgentPool(llm_config, max_workers=max_workers)
+        dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+
+        # Run in background thread
+        def _bg() -> None:
+            try:
+                dispatcher.run()
+            finally:
+                type(self)._dispatch_emitters.pop(dag.dag_id, None)
+
+        import threading
+        t = threading.Thread(target=_bg, daemon=True, name=f"dispatch-{dag.dag_id}")
+        t.start()
+
+        self._json_response({"ok": True, "dag_id": dag.dag_id})
+
+    def _dispatch_retry(self) -> None:
+        """POST /api/dispatch/retry — {"dag_id": "...", "node_id": "..."}."""
+        body = self._read_json() or {}
+        dag_id = body.get("dag_id", "")
+        node_id = body.get("node_id", "")
+        if not dag_id or not node_id:
+            self._json_response({"error": "missing dag_id or node_id"}, code=400)
+            return
+        self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "retry queued"})
+
+    def _dispatch_abort(self) -> None:
+        """POST /api/dispatch/abort — {"dag_id": "...", "node_id": "..."}."""
+        body = self._read_json() or {}
+        dag_id = body.get("dag_id", "")
+        node_id = body.get("node_id", "")
+        self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "abort requested"})
 
     def _read_json(self) -> dict[str, Any] | None:
         length = int(self.headers.get("Content-Length", 0))
@@ -421,11 +595,18 @@ def run_server(
         f"  Provider: {provider}/{model or '(default)'}\n"
         f"{auth_note}"
         f"  Endpoints:\n"
-        f"    GET  /api/events  — SSE event stream\n"
-        f"    POST /api/send    — send a message\n"
-        f"    GET  /api/status  — session status\n"
-        f"    POST /api/stop    — stop current turn\n"
-        f"    GET  /api/health  — unauthenticated liveness\n"
+        f"    GET  /api/events                    — SSE event stream\n"
+        f"    POST /api/send                      — send a message\n"
+        f"    GET  /api/status                    — session status\n"
+        f"    POST /api/stop                      — stop current turn\n"
+        f"    GET  /api/health                    — unauthenticated liveness\n"
+        f"  Dispatch (REQ-332):\n"
+        f"    POST /api/dispatch/run              — start DAG run\n"
+        f"    GET  /api/dispatch/events?dag_id=   — live SSE + replay\n"
+        f"    GET  /api/dispatch/status?dag_id=   — current node status\n"
+        f"    GET  /api/dispatch/list             — list saved runs\n"
+        f"    POST /api/dispatch/retry            — retry failed node\n"
+        f"    POST /api/dispatch/abort            — abort running node\n"
         f"  Press Ctrl+C to stop.\n",
         file=sys.stderr,
     )

@@ -329,23 +329,57 @@ Phase 1 goals:
 - persist reusable session patterns
 - support Eval-Driven Development
 
-### Phase 2 — Multi-Agent Layer
+### Phase 2 — Multi-Agent DAG Dispatcher (REQ-321..334)
 
-Planned modules:
+Implemented in `src/specsmith/agent/dispatch/`. The dispatcher replaces the flat
+GroupChat round-robin with a governed, dependency-aware DAG scheduler.
 
-- `src/specsmith/agent/spawner.py`
-- `src/specsmith/agent/teams.py`
-- `src/specsmith/agent/orchestrator.py`
-- `src/specsmith/agent/flags.py`
-- `src/specsmith/memory.py`
+**Task DAG** (`dispatch/dag.py`):
+- `TaskStatus` — PENDING | RUNNING | COMPLETED | FAILED | BLOCKED
+- `TaskNode` — carries id, title, role, depends_on, context_in/out, result
+- `TaskDAG` — Kahn topological sort, `runnable_nodes()`, `blocked_by_failure()` (transitive)
+- `TaskDAGBuilder` — builds from planner JSON or falls back to a single-node DAG; raises `DAGValidationError` on cycles
 
-Phase 2 goals:
+**Dispatcher** (`dispatch/dispatcher.py`):
+- `AgentPool` — lazy per-role `ConversableAgent` pool with idle worker reuse, `max_workers` ceiling
+- `AgentDispatcher` — `ThreadPoolExecutor` scheduler; dispatches runnable nodes concurrently; on FAILED propagates BLOCKED to transitive dependents while siblings continue; writes ESDB `dispatch_result` records on completion and injects them into successor context_in
 
-- subagent spawning
-- team coordination
-- orchestrator-worker routing
-- feature-flagged tool schema visibility
-- cross-session memory
+**Events** (`dispatch/events.py`):
+- `EventEmitter` — appends JSONL to `.specsmith/dispatch/<dag_id>/events.jsonl` and fans out to SSE subscriber queues; supports static `replay()` for DAG resume (REQ-330)
+
+**Compiler / tool support** (`agent/tools.py`):
+- `run_gcc`, `run_arm_gcc` (bare-metal), `run_aarch64_gcc`, `run_iar_compiler`, `run_intel_compiler`
+- `run_clang_format`, `run_clang_tidy`, `run_vsg` (VHDL Style Guide)
+- All registered in `AVAILABLE_TOOLS` and wired into `ROLE_TOOLS` for `coder`, `reviewer`, `tester`, and the new `embedded-coder` role
+
+**Entry point** (`agent/orchestrator.py`):
+- `run_task(task, use_dag=False)` — DAG path enabled with `use_dag=True`; falls back to flat GroupChat on `DAGValidationError`
+- `run_dispatch(task, max_workers=4, planner_output, project_root)` — always uses DAG path; returns `DispatchSummary`
+
+**CLI** (`specsmith dispatch`):
+- `dispatch run <TASK> [--max-workers N] [--json] [--no-dag]`
+- `dispatch status [--dag-id ID]`
+- `dispatch list`
+- `dispatch retry --node NODE_ID --dag-id ID`
+
+**serve.py additions**:
+- `POST /api/dispatch/run` — start background DAG run, returns `dag_id`
+- `GET  /api/dispatch/events?dag_id=` — SSE replay + live stream
+- `GET  /api/dispatch/status?dag_id=` — node status JSON
+- `GET  /api/dispatch/list` — saved run IDs
+- `POST /api/dispatch/retry` / `POST /api/dispatch/abort`
+
+**Kairos UI** (`app/` — Rust, egui/eframe):
+- `dispatch_panel/mod.rs` — `DispatchApp` SSE subscriber; DAG graph with nodes coloured by status
+- `dispatch_panel/gantt.rs` — `GanttStrip` timeline showing parallelism
+- `dispatch_panel/controls.rs` — Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
+
+**Architecture invariants for Phase 2**:
+- The Orchestrator is the sole dispatch entry point; workers MUST NOT spawn further dispatches
+- DAG validation (cycle detection) MUST happen before any worker is started
+- `max_workers` ceiling MUST be enforced by `AgentPool`
+- Completed node output MUST flow to successors via ESDB, not in-memory sharing
+- Every state transition MUST be emitted as a persisted `DispatchEvent` before any SSE fan-out
 
 ### Phase 3 — Service and IDE
 

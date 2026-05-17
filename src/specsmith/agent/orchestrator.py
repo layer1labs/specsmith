@@ -164,13 +164,38 @@ class Orchestrator:
             # Register the actual execution function ONCE on the executor.
             self.executor.register_for_execution(name=tool.__name__)(tool)
 
-    def run_task(self, task: str) -> TaskResult:
+    def run_task(self, task: str, *, use_dag: bool = False) -> TaskResult:
         """Run a task through the agent orchestration group (REQ-091).
+
+        When *use_dag* is True the task is decomposed into a TaskDAG and
+        dispatched via AgentDispatcher (REQ-322).  On DAGValidationError the
+        method falls back to the existing flat GroupChat path with a warning.
+        The Orchestrator remains the sole entry point in both paths (REQ-321).
 
         Returns a :class:`TaskResult` so the Nexus REPL's bounded-retry
         harness can compare ``confidence`` against the preflight target and
         retry on non-equilibrium outcomes without inventing signal.
         """
+        if use_dag:
+            try:
+                summary = self.run_dispatch(task)
+                return TaskResult(
+                    equilibrium=summary.equilibrium,
+                    confidence=summary.confidence,
+                    summary=(
+                        f"DAG dispatch complete: {len(summary.completed)} completed, "
+                        f"{len(summary.failed)} failed, {len(summary.blocked)} blocked."
+                    ),
+                    files_changed=[
+                        f for r in summary.completed for f in r.files_changed
+                    ],
+                )
+            except Exception as dag_err:  # noqa: BLE001
+                import warnings
+                warnings.warn(
+                    f"DAG dispatch failed ({dag_err!s}), falling back to flat GroupChat.",
+                    stacklevel=2,
+                )
         groupchat = GroupChat(
             agents=[
                 self.human_proxy,
@@ -201,6 +226,38 @@ Next action:
         chat_result = self.human_proxy.initiate_chat(manager, message=initial_message)
 
         return self._build_task_result(chat_result, task)
+
+    def run_dispatch(
+        self,
+        task: str,
+        *,
+        max_workers: int = 4,
+        planner_output: "str | list | None" = None,
+        project_root: "str | None" = None,
+    ) -> "DispatchSummary":
+        """Decompose *task* into a TaskDAG and dispatch via AgentDispatcher.
+
+        Always uses the DAG path (REQ-321: Orchestrator is the sole entry).
+        Returns a :class:`DispatchSummary` with per-node outcomes.
+        """
+        import os
+        from pathlib import Path
+
+        from specsmith.agent.dispatch import (
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
+        )
+
+        root = Path(project_root) if project_root else Path(os.getcwd())
+        dag = TaskDAGBuilder.build(task, planner_output=planner_output)
+        pool = AgentPool(self.llm_config, max_workers=max_workers)
+        emitter = EventEmitter(root, dag.dag_id)
+        dispatcher = AgentDispatcher(
+            dag, pool, emitter, project_root=root, max_workers=max_workers
+        )
+        return dispatcher.run()
 
     def _build_task_result(self, chat_result: Any, task: str) -> TaskResult:
         """Translate the AG2 chat result into a structured TaskResult.

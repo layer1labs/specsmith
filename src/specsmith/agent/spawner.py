@@ -31,13 +31,25 @@ class SpawnedAgent:
         }
 
 
-# Tool subsets for different agent roles
+# Tool subsets for different agent roles.
+# Compiler/linter tools are listed by their agent tool function name.
 ROLE_TOOLS: dict[str, list[str]] = {
-    "coder": ["read_file", "write_file", "run_shell", "apply_diff"],
-    "reviewer": ["read_file", "run_shell", "git_diff"],
-    "tester": ["read_file", "run_shell", "run_tests"],
-    "architect": ["read_file", "write_file"],
+    "coder": [
+        "read_file", "write_file", "run_shell", "apply_diff",
+        # Compiler / formatter tools
+        "run_gcc", "run_arm_gcc", "run_clang_format", "run_clang_tidy", "run_vsg",
+    ],
+    "reviewer": ["read_file", "run_shell", "git_diff", "run_clang_tidy", "run_vsg"],
+    "tester": ["read_file", "run_shell", "run_tests", "run_gcc", "run_arm_gcc"],
+    "architect": ["read_file", "write_file", "run_clang_format"],
     "researcher": ["read_file", "search_web", "search_repo"],
+    # Embedded / hardware-specific roles
+    "embedded-coder": [
+        "read_file", "write_file", "run_shell",
+        "run_gcc", "run_arm_gcc", "run_aarch64_gcc",
+        "run_iar_compiler", "run_intel_compiler",
+        "run_clang_format", "run_clang_tidy", "run_vsg",
+    ],
 }
 
 
@@ -87,6 +99,62 @@ class SubAgentSpawner:
         if agent:
             agent.status = "failed"
             agent.result = {"error": error}
+
+    def spawn_worker(self, role: str, llm_config: dict) -> Any:
+        """Create a live ConversableAgent restricted to the role's tool subset.
+
+        Wires ``register_for_llm`` and ``register_for_execution`` following the
+        same pattern used by ``Orchestrator.register_tools`` so AG2 does not
+        emit duplicate-registration warnings (REQ-326).
+
+        Returns the ConversableAgent.  The caller owns its lifecycle.
+        """
+        try:
+            from autogen import ConversableAgent  # type: ignore[import]
+        except ImportError as exc:
+            raise ImportError(
+                "ag2 (autogen) is required for spawn_worker(). "
+                "Install via `pip install ag2[ollama]`."
+            ) from exc
+
+        from specsmith.agent.tools import AVAILABLE_TOOLS
+
+        tool_names = set(ROLE_TOOLS.get(role, ROLE_TOOLS.get("coder", [])))
+
+        system_messages = {
+            "coder": "You write, read, and patch code files. Use compiler and formatter tools when needed.",
+            "reviewer": "You review code changes, run linters/style checks, and report issues.",
+            "tester": "You write and run tests, compile test binaries, and report results.",
+            "architect": "You design system structure and write architecture documents.",
+            "researcher": "You search and synthesise information from docs and the web.",
+            "embedded-coder": "You write and compile embedded C/C++ and VHDL code for target hardware.",
+        }
+        system_msg = system_messages.get(role, f"You are a {role} agent.")
+
+        agent = ConversableAgent(
+            name=f"{role.capitalize()}Worker",
+            system_message=system_msg,
+            llm_config=llm_config,
+            human_input_mode="NEVER",
+        )
+        executor = ConversableAgent(
+            name=f"{role.capitalize()}Executor",
+            system_message="Execute tools and return results.",
+            llm_config=False,
+            human_input_mode="NEVER",
+        )
+
+        for tool in AVAILABLE_TOOLS:
+            if tool.__name__ in tool_names:
+                agent.register_for_llm(
+                    name=tool.__name__,
+                    description=tool.__doc__ or tool.__name__,
+                )(tool)
+                executor.register_for_execution(name=tool.__name__)(tool)
+
+        # Attach the executor as a peer so the agent can delegate execution
+        agent._executor_peer = executor  # type: ignore[attr-defined]  # noqa: SLF001
+        return agent
 
 
 __all__ = ["ROLE_TOOLS", "SpawnedAgent", "SubAgentSpawner"]

@@ -277,6 +277,78 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
             func=remember_project_fact,
             epistemic_claims=["modifies .repo-index/facts.json only"],
         ),
+        # ── Compiler / linter / formatter tools ─────────────────────────────
+        ToolSpec(
+            name="run_gcc",
+            description=(
+                "Compile or build with GCC / G++. Pass compiler flags verbatim via *args*."
+                " Use *compiler* to select g++, gcc-12, etc."
+            ),
+            func=run_gcc,
+            epistemic_claims=["invokes compiler process; may produce build artifacts"],
+        ),
+        ToolSpec(
+            name="run_arm_gcc",
+            description=(
+                "Cross-compile for ARM bare-metal (arm-none-eabi-gcc / g++)."
+                " Set *compiler* to 'arm-none-eabi-g++' for C++."
+            ),
+            func=run_arm_gcc,
+            epistemic_claims=["invokes cross-compiler; produces .elf/.bin artifacts"],
+        ),
+        ToolSpec(
+            name="run_aarch64_gcc",
+            description=(
+                "Cross-compile for AArch64 Linux (aarch64-linux-gnu-gcc / g++)."
+            ),
+            func=run_aarch64_gcc,
+            epistemic_claims=["invokes cross-compiler; produces shared/static libraries"],
+        ),
+        ToolSpec(
+            name="run_iar_compiler",
+            description=(
+                "Build an IAR Embedded Workbench project via IarBuild command-line."
+                " Provide the .ewp *project_file* path."
+            ),
+            func=run_iar_compiler,
+            epistemic_claims=["requires IAR Embedded Workbench installed; produces .out artifacts"],
+        ),
+        ToolSpec(
+            name="run_intel_compiler",
+            description=(
+                "Compile with Intel oneAPI (icx/icpx) or classic (icc/icpc) compilers."
+                " Use *compiler* to select the binary."
+            ),
+            func=run_intel_compiler,
+            epistemic_claims=["requires Intel oneAPI or classic compiler installed"],
+        ),
+        ToolSpec(
+            name="run_clang_format",
+            description=(
+                "Run clang-format on source files. Use *in_place=True* to apply changes,"
+                " or leave False to print the diff only."
+            ),
+            func=run_clang_format,
+            epistemic_claims=["modifies source files in-place when in_place=True"],
+        ),
+        ToolSpec(
+            name="run_clang_tidy",
+            description=(
+                "Run clang-tidy static analysis on source files."
+                " Pass *checks* to filter specific lint rules."
+            ),
+            func=run_clang_tidy,
+            epistemic_claims=["read-only analysis unless --fix is passed"],
+        ),
+        ToolSpec(
+            name="run_vsg",
+            description=(
+                "Run VSG (VHDL Style Guide) on .vhd/.vhdl files or directories."
+                " Use *fix=True* to apply automatic style corrections in place."
+            ),
+            func=run_vsg,
+            epistemic_claims=["modifies VHDL source files in-place when fix=True"],
+        ),
     ]
 
 
@@ -326,6 +398,163 @@ def log_agent_action(
         pass
 
 
+# ---------------------------------------------------------------------------
+# Compiler / linter / formatter tools
+# ---------------------------------------------------------------------------
+
+
+def _run_compiler(
+    executable: str,
+    args: str,
+    cwd: str | None = None,
+    timeout: int = 120,
+) -> str:
+    """Shared helper: invoke a compiler/tool and return stdout+stderr."""
+    return run_shell(f"{executable} {args}", cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_gcc(
+    args: str,
+    cwd: str | None = None,
+    compiler: str = "gcc",
+    timeout: int = 120,
+) -> str:
+    """Compile or build with GCC (or g++ when compiler='g++').
+
+    *args* is passed verbatim to the compiler, e.g. '-Wall -O2 main.c -o main'.
+    Use *compiler* to select g++, gcc-12, etc.
+    """
+    return _run_compiler(compiler, args, cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_arm_gcc(
+    args: str,
+    cwd: str | None = None,
+    compiler: str = "arm-none-eabi-gcc",
+    timeout: int = 120,
+) -> str:
+    """Cross-compile for ARM bare-metal using arm-none-eabi-gcc (or g++).
+
+    Set *compiler* to 'arm-none-eabi-g++' for C++, or any installed
+    arm cross-compiler such as 'arm-linux-gnueabihf-gcc'.
+    """
+    return _run_compiler(compiler, args, cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_aarch64_gcc(
+    args: str,
+    cwd: str | None = None,
+    compiler: str = "aarch64-linux-gnu-gcc",
+    timeout: int = 120,
+) -> str:
+    """Cross-compile for AArch64 (64-bit ARM) using aarch64-linux-gnu-gcc.
+
+    Set *compiler* to 'aarch64-linux-gnu-g++' for C++.
+    """
+    return _run_compiler(compiler, args, cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_iar_compiler(
+    project_file: str,
+    args: str = "",
+    cwd: str | None = None,
+    executable: str = "IarBuild",
+    timeout: int = 300,
+) -> str:
+    """Build an IAR Embedded Workbench project via the IarBuild command-line.
+
+    *project_file* should be the path to a .ewp project file.
+    *args* are additional flags passed to IarBuild (e.g. '-build Debug').
+    Set *executable* to the full path to IarBuild.exe when it is not on PATH.
+    """
+    cmd = f'"{executable}" "{project_file}" {args}'.strip()
+    return run_shell(cmd, cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_intel_compiler(
+    args: str,
+    cwd: str | None = None,
+    compiler: str = "icx",
+    timeout: int = 120,
+) -> str:
+    """Compile with an Intel compiler (icx / icpx / icc / icpc).
+
+    *compiler* selects the binary:
+      - 'icx'  — Intel oneAPI C compiler (recommended)
+      - 'icpx' — Intel oneAPI C++ compiler
+      - 'icc'  — Classic Intel C compiler (deprecated)
+      - 'icpc' — Classic Intel C++ compiler (deprecated)
+    """
+    return _run_compiler(compiler, args, cwd=cwd, timeout=timeout)
+
+
+@validate_json_args
+def run_clang_format(
+    files: str,
+    style: str = "file",
+    in_place: bool = False,
+    cwd: str | None = None,
+) -> str:
+    """Run clang-format on one or more source files.
+
+    *files* is a space-separated list of file paths or a glob pattern.
+    *style* maps to --style (e.g. 'file', 'LLVM', 'Google', 'Mozilla').
+    Set *in_place* to True to apply formatting changes (-i flag).
+    """
+    flag = "-i" if in_place else ""
+    cmd = f"clang-format --style={style} {flag} {files}".strip()
+    return run_shell(cmd, cwd=cwd)
+
+
+@validate_json_args
+def run_clang_tidy(
+    files: str,
+    checks: str = "",
+    fix: bool = False,
+    compile_commands: str | None = None,
+    cwd: str | None = None,
+) -> str:
+    """Run clang-tidy static analysis on source files.
+
+    *files* is a space-separated list of source files.
+    *checks* is a comma-separated clang-tidy check filter (e.g. 'modernize-*,readability-*').
+    Set *fix* to True to apply automatic fixes (--fix flag).
+    *compile_commands* is the path to compile_commands.json when not in cwd.
+    """
+    check_flag = f"--checks={checks}" if checks else ""
+    fix_flag = "--fix" if fix else ""
+    db_flag = f"-p {compile_commands}" if compile_commands else ""
+    cmd = f"clang-tidy {check_flag} {fix_flag} {db_flag} {files}".strip()
+    return run_shell(cmd, cwd=cwd)
+
+
+@validate_json_args
+def run_vsg(
+    files: str = ".",
+    rules: str | None = None,
+    fix: bool = False,
+    junit: str | None = None,
+    cwd: str | None = None,
+) -> str:
+    """Run VSG (VHDL Style Guide) on one or more VHDL files or directories.
+
+    *files* is a space-separated list of .vhd/.vhdl files or directories.
+    *rules* is an optional path to a VSG rules YAML configuration file.
+    Set *fix* to True to apply automatic style fixes in place.
+    *junit* is an optional path to write a JUnit XML report.
+    """
+    rule_flag = f"--rules {rules}" if rules else ""
+    fix_flag = "--fix" if fix else ""
+    junit_flag = f"--junit {junit}" if junit else ""
+    cmd = f"vsg {rule_flag} {fix_flag} {junit_flag} --filename {files}".strip()
+    return run_shell(cmd, cwd=cwd)
+
+
 # Expose available tools as a list for AG2 tool registration
 AVAILABLE_TOOLS = [
     run_shell,
@@ -340,4 +569,13 @@ AVAILABLE_TOOLS = [
     open_url,
     search_docs,
     remember_project_fact,
+    # Compiler / linter / formatter tools
+    run_gcc,
+    run_arm_gcc,
+    run_aarch64_gcc,
+    run_iar_compiler,
+    run_intel_compiler,
+    run_clang_format,
+    run_clang_tidy,
+    run_vsg,
 ]

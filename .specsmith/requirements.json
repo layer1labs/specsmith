@@ -2701,5 +2701,145 @@
     "test_ids": [
       "TEST-312"
     ]
+  },
+  {
+    "id": "REQ-321",
+    "title": "Orchestrator Is Sole Dispatch Entry Point",
+    "description": "The Orchestrator MUST remain the sole entry point for all dispatched work. Worker agents MUST NOT initiate new dispatches or call AgentDispatcher directly.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-321"
+    ]
+  },
+  {
+    "id": "REQ-322",
+    "title": "DAG Decomposition Before Worker Dispatch",
+    "description": "When use_dag=True, the Orchestrator MUST call TaskDAGBuilder.build(task) and validate the resulting TaskDAG is acyclic before dispatching any worker agent. On cycle detection a DAGValidationError MUST be raised and execution MUST fall back to the existing flat GroupChat path with a warning.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-322"
+    ]
+  },
+  {
+    "id": "REQ-323",
+    "title": "TaskNode Must Carry Required Fields",
+    "description": "Each TaskNode MUST carry: a unique string id, a human-readable title, an assigned role matching ROLE_TOOLS, an explicit depends_on list of node ids, a TaskStatus (PENDING | RUNNING | COMPLETED | FAILED | BLOCKED), context_in (list of ESDB record IDs), context_out (ESDB record ID written on completion or None), and result (DispatchResult or None).",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-323"
+    ]
+  },
+  {
+    "id": "REQ-324",
+    "title": "Concurrent Dispatch Bounded by max_workers",
+    "description": "AgentDispatcher MUST execute independent (runnable) TaskNodes concurrently up to max_workers (default 4) using ThreadPoolExecutor. It MUST NOT dispatch more than max_workers nodes simultaneously at any point during a run.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-324"
+    ]
+  },
+  {
+    "id": "REQ-325",
+    "title": "Fail-Forward BLOCKED Propagation",
+    "description": "When a TaskNode transitions to FAILED, AgentDispatcher MUST mark all direct and transitive dependent nodes as BLOCKED. Non-dependent sibling nodes that are still PENDING or RUNNING MUST continue executing without interruption.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-325"
+    ]
+  },
+  {
+    "id": "REQ-326",
+    "title": "AgentPool Must Reuse Idle Workers",
+    "description": "AgentPool MUST reuse idle ConversableAgent instances for new tasks of the same role rather than spawning unbounded agents. The pool MUST track active and idle workers per role and enforce the max_workers ceiling.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-326"
+    ]
+  },
+  {
+    "id": "REQ-327",
+    "title": "ESDB Context Written on Node Completion",
+    "description": "On successful TaskNode completion, AgentDispatcher MUST write a ChronoRecord to ChronoStore with kind=dispatch_result containing the DispatchResult payload. Successor tasks MUST receive predecessor ChronoRecord IDs in their context_in and retrieve the records via ESDB query before starting.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-327"
+    ]
+  },
+  {
+    "id": "REQ-328",
+    "title": "DAG State Transitions Persisted as JSONL Events",
+    "description": "Every TaskNode state transition (node_started, node_completed, node_failed, node_blocked) and the terminal dag_done event MUST be serialized as a DispatchEvent and appended to .specsmith/dispatch/<dag_id>/events.jsonl. The file MUST be created before the first node starts.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-328"
+    ]
+  },
+  {
+    "id": "REQ-329",
+    "title": "Per-Node Governance Preflight Before Worker Start",
+    "description": "Before a worker agent begins executing a TaskNode, AgentDispatcher MUST call execute_with_governance (or equivalent preflight check) with the node task description. If governance returns needs_clarification or rejected the node MUST transition to FAILED immediately.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-329"
+    ]
+  },
+  {
+    "id": "REQ-330",
+    "title": "DAG Run Must Be Resumable from Checkpoint",
+    "description": "A saved DAG run (events.jsonl) MUST be resumable via specsmith dispatch retry. The retry command MUST replay only the FAILED or BLOCKED nodes from the last checkpoint while treating COMPLETED nodes as already done. COMPLETED nodes MUST NOT be re-executed.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-330"
+    ]
+  },
+  {
+    "id": "REQ-331",
+    "title": "Dispatch CLI Group with run/status/list/retry",
+    "description": "specsmith dispatch MUST expose four subcommands: run <TASK> [--max-workers N] [--json] [--no-dag] to start a dispatch; status [--dag-id ID] to print per-node status; list to enumerate all saved DAG runs; retry --node NODE_ID --dag-id ID to re-run a single failed node.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-331"
+    ]
+  },
+  {
+    "id": "REQ-332",
+    "title": "Kairos Live DAG Graph Panel",
+    "description": "Kairos MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-332"
+    ]
+  },
+  {
+    "id": "REQ-333",
+    "title": "Kairos Gantt Timeline Strip",
+    "description": "Kairos MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-333"
+    ]
+  },
+  {
+    "id": "REQ-334",
+    "title": "Kairos Per-Node Retry and Abort Controls",
+    "description": "Kairos MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
+    "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
+    "status": "defined",
+    "test_ids": [
+      "TEST-334"
+    ]
   }
 ]

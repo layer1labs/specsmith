@@ -8824,6 +8824,227 @@ main.add_command(teams_group)
 
 
 # ---------------------------------------------------------------------------
+# specsmith dispatch — multi-agent DAG dispatcher (REQ-331)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="dispatch")
+def dispatch_group() -> None:
+    """Multi-agent DAG dispatcher (REQ-321..REQ-331).
+
+    Decomposes tasks into a directed acyclic graph of agent work items,
+    executes independent nodes concurrently, and streams live progress.
+    """
+
+
+@dispatch_group.command(name="run")
+@click.argument("task")
+@click.option("--max-workers", type=int, default=4, show_default=True, help="Max concurrent agents.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stream JSONL events to stdout.")
+@click.option("--no-dag", is_flag=True, default=False, help="Skip DAG; use flat GroupChat instead.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option("--endpoint", default="http://localhost:8000/v1", show_default=True)
+@click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8", show_default=True)
+def dispatch_run_cmd(
+    task: str,
+    max_workers: int,
+    as_json: bool,
+    no_dag: bool,
+    project_dir: str,
+    endpoint: str,
+    model: str,
+) -> None:
+    """Run TASK through the multi-agent DAG dispatcher."""
+    import json as _json
+
+    from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
+    from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+
+    root = Path(project_dir).resolve()
+    llm_config = {
+        "config_list": [{"model": model, "api_key": "specsmith-local-key", "base_url": endpoint}],
+        "temperature": 0.0,
+    }
+
+    if no_dag:
+        console.print("[yellow]--no-dag[/yellow]: falling back to flat GroupChat (not implemented in CLI; use specsmith run).")
+        raise SystemExit(0)
+
+    try:
+        dag = TaskDAGBuilder.build(task)
+    except Exception as exc:
+        console.print(f"[red]DAG build failed:[/red] {exc}")
+        raise SystemExit(1)
+
+    emitter = EventEmitter(root, dag.dag_id)
+    pool = AgentPool(llm_config, max_workers=max_workers)
+    dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+
+    if as_json:
+        # Stream events as JSONL to stdout
+        import threading
+        q = emitter.subscribe()
+        done_flag = threading.Event()
+
+        def _run() -> None:
+            dispatcher.run()
+            done_flag.set()
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        import queue
+        while not done_flag.is_set() or not q.empty():
+            try:
+                evt = q.get(timeout=0.2)
+                if evt is not None:
+                    click.echo(_json.dumps(evt.to_dict()))
+            except queue.Empty:
+                continue
+    else:
+        console.print(f"[bold]dispatch run[/bold]  dag=[cyan]{dag.dag_id}[/cyan]  task={task!r}\n")
+        summary = dispatcher.run()
+        console.print(f"\n[bold green]Done.[/bold green]  {len(summary.completed)} completed  "
+                      f"{len(summary.failed)} failed  {len(summary.blocked)} blocked")
+        console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
+        console.print(f"  events → .specsmith/dispatch/{dag.dag_id}/events.jsonl")
+
+
+@dispatch_group.command(name="status")
+@click.option("--dag-id", default="", help="DAG run ID (latest if omitted).")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
+    """Print per-node status for a DAG run."""
+    import json as _json
+
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    runs = EventEmitter.list_runs(root)
+    if not runs:
+        console.print("[dim]No dispatch runs found.[/dim]")
+        raise SystemExit(0)
+
+    target = dag_id or runs[-1]
+    events = EventEmitter.replay(root, target)
+    if not events:
+        console.print(f"[yellow]No events found for dag_id={target!r}[/yellow]")
+        raise SystemExit(0)
+
+    # Build per-node last status from events
+    node_status: dict[str, str] = {}
+    for evt in events:
+        et = evt.event_type
+        if et == "node_started":
+            node_status[evt.node_id] = "running"
+        elif et == "node_completed":
+            node_status[evt.node_id] = "completed"
+        elif et == "node_failed":
+            node_status[evt.node_id] = "failed"
+        elif et == "node_blocked":
+            node_status[evt.node_id] = "blocked"
+
+    _STATUS_COLOUR = {"running": "blue", "completed": "green", "failed": "red", "blocked": "yellow", "pending": "dim"}
+    console.print(f"[bold]Dispatch status[/bold]  dag_id=[cyan]{target}[/cyan]\n")
+    for nid, st in node_status.items():
+        col = _STATUS_COLOUR.get(st, "white")
+        console.print(f"  [{col}]{st:12}[/{col}]  {nid}")
+
+
+@dispatch_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def dispatch_list_cmd(project_dir: str) -> None:
+    """List all saved DAG dispatch runs."""
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    runs = EventEmitter.list_runs(root)
+    if not runs:
+        console.print("[dim]No dispatch runs found in .specsmith/dispatch/[/dim]")
+        return
+    console.print(f"[bold]Dispatch runs[/bold]  ({len(runs)})\n")
+    for run_id in runs:
+        events = EventEmitter.replay(root, run_id)
+        done = sum(1 for e in events if e.event_type == "node_completed")
+        failed = sum(1 for e in events if e.event_type == "node_failed")
+        console.print(f"  [cyan]{run_id}[/cyan]  completed={done}  failed={failed}")
+
+
+@dispatch_group.command(name="retry")
+@click.option("--node", "node_id", required=True, help="Node ID to retry.")
+@click.option("--dag-id", required=True, help="DAG run ID.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--endpoint", default="http://localhost:8000/v1")
+@click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8")
+def dispatch_retry_cmd(
+    node_id: str, dag_id: str, project_dir: str, endpoint: str, model: str
+) -> None:
+    """Re-run a single FAILED or BLOCKED node from a saved DAG run (REQ-330)."""
+    from pathlib import Path
+
+    from specsmith.agent.dispatch.dag import TaskDAG, TaskNode, TaskStatus
+    from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    past_events = EventEmitter.replay(root, dag_id)
+    if not past_events:
+        console.print(f"[red]No events found for dag_id={dag_id!r}[/red]")
+        raise SystemExit(1)
+
+    # Reconstruct node set from events; honour COMPLETED nodes as-is (REQ-330)
+    node_titles: dict[str, str] = {}
+    node_roles: dict[str, str] = {}
+    node_statuses: dict[str, TaskStatus] = {}
+    for evt in past_events:
+        if evt.node_id:
+            et = evt.event_type
+            if et == "node_started":
+                node_roles[evt.node_id] = evt.payload.get("role", "coder")
+                node_statuses[evt.node_id] = TaskStatus.RUNNING
+            elif et == "node_completed":
+                node_statuses[evt.node_id] = TaskStatus.COMPLETED
+            elif et in ("node_failed", "node_blocked"):
+                node_statuses[evt.node_id] = TaskStatus.FAILED if et == "node_failed" else TaskStatus.BLOCKED
+
+    if node_id not in node_statuses:
+        console.print(f"[red]Node {node_id!r} not found in dag_id={dag_id!r}[/red]")
+        raise SystemExit(1)
+
+    target_status = node_statuses.get(node_id)
+    if target_status == TaskStatus.COMPLETED:
+        console.print(f"[yellow]Node {node_id!r} is already COMPLETED — nothing to retry.[/yellow]")
+        raise SystemExit(0)
+
+    # Build a minimal single-node DAG for the retry
+    retry_dag = TaskDAG(dag_id=f"{dag_id}-retry-{node_id}")
+    retry_dag.add_node(
+        TaskNode(
+            id=node_id,
+            title=node_id,
+            role=node_roles.get(node_id, "coder"),
+        )
+    )
+
+    llm_config = {
+        "config_list": [{"model": model, "api_key": "specsmith-local-key", "base_url": endpoint}],
+        "temperature": 0.0,
+    }
+    emitter = EventEmitter(root, retry_dag.dag_id)
+    pool = AgentPool(llm_config, max_workers=1)
+    dispatcher = AgentDispatcher(retry_dag, pool, emitter, project_root=root, max_workers=1)
+    summary = dispatcher.run()
+
+    if summary.equilibrium:
+        console.print(f"[green]✓[/green] Retry of {node_id!r} completed successfully.")
+    else:
+        console.print(f"[red]✗[/red] Retry of {node_id!r} failed.")
+        raise SystemExit(1)
+
+
+main.add_command(dispatch_group)
+
+
+# ---------------------------------------------------------------------------
 # specsmith esdb — ChronoMemory ESDB management (Phase ESDB)
 # ---------------------------------------------------------------------------
 
