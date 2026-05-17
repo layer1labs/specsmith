@@ -38,12 +38,12 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "kairos",
         native_options,
-        Box::new(move |cc| {
-            Ok(Box::new(DispatchApp::new(
+        Box::new(move |cc| -> Box<dyn eframe::App> {
+            Box::new(DispatchApp::new(
                 cc,
                 args.server.clone(),
                 args.dag_id.clone(),
-            )))
+            ))
         }),
     )
 }
