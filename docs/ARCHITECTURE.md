@@ -746,11 +746,12 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
 | `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer (canonical) |
-| `docs/requirements/overflow.yml` | REQ-300..312 | Same REQs as yaml_governance.yml; contains REQ-313..320 reservation note |
+| `docs/requirements/overflow.yml` | REQ-300..312 | Same REQs as yaml_governance.yml; contains reservation comment |
+| `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability (plan 5939f743) |
 | `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
 
-**Reserved ranges:**
-- REQ-313..320: reserved for compliance plan 5939f743 (EU/NA regulation extensions)
+**Implemented:**
+- REQ-313..320: multi-agent governance compliance (docs/requirements/multiagent_compliance.yml)
 
 **Architecture invariants for YAML governance:**
 - REQUIREMENTS.md and TESTS.md MUST NOT be hand-edited when governance-mode is `yaml`.

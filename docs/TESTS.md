@@ -2483,6 +2483,94 @@
 - **Expected Behavior:** Exit 0; JSON contains tier, actions list, tokens_freed integer
 - **Confidence:** 0.9
 
+## TEST-313. Dispatch Run Appends Ledger Entry
+- **ID:** TEST-313
+- **Title:** Dispatch Run Appends Ledger Entry
+- **Description:** After dispatching a single-node DAG to completion via AgentDispatcher, a governance ledger entry MUST exist in LEDGER.md containing dag_id, task, node counts, and equilibrium result.
+- **Requirement ID:** REQ-313
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** AgentDispatcher.run() on single-node DAG; inspect LEDGER.md
+- **Expected Behavior:** LEDGER.md contains dispatch ledger entry with dag_id and equilibrium=True
+- **Confidence:** 0.9
+
+## TEST-314. node_started Payload Contains Worker Role
+- **ID:** TEST-314
+- **Title:** node_started Payload Contains Worker Role
+- **Description:** EventEmitter.node_started() MUST persist a role key in the payload of the node_started JSONL event. Replay must return the same role.
+- **Requirement ID:** REQ-314
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** EventEmitter(tmp_path, 'dag'); node_started('n1', 'coder'); replay()
+- **Expected Behavior:** Replayed node_started event has payload.role == 'coder'
+- **Confidence:** 1.0
+
+## TEST-315. DispatchSummary Contains dag_id for Traceability
+- **ID:** TEST-315
+- **Title:** DispatchSummary Contains dag_id for Traceability
+- **Description:** DispatchSummary.dag_id MUST match the TaskDAG.dag_id used to create the dispatcher. CLI output MUST display the dag_id on completion.
+- **Requirement ID:** REQ-315
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** TaskDAGBuilder.build('t', dag_id='trace-001'); run; summary.dag_id
+- **Expected Behavior:** summary.dag_id == 'trace-001'
+- **Confidence:** 1.0
+
+## TEST-316. Governance Block Recorded in Node Error
+- **ID:** TEST-316
+- **Title:** Governance Block Recorded in Node Error
+- **Description:** When _governance_preflight raises _GovernanceBlockedError, the DispatchResult.error MUST start with 'Governance preflight blocked'.
+- **Requirement ID:** REQ-316
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Mock _governance_preflight to raise _GovernanceBlockedError('denied')
+- **Expected Behavior:** summary.failed[0].error starts with 'Governance preflight blocked'
+- **Confidence:** 1.0
+
+## TEST-317. Context Injection via ESDB Record IDs Is Traceable
+- **ID:** TEST-317
+- **Title:** Context Injection via ESDB Record IDs Is Traceable
+- **Description:** TaskNode.context_in MUST contain the esdb_record_id of a completed predecessor node after _propagate_context runs. The context_in list is part of TaskNode.to_dict() and available for replay inspection.
+- **Requirement ID:** REQ-317
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** 2-node DAG; complete root with esdb_id='rec-xyz'; check child.context_in
+- **Expected Behavior:** child.context_in contains 'rec-xyz'
+- **Confidence:** 1.0
+
+## TEST-318. Completed Nodes Not Re-Executed on Retry
+- **ID:** TEST-318
+- **Title:** Completed Nodes Not Re-Executed on Retry
+- **Description:** dispatch retry must identify node_completed events from events.jsonl and refuse to retry nodes whose last event is node_completed. The retry CLI command returns an error when asked to retry a completed node.
+- **Requirement ID:** REQ-318
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** EventEmitter with node_completed; CliRunner invoke dispatch retry --node n1
+- **Expected Behavior:** CLI exits 0 but prints 'already completed'; does not start new run
+- **Confidence:** 0.9
+
+## TEST-319. ESDB dispatch_result Record Contains DAG Lineage
+- **ID:** TEST-319
+- **Title:** ESDB dispatch_result Record Contains DAG Lineage
+- **Description:** ChronoRecords written by _write_esdb_record MUST have dag_id and node_id in both evidence list and data dict.
+- **Requirement ID:** REQ-319
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** _write_esdb_record(node, run_result); inspect ChronoRecord
+- **Expected Behavior:** record.evidence contains 'dag=...' and 'node=...'; record.data has dag_id and node_id keys
+- **Confidence:** 1.0
+
+## TEST-320. Abort Signal Recorded as Aborted in Error
+- **ID:** TEST-320
+- **Title:** Abort Signal Recorded as Aborted in Error
+- **Description:** When abort_node() is called before or during node execution, the FAILED DispatchResult.error MUST contain the string 'Aborted'.
+- **Requirement ID:** REQ-320
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Pre-arm abort_node('task-main'); run dispatcher; check summary.failed
+- **Expected Behavior:** summary.failed[0].error contains 'Aborted'
+- **Confidence:** 1.0
+
 ## TEST-321. Orchestrator Is Sole Dispatch Entry Point
 - **ID:** TEST-321
 - **Title:** Orchestrator Is Sole Dispatch Entry Point

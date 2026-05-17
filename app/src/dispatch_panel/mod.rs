@@ -74,6 +74,8 @@ pub struct NodeInfo {
     pub started_at: Option<Instant>,
     pub finished_at: Option<Instant>,
     pub error: Option<String>,
+    /// Dependency edges from node_started payload — used for topological layout.
+    pub depends_on: Vec<String>,
 }
 
 impl NodeInfo {
@@ -87,6 +89,7 @@ impl NodeInfo {
             started_at: None,
             finished_at: None,
             error: None,
+            depends_on: Vec::new(),
         }
     }
 }
@@ -112,10 +115,17 @@ impl DispatchState {
                     .and_then(|v| v.as_str())
                     .unwrap_or("unknown")
                     .to_string();
+                let deps: Vec<String> = evt.payload.get("depends_on")
+                    .and_then(|v| v.as_array())
+                    .map(|arr| arr.iter()
+                        .filter_map(|s| s.as_str().map(|s| s.to_string()))
+                        .collect())
+                    .unwrap_or_default();
                 let node = self.nodes.entry(evt.node_id.clone())
                     .or_insert_with(|| NodeInfo::new(&evt.node_id, &role));
                 node.status = NodeStatus::Running;
                 node.started_at = Some(Instant::now());
+                node.depends_on = deps;
             }
             "node_completed" => {
                 if let Some(node) = self.nodes.get_mut(&evt.node_id) {
@@ -340,7 +350,35 @@ impl eframe::App for DispatchApp {
 }
 
 impl DispatchApp {
-    /// Render the SVG-style DAG using egui painter.
+    /// Compute topological level for each node (level = max(level of deps) + 1).
+    /// Root nodes (no deps, or deps not yet seen) are level 0.
+    fn compute_levels(nodes: &HashMap<String, NodeInfo>) -> HashMap<String, usize> {
+        let mut levels: HashMap<String, usize> = HashMap::new();
+        // Iteratively assign levels until stable (handles partial DAGs during live runs)
+        let mut changed = true;
+        while changed {
+            changed = false;
+            for node in nodes.values() {
+                let max_dep_level = node.depends_on.iter()
+                    .filter_map(|dep| levels.get(dep).copied())
+                    .max()
+                    .unwrap_or(0);
+                let new_level = if node.depends_on.is_empty() {
+                    0
+                } else {
+                    max_dep_level + 1
+                };
+                let entry = levels.entry(node.id.clone()).or_insert(0);
+                if *entry != new_level {
+                    *entry = new_level;
+                    changed = true;
+                }
+            }
+        }
+        levels
+    }
+
+    /// Render the DAG using egui painter — topological layout with dependency edges.
     fn render_dag(&mut self, ui: &mut egui::Ui, state: &UiState) {
         let available = ui.available_size();
         let (response, painter) =
@@ -348,43 +386,110 @@ impl DispatchApp {
 
         let node_w = 140.0_f32;
         let node_h = 40.0_f32;
-        let nodes: Vec<&NodeInfo> = state.nodes.values().collect();
-        let n = nodes.len() as f32;
-        let col_gap = 200.0_f32;
-        let row_gap = 80.0_f32;
+        let level_gap_x = 200.0_f32;  // horizontal gap between levels
+        let node_gap_y = 80.0_f32;    // vertical gap between nodes in the same level
+        let origin_x = response.rect.min.x + 20.0;
+        let origin_y = response.rect.min.y + 20.0;
 
-        // Simple layout: evenly distribute nodes left→right, top→bottom
-        let cols = (n.sqrt().ceil() as usize).max(1);
-        let mut positions: HashMap<String, Pos2> = HashMap::new();
-        for (i, node) in nodes.iter().enumerate() {
-            let col = (i % cols) as f32;
-            let row = (i / cols) as f32;
-            let x = response.rect.min.x + 20.0 + col * col_gap;
-            let y = response.rect.min.y + 20.0 + row * row_gap;
-            positions.insert(node.id.clone(), Pos2::new(x, y));
+        // Compute topological levels
+        let levels = Self::compute_levels(&state.nodes);
+
+        // Group nodes by level
+        let mut by_level: HashMap<usize, Vec<&NodeInfo>> = HashMap::new();
+        for node in state.nodes.values() {
+            let level = *levels.get(&node.id).unwrap_or(&0);
+            by_level.entry(level).or_default().push(node);
         }
 
-        // Draw nodes
-        for node in &nodes {
-            let pos = positions[&node.id];
-            let rect = Rect::from_min_size(pos, Vec2::new(node_w, node_h));
-            let color = node.status.color();
-            painter.rect_filled(rect, 6.0, color);
-            painter.rect_stroke(rect, 6.0, Stroke::new(1.5, Color32::WHITE));
-            painter.text(
-                rect.center(),
-                egui::Align2::CENTER_CENTER,
-                &node.id,
-                egui::FontId::proportional(12.0),
-                Color32::WHITE,
-            );
+        // Sort nodes within each level deterministically
+        for nodes in by_level.values_mut() {
+            nodes.sort_by_key(|n| n.id.as_str());
+        }
 
-            // Click to open detail panel
-            if response.clicked() {
-                let pointer = ui.ctx().pointer_latest_pos().unwrap_or_default();
-                if rect.contains(pointer) {
-                    self.selected_node_id = Some(node.id.clone());
-                    self.side_panel_open = true;
+        // Assign positions: x by level, y evenly spread within level
+        let mut positions: HashMap<String, Pos2> = HashMap::new();
+        let max_level = by_level.keys().max().copied().unwrap_or(0);
+        for level in 0..=max_level {
+            let nodes_at_level = by_level.get(&level).map(|v| v.as_slice()).unwrap_or(&[]);
+            let n = nodes_at_level.len();
+            let total_height = (n as f32) * (node_h + node_gap_y) - node_gap_y;
+            let start_y = origin_y + (available.y - total_height).max(0.0) / 2.0;
+            for (i, node) in nodes_at_level.iter().enumerate() {
+                let x = origin_x + (level as f32) * level_gap_x;
+                let y = start_y + (i as f32) * (node_h + node_gap_y);
+                positions.insert(node.id.clone(), Pos2::new(x, y));
+            }
+        }
+
+        // Draw dependency edges FIRST (behind nodes)
+        let edge_color = Color32::from_rgba_premultiplied(180, 180, 180, 140);
+        for node in state.nodes.values() {
+            if let Some(child_pos) = positions.get(&node.id) {
+                let child_left = Pos2::new(child_pos.x, child_pos.y + node_h / 2.0);
+                for dep_id in &node.depends_on {
+                    if let Some(dep_pos) = positions.get(dep_id) {
+                        // Arrow from right edge of parent to left edge of child
+                        let parent_right = Pos2::new(
+                            dep_pos.x + node_w,
+                            dep_pos.y + node_h / 2.0,
+                        );
+                        // Bezier control points for a smooth curve
+                        let mid_x = (parent_right.x + child_left.x) / 2.0;
+                        let cp1 = Pos2::new(mid_x, parent_right.y);
+                        let cp2 = Pos2::new(mid_x, child_left.y);
+                        // Approximate bezier with line segments
+                        let steps = 12;
+                        let mut pts: Vec<Pos2> = Vec::with_capacity(steps + 1);
+                        for k in 0..=steps {
+                            let t = k as f32 / steps as f32;
+                            let u = 1.0 - t;
+                            let px = u*u*u*parent_right.x + 3.0*u*u*t*cp1.x
+                                   + 3.0*u*t*t*cp2.x + t*t*t*child_left.x;
+                            let py = u*u*u*parent_right.y + 3.0*u*u*t*cp1.y
+                                   + 3.0*u*t*t*cp2.y + t*t*t*child_left.y;
+                            pts.push(Pos2::new(px, py));
+                        }
+                        for w in pts.windows(2) {
+                            painter.line_segment([w[0], w[1]], Stroke::new(1.5, edge_color));
+                        }
+                        // Arrowhead at child_left
+                        let arrow_size = 6.0;
+                        let tip = child_left;
+                        painter.line_segment(
+                            [tip, Pos2::new(tip.x - arrow_size, tip.y - arrow_size / 2.0)],
+                            Stroke::new(1.5, edge_color),
+                        );
+                        painter.line_segment(
+                            [tip, Pos2::new(tip.x - arrow_size, tip.y + arrow_size / 2.0)],
+                            Stroke::new(1.5, edge_color),
+                        );
+                    }
+                }
+            }
+        }
+
+        // Draw nodes on top
+        for node in state.nodes.values() {
+            if let Some(pos) = positions.get(&node.id) {
+                let rect = Rect::from_min_size(*pos, Vec2::new(node_w, node_h));
+                let color = node.status.color();
+                painter.rect_filled(rect, 6.0, color);
+                painter.rect_stroke(rect, 6.0, Stroke::new(1.5, Color32::WHITE));
+                painter.text(
+                    rect.center(),
+                    egui::Align2::CENTER_CENTER,
+                    &node.id,
+                    egui::FontId::proportional(12.0),
+                    Color32::WHITE,
+                );
+
+                // Click to open detail panel
+                if response.clicked() {
+                    let pointer = ui.ctx().pointer_latest_pos().unwrap_or_default();
+                    if rect.contains(pointer) {
+                        self.selected_node_id = Some(node.id.clone());
+                        self.side_panel_open = true;
+                    }
                 }
             }
         }

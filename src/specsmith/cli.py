@@ -8854,21 +8854,80 @@ def dispatch_run_cmd(
     endpoint: str,
     model: str,
 ) -> None:
-    """Run TASK through the multi-agent DAG dispatcher."""
-    import json as _json
+    """Run TASK through the multi-agent DAG dispatcher.
 
+    When AG2 is installed, uses Orchestrator.run_dispatch() which calls the
+    PlannerAgent to decompose the task into a multi-node DAG automatically.
+    Falls back to single-node DAG when AG2 is not available.
+    """
+    import json as _json
+    import threading
+    import queue as _queue
+
+    root = Path(project_dir).resolve()
+
+    if no_dag:
+        console.print("[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run).")
+        raise SystemExit(0)
+
+    # ── Path A: AG2 available — use Orchestrator for LLM-driven decomposition ─
+    try:
+        from specsmith.agent.orchestrator import Orchestrator
+        from specsmith.agent.dispatch import EventEmitter
+
+        orch = Orchestrator(endpoint=endpoint, model=model)
+        if as_json:
+            # Wire up live event streaming via EventEmitter SSE queue
+            from specsmith.agent.dispatch import TaskDAGBuilder
+
+            dag = TaskDAGBuilder.build(task, planner_output=orch._call_planner(task))
+            emitter = EventEmitter(root, dag.dag_id)
+            q = emitter.subscribe()
+            done_flag = threading.Event()
+
+            def _run_orch_json() -> None:
+                from specsmith.agent.dispatch import AgentPool, AgentDispatcher
+                pool = AgentPool(orch.llm_config, max_workers=max_workers)
+                dispatcher = AgentDispatcher(
+                    dag, pool, emitter, project_root=root, max_workers=max_workers
+                )
+                dispatcher.run()
+                done_flag.set()
+
+            t = threading.Thread(target=_run_orch_json, daemon=True)
+            t.start()
+            while not done_flag.is_set() or not q.empty():
+                try:
+                    evt = q.get(timeout=0.2)
+                    if evt is not None:
+                        click.echo(_json.dumps(evt.to_dict()))
+                except _queue.Empty:
+                    continue
+        else:
+            console.print(f"[bold]dispatch run[/bold] (AG2 + PlannerAgent)  task={task!r}\n")
+            summary = orch.run_dispatch(task, max_workers=max_workers, project_root=str(root))
+            console.print(
+                f"\n[bold green]Done.[/bold green]  "
+                f"{len(summary.completed)} completed  "
+                f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+            )
+            console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
+            console.print(f"  dag={summary.dag_id}")
+        return
+    except ImportError:
+        # AG2 not installed — fall through to manual path
+        pass
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[yellow]Orchestrator unavailable ({exc}), using manual dispatch.[/yellow]")
+
+    # ── Path B: AG2 not available — manual single-node DAG ───────────────
     from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
     from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
 
-    root = Path(project_dir).resolve()
     llm_config = {
         "config_list": [{"model": model, "api_key": "specsmith-local-key", "base_url": endpoint}],
         "temperature": 0.0,
     }
-
-    if no_dag:
-        console.print("[yellow]--no-dag[/yellow]: falling back to flat GroupChat (not implemented in CLI; use specsmith run).")
-        raise SystemExit(0)
 
     try:
         dag = TaskDAGBuilder.build(task)
@@ -8881,8 +8940,6 @@ def dispatch_run_cmd(
     dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
 
     if as_json:
-        # Stream events as JSONL to stdout
-        import threading
         q = emitter.subscribe()
         done_flag = threading.Event()
 
@@ -8892,19 +8949,20 @@ def dispatch_run_cmd(
 
         t = threading.Thread(target=_run, daemon=True)
         t.start()
-        import queue
         while not done_flag.is_set() or not q.empty():
             try:
                 evt = q.get(timeout=0.2)
                 if evt is not None:
                     click.echo(_json.dumps(evt.to_dict()))
-            except queue.Empty:
+            except _queue.Empty:
                 continue
     else:
         console.print(f"[bold]dispatch run[/bold]  dag=[cyan]{dag.dag_id}[/cyan]  task={task!r}\n")
         summary = dispatcher.run()
-        console.print(f"\n[bold green]Done.[/bold green]  {len(summary.completed)} completed  "
-                      f"{len(summary.failed)} failed  {len(summary.blocked)} blocked")
+        console.print(
+            f"\n[bold green]Done.[/bold green]  {len(summary.completed)} completed  "
+            f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+        )
         console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
         console.print(f"  events → .specsmith/dispatch/{dag.dag_id}/events.jsonl")
 

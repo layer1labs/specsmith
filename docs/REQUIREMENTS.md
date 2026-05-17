@@ -2161,6 +2161,70 @@
 - **Source:** ARCHITECTURE.md §Context Orchestrator
 - **Test_Ids:** ['TEST-312']
 
+## REQ-313. Dispatch Run Audit Entry in LEDGER.md
+- **ID:** REQ-313
+- **Title:** Dispatch Run Audit Entry in LEDGER.md
+- **Description:** Every completed `specsmith dispatch run` MUST append a governance ledger entry to LEDGER.md and `.specsmith/ledger.jsonl` recording the dag_id, task description, node count, completed count, failed count, and equilibrium result. This satisfies EU AI Act Art. 12 (record-keeping for multi-agent AI actions).
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-313']
+
+## REQ-314. Worker Identity Disclosure in Dispatch Events
+- **ID:** REQ-314
+- **Title:** Worker Identity Disclosure in Dispatch Events
+- **Description:** Each `node_started` DispatchEvent MUST include the worker role in its payload so the audit trail identifies which agent type executed each node. The role MUST be drawn from ROLE_TOOLS and persisted to events.jsonl. This implements EU AI Act Art. 13 (transparency) for dispatched agent actions.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-314']
+
+## REQ-315. Dispatch Session Traceable to Orchestrator Entry
+- **ID:** REQ-315
+- **Title:** Dispatch Session Traceable to Orchestrator Entry
+- **Description:** Each dispatch run dag_id MUST be traceable back to its originating Orchestrator call (REQ-321). The run() method MUST return a DispatchSummary that includes dag_id, and the CLI MUST display it on completion so the operator can correlate events.jsonl records with specific CLI invocations.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-315']
+
+## REQ-316. Governance Preflight Outcome Recorded Per Node
+- **ID:** REQ-316
+- **Title:** Governance Preflight Outcome Recorded Per Node
+- **Description:** When a node governance preflight returns a non-accepted decision, the FAILED DispatchResult MUST include the governance instruction in its error field. This creates a per-node audit trail of governance decisions aligned with EU AI Act Art. 14 (human oversight) and NIST AI RMF GOVERN.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-316']
+
+## REQ-317. Context Injection Audit via ESDB Record IDs
+- **ID:** REQ-317
+- **Title:** Context Injection Audit via ESDB Record IDs
+- **Description:** When predecessor ESDB records are injected into a successor node's context, the ESDB record IDs (context_in list) MUST be included in the node's TaskNode data structure and available for replay from events.jsonl. This provides a traceable chain of information flow between agents.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-317']
+
+## REQ-318. Dispatch Run Resumability Must Preserve Completed Node Results
+- **ID:** REQ-318
+- **Title:** Dispatch Run Resumability Must Preserve Completed Node Results
+- **Description:** The events.jsonl checkpoint for a DAG run MUST contain enough information to determine which nodes completed and which failed, so that a retry operation never re-executes completed nodes. COMPLETED nodes MUST NOT be re-executed when dispatch retry is invoked (REQ-330).
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-318']
+
+## REQ-319. ESDB dispatch_result Records Must Include DAG Lineage
+- **ID:** REQ-319
+- **Title:** ESDB dispatch_result Records Must Include DAG Lineage
+- **Description:** ChronoRecords written by AgentDispatcher for completed nodes (kind=dispatch_result) MUST include dag_id and node_id in their evidence list and data dict. This enables ESDB-level queries to trace any stored result back to the originating dispatch run and node.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-319']
+
+## REQ-320. Abort Signal Must Be Recorded in Node Failure Error
+- **ID:** REQ-320
+- **Title:** Abort Signal Must Be Recorded in Node Failure Error
+- **Description:** When a node is aborted via abort_node() or POST /api/dispatch/abort, the resulting FAILED DispatchResult MUST include "Aborted" in its error string so the operator and audit log can distinguish intentional aborts from unintended failures. This satisfies EU AI Act Art. 14 §4 (ability to intervene must be traceable).
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+- **Test_Ids:** ['TEST-320']
+
 ## REQ-321. Orchestrator Is Sole Dispatch Entry Point
 - **ID:** REQ-321
 - **Title:** Orchestrator Is Sole Dispatch Entry Point

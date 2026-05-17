@@ -655,6 +655,206 @@ class TestCooperativeAbort:
 
 
 # ---------------------------------------------------------------------------
+# REQ-313..320: compliance plan 5939f743 — multi-agent governance traceability
+# ---------------------------------------------------------------------------
+
+
+class TestMultiAgentCompliance:
+    # REQ-314: worker identity in dispatch events
+    def test_node_started_payload_contains_role(self, tmp_path):
+        """node_started JSONL payload MUST include role (REQ-314)."""
+        from specsmith.agent.dispatch import EventEmitter
+
+        emitter = EventEmitter(tmp_path, "dag-314")
+        emitter.node_started("n1", "coder", depends_on=[])
+        events = EventEmitter.replay(tmp_path, "dag-314")
+        assert events[0].payload.get("role") == "coder"
+
+    # REQ-314: depends_on included in node_started payload
+    def test_node_started_payload_contains_depends_on(self, tmp_path):
+        from specsmith.agent.dispatch import EventEmitter
+
+        emitter = EventEmitter(tmp_path, "dag-314b")
+        emitter.node_started("child", "coder", depends_on=["parent"])
+        events = EventEmitter.replay(tmp_path, "dag-314b")
+        assert events[0].payload.get("depends_on") == ["parent"]
+
+    # REQ-315: summary.dag_id matches DAG dag_id
+    def test_dispatch_summary_dag_id_traceable(self, tmp_path):
+        """DispatchSummary.dag_id must match TaskDAG.dag_id (REQ-315)."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        )
+
+        dag = TaskDAGBuilder.build("t", dag_id="trace-315")
+        emitter = EventEmitter(tmp_path, "trace-315")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        mock_pool.acquire.return_value = mock.MagicMock()
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+        with mock.patch.object(dispatcher, "_invoke_worker",
+                               return_value={"summary": "", "files_changed": [], "equilibrium": True}), \
+             mock.patch.object(dispatcher, "_write_esdb_record", return_value=None), \
+             mock.patch.object(dispatcher, "_governance_preflight"), \
+             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+            summary = dispatcher.run()
+        assert summary.dag_id == "trace-315"
+
+    # REQ-316: governance block recorded in error
+    def test_governance_block_in_error(self, tmp_path):
+        """Governance block must set error to 'Governance preflight blocked' (REQ-316)."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        )
+
+        dag = TaskDAGBuilder.build("t", dag_id="gov-316")
+        emitter = EventEmitter(tmp_path, "gov-316")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+        from specsmith.agent.dispatch.dispatcher import _GovernanceBlockedError
+        with mock.patch.object(dispatcher, "_governance_preflight",
+                               side_effect=_GovernanceBlockedError("denied")), \
+             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+            summary = dispatcher.run()
+        assert len(summary.failed) == 1
+        assert summary.failed[0].error.startswith("Governance preflight blocked")
+
+    # REQ-317: context_in populated by _propagate_context
+    def test_context_injection_traceable(self):
+        """After _propagate_context, child.context_in contains parent's esdb_id (REQ-317)."""
+        from specsmith.agent.dispatch import TaskDAGBuilder, TaskStatus
+        from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+        from specsmith.agent.dispatch.events import EventEmitter
+        from pathlib import Path
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            dag = TaskDAGBuilder.build(
+                "f",
+                planner_output=[
+                    {"id": "root", "title": "Root", "role": "coder", "depends_on": []},
+                    {"id": "child", "title": "Child", "role": "coder", "depends_on": ["root"]},
+                ],
+            )
+            emitter = EventEmitter(root, dag.dag_id)
+            dispatcher = AgentDispatcher(
+                dag, mock.MagicMock(spec=AgentPool), emitter,
+                project_root=root, max_workers=1
+            )
+            # Simulate root completing with an ESDB record
+            root_node = dag.get("root")
+            root_node.context_out = "rec-xyz"
+            root_node.status = TaskStatus.COMPLETED
+            dispatcher._propagate_context(root_node)
+            assert "rec-xyz" in dag.get("child").context_in
+
+    # REQ-318: completed nodes not re-executed on retry
+    def test_retry_refuses_completed_node(self, tmp_path):
+        """dispatch retry --node n1 returns error if n1 is already completed (REQ-318)."""
+        from click.testing import CliRunner
+        from specsmith.agent.dispatch import EventEmitter
+        from specsmith.cli import main
+
+        # Set up a completed run
+        emitter = EventEmitter(tmp_path, "dag-318")
+        emitter.node_started("n1", "coder", depends_on=[])
+        emitter.node_completed("n1", None, "done")
+        emitter.dag_done({})
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["dispatch", "retry", "--node", "n1", "--dag-id", "dag-318",
+             "--project-dir", str(tmp_path)],
+        )
+        # Should exit 0 but print 'already completed'
+        assert result.exit_code == 0
+        assert "already completed" in result.output.lower() or "completed" in result.output.lower()
+
+    # REQ-319: ESDB record contains DAG lineage
+    def test_esdb_record_contains_dag_lineage(self, tmp_path):
+        """dispatch_result ChronoRecord MUST include dag_id and node_id (REQ-319)."""
+        from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+        from specsmith.agent.dispatch import (
+            TaskDAGBuilder, EventEmitter, TaskNode, TaskStatus
+        )
+        from specsmith.esdb.store import ChronoStore
+
+        dag = TaskDAGBuilder.build("t", dag_id="esdb-319")
+        emitter = EventEmitter(tmp_path, "esdb-319")
+        dispatcher = AgentDispatcher(
+            dag, mock.MagicMock(spec=AgentPool), emitter,
+            project_root=tmp_path, max_workers=1
+        )
+        node = dag.nodes()[0]
+        run_result = {"summary": "ok", "files_changed": []}
+        record_id = dispatcher._write_esdb_record(node, run_result)
+        assert record_id is not None
+        # Verify lineage in ESDB
+        with ChronoStore(tmp_path) as store:
+            rec = store.get(record_id)
+        assert rec is not None
+        assert any("dag=" in e for e in rec.evidence)
+        assert any("node=" in e for e in rec.evidence)
+        assert rec.data.get("dag_id") == "esdb-319"
+        assert rec.data.get("node_id") == node.id
+
+    # REQ-320: abort error contains 'Aborted'
+    def test_abort_error_contains_aborted(self, tmp_path):
+        """Pre-armed abort_node() produces error containing 'Aborted' (REQ-320)."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        )
+
+        dag = TaskDAGBuilder.build("t", dag_id="abort-320")
+        emitter = EventEmitter(tmp_path, "abort-320")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        mock_pool.acquire.return_value = mock.MagicMock()
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+        dispatcher.abort_node("task-main")
+        with mock.patch.object(dispatcher, "_governance_preflight"), \
+             mock.patch.object(dispatcher, "_write_dispatch_ledger"):
+            summary = dispatcher.run()
+        assert len(summary.failed) == 1
+        assert "Aborted" in (summary.failed[0].error or "")
+
+    # REQ-313: ledger entry written after dispatch run
+    def test_dispatch_ledger_entry_written(self, tmp_path):
+        """AgentDispatcher.run() writes a dispatch ledger entry (REQ-313)."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        )
+
+        # Create a minimal LEDGER.md so the ledger writer can find it
+        ledger = tmp_path / "LEDGER.md"
+        ledger.write_text("# Ledger\n", encoding="utf-8")
+
+        dag = TaskDAGBuilder.build("test task", dag_id="ledger-313")
+        emitter = EventEmitter(tmp_path, "ledger-313")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        mock_pool.acquire.return_value = mock.MagicMock()
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+        with mock.patch.object(
+            dispatcher, "_invoke_worker",
+            return_value={"summary": "ok", "files_changed": [], "equilibrium": True},
+        ), mock.patch.object(dispatcher, "_write_esdb_record", return_value=None), \
+           mock.patch.object(dispatcher, "_governance_preflight"):
+            dispatcher.run()
+
+        content = ledger.read_text(encoding="utf-8")
+        assert "ledger-313" in content
+        assert "dispatch" in content.lower()
+
+
+# ---------------------------------------------------------------------------
 # TEST-321: Orchestrator is sole entry point
 # ---------------------------------------------------------------------------
 

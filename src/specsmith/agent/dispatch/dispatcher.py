@@ -133,7 +133,7 @@ class AgentDispatcher:
                     if len(futures) >= self._max_workers:
                         break
                     node.status = TaskStatus.RUNNING
-                    self._emitter.node_started(node.id, node.role)
+                    self._emitter.node_started(node.id, node.role, node.depends_on)
                     future = ex.submit(self._run_node, node)
                     futures[future] = node
 
@@ -192,7 +192,45 @@ class AgentDispatcher:
             summary.confidence = 1.0
 
         self._emitter.dag_done(summary.to_dict())
+
+        # REQ-313: write dispatch run ledger entry for EU AI Act Art. 12
+        self._write_dispatch_ledger(summary)
+
         return summary
+
+    def _write_dispatch_ledger(self, summary: DispatchSummary) -> None:
+        """Append a governance ledger entry for this dispatch run (REQ-313).
+
+        Records dag_id, node counts, and equilibrium result in LEDGER.md
+        so every multi-agent dispatch run is traceable in the audit chain.
+        Best-effort — never blocks or raises.
+        """
+        try:
+            from specsmith.ledger import add_entry
+
+            ledger_path = self._project_root / "LEDGER.md"
+            if not ledger_path.exists():
+                # Also try docs/LEDGER.md
+                alt = self._project_root / "docs" / "LEDGER.md"
+                if not alt.exists():
+                    return
+            description = (
+                f"specsmith dispatch run dag_id={summary.dag_id} "
+                f"completed={len(summary.completed)} "
+                f"failed={len(summary.failed)} "
+                f"blocked={len(summary.blocked)} "
+                f"equilibrium={summary.equilibrium} "
+                f"confidence={summary.confidence:.2f}"
+            )
+            add_entry(
+                self._project_root,
+                description=description,
+                entry_type="dispatch",
+                author="specsmith-dispatcher",
+                reqs="REQ-313,REQ-321",
+            )
+        except Exception:  # noqa: BLE001 — ledger writes are best-effort
+            pass
 
     # -----------------------------------------------------------------------
     # Node execution
@@ -246,8 +284,11 @@ class AgentDispatcher:
             context_prompt = self._build_context_prompt(node)
             full_task = f"{context_prompt}\n\n{node.title}" if context_prompt else node.title
 
-            # Execute via the worker agent (AG2 initiate_chat)
-            run_result = self._invoke_worker(worker, full_task)
+            # Execute via the worker agent in a monitored sub-thread so that
+            # abort_node() can interrupt the LLM call at the next 0.5 s poll
+            # boundary.  The sub-thread runs to completion in the background
+            # (we cannot kill it) but _run_node returns failure immediately.
+            run_result = self._invoke_worker_monitored(worker, full_task, abort_flag, node.id)
 
             # Abort check 4: between invoke and ESDB write
             if abort_flag.is_set():
@@ -347,6 +388,45 @@ class AgentDispatcher:
                 "files_changed": [],
                 "equilibrium": False,
             }
+
+    def _invoke_worker_monitored(
+        self,
+        worker: Any,
+        task: str,
+        abort_flag: threading.Event,
+        node_id: str,
+    ) -> dict[str, Any]:
+        """Run ``_invoke_worker`` in a background thread while polling *abort_flag*.
+
+        Checks ``abort_flag`` every 0.5 s.  If abort is requested before the
+        LLM call completes, raises :class:`_NodeAbortedError` immediately.
+        The background thread runs to natural completion (it cannot be killed)
+        but its result is discarded.
+        """
+        result_holder: list[dict[str, Any]] = []
+        error_holder: list[BaseException] = []
+
+        def _run() -> None:
+            try:
+                result_holder.append(self._invoke_worker(worker, task))
+            except BaseException as exc:  # noqa: BLE001
+                error_holder.append(exc)
+
+        t = threading.Thread(target=_run, daemon=True, name=f"invoke-{node_id}")
+        t.start()
+
+        while t.is_alive():
+            if abort_flag.is_set():
+                raise _NodeAbortedError(
+                    f"node {node_id!r} abort signalled during LLM invocation"
+                )
+            t.join(timeout=0.5)  # 500 ms polling interval
+
+        if error_holder:
+            raise error_holder[0]  # type: ignore[misc]
+        return result_holder[0] if result_holder else {
+            "summary": "", "files_changed": [], "equilibrium": False
+        }
 
     def _write_esdb_record(self, node: TaskNode, run_result: dict[str, Any]) -> str | None:
         """Write a ChronoRecord to ESDB and return its ID (REQ-327)."""

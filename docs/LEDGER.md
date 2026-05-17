@@ -288,3 +288,9 @@
 - **Type**: fix
 - **Status**: complete
 - **Chain hash**: `9a0d63f844078d5a...`
+
+## 2026-05-17T16:31 — Resolved all deferred items: (1) abort mid-LLM-call via _invoke_worker_monitored sub-thread with 0.5s abort polling; (2) CLI dispatch run uses Orchestrator._call_planner when AG2 available (Path A/B fallback); (3) Kairos topological DAG layout with depends_on payload, compute_levels(), bezier edge drawing; (4) REQ-313..320 compliance plan 5939f743 implemented and tested.
+- **Author**: oz-agent
+- **Type**: feature
+- **Status**: complete
+- **Chain hash**: `f91cae2487897572...`

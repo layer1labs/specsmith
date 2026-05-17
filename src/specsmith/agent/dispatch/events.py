@@ -111,13 +111,19 @@ class EventEmitter:
                 except queue.Full:
                     pass  # Slow consumer — drop rather than block
 
-    def node_started(self, node_id: str, role: str) -> None:
+    def node_started(
+        self,
+        node_id: str,
+        role: str,
+        depends_on: list[str] | None = None,
+    ) -> None:
+        """Emit node_started.  *depends_on* is included so Kairos can draw edges."""
         self.emit(
             DispatchEvent(
                 dag_id=self._dag_id,
                 event_type=EVENT_NODE_STARTED,
                 node_id=node_id,
-                payload={"role": role},
+                payload={"role": role, "depends_on": depends_on or []},
             )
         )
 

@@ -1,0 +1,76 @@
+# specsmith requirements — multi-agent governance compliance (plan 5939f743)
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+#
+# Schema: id (REQ-NNN), title, description, source, status
+# Required fields: id, title, status
+#
+# These 8 requirements implement EU AI Act Art. 12 (logging) and NIST AI RMF
+# GOVERN obligations that arise specifically from dispatched multi-agent work.
+# They were reserved as compliance plan 5939f743 alongside the dispatch feature.
+- id: REQ-313
+  title: Dispatch Run Audit Entry in LEDGER.md
+  description: Every completed `specsmith dispatch run` MUST append a governance
+    ledger entry to LEDGER.md and `.specsmith/ledger.jsonl` recording the dag_id,
+    task description, node count, completed count, failed count, and equilibrium
+    result. This satisfies EU AI Act Art. 12 (record-keeping for multi-agent
+    AI actions).
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-314
+  title: Worker Identity Disclosure in Dispatch Events
+  description: Each `node_started` DispatchEvent MUST include the worker role in
+    its payload so the audit trail identifies which agent type executed each node.
+    The role MUST be drawn from ROLE_TOOLS and persisted to events.jsonl. This
+    implements EU AI Act Art. 13 (transparency) for dispatched agent actions.
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-315
+  title: Dispatch Session Traceable to Orchestrator Entry
+  description: Each dispatch run dag_id MUST be traceable back to its originating
+    Orchestrator call (REQ-321). The run() method MUST return a DispatchSummary
+    that includes dag_id, and the CLI MUST display it on completion so the operator
+    can correlate events.jsonl records with specific CLI invocations.
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-316
+  title: Governance Preflight Outcome Recorded Per Node
+  description: When a node governance preflight returns a non-accepted decision,
+    the FAILED DispatchResult MUST include the governance instruction in its error
+    field. This creates a per-node audit trail of governance decisions aligned
+    with EU AI Act Art. 14 (human oversight) and NIST AI RMF GOVERN.
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-317
+  title: Context Injection Audit via ESDB Record IDs
+  description: When predecessor ESDB records are injected into a successor node's
+    context, the ESDB record IDs (context_in list) MUST be included in the
+    node's TaskNode data structure and available for replay from events.jsonl.
+    This provides a traceable chain of information flow between agents.
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-318
+  title: Dispatch Run Resumability Must Preserve Completed Node Results
+  description: The events.jsonl checkpoint for a DAG run MUST contain enough
+    information to determine which nodes completed and which failed, so that a
+    retry operation never re-executes completed nodes. COMPLETED nodes MUST NOT
+    be re-executed when dispatch retry is invoked (REQ-330).
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-319
+  title: ESDB dispatch_result Records Must Include DAG Lineage
+  description: ChronoRecords written by AgentDispatcher for completed nodes
+    (kind=dispatch_result) MUST include dag_id and node_id in their evidence
+    list and data dict. This enables ESDB-level queries to trace any stored
+    result back to the originating dispatch run and node.
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented
+- id: REQ-320
+  title: Abort Signal Must Be Recorded in Node Failure Error
+  description: When a node is aborted via abort_node() or POST /api/dispatch/abort,
+    the resulting FAILED DispatchResult MUST include "Aborted" in its error string
+    so the operator and audit log can distinguish intentional aborts from
+    unintended failures. This satisfies EU AI Act Art. 14 §4 (ability to
+    intervene must be traceable).
+  source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
+  status: implemented

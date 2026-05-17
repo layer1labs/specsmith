@@ -1,0 +1,92 @@
+# specsmith test cases — multi-agent governance compliance (plan 5939f743)
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-313
+  title: Dispatch Run Appends Ledger Entry
+  description: After dispatching a single-node DAG to completion via AgentDispatcher,
+    a governance ledger entry MUST exist in LEDGER.md containing dag_id, task,
+    node counts, and equilibrium result.
+  requirement_id: REQ-313
+  type: integration
+  verification_method: pytest
+  input: AgentDispatcher.run() on single-node DAG; inspect LEDGER.md
+  expected_behavior: LEDGER.md contains dispatch ledger entry with dag_id and
+    equilibrium=True
+  confidence: 0.9
+- id: TEST-314
+  title: node_started Payload Contains Worker Role
+  description: EventEmitter.node_started() MUST persist a role key in the payload
+    of the node_started JSONL event. Replay must return the same role.
+  requirement_id: REQ-314
+  type: unit
+  verification_method: pytest
+  input: EventEmitter(tmp_path, 'dag'); node_started('n1', 'coder'); replay()
+  expected_behavior: Replayed node_started event has payload.role == 'coder'
+  confidence: 1.0
+- id: TEST-315
+  title: DispatchSummary Contains dag_id for Traceability
+  description: DispatchSummary.dag_id MUST match the TaskDAG.dag_id used to
+    create the dispatcher. CLI output MUST display the dag_id on completion.
+  requirement_id: REQ-315
+  type: unit
+  verification_method: pytest
+  input: TaskDAGBuilder.build('t', dag_id='trace-001'); run; summary.dag_id
+  expected_behavior: summary.dag_id == 'trace-001'
+  confidence: 1.0
+- id: TEST-316
+  title: Governance Block Recorded in Node Error
+  description: When _governance_preflight raises _GovernanceBlockedError, the
+    DispatchResult.error MUST start with 'Governance preflight blocked'.
+  requirement_id: REQ-316
+  type: unit
+  verification_method: pytest
+  input: Mock _governance_preflight to raise _GovernanceBlockedError('denied')
+  expected_behavior: summary.failed[0].error starts with 'Governance preflight blocked'
+  confidence: 1.0
+- id: TEST-317
+  title: Context Injection via ESDB Record IDs Is Traceable
+  description: TaskNode.context_in MUST contain the esdb_record_id of a completed
+    predecessor node after _propagate_context runs. The context_in list is
+    part of TaskNode.to_dict() and available for replay inspection.
+  requirement_id: REQ-317
+  type: unit
+  verification_method: pytest
+  input: 2-node DAG; complete root with esdb_id='rec-xyz'; check child.context_in
+  expected_behavior: child.context_in contains 'rec-xyz'
+  confidence: 1.0
+- id: TEST-318
+  title: Completed Nodes Not Re-Executed on Retry
+  description: dispatch retry must identify node_completed events from events.jsonl
+    and refuse to retry nodes whose last event is node_completed. The retry CLI
+    command returns an error when asked to retry a completed node.
+  requirement_id: REQ-318
+  type: cli
+  verification_method: pytest
+  input: EventEmitter with node_completed; CliRunner invoke dispatch retry --node n1
+  expected_behavior: CLI exits 0 but prints 'already completed'; does not start new run
+  confidence: 0.9
+- id: TEST-319
+  title: ESDB dispatch_result Record Contains DAG Lineage
+  description: ChronoRecords written by _write_esdb_record MUST have dag_id and
+    node_id in both evidence list and data dict.
+  requirement_id: REQ-319
+  type: unit
+  verification_method: pytest
+  input: _write_esdb_record(node, run_result); inspect ChronoRecord
+  expected_behavior: record.evidence contains 'dag=...' and 'node=...';
+    record.data has dag_id and node_id keys
+  confidence: 1.0
+- id: TEST-320
+  title: Abort Signal Recorded as Aborted in Error
+  description: When abort_node() is called before or during node execution,
+    the FAILED DispatchResult.error MUST contain the string 'Aborted'.
+  requirement_id: REQ-320
+  type: unit
+  verification_method: pytest
+  input: Pre-arm abort_node('task-main'); run dispatcher; check summary.failed
+  expected_behavior: summary.failed[0].error contains 'Aborted'
+  confidence: 1.0
