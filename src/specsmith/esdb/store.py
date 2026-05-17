@@ -395,11 +395,35 @@ class ChronoStore:
     # Migration from flat JSON
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _governance_to_esdb_status(governance_status: str) -> str:
+        """Map a governance lifecycle status to ESDB record status.
+
+        Governance statuses (defined/implemented/planned/partial) describe
+        where a requirement sits in the development lifecycle.  ESDB statuses
+        (active/deprecated/tombstone) describe whether the record is live in
+        the audit trail.  They are DIFFERENT concepts and must not be conflated.
+
+        Mapping:
+          defined, planned, partial, implemented, accepted, verified → active
+          deprecated → deprecated
+          <anything else> → active  (safe default: don't hide unknown statuses)
+        """
+        s = (governance_status or "").lower().strip()
+        if "deprecat" in s:
+            return "deprecated"
+        return "active"  # all other governance statuses are live records
+
     def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int]:
         """Import requirements.json and testcases.json into the WAL.
 
         Records are tagged with source_type='observed' to satisfy H19.
-        Existing records are NOT overwritten (idempotent by record ID).
+        Existing records are updated (upsert semantics — idempotent by ID).
+
+        Key invariant: governance ``status`` (defined/implemented/…) is mapped
+        to ESDB ``status`` (active/deprecated) — they are different concepts.
+        The ESDB status tracks whether the record is live in the audit trail,
+        NOT where it sits in the governance lifecycle.
 
         Returns:
             {'requirements': N, 'testcases': N, 'skipped': N}
@@ -428,7 +452,17 @@ class ChronoStore:
                 if not rec_id:
                     continue
 
-                if rec_id in self._state:
+                # Map governance status → ESDB status (different concepts)
+                gov_status = item.get("status", "active")
+                esdb_status = self._governance_to_esdb_status(gov_status)
+
+                # Check if record already exists with same content (skip if identical)
+                existing = self._state.get(rec_id)
+                if (
+                    existing is not None
+                    and existing.label == item.get("title", "")
+                    and existing.status == esdb_status
+                ):
                     counts["skipped"] += 1
                     continue
 
@@ -436,14 +470,14 @@ class ChronoStore:
                     id=rec_id,
                     kind=kind,
                     label=item.get("title", ""),
-                    status=item.get("status", "active"),
+                    status=esdb_status,  # ESDB lifecycle, not governance lifecycle
                     confidence=float(item.get("confidence", 0.7)),
                     source_type="observed",  # H19: provenance tagged
                     evidence=[f"migrated from {filename}"],  # H20
                     data=item,
                 )
                 self.upsert(record)
-                counts[filename.split(".")[0]] += 1
+                counts[kind + "s"] = counts.get(kind + "s", 0) + 1
 
         return counts
 
