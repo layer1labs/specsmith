@@ -9459,8 +9459,15 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
     "--bucket",
     default="reasoning",
     type=click.Choice(
-        ["reasoning", "coding", "conversational", "requirements",
-         "architecture", "debugging", "longform"]
+        [
+            "reasoning",
+            "coding",
+            "conversational",
+            "requirements",
+            "architecture",
+            "debugging",
+            "longform",
+        ]
     ),
     show_default=True,
 )
