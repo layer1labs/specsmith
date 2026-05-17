@@ -36,7 +36,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Domain taxonomy
 # ---------------------------------------------------------------------------
@@ -111,16 +110,16 @@ _CATALOG: list[SkillEntry] | None = None
 def _build_catalog() -> list[SkillEntry]:
     """Import every domain module and concatenate their SKILLS lists."""
     from specsmith.skills import (  # noqa: PLC0415
-        governance,
+        cloud,
+        corporate,
+        cross_platform,
+        devops,
         embedded,
+        governance,
         hardware,
         mobile,
-        cloud,
-        devops,
-        ssh,
-        cross_platform,
         productivity,
-        corporate,
+        ssh,
     )
     return (
         governance.SKILLS
@@ -239,7 +238,7 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
 # Modules that do ``from specsmith.skills import CATALOG`` get this list.
 # We populate it lazily on first module access via __getattr__.
 
-def __getattr__(name: str):  # noqa: N807
+def __getattr__(name: str) -> object:  # noqa: N807
     if name == "CATALOG":
         return _get_catalog()
     raise AttributeError(name)

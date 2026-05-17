@@ -24,7 +24,8 @@ SKILLS: list[SkillEntry] = [
 # Install (all platforms)
 # Windows: msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
 # macOS:   brew install awscli
-# Linux:   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
+# Linux:   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" \
+#           -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install
 
 # Configure profile
 aws configure --profile myprofile
@@ -99,14 +100,17 @@ sam build && sam deploy --guided     # build + deploy
 aws sts get-caller-identity
 
 # Parameter Store
-aws ssm get-parameter --name /myapp/db-password --with-decryption --query Parameter.Value --output text
+aws ssm get-parameter --name /myapp/db-password --with-decryption \
+    --query Parameter.Value --output text
 aws ssm put-parameter --name /myapp/key --value "secret" --type SecureString
 
 # Secrets Manager
-aws secretsmanager get-secret-value --secret-id myapp/prod/db --query SecretString --output text | jq .
+aws secretsmanager get-secret-value --secret-id myapp/prod/db \
+    --query SecretString --output text | jq .
 
 # ECR login
-aws ecr get-login-password | docker login --username AWS --password-stdin 123456789.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password | docker login --username AWS \
+    --password-stdin 123456789.dkr.ecr.us-east-1.amazonaws.com
 ```
 
 ## Common pitfalls
@@ -291,7 +295,8 @@ gcloud projects add-iam-policy-binding myproject-id \
     --member="serviceAccount:sa@myproject.iam.gserviceaccount.com" \
     --role="roles/storage.objectViewer"
 gcloud iam service-accounts create mysa --display-name "My Service Account"
-gcloud iam service-accounts keys create sa-key.json --iam-account mysa@myproject.iam.gserviceaccount.com
+gcloud iam service-accounts keys create sa-key.json \
+    --iam-account mysa@myproject.iam.gserviceaccount.com
 ```
 
 ## Common pitfalls
@@ -402,7 +407,8 @@ gh secret set MY_SECRET --body "value"  # set secret
 ```
 
 ## Common pitfalls
-- Token scope: `gh auth login` requests only needed scopes — add more with `gh auth refresh -s write:packages`.
+- Token scope: `gh auth login` requests only needed scopes — add more with
+  `gh auth refresh -s write:packages`.
 - Org SSO: run `gh auth refresh` after enabling SSO on an organization.
 - `gh pr create` from detached HEAD fails — ensure you're on a named branch.
 """,
