@@ -1,0 +1,116 @@
+# specsmith requirements — overflow
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+#
+# Schema: id (REQ-NNN), title, description, source, status
+# Required fields: id, title, status
+- id: REQ-300
+  title: YAML-First Governance Sync Pipeline
+  description: When `.specsmith/governance-mode` contains `yaml`, `specsmith sync`
+    MUST read docs/requirements/*.yml and docs/tests/*.yml as canonical sources, write
+    .specsmith/requirements.json + testcases.json as JSON caches, and regenerate docs/REQUIREMENTS.md
+    + docs/TESTS.md as derived artifacts. Legacy Markdown mode (governance-mode absent
+    or `markdown`) MUST still work for backward compatibility.
+  source: ARCHITECTURE.md §YAML-Native Governance Layer
+  status: implemented
+- id: REQ-301
+  title: Strict Governance Schema Validation
+  description: '`specsmith validate --strict` MUST enforce 8 governance schema checks:
+    (1) duplicate REQ IDs, (2) duplicate TEST IDs, (3) missing required REQ fields
+    (id/title/status), (4) missing required TEST fields (id/title/requirement_id),
+    (5) orphaned TESTs (reference non-existent REQ), (6) untested REQs (warning),
+    (7) duplicate REQ titles (warning), (8) machine-state drift between YAML and JSON
+    (warning). Exits 1 on errors; warnings do not block. `--json` flag emits structured
+    output.'
+  source: ARCHITECTURE.md §YAML-Native Governance Layer
+  status: implemented
+- id: REQ-302
+  title: Generate Docs Command Renders YAML to Markdown
+  description: '`specsmith generate docs` MUST read docs/requirements/*.yml and docs/tests/*.yml
+    in YAML-first mode, render the canonical Markdown artifacts docs/REQUIREMENTS.md
+    and docs/TESTS.md, and also re-sync the JSON machine state. `--check` flag MUST
+    report what would change without writing. Only available when governance-mode
+    is `yaml`.'
+  source: ARCHITECTURE.md §YAML-Native Governance Layer
+  status: implemented
+- id: REQ-303
+  title: Governance Mode Flag Controls Authority Direction
+  description: '`.specsmith/governance-mode` MUST contain `yaml` to activate YAML-first
+    mode. `is_yaml_mode(root)` in `specsmith.governance_yaml` reads this flag. Absence
+    of the file or value `markdown` activates legacy Markdown-primary mode. The flag
+    is written by `scripts/migrate_governance_to_yaml.py`.'
+  source: ARCHITECTURE.md §YAML-Native Governance Layer
+  status: implemented
+- id: REQ-304
+  title: YAML Governance Migration Script
+  description: '`scripts/migrate_governance_to_yaml.py` MUST be idempotent and execute
+    the following steps in order: (1) remove duplicate REQs from REQUIREMENTS.md,
+    (2) re-sync .specsmith/ JSON from cleaned MD, (3) export JSON to grouped YAML
+    files under docs/requirements/ and docs/tests/, (4) write .specsmith/governance-mode
+    = yaml. Re-running must not corrupt the governance state.'
+  source: ARCHITECTURE.md §YAML-Native Governance Layer
+  status: implemented
+- id: REQ-305
+  title: ChronoStore WAL-Based ESDB Write Layer
+  description: specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore
+    class providing a WAL-based per-project epistemic state database. The WAL MUST
+    be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining.
+    A materialized snapshot MUST be written every 50 events at snapshot.json. WAL
+    append MUST be crash-safe via write-to-temp-then-rename.
+  source: ARCHITECTURE.md §ESDB / ChronoStore
+  status: implemented
+- id: REQ-306
+  title: ESDB Must Be Per-Project
+  description: Each governed project MUST have its own ESDB at <project_root>/.chronomemory/.
+    Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to
+    ChronoStore when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
+  source: ARCHITECTURE.md §ESDB / ChronoStore
+  status: implemented
+- id: REQ-307
+  title: Session State Must Survive Restart
+  description: specsmith MUST persist session context to .specsmith/session-state.json
+    and conversation history to .specsmith/conversation-history.jsonl (capped at 200
+    turns). On init_session(), the previous session context MUST be loaded and a synthetic
+    resume message injected as the first history entry. GET /api/session/history MUST
+    return the stored history.
+  source: ARCHITECTURE.md §Session Persistence
+  status: implemented
+- id: REQ-308
+  title: Context Orchestrator with Tiered Auto-Optimization
+  description: 'specsmith MUST implement src/specsmith/context_orchestrator.py with
+    a ContextOrchestrator that applies three tiers: Tier 1 (60-79% fill) compresses
+    LEDGER.md history; Tier 2 (80-84%) summarizes conversation and evicts low-confidence
+    ESDB records; Tier 3 (>=85%) emergency-drops records with confidence < 0.7. Data
+    on disk MUST NEVER be deleted.'
+  source: ARCHITECTURE.md §Context Orchestrator
+  status: implemented
+- id: REQ-309
+  title: CI Automation Togglable Per Project
+  description: specsmith ci enable MUST generate CI, Dependabot, and CodeQL configs.
+    specsmith ci status --json MUST return a JSON object with ci_available, ci_passing,
+    open_dep_alerts, open_security_alerts. specsmith ci watch MUST poll until the
+    run completes. CI automation state MUST be persisted to .specsmith/config.yml.
+  source: ARCHITECTURE.md §CI Automation Manager
+  status: implemented
+- id: REQ-310
+  title: OEA Anti-Hallucination Fields on ESDB Records
+  description: 'Every ChronoRecord MUST carry OEA anti-hallucination fields: source_type,
+    confidence, vidence, pistemic_boundary, is_hypothesis, model_assumptions, ecursion_depth.
+    All fields MUST default to safe non-blocking values for records migrated from
+    legacy JSON.'
+  source: ARCHITECTURE.md §OEA Anti-Hallucination Governance Layer
+  status: implemented
+- id: REQ-311
+  title: RAG Retrieval Must Filter by Confidence
+  description: ESDB retrieval MUST accept a min_confidence threshold and exclude records
+    with confidence < min_confidence. Records at exactly the threshold MUST be included.
+    Default threshold is 0.0 (no filtering).
+  source: ARCHITECTURE.md §ESDB / ChronoStore
+  status: implemented
+- id: REQ-312
+  title: Context Optimize Command
+  description: "specsmith context optimize --fill-pct <N> [--json] MUST call ContextOrchestrator.optimize()\
+    \ and report tier-specific actions taken. --json MUST emit a JSON summary with\
+    \ \tier, ctions, and\n\tokens_freed."
+  source: ARCHITECTURE.md §Context Orchestrator
+  status: implemented
