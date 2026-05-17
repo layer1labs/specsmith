@@ -584,6 +584,77 @@ class TestAgentDispatcherEndToEnd:
 
 
 # ---------------------------------------------------------------------------
+# Cooperative abort (REQ-334)
+# ---------------------------------------------------------------------------
+
+
+class TestCooperativeAbort:
+    def test_pre_armed_abort_prevents_execution(self, tmp_path):
+        """abort_node() called before _run_node starts causes immediate FAILED."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
+            TaskStatus,
+        )
+
+        dag = TaskDAGBuilder.build("job", dag_id="abort-pre")
+        emitter = EventEmitter(tmp_path, "abort-pre")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        mock_pool.acquire.return_value = mock.MagicMock()
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+
+        # Pre-arm abort BEFORE the worker starts
+        dispatcher.abort_node("task-main")
+
+        with mock.patch.object(dispatcher, "_governance_preflight"):
+            summary = dispatcher.run()
+
+        assert len(summary.failed) == 1
+        assert "Aborted" in (summary.failed[0].error or "")
+
+    def test_abort_node_returns_false_for_unknown_node(self, tmp_path):
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder
+        )
+        dag = TaskDAGBuilder.build("job", dag_id="abort-unknown")
+        emitter = EventEmitter(tmp_path, "abort-unknown")
+        dispatcher = AgentDispatcher(
+            dag, mock.MagicMock(spec=AgentPool), emitter,
+            project_root=tmp_path, max_workers=1
+        )
+        assert dispatcher.abort_node("nonexistent-node") is False
+        assert dispatcher.abort_node("task-main") is True
+
+    def test_abort_flag_checked_after_preflight(self, tmp_path):
+        """Abort signalled during governance preflight exits before worker acquire."""
+        from specsmith.agent.dispatch import (
+            AgentDispatcher, AgentPool, EventEmitter, TaskDAGBuilder, TaskStatus
+        )
+
+        dag = TaskDAGBuilder.build("job", dag_id="abort-post-preflight")
+        emitter = EventEmitter(tmp_path, "abort-post-preflight")
+        mock_pool = mock.MagicMock(spec=AgentPool)
+        dispatcher = AgentDispatcher(
+            dag, mock_pool, emitter, project_root=tmp_path, max_workers=1
+        )
+
+        def _preflight_and_abort(node):
+            # Simulate preflight setting the abort flag mid-execution
+            dispatcher.abort_node(node.id)
+
+        with mock.patch.object(dispatcher, "_governance_preflight", side_effect=_preflight_and_abort):
+            summary = dispatcher.run()
+
+        # Worker should never have been acquired
+        mock_pool.acquire.assert_not_called()
+        assert len(summary.failed) == 1
+
+
+# ---------------------------------------------------------------------------
 # TEST-321: Orchestrator is sole entry point
 # ---------------------------------------------------------------------------
 

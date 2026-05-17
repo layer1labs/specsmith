@@ -37,6 +37,7 @@ nav:
     - AEE Primer (Full Guide): aee-primer.md
     - epistemic Library Reference: epistemic-library.md
   - CLI Commands: commands.md
+  - Multi-Agent Dispatch: dispatch.md
   - Agentic Client:
     - Overview: agent-client.md
     - Agent Integrations: agent-integrations.md

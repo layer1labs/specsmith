@@ -251,6 +251,13 @@ Next action:
         )
 
         root = Path(project_root) if project_root else Path(os.getcwd())
+
+        # If no planner_output provided, ask PlannerAgent to decompose the task
+        # into a structured JSON list of TaskNode dicts (best-effort; falls back
+        # to single-node DAG if the LLM is unavailable or returns invalid JSON).
+        if planner_output is None:
+            planner_output = self._call_planner(task)
+
         dag = TaskDAGBuilder.build(task, planner_output=planner_output)
         pool = AgentPool(self.llm_config, max_workers=max_workers)
         emitter = EventEmitter(root, dag.dag_id)
@@ -258,6 +265,54 @@ Next action:
             dag, pool, emitter, project_root=root, max_workers=max_workers
         )
         return dispatcher.run()
+
+    def _call_planner(self, task: str) -> str | None:
+        """Ask the PlannerAgent to decompose *task* into a JSON array of TaskNode dicts.
+
+        Sends a single-turn prompt to the PlannerAgent that asks it to emit a
+        structured JSON plan.  Returns the raw response string (which
+        ``TaskDAGBuilder._parse_nodes`` will extract the JSON array from), or
+        ``None`` if the LLM is unavailable or times out (falling back to
+        single-node DAG).
+
+        The prompt format instructs the LLM to output a JSON array like::
+
+            [
+              {"id": "arch", "title": "Design API", "role": "architect", "depends_on": []},
+              {"id": "impl", "title": "Implement endpoint", "role": "coder", "depends_on": ["arch"]},
+              {"id": "test", "title": "Write tests", "role": "tester", "depends_on": ["arch"]}
+            ]
+        """
+        try:
+            from autogen import ConversableAgent  # type: ignore[import]
+
+            proxy = ConversableAgent(
+                name="PlannerProxy",
+                system_message="You collect the planner's JSON output and return it.",
+                llm_config=False,
+                human_input_mode="NEVER",
+                max_consecutive_auto_reply=1,
+            )
+
+            planner_prompt = (
+                f"Decompose this task into a JSON array of agent work nodes.\n"
+                f"Task: {task}\n\n"
+                f"Output ONLY a JSON array. Each element must have:\n"
+                f'  - "id": unique snake_case slug\n'
+                f'  - "title": human-readable description\n'
+                f'  - "role": one of coder | reviewer | tester | architect | researcher | embedded-coder\n'
+                f'  - "depends_on": list of node ids that must finish first ([] for root nodes)\n\n'
+                f"The array MUST be a valid DAG with no cycles. Maximum 8 nodes."
+            )
+
+            result = proxy.initiate_chat(
+                self.planner,
+                message=planner_prompt,
+                max_turns=1,
+            )
+            return getattr(result, "summary", None) or None
+        except Exception:  # noqa: BLE001 — fallback to single-node DAG on any error
+            return None
 
     def _build_task_result(self, chat_result: Any, task: str) -> TaskResult:
         """Translate the AG2 chat result into a structured TaskResult.

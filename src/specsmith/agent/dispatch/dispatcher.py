@@ -95,6 +95,12 @@ class AgentDispatcher:
     3. On completion → write ESDB record → inject context into successors.
     4. On failure → propagate BLOCKED to transitive dependents; keep running siblings.
     5. Loop until DAG is fully terminal or no more runnable nodes.
+
+    Cooperative abort:
+    Each node gets a per-node ``threading.Event`` stored in ``_abort_flags``.
+    ``abort_node(node_id)`` sets the event.  ``_run_node`` checks the flag
+    before each major step (governance preflight, worker acquire, invoke,
+    ESDB write) and transitions to FAILED immediately when set.
     """
 
     def __init__(
@@ -111,6 +117,9 @@ class AgentDispatcher:
         self._emitter = emitter
         self._project_root = project_root
         self._max_workers = max_workers
+        # Per-node cooperative abort events.  Set by abort_node(); checked
+        # in _run_node() between steps so the worker exits at the next safe point.
+        self._abort_flags: dict[str, threading.Event] = {}
 
     def run(self) -> DispatchSummary:
         """Execute the DAG and return a DispatchSummary (REQ-324)."""
@@ -189,15 +198,49 @@ class AgentDispatcher:
     # Node execution
     # -----------------------------------------------------------------------
 
+    def abort_node(self, node_id: str) -> bool:
+        """Request cooperative abort for a running node.
+
+        Sets the node's abort event; ``_run_node`` will see it at the next
+        checkpoint and transition to FAILED. Returns True if the node was
+        found (running or pending), False if it doesn't exist.
+        """
+        flag = self._abort_flags.get(node_id)
+        if flag is not None:
+            flag.set()
+            return True
+        # Node hasn't started yet — pre-arm an event so it aborts immediately
+        if self._dag.get(node_id) is not None:
+            pre = threading.Event()
+            pre.set()
+            self._abort_flags[node_id] = pre
+            return True
+        return False
+
     def _run_node(self, node: TaskNode) -> DispatchResult:
         """Execute a single node inside a worker thread."""
+        # Arm per-node abort event (creates if not pre-armed by abort_node)
+        abort_flag = self._abort_flags.setdefault(node.id, threading.Event())
+
         worker = None
         try:
+            # Abort check 1: before governance preflight
+            if abort_flag.is_set():
+                raise _NodeAbortedError(f"node {node.id!r} aborted before preflight")
+
             # REQ-329: governance preflight before work begins
             self._governance_preflight(node)
 
+            # Abort check 2: between preflight and worker acquire
+            if abort_flag.is_set():
+                raise _NodeAbortedError(f"node {node.id!r} aborted after preflight")
+
             # Acquire a pooled worker agent
             worker = self._acquire_worker(node.role)
+
+            # Abort check 3: between acquire and invoke
+            if abort_flag.is_set():
+                raise _NodeAbortedError(f"node {node.id!r} aborted after worker acquire")
 
             # Build context from predecessor ESDB records
             context_prompt = self._build_context_prompt(node)
@@ -205,6 +248,10 @@ class AgentDispatcher:
 
             # Execute via the worker agent (AG2 initiate_chat)
             run_result = self._invoke_worker(worker, full_task)
+
+            # Abort check 4: between invoke and ESDB write
+            if abort_flag.is_set():
+                raise _NodeAbortedError(f"node {node.id!r} aborted after invocation")
 
             # Write ESDB record for successors (REQ-327)
             esdb_id = self._write_esdb_record(node, run_result)
@@ -224,6 +271,13 @@ class AgentDispatcher:
                 role=node.role,
                 status=TaskStatus.FAILED,
                 error=f"Governance preflight blocked: {exc}",
+            )
+        except _NodeAbortedError as exc:
+            return DispatchResult(
+                node_id=node.id,
+                role=node.role,
+                status=TaskStatus.FAILED,
+                error=f"Aborted: {exc}",
             )
         except Exception as exc:  # noqa: BLE001
             return DispatchResult(
@@ -354,6 +408,10 @@ class AgentDispatcher:
 
 class _GovernanceBlockedError(Exception):
     """Raised when governance preflight rejects a node."""
+
+
+class _NodeAbortedError(Exception):
+    """Raised when abort_node() signals a running node to stop."""
 
 
 __all__ = ["AgentDispatcher", "AgentPool"]

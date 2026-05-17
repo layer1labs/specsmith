@@ -156,6 +156,8 @@ class _Handler(BaseHTTPRequestHandler):
     auth_token: str = ""  # populated by run_server / make_server when set
     # Live dispatch EventEmitter instances keyed by dag_id (REQ-332)
     _dispatch_emitters: dict[str, Any] = {}
+    # Live AgentDispatcher instances keyed by dag_id (needed for abort)
+    _dispatch_instances: dict[str, Any] = {}
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Suppress default stderr logging."""
@@ -398,6 +400,7 @@ class _Handler(BaseHTTPRequestHandler):
         llm_config = {"config_list": [], "temperature": 0.0}
         pool = AgentPool(llm_config, max_workers=max_workers)
         dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+        type(self)._dispatch_instances[dag.dag_id] = dispatcher
 
         # Run in background thread
         def _bg() -> None:
@@ -405,6 +408,7 @@ class _Handler(BaseHTTPRequestHandler):
                 dispatcher.run()
             finally:
                 type(self)._dispatch_emitters.pop(dag.dag_id, None)
+                type(self)._dispatch_instances.pop(dag.dag_id, None)
 
         import threading
         t = threading.Thread(target=_bg, daemon=True, name=f"dispatch-{dag.dag_id}")
@@ -413,21 +417,79 @@ class _Handler(BaseHTTPRequestHandler):
         self._json_response({"ok": True, "dag_id": dag.dag_id})
 
     def _dispatch_retry(self) -> None:
-        """POST /api/dispatch/retry — {"dag_id": "...", "node_id": "..."}."""
+        """POST /api/dispatch/retry — {"dag_id": "...", "node_id": "..."}.
+
+        Builds a single-node retry DAG from the node's last role in events.jsonl
+        and runs it as a background dispatch job. Returns the new retry dag_id.
+        """
         body = self._read_json() or {}
         dag_id = body.get("dag_id", "")
         node_id = body.get("node_id", "")
         if not dag_id or not node_id:
             self._json_response({"error": "missing dag_id or node_id"}, code=400)
             return
-        self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "retry queued"})
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+        try:
+            from specsmith.agent.dispatch import (
+                AgentDispatcher, AgentPool, EventEmitter, TaskDAG, TaskNode, TaskStatus
+            )
+            past = EventEmitter.replay(root, dag_id)
+            # Reconstruct role for the node from past events
+            role = "coder"
+            for evt in past:
+                if evt.node_id == node_id and evt.event_type == "node_started":
+                    role = evt.payload.get("role", "coder")
+                    break
+            node_status = {e.node_id: e.event_type for e in past if e.node_id == node_id}
+            last_event = node_status.get(node_id, "")
+            if last_event == "node_completed":
+                self._json_response({"ok": False, "error": f"Node {node_id!r} is already completed"})
+                return
+            # Build a single-node retry DAG
+            retry_dag_id = f"{dag_id}-retry-{node_id}"
+            retry_dag = TaskDAG(dag_id=retry_dag_id)
+            retry_dag.add_node(TaskNode(id=node_id, title=node_id, role=role))
+            llm_config = {"config_list": [], "temperature": 0.0}
+            emitter = EventEmitter(root, retry_dag_id)
+            type(self)._dispatch_emitters[retry_dag_id] = emitter
+            pool = AgentPool(llm_config, max_workers=1)
+            dispatcher = AgentDispatcher(
+                retry_dag, pool, emitter, project_root=root, max_workers=1
+            )
+            def _bg() -> None:
+                try:
+                    dispatcher.run()
+                finally:
+                    type(self)._dispatch_emitters.pop(retry_dag_id, None)
+            import threading
+            t = threading.Thread(target=_bg, daemon=True, name=f"retry-{retry_dag_id}")
+            t.start()
+            self._json_response({"ok": True, "dag_id": retry_dag_id, "node_id": node_id, "status": "running"})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
 
     def _dispatch_abort(self) -> None:
-        """POST /api/dispatch/abort — {"dag_id": "...", "node_id": "..."}."""
+        """POST /api/dispatch/abort — {"dag_id": "...", "node_id": "..."}.
+
+        Calls AgentDispatcher.abort_node() which sets a per-node threading.Event.
+        The worker thread will see it at the next checkpoint and transition to FAILED.
+        """
         body = self._read_json() or {}
         dag_id = body.get("dag_id", "")
         node_id = body.get("node_id", "")
-        self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "abort requested"})
+        if not dag_id or not node_id:
+            self._json_response({"error": "missing dag_id or node_id"}, code=400)
+            return
+        dispatcher = type(self)._dispatch_instances.get(dag_id)
+        if dispatcher is None:
+            self._json_response({"ok": False, "error": f"No live run for dag_id={dag_id!r}"})
+            return
+        found = dispatcher.abort_node(node_id)
+        if found:
+            self._json_response({"ok": True, "dag_id": dag_id, "node_id": node_id, "status": "abort signalled"})
+        else:
+            self._json_response({"ok": False, "error": f"Node {node_id!r} not found in dag {dag_id!r}"})
 
     def _read_json(self) -> dict[str, Any] | None:
         length = int(self.headers.get("Content-Length", 0))
