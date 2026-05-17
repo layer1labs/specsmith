@@ -135,7 +135,7 @@ This works in Claude Code, Cursor, terminal-native AI agents that load `.agents/
 
 After the agent is loaded, use the quick command `start` to trigger the full session start protocol.
 
-**Or use the VS Code extension:** Open the specsmith sidebar, click **+** in Sessions, and select the project folder. The Settings Panel shows your current AEE phase and all governance file status.
+**Or use [Kairos](https://github.com/BitConcepts/kairos):** Launch Kairos and it automatically starts specsmith as a governance backend. The Governance panel shows your current AEE phase, compliance status, and all governance file health.
 
 ## Tutorial: Import an Existing Project
 

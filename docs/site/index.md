@@ -103,8 +103,7 @@ cargo run --release --bin kairos   # build and run from source
 
 **[→ Kairos on GitHub](https://github.com/BitConcepts/kairos)**
 
-!!! note "VS Code Extension deprecated"
-    The specsmith VS Code extension has been deprecated in favour of Kairos. Existing installs continue to work but will not receive new features.
+Kairos is the official specsmith client — governance panel, live dispatch view, and BYOE proxy built in.
 
 ## Quick Start
 

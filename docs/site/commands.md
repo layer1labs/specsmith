@@ -61,7 +61,7 @@ preflight`, and gates execution: only `accepted` decisions proceed. Toggle `/why
 to reveal the underlying `work_item_id`, `requirement_ids`, and `test_case_ids` Specsmith assigned.
 ## `specsmith chat`
 
-Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients (e.g. the VS Code extension's `ChatPanel`).
+Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients (e.g. Kairos and compatible IDE clients).
 
 ```bash
 specsmith chat "add a hello world greeter" --project-dir .

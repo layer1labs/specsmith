@@ -26,7 +26,7 @@ You control which provider is used. BitConcepts has no visibility into what is s
 
 ### GitHub issues (`specsmith` doesn't file issues automatically)
 
-The specsmith CLI itself never creates GitHub issues. The VS Code extension has an optional, consent-gated bug reporter — see the extension's `PRIVACY.md`.
+The specsmith CLI itself never creates GitHub issues. Kairos has an optional, consent-gated bug reporter — see the [Kairos PRIVACY.md](https://github.com/BitConcepts/kairos/blob/main/PRIVACY.md).
 
 ### Patent search (`specsmith patent`)
 

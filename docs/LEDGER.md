@@ -294,3 +294,9 @@
 - **Type**: feature
 - **Status**: complete
 - **Chain hash**: `f91cae2487897572...`
+
+## 2026-05-17T16:53 — Removed all specsmith-vscode / VS Code extension references across specsmith and Kairos docs. Deleted docs/site/vscode-extension.md. Updated mkdocs.yml nav (Kairos Client page). Fixed index.md, quickstart.md, commands.md, getting-started.md, troubleshooting.md, endpoints.md, PRIVACY.md, runner.py, core.py, events.py, suggester.py, languages.py, cli.py, agent.yml REQs/TESTs, README.md. Kairos is now the sole documented client.
+- **Author**: oz-agent
+- **Type**: fix
+- **Status**: complete
+- **Chain hash**: `1e48aaf097e11726...`

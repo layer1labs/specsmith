@@ -3270,7 +3270,7 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
     "json_events",
     is_flag=True,
     default=False,
-    help="Emit structured JSONL events to stdout (used by IDE clients like the VS Code extension).",
+    help="Emit structured JSONL events to stdout (used by Kairos and compatible IDE clients).",
 )
 @click.option(
     "--endpoint",
@@ -7081,7 +7081,7 @@ main.add_command(index_group)
     default=False,
     help=(
         "Read decision events (tool_decision / diff_decision / comment) from "
-        "stdin. Used by IDE consumers like the VS Code extension to drive "
+        "stdin. Used by Kairos and compatible IDE consumers to drive "
         "the safe-mode approval flow and inline diff review."
     ),
 )

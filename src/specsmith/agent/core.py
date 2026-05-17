@@ -10,7 +10,7 @@ The historical ``cli.py`` referenced ``ModelTier`` from this module before
 it existed in the source tree (the file was lost in an earlier refactor),
 which produced an ``ImportError`` the moment ``specsmith run`` was
 invoked. Restoring the symbol here is the prerequisite for the bridge
-``ready`` event handshake to land before the VS Code extension's 20 s
+``ready`` event handshake to land before the Kairos client's 20 s
 startup timeout fires.
 """
 

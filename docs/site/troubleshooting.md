@@ -10,10 +10,10 @@ Update to the latest version: `pipx upgrade specsmith` (or `pip install --upgrad
 
 ## Version Mismatch — terminal vs VS Code
 
-### VS Code Settings Panel shows a different version than `specsmith --version` in the terminal
+### Kairos shows a different specsmith version than `specsmith --version` in the terminal
 
 This almost always means you have **two specsmith binaries** on PATH and they
-resolve differently between the VS Code extension host and your shell.
+resolve differently between Kairos and your shell.
 
 Diagnose:
 ```powershell

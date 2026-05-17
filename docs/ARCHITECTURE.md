@@ -510,7 +510,7 @@ REST endpoints: `GET /api/esdb/status`, `GET /api/esdb/counts`.
 
 10 system invariants enforced: anti-hallucination, no-forgetfulness, no-stale-override, no-duplicate-work, stop-on-violation, replay-visible tombstones, dependency-linked actions, replayable state, context-pack freshness, action-linked governance.
 
-## 18. AI Skills Builder
+## 20. AI Skills Builder
 
 Source: `src/specsmith/skills_builder.py`
 
@@ -518,7 +518,7 @@ Builds agent skills from natural-language descriptions following the SkillNet-st
 
 REST endpoint: `GET /api/skills`.
 
-## 19. MCP Server Generator
+## 21. MCP Server Generator
 
 Source: `src/specsmith/mcp_generator.py`
 
@@ -526,7 +526,7 @@ Auto-scaffolds Model Context Protocol servers from natural-language tool descrip
 
 REST endpoint: `GET /api/mcp/servers`.
 
-## 20. Kairos UX Integration
+## 22. Kairos UX Integration
 
 Kairos Settings pages that expose specsmith features via the governance REST API:
 
@@ -537,7 +537,7 @@ Kairos Settings pages that expose specsmith features via the governance REST API
 
 All pages use async health polling via `GovernanceClient.get_json()` and follow the monolith SettingsWidget pattern.
 
-## 21. HuggingFace Open LLM Leaderboard Integration
+## 23. HuggingFace Open LLM Leaderboard Integration
 
 Source: `src/specsmith/agent/hf_leaderboard.py`
 
@@ -556,7 +556,7 @@ REST endpoints exposed by governance server:
 
 CLI: `specsmith model-intel sync | scores | recommendations | test-hf`
 
-## 22. Bucket Scoring Engine
+## 24. Bucket Scoring Engine
 
 Source: `src/specsmith/agent/hf_leaderboard.py` (`_compute_bucket_scores`)
 
@@ -570,7 +570,7 @@ Ranked recommendation returns the top-10 models for a requested bucket. The engi
 
 Base+org-prefix deduplication: `Qwen/Qwen3-14B` is stored under both its full name and `Qwen3-14B` so vLLM-style repo-ID model names match correctly.
 
-## 23. Model Capability Profiles
+## 25. Model Capability Profiles
 
 Source: `src/specsmith/agent/model_profiles.py`
 
@@ -588,7 +588,7 @@ Covers 40+ models across Ollama (Mistral, Qwen, Llama, Gemma, Phi, DeepSeek), cl
 
 Context history trimmer (`trim_history`) summarises dropped turns into a compact `[Earlier conversation summary — N turns condensed]` assistant message to preserve research continuity.
 
-## 24. AI Model Pacer v2
+## 26. AI Model Pacer v2
 
 Source: `src/specsmith/rate_limits.py` (upgraded `ModelRateLimitScheduler`)
 
@@ -602,7 +602,7 @@ Enhancements over the existing rolling-window scheduler:
 
 All operations are guarded by a single `threading.Condition` lock so the pacer is safe for concurrent agent sessions.
 
-## 25. Multi-Provider LLM Client with Fallback
+## 27. Multi-Provider LLM Client with Fallback
 
 Source: `src/specsmith/agent/llm_client.py`
 
@@ -622,7 +622,7 @@ Concrete providers: `MistralProvider`, `OpenAIProvider`, `GoogleProvider`, `Olla
 
 Provider fallback decision: `_is_fallback_status(code)` returns True for 401, 403, 404, 408, 409, 425, 429, 5xx.
 
-## 26. Endpoint Preset Registry
+## 28. Endpoint Preset Registry
 
 Source: `src/specsmith/agent/provider_registry.py` (`ENDPOINT_PRESETS`)
 
@@ -645,7 +645,7 @@ Probe function enriches model list with `context_length` (from `max_model_len` o
 
 CLI: `specsmith agent endpoint-presets`.
 
-## 27. Suggested Profile Generation
+## 29. Suggested Profile Generation
 
 Source: `src/specsmith/agent/provider_registry.py` (`suggest_profiles`)
 
@@ -661,7 +661,7 @@ Suggestions are inert previews — the user calls `specsmith agent providers add
 
 CLI: `specsmith agent suggest-profiles`.
 
-## 28. OEA Anti-Hallucination Governance Layer
+## 30. OEA Anti-Hallucination Governance Layer
 
 Source: `src/specsmith/compliance.py` §`get_governance_rules_status`; rules `H15`–`H22`
 
@@ -695,7 +695,7 @@ Statusof H15–H22 is surfaced in the Kairos Compliance page
 categories. Adding or removing categories requires an explicit OEA-impact assessment
 recorded in LEDGER.md.
 
-## 29. YAML-Native Governance Layer
+## 31. YAML-Native Governance Layer
 Source: `src/specsmith/governance_yaml.py`, `scripts/migrate_governance_to_yaml.py`
 
 As of v0.12, specsmith operates in **YAML-first governance mode** when `.specsmith/governance-mode` contains `yaml`.

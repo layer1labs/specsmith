@@ -843,7 +843,7 @@
 ## REQ-106. Kairos Must Surface Governance Commands
 - **ID:** REQ-106
 - **Title:** Kairos Must Surface Governance Commands
-- **Description:** The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`. *Note: the legacy `specsmith-vscode` commands (`specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy`) are deprecated; Kairos is the flagship client as of v0.10.1.*
+- **Description:** The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`.
 - **Status:** implemented
 - **Source:** app/src/settings_view/governance_page.rs, kairos_governance crate
 - **Test_Ids:** ['TEST-106']
@@ -939,7 +939,7 @@
 ## REQ-118. Kairos Must Surface specsmith chat Stream
 - **ID:** REQ-118
 - **Title:** Kairos Must Surface specsmith chat Stream
-- **Description:** The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session. *The deprecated `specsmith-vscode` `specsmith.openChat` command served this purpose for the VS Code extension; it has been superseded by the Kairos BYOE proxy.*
+- **Description:** The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session.
 - **Status:** implemented
 - **Source:** app/src/settings_view/governance_page.rs, kairos_governance crate
 - **Test_Ids:** ['TEST-118']
@@ -1011,7 +1011,7 @@
 ## REQ-128. Cross-Repo Security Sweep
 - **ID:** REQ-128
 - **Title:** Cross-Repo Security Sweep
-- **Description:** The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented. *Note: the legacy `specsmith-vscode` npm audit requirement has been retired alongside the extension deprecation.*
+- **Description:** The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.
 - **Status:** implemented
 - **Source:** .github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml
 - **Test_Ids:** ['TEST-128']
@@ -1019,7 +1019,7 @@
 ## REQ-129. 1.0 API Stability Commitment
 - **ID:** REQ-129
 - **Title:** 1.0 API Stability Commitment
-- **Description:** `docs/site/api-stability.md` enumerates the public surfaces frozen at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify / chat events, broker module API, ledger event schemas, VS Code extension command IDs). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable` and `pyproject.toml` to `1.0.0`.
+- **Description:** `docs/site/api-stability.md` enumerates the public surfaces frozen at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify / chat events, broker module API, ledger event schemas, Kairos CLI API surface). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable` and `pyproject.toml` to `1.0.0`.
 - **Status:** implemented
 - **Source:** docs/site/api-stability.md, pyproject.toml
 - **Test_Ids:** ['TEST-129']

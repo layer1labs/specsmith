@@ -114,6 +114,6 @@
     \ \tier, ctions, and\n\tokens_freed."
   source: ARCHITECTURE.md §Context Orchestrator
   status: implemented
-# NOTE: REQ-313..320 are reserved for compliance plan 5939f743
-# (EU/NA regulation coverage extensions — additional AI Act / NIST AI RMF mechanisms).
-# Do not use these IDs for other purposes; they will be populated when that plan executes.
+# NOTE: REQ-313..320 are implemented in docs/requirements/multiagent_compliance.yml
+# (multi-agent governance traceability — compliance plan 5939f743).
+# EU AI Act Art. 12/13/14 obligations for dispatched multi-agent work.

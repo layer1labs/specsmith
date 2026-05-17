@@ -199,7 +199,9 @@ be overwritten by the next sync.
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
-| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+| `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer |
+| `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability |
+| `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
 
 **Migration from Markdown-primary:** Run
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
@@ -698,7 +700,6 @@ The Kairos **Dispatch Panel** (`app/` — Rust, egui/eframe) renders the multi-a
 
 Build Kairos dispatch panel: `cd app && cargo build --release`
 
-The VS Code extension (`specsmith-vscode`) has been **deprecated** in favour of Kairos.
 Use `pipx install specsmith` for standalone CLI usage from any terminal.
 
 ---

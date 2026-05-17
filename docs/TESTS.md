@@ -948,7 +948,7 @@
 ## TEST-106. Kairos Governance Page Surfaces Preflight/Verify/Trace
 - **ID:** TEST-106
 - **Title:** Kairos Governance Page Surfaces Preflight/Verify/Trace
-- **Description:** The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode` broker command test has been retired alongside the extension deprecation.*
+- **Description:** The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater.
 - **Requirement ID:** REQ-106
 - **Type:** integration
 - **Verification Method:** evaluator
@@ -957,7 +957,7 @@
 ## TEST-107. ARCHITECTURE.md Has Current State Section
 - **ID:** TEST-107
 - **Title:** ARCHITECTURE.md Has Current State Section
-- **Description:** `ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence, and documentation surface.
+- **Description:** `ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Kairos parity, live-smoke evidence, and documentation surface.
 - **Requirement ID:** REQ-107
 - **Type:** unit
 - **Verification Method:** pytest
@@ -1056,7 +1056,7 @@
 ## TEST-118. Kairos BYOE Proxy Consumes Chat Stream
 - **ID:** TEST-118
 - **Title:** Kairos BYOE Proxy Consumes Chat Stream
-- **Description:** The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy `specsmith-vscode` openChat command test has been retired alongside the extension deprecation.*
+- **Description:** The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy openChat command test has been retired.*
 - **Requirement ID:** REQ-118
 - **Type:** integration
 - **Verification Method:** evaluator
@@ -1137,7 +1137,7 @@
 ## TEST-128. Cross-Repo Security Sweep Runs in CI
 - **ID:** TEST-128
 - **Title:** Cross-Repo Security Sweep Runs in CI
-- **Description:** Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test has been retired alongside the extension deprecation.*
+- **Description:** Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively).
 - **Requirement ID:** REQ-128
 - **Type:** integration
 - **Verification Method:** static-check
@@ -1146,7 +1146,7 @@
 ## TEST-129. API Stability Doc Enumerates Frozen Surface
 - **ID:** TEST-129
 - **Title:** API Stability Doc Enumerates Frozen Surface
-- **Description:** `docs/site/api-stability.md` exists and enumerates: CLI subcommands, exit codes, JSON payload schemas, broker module API, ledger event schemas, VS Code extension command IDs. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.
+- **Description:** `docs/site/api-stability.md` exists and enumerates: CLI subcommands, exit codes, JSON payload schemas, broker module API, ledger event schemas, VS Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.
 - **Requirement ID:** REQ-129
 - **Type:** unit
 - **Verification Method:** pytest

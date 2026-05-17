@@ -9,13 +9,13 @@ the underlying machinery in :mod:`agent.chat_runner`,
 
 Why this module exists
 ----------------------
-The VS Code extension's :class:`SpecsmithBridge` (``bridge.ts``) treats a
+Kairos (and compatible IDE clients) treats a
 JSONL ``{type: "ready", ...}`` line as the official handshake — without
-that line within 20 s the bridge declares the binary unresponsive and
-surfaces *"specsmith not responding"* to the user. Earlier refactors
-removed the file that emitted the handshake, so every fresh ``specsmith
-run --json-events`` import-errored before producing a single byte. This
-module restores the emitter and centralizes the protocol (REQ-145).
+that line within 20 s the client declares the binary unresponsive.
+Earlier refactors removed the file that emitted the handshake, so every
+fresh ``specsmith run --json-events`` import-errored before producing a
+single byte. This module restores the emitter and centralizes the
+protocol (REQ-145).
 """
 
 from __future__ import annotations
@@ -44,10 +44,9 @@ __all__ = ["AgentRunner", "_capabilities"]
 def _capabilities() -> list[str]:
     """Return the list of capabilities surfaced by the ``ready`` frame.
 
-    The VS Code extension uses this to show / hide UI affordances (the
-    Endpoints tree only renders when ``"endpoints"`` is reported, etc.).
-    Best-effort reflection so an old CLI talking to a new extension still
-    works without lying.
+    Kairos uses this to show / hide UI affordances (the Endpoints tree
+    only renders when ``"endpoints"`` is reported, etc.).
+    Best-effort reflection so an old CLI version still works without lying.
     """
     caps: list[str] = ["chat", "run"]
     try:

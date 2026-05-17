@@ -2,7 +2,7 @@
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
 """Tests for `specsmith chat --interactive` stdin decision protocol.
 
-The interactive flow lets an IDE consumer (e.g. the VS Code extension)
+The interactive flow lets an IDE consumer (e.g. Kairos)
 drive the safe-mode approval and inline diff review by writing JSON
 decision lines to the CLI's stdin.
 """
