@@ -279,43 +279,125 @@ class CiManager:
     def watch(
         self,
         *,
-        timeout: int = 300,
-        poll_interval: int = 15,
+        run_id: str | None = None,
+        timeout: int = 600,
+        poll_interval: int = 10,
         on_event=None,  # Callable[[dict], None] | None
     ) -> CiRunResult:
-        """Poll CI status until the run completes or timeout fires.
+        """Watch CI until the run completes or timeout fires.
+
+        For GitHub projects, delegates to ``gh run watch --exit-status`` which
+        streams output natively and exits when the run finishes — no polling
+        sleep involved.
+
+        For GitLab / Bitbucket, falls back to exponential-backoff polling
+        (starts at ``poll_interval`` seconds, doubles up to 60 s).
 
         Args:
-            timeout: Max seconds to wait (default 300 = 5 min).
-            poll_interval: Seconds between polls (default 15).
-            on_event: Optional callback called with each status dict.
+            run_id: Specific run ID to watch (GitHub only). Defaults to latest.
+            timeout: Max seconds to wait (default 600 = 10 min).
+            poll_interval: Initial backoff interval for non-GitHub platforms.
+            on_event: Optional callback called with status dicts.
 
         Returns:
             Final CiRunResult.
         """
+        if self.platform_name == "github":
+            return self._watch_github(run_id=run_id, timeout=timeout, on_event=on_event)
+        return self._watch_polling(timeout=timeout, poll_interval=poll_interval, on_event=on_event)
+
+    def _watch_github(
+        self,
+        *,
+        run_id: str | None = None,
+        timeout: int = 600,
+        on_event=None,
+    ) -> CiRunResult:
+        """Watch a GitHub CI run via ``gh run watch --exit-status``.
+
+        Spawns ``gh run watch`` as a subprocess that streams live output and
+        blocks until the run finishes.  No polling or sleep.
+        """
+        import subprocess
+
+        # Resolve the latest run ID if none was given.
+        if not run_id:
+            try:
+                platform_obj = _get_platform_instance("github")
+                r = platform_obj.run_command(
+                    ["run", "list", "--limit", "1", "--json", "databaseId,status"]
+                )
+                if r.success and r.output:
+                    runs = json.loads(r.output)
+                    if runs:
+                        run_id = str(runs[0]["databaseId"])
+            except Exception:  # noqa: BLE001
+                pass
+
+        args = ["gh", "run", "watch", "--exit-status"]
+        if run_id:
+            args.append(run_id)
+
+        try:
+            proc = subprocess.run(args, cwd=str(self.root), timeout=timeout)
+            _ = proc.returncode  # 0 = success, non-zero = failure / timeout
+        except subprocess.TimeoutExpired:
+            pass  # Fall through to status() for final result
+        except FileNotFoundError:
+            pass  # gh not installed — fall through
+
+        result = self.status()
+        if on_event:
+            on_event(
+                {
+                    "type": "ci_watch_complete",
+                    "status": result.last_run_status,
+                    "passing": result.ci_passing,
+                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                }
+            )
+        return result
+
+    def _watch_polling(
+        self,
+        *,
+        timeout: int = 600,
+        poll_interval: int = 10,
+        on_event=None,
+    ) -> CiRunResult:
+        """Poll CI status with exponential backoff until complete or timeout.
+
+        Used for GitLab, Bitbucket, and as a fallback when ``gh`` is unavailable.
+        Starts at ``poll_interval`` seconds and doubles each cycle up to 60 s.
+        """
         deadline = time.monotonic() + timeout
         last_result = CiRunResult(platform=self.platform_name)
+        interval = float(poll_interval)
 
         while time.monotonic() < deadline:
             result = self.status()
             last_result = result
 
-            event = {
-                "type": "ci_status",
-                "status": result.last_run_status,
-                "passing": result.ci_passing,
-                "dep_alerts": result.open_dep_alerts,
-                "security_alerts": result.open_security_alerts,
-                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            }
-
             if on_event:
-                on_event(event)
+                on_event(
+                    {
+                        "type": "ci_status",
+                        "status": result.last_run_status,
+                        "passing": result.ci_passing,
+                        "dep_alerts": result.open_dep_alerts,
+                        "security_alerts": result.open_security_alerts,
+                        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    }
+                )
 
             if result.last_run_status in ("success", "failure"):
                 break  # Run complete
 
-            time.sleep(poll_interval)
+            remaining = deadline - time.monotonic()
+            sleep_time = min(interval, remaining, 60.0)  # cap at 60 s
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            interval = min(interval * 1.5, 60.0)  # exponential backoff, max 60 s
 
         return last_result
 
@@ -346,30 +428,32 @@ on:
     branches: [main, develop]
   schedule:
     - cron: '30 2 * * 1'  # Weekly Monday 02:30 UTC
+  workflow_dispatch:
 
-permissions:
-  actions: read
-  contents: read
-  security-events: write
+permissions: {{}}
 
 jobs:
   analyze:
     name: Analyze ({lang})
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v3
         with:
           languages: {lang}
           queries: security-extended,security-and-quality
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+        uses: github/codeql-action/autobuild@v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:{lang}"
 """

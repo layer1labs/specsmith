@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:  # allow manual re-runs via gh CLI or GitHub UI
 
 concurrency:
   group: ci-${{ github.ref }}
