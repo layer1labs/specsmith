@@ -287,7 +287,7 @@ class ComplianceChecker:
             return 0  # ESDB not initialized — skip silently
 
         try:
-            from specsmith.esdb.store import ChronoRecord, ChronoStore
+            from chronomemory import ChronoRecord, ChronoStore
 
             written = 0
             with ChronoStore(self.root) as store:

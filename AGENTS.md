@@ -2,6 +2,27 @@
 
 This project is governed by **specsmith**.
 
+## Session Bootstrap
+
+Run these steps at the start of **every** session before touching any code:
+
+```bash
+# specsmith runs from editable source — no pip install needed here.
+# For all other projects, use: pip install --pre --upgrade specsmith
+
+# 1. Verify governance health
+py -m specsmith audit
+
+# 2. Confirm machine state matches governance YAML
+py -m specsmith sync
+
+# 3. Check for pending migrations
+py -m specsmith migrate list
+```
+
+Only proceed with the requested task once all three steps complete without errors.
+If `audit` reports failures, surface them to the user before starting work.
+
 ## For AI Agents
 
 All governance rules, session state, requirements, and epistemic constraints

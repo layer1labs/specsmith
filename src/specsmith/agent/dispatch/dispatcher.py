@@ -432,7 +432,7 @@ class AgentDispatcher:
     def _write_esdb_record(self, node: TaskNode, run_result: dict[str, Any]) -> str | None:
         """Write a ChronoRecord to ESDB and return its ID (REQ-327)."""
         try:
-            from specsmith.esdb.store import ChronoRecord, ChronoStore
+            from chronomemory import ChronoRecord, ChronoStore
 
             record_id = f"dispatch-{node.id}-{uuid.uuid4().hex[:8]}"
             record = ChronoRecord(
@@ -461,7 +461,7 @@ class AgentDispatcher:
         if not node.context_in:
             return ""
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             parts: list[str] = ["## Predecessor context from ESDB"]
             with ChronoStore(self._project_root) as store:

@@ -37,6 +37,11 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install build
+      - name: Strip git-URL deps before PyPI build
+        run: |
+          # PyPI rejects packages with direct git+https:// dependencies.
+          # TODO: replace with chronomemory>=0.1.0 once chronomemory is published to PyPI.
+          sed -i '/chronomemory @ git+/d' pyproject.toml
       - run: python -m build
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
@@ -57,14 +62,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # NOTE: using --no-latest during the dev/pre-release phase so that the
-          # rolling dev pre-release stays as the visible "latest" on GitHub.
-          # FIRST STABLE RELEASE: change --no-latest to --latest here, and also
-          # update kairos_updater.rs default channel back to Stable.
+          # NOTE: during the dev phase no stable tag has been pushed, so this
+          # step will not run. When the first official stable release ships:
+          #   1. Remove the 'prerelease: false' note below (GitHub will mark it
+          #      as the latest stable release by default).
+          #   2. Change kairos_updater.rs KairosUpdateChannel::default() -> Stable.
           gh release create "${{ github.ref_name }}" dist/* \
             --title "${{ github.ref_name }}" \
-            --generate-notes \
-            --no-latest || echo "Release already exists — skipping"
+            --generate-notes || echo "Release already exists — skipping"
 
   pypi-publish:
     needs: build
@@ -74,7 +79,6 @@ jobs:
       id-token: write
     # Only publish from main branch tags — never from develop or feature branches
     if: github.event.base_ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
-    continue-on-error: true
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -82,3 +86,5 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip_existing: true

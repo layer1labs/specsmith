@@ -142,7 +142,7 @@ def run_upgrade(
     chronomemory_wal = root / ".chronomemory" / "events.wal"
     if specsmith_dir.is_dir() and not chronomemory_wal.exists():
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(root) as store:
                 counts = store.migrate_from_json(specsmith_dir)

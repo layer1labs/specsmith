@@ -2,6 +2,27 @@
 
 This project is governed by **specsmith**.
 
+## Session Bootstrap
+
+Run these four steps at the start of **every** session before touching any code:
+
+```bash
+# 1. Update specsmith to latest dev
+pip install --pre --upgrade specsmith
+
+# 2. Migrate project scaffold if behind installed version
+specsmith migrate-project --project-dir .
+
+# 3. Verify governance health
+specsmith audit --project-dir .
+
+# 4. Confirm machine state matches governance YAML
+specsmith sync --project-dir .
+```
+
+Only proceed with the requested task once all four steps complete without errors.
+If `audit` reports failures, surface them to the user before starting work.
+
 ## For AI Agents
 
 All governance rules, session state, requirements, and epistemic constraints

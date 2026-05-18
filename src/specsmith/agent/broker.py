@@ -142,7 +142,8 @@ def classify_intent(utterance: str) -> Intent:
 
 
 _REQ_HEADING = re.compile(r"^##\s+\d+\.\s+(?P<title>.+)\s*$", re.MULTILINE)
-_REQ_ID = re.compile(r"-\s*\*\*ID:\*\*\s*(REQ-\d+)")
+# Extended to match project-prefixed IDs e.g. REQ-NN-001, REQ-CLI-042
+_REQ_ID = re.compile(r"-\s*\*\*ID:\*\*\s*(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+)")
 _REQ_DESC = re.compile(r"-\s*\*\*Description:\*\*\s*(.+)")
 
 # A small stopword list to keep keyword matches meaningful.
@@ -395,7 +396,10 @@ def run_preflight(
 # ---------------------------------------------------------------------------
 
 
-_GOVERNANCE_ID = re.compile(r"\b(REQ-\d+|TEST-\d+|WI-[A-Z0-9-]+)\b")
+# Extended to handle project-prefixed IDs (e.g. REQ-NN-001, TEST-NN-002a) and WI tokens
+_GOVERNANCE_ID = re.compile(
+    r"\b(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+|TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[A-Za-z]*|WI-[A-Z0-9-]+)\b"
+)
 
 
 def _strip_governance_ids(text: str) -> str:

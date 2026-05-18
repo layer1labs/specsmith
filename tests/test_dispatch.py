@@ -804,9 +804,10 @@ class TestMultiAgentCompliance:
     # REQ-319: ESDB record contains DAG lineage
     def test_esdb_record_contains_dag_lineage(self, tmp_path):
         """dispatch_result ChronoRecord MUST include dag_id and node_id (REQ-319)."""
+        from chronomemory import ChronoStore
+
         from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
         from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
-        from specsmith.esdb.store import ChronoStore
 
         dag = TaskDAGBuilder.build("t", dag_id="esdb-319")
         emitter = EventEmitter(tmp_path, "esdb-319")

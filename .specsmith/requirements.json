@@ -2921,5 +2921,15 @@
     "test_ids": [
       "TEST-334"
     ]
+  },
+  {
+    "id": "REQ-335",
+    "title": "specsmith test-ran CLI Subcommand",
+    "description": "specsmith MUST provide a `test-ran <TEST-ID> --result passed|failed|error|skipped` CLI subcommand that records a test run outcome in `.specsmith/testcases.json`. On invocation it MUST update `last_result` and `last_run_at` fields on the matching test case record, transition status from `pending` to `implemented` when result is `passed`, transition to `failing` when result is `failed`, write a best-effort ledger entry via `add_entry`, and emit a JSON payload (with `--json`) or a human-readable summary. If the test ID is not found it MUST exit 1. If `testcases.json` is absent it MUST exit 1 with a message directing the user to run `specsmith sync`.",
+    "source": "ARCHITECTURE.md §Governance CLI",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-335"
+    ]
   }
 ]

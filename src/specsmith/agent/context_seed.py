@@ -188,7 +188,7 @@ def _load_ledger_snippet(root: Path, *, max_lines: int) -> str:
 def _load_esdb_snippet(root: Path, *, max_records: int) -> str:
     """Return a compact summary of the most recent ESDB ChronoRecords."""
     try:
-        from specsmith.esdb.store import ChronoStore
+        from chronomemory import ChronoStore
 
         with ChronoStore(root) as store:
             all_records = store.query()  # active records in insertion order

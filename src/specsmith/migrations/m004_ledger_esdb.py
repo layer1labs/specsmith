@@ -69,7 +69,7 @@ class LedgerEsdbMigration(Migration):
 
         # Run migration
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(root) as store:
                 counts = store.migrate_from_json(specsmith_dir)

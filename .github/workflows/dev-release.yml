@@ -60,11 +60,21 @@ jobs:
           sed -i "s/version = \"${BASE_VERSION}\"/version = \"${DEV_VERSION}\"/" pyproject.toml
           echo "Building version: ${DEV_VERSION}"
 
+      - name: Strip git-URL deps before PyPI build
+        run: |
+          # PyPI rejects packages with direct git:// / git+https:// dependencies.
+          # chronomemory is not yet on PyPI; remove the line so the wheel uploads cleanly.
+          # TODO: replace with chronomemory>=0.1.0 once chronomemory is published to PyPI.
+          sed -i '/chronomemory @ git+/d' pyproject.toml
+          echo "pyproject.toml after stripping git deps:"
+          grep -A2 'dependencies' pyproject.toml | head -20
+
       - run: python -m build
 
       - name: Publish dev release to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true  # version already exists on PyPI is not a failure
+        with:
+          skip_existing: true  # gracefully skip if this exact version is already on PyPI
 
       # Create/update a rolling GitHub pre-release so users can track dev builds.
       # NOTE: when the first official stable release ships, remove this step and
@@ -76,11 +86,15 @@ jobs:
           # Delete any existing 'latest-dev' tag+release so we can overwrite it.
           gh release delete latest-dev --repo ${{ github.repository }} \
             --yes --cleanup-tag 2>/dev/null || true
+          # Also remove any stale local tag (actions/checkout may have fetched it)
+          git tag -d latest-dev 2>/dev/null || true
           gh release create latest-dev dist/* \
             --title "Latest dev build (${DEV_VERSION})" \
             --notes "Rolling dev pre-release built from the develop branch." \
             --prerelease \
-            --no-latest
+            --target "${{ github.sha }}"
+          # --prerelease already prevents GitHub from marking this as the default
+          # 'latest' release — no extra flag needed.
 
   docs-build:
     needs: build-and-publish
