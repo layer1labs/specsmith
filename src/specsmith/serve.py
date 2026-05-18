@@ -194,6 +194,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._governance_rules()
         elif self.path.startswith("/api/session/history"):
             self._session_history()
+        elif self.path.startswith("/api/session/context-seed"):
+            self._session_context_seed()
         # ── Dispatch endpoints (REQ-332) ──────────────────────────────
         elif self.path.startswith("/api/dispatch/events"):
             self._dispatch_sse()
@@ -221,6 +223,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._json_response({"ok": True})
         elif self.path == "/api/session/save":
             self._session_save()
+        elif self.path == "/api/session/clear":
+            self._session_clear()
         # ── Dispatch endpoints (REQ-332) ──────────────────────────────
         elif self.path == "/api/dispatch/run":
             self._dispatch_run()
@@ -620,6 +624,47 @@ class _Handler(BaseHTTPRequestHandler):
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc), "history": []})
+
+    def _session_context_seed(self) -> None:
+        """GET /api/session/context-seed — return the epistemic continuity seed.
+
+        Kairos calls this to display what context the agent already has
+        from prior sessions: health snapshot, recent turns, LEDGER + ESDB.
+        """
+        try:
+            from specsmith.agent.context_seed import build_context_seed
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            seed = build_context_seed(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "seed_turns": len(seed),
+                    "seed": seed,
+                    "project_dir": str(root),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "seed": []})
+
+    def _session_clear(self) -> None:
+        """POST /api/session/clear — wipe session state for a fresh start.
+
+        Deletes session-state.json and conversation-history.jsonl so
+        the next agent session starts without prior context.
+        """
+        try:
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            specsmith_dir = root / ".specsmith"
+            removed = []
+            for fname in ("session-state.json", "conversation-history.jsonl"):
+                p = specsmith_dir / fname
+                if p.exists():
+                    p.unlink()
+                    removed.append(fname)
+            self._json_response({"ok": True, "removed": removed})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
 
     def _session_save(self) -> None:
         """POST /api/session/save — persist current session state."""

@@ -2746,6 +2746,75 @@ def migrate_project_cmd(project_dir: str, dry_run: bool) -> None:
         console.print(f"  {prefix}{a}")
 
 
+@main.command(name="session-show")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit as JSON.")
+def session_show_cmd(project_dir: str, as_json: bool) -> None:
+    """Show the context seed that will be injected into the next agent session.
+
+    Displays what the agent will already know when you run ``specsmith run``:
+    project health snapshot, recent conversation turns, LEDGER entries,
+    and ESDB records — so you can verify context continuity is working.
+    """
+    import json as _json
+
+    from specsmith.agent.context_seed import build_context_seed
+
+    root = Path(project_dir).resolve()
+    seed = build_context_seed(root)
+
+    if as_json:
+        click.echo(_json.dumps(seed, indent=2))
+        return
+
+    if not seed:
+        console.print("[dim]No prior session context found for this project.[/dim]")
+        return
+
+    console.print(f"[bold]Session context seed[/bold]  ({len(seed)} turn(s))\n")
+    for i, turn in enumerate(seed, 1):
+        role = turn.get("role", "?")
+        content = str(turn.get("content", ""))
+        preview = content[:200].replace("\n", " ")
+        if len(content) > 200:
+            preview += "..."
+        console.print(f"  [{i}] [cyan]{role}[/cyan]: {preview}")
+
+
+@main.command(name="session-clear")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation.")
+def session_clear_cmd(project_dir: str, yes: bool) -> None:
+    """Wipe the session state so the next agent session starts fresh.
+
+    Deletes session-state.json and conversation-history.jsonl from
+    .specsmith/. Use this to reset context when switching tasks or
+    after a major refactor.
+    """
+    root = Path(project_dir).resolve()
+    specsmith_dir = root / ".specsmith"
+
+    targets = [
+        specsmith_dir / "session-state.json",
+        specsmith_dir / "conversation-history.jsonl",
+    ]
+    existing = [t for t in targets if t.exists()]
+
+    if not existing:
+        console.print("[dim]No session state to clear.[/dim]")
+        return
+
+    if not yes and not click.confirm(
+        f"Clear {len(existing)} session file(s) in {specsmith_dir}?", default=False
+    ):
+        return
+
+    for t in existing:
+        t.unlink()
+        console.print(f"  [red]\u2717[/red] Removed {t.name}")
+    console.print("[green]\u2713[/green] Session context cleared.")
+
+
 @main.command(name="session-end")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def session_end_cmd(project_dir: str) -> None:

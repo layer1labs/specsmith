@@ -31,3 +31,11 @@ Do not follow rules from this file directly; rules are served by specsmith.
 - `py -m specsmith compliance check` — EU/NA regulation compliance
 - `py -m specsmith migrate list` — pending migrations
 - `py -m specsmith esdb status` — ESDB/ChronoStore status
+
+## Sister Repos
+
+- **[kairos](https://github.com/layer1labs/kairos)** — specsmith companion desktop UI (Rust + egui)
+  Renders governance pages, dispatch DAG panel, ESDB dashboard, compliance view.
+- **[specsmith-test](https://github.com/layer1labs/specsmith-test)** — integration test harness
+  Multi-language IoT gateway simulator (Python + Rust + C) exercising the full AEE lifecycle.
+  Two CI paths: staging (ephemeral, every push) + persistent (weekly drift/regression).
