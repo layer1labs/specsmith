@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -28,6 +29,7 @@ def main():
     print(
         "Agents ready. Type plain English to use the natural-language broker, "
         "or use slash commands (/plan, /ask, /fix, /why, /exit). "
+        "Use /specsmith <args> to run any specsmith CLI command directly. "
         "Toggle governance details with /why."
     )
 
@@ -57,6 +59,26 @@ def main():
             verbose_governance = not verbose_governance
             state = "on" if verbose_governance else "off"
             print(f"Governance details: {state}")
+            continue
+
+        # /specsmith <args> — direct CLI pass-through (REQ-SM-001)
+        if command == "/specsmith":
+            sm_args = args.strip() if args else "--help"
+            try:
+                result = subprocess.run(
+                    f"specsmith {sm_args}",
+                    shell=True,
+                    cwd=str(project_dir),
+                    capture_output=False,  # stream directly to terminal
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode != 0:
+                    print(f"(specsmith exited with code {result.returncode})")
+            except subprocess.TimeoutExpired:
+                print("(specsmith timed out after 120 s)")
+            except Exception as exc:  # noqa: BLE001
+                print(f"(error running specsmith: {exc})")
             continue
 
         if command == "/plan":
