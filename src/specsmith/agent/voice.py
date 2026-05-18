@@ -102,16 +102,24 @@ def transcribe(path: Path) -> TranscribeResult:
         import whisper_cpp_python
     except Exception as exc:  # noqa: BLE001
         raise VoiceUnavailableError(
-            "whisper-cpp-python is not installed. Run "
-            "`pipx inject specsmith whisper-cpp-python` "
-            "(or `pip install specsmith[voice]`)."
+            "Voice transcription requires whisper-cpp-python.\n"
+            "Install it:\n"
+            "  pipx inject specsmith whisper-cpp-python  (recommended)\n"
+            "  pip install specsmith[voice]\n"
+            "Then download a model:\n"
+            f"  mkdir -p {default_model_dir()}\n"
+            "  curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
+            "ggml-tiny.en.bin -o ~/.specsmith/voice/ggml-tiny.en.bin"
         ) from exc
 
     model_path = _resolve_model_path()
     if model_path is None:
         raise VoiceUnavailableError(
-            "No whisper model found. Set SPECSMITH_VOICE_MODEL or place a "
-            f".bin model under {default_model_dir()}."
+            f"No whisper model found under {default_model_dir()}.\n"
+            "Download a model (replace tiny.en with base/small/medium as needed):\n"
+            "  curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
+            "ggml-tiny.en.bin -o ~/.specsmith/voice/ggml-tiny.en.bin\n"
+            "Or set SPECSMITH_VOICE_MODEL=/path/to/model.bin"
         )
 
     start = _time.perf_counter()

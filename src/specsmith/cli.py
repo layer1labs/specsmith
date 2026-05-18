@@ -9002,7 +9002,13 @@ def dispatch_run_cmd(
         return
     except ImportError:
         # AG2 not installed — fall through to manual path
-        pass
+        console.print(
+            "[yellow]\u26a0[/yellow]  ag2 not found \u2014 running single-node fallback DAG.\n"
+            "  Install full multi-agent support:\n"
+            "    [bold]pip install ag2\\[ollama][/bold]  (local Ollama)\n"
+            "    [bold]pip install ag2\\[anthropic][/bold]  (Anthropic Claude)\n"
+            "  Then re-run for parallel multi-agent dispatch."
+        )
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Orchestrator unavailable ({exc}), using manual dispatch.[/yellow]")
 

@@ -196,6 +196,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._session_history()
         elif self.path.startswith("/api/session/context-seed"):
             self._session_context_seed()
+        elif self.path.startswith("/api/audit"):
+            self._audit_status()
         # ── Dispatch endpoints (REQ-332) ──────────────────────────────
         elif self.path.startswith("/api/dispatch/events"):
             self._dispatch_sse()
@@ -624,6 +626,33 @@ class _Handler(BaseHTTPRequestHandler):
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc), "history": []})
+
+    def _audit_status(self) -> None:
+        """GET /api/audit — return governance audit health status.
+
+        Kairos calls this to show live audit state in the governance page.
+        Returns the same data as ``specsmith audit`` in JSON form.
+        """
+        try:
+            from specsmith.auditor import run_audit
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            report = run_audit(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "healthy": report.healthy,
+                    "passed": report.passed,
+                    "failed": report.failed,
+                    "fixable": report.fixable,
+                    "results": [
+                        {"name": r.name, "passed": r.passed, "message": r.message}
+                        for r in report.results
+                    ],
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
 
     def _session_context_seed(self) -> None:
         """GET /api/session/context-seed — return the epistemic continuity seed.
