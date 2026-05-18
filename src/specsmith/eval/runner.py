@@ -16,9 +16,7 @@ def _provider_available() -> str | None:
     try:
         import urllib.request
 
-        req = urllib.request.Request(
-            "http://127.0.0.1:11434/api/tags", method="GET"
-        )
+        req = urllib.request.Request("http://127.0.0.1:11434/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=1):
             pass
         return "ollama"
