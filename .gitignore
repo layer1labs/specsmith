@@ -41,6 +41,9 @@ temp/
 # Secrets and local-only artifacts
 .env
 .repo-index/
+
+# ChronoMemory ESDB runtime files (WAL, snapshot — regenerated automatically)
+.chronomemory/
 # Local diagnostic / one-off scripts (absolute paths, never commit)
 _diag_*.py
 
