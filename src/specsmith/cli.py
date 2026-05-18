@@ -8789,18 +8789,51 @@ def eval_list_cmd(as_json: bool) -> None:
 @eval_group.command(name="run")
 @click.argument("suite_id", default="core")
 @click.option("--json", "as_json", is_flag=True, default=False)
-def eval_run_cmd(suite_id: str, as_json: bool) -> None:
-    """Run an eval suite (stub mode — no real LLM calls)."""
+@click.option(
+    "--real",
+    "use_real",
+    is_flag=True,
+    default=False,
+    help=(
+        "Use a real LLM provider (auto-detected: Ollama first, then ANTHROPIC_API_KEY / "
+        "OPENAI_API_KEY / GOOGLE_API_KEY).  Falls back to stub when no provider is reachable."
+    ),
+)
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root passed to the agent when --real is set (default: current directory).",
+)
+def eval_run_cmd(suite_id: str, as_json: bool, use_real: bool, project_dir: str) -> None:
+    """Run an eval suite against a stub or real LLM provider.
+
+    \b
+    Examples:
+      specsmith eval run                # stub mode, core suite
+      specsmith eval run governance     # stub mode, named suite
+      specsmith eval run --real         # auto-detect Ollama / cloud provider
+      specsmith eval run core --real --project-dir /path/to/project
+    """
     import json as _json
+    import os
 
     from specsmith.eval.builtins import get_suite
     from specsmith.eval.runner import run_suite
+
+    if use_real:
+        os.environ.setdefault("SPECSMITH_EVAL_PROJECT", str(Path(project_dir).resolve()))
 
     suite = get_suite(suite_id)
     if suite is None:
         console.print(f"[red]Suite not found:[/red] {suite_id}")
         raise SystemExit(1)
-    report = run_suite(suite, stub=True)
+
+    mode_label = "[cyan]real[/cyan]" if use_real else "[dim]stub[/dim]"
+    console.print(f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n")
+
+    report = run_suite(suite, stub=not use_real)
+
     if as_json:
         click.echo(_json.dumps(report.to_dict(), indent=2))
         return
@@ -8813,7 +8846,8 @@ def eval_run_cmd(suite_id: str, as_json: bool) -> None:
     )
     for r in report.results:
         ri = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
-        console.print(f"  {ri} {r.case_id}  score={r.score:.0%}  {r.latency_ms:.0f}ms")
+        err = f"  [dim]{r.error}[/dim]" if r.error else ""
+        console.print(f"  {ri} {r.case_id}  score={r.score:.0%}  {r.latency_ms:.0f}ms{err}")
 
 
 @eval_group.command(name="report")

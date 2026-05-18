@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import io
 import time
 
 from specsmith.eval import EvalCase, EvalReport, EvalResult, EvalSuite
@@ -52,7 +53,9 @@ def run_case_real(case: EvalCase, *, provider: str = "ollama") -> EvalResult:
         from specsmith.agent.events import EventEmitter
 
         project_dir = Path(os.environ.get("SPECSMITH_EVAL_PROJECT", ".")).resolve()
-        emitter = EventEmitter(stream=None)  # type: ignore[arg-type]
+        # Use an in-memory sink so event writes don't go to stdout and
+        # don't crash with AttributeError when stream=None.
+        emitter = EventEmitter(stream=io.StringIO())
         result = run_chat(
             case.input,
             project_dir=project_dir,
@@ -198,4 +201,10 @@ def generate_markdown_report(report: EvalReport) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["generate_markdown_report", "run_case_stub", "run_suite", "score_output"]
+__all__ = [
+    "generate_markdown_report",
+    "run_case_real",
+    "run_case_stub",
+    "run_suite",
+    "score_output",
+]
