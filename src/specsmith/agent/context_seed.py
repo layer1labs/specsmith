@@ -127,7 +127,7 @@ def _format_session_summary(ctx: dict[str, Any]) -> str:
         from specsmith.session_store import make_resume_message
 
         resume = make_resume_message(ctx)
-        content = resume.get("content", "")
+        content = str(resume.get("content") or "")
         extras = []
         if ctx.get("total_requirements"):
             covered = ctx.get("covered_requirements", 0)
