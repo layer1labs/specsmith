@@ -60,6 +60,15 @@ jobs:
           sed -i "s/version = \"${BASE_VERSION}\"/version = \"${DEV_VERSION}\"/" pyproject.toml
           echo "Building version: ${DEV_VERSION}"
 
+      - name: Strip git-URL deps before PyPI build
+        run: |
+          # PyPI rejects packages with direct git:// / git+https:// dependencies.
+          # chronomemory is not yet on PyPI; remove the line so the wheel uploads cleanly.
+          # TODO: replace with chronomemory>=0.1.0 once chronomemory is published to PyPI.
+          sed -i '/chronomemory @ git+/d' pyproject.toml
+          echo "pyproject.toml after stripping git deps:"
+          grep -A2 'dependencies' pyproject.toml | head -20
+
       - run: python -m build
 
       - name: Publish dev release to PyPI
