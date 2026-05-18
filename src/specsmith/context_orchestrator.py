@@ -232,7 +232,7 @@ class ContextOrchestrator:
         if not wal.exists():
             return 0
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(self.root) as store:
                 records = store.query()
@@ -253,7 +253,7 @@ class ContextOrchestrator:
         if not wal.exists():
             return 0
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(self.root) as store:
                 return sum(

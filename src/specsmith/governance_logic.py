@@ -753,7 +753,7 @@ class GovernanceHTTPServer:
                 # ── ESDB ──────────────────────────────────────────────
                 elif self.path == "/api/esdb/status":
                     try:
-                        from specsmith.esdb.bridge import EsdbBridge
+                        from chronomemory import EsdbBridge
 
                         bridge = EsdbBridge(project_dir)
                         self._json_ok(bridge.status().to_dict())
@@ -761,7 +761,7 @@ class GovernanceHTTPServer:
                         self._json_err(str(exc), code=500)
                 elif self.path == "/api/esdb/counts":
                     try:
-                        from specsmith.esdb.bridge import EsdbBridge
+                        from chronomemory import EsdbBridge
 
                         bridge = EsdbBridge(project_dir)
                         self._json_ok(bridge.record_counts())

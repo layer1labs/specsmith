@@ -44,7 +44,7 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
     wal = root / ".chronomemory" / "events.wal"
     if wal.exists():
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(root) as store:
                 for rec in store.query(rag_filter=True):  # confidence >= 0.6

@@ -3715,7 +3715,7 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
         )
         action = "skills_hint"
     elif any(k in lower for k in ("esdb", "database", "backup", "export", "records")):
-        from specsmith.esdb.bridge import EsdbBridge
+        from chronomemory import EsdbBridge
 
         try:
             bridge = EsdbBridge(project_dir)
@@ -9253,7 +9253,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     """Show ESDB status and record counts."""
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     bridge = EsdbBridge(project_dir)
     st = bridge.status()
@@ -9284,7 +9284,7 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     import datetime
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
@@ -9363,7 +9363,7 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     migrate_counts: dict[str, int] = {}
     if ok:
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(root) as store:
                 migrate_counts = store.migrate_from_json(root / ".specsmith")
@@ -9503,7 +9503,7 @@ def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
     """Export the full ESDB to a JSON file."""
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     bridge = EsdbBridge(project_dir)
     st = bridge.status()
@@ -9579,7 +9579,7 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     import datetime
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
@@ -9591,7 +9591,7 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     wal = root / ".chronomemory" / "events.wal"
     if wal.exists():
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(root) as store:
                 bp = store.backup()
@@ -9645,7 +9645,7 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     """
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     root = Path(project_dir).resolve()
     backups_dir = root / ".specsmith" / "backups"
@@ -9760,7 +9760,7 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
             removed_tests = before - after
         path.write_text(_json.dumps(compacted, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from chronomemory import EsdbBridge
 
     bridge = EsdbBridge(project_dir)
     st = bridge.status()

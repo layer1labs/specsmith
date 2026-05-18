@@ -41,6 +41,7 @@ dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
+    "chronomemory @ git+https://github.com/layer1labs/chronomemory.git",
 ]
 
 [project.optional-dependencies]
@@ -162,6 +163,8 @@ module = [
     "sentence_transformers.*",
     "whisper_cpp_python",  # optional [voice] extra (REQ-141)
     "whisper_cpp_python.*",
+    "chronomemory",   # git dep — no published stubs yet
+    "chronomemory.*",
 ]
 ignore_missing_imports = true
 
@@ -216,8 +219,6 @@ module = [
     "specsmith.ci_manager",
     "specsmith.context_orchestrator",
     "specsmith.session_store",
-    "specsmith.esdb.store",
-    "specsmith.esdb.bridge",
 ]
 ignore_errors = true
 

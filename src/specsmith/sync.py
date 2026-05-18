@@ -389,7 +389,7 @@ def _sync_esdb(root: Path, state_dir: Path) -> None:
         return  # ESDB not initialised for this project yet
 
     try:
-        from specsmith.esdb.store import ChronoRecord, ChronoStore
+        from chronomemory import ChronoRecord, ChronoStore
 
         store = ChronoStore(root).open()
         _map = ChronoStore._governance_to_esdb_status

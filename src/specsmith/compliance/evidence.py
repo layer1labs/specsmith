@@ -93,7 +93,7 @@ class EvidenceCollector:
         if not self.esdb_available():
             return 0
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(self.root) as store:
                 return store.record_count()
@@ -105,7 +105,7 @@ class EvidenceCollector:
         if not self.esdb_available():
             return True  # No WAL = no chain to verify
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(self.root) as store:
                 return store.chain_valid()
@@ -117,7 +117,7 @@ class EvidenceCollector:
         if not self.esdb_available():
             return 0
         try:
-            from specsmith.esdb.store import ChronoStore
+            from chronomemory import ChronoStore
 
             with ChronoStore(self.root) as store:
                 return len(store.query(kind="compliance_result"))
