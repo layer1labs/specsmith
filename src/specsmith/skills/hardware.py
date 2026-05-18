@@ -454,11 +454,11 @@ After ANY edit to RTL sources or IP files, delete the Vivado project and rebuild
 from scratch. Incremental rebuild silently uses stale netlists.
 ### Windows (PowerShell)
 ```powershell
-Remove-Item -Recurse -Force .work\vivado -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path .work\vivado | Out-Null
-Push-Location .work\vivado
-& $vivado -mode batch -source "..\..\hardware\scripts\create_project.tcl"
-& $vivado -mode batch -source "..\..\hardware\scripts\build_bitstream.tcl"
+Remove-Item -Recurse -Force .work/vivado -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path .work/vivado | Out-Null
+Push-Location .work/vivado
+& $vivado -mode batch -source '../../hardware/scripts/create_project.tcl'
+& $vivado -mode batch -source '../../hardware/scripts/build_bitstream.tcl'
 Pop-Location
 ```
 ### Linux (bash)
@@ -674,7 +674,7 @@ xsdb program_zynq.tcl
 import mmap, struct
 
 def open_mmio(base_addr, size=0x10000):
-    """Open /dev/mem region. Requires sudo on Ubuntu (CONFIG_STRICT_DEVMEM=y)."""
+    ""'Open /dev/mem region. Requires sudo on Ubuntu (CONFIG_STRICT_DEVMEM=y).'""
     with open("/dev/mem", "r+b", 0) as f:
         return mmap.mmap(f.fileno(), size,
                          mmap.MAP_SHARED,
