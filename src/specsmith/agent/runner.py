@@ -164,8 +164,17 @@ class AgentRunner:
         )
         self._hard_stop = False
         self._started_at = time.time()
-        self._history: list[dict[str, Any]] = []
         self._block_counter = 0
+
+        # Epistemic continuity (REQ-307): seed history from the previous
+        # session so the agent never starts blind.  Assembled from:
+        #   • session-state.json  (health, phase, compliance snapshot)
+        #   • conversation-history.jsonl  (recent prior turns)
+        #   • LEDGER.md  (last 30 governance entries)
+        #   • ESDB ChronoRecords  (last 5 epistemic facts)
+        # Best-effort: failure silently yields an empty seed so the agent
+        # still starts even with a corrupt / missing state store.
+        self._history: list[dict[str, Any]] = self._build_context_seed()
 
         # Best-effort routing-table load. A missing or invalid file falls
         # back to single-profile behaviour so existing setups keep working.
@@ -465,6 +474,19 @@ class AgentRunner:
             return _v("specsmith")
         except Exception:  # noqa: BLE001
             return "0.0.0"
+
+    def _build_context_seed(self) -> list[dict[str, Any]]:
+        """Load prior session context for epistemic continuity (REQ-307).
+
+        Returns an empty list if there is no prior state or if the project
+        directory is not a governed project.  Never raises.
+        """
+        try:
+            from specsmith.agent.context_seed import build_context_seed
+
+            return build_context_seed(self.project_dir)
+        except Exception:  # noqa: BLE001
+            return []
 
     def _seal_profile_pin(self, profile_id: str) -> None:
         """Append a TraceVault decision seal recording the ``/agent`` pin (G4).
