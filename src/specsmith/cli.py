@@ -9786,6 +9786,126 @@ main.add_command(esdb_group)
 
 
 # ---------------------------------------------------------------------------
+# specsmith test-ran — record test result in governance data  (#168)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="test-ran")
+@click.argument("test_id")
+@click.option(
+    "--result",
+    type=click.Choice(["passed", "failed", "error", "skipped"]),
+    required=True,
+    help="Outcome of the test run.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def test_ran_cmd(test_id: str, result: str, project_dir: str, as_json: bool) -> None:
+    """Record a test run result in governance data.
+
+    Updates .specsmith/testcases.json with last_result and last_run_at fields.
+    If --result passed, transitions the test case status from pending →
+    implemented so that phase readiness and audit ledger reflect the coverage.
+
+    \b
+    Examples:
+      specsmith test-ran TEST-001 --result passed
+      specsmith test-ran TEST-CA-004 --result failed --json
+    """
+    import datetime
+    import json as _json
+
+    root = Path(project_dir).resolve()
+    tc_path = root / ".specsmith" / "testcases.json"
+    if not tc_path.is_file():
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": "testcases.json not found"}, indent=2))
+        else:
+            console.print("[red]\u2717[/red] .specsmith/testcases.json not found.")
+            console.print("  Run [bold]specsmith sync[/bold] first.")
+        raise SystemExit(1)
+
+    try:
+        records = _json.loads(tc_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] Cannot read testcases.json: {exc}")
+        raise SystemExit(1) from None
+
+    test_id_upper = test_id.upper()
+    found = False
+    old_status = ""
+    new_status = ""
+
+    now_iso = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for rec in records:
+        if not isinstance(rec, dict):
+            continue
+        if rec.get("id", "").upper() == test_id_upper:
+            found = True
+            old_status = str(rec.get("status", "pending"))
+            rec["last_result"] = result
+            rec["last_run_at"] = now_iso
+            # Promote pending → implemented when test passes (#168)
+            if result == "passed" and old_status in ("pending", "PENDING", "not-implemented"):
+                rec["status"] = "implemented"
+            elif result == "failed":
+                rec["status"] = "failing"
+            new_status = str(rec.get("status", old_status))
+            break
+
+    if not found:
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": f"{test_id_upper} not found"}, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] Test case [bold]{test_id_upper}[/bold] not found.")
+            console.print("  Run [bold]specsmith sync[/bold] to refresh testcases.json.")
+        raise SystemExit(1)
+
+    tc_path.write_text(_json.dumps(records, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    # Best-effort ledger entry
+    try:
+        from specsmith.ledger import add_entry
+
+        add_entry(
+            root,
+            description=(
+                f"test-ran {test_id_upper}: {result}"
+                + (
+                    f" (status: {old_status} \u2192 {new_status})"
+                    if old_status != new_status
+                    else ""
+                )
+            ),
+            entry_type="test-ran",
+            author="specsmith",
+            reqs=test_id_upper,
+        )
+    except Exception:  # noqa: BLE001
+        pass  # Ledger write is best-effort; never block the update
+
+    payload = {
+        "ok": True,
+        "test_id": test_id_upper,
+        "result": result,
+        "old_status": old_status,
+        "new_status": new_status,
+        "recorded_at": now_iso,
+    }
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+    else:
+        icon = "[green]\u2714[/green]" if result == "passed" else "[yellow]\u26a0[/yellow]"
+        console.print(
+            f"{icon} [bold]{test_id_upper}[/bold] → {result}"
+            + (f"  (status: {old_status} → {new_status})" if old_status != new_status else "")
+        )
+
+
+# ---------------------------------------------------------------------------
 # model-intel — HuggingFace leaderboard + bucket scoring (REQ-269)
 # ---------------------------------------------------------------------------
 

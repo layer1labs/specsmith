@@ -59,6 +59,7 @@ def run_preflight(
         ``confidence_target``, ``instruction``, ``intent``, ``ai_disclosure``.
     """
     import json as _json
+    import re as _re
 
     from specsmith import __version__
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
@@ -73,8 +74,42 @@ def run_preflight(
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
 
+    # ── Direct ID extraction (fix #166) ──────────────────────────────────────
+    # If the utterance contains explicit REQ-*/TEST-* IDs, look them up in the
+    # JSON machine state and merge them in — this handles project-prefixed IDs
+    # (e.g. REQ-NN-001, TEST-NN-002a) that token overlap may not catch.
+    _EXPLICIT_REQ = _re.compile(r"\b(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+)\b", _re.IGNORECASE)
+    _EXPLICIT_TEST = _re.compile(r"\b(TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[A-Za-z]*)\b", _re.IGNORECASE)
+    explicit_req_ids = [m.upper() for m in _EXPLICIT_REQ.findall(utterance)]
+    explicit_test_ids = [m.upper() for m in _EXPLICIT_TEST.findall(utterance)]
+
+    # Validate explicit REQ IDs against requirements.json and add any that match.
+    if explicit_req_ids:
+        rq_json = (root / ".specsmith" / "requirements.json").resolve()
+        if rq_json.is_file():
+            try:
+                rq_records = _json.loads(rq_json.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                rq_records = []
+            known_req_ids = {r["id"] for r in rq_records if isinstance(r, dict) and r.get("id")}
+            for eid in explicit_req_ids:
+                if eid in known_req_ids and eid not in requirement_ids:
+                    requirement_ids.append(eid)
+
     # Resolve test case IDs from machine state
     test_case_ids: list[str] = []
+    # Include any explicitly named TEST-* IDs from the utterance.
+    if explicit_test_ids:
+        tc_json_explicit = (root / ".specsmith" / "testcases.json").resolve()
+        if tc_json_explicit.is_file():
+            try:
+                tc_explicit = _json.loads(tc_json_explicit.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                tc_explicit = []
+            known_tc_ids = {r["id"] for r in tc_explicit if isinstance(r, dict) and r.get("id")}
+            for eid in explicit_test_ids:
+                if eid in known_tc_ids:
+                    test_case_ids.append(eid)
     if requirement_ids:
         # .resolve() here clears taint for CodeQL py/path-injection; path is
         # constructed from a validated root with a constant suffix.
@@ -90,6 +125,7 @@ def run_preflight(
                     isinstance(rec, dict)
                     and rec.get("requirement_id") in req_set
                     and isinstance(rec.get("id"), str)
+                    and rec["id"] not in test_case_ids
                 ):
                     test_case_ids.append(rec["id"])
 
@@ -118,13 +154,14 @@ def run_preflight(
         )
         confidence_target = 0.9
     else:  # CHANGE
-        if scope.is_known:
+        # Accept if scope matched via token overlap OR explicit IDs were found (#166)
+        if scope.is_known or requirement_ids:
             decision_str = "accepted"
             instruction = (
                 "Change request matched existing governance scope. "
                 "Proceed under Specsmith verification."
             )
-            confidence_target = max(0.7, scope.confidence)
+            confidence_target = max(0.7, scope.confidence) if scope.is_known else 0.8
         else:
             decision_str = "needs_clarification"
             instruction = (
