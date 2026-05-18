@@ -76,10 +76,13 @@ jobs:
           # Delete any existing 'latest-dev' tag+release so we can overwrite it.
           gh release delete latest-dev --repo ${{ github.repository }} \
             --yes --cleanup-tag 2>/dev/null || true
+          # Also remove any stale local tag (actions/checkout may have fetched it)
+          git tag -d latest-dev 2>/dev/null || true
           gh release create latest-dev dist/* \
             --title "Latest dev build (${DEV_VERSION})" \
             --notes "Rolling dev pre-release built from the develop branch." \
-            --prerelease
+            --prerelease \
+            --target "${{ github.sha }}"
           # --prerelease already prevents GitHub from marking this as the default
           # 'latest' release — no extra flag needed.
 
