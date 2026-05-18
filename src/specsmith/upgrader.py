@@ -136,6 +136,25 @@ def run_upgrade(
 
     result = UpgradeResult()
 
+    # ESDB auto-migration: if .specsmith/ exists but .chronomemory/ does not,
+    # migrate flat JSON to ChronoStore WAL automatically.
+    specsmith_dir = root / ".specsmith"
+    chronomemory_wal = root / ".chronomemory" / "events.wal"
+    if specsmith_dir.is_dir() and not chronomemory_wal.exists():
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                counts = store.migrate_from_json(specsmith_dir)
+            reqs_m = counts.get("requirements", 0)
+            tests_m = counts.get("testcases", 0)
+            if reqs_m + tests_m > 0:
+                result.updated_files.append(
+                    f".chronomemory/events.wal (migrated {reqs_m} reqs + {tests_m} tests from JSON)"
+                )
+        except Exception:  # noqa: BLE001
+            pass  # Non-fatal — JSON fallback still works
+
     # Migrate legacy filenames (including WORKFLOW.md → SESSION-PROTOCOL.md)
     _migrate_legacy_filenames(root, result)
 
@@ -175,6 +194,24 @@ def run_upgrade(
     if full:
         result.updated_files.extend(_sync_full(root, config, env, ctx))
 
+    # Migrate TEST_SPEC.md → TESTS.md for projects upgrading from pre-0.10.1 (#160)
+    _migrate_test_spec_filename(root, result)
+
+    # Run pending migrations (versioned, auto-apply, droppable)
+    # Drop path: remove migrations/ package + this block for v1.0 release
+    try:
+        from specsmith.migrations.runner import MigrationRunner
+
+        runner = MigrationRunner(root)
+        migration_results = runner.run_pending()
+        for mr in migration_results:
+            if mr.success and mr.files_created:
+                result.updated_files.extend(
+                    f"[migration v{mr.version}] {f}" for f in mr.files_created
+                )
+    except Exception:  # noqa: BLE001
+        pass  # Migrations are non-critical
+
     result.message = (
         f"Upgraded from {old_version} to {new_version}. "
         f"{len(result.updated_files)} files updated, {len(result.skipped_files)} skipped."
@@ -213,16 +250,23 @@ def _sync_full(
 
     from specsmith.scaffolder import _build_community_files
 
+    # Determine which platforms this project targets (#122)
+    _platforms = {p.lower() for p in (config.platforms or [])}
+    _has_unix = bool(_platforms & {"linux", "macos"}) or not _platforms  # default=all
+    _has_windows = bool(_platforms & {"windows"}) or not _platforms  # default=all
+
     # 1. Exec shims — always regenerate (carries PID tracking / abort fixes)
     shim_templates = [
-        ("scripts/exec.cmd.j2", "scripts/exec.cmd"),
-        ("scripts/exec.sh.j2", "scripts/exec.sh"),
-        ("scripts/setup.cmd.j2", "scripts/setup.cmd"),
-        ("scripts/setup.sh.j2", "scripts/setup.sh"),
-        ("scripts/run.cmd.j2", "scripts/run.cmd"),
-        ("scripts/run.sh.j2", "scripts/run.sh"),
+        ("scripts/exec.cmd.j2", "scripts/exec.cmd", _has_windows),
+        ("scripts/exec.sh.j2", "scripts/exec.sh", _has_unix),
+        ("scripts/setup.cmd.j2", "scripts/setup.cmd", _has_windows),
+        ("scripts/setup.sh.j2", "scripts/setup.sh", _has_unix),
+        ("scripts/run.cmd.j2", "scripts/run.cmd", _has_windows),
+        ("scripts/run.sh.j2", "scripts/run.sh", _has_unix),
     ]
-    for tmpl_name, output_rel in shim_templates:
+    for tmpl_name, output_rel, should_generate in shim_templates:
+        if not should_generate:
+            continue  # Skip .sh for windows-only projects (#122)
         out = root / output_rel
         out.parent.mkdir(parents=True, exist_ok=True)
         tmpl = env.get_template(tmpl_name)
@@ -322,6 +366,48 @@ def _sync_full(
         synced.append(".specsmith/credit-budget.json (created)")
 
     return synced
+
+
+def _migrate_test_spec_filename(root: Path, result: UpgradeResult) -> None:
+    """Rename docs/TEST_SPEC.md -> docs/TESTS.md for pre-0.10.1 projects (#160).
+
+    Also updates all references in AGENTS.md, CONTRIBUTING.md, README.md, LEDGER.md.
+    Only runs when TEST_SPEC.md exists and TESTS.md does NOT exist.
+    """
+    import shutil
+
+    old = root / "docs" / "TEST_SPEC.md"
+    new = root / "docs" / "TESTS.md"
+
+    if not old.exists() or new.exists():
+        return  # Nothing to do
+
+    shutil.move(str(old), str(new))
+    result.updated_files.append("docs/TEST_SPEC.md -> docs/TESTS.md")
+
+    # Update references in key docs
+    _ref_targets = [
+        root / "AGENTS.md",
+        root / "CONTRIBUTING.md",
+        root / "README.md",
+        root / "LEDGER.md",
+        root / "docs" / "LEDGER.md",
+        root / "docs" / "governance" / "RULES.md",
+        root / "docs" / "governance" / "VERIFICATION.md",
+    ]
+    for ref_path in _ref_targets:
+        if not ref_path.exists():
+            continue
+        try:
+            text = ref_path.read_text(encoding="utf-8")
+            updated = text.replace("TEST_SPEC.md", "TESTS.md").replace("test_spec.md", "TESTS.md")
+            if updated != text:
+                ref_path.write_text(updated, encoding="utf-8")
+                result.updated_files.append(
+                    f"{ref_path.relative_to(root)} (updated TEST_SPEC.md references)"
+                )
+        except OSError:  # File not accessible — skip silently
+            pass
 
 
 def _migrate_legacy_filenames(root: Path, result: UpgradeResult) -> None:

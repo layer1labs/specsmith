@@ -57,10 +57,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # NOTE: using --no-latest during the dev/pre-release phase so that the
+          # rolling dev pre-release stays as the visible "latest" on GitHub.
+          # FIRST STABLE RELEASE: change --no-latest to --latest here, and also
+          # update kairos_updater.rs default channel back to Stable.
           gh release create "${{ github.ref_name }}" dist/* \
             --title "${{ github.ref_name }}" \
             --generate-notes \
-            --latest || echo "Release already exists — skipping"
+            --no-latest || echo "Release already exists — skipping"
 
   pypi-publish:
     needs: build

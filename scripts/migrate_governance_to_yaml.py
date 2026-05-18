@@ -23,7 +23,26 @@ from pathlib import Path
 
 import yaml  # PyYAML — already in specsmith's deps
 
-ROOT = Path(__file__).resolve().parents[1]
+def _get_root() -> Path:
+    """Resolve the target project root.
+
+    Priority:
+      1. --project-dir CLI argument
+      2. CWD (default, works for external projects)
+
+    This function runs before argparse for the ROOT module-level variable, so
+    we use a lightweight manual check. The argument is also surfaced to argparse
+    for --help and explicit passing.
+    """
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg.startswith("--project-dir="):
+            return Path(arg.split("=", 1)[1]).resolve()
+        if arg == "--project-dir" and i < len(sys.argv):
+            return Path(sys.argv[i + 1]).resolve()
+    return Path.cwd()
+
+
+ROOT = _get_root()
 DOCS = ROOT / "docs"
 REQS_MD = DOCS / "REQUIREMENTS.md"
 TESTS_MD = DOCS / "TESTS.md"

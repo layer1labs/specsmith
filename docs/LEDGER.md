@@ -133,6 +133,136 @@
 - **Chain hash**: auto
 
 
+## 2026-05-14T16:00 --- WI-0514c: Phase 2 Token/Context UX — kairos REQ-020/021/022
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: kairos REQ-020, REQ-021, REQ-022
+- **Description**: Phase 2 Token/Context UX landed in kairos. New `ContextFillState`
+  singleton (`kairos_context_fill.rs`) tracks fill % and num_ctx; registered in
+  `initialize_app()`. New Settings → Token Usage page (`token_usage_page.rs`) fetches
+  `specsmith credits summary --json` and displays tokens, cost, per-model breakdown,
+  budget. Governance page enhanced with Context Window card: real-time fill dot from
+  `ContextFillState`, editable num_ctx input saved via `specsmith config set
+  ollama.num_ctx`. Docs: REQ-019..022 and TEST-019..022 added to kairos governance
+  artifacts. kairos commit: 1025ed5.
+- **Status**: complete
+- **Chain hash**: auto
+
+
+## 2026-05-14T12:42 --- WI-0514b: specsmith issue group + kairos bug report page (REQ-303, REQ-304)
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-303,REQ-304
+- **Description**: Added duplicate-guarded GitHub issue filing. `src/specsmith/issue_reporter.py`: `search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report` (Jaccard similarity, `gh` CLI + unauthenticated REST fallback). `specsmith issue` CLI group (check/file/search, all with --json). 32 passing tests. api_surface.json updated. CHANGELOG [0.11.3-post1] added. kairos `bug_report_page.rs` added: in-app form with repo selector, title/description inputs, Check Duplicates, File Report; `SettingsSection::BugReport` wired into settings infrastructure; Help menu updated. kairos FTL strings, REQ-019/TEST-019 added.
+- **Status**: complete
+- **Chain hash**: auto
+
+
+## 2026-05-14T10:55 --- WI-0514: v0.11.3 release prep (REQ-302)
+- **Author**: oz-agent
+- **Type**: release
+- **REQs affected**: REQ-302
+- **Description**: Session cleanup and release. Added `_diag_*.py` to .gitignore (diagnostic-only script, never commit). Documented 4 unreleased post-v0.11.2 commits in CHANGELOG [0.11.3]: YAML-first `specsmith req add` / `specsmith test add` commands (REQ-302), real `esdb migrate` + `esdb replay` implementations (stub removal), lint/format fixes. Bumped pyproject.toml and __init__.py from 0.11.2 to 0.11.3. CI was already green; Dependabot clean.
+- **Status**: complete
+- **Chain hash**: auto
+
+
+## 2026-05-15T14:08 --- WI-0516: EU/NA compliance, governance consolidation, AGENTS.md slim, migration framework
+- **Author**: oz-agent
+- **Type**: feature / governance / docs
+- **REQs affected**: REQ-313,REQ-314,REQ-315,REQ-316,REQ-317,REQ-318,REQ-319,REQ-320
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Major compliance and governance consolidation sprint:
+
+  **Compliance package** (`src/specsmith/compliance/`): Structured regulation definitions for
+  8 EU/NA regulations (May 2026): EU AI Act 2024/1689 (Arts. 5/9/12/13/14/15/52/72),
+  NIST AI RMF 1.0 + AI 600-1 GenAI Profile, OMB M-24-10, Colorado SB24-205 (eff. Feb 2026),
+  Texas HB 1709 (eff. Sep 2025), Illinois AIETA, California ADMT, NYC LL 144.
+  ESDB-backed evidence collection (EvidenceCollector), per-regulation compliance checking
+  (ComplianceChecker), JSON/Markdown/HTML report generation (ComplianceReporter).
+  CLI: `specsmith compliance check/report/audit/list`. REST: `GET /api/compliance/status`.
+  Compliance results stored as ChronoRecord(kind=compliance_result) in ESDB.
+  Old `compliance.py` content moved to `compliance/_compat.py` and re-exported.
+
+  **Governance consolidation** (`src/specsmith/governance_store.py`): GovernanceStore reads
+  `.specsmith/governance/*.yaml` (preferred) with fallback to `docs/governance/*.md`.
+  `.specsmith/governance/rules.yaml` written with H1-H22 as structured YAML.
+  REST: `GET /api/governance/rules`.
+
+  **AGENTS.md slim**: `templates/agents.md.j2` → minimal 20-line specsmith-delegation template.
+  specsmith `AGENTS.md` updated to slim format. Original backed up by M002 migration.
+
+  **Migration framework** (`src/specsmith/migrations/`): Versioned, isolated, droppable.
+  4 migrations: M001 (governance YAML), M002 (slim AGENTS.md), M003 (compliance init),
+  M004 (ledger ESDB). Runner tracks applied versions in `.specsmith/migration-state.json`.
+  `specsmith migrate list/run` CLI. `upgrader.py` runs `MigrationRunner.run_pending()`.
+  Drop path: delete `src/specsmith/migrations/` + one line in upgrader.py for v1.0 release.
+
+  **`serve.py`**: `GET /api/compliance/status`, `GET /api/governance/rules` added.
+
+  **`tests/fixtures/api_surface.json`**: +compliance, +migrate commands.
+
+  **`.specsmith/governance/rules.yaml`**: H1-H22 rules as canonical YAML.
+
+
+## 2026-05-15T13:30 --- WI-0515-INFRA: ESDB write layer, CI/CD automation, context orchestration, session persistence, OEA hardening
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-305,REQ-306,REQ-307,REQ-308,REQ-309,REQ-310,REQ-311,REQ-312
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Major infrastructure sprint across 9 workstreams:
+
+  **Phase A — CI/CD fixes**: Fixed all GitHub Actions version references in specsmith and kairos CIs
+  (checkout@v6→v4, setup-python@v6→v5, cache@v5→v4, upload-artifact@v7→v4, download-artifact@v8→v4).
+  Added `.github/dependabot.yml` to both repos. Added CodeQL workflow to specsmith. Added
+  `cargo audit` job to kairos CI. Added `specsmith ci enable/status/watch` commands via
+  `src/specsmith/ci_manager.py`. Added `GET /api/ci/status` to serve.py. Updated
+  `vcs/github.py` CI generator to emit correct action versions.
+
+  **Phase B — ChronoStore ESDB**: Implemented `src/specsmith/esdb/store.py` with
+  `ChronoStore` — a pure-Python WAL-based per-project ESDB at `.chronomemory/events.wal`.
+  SHA-256 hash chain, crash-safe atomic WAL appends, snapshot.json every 50 events.
+  All records carry OEA anti-hallucination fields: source_type (H19), confidence (H17),
+  evidence (H20), epistemic_boundary (H15), is_hypothesis (H20), model_assumptions (H21),
+  recursion_depth (H16). `EsdbBridge` updated to delegate to `ChronoStore` when available.
+  `esdb migrate` updated to call `ChronoStore.migrate_from_json()`. `upgrader.py` auto-migrates
+  on `specsmith upgrade`. `retrieval.py` injects only confidence >= 0.6 records (H18).
+  `tests/fixtures/api_surface.json` updated with ci + context commands.
+
+  **Phase C — Session persistence**: New `src/specsmith/session_store.py`: atomic
+  `.specsmith/session-state.json` + `.specsmith/conversation-history.jsonl` (200-turn cap).
+  `GET /api/session/history` and `POST /api/session/save` added to serve.py.
+
+  **Phase D — Context orchestrator**: New `src/specsmith/context_orchestrator.py` with
+  three-tier auto-optimization (Tier1@60%, Tier2@80%, Tier3@85% emergency). `specsmith
+  context optimize [--dry-run]` CLI command. "Never delete from WAL" invariant enforced.
+
+  **Phase F — Governance**: REQ-305 through REQ-312 added to `docs/REQUIREMENTS.md`.
+  Governance invariants I-ESDB-1/2, I-SES-1, I-CTX-1, I-CI-1 added to `docs/governance/RULES.md`.
+
+
+## 2026-05-15T12:42 --- WI-0515-GOV: Governance H15–H22 + OEA paper integration
+- **Author**: oz-agent
+- **Type**: docs / governance
+- **REQs affected**: REQ-001 (governance rules)
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Extended specsmith governance hard rules from H1–H14 to H1–H22.
+  H12 updated for cross-platform coverage (Windows `.cmd/.ps1`, macOS/Linux `sh/bash`).
+  H15–H22 added covering anti-hallucination principles from the OEA Recursive Generative
+  Stability research (BitConcepts Research, 2026): epistemic scope bounding (H15),
+  anti-drift recursion guard (H16), calibration direction (H17), RAG retrieval filtering (H18),
+  synthetic contamination prevention (H19), falsifiability required (H20), no undisclosed
+  model assumptions (H21), cross-platform CI enforcement (H22).
+  Documentation updated across: `docs/governance/RULES.md`, `docs/site/governance.md`,
+  `docs/site/index.md`, `docs/governance/EPISTEMIC-AXIOMS.md`, `docs/ARCHITECTURE.md §28`,
+  `README.md`. Kairos compliance page header range updated to H1–H22.
+  OEA paper cited as external empirical validation of the five AEE axioms via
+  axiom↔OEA control mechanism correspondence table in `EPISTEMIC-AXIOMS.md`.
+
+
 ## 2026-05-12T13:06 --- WI-0512-GAPS: Arch/req/test gap audit + TEST-282/TEST-283 added (REQ-263, REQ-265)
 - **Author**: oz-agent
 - **Type**: test
@@ -140,3 +270,33 @@
 - **Description**: Audit revealed REQ-263 (HF paginated sync persists bucket scores) and REQ-265 (HF API token in Authorization header) lacked explicit pytest coverage. Added TEST-282 (`TestHFSyncPersistsBucketScores` — verifies scores.json created with bucket_scores dict and all required keys per entry) and TEST-283 (`TestHFTokenInHeaders` — verifies token_set flag, rate_limit_tier, and Authorization header capture via mock). Both entries added to docs/TESTS.md. `specsmith sync` updated testcases.json to 260 entries.
 - **Status**: complete
 - **Chain hash**: auto
+
+## 2026-05-17T15:45 — Implemented multi-agent DAG dispatcher (REQ-321..REQ-334): dispatch/ package with TaskDAG/AgentDispatcher/EventEmitter, orchestrator.run_dispatch(), spawner.spawn_worker(), CLI dispatch group, serve.py SSE+REST dispatch endpoints, Kairos Rust dispatch panel (DispatchPanelView, GanttStrip, controls). Added compiler/tool support: run_gcc, run_arm_gcc, run_aarch64_gcc, run_iar_compiler, run_intel_compiler, run_clang_format, run_clang_tidy, run_vsg.
+- **Author**: oz-agent
+- **Type**: feature
+- **Status**: complete
+- **Chain hash**: `a412cb4f3ac05f14...`
+
+## 2026-05-17T16:01 — Full traceability sweep: added docs/requirements/dispatch.yml + docs/tests/dispatch.yml (YAML source for REQ-321..334), ran specsmith sync (0 errors, 0 warnings), fixed ARCHITECTURE.md section numbering (duplicate 15/16 corrected), added REQ-313..320 reservation note, updated README.md (dispatch+compiler sections), CHANGELOG.md (v0.11.3-post2), docs/site/commands.md (dispatch group + compiler tools), docs/site/tool-registry.md (agent tools + ROLE_TOOLS). All tests: 777 passed.
+- **Author**: oz-agent
+- **Type**: documentation
+- **Status**: complete
+- **Chain hash**: `e519c3f3fc417915...`
+
+## 2026-05-17T16:12 — Final gap sweep: added apply_diff/search_web/search_repo tool stubs to close ROLE_TOOLS vs AVAILABLE_TOOLS mismatch (23 tools total, no refs missing); added Dispatch to README 50+ CLI Commands section; restored yaml_governance.yml row in ARCHITECTURE.md domain table (REQ-300..312); fixed Kairos post_action to spawn background thread (no UI-thread blocking on retry/abort POST).
+- **Author**: oz-agent
+- **Type**: fix
+- **Status**: complete
+- **Chain hash**: `9a0d63f844078d5a...`
+
+## 2026-05-17T16:31 — Resolved all deferred items: (1) abort mid-LLM-call via _invoke_worker_monitored sub-thread with 0.5s abort polling; (2) CLI dispatch run uses Orchestrator._call_planner when AG2 available (Path A/B fallback); (3) Kairos topological DAG layout with depends_on payload, compute_levels(), bezier edge drawing; (4) REQ-313..320 compliance plan 5939f743 implemented and tested.
+- **Author**: oz-agent
+- **Type**: feature
+- **Status**: complete
+- **Chain hash**: `f91cae2487897572...`
+
+## 2026-05-17T16:53 — Removed all specsmith-vscode / VS Code extension references across specsmith and Kairos docs. Deleted docs/site/vscode-extension.md. Updated mkdocs.yml nav (Kairos Client page). Fixed index.md, quickstart.md, commands.md, getting-started.md, troubleshooting.md, endpoints.md, PRIVACY.md, runner.py, core.py, events.py, suggester.py, languages.py, cli.py, agent.yml REQs/TESTs, README.md. Kairos is now the sole documented client.
+- **Author**: oz-agent
+- **Type**: fix
+- **Status**: complete
+- **Chain hash**: `1e48aaf097e11726...`

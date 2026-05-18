@@ -199,7 +199,9 @@ be overwritten by the next sync.
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
-| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+| `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer |
+| `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability |
+| `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
 
 **Migration from Markdown-primary:** Run
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
@@ -250,11 +252,11 @@ human oversight, and robustness. specsmith implements:
 across the AI lifecycle. specsmith addresses all four core functions:
 
 | NIST AI RMF Function | specsmith Mechanism |
-|---|---|
-| **GOVERN** — Policies & accountability | Governance rules (H1–H13), permissions profile, `scaffold.yml` policy |
-| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
-| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
-| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
+||---|
+|| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
+|| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
+|| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
+|| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
 
 ### How Each Compliance Mechanism Works
 
@@ -593,6 +595,91 @@ interrupting the active session.
 
 ---
 
+## Multi-Agent DAG Dispatcher (REQ-321..334)
+
+The `specsmith dispatch` command group decomposes a task into a **Directed Acyclic Graph** of
+agent work items and executes them concurrently, with fail-forward BLOCKED propagation and
+ESDB context injection between nodes.
+
+```bash
+# Run a task through the DAG dispatcher (default: up to 4 concurrent workers)
+specsmith dispatch run "add API endpoint with tests" --max-workers 4
+
+# Stream JSONL events while the run is in progress
+specsmith dispatch run "refactor auth module" --json
+
+# Check status of a saved run
+specsmith dispatch status --dag-id abc123def456
+
+# List all saved runs
+specsmith dispatch list
+
+# Retry a single failed node from a checkpoint
+specsmith dispatch retry --node impl --dag-id abc123def456
+```
+
+The dispatcher is also available programmatically:
+
+```python
+from specsmith.agent.orchestrator import Orchestrator
+
+orchestrator = Orchestrator()
+
+# Use the DAG path (falls back to GroupChat on cycle detection)
+result = orchestrator.run_task("add feature X", use_dag=True)
+
+# Always use DAG — returns DispatchSummary with per-node outcomes
+summary = orchestrator.run_dispatch(
+    "add feature X",
+    planner_output=[
+        {"id": "arch", "title": "Design", "role": "architect", "depends_on": []},
+        {"id": "impl", "title": "Implement", "role": "coder", "depends_on": ["arch"]},
+        {"id": "test", "title": "Write tests", "role": "tester", "depends_on": ["arch"]},
+    ],
+    max_workers=3,
+)
+print(f"{len(summary.completed)} completed, {len(summary.failed)} failed")
+```
+
+Events are persisted to `.specsmith/dispatch/<dag_id>/events.jsonl` for resume and replay.
+Kairos renders the live dispatch view — see `app/` for build instructions.
+
+---
+
+## Compiler and Tool Support
+
+All agent roles can invoke compiler, linter, and formatter tools. These are registered in
+`AVAILABLE_TOOLS` and wired into `ROLE_TOOLS` for the `coder`, `reviewer`, `tester`, `architect`,
+and `embedded-coder` roles.
+
+| Tool | Function | Default binary |
+|------|----------|-|
+| GCC / G++ | `run_gcc(args, compiler='gcc')` | `gcc` / `g++` |
+| ARM bare-metal | `run_arm_gcc(args, compiler='arm-none-eabi-gcc')` | `arm-none-eabi-gcc` |
+| AArch64 Linux | `run_aarch64_gcc(args, compiler='aarch64-linux-gnu-gcc')` | `aarch64-linux-gnu-gcc` |
+| IAR Embedded | `run_iar_compiler(project_file, executable='IarBuild')` | `IarBuild` |
+| Intel oneAPI | `run_intel_compiler(args, compiler='icx')` | `icx` / `icpx` / `icc` |
+| clang-format | `run_clang_format(files, style='file', in_place=False)` | `clang-format` |
+| clang-tidy | `run_clang_tidy(files, checks='', fix=False)` | `clang-tidy` |
+| VSG (VHDL) | `run_vsg(files, rules=None, fix=False)` | `vsg` |
+
+All tools are usable directly in the agentic REPL and in `specsmith dispatch` worker nodes:
+
+```python
+from specsmith.agent.tools import run_arm_gcc, run_clang_tidy, run_vsg
+
+# Cross-compile for ARM bare-metal
+result = run_arm_gcc("-Wall -O2 main.c -o firmware.elf", compiler="arm-none-eabi-gcc")
+
+# Lint C/C++ with clang-tidy
+result = run_clang_tidy("src/", checks="modernize-*,readability-*")
+
+# Style-check VHDL files
+result = run_vsg("rtl/top.vhd", rules="vsg_rules.yaml")
+```
+
+---
+
 ## Kairos — Flagship Terminal Client
 
 **[Kairos](https://github.com/BitConcepts/kairos)** is the recommended terminal client for specsmith.
@@ -605,7 +692,14 @@ specsmith status, version, and one-click update.
 specsmith governance-serve --port 7700 --project-dir .
 ```
 
-The VS Code extension (`specsmith-vscode`) has been **deprecated** in favour of Kairos.
+The Kairos **Dispatch Panel** (`app/` — Rust, egui/eframe) renders the multi-agent DAG live:
+- SVG DAG graph with nodes coloured by status (grey/blue/green/red/amber)
+- Gantt timeline strip showing parallelism
+- Per-node Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
+- Subscribes to `GET /api/dispatch/events?dag_id=` SSE from `specsmith serve`
+
+Build Kairos dispatch panel: `cd app && cargo build --release`
+
 Use `pipx install specsmith` for standalone CLI usage from any terminal.
 
 ---
@@ -674,6 +768,8 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills` `agent suggest-profiles` `agent endpoint-presets`
 
+**Dispatch:** `dispatch run` `dispatch status` `dispatch list` `dispatch retry`
+
 **Model Intel:** `model-intel sync` `model-intel scores` `model-intel recommendations` `model-intel connection`
 
 **Ollama:** `ollama list/available/gpu/pull/suggest`
@@ -727,13 +823,42 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 
 ---
 
-## Governance Rules (H1–H13)
+## Governance Rules (H1–H22)
 
-13 hard rules enforced by `specsmith validate`:
+22 hard rules enforced by `specsmith validate` and `specsmith audit`.
+Full rule text: [`docs/governance/RULES.md`](docs/governance/RULES.md)
 
-- **H11** — Every loop or blocking wait must have a timeout, fallback exit, and diagnostic message.
-- **H12** — Windows multi-step automation goes into `.cmd` files, not inline shell invocations.
-- **H13** — Agent tools must declare epistemic contracts (what they claim and what they cannot detect).
+**H1–H14 — Core engineering and traceability rules:**
+- **H1** — No ledger entry = work not done.
+- **H2** — No proposal = no execution.
+- **H3** — All work must consider every target platform.
+- **H4** — No system-dependent assumptions; virtual environments required.
+- **H5** — No hidden service logic.
+- **H6** — If the task grows beyond the proposal, stop and re-propose.
+- **H7** — Every state change must be traceable and recorded.
+- **H8** — Architecture changes MUST update docs in the same work cycle.
+- **H9** — Every agent command must have a timeout.
+- **H10** — No hardcoded version strings outside `pyproject.toml`.
+- **H11** — Every loop must have a deadline; no unbounded blocking I/O.
+- **H12** — Platform-aware automation: sh/bash on Unix, `.cmd`/`.ps1` on Windows.
+- **H13** — Every proposal must declare its epistemic boundaries and assumptions.
+- **H14** — Documentation must be updated in the same work cycle as code changes.
+
+**H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
+
+Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
+Generative Stability"* study (BitConcepts Research, 2026), which empirically validated
+the primary control mechanisms for preventing hallucination and semantic drift in
+production LLM systems:
+
+- **H15** — Epistemic scope bounding: no claims outside verified knowledge; say "unknown" rather than fabricate.
+- **H16** — Anti-drift recursion guard: max 5 autonomous generation steps before a human checkpoint.
+- **H17** — Calibration direction: express uncertainty, not false confidence.
+- **H18** — RAG retrieval filtering: validate context relevance (similarity ≥ 0.6) before injection.
+- **H19** — Synthetic contamination prevention: never mix synthetic and real data silently.
+- **H20** — Falsifiability required: cite sources or flag claims as `[HYPOTHESIS]`.
+- **H21** — Disclose all model-specific assumptions (context window, format, temperature).
+- **H22** — Cross-platform CI: green on one OS ≠ cross-platform coverage.
 
 ---
 

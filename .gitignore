@@ -41,6 +41,8 @@ temp/
 # Secrets and local-only artifacts
 .env
 .repo-index/
+# Local diagnostic / one-off scripts (absolute paths, never commit)
+_diag_*.py
 
 # .specsmith/ split: committed (audit chain) vs gitignored (runtime cache)
 # Keep committed: config.yml, requirements.json, testcases.json
@@ -60,10 +62,15 @@ temp/
 .specsmith/logs/
 .specsmith/sessions/
 .specsmith/agent-reports/
+# Dispatch DAG event logs (runtime only — replay from .chronomemory if needed)
+.specsmith/dispatch/
+# Generated migration scan manifest (re-created by specsmith esdb migrate)
+.specsmith/esdb_migration_manifest.json
 
 # Old Warp branding directory — renamed to .kairos/; prevent accidental re-creation
 .warp/
 
-# Rust build artifacts (chronomemory crate)
+# Rust build artifacts
 crates/chronomemory/target/
+app/target/
 

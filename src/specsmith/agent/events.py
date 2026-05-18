@@ -3,7 +3,7 @@
 """Block-based JSONL event protocol for `specsmith chat` (REQ-112, REQ-113, REQ-114).
 
 The protocol is the contract between the Specsmith chat backend and any
-client (the Nexus REPL itself, the VS Code extension, or future TUIs).
+client (the Nexus REPL itself, Kairos, or future TUIs).
 Every event is a single JSON object on its own line with a ``type`` key.
 
 Event kinds
@@ -77,7 +77,7 @@ class EventEmitter:
     ) -> None:
         """Emit the bridge handshake frame (REQ-145).
 
-        The VS Code extension's :class:`SpecsmithBridge` keys off this
+        Kairos and compatible clients key off this
         single event to flip from ``starting`` → ``waiting`` and to start
         flushing the queued user prompts. Schema is intentionally flat so
         a ``JSON.parse`` line check is enough on the consumer side.

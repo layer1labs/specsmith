@@ -136,16 +136,36 @@ def _scaffold_field(key: str) -> Callable[[Path], bool]:
 
 
 def _trace_vault_exists() -> Callable[[Path], bool]:
+    """Return True if the trace vault has at least 1 seal."""
+
     def _check(root: Path) -> bool:
-        # Accept either naming convention used by specsmith trace commands.
         for name in ("trace-vault.jsonl", "trace.jsonl"):
             vault = root / ".specsmith" / name
             if vault.exists():
                 try:
-                    return (
-                        len(vault.read_text(encoding="utf-8", errors="ignore").strip().splitlines())
-                        >= 1
-                    )
+                    lines = vault.read_text(encoding="utf-8", errors="ignore").strip().splitlines()
+                    return len(lines) >= 1
+                except OSError:
+                    pass
+        return False
+
+    return _check
+
+
+def _trace_vault_min_seals(min_count: int) -> Callable[[Path], bool]:
+    """Return True if the trace vault has at least `min_count` seals."""
+
+    def _check(root: Path) -> bool:
+        for name in ("trace-vault.jsonl", "trace.jsonl"):
+            vault = root / ".specsmith" / name
+            if vault.exists():
+                try:
+                    lines = [
+                        ln
+                        for ln in vault.read_text(encoding="utf-8", errors="ignore").splitlines()
+                        if ln.strip()
+                    ]
+                    return len(lines) >= min_count
                 except OSError:
                     pass
         return False
@@ -307,7 +327,17 @@ PHASES: list[Phase] = [
             ),
             PhaseCheck("Audit passes", _file_exists("AGENTS.md")),
             PhaseCheck("docs/TESTS.md exists", _file_exists("docs/TESTS.md")),
-            PhaseCheck("docs/REQUIREMENTS.md exists", _req_count(1)),
+            # #127: use a permissive file-exists check, not _req_count, so Draft-only
+            # projects aren't blocked by the misleading "REQUIREMENTS.md exists" message.
+            # The actual count check is advisory and belongs in check_req_test_consistency.
+            PhaseCheck(
+                "docs/REQUIREMENTS.md has content",
+                lambda root: any(
+                    (root / c).exists()
+                    and len((root / c).read_text(encoding="utf-8", errors="ignore").strip()) > 0
+                    for c in ["docs/REQUIREMENTS.md", "REQUIREMENTS.md"]
+                ),
+            ),
         ],
         commands=[
             "specsmith audit --fix",
@@ -326,7 +356,7 @@ PHASES: list[Phase] = [
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
             PhaseCheck("TEST coverage \u2265 80 %", _test_spec_covers_reqs(80)),
             PhaseCheck("Trace vault has seals", _trace_vault_exists()),
-            PhaseCheck("Trace vault has \u2265 2 seals", _trace_vault_exists()),
+            PhaseCheck("Trace vault has \u2265 2 seals", _trace_vault_min_seals(2)),
             PhaseCheck(
                 "docs/LEDGER.md has content",
                 lambda root: (

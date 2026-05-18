@@ -34,7 +34,7 @@ _WAIT_PATTERNS = (
 )
 
 
-@dataclass(slots=True)
+@dataclass
 class ModelRateLimitProfile:
     """Rate-limit profile for a single provider/model path."""
 
@@ -45,6 +45,10 @@ class ModelRateLimitProfile:
     utilization_target: float = 0.7
     concurrency_cap: int = 1
     source: str = "local"
+    # Per-bucket concurrency overrides (#120): reasoning, conversational, longform, background
+    concurrency_by_bucket: dict[str, int] = field(default_factory=dict)
+    # Thinking/reasoning token support (#117): tpm_thinking_budget
+    tpm_thinking_budget: int = 0
 
     def __post_init__(self) -> None:
         self.provider = _normalize_key_part(self.provider)
@@ -72,6 +76,30 @@ class ModelRateLimitProfile:
     def effective_tpm_limit(self) -> int:
         """Budgeted token ceiling after utilization target is applied."""
         return max(1, int(math.floor(self.tpm_limit * self.utilization_target)))
+
+    def concurrency_for_bucket(self, bucket: str | None = None) -> int:
+        """Return the concurrency cap for *bucket*, or the model-level default.
+
+        Per-bucket caps (#120) allow, e.g., `reasoning` bucket to use cap=1
+        while `conversational` bucket uses cap=8 on the same model.
+        """
+        if bucket and self.concurrency_by_bucket:
+            return self.concurrency_by_bucket.get(bucket, self.concurrency_cap)
+        return self.concurrency_cap
+
+    def effective_tpm_for_request(
+        self,
+        estimated_total_tokens: int,
+        thinking_budget: int = 0,
+    ) -> int:
+        """Return effective TPM consumption including thinking tokens (#117).
+
+        For reasoning models (Gemini 2.5, o3, Claude 3.7) that emit thinking
+        tokens, the actual TPM consumption = prompt + thinking + output.
+        Use tpm_thinking_budget as the default thinking token estimate.
+        """
+        thinking = thinking_budget or self.tpm_thinking_budget
+        return estimated_total_tokens + thinking
 
     def matches(self, provider: str, model: str) -> bool:
         """Check if this profile applies to the given provider/model."""
@@ -356,8 +384,17 @@ class RateLimitScheduler:
         *,
         estimated_input_tokens: int,
         max_output_tokens: int,
+        bucket: str | None = None,
+        thinking_budget: int = 0,
     ) -> RateLimitReservation:
-        """Block until RPM/TPM budget and concurrency are available."""
+        """Block until RPM/TPM budget and concurrency are available.
+
+        Args:
+            bucket: Optional task-type bucket (e.g. 'reasoning', 'conversational').
+                    Used to look up per-bucket concurrency caps (#120).
+            thinking_budget: Estimated thinking/reasoning tokens for this request.
+                    Used to compute realistic TPM consumption for reasoning models (#117).
+        """
         profile = self._resolve_profile(provider, model)
         state = self._get_state(profile)
         waited_seconds = 0.0
@@ -604,7 +641,7 @@ class RateLimitScheduler:
 
         tokens_to_free = current_tokens + estimated_total_tokens - token_limit
         freed_tokens = 0
-        wait_seconds = 0.0
+        wait_seconds: float
         for event in state.token_events:
             freed_tokens += event.tokens
             wait_seconds = max(0.0, event.timestamp + self._window_seconds - now)

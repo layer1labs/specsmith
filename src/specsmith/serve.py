@@ -13,6 +13,7 @@ Endpoints:
     GET  /api/status        — session state JSON
     POST /api/stop          — stop the current turn
     GET  /api/health        — liveness probe
+    GET  /api/audit         — governance audit health status
 
 Launch:
     specsmith serve --port 8421 --project-dir .
@@ -154,6 +155,10 @@ class _Handler(BaseHTTPRequestHandler):
     bus: _EventBus
     agent: _AgentThread
     auth_token: str = ""  # populated by run_server / make_server when set
+    # Live dispatch EventEmitter instances keyed by dag_id (REQ-332)
+    _dispatch_emitters: dict[str, Any] = {}
+    # Live AgentDispatcher instances keyed by dag_id (needed for abort)
+    _dispatch_instances: dict[str, Any] = {}
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Suppress default stderr logging."""
@@ -182,6 +187,25 @@ class _Handler(BaseHTTPRequestHandler):
             self._json_response(self.agent.status())
         elif self.path == "/api/health":
             self._json_response({"ok": True})
+        elif self.path == "/api/ci/status":
+            self._ci_status()
+        elif self.path == "/api/compliance/status":
+            self._compliance_status()
+        elif self.path == "/api/governance/rules":
+            self._governance_rules()
+        elif self.path.startswith("/api/session/history"):
+            self._session_history()
+        elif self.path.startswith("/api/session/context-seed"):
+            self._session_context_seed()
+        elif self.path.startswith("/api/audit"):
+            self._audit_status()
+        # ── Dispatch endpoints (REQ-332) ──────────────────────────────
+        elif self.path.startswith("/api/dispatch/events"):
+            self._dispatch_sse()
+        elif self.path.startswith("/api/dispatch/status"):
+            self._dispatch_status()
+        elif self.path.startswith("/api/dispatch/list"):
+            self._dispatch_list()
         else:
             self.send_error(404)
 
@@ -200,6 +224,17 @@ class _Handler(BaseHTTPRequestHandler):
         elif self.path == "/api/stop":
             self.agent.stop_turn()
             self._json_response({"ok": True})
+        elif self.path == "/api/session/save":
+            self._session_save()
+        elif self.path == "/api/session/clear":
+            self._session_clear()
+        # ── Dispatch endpoints (REQ-332) ──────────────────────────────
+        elif self.path == "/api/dispatch/run":
+            self._dispatch_run()
+        elif self.path == "/api/dispatch/retry":
+            self._dispatch_retry()
+        elif self.path == "/api/dispatch/abort":
+            self._dispatch_abort()
         else:
             self.send_error(404)
 
@@ -245,6 +280,275 @@ class _Handler(BaseHTTPRequestHandler):
 
     # ── Helpers ────────────────────────────────────────────────────
 
+    # ── Dispatch handlers ──────────────────────────────────────────
+
+    def _parse_query(self, path: str) -> dict[str, str]:
+        """Parse query string from a URL path."""
+        from urllib.parse import parse_qs, urlparse
+
+        parsed = urlparse(path)
+        qs = parse_qs(parsed.query)
+        return {k: v[0] for k, v in qs.items()}
+
+    def _dispatch_sse(self) -> None:
+        """GET /api/dispatch/events?dag_id=<ID>
+
+        Replays persisted events.jsonl then streams live events (REQ-332).
+        """
+        params = self._parse_query(self.path)
+        dag_id = params.get("dag_id", "")
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+        except ImportError:
+            self.wfile.write(b'data: {"error": "dispatch not available"}\n\n')
+            self.wfile.flush()
+            return
+
+        # Replay persisted events first
+        if dag_id:
+            past = EventEmitter.replay(root, dag_id)
+            for evt in past:
+                line = f"data: {evt.to_json()}\n\n".encode()
+                try:
+                    self.wfile.write(line)
+                    self.wfile.flush()
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    return
+
+        # Subscribe to live events via _dispatch_emitters registry
+        emitter = type(self)._dispatch_emitters.get(dag_id) if dag_id else None
+        if emitter is None:
+            # No live run — replay was all we had
+            return
+
+        q = emitter.subscribe()
+        try:
+            while True:
+                try:
+                    evt = q.get(timeout=30)
+                except queue.Empty:
+                    self.wfile.write(b": keepalive\n\n")
+                    self.wfile.flush()
+                    continue
+                if evt is None:
+                    break
+                line = f"data: {evt.to_json()}\n\n".encode()
+                self.wfile.write(line)
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass  # client disconnected mid-stream — normal SSE teardown
+        finally:
+            emitter.unsubscribe(q)
+
+    def _dispatch_status(self) -> None:
+        """GET /api/dispatch/status?dag_id=<ID> — current DispatchSummary JSON."""
+        params = self._parse_query(self.path)
+        dag_id = params.get("dag_id", "")
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+
+            events = EventEmitter.replay(root, dag_id) if dag_id else []
+            node_status: dict[str, str] = {}
+            for evt in events:
+                if evt.event_type in (
+                    "node_started",
+                    "node_completed",
+                    "node_failed",
+                    "node_blocked",
+                ):
+                    node_status[evt.node_id] = evt.event_type.replace("node_", "")
+            done = sum(1 for s in node_status.values() if s == "completed")
+            failed = sum(1 for s in node_status.values() if s == "failed")
+            self._json_response(
+                {
+                    "dag_id": dag_id,
+                    "nodes": node_status,
+                    "completed": done,
+                    "failed": failed,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _dispatch_list(self) -> None:
+        """GET /api/dispatch/list — all saved DAG run IDs."""
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        try:
+            from specsmith.agent.dispatch.events import EventEmitter
+
+            runs = EventEmitter.list_runs(Path(project_dir))
+            self._json_response({"runs": runs, "count": len(runs)})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "runs": []})
+
+    def _dispatch_run(self) -> None:
+        """POST /api/dispatch/run — {"task": "...", "max_workers": 4}."""
+        body = self._read_json() or {}
+        task = body.get("task", "").strip()
+        if not task:
+            self._json_response({"error": "missing task"}, code=400)
+            return
+        max_workers = int(body.get("max_workers", 4))
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+
+        try:
+            from specsmith.agent.dispatch import (
+                AgentDispatcher,
+                AgentPool,
+                EventEmitter,
+                TaskDAGBuilder,
+            )
+        except ImportError as exc:
+            self._json_response({"error": f"dispatch not available: {exc}"}, code=503)
+            return
+
+        try:
+            dag = TaskDAGBuilder.build(task)
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"error": f"DAG build failed: {exc}"}, code=400)
+            return
+
+        emitter = EventEmitter(root, dag.dag_id)
+        type(self)._dispatch_emitters[dag.dag_id] = emitter
+
+        llm_config = {"config_list": [], "temperature": 0.0}
+        pool = AgentPool(llm_config, max_workers=max_workers)
+        dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+        type(self)._dispatch_instances[dag.dag_id] = dispatcher
+
+        # Run in background thread
+        def _bg() -> None:
+            try:
+                dispatcher.run()
+            finally:
+                type(self)._dispatch_emitters.pop(dag.dag_id, None)
+                type(self)._dispatch_instances.pop(dag.dag_id, None)
+
+        import threading
+
+        t = threading.Thread(target=_bg, daemon=True, name=f"dispatch-{dag.dag_id}")
+        t.start()
+
+        self._json_response({"ok": True, "dag_id": dag.dag_id})
+
+    def _dispatch_retry(self) -> None:
+        """POST /api/dispatch/retry — {"dag_id": "...", "node_id": "..."}.
+
+        Builds a single-node retry DAG from the node's last role in events.jsonl
+        and runs it as a background dispatch job. Returns the new retry dag_id.
+        """
+        body = self._read_json() or {}
+        dag_id = body.get("dag_id", "")
+        node_id = body.get("node_id", "")
+        if not dag_id or not node_id:
+            self._json_response({"error": "missing dag_id or node_id"}, code=400)
+            return
+        project_dir = self.agent._project_dir  # noqa: SLF001
+        root = Path(project_dir)
+        try:
+            from specsmith.agent.dispatch import (
+                AgentDispatcher,
+                AgentPool,
+                EventEmitter,
+                TaskDAG,
+                TaskNode,
+            )
+
+            past = EventEmitter.replay(root, dag_id)
+            # Reconstruct role for the node from past events
+            role = "coder"
+            for evt in past:
+                if evt.node_id == node_id and evt.event_type == "node_started":
+                    role = evt.payload.get("role", "coder")
+                    break
+            node_status = {e.node_id: e.event_type for e in past if e.node_id == node_id}
+            last_event = node_status.get(node_id, "")
+            if last_event == "node_completed":
+                self._json_response(
+                    {
+                        "ok": False,
+                        "error": f"Node {node_id!r} is already completed",
+                    }
+                )
+                return
+            # Build a single-node retry DAG
+            retry_dag_id = f"{dag_id}-retry-{node_id}"
+            retry_dag = TaskDAG(dag_id=retry_dag_id)
+            retry_dag.add_node(TaskNode(id=node_id, title=node_id, role=role))
+            llm_config = {"config_list": [], "temperature": 0.0}
+            emitter = EventEmitter(root, retry_dag_id)
+            type(self)._dispatch_emitters[retry_dag_id] = emitter
+            pool = AgentPool(llm_config, max_workers=1)
+            dispatcher = AgentDispatcher(retry_dag, pool, emitter, project_root=root, max_workers=1)
+
+            def _bg() -> None:
+                try:
+                    dispatcher.run()
+                finally:
+                    type(self)._dispatch_emitters.pop(retry_dag_id, None)
+
+            import threading
+
+            t = threading.Thread(target=_bg, daemon=True, name=f"retry-{retry_dag_id}")
+            t.start()
+            self._json_response(
+                {
+                    "ok": True,
+                    "dag_id": retry_dag_id,
+                    "node_id": node_id,
+                    "status": "running",
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _dispatch_abort(self) -> None:
+        """POST /api/dispatch/abort — {"dag_id": "...", "node_id": "..."}.
+
+        Calls AgentDispatcher.abort_node() which sets a per-node threading.Event.
+        The worker thread will see it at the next checkpoint and transition to FAILED.
+        """
+        body = self._read_json() or {}
+        dag_id = body.get("dag_id", "")
+        node_id = body.get("node_id", "")
+        if not dag_id or not node_id:
+            self._json_response({"error": "missing dag_id or node_id"}, code=400)
+            return
+        dispatcher = type(self)._dispatch_instances.get(dag_id)
+        if dispatcher is None:
+            self._json_response({"ok": False, "error": f"No live run for dag_id={dag_id!r}"})
+            return
+        found = dispatcher.abort_node(node_id)
+        if found:
+            self._json_response(
+                {
+                    "ok": True,
+                    "dag_id": dag_id,
+                    "node_id": node_id,
+                    "status": "abort signalled",
+                }
+            )
+        else:
+            self._json_response(
+                {
+                    "ok": False,
+                    "error": f"Node {node_id!r} not found in dag {dag_id!r}",
+                }
+            )
+
     def _read_json(self) -> dict[str, Any] | None:
         length = int(self.headers.get("Content-Length", 0))
         if length == 0:
@@ -255,6 +559,158 @@ class _Handler(BaseHTTPRequestHandler):
             return result
         except json.JSONDecodeError:
             return None
+
+    # ── CI status ────────────────────────────────────────────────
+
+    def _compliance_status(self) -> None:
+        """GET /api/compliance/status — return latest compliance check results."""
+        try:
+            from specsmith.compliance.checker import ComplianceChecker
+            from specsmith.compliance.reporter import ComplianceReporter
+
+            checker = ComplianceChecker(self.agent._project_dir)  # noqa: SLF001
+            # Quick check: only run all if ESDB results are stale (> 24h old)
+            # For speed, run a lightweight subset of regulations
+            results = checker.check_all()
+            reporter = ComplianceReporter(results)
+            self._json_response(
+                {
+                    "ok": True,
+                    "summary": reporter._summary_dict(),
+                    "regulations": [r.to_dict() for r in results],
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _governance_rules(self) -> None:
+        """GET /api/governance/rules — return governance rules from store."""
+        try:
+            from specsmith.governance_store import GovernanceStore
+
+            store = GovernanceStore(self.agent._project_dir)  # noqa: SLF001
+            rules = store.load_rules()
+            self._json_response({"ok": True, "rules": rules, "count": len(rules)})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "rules": []})
+
+    def _ci_status(self) -> None:
+        """GET /api/ci/status — return CI/CD status for the project."""
+        try:
+            from specsmith.ci_manager import CiManager
+
+            manager = CiManager(self.agent._project_dir)  # noqa: SLF001
+            result = manager.status()
+            self._json_response(result.to_dict())
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"error": str(exc), "ci_available": False})
+
+    # ── Session history ───────────────────────────────────────────
+
+    def _session_history(self) -> None:
+        """GET /api/session/history — return stored conversation history."""
+        try:
+            from pathlib import Path
+
+            from specsmith.session_store import load_session
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            ctx_dict, history = load_session(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "has_previous_session": ctx_dict is not None,
+                    "session_context": ctx_dict or {},
+                    "history": history,
+                    "turn_count": len(history),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "history": []})
+
+    def _audit_status(self) -> None:
+        """GET /api/audit — return governance audit health status.
+
+        Kairos calls this to show live audit state in the governance page.
+        Returns the same data as ``specsmith audit`` in JSON form.
+        """
+        try:
+            from specsmith.auditor import run_audit
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            report = run_audit(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "healthy": report.healthy,
+                    "passed": report.passed,
+                    "failed": report.failed,
+                    "fixable": report.fixable,
+                    "results": [
+                        {"name": r.name, "passed": r.passed, "message": r.message}
+                        for r in report.results
+                    ],
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _session_context_seed(self) -> None:
+        """GET /api/session/context-seed — return the epistemic continuity seed.
+
+        Kairos calls this to display what context the agent already has
+        from prior sessions: health snapshot, recent turns, LEDGER + ESDB.
+        """
+        try:
+            from specsmith.agent.context_seed import build_context_seed
+
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            seed = build_context_seed(root)
+            self._json_response(
+                {
+                    "ok": True,
+                    "seed_turns": len(seed),
+                    "seed": seed,
+                    "project_dir": str(root),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc), "seed": []})
+
+    def _session_clear(self) -> None:
+        """POST /api/session/clear — wipe session state for a fresh start.
+
+        Deletes session-state.json and conversation-history.jsonl so
+        the next agent session starts without prior context.
+        """
+        try:
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            specsmith_dir = root / ".specsmith"
+            removed = []
+            for fname in ("session-state.json", "conversation-history.jsonl"):
+                p = specsmith_dir / fname
+                if p.exists():
+                    p.unlink()
+                    removed.append(fname)
+            self._json_response({"ok": True, "removed": removed})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
+
+    def _session_save(self) -> None:
+        """POST /api/session/save — persist current session state."""
+        try:
+            from pathlib import Path
+
+            from specsmith.session_store import save_if_governed
+
+            body = self._read_json() or {}
+            history = body.get("history", [])
+            ctx_dict = self.agent.status()
+            root = Path(self.agent._project_dir)  # noqa: SLF001
+            saved = save_if_governed(root, ctx_dict, history)
+            self._json_response({"ok": True, "saved": saved})
+        except Exception as exc:  # noqa: BLE001
+            self._json_response({"ok": False, "error": str(exc)})
 
     def _json_response(
         self,
@@ -327,11 +783,18 @@ def run_server(
         f"  Provider: {provider}/{model or '(default)'}\n"
         f"{auth_note}"
         f"  Endpoints:\n"
-        f"    GET  /api/events  — SSE event stream\n"
-        f"    POST /api/send    — send a message\n"
-        f"    GET  /api/status  — session status\n"
-        f"    POST /api/stop    — stop current turn\n"
-        f"    GET  /api/health  — unauthenticated liveness\n"
+        f"    GET  /api/events                    — SSE event stream\n"
+        f"    POST /api/send                      — send a message\n"
+        f"    GET  /api/status                    — session status\n"
+        f"    POST /api/stop                      — stop current turn\n"
+        f"    GET  /api/health                    — unauthenticated liveness\n"
+        f"  Dispatch (REQ-332):\n"
+        f"    POST /api/dispatch/run              — start DAG run\n"
+        f"    GET  /api/dispatch/events?dag_id=   — live SSE + replay\n"
+        f"    GET  /api/dispatch/status?dag_id=   — current node status\n"
+        f"    GET  /api/dispatch/list             — list saved runs\n"
+        f"    POST /api/dispatch/retry            — retry failed node\n"
+        f"    POST /api/dispatch/abort            — abort running node\n"
         f"  Press Ctrl+C to stop.\n",
         file=sys.stderr,
     )

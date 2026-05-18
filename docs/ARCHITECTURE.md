@@ -52,36 +52,69 @@ The runtime layer executes actions through:
 
 The runtime layer performs work, but governance determines whether the work is valid.
 
-## 3. Existing Specsmith System
+## 3. Implemented Specsmith System (Current State)
 
-Specsmith currently includes:
+Specsmith is a fully implemented AEE toolkit as of v0.11.3. This section documents the actual implemented system, not planned behavior.
 
-- Click-based CLI entrypoint
-- scaffold generation
-- governance file generation
-- AEE commands
-- agentic client commands
-- auditor/exporter/importer functionality
-- optional LLM/provider support
-- GUI workbench
-- trace vault and ledger functionality
-- compatibility shim for the standalone `epistemic` package
+### Core CLI and Scaffold Layer
+- `cli.py` — Click-based CLI with 60+ commands (preflight, verify, validate, audit, compliance, migrate, ci, esdb, context, session, etc.)
+- `config.py` — Project configuration and type system
+- `scaffolder.py` — Project scaffold generation for 30+ project types
+- `importer.py` / `exporter.py` — Project import and compliance export
+- `auditor.py` — Governance drift and health checks (28 checks)
+- `ledger.py` — Ledger event management and hash chaining
+- `integrations/` — Adapter layer for GitHub, GitLab, Bitbucket
+- `vcs/` — VCS platform abstraction
 
-Existing major modules include:
+### Agent and Agentic Runtime
+- `src/specsmith/agent/` — Full agentic client: runner, broker, tools, providers, profiles, spawner, teams, permissions, memory, optimizer, model intelligence, rate limits
+- `src/specsmith/agent/broker.py` — Natural-language governance broker (classify intent, infer scope, preflight, verify, execute_with_governance)
+- `src/specsmith/agent/runner.py` — AgentRunner with multi-provider support (Anthropic, OpenAI, Gemini, Ollama)
+- `src/specsmith/agent/execution_profiles.py` — Execution profiles with provider filtering
 
-- `cli.py`
-- `config.py`
-- `scaffolder.py`
-- `tools.py`
-- `importer.py`
-- `exporter.py`
-- `auditor.py`
-- `ledger.py`
-- `integrations/`
-- `vcs/`
-- `src/epistemic/`
-- `src/specsmith/agent/`
-- `src/specsmith/gui/`
+### AEE / Epistemic Layer
+- `src/specsmith/epistemic/` — AEE machinery: BeliefArtifact, StressTester, FailureModeGraph, RecoveryOperator, CertaintyEngine, TraceVault
+- `src/specsmith/trace.py` — STP-inspired cryptographic trace vault (SHA-256 chained seals)
+
+### EU/NA Compliance Package (v0.11)
+- `src/specsmith/compliance/` — 8-regulation AI compliance framework:
+  - `regulations.py` — EU AI Act 2024/1689, NIST AI RMF 1.0, OMB M-24-10, Colorado SB24-205, Texas HB 1709, Illinois AIETA, California AB 2930 / CPPA ADMT, NYC Local Law 144
+  - `checker.py` — Per-regulation compliance checker with ESDB evidence storage
+  - `reporter.py` — Markdown/JSON/HTML compliance report generation
+  - `evidence.py` — Evidence collection from project governance files
+
+### ESDB / ChronoStore (v0.11)
+- `src/specsmith/esdb/` — Epistemic State Database:
+  - `store.py` — `ChronoStore`: WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
+  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore when WAL exists, falls back to flat JSON read-only mode otherwise
+- Every `ChronoRecord` carries OEA anti-hallucination fields: `source_type`, `confidence`, `evidence`, `epistemic_boundary`, `is_hypothesis`, `model_assumptions`, `recursion_depth`
+
+### Session Persistence (v0.11)
+- `src/specsmith/session_store.py` — `SessionStore`: persists session context to `.specsmith/session-state.json` and conversation history to `.specsmith/conversation-history.jsonl` (capped at 200 turns). Injects a synthetic resume message on reload.
+- `src/specsmith/session_init.py` — `init_session()`: loads project state, health score, compliance score, phase readiness into a `SessionContext`
+
+### Context Orchestrator (v0.11)
+- `src/specsmith/context_orchestrator.py` — `ContextOrchestrator`: three-tier auto-optimization:
+  - Tier 1 (60–79% fill): compresses LEDGER.md history
+  - Tier 2 (80–84%): summarizes conversation history and evicts low-confidence ESDB records
+  - Tier 3 (≥85%): emergency-drops records with confidence < 0.7. Data on disk is never deleted.
+
+### Migration Framework (v0.11)
+- `src/specsmith/migrations/` — Versioned migration framework:
+  - `m001_governance_yaml.py` — YAML-first governance migration
+  - `m002_agents_slim.py` — Slim AGENTS.md migration
+  - `m003_compliance_init.py` — Compliance structure initialization
+  - `m004_ledger_esdb.py` — Ledger to ESDB migration
+  - `runner.py` — `MigrationRunner`: tracks applied migrations in `.specsmith/migration-state.json`
+
+### CI Automation Manager (v0.11)
+- `src/specsmith/ci_manager.py` — `CiManager`: generates CI, Dependabot, and CodeQL configs per project. `specsmith ci enable/status/watch`. State persisted to `.specsmith/config.yml`.
+
+### Governance Store (v0.11)
+- `src/specsmith/governance_store.py` — `GovernanceStore`: manages `.specsmith/governance/rules.yaml` for project-level governance rules
+
+### Context Window Management
+- `src/specsmith/context_window.py` — GPU-aware context window sizing, fill tracking, and auto-compression. See Section 14.
 
 ## 4. Governance Files
 
@@ -296,23 +329,57 @@ Phase 1 goals:
 - persist reusable session patterns
 - support Eval-Driven Development
 
-### Phase 2 — Multi-Agent Layer
+### Phase 2 — Multi-Agent DAG Dispatcher (REQ-321..334)
 
-Planned modules:
+Implemented in `src/specsmith/agent/dispatch/`. The dispatcher replaces the flat
+GroupChat round-robin with a governed, dependency-aware DAG scheduler.
 
-- `src/specsmith/agent/spawner.py`
-- `src/specsmith/agent/teams.py`
-- `src/specsmith/agent/orchestrator.py`
-- `src/specsmith/agent/flags.py`
-- `src/specsmith/memory.py`
+**Task DAG** (`dispatch/dag.py`):
+- `TaskStatus` — PENDING | RUNNING | COMPLETED | FAILED | BLOCKED
+- `TaskNode` — carries id, title, role, depends_on, context_in/out, result
+- `TaskDAG` — Kahn topological sort, `runnable_nodes()`, `blocked_by_failure()` (transitive)
+- `TaskDAGBuilder` — builds from planner JSON or falls back to a single-node DAG; raises `DAGValidationError` on cycles
 
-Phase 2 goals:
+**Dispatcher** (`dispatch/dispatcher.py`):
+- `AgentPool` — lazy per-role `ConversableAgent` pool with idle worker reuse, `max_workers` ceiling
+- `AgentDispatcher` — `ThreadPoolExecutor` scheduler; dispatches runnable nodes concurrently; on FAILED propagates BLOCKED to transitive dependents while siblings continue; writes ESDB `dispatch_result` records on completion and injects them into successor context_in
 
-- subagent spawning
-- team coordination
-- orchestrator-worker routing
-- feature-flagged tool schema visibility
-- cross-session memory
+**Events** (`dispatch/events.py`):
+- `EventEmitter` — appends JSONL to `.specsmith/dispatch/<dag_id>/events.jsonl` and fans out to SSE subscriber queues; supports static `replay()` for DAG resume (REQ-330)
+
+**Compiler / tool support** (`agent/tools.py`):
+- `run_gcc`, `run_arm_gcc` (bare-metal), `run_aarch64_gcc`, `run_iar_compiler`, `run_intel_compiler`
+- `run_clang_format`, `run_clang_tidy`, `run_vsg` (VHDL Style Guide)
+- All registered in `AVAILABLE_TOOLS` and wired into `ROLE_TOOLS` for `coder`, `reviewer`, `tester`, and the new `embedded-coder` role
+
+**Entry point** (`agent/orchestrator.py`):
+- `run_task(task, use_dag=False)` — DAG path enabled with `use_dag=True`; falls back to flat GroupChat on `DAGValidationError`
+- `run_dispatch(task, max_workers=4, planner_output, project_root)` — always uses DAG path; returns `DispatchSummary`
+
+**CLI** (`specsmith dispatch`):
+- `dispatch run <TASK> [--max-workers N] [--json] [--no-dag]`
+- `dispatch status [--dag-id ID]`
+- `dispatch list`
+- `dispatch retry --node NODE_ID --dag-id ID`
+
+**serve.py additions**:
+- `POST /api/dispatch/run` — start background DAG run, returns `dag_id`
+- `GET  /api/dispatch/events?dag_id=` — SSE replay + live stream
+- `GET  /api/dispatch/status?dag_id=` — node status JSON
+- `GET  /api/dispatch/list` — saved run IDs
+- `POST /api/dispatch/retry` / `POST /api/dispatch/abort`
+
+**Kairos UI** (`app/` — Rust, egui/eframe):
+- `dispatch_panel/mod.rs` — `DispatchApp` SSE subscriber; DAG graph with nodes coloured by status
+- `dispatch_panel/gantt.rs` — `GanttStrip` timeline showing parallelism
+- `dispatch_panel/controls.rs` — Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
+
+**Architecture invariants for Phase 2**:
+- The Orchestrator is the sole dispatch entry point; workers MUST NOT spawn further dispatches
+- DAG validation (cycle detection) MUST happen before any worker is started
+- `max_workers` ceiling MUST be enforced by `AgentPool`
+- Completed node output MUST flow to successors via ESDB, not in-memory sharing
+- Every state transition MUST be emitted as a persisted `DispatchEvent` before any SSE fan-out
 
 ### Phase 3 — Service and IDE
 
@@ -389,7 +456,7 @@ The following invariants must hold:
 - Filesystem mailbox communication MUST remain simple and debuggable.
 - Orchestration SHOULD prefer local Ollama for routing when possible.
 
-## 15. Bootstrap Sequencing Rules
+## 17. Bootstrap Sequencing Rules
 
 Current bootstrap sequence:
 
@@ -406,7 +473,7 @@ Current bootstrap sequence:
 
 Specsmith must not claim to govern itself until architecture, requirements, test specs, work items, and ledger flow are aligned.
 
-## 16. Non-Goals During Bootstrap
+## 18. Non-Goals During Bootstrap
 
 During bootstrap, do not yet implement:
 
@@ -421,7 +488,7 @@ During bootstrap, do not yet implement:
 
 Bootstrap is limited to making Specsmith capable of governing its own future development.
 
-## 17. ChronoMemory ESDB
+## 19. ChronoMemory ESDB
 
 ChronoMemory is a Rust Epistemic State Database engine (`crates/chronomemory/`) that replaces flat JSON state files with governed, replayable, dependency-aware epistemic cognition.
 
@@ -443,7 +510,7 @@ REST endpoints: `GET /api/esdb/status`, `GET /api/esdb/counts`.
 
 10 system invariants enforced: anti-hallucination, no-forgetfulness, no-stale-override, no-duplicate-work, stop-on-violation, replay-visible tombstones, dependency-linked actions, replayable state, context-pack freshness, action-linked governance.
 
-## 18. AI Skills Builder
+## 20. AI Skills Builder
 
 Source: `src/specsmith/skills_builder.py`
 
@@ -451,7 +518,7 @@ Builds agent skills from natural-language descriptions following the SkillNet-st
 
 REST endpoint: `GET /api/skills`.
 
-## 19. MCP Server Generator
+## 21. MCP Server Generator
 
 Source: `src/specsmith/mcp_generator.py`
 
@@ -459,7 +526,7 @@ Auto-scaffolds Model Context Protocol servers from natural-language tool descrip
 
 REST endpoint: `GET /api/mcp/servers`.
 
-## 20. Kairos UX Integration
+## 22. Kairos UX Integration
 
 Kairos Settings pages that expose specsmith features via the governance REST API:
 
@@ -470,7 +537,7 @@ Kairos Settings pages that expose specsmith features via the governance REST API
 
 All pages use async health polling via `GovernanceClient.get_json()` and follow the monolith SettingsWidget pattern.
 
-## 21. HuggingFace Open LLM Leaderboard Integration
+## 23. HuggingFace Open LLM Leaderboard Integration
 
 Source: `src/specsmith/agent/hf_leaderboard.py`
 
@@ -489,7 +556,7 @@ REST endpoints exposed by governance server:
 
 CLI: `specsmith model-intel sync | scores | recommendations | test-hf`
 
-## 22. Bucket Scoring Engine
+## 24. Bucket Scoring Engine
 
 Source: `src/specsmith/agent/hf_leaderboard.py` (`_compute_bucket_scores`)
 
@@ -503,7 +570,7 @@ Ranked recommendation returns the top-10 models for a requested bucket. The engi
 
 Base+org-prefix deduplication: `Qwen/Qwen3-14B` is stored under both its full name and `Qwen3-14B` so vLLM-style repo-ID model names match correctly.
 
-## 23. Model Capability Profiles
+## 25. Model Capability Profiles
 
 Source: `src/specsmith/agent/model_profiles.py`
 
@@ -521,7 +588,7 @@ Covers 40+ models across Ollama (Mistral, Qwen, Llama, Gemma, Phi, DeepSeek), cl
 
 Context history trimmer (`trim_history`) summarises dropped turns into a compact `[Earlier conversation summary — N turns condensed]` assistant message to preserve research continuity.
 
-## 24. AI Model Pacer v2
+## 26. AI Model Pacer v2
 
 Source: `src/specsmith/rate_limits.py` (upgraded `ModelRateLimitScheduler`)
 
@@ -535,7 +602,7 @@ Enhancements over the existing rolling-window scheduler:
 
 All operations are guarded by a single `threading.Condition` lock so the pacer is safe for concurrent agent sessions.
 
-## 25. Multi-Provider LLM Client with Fallback
+## 27. Multi-Provider LLM Client with Fallback
 
 Source: `src/specsmith/agent/llm_client.py`
 
@@ -555,7 +622,7 @@ Concrete providers: `MistralProvider`, `OpenAIProvider`, `GoogleProvider`, `Olla
 
 Provider fallback decision: `_is_fallback_status(code)` returns True for 401, 403, 404, 408, 409, 425, 429, 5xx.
 
-## 26. Endpoint Preset Registry
+## 28. Endpoint Preset Registry
 
 Source: `src/specsmith/agent/provider_registry.py` (`ENDPOINT_PRESETS`)
 
@@ -578,7 +645,7 @@ Probe function enriches model list with `context_length` (from `max_model_len` o
 
 CLI: `specsmith agent endpoint-presets`.
 
-## 27. Suggested Profile Generation
+## 29. Suggested Profile Generation
 
 Source: `src/specsmith/agent/provider_registry.py` (`suggest_profiles`)
 
@@ -594,7 +661,41 @@ Suggestions are inert previews — the user calls `specsmith agent providers add
 
 CLI: `specsmith agent suggest-profiles`.
 
-## 28. YAML-Native Governance Layer
+## 30. OEA Anti-Hallucination Governance Layer
+
+Source: `src/specsmith/compliance.py` §`get_governance_rules_status`; rules `H15`–`H22`
+
+Specsmith v0.11.3 integrates the findings of the *"Ontology-Epistemic-Agentic (OEA)
+Recursive Generative Stability"* study (BitConcepts Research, 2026) as eight enforceable
+governance rules, extending the core H1–H14 engineering rules:
+
+| Rule | Name | Primary OEA Control |
+|---|---|---|
+| H15 | Epistemic Scope Bounding | Epistemic calibration |
+| H16 | Anti-Drift Recursion Guard | Recursion guarding |
+| H17 | Calibration Direction | Epistemic calibration |
+| H18 | RAG Retrieval Filtering | Retrieval filtering |
+| H19 | Synthetic Contamination Prevention | Data provenance |
+| H20 | Falsifiability Required | Epistemic calibration |
+| H21 | No Undisclosed Model Assumptions | Scope bounding |
+| H22 | Cross-Platform CI Enforcement | Infrastructure validity |
+
+The OEA study validated through ablation that these four control categories are the
+primary levers for suppressing hallucination rates across model families:
+
+1. **Epistemic calibration** (H17, H15, H20) — uncertainty expression
+2. **Scope bounding** (H15, H21) — refusing out-of-domain claims
+3. **Retrieval filtering** (H18) — relevance threshold before RAG injection
+4. **Recursion guarding** (H16) — chain depth limit
+
+Statusof H15–H22 is surfaced in the Kairos Compliance page
+(Settings → Compliance → Governance Hard Rules H1–H22) alongside H1–H14.
+
+**Architecture invariant (I9):** The compliance rule set MUST cover all four OEA control
+categories. Adding or removing categories requires an explicit OEA-impact assessment
+recorded in LEDGER.md.
+
+## 31. YAML-Native Governance Layer
 Source: `src/specsmith/governance_yaml.py`, `scripts/migrate_governance_to_yaml.py`
 
 As of v0.12, specsmith operates in **YAML-first governance mode** when `.specsmith/governance-mode` contains `yaml`.
@@ -644,7 +745,13 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
 | `docs/requirements/esdb.yml` | REQ-248..262 | ESDB + skills + MCP |
 | `docs/requirements/ai_intelligence.yml` | REQ-263..299 | AI model intelligence |
-| `docs/requirements/yaml_governance.yml` | REQ-300..399 | YAML governance layer |
+| `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer (canonical) |
+| `docs/requirements/overflow.yml` | REQ-300..312 | Same REQs as yaml_governance.yml; contains reservation comment |
+| `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability (plan 5939f743) |
+| `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
+
+**Implemented:**
+- REQ-313..320: multi-agent governance compliance (docs/requirements/multiagent_compliance.yml)
 
 **Architecture invariants for YAML governance:**
 - REQUIREMENTS.md and TESTS.md MUST NOT be hand-edited when governance-mode is `yaml`.

@@ -2,7 +2,7 @@
 
 This module is the **single source of truth** for language support across:
   - specsmith CLI (import detection, phase checks, info/scan commands)
-  - specsmith VS Code extension (GovernancePanel chips, EXT_LANG scanner)
+  - Kairos (GovernancePanel chips, language scanner)
 
 Verilog vs SystemVerilog note
 -------------------------------

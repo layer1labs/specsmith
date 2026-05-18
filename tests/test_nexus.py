@@ -531,6 +531,7 @@ _LEGACY_SCAN_SKIP_DIRS = {
     "build",
     "dist",
     "node_modules",
+    ".chronomemory",  # ChronoStore ESDB — machine-generated state, not governance docs
 }
 
 _LEGACY_SCAN_SKIP_FILES = {
@@ -541,6 +542,10 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("tags"),
     Path("scripts") / "rename_test_spec.py",
     Path("tests") / "test_nexus.py",  # this test file
+    # Migration infrastructure — legitimately references legacy filename to detect & rename it
+    Path("src") / "specsmith" / "upgrader.py",
+    # Config field description uses legacy name as an example of an acceptable override value
+    Path("src") / "specsmith" / "config.py",
     # Governance-record files that legitimately reference legacy names while
     # documenting the rename (REQ-083 description; ledger event history).
     Path("LEDGER.md"),

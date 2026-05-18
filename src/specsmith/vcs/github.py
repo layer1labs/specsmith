@@ -130,11 +130,11 @@ jobs:
   dev-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
@@ -159,7 +159,7 @@ jobs:
       - run: python -m build
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: dev-dist
           path: dist/
@@ -172,7 +172,7 @@ jobs:
       id-token: write
     continue-on-error: true
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
           name: dev-dist
           path: dist/
@@ -210,7 +210,7 @@ jobs:
             needs.append("lint")
             ci += (
                 "  lint:\n    runs-on: ubuntu-latest\n    steps:\n"
-                "      - uses: actions/checkout@v6\n"
+                "      - uses: actions/checkout@v4\n"
             )
             if gh_setup:
                 ci += gh_setup
@@ -231,7 +231,7 @@ jobs:
             needs.append("typecheck")
             ci += (
                 "  typecheck:\n    runs-on: ubuntu-latest\n    steps:\n"
-                "      - uses: actions/checkout@v6\n"
+                "      - uses: actions/checkout@v4\n"
             )
             if gh_setup:
                 ci += gh_setup
@@ -257,14 +257,14 @@ jobs:
                     "        os: [ubuntu-latest, windows-latest, macos-latest]\n"
                     '        python-version: ["3.10", "3.12", "3.13"]\n'
                     "    runs-on: ${{ matrix.os }}\n    steps:\n"
-                    "      - uses: actions/checkout@v6\n"
-                    "      - uses: actions/setup-python@v6\n"
+                    "      - uses: actions/checkout@v4\n"
+                    "      - uses: actions/setup-python@v5\n"
                     "        with:\n          python-version: ${{ matrix.python-version }}\n"
                     "          cache: pip\n"
                 )
             else:
                 ci += "    runs-on: ubuntu-latest\n    steps:\n"
-                ci += "      - uses: actions/checkout@v6\n"
+                ci += "      - uses: actions/checkout@v4\n"
                 if gh_setup:
                     ci += gh_setup
             if install:
@@ -285,7 +285,7 @@ jobs:
         if tools.security:
             ci += (
                 "  security:\n    runs-on: ubuntu-latest\n    steps:\n"
-                "      - uses: actions/checkout@v6\n"
+                "      - uses: actions/checkout@v4\n"
             )
             if gh_setup:
                 ci += gh_setup
@@ -310,7 +310,7 @@ jobs:
         if not any([tools.lint, tools.typecheck, tools.test, tools.security, tools.format]):
             ci += (
                 "  build:\n    runs-on: ubuntu-latest\n    steps:\n"
-                "      - uses: actions/checkout@v6\n"
+                "      - uses: actions/checkout@v4\n"
                 f"      - run: echo 'Add {config.type_label} build steps here'\n"
             )
 

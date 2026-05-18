@@ -1,12 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VENV_DIR="$PROJECT_ROOT/.venv"
 
 echo "{{ project.name }} setup (Linux/macOS)"
+{% if project.type in ('cli-python', 'library-python', 'backend-frontend',
+                       'backend-frontend-tray', 'research-python', 'data-ml',
+                       'embedded-python-hmi') %}
+VENV_DIR="$PROJECT_ROOT/.venv"
 command -v python3 &>/dev/null || { echo "ERROR: Python 3 not found." >&2; exit 1; }
-
 [ -d "$VENV_DIR" ] || { echo "Creating virtual environment..."; python3 -m venv "$VENV_DIR"; }
+# shellcheck disable=SC1091
 source "$VENV_DIR/bin/activate"
-pip install -e "$PROJECT_ROOT"
+{% if project.detected_build_system in ('pyproject', 'setuptools') %}
+pip install -e "$PROJECT_ROOT[dev]" 2>/dev/null || pip install -e "$PROJECT_ROOT"
+{% elif project.detected_build_system == '' and project.type in ('cli-python', 'library-python') %}
+pip install -e "$PROJECT_ROOT" 2>/dev/null || true
+{% else %}
+# No pyproject.toml detected - install from requirements.txt if present
+[ -f "$PROJECT_ROOT/requirements.txt" ] && pip install -r "$PROJECT_ROOT/requirements.txt"
+[ -f "$PROJECT_ROOT/requirements-dev.txt" ] && pip install -r "$PROJECT_ROOT/requirements-dev.txt"
+{% endif %}
+{% elif project.type in ('embedded-hardware', 'yocto-bsp', 'fpga-rtl', 'fpga-rtl-amd',
+                         'fpga-rtl-intel', 'fpga-rtl-lattice', 'pcb-hardware',
+                         'safety-critical') %}
+# Non-Python embedded/hardware project.
+# Setup depends on your toolchain. Add project-specific setup steps here.
+echo "NOTE: Edit scripts/setup.sh to add toolchain-specific setup for {{ project.type }}."
+{% else %}
+# Non-Python project. Add project-specific setup steps here.
+echo "NOTE: Edit scripts/setup.sh to add setup steps for {{ project.type }}."
+{% endif %}
 echo "Setup complete."

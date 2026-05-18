@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from specsmith.console_utils import make_console
 
@@ -134,6 +136,25 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                     )
                 )
 
+    # Read scaffold.yml once for LICENSE exception logic
+    _proprietary_license = False
+    _scaffold_path = root / "scaffold.yml"
+    if not _scaffold_path.exists():
+        _scaffold_path = root / "docs" / "SPECSMITH.yml"
+    if _scaffold_path.exists():
+        try:
+            import yaml as _yaml
+
+            _raw = _yaml.safe_load(_scaffold_path.read_text(encoding="utf-8")) or {}
+            _proprietary_license = str(_raw.get("license", "")).lower() in (
+                "proprietary",
+                "closed-source",
+                "commercial",
+                "all-rights-reserved",
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
     for f in RECOMMENDED_FILES:
         path = root / f
         found = path.exists()
@@ -151,6 +172,16 @@ def check_governance_files(root: Path) -> list[AuditResult]:
         # (legacy projects are not penalized for not yet having migrated)
         if not found and f == "docs/SPECSMITH.yml":
             found = (root / "scaffold.yml").exists()
+        # LICENSE: skip the missing-file warning for proprietary projects (#143)
+        if not found and f == "LICENSE" and _proprietary_license:
+            results.append(
+                AuditResult(
+                    name=f"recommended:{f}",
+                    passed=True,
+                    message="LICENSE: proprietary project — no open-source license file required",
+                )
+            )
+            continue
         results.append(
             AuditResult(
                 name=f"recommended:{f}",
@@ -193,12 +224,16 @@ def check_governance_files(root: Path) -> list[AuditResult]:
 # Requirement ↔ Test consistency
 # ---------------------------------------------------------------------------
 
-_REQ_PATTERN = re.compile(r"\b(REQ-[A-Z]+-\d+)\b")
-_TEST_PATTERN = re.compile(r"\b(TEST-[A-Z]+-\d+)\b")
-# Match 'Covers: REQ-xxx', '**Requirement:** REQ-xxx', 'Requirement: REQ-xxx'
+# REQ/TEST IDs: support both numeric-only (REQ-001) and namespaced (REQ-CTT-001).
+# Pattern: REQ- followed by zero or more UPPERCASE- prefix segments, then digits.
+# Examples: REQ-001, REQ-CTT-001, REQ-AUTH-023, TEST-042, TEST-CORE-007
+_REQ_PATTERN = re.compile(r"\b(REQ-(?:[A-Z]+-)*\d+)\b")
+# Match 'Covers: REQ-xxx',
+# 'Requirement: REQ-xxx', 'Requirement ID: REQ-xxx'
+# Also handles numeric-only IDs (REQ-001) via the updated _REQ_PATTERN.
 _TEST_COVERS_PATTERN = re.compile(
-    r"(?:Covers|\*\*Requirement:?\*\*|Requirement):?\s*"
-    r"(REQ-[A-Z]+-\d+(?:\s*,\s*REQ-[A-Z]+-\d+)*)"
+    r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
+    r"(REQ-(?:[A-Z]+-)*\d+(?:\s*,\s*REQ-(?:[A-Z]+-)*\d+)*)"
 )
 
 
@@ -207,14 +242,16 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
     results: list[AuditResult] = []
 
     req_path = root / "docs" / "REQUIREMENTS.md"
-    test_path = root / "docs" / "TESTS.md"
+    # Use configurable test_spec_file path (#148)
+    test_candidates = _get_test_spec_paths(root)
+    test_path = next((p for p in test_candidates if p.exists()), None)
 
-    if not req_path.exists() or not test_path.exists():
+    if not req_path.exists() or test_path is None:
         results.append(
             AuditResult(
                 name="req-test-consistency",
                 passed=True,
-                message="Skipped: REQUIREMENTS.md or TESTS.md not found",
+                message="Skipped: REQUIREMENTS.md or test spec file not found",
             )
         )
         return results
@@ -317,14 +354,18 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
     lines = text.splitlines()
     line_count = len(lines)
 
-    # Size check
-    if line_count > 500:
+    # Size check — uses configurable threshold (#145)
+    threshold = _get_ledger_threshold(root)
+    # Check audit_suppressions for opt-out
+    raw = _read_scaffold_raw(root)
+    suppressed = "ledger_size" in (raw.get("audit_suppressions") or [])
+    if not suppressed and line_count > threshold:
         results.append(
             AuditResult(
                 name="ledger-size",
                 passed=False,
                 message=(
-                    f"LEDGER.md has {line_count} lines (threshold: 500). "
+                    f"LEDGER.md has {line_count} lines (threshold: {threshold}). "
                     f"Consider `specsmith compress`."
                 ),
                 fixable=True,
@@ -335,7 +376,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
             AuditResult(
                 name="ledger-size",
                 passed=True,
-                message=f"LEDGER.md has {line_count} lines (within threshold)",
+                message=f"LEDGER.md has {line_count} lines (within {threshold} threshold)",
             )
         )
 
@@ -382,29 +423,51 @@ _DEFAULT_THRESHOLDS: dict[str, int] = {
 # Type-specific overrides — hardware/embedded projects have denser rules.
 _TYPE_THRESHOLD_OVERRIDES: dict[str, dict[str, int]] = {
     "fpga-rtl": {
+        "AGENTS.md": 350,  # FPGA sessions need more board context
+        "docs/governance/RULES.md": 1000,
+        "docs/governance/SESSION-PROTOCOL.md": 500,
+        "docs/governance/VERIFICATION.md": 600,
+    },
+    "fpga-rtl-amd": {
+        "AGENTS.md": 350,
         "docs/governance/RULES.md": 1000,
         "docs/governance/SESSION-PROTOCOL.md": 500,
         "docs/governance/VERIFICATION.md": 600,
     },
     "yocto-bsp": {
+        "AGENTS.md": 350,
         "docs/governance/RULES.md": 1000,
         "docs/governance/SESSION-PROTOCOL.md": 500,
         "docs/governance/VERIFICATION.md": 500,
     },
     "embedded-hardware": {
+        "AGENTS.md": 350,
         "docs/governance/RULES.md": 1000,
         "docs/governance/VERIFICATION.md": 500,
     },
     "pcb-hardware": {
+        "AGENTS.md": 300,
         "docs/governance/RULES.md": 900,
         "docs/governance/VERIFICATION.md": 500,
     },
 }
 
+# Type-specific LEDGER line thresholds (fpga-rtl hardware projects have long entries)
+_DEFAULT_LEDGER_THRESHOLD = 500
+_TYPE_LEDGER_THRESHOLDS: dict[str, int] = {
+    "fpga-rtl": 5000,
+    "fpga-rtl-amd": 5000,
+    "fpga-rtl-intel": 5000,
+    "fpga-rtl-lattice": 5000,
+    "mixed-fpga-embedded": 3000,
+    "mixed-fpga-firmware": 3000,
+    "embedded-hardware": 2000,
+    "yocto-bsp": 2000,
+}
 
-def _get_thresholds(root: Path) -> dict[str, int]:
-    """Get governance size thresholds, scaled by project type if available."""
-    thresholds = dict(_DEFAULT_THRESHOLDS)
+
+def _read_scaffold_raw(root: Path) -> dict[str, Any]:
+    """Read scaffold.yml (or docs/SPECSMITH.yml) as a raw dict."""
     from specsmith.paths import find_scaffold
 
     scaffold_path = find_scaffold(root)
@@ -413,13 +476,57 @@ def _get_thresholds(root: Path) -> dict[str, int]:
             import yaml
 
             with open(scaffold_path) as f:
-                raw = yaml.safe_load(f) or {}
-            ptype = raw.get("type", "")
-            overrides = _TYPE_THRESHOLD_OVERRIDES.get(ptype, {})
-            thresholds.update(overrides)
+                return yaml.safe_load(f) or {}
         except Exception:  # noqa: BLE001
-            pass  # Use defaults on any error
+            pass
+    return {}
+
+
+def _get_thresholds(root: Path) -> dict[str, int]:
+    """Get governance size thresholds, scaled by project type and scaffold config.
+
+    scaffold.yml overrides (#124):
+      agents_md_line_threshold: N  -- override AGENTS.md limit
+    """
+    thresholds = dict(_DEFAULT_THRESHOLDS)
+    raw = _read_scaffold_raw(root)
+    ptype = raw.get("type", "")
+    overrides = _TYPE_THRESHOLD_OVERRIDES.get(ptype, {})
+    thresholds.update(overrides)
+
+    # Allow per-project scaffold.yml override (#124)
+    custom_agents = int(raw.get("agents_md_line_threshold", 0) or 0)
+    if custom_agents > 0:
+        thresholds["AGENTS.md"] = custom_agents
+
     return thresholds
+
+
+def _get_ledger_threshold(root: Path) -> int:
+    """Get LEDGER.md line-count audit threshold, scaled by project type.
+
+    scaffold.yml override (#145):
+      ledger_line_threshold: N  -- override LEDGER line limit
+    Also supports audit_suppressions: [ledger_size] to silence entirely.
+    """
+    raw = _read_scaffold_raw(root)
+    # scaffold.yml explicit override (#145)
+    custom = int(raw.get("ledger_line_threshold", 0) or 0)
+    if custom > 0:
+        return custom
+    ptype = raw.get("type", "")
+    return _TYPE_LEDGER_THRESHOLDS.get(ptype, _DEFAULT_LEDGER_THRESHOLD)
+
+
+def _get_test_spec_paths(root: Path) -> list[Path]:
+    """Return candidate test spec paths, honouring scaffold.yml test_spec_file (#148)."""
+    raw = _read_scaffold_raw(root)
+    custom = raw.get("test_spec_file", "") or ""
+    if custom:
+        candidates = [root / custom.strip(), root / "docs" / "TESTS.md"]
+    else:
+        candidates = [root / "docs" / "TESTS.md", root / "TESTS.md"]
+    return candidates
 
 
 def check_context_size(root: Path) -> list[AuditResult]:
@@ -726,6 +833,282 @@ def check_supplementary_rules(root: Path) -> list[AuditResult]:
     return results
 
 
+def check_hardware_gated_tests(root: Path) -> list[AuditResult]:
+    """Check hardware-gated test status (#159).
+
+    Hardware-gated Pending tests (marked Hardware-gated: true / hardware_gated: true
+    in TESTS.md) are expected to be Pending until a hardware test session runs.
+    They should NOT be flagged as coverage drift.
+    """
+    results: list[AuditResult] = []
+    raw = _read_scaffold_raw(root)
+    attr = raw.get("hardware_gated_test_attr", "hardware_gated") or "hardware_gated"
+    # Read test spec
+    test_candidates = _get_test_spec_paths(root)
+    test_path = next((p for p in test_candidates if p.exists()), None)
+    if test_path is None:
+        return results  # No test spec
+    try:
+        text = test_path.read_text(encoding="utf-8")
+    except OSError:
+        return results
+    # Count hardware-gated Pending tests
+    _HW_GATED_RE = re.compile(
+        r"(?i)" + re.escape(attr.replace("_", "[_-]").lower()) + r"[:\s]*true"
+    )
+    _PENDING_RE = re.compile(r"(?i)\bpending\b")
+    gated_count = 0
+    pending_gated = 0
+    # Split by test header blocks
+    for block in re.split(r"(?=^### TEST-)", text, flags=re.MULTILINE):
+        if _HW_GATED_RE.search(block):
+            gated_count += 1
+            if _PENDING_RE.search(block):
+                pending_gated += 1
+    if gated_count > 0:
+        results.append(
+            AuditResult(
+                name="hardware-gated-tests",
+                passed=True,
+                message=(
+                    f"{gated_count} hardware-gated test(s) found; "
+                    f"{pending_gated} Pending (awaiting hardware session — not counted as drift)"
+                ),
+            )
+        )
+    return results
+
+
+def check_secrets_templates(root: Path) -> list[AuditResult]:
+    """Check secrets_templates governance (#162).
+
+    For each declared secrets_templates entry:
+    - Warn if the secrets file is tracked by git (security issue)
+    - Warn if no .example file exists (onboarding issue)
+    - Warn if the path isn't in .gitignore
+    """
+    results: list[AuditResult] = []
+    raw = _read_scaffold_raw(root)
+    templates: list[dict[str, Any]] = raw.get("secrets_templates", []) or []
+    if not templates:
+        return results
+    # Load .gitignore for checking
+    gitignore_content = ""
+    gitignore_path = root / ".gitignore"
+    if gitignore_path.exists():
+        with contextlib.suppress(OSError):
+            gitignore_content = gitignore_path.read_text(encoding="utf-8")
+    for entry in templates:
+        if not isinstance(entry, dict):
+            continue
+        path_rel = entry.get("path", "")
+        if not path_rel:
+            continue
+        secrets_path = root / path_rel
+        never_commit = entry.get("never_commit", False)
+        # Check 1: is the secrets file tracked by git?
+        if secrets_path.exists() and never_commit:
+            import subprocess
+
+            try:
+                r = subprocess.run(
+                    ["git", "-C", str(root), "ls-files", "--error-unmatch", path_rel],
+                    capture_output=True,
+                    timeout=5,
+                )
+                if r.returncode == 0:  # file IS tracked
+                    results.append(
+                        AuditResult(
+                            name=f"secrets-tracked:{path_rel}",
+                            passed=False,
+                            message=(
+                                f"SECURITY: {path_rel} is tracked by git but declared "
+                                f"never_commit: true. Run `git rm --cached {path_rel}` and "
+                                "add it to .gitignore."
+                            ),
+                        )
+                    )
+            except Exception:  # noqa: BLE001
+                pass
+        # Check 2: .example file exists?
+        example_path = root / (path_rel + ".example")
+        template_path = root / (path_rel + ".template")
+        has_example = example_path.exists() or template_path.exists()
+        if not has_example:
+            results.append(
+                AuditResult(
+                    name=f"secrets-no-example:{path_rel}",
+                    passed=False,
+                    message=(
+                        f"No {path_rel}.example found. Create one with placeholder values "
+                        f"so new developers know which secrets are required."
+                    ),
+                    fixable=True,
+                )
+            )
+        else:
+            results.append(
+                AuditResult(
+                    name=f"secrets-example:{path_rel}",
+                    passed=True,
+                    message=f"Secrets template {path_rel}.example exists",
+                )
+            )
+        # Check 3: .gitignore covers the secrets file?
+        if never_commit and path_rel not in gitignore_content:
+            results.append(
+                AuditResult(
+                    name=f"secrets-gitignore:{path_rel}",
+                    passed=False,
+                    message=(
+                        f"{path_rel} is declared never_commit but is not in .gitignore. "
+                        "Add it to .gitignore to prevent accidental commits."
+                    ),
+                    fixable=True,
+                )
+            )
+    return results
+
+
+def check_industrial_artifacts(root: Path) -> list[AuditResult]:
+    """Check CANopen EDS/XDD and other industrial artifacts (#163).
+
+    If .eds or .xdd files are present but not declared in scaffold.yml
+    industrial_artifacts, suggest adding traceability.
+    """
+    results: list[AuditResult] = []
+    raw = _read_scaffold_raw(root)
+    declared: dict[str, Any] = raw.get("industrial_artifacts", {}) or {}
+    declared_eds = declared.get("canopen_eds", []) or []
+    declared_paths = {e.get("path", "") for e in declared_eds if isinstance(e, dict)}
+
+    # Scan for .eds and .xdd files
+    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__"}
+    found_eds: list[Path] = []
+    for ext in (".eds", ".xdd"):
+        for f in root.rglob(f"*{ext}"):
+            if not any(p in skip_dirs for p in f.parts):
+                found_eds.append(f)
+
+    if not found_eds:
+        return results  # No industrial artifacts found
+
+    undeclared = [
+        f for f in found_eds if str(f.relative_to(root)).replace("\\\\", "/") not in declared_paths
+    ]
+
+    if undeclared:
+        results.append(
+            AuditResult(
+                name="industrial-artifacts-undeclared",
+                passed=False,
+                message=(
+                    f"{len(undeclared)} CANopen EDS/XDD file(s) found but not declared in "
+                    f"scaffold.yml industrial_artifacts: "
+                    + ", ".join(str(f.name) for f in undeclared[:5])
+                    + ". Add them to industrial_artifacts.canopen_eds for traceability."
+                ),
+            )
+        )
+    else:
+        results.append(
+            AuditResult(
+                name="industrial-artifacts",
+                passed=True,
+                message=f"{len(found_eds)} industrial artifact(s) declared in scaffold.yml",
+            )
+        )
+    return results
+
+
+def check_derived_artifacts(root: Path) -> list[AuditResult]:
+    """Check that code-generated derived artifacts haven't been hand-edited (#126).
+
+    For each entry in scaffold.yml derived_artifacts, checks whether the output
+    files have been modified without their source also being modified (using git).
+    """
+    results: list[AuditResult] = []
+    raw = _read_scaffold_raw(root)
+    entries: list[dict[str, Any]] = raw.get("derived_artifacts", []) or []
+    if not entries:
+        return results
+
+    import subprocess
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        source = entry.get("source", "")
+        outputs: list[str] = entry.get("outputs", []) or []
+        do_not_edit = entry.get("do_not_edit", False)
+        if not source or not do_not_edit:
+            continue
+        # Check if outputs were modified without source being modified (git diff)
+        try:
+            src_diff = subprocess.run(
+                ["git", "-C", str(root), "diff", "HEAD", "--name-only", "--", source],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            out_diffs = subprocess.run(
+                ["git", "-C", str(root), "diff", "HEAD", "--name-only", "--"] + outputs,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            src_changed = bool(src_diff.stdout.strip())
+            outputs_changed = [o for o in outputs if o in (out_diffs.stdout or "")]
+            if outputs_changed and not src_changed:
+                results.append(
+                    AuditResult(
+                        name=f"derived-artifact-manual-edit:{source}",
+                        passed=False,
+                        message=(
+                            f"Hand-edit detected in derived artifact(s) generated from {source}: "
+                            + ", ".join(outputs_changed[:3])
+                            + f". These files are generated by: {entry.get('generator', 'unknown')}"
+                        ),
+                    )
+                )
+        except Exception:  # noqa: BLE001
+            pass  # git not available or other error — skip silently
+    return results
+
+
+def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
+    """Informational check for cross-repo requirement traceability (#161).
+
+    Lists cross-repo dependencies declared in scaffold.yml and notes which
+    REQ prefixes trace to external repositories.
+    """
+    results: list[AuditResult] = []
+    raw = _read_scaffold_raw(root)
+    deps: list[dict[str, Any]] = raw.get("cross_repo_dependencies", []) or []
+    if not deps:
+        return results
+    msgs = []
+    for dep in deps:
+        if not isinstance(dep, dict):
+            continue
+        repo = dep.get("repo", "?")
+        role = dep.get("role", "dependency")
+        prefixes = dep.get("req_prefixes", [])
+        if prefixes:
+            msgs.append(f"{repo} ({role}): handles {', '.join(prefixes)}")
+        else:
+            msgs.append(f"{repo} ({role})")
+    if msgs:
+        results.append(
+            AuditResult(
+                name="cross-repo-dependencies",
+                passed=True,
+                message="Cross-repo dependencies declared: " + "; ".join(msgs),
+            )
+        )
+    return results
+
+
 def run_audit(root: Path) -> AuditReport:
     """Run all audit checks and return a report."""
     report = AuditReport()
@@ -738,6 +1121,11 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_trace_chain_integrity(root))
     report.results.extend(check_phase_readiness(root))
     report.results.extend(check_supplementary_rules(root))
+    report.results.extend(check_hardware_gated_tests(root))
+    report.results.extend(check_secrets_templates(root))
+    report.results.extend(check_industrial_artifacts(root))
+    report.results.extend(check_derived_artifacts(root))
+    report.results.extend(check_cross_repo_dependencies(root))
     return report
 
 

@@ -18,7 +18,6 @@ def parse_architecture_requirements(project_dir: Path) -> list[dict[str, str]]:
 
     content = arch_path.read_text(encoding="utf-8")
     requirements: list[dict[str, str]] = []
-    current_component = "General"
     req_counter = 1
 
     lines = content.splitlines()

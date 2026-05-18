@@ -948,7 +948,7 @@
 ## TEST-106. Kairos Governance Page Surfaces Preflight/Verify/Trace
 - **ID:** TEST-106
 - **Title:** Kairos Governance Page Surfaces Preflight/Verify/Trace
-- **Description:** The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode` broker command test has been retired alongside the extension deprecation.*
+- **Description:** The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater.
 - **Requirement ID:** REQ-106
 - **Type:** integration
 - **Verification Method:** evaluator
@@ -957,7 +957,7 @@
 ## TEST-107. ARCHITECTURE.md Has Current State Section
 - **ID:** TEST-107
 - **Title:** ARCHITECTURE.md Has Current State Section
-- **Description:** `ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Code extension parity, live-smoke evidence, and documentation surface.
+- **Description:** `ARCHITECTURE.md` contains a heading whose text begins with 'Current State' and whose body references the broker, retry strategies, CI baseline, VS Kairos parity, live-smoke evidence, and documentation surface.
 - **Requirement ID:** REQ-107
 - **Type:** unit
 - **Verification Method:** pytest
@@ -1056,7 +1056,7 @@
 ## TEST-118. Kairos BYOE Proxy Consumes Chat Stream
 - **ID:** TEST-118
 - **Title:** Kairos BYOE Proxy Consumes Chat Stream
-- **Description:** The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy `specsmith-vscode` openChat command test has been retired alongside the extension deprecation.*
+- **Description:** The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy openChat command test has been retired.*
 - **Requirement ID:** REQ-118
 - **Type:** integration
 - **Verification Method:** evaluator
@@ -1137,7 +1137,7 @@
 ## TEST-128. Cross-Repo Security Sweep Runs in CI
 - **ID:** TEST-128
 - **Title:** Cross-Repo Security Sweep Runs in CI
-- **Description:** Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test has been retired alongside the extension deprecation.*
+- **Description:** Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit` and `cargo audit` respectively).
 - **Requirement ID:** REQ-128
 - **Type:** integration
 - **Verification Method:** static-check
@@ -1146,7 +1146,7 @@
 ## TEST-129. API Stability Doc Enumerates Frozen Surface
 - **ID:** TEST-129
 - **Title:** API Stability Doc Enumerates Frozen Surface
-- **Description:** `docs/site/api-stability.md` exists and enumerates: CLI subcommands, exit codes, JSON payload schemas, broker module API, ledger event schemas, VS Code extension command IDs. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.
+- **Description:** `docs/site/api-stability.md` exists and enumerates: CLI subcommands, exit codes, JSON payload schemas, broker module API, ledger event schemas, VS Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.
 - **Requirement ID:** REQ-129
 - **Type:** unit
 - **Verification Method:** pytest
@@ -2394,4 +2394,334 @@
 - **Input:** scripts/migrate_governance_to_yaml.py run twice on same project
 - **Expected Behavior:** second run produces no changes; governance-mode=yaml; sync --check exits 0
 - **Confidence:** 1.0
+
+## TEST-305. ChronoStore WAL-Based ESDB Write Layer
+- **ID:** TEST-305
+- **Title:** ChronoStore WAL-Based ESDB Write Layer
+- **Description:** ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.
+- **Requirement ID:** REQ-305
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** ChronoStore(tmp_path) append 3 records; EsdbBridge(tmp_path).status()
+- **Expected Behavior:** WAL file exists with chained hashes; chain_valid=True
+- **Confidence:** 0.95
+
+## TEST-306. ESDB Must Be Per-Project
+- **ID:** TEST-306
+- **Title:** ESDB Must Be Per-Project
+- **Description:** Two EsdbBridge instances on separate 	mp_path directories MUST have independent .chronomemory/events.wal files; records from project A are not visible in project B.
+- **Requirement ID:** REQ-306
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** Two EsdbBridge instances on different tmp_path directories
+- **Expected Behavior:** Each project has independent WAL; no cross-contamination
+- **Confidence:** 0.95
+
+## TEST-307. Session State Must Survive Restart
+- **ID:** TEST-307
+- **Title:** Session State Must Survive Restart
+- **Description:** SessionStore MUST persist session context to .specsmith/session-state.json. A new SessionStore instance on the same path MUST load the saved state.
+- **Requirement ID:** REQ-307
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** SessionStore(tmp_path) save; new SessionStore(tmp_path) load
+- **Expected Behavior:** Loaded state matches saved state; session-state.json exists
+- **Confidence:** 0.95
+
+## TEST-308. Context Orchestrator Tiered Auto-Optimization
+- **ID:** TEST-308
+- **Title:** Context Orchestrator Tiered Auto-Optimization
+- **Description:** ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier. Data on disk MUST NEVER be deleted at any tier.
+- **Requirement ID:** REQ-308
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)
+- **Expected Behavior:** Correct tier actions returned; no files deleted from disk
+- **Confidence:** 0.9
+
+## TEST-309. CI Automation Togglable Per Project
+- **ID:** TEST-309
+- **Title:** CI Automation Togglable Per Project
+- **Description:** CiManager.enable(platform=github, force=True) MUST generate CI workflow files and persist ci_automation_enabled=true to .specsmith/config.yml.
+- **Requirement ID:** REQ-309
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** CiManager(tmp_path).enable(platform=github, force=True)
+- **Expected Behavior:** CI files generated; config.yml has ci_automation_enabled=true
+- **Confidence:** 0.9
+
+## TEST-310. OEA Anti-Hallucination Fields on ESDB Records
+- **ID:** TEST-310
+- **Title:** OEA Anti-Hallucination Fields on ESDB Records
+- **Description:** ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default all 7 OEA fields to safe non-blocking values.
+- **Requirement ID:** REQ-310
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** ChronoRecord(kind=test, payload={}) inspect all 7 OEA fields
+- **Expected Behavior:** source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False, recursion_depth=0
+- **Confidence:** 0.95
+
+## TEST-311. RAG Retrieval Must Filter by Confidence
+- **ID:** TEST-311
+- **Title:** RAG Retrieval Must Filter by Confidence
+- **Description:** ESDB retrieval MUST exclude records with confidence < min_confidence. Records at exactly the threshold MUST be included.
+- **Requirement ID:** REQ-311
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Append records with confidence 0.3, 0.7, 0.9; query(min_confidence=0.7)
+- **Expected Behavior:** Only confidence >= 0.7 records returned; 0.3 excluded
+- **Confidence:** 0.9
+
+## TEST-312. Context Optimize Command
+- **ID:** TEST-312
+- **Title:** Context Optimize Command
+- **Description:** specsmith context optimize --fill-pct N --json MUST exit 0 and return JSON with 	ier, ctions, and 	okens_freed.
+- **Requirement ID:** REQ-312
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith context optimize --fill-pct 65 --json --project-dir tmp
+- **Expected Behavior:** Exit 0; JSON contains tier, actions list, tokens_freed integer
+- **Confidence:** 0.9
+
+## TEST-313. Dispatch Run Appends Ledger Entry
+- **ID:** TEST-313
+- **Title:** Dispatch Run Appends Ledger Entry
+- **Description:** After dispatching a single-node DAG to completion via AgentDispatcher, a governance ledger entry MUST exist in LEDGER.md containing dag_id, task, node counts, and equilibrium result.
+- **Requirement ID:** REQ-313
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** AgentDispatcher.run() on single-node DAG; inspect LEDGER.md
+- **Expected Behavior:** LEDGER.md contains dispatch ledger entry with dag_id and equilibrium=True
+- **Confidence:** 0.9
+
+## TEST-314. node_started Payload Contains Worker Role
+- **ID:** TEST-314
+- **Title:** node_started Payload Contains Worker Role
+- **Description:** EventEmitter.node_started() MUST persist a role key in the payload of the node_started JSONL event. Replay must return the same role.
+- **Requirement ID:** REQ-314
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** EventEmitter(tmp_path, 'dag'); node_started('n1', 'coder'); replay()
+- **Expected Behavior:** Replayed node_started event has payload.role == 'coder'
+- **Confidence:** 1.0
+
+## TEST-315. DispatchSummary Contains dag_id for Traceability
+- **ID:** TEST-315
+- **Title:** DispatchSummary Contains dag_id for Traceability
+- **Description:** DispatchSummary.dag_id MUST match the TaskDAG.dag_id used to create the dispatcher. CLI output MUST display the dag_id on completion.
+- **Requirement ID:** REQ-315
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** TaskDAGBuilder.build('t', dag_id='trace-001'); run; summary.dag_id
+- **Expected Behavior:** summary.dag_id == 'trace-001'
+- **Confidence:** 1.0
+
+## TEST-316. Governance Block Recorded in Node Error
+- **ID:** TEST-316
+- **Title:** Governance Block Recorded in Node Error
+- **Description:** When _governance_preflight raises _GovernanceBlockedError, the DispatchResult.error MUST start with 'Governance preflight blocked'.
+- **Requirement ID:** REQ-316
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Mock _governance_preflight to raise _GovernanceBlockedError('denied')
+- **Expected Behavior:** summary.failed[0].error starts with 'Governance preflight blocked'
+- **Confidence:** 1.0
+
+## TEST-317. Context Injection via ESDB Record IDs Is Traceable
+- **ID:** TEST-317
+- **Title:** Context Injection via ESDB Record IDs Is Traceable
+- **Description:** TaskNode.context_in MUST contain the esdb_record_id of a completed predecessor node after _propagate_context runs. The context_in list is part of TaskNode.to_dict() and available for replay inspection.
+- **Requirement ID:** REQ-317
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** 2-node DAG; complete root with esdb_id='rec-xyz'; check child.context_in
+- **Expected Behavior:** child.context_in contains 'rec-xyz'
+- **Confidence:** 1.0
+
+## TEST-318. Completed Nodes Not Re-Executed on Retry
+- **ID:** TEST-318
+- **Title:** Completed Nodes Not Re-Executed on Retry
+- **Description:** dispatch retry must identify node_completed events from events.jsonl and refuse to retry nodes whose last event is node_completed. The retry CLI command returns an error when asked to retry a completed node.
+- **Requirement ID:** REQ-318
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** EventEmitter with node_completed; CliRunner invoke dispatch retry --node n1
+- **Expected Behavior:** CLI exits 0 but prints 'already completed'; does not start new run
+- **Confidence:** 0.9
+
+## TEST-319. ESDB dispatch_result Record Contains DAG Lineage
+- **ID:** TEST-319
+- **Title:** ESDB dispatch_result Record Contains DAG Lineage
+- **Description:** ChronoRecords written by _write_esdb_record MUST have dag_id and node_id in both evidence list and data dict.
+- **Requirement ID:** REQ-319
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** _write_esdb_record(node, run_result); inspect ChronoRecord
+- **Expected Behavior:** record.evidence contains 'dag=...' and 'node=...'; record.data has dag_id and node_id keys
+- **Confidence:** 1.0
+
+## TEST-320. Abort Signal Recorded as Aborted in Error
+- **ID:** TEST-320
+- **Title:** Abort Signal Recorded as Aborted in Error
+- **Description:** When abort_node() is called before or during node execution, the FAILED DispatchResult.error MUST contain the string 'Aborted'.
+- **Requirement ID:** REQ-320
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Pre-arm abort_node('task-main'); run dispatcher; check summary.failed
+- **Expected Behavior:** summary.failed[0].error contains 'Aborted'
+- **Confidence:** 1.0
+
+## TEST-321. Orchestrator Is Sole Dispatch Entry Point
+- **ID:** TEST-321
+- **Title:** Orchestrator Is Sole Dispatch Entry Point
+- **Description:** The Orchestrator source MUST document REQ-321 and the sole-entry-point constraint. Worker agents MUST NOT expose a public method to initiate dispatches.
+- **Requirement ID:** REQ-321
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** inspect.getsource(orchestrator); check for REQ-321 and 'sole entry point'
+- **Expected Behavior:** Both strings present in source; no AgentDispatcher.run() call outside orchestrator
+- **Confidence:** 0.95
+
+## TEST-322. DAG Decomposition Before Worker Dispatch
+- **ID:** TEST-322
+- **Title:** DAG Decomposition Before Worker Dispatch
+- **Description:** TaskDAGBuilder.build() decomposes task into a valid acyclic DAG. Cycles raise DAGValidationError before any worker starts. Single-node fallback used when no planner output is provided.
+- **Requirement ID:** REQ-322
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** Build DAG from plan list; build DAG from JSON string; build with cycle; build with no planner output
+- **Expected Behavior:** Valid plan builds DAG; JSON string extracted and built; cycle raises DAGValidationError; no planner builds single-node fallback
+- **Confidence:** 1.0
+
+## TEST-323. TaskNode Must Carry Required Fields
+- **ID:** TEST-323
+- **Title:** TaskNode Must Carry Required Fields
+- **Description:** A TaskNode constructed with minimal args MUST default status=PENDING, context_in=[], context_out=None, result=None. to_dict() MUST include all required fields.
+- **Requirement ID:** REQ-323
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** TaskNode(id=n, title=T, role=coder, depends_on=[dep])
+- **Expected Behavior:** All 8 REQ-323 fields populated with correct types and defaults
+- **Confidence:** 1.0
+
+## TEST-324. Concurrent Dispatch Bounded by max_workers
+- **ID:** TEST-324
+- **Title:** Concurrent Dispatch Bounded by max_workers
+- **Description:** AgentPool MUST return None when active_count >= max_workers, preventing over-dispatch. Pool with idle workers returns a reused agent without spawning.
+- **Requirement ID:** REQ-324
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Pool at capacity; pool with idle worker
+- **Expected Behavior:** acquire() returns None at cap; acquire() returns idle worker without spawning new agent
+- **Confidence:** 1.0
+
+## TEST-325. Fail-Forward BLOCKED Propagation
+- **ID:** TEST-325
+- **Title:** Fail-Forward BLOCKED Propagation
+- **Description:** When a node transitions to FAILED, all transitive dependents are marked BLOCKED while non-dependent siblings remain PENDING. all_terminal() returns True after full propagation of a single-dependency chain.
+- **Requirement ID:** REQ-325
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** 4-node DAG; fail impl; check review=BLOCKED and test=PENDING
+- **Expected Behavior:** review BLOCKED; test unaffected; all_terminal() True after a+b fail+block
+- **Confidence:** 1.0
+
+## TEST-326. AgentPool Must Reuse Idle Workers
+- **ID:** TEST-326
+- **Title:** AgentPool Must Reuse Idle Workers
+- **Description:** After release(), a subsequent acquire() for the same role returns the previously released agent object without spawning a new one.
+- **Requirement ID:** REQ-326
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Insert sentinel into pool._idle['coder']; call acquire('coder')
+- **Expected Behavior:** acquire() returns sentinel; active_count increments; release() decrements count and returns sentinel to idle
+- **Confidence:** 1.0
+
+## TEST-327. ESDB Context Written on Node Completion
+- **ID:** TEST-327
+- **Title:** ESDB Context Written on Node Completion
+- **Description:** AgentDispatcher calls _write_esdb_record on node completion and sets context_out. Downstream nodes receive context_in populated with predecessor record ID.
+- **Requirement ID:** REQ-327
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** Single-node DAG with mocked worker; mock _write_esdb_record returning 'rec-xyz'
+- **Expected Behavior:** summary.completed[0].esdb_record_id == 'rec-xyz'; node.context_out set
+- **Confidence:** 0.9
+
+## TEST-328. DAG State Transitions Persisted as JSONL Events
+- **ID:** TEST-328
+- **Title:** DAG State Transitions Persisted as JSONL Events
+- **Description:** EventEmitter writes node_started, node_completed, node_failed, and dag_done events as JSONL to .specsmith/dispatch/<dag_id>/events.jsonl. The file is created before the first emit.
+- **Requirement ID:** REQ-328
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** EventEmitter(tmp_path, 'dag-id'); emit node_started, node_completed, node_failed
+- **Expected Behavior:** events.jsonl exists immediately after construction; 3 JSONL lines with correct event_type values
+- **Confidence:** 1.0
+
+## TEST-329. Per-Node Governance Preflight Before Worker Start
+- **ID:** TEST-329
+- **Title:** Per-Node Governance Preflight Before Worker Start
+- **Description:** AgentDispatcher._governance_preflight() is called for each node before worker acquisition. A mock that raises _GovernanceBlockedError causes the node to transition to FAILED without calling _invoke_worker.
+- **Requirement ID:** REQ-329
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Single-node DAG; patch _governance_preflight to raise; mock _invoke_worker
+- **Expected Behavior:** _invoke_worker not called; node.status = FAILED; summary.failed contains node
+- **Confidence:** 0.9
+
+## TEST-330. DAG Run Must Be Resumable from Checkpoint
+- **ID:** TEST-330
+- **Title:** DAG Run Must Be Resumable from Checkpoint
+- **Description:** EventEmitter.replay() returns all persisted events for a dag_id. dispatch retry command identifies FAILED/BLOCKED nodes from past events and re-executes only those nodes.
+- **Requirement ID:** REQ-330
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** EventEmitter(tmp_path, dag); emit node_started+completed+dag_done; call EventEmitter.replay()
+- **Expected Behavior:** replay() returns 3 events in order; list_runs() includes dag_id
+- **Confidence:** 1.0
+
+## TEST-331. Dispatch CLI Group with run/status/list/retry
+- **ID:** TEST-331
+- **Title:** Dispatch CLI Group with run/status/list/retry
+- **Description:** specsmith dispatch --help lists run, status, list, retry. Each subcommand shows expected options. dispatch list on empty project exits 0. dispatch status with unknown dag_id exits 0.
+- **Requirement ID:** REQ-331
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** CliRunner invoke dispatch --help; dispatch run --help; dispatch list; dispatch status --dag-id nonexistent
+- **Expected Behavior:** All exit 0; --help shows expected subcommands and options
+- **Confidence:** 1.0
+
+## TEST-332. Kairos Live DAG Graph Panel
+- **ID:** TEST-332
+- **Title:** Kairos Live DAG Graph Panel
+- **Description:** DispatchApp renders a DAG graph panel subscribed to the SSE stream. Nodes are coloured by status. A node click opens a side panel with role, summary, ESDB record ID.
+- **Requirement ID:** REQ-332
+- **Type:** integration
+- **Verification Method:** evaluator
+- **Input:** Kairos DispatchApp with mock SSE events for each NodeStatus variant
+- **Expected Behavior:** Each node rendered in correct colour; side panel opens on click showing node metadata
+- **Confidence:** 0.85
+
+## TEST-333. Kairos Gantt Timeline Strip
+- **ID:** TEST-333
+- **Title:** Kairos Gantt Timeline Strip
+- **Description:** GanttStrip renders one row per node with a time-proportional bar. Nodes with overlapping started_at/finished_at ranges show visual concurrency.
+- **Requirement ID:** REQ-333
+- **Type:** integration
+- **Verification Method:** evaluator
+- **Input:** GanttStrip with 2 nodes having overlapping start/end times
+- **Expected Behavior:** Both nodes show bars; bar widths proportional to duration; overlap visible
+- **Confidence:** 0.85
+
+## TEST-334. Kairos Per-Node Retry and Abort Controls
+- **ID:** TEST-334
+- **Title:** Kairos Per-Node Retry and Abort Controls
+- **Description:** ControlsPanel Retry button is enabled for FAILED/BLOCKED nodes and disabled for others. Abort button is enabled only for RUNNING nodes. Clicking calls the correct POST endpoint.
+- **Requirement ID:** REQ-334
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Input:** ControlsPanel for each NodeStatus (Pending/Running/Completed/Failed/Blocked)
+- **Expected Behavior:** Retry enabled only for Failed/Blocked; Abort enabled only for Running; click invokes correct action callback
+- **Confidence:** 0.9
 

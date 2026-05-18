@@ -465,8 +465,7 @@
 - id: TEST-106
   title: Kairos Governance Page Surfaces Preflight/Verify/Trace
   description: The Kairos Governance settings page shows the governance-serve health
-    status, the BYOE endpoint URL, and the specsmith updater. *The legacy `specsmith-vscode`
-    broker command test has been retired alongside the extension deprecation.*
+    status, the BYOE endpoint URL, and the specsmith updater.
   requirement_id: REQ-106
   type: integration
   verification_method: evaluator
@@ -477,7 +476,7 @@
   title: ARCHITECTURE.md Has Current State Section
   description: '`ARCHITECTURE.md` contains a heading whose text begins with ''Current
     State'' and whose body references the broker, retry strategies, CI baseline, VS
-    Code extension parity, live-smoke evidence, and documentation surface.'
+    Kairos parity, live-smoke evidence, and documentation surface.'
   requirement_id: REQ-107
   type: unit
   verification_method: pytest
@@ -597,8 +596,7 @@
   title: Kairos BYOE Proxy Consumes Chat Stream
   description: The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions`
     accepts agent requests and forwards them through specsmith preflight/verify. *The
-    legacy `specsmith-vscode` openChat command test has been retired alongside the
-    extension deprecation.*
+    legacy openChat command test has been retired.*
   requirement_id: REQ-118
   type: integration
   verification_method: evaluator
@@ -695,8 +693,7 @@
 - id: TEST-128
   title: Cross-Repo Security Sweep Runs in CI
   description: Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit`
-    and `cargo audit` respectively). *The legacy `specsmith-vscode` npm audit test
-    has been retired alongside the extension deprecation.*
+    and `cargo audit` respectively).
   requirement_id: REQ-128
   type: integration
   verification_method: static-check
@@ -707,7 +704,7 @@
   title: API Stability Doc Enumerates Frozen Surface
   description: '`docs/site/api-stability.md` exists and enumerates: CLI subcommands,
     exit codes, JSON payload schemas, broker module API, ledger event schemas, VS
-    Code extension command IDs. `pyproject.toml` version is `1.0.0` and classifier
+    Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier
     is `Production/Stable`.'
   requirement_id: REQ-129
   type: unit

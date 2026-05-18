@@ -78,3 +78,34 @@ Run `specsmith epistemic-audit --project-dir .` to check current status:
 specsmith's epistemic threshold: **0.7** (configured in `scaffold.yml`)
 
 P1 requirements with confidence below MEDIUM are a stop condition per H13.
+
+---
+
+## External Validation: OEA Recursive Generative Stability
+
+The five AEE axioms above describe the engineering properties that a governed AI system
+must have. The question of *why* these axioms specifically prevent hallucination and drift
+was answered empirically by the study:
+
+> *"Ontology-Epistemic-Agentic (OEA) Recursive Generative Stability: A Unified Framework
+> for Preventing Hallucination and Drift in Large Language Models"*
+> — BitConcepts Research, 2026
+
+The OEA study ran controlled ablation experiments across several LLM families and
+identified the following correspondences between AEE axioms and measurable hallucination
+control mechanisms:
+
+| AEE Axiom | OEA Control Mechanism | Hard Rule |
+|---|---|---|
+| Axiom 1 — Observability | Epistemic scope bounding (H15) | H15 |
+| Axiom 2 — Falsifiability | Calibration direction (H17); Falsifiability required (H20) | H17, H20 |
+| Axiom 3 — Irreducibility | No undisclosed model assumptions (H21) | H21 |
+| Axiom 4 — Reconstructability | Anti-drift recursion guard (H16) | H16 |
+| Axiom 5 — Convergence | RAG retrieval filtering (H18); Synthetic contamination prevention (H19) | H18, H19 |
+
+H22 (cross-platform CI enforcement) addresses the infrastructure dimension of the OEA
+cross-platform validity requirement.
+
+In concrete terms: a system that enforces H15–H22 operationalises the OEA framework.
+Specsmith's governance layer is the first open-source AEE toolkit to encode these
+findings as machine-enforceable rules via `specsmith validate`.

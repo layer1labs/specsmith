@@ -153,7 +153,7 @@ def get_compliance_summary(project_dir: str | Path = ".") -> ComplianceSummary:
 
 
 def get_governance_rules_status(project_dir: str | Path = ".") -> list[dict[str, Any]]:
-    """Return status of hard governance rules (H1-H14)."""
+    """Return status of hard governance rules (H1-H22)."""
     root = Path(project_dir).resolve()
 
     rules = [
@@ -202,8 +202,8 @@ def get_governance_rules_status(project_dir: str | Path = ".") -> list[dict[str,
         },
         {
             "id": "H12",
-            "name": "Windows automation via .cmd",
-            "description": "Multi-step automation uses .cmd files",
+            "name": "Platform-aware automation",
+            "description": "Use sh/bash on Unix/macOS; .cmd/.ps1 on Windows; never assume a single platform",
         },
         {
             "id": "H13",
@@ -215,11 +215,54 @@ def get_governance_rules_status(project_dir: str | Path = ".") -> list[dict[str,
             "name": "Documentation freshness",
             "description": "Docs updated in same commit as code",
         },
+        # H15-H22: Anti-hallucination / OEA recursive generative stability (derived from research)
+        {
+            "id": "H15",
+            "name": "Epistemic scope bounding",
+            "description": "Agent must not make claims outside verified knowledge; say 'unknown' rather than fabricate",
+        },
+        {
+            "id": "H16",
+            "name": "Anti-drift recursion guard",
+            "description": "Multi-step generation chains must have a finite iteration limit; no recursive output-as-input without a checkpoint",
+        },
+        {
+            "id": "H17",
+            "name": "Calibration direction",
+            "description": "Express uncertainty rather than false confidence; output confidence must not exceed evidence quality",
+        },
+        {
+            "id": "H18",
+            "name": "RAG retrieval filtering",
+            "description": "Retrieved context must pass relevance validation before inclusion; low-confidence chunks must be discarded",
+        },
+        {
+            "id": "H19",
+            "name": "Synthetic contamination prevention",
+            "description": "Synthetically generated data must not be silently mixed with real ground-truth data in eval or training pipelines",
+        },
+        {
+            "id": "H20",
+            "name": "Falsifiability required",
+            "description": "All factual agent claims must cite verifiable sources or be explicitly marked as unverified hypotheses",
+        },
+        {
+            "id": "H21",
+            "name": "No undisclosed model assumptions",
+            "description": "Any model-specific behaviour relied upon (context window, format) must be explicitly stated in the proposal",
+        },
+        {
+            "id": "H22",
+            "name": "Cross-platform CI enforcement",
+            "description": "CI pipelines must run on Linux/macOS and Windows; single-platform green is not cross-platform coverage",
+        },
     ]
 
     # Quick checks for common violations
     ledger_exists = (root / "docs" / "LEDGER.md").is_file() or (root / "LEDGER.md").is_file()
     agents_exists = (root / "AGENTS.md").is_file()
+    ci_path = root / ".github" / "workflows"
+    ci_exists = ci_path.is_dir() and any(ci_path.glob("*.yml"))
 
     for rule in rules:
         rule["status"] = "ok"  # default
@@ -228,5 +271,11 @@ def get_governance_rules_status(project_dir: str | Path = ".") -> list[dict[str,
         rules[0]["status"] = "violation"
     if not agents_exists:
         rules[1]["status"] = "warning"
+    # H22: warn if no CI workflows directory exists
+    if not ci_exists:
+        for rule in rules:
+            if rule["id"] == "H22":
+                rule["status"] = "warning"
+                break
 
     return rules

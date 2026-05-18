@@ -4,10 +4,24 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    groups:
+      dev-deps:
+        patterns:
+          - "ruff"
+          - "mypy"
+          - "pytest*"
+          - "types-*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"

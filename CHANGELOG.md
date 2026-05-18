@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3-post3] — 2026-05-17
+### Added
+- **Cooperative abort during LLM invocation** — `_invoke_worker_monitored()` wraps the
+  AG2 `initiate_chat` call in a daemon sub-thread and polls `abort_flag.is_set()` every
+  0.5 s. If `abort_node()` fires mid-LLM-call, `_run_node` raises `_NodeAbortedError`
+  immediately; the sub-thread finishes naturally in the background.
+- **CLI `dispatch run` uses PlannerAgent** when AG2 is installed (Path A): constructs an
+  `Orchestrator` and calls `run_dispatch()` which invokes `_call_planner()` for
+  automatic multi-node DAG decomposition. Falls back to single-node `TaskDAGBuilder`
+  (Path B) when AG2 is not available.
+- **Kairos topological DAG layout** — `depends_on` is now included in the
+  `node_started` event payload; `NodeInfo` in Rust stores it; `compute_levels()`
+  assigns topological levels; `render_dag()` positions nodes left→right by level and
+  draws cubic bezier edges with arrowheads.
+- **REQ-313..320 (compliance plan 5939f743)** — 8 multi-agent governance traceability
+  requirements implemented: dispatch run audit in LEDGER.md, worker identity in
+  events, session traceability, governance block in error, context injection audit,
+  checkpoint completeness, ESDB DAG lineage, abort labelling. 9 new pytest cases.
+  `_write_dispatch_ledger()` writes EU AI Act Art. 12 audit entries after every run.
+### Changed
+- **`specsmith-vscode` removed** — all references to the deprecated VS Code extension
+  replaced with Kairos across 25 files. `docs/site/vscode-extension.md` deleted.
+  `mkdocs.yml` nav updated to `Kairos Client: dispatch.md`.
+### Validation
+- `pytest`: **789 passed, 0 failed**
+- `specsmith validate --strict`: **0 errors, 0 warnings**
+- `specsmith audit`: **28/28 checks, 292 REQs with test coverage**
+
+## [0.11.3-post2]
+### Added
+- **Multi-Agent DAG Dispatcher (REQ-321..334)** — `specsmith dispatch` command group and
+  `src/specsmith/agent/dispatch/` package:
+  - `TaskDAG`, `TaskDAGBuilder`, `DAGValidationError` — Kahn topological sort + cycle detection
+  - `AgentPool` — lazy per-role `ConversableAgent` pool with idle worker reuse and `max_workers` ceiling
+  - `AgentDispatcher` — `ThreadPoolExecutor` scheduler with fail-forward BLOCKED propagation; writes
+    ESDB `dispatch_result` records and injects predecessor context into successors
+  - `EventEmitter` — atomic JSONL event persistence to `.specsmith/dispatch/<dag_id>/events.jsonl`
+    with SSE fan-out queue; static `replay()` for DAG resume
+  - `Orchestrator.run_task(use_dag=False)` / `run_dispatch()` — backward-compatible DAG entry point
+  - `SubAgentSpawner.spawn_worker(role, llm_config)` — live `ConversableAgent` with role-restricted tools
+  - `specsmith dispatch run/status/list/retry` CLI subcommands
+- **serve.py dispatch HTTP/SSE surface** — `POST /api/dispatch/run`, `GET /api/dispatch/events?dag_id=`
+  (replay + live SSE), `GET /api/dispatch/status?dag_id=`, `GET /api/dispatch/list`,
+  `POST /api/dispatch/retry`, `POST /api/dispatch/abort`
+- **Kairos dispatch panel** (`app/` — Rust, egui/eframe):
+  - `dispatch_panel/mod.rs` — `DispatchApp` SSE subscriber; DAG graph with status-coloured nodes
+  - `dispatch_panel/gantt.rs` — `GanttStrip` Gantt timeline strip showing parallelism
+  - `dispatch_panel/controls.rs` — Retry (FAILED/BLOCKED) and Abort (RUNNING) action buttons
+  - `app/README.md` — build and usage documentation
+- **Compiler / tool support**:
+  - `run_gcc`, `run_arm_gcc` (ARM bare-metal), `run_aarch64_gcc` (AArch64 Linux) — configurable GCC variants
+  - `run_iar_compiler` — IAR Embedded Workbench (`IarBuild` CLI)
+  - `run_intel_compiler` — Intel oneAPI `icx`/`icpx` and classic `icc`/`icpc`
+  - `run_clang_format` — clang-format with in-place support
+  - `run_clang_tidy` — clang-tidy with checks filter and `--fix` support
+  - `run_vsg` — VSG VHDL Style Guide with JUnit output and `--fix` support
+  - All 8 tools registered in `AVAILABLE_TOOLS`, `build_tool_registry()`, and `ROLE_TOOLS`
+  - New `embedded-coder` agent role with all compiler tools
+- **Governance / docs**:
+  - `docs/requirements/dispatch.yml` and `docs/tests/dispatch.yml` — YAML canonical source for REQ-321..334
+  - `docs/ARCHITECTURE.md` §Phase 2 — full implemented design with invariants and domain table
+  - `docs/requirements/overflow.yml` — reservation note for REQ-313..320
+  - `ARCHITECTURE.md` section numbering corrected (previously duplicate §15 and §16)
+  - `README.md` — new Multi-Agent DAG Dispatcher and Compiler Tool Support sections
+  - `docs/site/commands.md` — `specsmith dispatch` command group documented
+  - `docs/site/tool-registry.md` — agent compiler tools section added
+- **Tests**: `tests/test_dispatch.py` — 44 new pytest cases covering REQ-321..334
+- `.gitignore` — `.specsmith/dispatch/` event logs and `app/target/` excluded
+### Validation
+- `pytest`: **777 passed, 2 skipped, 5 xfailed** (zero failures)
+- `specsmith validate --strict`: **0 errors, 0 warnings**
+- `specsmith audit`: **28/28 checks passed, 284 REQs with test coverage**
+
+## [0.11.3-post1]
+### Added
+- **`specsmith issue` group (REQ-303, REQ-304)** — duplicate-guarded GitHub issue filing with three subcommands:
+  - `specsmith issue check <title> --repo kairos|specsmith` — Jaccard similarity search against open GitHub issues; prints duplicates (≥ 0.60) and similar (≥ 0.30) with URLs.
+  - `specsmith issue file <title> --body TEXT --repo REPO [--ai] [--force]` — checks for duplicates then files via `gh` CLI; `--force` bypasses the check; `--ai` improves the body using the configured LLM.
+  - `specsmith issue search <query> --repo REPO` — raw GitHub issue search, no threshold applied.
+- **`src/specsmith/issue_reporter.py`** — core module (`search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report`). Uses `gh` CLI for auth-backed calls; falls back to unauthenticated GitHub REST for public repos. Temporary payload files written via `tempfile` to comply with H12 (no inline shell quoting on Windows).
+- **32 new pytest tests** (`tests/test_issue_reporter.py`) covering similarity helpers, duplicate thresholds, `--force` bypass, `--ai` fallback, error capture.
+
+## [0.11.3]
+### Added
+- **`specsmith req add` + `specsmith test add` (REQ-302)** — YAML-first CLI commands that append a new requirement or test case directly to the canonical `docs/requirements/*.yml` / `docs/tests/*.yml` groups when the project is in YAML-mode governance. Requires `.specsmith/governance-mode == yaml`. Prints the assigned ID on success. Wired to `governance_yaml.add_requirement` / `governance_yaml.add_test`.
+### Changed
+- **`esdb migrate` / `esdb replay` real implementations** — both commands now execute against the live ChronoMemory ESDB backend instead of returning stub responses. Stubs fully removed.
+### Fixed
+- ruff E501 violations in `esdb migrate` command output strings.
+- ruff format drift in `cli.py`.
+
 ## [0.11.2] — 2026-05-11
 ### Added
 - **esdb rollback real restore (REQ-252)** — now finds the N-th most recent backup in .specsmith/backups/ and restores equirements.json + 	estcases.json from it. Exits non-zero when no backups exist.

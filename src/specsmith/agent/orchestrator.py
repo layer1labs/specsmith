@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from specsmith.agent.dispatch.result import DispatchSummary
 
 try:
     import autogen
@@ -164,13 +169,37 @@ class Orchestrator:
             # Register the actual execution function ONCE on the executor.
             self.executor.register_for_execution(name=tool.__name__)(tool)
 
-    def run_task(self, task: str) -> TaskResult:
+    def run_task(self, task: str, *, use_dag: bool = False) -> TaskResult:
         """Run a task through the agent orchestration group (REQ-091).
+
+        When *use_dag* is True the task is decomposed into a TaskDAG and
+        dispatched via AgentDispatcher (REQ-322).  On DAGValidationError the
+        method falls back to the existing flat GroupChat path with a warning.
+        The Orchestrator remains the sole entry point in both paths (REQ-321).
 
         Returns a :class:`TaskResult` so the Nexus REPL's bounded-retry
         harness can compare ``confidence`` against the preflight target and
         retry on non-equilibrium outcomes without inventing signal.
         """
+        if use_dag:
+            try:
+                summary = self.run_dispatch(task)
+                return TaskResult(
+                    equilibrium=summary.equilibrium,
+                    confidence=summary.confidence,
+                    summary=(
+                        f"DAG dispatch complete: {len(summary.completed)} completed, "
+                        f"{len(summary.failed)} failed, {len(summary.blocked)} blocked."
+                    ),
+                    files_changed=[f for r in summary.completed for f in r.files_changed],
+                )
+            except Exception as dag_err:  # noqa: BLE001
+                import warnings
+
+                warnings.warn(
+                    f"DAG dispatch failed ({dag_err!s}), falling back to flat GroupChat.",
+                    stacklevel=2,
+                )
         groupchat = GroupChat(
             agents=[
                 self.human_proxy,
@@ -201,6 +230,92 @@ Next action:
         chat_result = self.human_proxy.initiate_chat(manager, message=initial_message)
 
         return self._build_task_result(chat_result, task)
+
+    def run_dispatch(
+        self,
+        task: str,
+        *,
+        max_workers: int = 4,
+        planner_output: str | list | None = None,
+        project_root: str | None = None,
+    ) -> DispatchSummary:
+        """Decompose *task* into a TaskDAG and dispatch via AgentDispatcher.
+
+        Always uses the DAG path (REQ-321: Orchestrator is the sole entry).
+        Returns a :class:`DispatchSummary` with per-node outcomes.
+        """
+        import os
+        from pathlib import Path
+
+        from specsmith.agent.dispatch import (
+            AgentDispatcher,
+            AgentPool,
+            EventEmitter,
+            TaskDAGBuilder,
+        )
+
+        root = Path(project_root) if project_root else Path(os.getcwd())
+
+        # If no planner_output provided, ask PlannerAgent to decompose the task
+        # into a structured JSON list of TaskNode dicts (best-effort; falls back
+        # to single-node DAG if the LLM is unavailable or returns invalid JSON).
+        if planner_output is None:
+            planner_output = self._call_planner(task)
+
+        dag = TaskDAGBuilder.build(task, planner_output=planner_output)
+        pool = AgentPool(self.llm_config, max_workers=max_workers)
+        emitter = EventEmitter(root, dag.dag_id)
+        dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+        return dispatcher.run()
+
+    def _call_planner(self, task: str) -> str | None:
+        """Ask the PlannerAgent to decompose *task* into a JSON array of TaskNode dicts.
+
+        Sends a single-turn prompt to the PlannerAgent that asks it to emit a
+        structured JSON plan.  Returns the raw response string (which
+        ``TaskDAGBuilder._parse_nodes`` will extract the JSON array from), or
+        ``None`` if the LLM is unavailable or times out (falling back to
+        single-node DAG).
+
+        The prompt format instructs the LLM to output a JSON array like::
+
+            [
+              {"id": "arch", "title": "Design API", "role": "architect", "depends_on": []},
+              {"id": "impl", "title": "Implement the API", "role": "coder", "depends_on": ["arch"]},
+              {"id": "test", "title": "Write tests", "role": "tester", "depends_on": ["arch"]}
+            ]
+        """
+        try:
+            from autogen import ConversableAgent  # type: ignore[import]
+
+            proxy = ConversableAgent(
+                name="PlannerProxy",
+                system_message="You collect the planner's JSON output and return it.",
+                llm_config=False,
+                human_input_mode="NEVER",
+                max_consecutive_auto_reply=1,
+            )
+
+            planner_prompt = (
+                f"Decompose this task into a JSON array of agent work nodes.\n"
+                f"Task: {task}\n\n"
+                f"Output ONLY a JSON array. Each element must have:\n"
+                f'  - "id": unique snake_case slug\n'
+                f'  - "title": human-readable description\n'
+                f'  - "role": one of coder | reviewer | tester | '
+                f"architect | researcher | embedded-coder\n"
+                f'  - "depends_on": list of node ids that must finish first ([] for root nodes)\n\n'
+                f"The array MUST be a valid DAG with no cycles. Maximum 8 nodes."
+            )
+
+            result = proxy.initiate_chat(
+                self.planner,
+                message=planner_prompt,
+                max_turns=1,
+            )
+            return getattr(result, "summary", None) or None
+        except Exception:  # noqa: BLE001 — fallback to single-node DAG on any error
+            return None
 
     def _build_task_result(self, chat_result: Any, task: str) -> TaskResult:
         """Translate the AG2 chat result into a structured TaskResult.

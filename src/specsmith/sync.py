@@ -240,6 +240,15 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_tests = load_yaml_tests(root)
 
         # Normalise to the same schema that the Markdown path produces
+        # Build req_id → [test_ids] map from the loaded tests so requirements.json
+        # includes test_ids for audit coverage checks (#147).
+        _req_to_tests: dict[str, list[str]] = {}
+        for _t in new_tests:
+            _rid = str(_t.get("requirement_id", ""))
+            _tid = str(_t.get("id", ""))
+            if _rid and _tid:
+                _req_to_tests.setdefault(_rid, []).append(_tid)
+
         new_reqs = [
             {
                 "id": r["id"],
@@ -247,6 +256,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                 "description": str(r.get("description", "")),
                 "source": r.get("source", "docs/requirements/"),
                 "status": str(r.get("status", "defined")),
+                "test_ids": _req_to_tests.get(r["id"], []),
             }
             for r in new_reqs
         ]
@@ -273,6 +283,17 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_tests = []
         if tests_md_path.exists():
             new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+
+        # Inject test_ids into requirements even in Markdown mode (#147)
+        _req_to_tests_md: dict[str, list[str]] = {}
+        for _t in new_tests:
+            _rid = str(_t.get("requirement_id", ""))
+            _tid = str(_t.get("id", ""))
+            if _rid and _tid:
+                _req_to_tests_md.setdefault(_rid, []).append(_tid)
+        for _r in new_reqs:
+            if "test_ids" not in _r:
+                _r["test_ids"] = _req_to_tests_md.get(_r["id"], [])
 
     # Placeholder so the variable is always defined for the merge step below
     new_reqs_obj: list[dict[str, Any]] = new_reqs
@@ -331,6 +352,12 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
             tests_md_path.parent.mkdir(parents=True, exist_ok=True)
             tests_md_path.write_text(md_tests, encoding="utf-8")
 
+        # ── ESDB sync (best-effort — never blocks sync on ESDB failure) ────────
+        # Keep ChronoStore in sync with JSON so ESDB is never stale.
+        # Only runs when .chronomemory/events.wal exists (i.e. migrate was run).
+        if reqs_changed or tests_changed:
+            _sync_esdb(root, state_dir)
+
     return SyncResult(
         reqs_before=reqs_before,
         reqs_after=len(new_reqs_obj),
@@ -340,6 +367,77 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         tests_changed=tests_changed,
         dry_run=dry_run,
     )
+
+
+def _sync_esdb(root: Path, state_dir: Path) -> None:
+    """Upsert all current requirements and testcases into ChronoStore.
+
+    This is called automatically by :func:`run_sync` after the JSON cache is
+    updated, keeping the audit trail in sync without requiring a separate
+    ``specsmith migrate`` invocation.
+
+    Design invariants:
+    - Idempotent: re-running upserts the same data with no side effects.
+    - Non-blocking: any exception is swallowed so sync never fails on ESDB.
+    - Status mapping: governance status (defined/implemented) → ESDB status
+      (active/deprecated) via ChronoStore._governance_to_esdb_status.
+    - ESDB is an audit trail, not a source of truth.  The JSON files remain
+      the authoritative machine state.
+    """
+    wal_path = root / ".chronomemory" / "events.wal"
+    if not wal_path.exists():
+        return  # ESDB not initialised for this project yet
+
+    try:
+        from specsmith.esdb.store import ChronoRecord, ChronoStore
+
+        store = ChronoStore(root).open()
+        _map = ChronoStore._governance_to_esdb_status
+
+        for filename, kind in [
+            (state_dir / "requirements.json", "requirement"),
+            (state_dir / "testcases.json", "testcase"),
+        ]:
+            if not filename.is_file():
+                continue
+            try:
+                items = json.loads(filename.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+
+            for item in items:
+                if not isinstance(item, dict) or not item.get("id"):
+                    continue
+                rec_id = item["id"]
+                esdb_status = _map(item.get("status", "active"))
+                label = item.get("title", "")
+                confidence = float(item.get("confidence", 0.7 if kind == "requirement" else 1.0))
+
+                # Skip if nothing changed
+                existing = store.get(rec_id)
+                if (
+                    existing is not None
+                    and existing.label == label
+                    and existing.status == esdb_status
+                    and existing.confidence == confidence
+                ):
+                    continue
+
+                store.upsert(
+                    ChronoRecord(
+                        id=rec_id,
+                        kind=kind,
+                        label=label,
+                        status=esdb_status,
+                        confidence=confidence,
+                        source_type="observed",
+                        evidence=[f"synced from {filename.name}"],
+                        data=item,
+                    )
+                )
+        store.close()
+    except Exception:  # noqa: BLE001 — ESDB sync is always best-effort
+        pass
 
 
 def check_sync(root: Path) -> SyncResult:

@@ -65,9 +65,38 @@ def run_diff(root: Path) -> list[tuple[str, str]]:
 
     results: list[tuple[str, str]] = []
 
+    # Check for files migrated by applied migrations (#136).
+    # If migration-state.json records v001 as applied, files under docs/governance/
+    # that it consumed are now in .specsmith/governance/ — don't flag them as missing.
+    _migrated_files: set[str] = set()
+    migration_state = root / ".specsmith" / "migration-state.json"
+    if migration_state.exists():
+        try:
+            import json
+
+            state = json.loads(migration_state.read_text(encoding="utf-8"))
+            # v001 migrates docs/governance/*.md files
+            v001 = next((m for m in state if m.get("version") == "001" and m.get("success")), None)
+            if v001:
+                _migrated_files = {
+                    "docs/governance/RULES.md",
+                    "docs/governance/SESSION-PROTOCOL.md",
+                    "docs/governance/LIFECYCLE.md",
+                    "docs/governance/ROLES.md",
+                    "docs/governance/CONTEXT-BUDGET.md",
+                    "docs/governance/VERIFICATION.md",
+                    "docs/governance/DRIFT-METRICS.md",
+                }
+        except Exception:  # noqa: BLE001
+            pass
+
     for template_name, output_rel in _GOVERNANCE_FILES:
         output_path = root / output_rel
         if not output_path.exists():
+            # Skip files intentionally migrated by applied migrations (#136)
+            if output_rel in _migrated_files:
+                results.append((output_rel, "migrated"))
+                continue
             results.append((output_rel, "missing"))
             continue
 

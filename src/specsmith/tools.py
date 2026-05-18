@@ -66,22 +66,25 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
     ),
     ProjectType.YOCTO_BSP: ToolSet(
         lint=["oelint-adv"],
-        test=["bitbake -c testimage"],
-        build=["kas build", "bitbake"],
+        test=["kas-container", "bitbake -c testimage"],
+        build=["kas build", "kas-container build", "bitbake"],
         security=[],
         compliance=["yocto-check-layer"],
     ),
     ProjectType.PCB_HARDWARE: ToolSet(
-        lint=[],
-        test=["drc-check", "erc-check"],
-        build=["kicad-cli"],
-        compliance=["bom-validate"],
+        # KiCad CLI for automated DRC/ERC + Gerber generation
+        lint=["kicad-cli pcb drc"],
+        test=["kicad-cli sch erc"],
+        build=["kicad-cli pcb export gerbers"],
+        compliance=["kicad-cli sch export bom"],
     ),
     ProjectType.EMBEDDED_HARDWARE: ToolSet(
+        # Detects Zephyr/west projects at runtime; generic C/C++ fallback.
         lint=["clang-tidy", "cppcheck"],
         typecheck=["cppcheck"],
-        test=["ctest", "unity"],
-        build=["cmake", "make"],
+        # west twister for Zephyr; ctest for bare CMake; unity for bare FreeRTOS
+        test=["west twister", "ctest", "unity"],
+        build=["west build", "cmake", "make"],
         security=["flawfinder"],
         format=["clang-format"],
         compliance=["misra-c"],
@@ -153,11 +156,16 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         build=["dotnet build"],
         format=["dotnet format"],
     ),
-    # Mobile
+    # Mobile (Flutter / React Native / iOS native / Android native)
     ProjectType.MOBILE_APP: ToolSet(
-        lint=["flutter analyze", "eslint"],
+        # Flutter is the common cross-platform case; xcodebuild for iOS-only;
+        # ./gradlew for Android-only; jest/jest-expo for RN
+        lint=["flutter analyze", "dart analyze", "ktlint"],
+        typecheck=["flutter analyze"],
         test=["flutter test", "jest"],
-        build=["flutter build"],
+        build=["flutter build", "xcodebuild", "./gradlew assembleRelease"],
+        security=["mobsfscan"],
+        format=["dart format"],
     ),
     # DevOps / IaC
     ProjectType.DEVOPS_IAC: ToolSet(
@@ -179,6 +187,33 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         test=["pytest", "jest"],
         security=["pip-audit", "npm audit"],
         build=["docker compose build"],
+    ),
+    # New project types
+    ProjectType.EMBEDDED_PYTHON_HMI: ToolSet(
+        # Hardware-interfacing Python kiosk — Qt/PySide6 + hardware comms
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+        build=["python -m build"],
+    ),
+    ProjectType.RESEARCH_PYTHON: ToolSet(
+        # Experiment/research packages — no CLI, data integrity checks
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+    ),
+    ProjectType.SAFETY_CRITICAL: ToolSet(
+        # IEC 60204-1/62061/61508 safety-critical embedded
+        lint=["clang-tidy", "cppcheck"],
+        test=["west twister", "ctest"],
+        security=["flawfinder"],
+        build=["cmake --build .", "make"],
+        format=["clang-format"],
+        compliance=["misra-c", "polyspace"],
     ),
     # --- Document / Knowledge ---
     ProjectType.SPEC_DOCUMENT: ToolSet(

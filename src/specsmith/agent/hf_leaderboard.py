@@ -3,11 +3,15 @@
 """HuggingFace Open LLM Leaderboard sync and bucket scoring (REQ-263..REQ-269).
 
 Fetches model benchmark data from the HuggingFace Datasets Server and computes
-per-bucket (reasoning/conversational/longform) scores.
+per-bucket scores covering all specsmith/kairos task types.
 
-Bucket formulas (normalised 0-100):
+Bucket formulas (normalised 0-100, all use leaderboard benchmarks):
   Reasoning      = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval
+  Coding         = 0.40×MATH + 0.35×BBH + 0.25×GPQA
   Conversational = 0.40×IFEval + 0.35×MMLU-PRO + 0.25×BBH
+  Requirements   = 0.45×IFEval + 0.30×MMLU-PRO + 0.25×BBH
+  Architecture   = 0.40×MMLU-PRO + 0.35×GPQA + 0.25×BBH
+  Debugging      = 0.40×GPQA + 0.35×BBH + 0.25×MATH
   Longform       = 0.35×MUSR + 0.35×IFEval + 0.30×MMLU-PRO
 
 Background sync runs 15 s after startup then daily.
@@ -50,16 +54,51 @@ REASONING_WEIGHTS: dict[str, float] = {
     "bbh": 0.25,
     "ifeval": 0.10,
 }
+# MATH = structured problem solving; BBH = algorithmic multi-step; GPQA = deep algorithmic
+CODING_WEIGHTS: dict[str, float] = {
+    "math": 0.40,
+    "bbh": 0.35,
+    "gpqa": 0.25,
+}
 CONVERSATIONAL_WEIGHTS: dict[str, float] = {
     "ifeval": 0.40,
     "mmlu_pro": 0.35,
     "bbh": 0.25,
+}
+# IFEval = spec-following precision; MMLU-PRO = domain knowledge; BBH = traceability reasoning
+REQUIREMENTS_WEIGHTS: dict[str, float] = {
+    "ifeval": 0.45,
+    "mmlu_pro": 0.30,
+    "bbh": 0.25,
+}
+# MMLU-PRO = broad professional knowledge; GPQA = expert design reasoning; BBH = patterns
+ARCHITECTURE_WEIGHTS: dict[str, float] = {
+    "mmlu_pro": 0.40,
+    "gpqa": 0.35,
+    "bbh": 0.25,
+}
+# GPQA = root-cause analysis; BBH = step-by-step tracing; MATH = systematic logic repair
+DEBUGGING_WEIGHTS: dict[str, float] = {
+    "gpqa": 0.40,
+    "bbh": 0.35,
+    "math": 0.25,
 }
 LONGFORM_WEIGHTS: dict[str, float] = {
     "musr": 0.35,
     "ifeval": 0.35,
     "mmlu_pro": 0.30,
 }
+
+# All valid bucket names (used by CLI choice validation)
+ALL_BUCKETS: tuple[str, ...] = (
+    "reasoning",
+    "coding",
+    "conversational",
+    "requirements",
+    "architecture",
+    "debugging",
+    "longform",
+)
 
 # Mapping from HF leaderboard field names → our benchmark keys
 _BENCHMARK_KEYS: dict[str, str] = {
@@ -477,7 +516,7 @@ def _parse_ratelimit_reset(headers: Any) -> float | None:
 
 
 def _compute_bucket_scores(benchmarks: dict[str, float]) -> dict[str, float]:
-    """Compute reasoning/conversational/longform scores from raw benchmark values."""
+    """Compute all seven task-bucket scores from raw HF benchmark values."""
 
     def _weighted(weights: dict[str, float]) -> float:
         total = 0.0
@@ -487,7 +526,11 @@ def _compute_bucket_scores(benchmarks: dict[str, float]) -> dict[str, float]:
 
     return {
         "reasoning": _weighted(REASONING_WEIGHTS),
+        "coding": _weighted(CODING_WEIGHTS),
         "conversational": _weighted(CONVERSATIONAL_WEIGHTS),
+        "requirements": _weighted(REQUIREMENTS_WEIGHTS),
+        "architecture": _weighted(ARCHITECTURE_WEIGHTS),
+        "debugging": _weighted(DEBUGGING_WEIGHTS),
         "longform": _weighted(LONGFORM_WEIGHTS),
     }
 
@@ -525,7 +568,11 @@ def _upsert_score(
         "model_name": model_name,
         "source": source,
         "reasoning_score": scores["reasoning"],
+        "coding_score": scores["coding"],
         "conversational_score": scores["conversational"],
+        "requirements_score": scores["requirements"],
+        "architecture_score": scores["architecture"],
+        "debugging_score": scores["debugging"],
         "longform_score": scores["longform"],
         "raw_benchmarks": benchmarks,
         "scored_at": datetime.now(timezone.utc).isoformat(),
@@ -721,10 +768,18 @@ def get_recommendations(
     scores_path: Path | None = None,
     top_k: int = 10,
 ) -> list[dict[str, Any]]:
-    """Return the top-k models for the requested bucket, sorted descending."""
+    """Return the top-k models for the requested task bucket, sorted descending.
+
+    Valid bucket names: reasoning, coding, conversational, requirements,
+    architecture, debugging, longform.
+    """
     score_key = {
         "reasoning": "reasoning_score",
+        "coding": "coding_score",
         "conversational": "conversational_score",
+        "requirements": "requirements_score",
+        "architecture": "architecture_score",
+        "debugging": "debugging_score",
         "longform": "longform_score",
     }.get(bucket, "reasoning_score")
     rows = list_scores(scores_path=scores_path)
@@ -735,7 +790,11 @@ def get_recommendations(
             "score": r.get(score_key, 0.0),
             "source": r.get("source", ""),
             "reasoning": r.get("reasoning_score", 0.0),
+            "coding": r.get("coding_score", 0.0),
             "conversational": r.get("conversational_score", 0.0),
+            "requirements": r.get("requirements_score", 0.0),
+            "architecture": r.get("architecture_score", 0.0),
+            "debugging": r.get("debugging_score", 0.0),
             "longform": r.get("longform_score", 0.0),
         }
         for r in rows[:top_k]
@@ -868,6 +927,14 @@ def start_background_sync(scores_path: Path | None = None) -> None:
 
 
 __all__ = [
+    "ALL_BUCKETS",
+    "ARCHITECTURE_WEIGHTS",
+    "CODING_WEIGHTS",
+    "CONVERSATIONAL_WEIGHTS",
+    "DEBUGGING_WEIGHTS",
+    "LONGFORM_WEIGHTS",
+    "REASONING_WEIGHTS",
+    "REQUIREMENTS_WEIGHTS",
     "_STATIC_BENCHMARKS",
     "_compute_bucket_scores",
     "_parse_ratelimit_reset",

@@ -1998,23 +1998,83 @@ def req_list(project_dir: str) -> None:
 
 
 @req.command(name="add")
-@click.argument("req_id")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--component", default="")
-@click.option("--priority", default="medium")
-@click.option("--description", default="")
-def req_add(req_id: str, project_dir: str, component: str, priority: str, description: str) -> None:
-    """Add a new requirement."""
-    from specsmith.requirements import add_req
+@click.option("--title", default="", help="Short title for the requirement (YAML mode).")
+@click.option(
+    "--status",
+    default="planned",
+    type=click.Choice(["planned", "implemented", "partial", "deprecated"]),
+    help="Requirement status (YAML mode).",
+)
+@click.option("--description", default="", help="Full description.")
+@click.option("--source", default="", help="Architecture source reference.")
+@click.option("--id", "req_id_override", default="", help="Override the auto-generated ID.")
+# Legacy Markdown-mode options (ignored in YAML mode)
+@click.option("--component", default="", hidden=True)
+@click.option("--priority", default="medium", hidden=True)
+@click.argument("req_id", required=False, default="")
+def req_add(
+    project_dir: str,
+    title: str,
+    status: str,
+    description: str,
+    source: str,
+    req_id_override: str,
+    component: str,
+    priority: str,
+    req_id: str,
+) -> None:
+    """Add a requirement.
 
-    add_req(
-        Path(project_dir).resolve(),
-        req_id,
-        component=component,
-        priority=priority,
-        description=description,
-    )
-    console.print(f"[green]Added {req_id}[/green]")
+    In YAML-first mode (governance-mode=yaml): auto-increments the next REQ ID,
+    writes to the appropriate domain YAML file, and runs sync.
+
+    \b
+    YAML mode (recommended):
+      specsmith req add --title "My requirement" --status planned
+      specsmith req add --title "Custom ID" --id REQ-042
+
+    Legacy Markdown mode:
+      specsmith req add REQ-042 --description "description"
+    """
+    root = Path(project_dir).resolve()
+
+    from specsmith.governance_yaml import add_requirement, is_yaml_mode
+
+    if is_yaml_mode(root):
+        if not title:
+            console.print("[red]--title is required in YAML-first mode.[/red]")
+            raise SystemExit(1)
+        new_id = add_requirement(
+            root,
+            title=title,
+            status=status,
+            description=description,
+            source=source,
+            req_id=req_id_override or None,
+        )
+        console.print(f"[green]\u2713[/green] Added [bold]{new_id}[/bold]: {title}")
+        console.print("  Running sync...")
+        from specsmith.sync import run_sync
+
+        run_sync(root)
+        console.print(f"  [dim]Synced. Edit docs/requirements/*.yml to modify {new_id}.[/dim]")
+    else:
+        # Legacy Markdown mode
+        effective_id = req_id or req_id_override
+        if not effective_id:
+            console.print("[red]Provide a REQ ID argument in legacy mode (e.g. REQ-042).[/red]")
+            raise SystemExit(1)
+        from specsmith.requirements import add_req
+
+        add_req(
+            root,
+            effective_id,
+            component=component,
+            priority=priority,
+            description=description,
+        )
+        console.print(f"[green]Added {effective_id}[/green]")
 
 
 @req.command(name="trace")
@@ -2060,6 +2120,79 @@ def req_orphans(project_dir: str) -> None:
 
 
 main.add_command(req)
+
+
+# ---------------------------------------------------------------------------
+# Test subcommands (YAML-first: test add)
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def test() -> None:  # type: ignore[misc]
+    """Manage test cases."""
+
+
+@test.command(name="add")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--req", "req_id", required=True, help="REQ ID this test covers (e.g. REQ-042).")
+@click.option("--title", required=True, help="Short title for the test case.")
+@click.option(
+    "--type",
+    "test_type",
+    default="integration",
+    type=click.Choice(["unit", "integration", "cli", "e2e", "build", "manual", "script"]),
+    help="Test type.",
+)
+@click.option("--verification-method", default="pytest", help="How the test is verified.")
+@click.option("--description", default="", help="Full description.")
+@click.option("--id", "test_id_override", default="", help="Override the auto-generated ID.")
+def test_add(
+    project_dir: str,
+    req_id: str,
+    title: str,
+    test_type: str,
+    verification_method: str,
+    description: str,
+    test_id_override: str,
+) -> None:
+    """Add a test case linked to a requirement (YAML-first mode only).
+
+    \b
+    Examples:
+      specsmith test add --req REQ-042 --title "Verify sync exits 0 after edit"
+      specsmith test add --req REQ-042 --title "CLI smoke test" --type cli
+      specsmith test add --req REQ-042 --title "Manual check" --type manual --id TEST-999
+    """
+    root = Path(project_dir).resolve()
+
+    from specsmith.governance_yaml import add_test, is_yaml_mode
+
+    if not is_yaml_mode(root):
+        console.print(
+            "[red]test add requires YAML-first mode.[/red] "
+            "Run `specsmith migrate-project --yaml` (or `scripts/migrate_governance_to_yaml.py "
+            f"--project-dir {project_dir}`) to migrate this project to YAML-first governance."
+        )
+        raise SystemExit(1)
+
+    new_id = add_test(
+        root,
+        title=title,
+        requirement_id=req_id,
+        test_type=test_type,
+        verification_method=verification_method,
+        description=description,
+        test_id=test_id_override or None,
+    )
+    console.print(f"[green]\u2713[/green] Added [bold]{new_id}[/bold] \u2192 {req_id}: {title}")
+    console.print("  Running sync...")
+    from specsmith.sync import run_sync
+
+    run_sync(root)
+    console.print(f"  [dim]Synced. Edit docs/tests/*.yml to modify {new_id}.[/dim]")
+
+
+main.add_command(test)
 
 
 # ---------------------------------------------------------------------------
@@ -2613,6 +2746,75 @@ def migrate_project_cmd(project_dir: str, dry_run: bool) -> None:
         console.print(f"  {prefix}{a}")
 
 
+@main.command(name="session-show")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit as JSON.")
+def session_show_cmd(project_dir: str, as_json: bool) -> None:
+    """Show the context seed that will be injected into the next agent session.
+
+    Displays what the agent will already know when you run ``specsmith run``:
+    project health snapshot, recent conversation turns, LEDGER entries,
+    and ESDB records — so you can verify context continuity is working.
+    """
+    import json as _json
+
+    from specsmith.agent.context_seed import build_context_seed
+
+    root = Path(project_dir).resolve()
+    seed = build_context_seed(root)
+
+    if as_json:
+        click.echo(_json.dumps(seed, indent=2))
+        return
+
+    if not seed:
+        console.print("[dim]No prior session context found for this project.[/dim]")
+        return
+
+    console.print(f"[bold]Session context seed[/bold]  ({len(seed)} turn(s))\n")
+    for i, turn in enumerate(seed, 1):
+        role = turn.get("role", "?")
+        content = str(turn.get("content", ""))
+        preview = content[:200].replace("\n", " ")
+        if len(content) > 200:
+            preview += "..."
+        console.print(f"  [{i}] [cyan]{role}[/cyan]: {preview}")
+
+
+@main.command(name="session-clear")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation.")
+def session_clear_cmd(project_dir: str, yes: bool) -> None:
+    """Wipe the session state so the next agent session starts fresh.
+
+    Deletes session-state.json and conversation-history.jsonl from
+    .specsmith/. Use this to reset context when switching tasks or
+    after a major refactor.
+    """
+    root = Path(project_dir).resolve()
+    specsmith_dir = root / ".specsmith"
+
+    targets = [
+        specsmith_dir / "session-state.json",
+        specsmith_dir / "conversation-history.jsonl",
+    ]
+    existing = [t for t in targets if t.exists()]
+
+    if not existing:
+        console.print("[dim]No session state to clear.[/dim]")
+        return
+
+    if not yes and not click.confirm(
+        f"Clear {len(existing)} session file(s) in {specsmith_dir}?", default=False
+    ):
+        return
+
+    for t in existing:
+        t.unlink()
+        console.print(f"  [red]\u2717[/red] Removed {t.name}")
+    console.print("[green]\u2713[/green] Session context cleared.")
+
+
 @main.command(name="session-end")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def session_end_cmd(project_dir: str) -> None:
@@ -2655,12 +2857,36 @@ def credits() -> None:
 @credits.command(name="summary")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--month", default="", help="Filter by month (YYYY-MM).")
-def credits_summary(project_dir: str, month: str) -> None:
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit summary as JSON.")
+def credits_summary(project_dir: str, month: str, as_json: bool) -> None:
     """Show credit spend summary."""
-    from specsmith.credits import get_summary
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.credits import get_summary  # noqa: PLC0415
 
     root = Path(project_dir).resolve()
     s = get_summary(root, month=month)
+
+    if as_json:
+        result = {
+            "total_tokens_in": s.total_tokens_in,
+            "total_tokens_out": s.total_tokens_out,
+            "total_cost_usd": round(s.total_cost_usd, 6),
+            "session_count": s.session_count,
+            "entry_count": s.entry_count,
+            "by_model": s.by_model,
+            "by_provider": s.by_provider,
+            "alerts": s.alerts,
+            "budget": {
+                "monthly_cap_usd": (s.budget.monthly_cap_usd if s.budget else 0.0),
+                "enforcement_mode": (s.budget.enforcement_mode if s.budget else "soft"),
+            }
+            if s.budget
+            else None,
+        }
+        click.echo(_json.dumps(result, indent=2))
+        return
+
     console.print(f"  Tokens in:  {s.total_tokens_in:,}")
     console.print(f"  Tokens out: {s.total_tokens_out:,}")
     console.print(f"  Cost:       ${s.total_cost_usd:.4f}")
@@ -3113,7 +3339,7 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
     "json_events",
     is_flag=True,
     default=False,
-    help="Emit structured JSONL events to stdout (used by IDE clients like the VS Code extension).",
+    help="Emit structured JSONL events to stdout (used by Kairos and compatible IDE clients).",
 )
 @click.option(
     "--endpoint",
@@ -5018,7 +5244,11 @@ def info_cmd(as_json: bool, section: str) -> None:
 
     from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
     from specsmith.languages import EXT_LANG, LANG_CATEGORY, LANG_DISPLAY  # noqa: PLC0415
-    from specsmith.ollama_cmds import CATALOG as OLLAMA_CATALOG  # noqa: PLC0415
+
+    try:
+        from specsmith.ollama_cmds import CATALOG as OLLAMA_CATALOG  # noqa: PLC0415
+    except ImportError:
+        OLLAMA_CATALOG = []  # ollama integration not installed
     from specsmith.phase import PHASES  # noqa: PLC0415
 
     result: dict = {}
@@ -6920,7 +7150,7 @@ main.add_command(index_group)
     default=False,
     help=(
         "Read decision events (tool_decision / diff_decision / comment) from "
-        "stdin. Used by IDE consumers like the VS Code extension to drive "
+        "stdin. Used by Kairos and compatible IDE consumers to drive "
         "the safe-mode approval flow and inline diff review."
     ),
 )
@@ -8559,18 +8789,53 @@ def eval_list_cmd(as_json: bool) -> None:
 @eval_group.command(name="run")
 @click.argument("suite_id", default="core")
 @click.option("--json", "as_json", is_flag=True, default=False)
-def eval_run_cmd(suite_id: str, as_json: bool) -> None:
-    """Run an eval suite (stub mode — no real LLM calls)."""
+@click.option(
+    "--real",
+    "use_real",
+    is_flag=True,
+    default=False,
+    help=(
+        "Use a real LLM provider (auto-detected: Ollama first, then ANTHROPIC_API_KEY / "
+        "OPENAI_API_KEY / GOOGLE_API_KEY).  Falls back to stub when no provider is reachable."
+    ),
+)
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root passed to the agent when --real is set (default: current directory).",
+)
+def eval_run_cmd(suite_id: str, as_json: bool, use_real: bool, project_dir: str) -> None:
+    """Run an eval suite against a stub or real LLM provider.
+
+    \b
+    Examples:
+      specsmith eval run                # stub mode, core suite
+      specsmith eval run governance     # stub mode, named suite
+      specsmith eval run --real         # auto-detect Ollama / cloud provider
+      specsmith eval run core --real --project-dir /path/to/project
+    """
     import json as _json
+    import os
 
     from specsmith.eval.builtins import get_suite
     from specsmith.eval.runner import run_suite
+
+    if use_real:
+        os.environ.setdefault("SPECSMITH_EVAL_PROJECT", str(Path(project_dir).resolve()))
 
     suite = get_suite(suite_id)
     if suite is None:
         console.print(f"[red]Suite not found:[/red] {suite_id}")
         raise SystemExit(1)
-    report = run_suite(suite, stub=True)
+
+    mode_label = "[cyan]real[/cyan]" if use_real else "[dim]stub[/dim]"
+    console.print(
+        f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n"
+    )
+
+    report = run_suite(suite, stub=not use_real)
+
     if as_json:
         click.echo(_json.dumps(report.to_dict(), indent=2))
         return
@@ -8583,7 +8848,8 @@ def eval_run_cmd(suite_id: str, as_json: bool) -> None:
     )
     for r in report.results:
         ri = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
-        console.print(f"  {ri} {r.case_id}  score={r.score:.0%}  {r.latency_ms:.0f}ms")
+        err = f"  [dim]{r.error}[/dim]" if r.error else ""
+        console.print(f"  {ri} {r.case_id}  score={r.score:.0%}  {r.latency_ms:.0f}ms{err}")
 
 
 @eval_group.command(name="report")
@@ -8663,6 +8929,314 @@ main.add_command(teams_group)
 
 
 # ---------------------------------------------------------------------------
+# specsmith dispatch — multi-agent DAG dispatcher (REQ-331)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="dispatch")
+def dispatch_group() -> None:
+    """Multi-agent DAG dispatcher (REQ-321..REQ-331).
+
+    Decomposes tasks into a directed acyclic graph of agent work items,
+    executes independent nodes concurrently, and streams live progress.
+    """
+
+
+@dispatch_group.command(name="run")
+@click.argument("task")
+@click.option(
+    "--max-workers",
+    type=int,
+    default=4,
+    show_default=True,
+    help="Max concurrent agents.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Stream JSONL events to stdout.",
+)
+@click.option("--no-dag", is_flag=True, default=False, help="Skip DAG; use flat GroupChat instead.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option("--endpoint", default="http://localhost:8000/v1", show_default=True)
+@click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8", show_default=True)
+def dispatch_run_cmd(
+    task: str,
+    max_workers: int,
+    as_json: bool,
+    no_dag: bool,
+    project_dir: str,
+    endpoint: str,
+    model: str,
+) -> None:
+    """Run TASK through the multi-agent DAG dispatcher.
+
+    When AG2 is installed, uses Orchestrator.run_dispatch() which calls the
+    PlannerAgent to decompose the task into a multi-node DAG automatically.
+    Falls back to single-node DAG when AG2 is not available.
+    """
+    import json as _json
+    import queue as _queue
+    import threading
+
+    root = Path(project_dir).resolve()
+
+    if no_dag:
+        console.print(
+            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run)."
+        )
+        raise SystemExit(0)
+
+    # ── Path A: AG2 available — use Orchestrator for LLM-driven decomposition ─
+    try:
+        from specsmith.agent.dispatch import EventEmitter
+        from specsmith.agent.orchestrator import Orchestrator
+
+        orch = Orchestrator(endpoint=endpoint, model=model)
+        if as_json:
+            # Wire up live event streaming via EventEmitter SSE queue
+            from specsmith.agent.dispatch import TaskDAGBuilder
+
+            dag = TaskDAGBuilder.build(task, planner_output=orch._call_planner(task))
+            emitter = EventEmitter(root, dag.dag_id)
+            q = emitter.subscribe()
+            done_flag = threading.Event()
+
+            def _run_orch_json() -> None:
+                from specsmith.agent.dispatch import AgentDispatcher, AgentPool
+
+                pool = AgentPool(orch.llm_config, max_workers=max_workers)
+                dispatcher = AgentDispatcher(
+                    dag, pool, emitter, project_root=root, max_workers=max_workers
+                )
+                dispatcher.run()
+                done_flag.set()
+
+            t = threading.Thread(target=_run_orch_json, daemon=True)
+            t.start()
+            while not done_flag.is_set() or not q.empty():
+                try:
+                    evt = q.get(timeout=0.2)
+                    if evt is not None:
+                        click.echo(_json.dumps(evt.to_dict()))
+                except _queue.Empty:
+                    continue
+        else:
+            console.print(f"[bold]dispatch run[/bold] (AG2 + PlannerAgent)  task={task!r}\n")
+            summary = orch.run_dispatch(task, max_workers=max_workers, project_root=str(root))
+            console.print(
+                f"\n[bold green]Done.[/bold green]  "
+                f"{len(summary.completed)} completed  "
+                f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+            )
+            console.print(
+                f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}"
+            )
+            console.print(f"  dag={summary.dag_id}")
+        return
+    except ImportError:
+        # AG2 not installed — fall through to manual path
+        console.print(
+            "[yellow]\u26a0[/yellow]  ag2 not found \u2014 running single-node fallback DAG.\n"
+            "  Install full multi-agent support:\n"
+            "    [bold]pip install ag2\\[ollama][/bold]  (local Ollama)\n"
+            "    [bold]pip install ag2\\[anthropic][/bold]  (Anthropic Claude)\n"
+            "  Then re-run for parallel multi-agent dispatch."
+        )
+    except Exception as exc:  # noqa: BLE001
+        console.print(f"[yellow]Orchestrator unavailable ({exc}), using manual dispatch.[/yellow]")
+
+    # ── Path B: AG2 not available — manual single-node DAG ───────────────
+    from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
+    from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+
+    llm_config = {
+        "config_list": [{"model": model, "api_key": "specsmith-local-key", "base_url": endpoint}],
+        "temperature": 0.0,
+    }
+
+    try:
+        dag = TaskDAGBuilder.build(task)
+    except Exception as exc:
+        console.print(f"[red]DAG build failed:[/red] {exc}")
+        raise SystemExit(1) from exc
+
+    emitter = EventEmitter(root, dag.dag_id)
+    pool = AgentPool(llm_config, max_workers=max_workers)
+    dispatcher = AgentDispatcher(dag, pool, emitter, project_root=root, max_workers=max_workers)
+
+    if as_json:
+        q = emitter.subscribe()
+        done_flag = threading.Event()
+
+        def _run() -> None:
+            dispatcher.run()
+            done_flag.set()
+
+        t = threading.Thread(target=_run, daemon=True)
+        t.start()
+        while not done_flag.is_set() or not q.empty():
+            try:
+                evt = q.get(timeout=0.2)
+                if evt is not None:
+                    click.echo(_json.dumps(evt.to_dict()))
+            except _queue.Empty:
+                continue
+    else:
+        console.print(f"[bold]dispatch run[/bold]  dag=[cyan]{dag.dag_id}[/cyan]  task={task!r}\n")
+        summary = dispatcher.run()
+        console.print(
+            f"\n[bold green]Done.[/bold green]  {len(summary.completed)} completed  "
+            f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+        )
+        console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
+        console.print(f"  events → .specsmith/dispatch/{dag.dag_id}/events.jsonl")
+
+
+@dispatch_group.command(name="status")
+@click.option("--dag-id", default="", help="DAG run ID (latest if omitted).")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
+    """Print per-node status for a DAG run."""
+
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    runs = EventEmitter.list_runs(root)
+    if not runs:
+        console.print("[dim]No dispatch runs found.[/dim]")
+        raise SystemExit(0)
+
+    target = dag_id or runs[-1]
+    events = EventEmitter.replay(root, target)
+    if not events:
+        console.print(f"[yellow]No events found for dag_id={target!r}[/yellow]")
+        raise SystemExit(0)
+
+    # Build per-node last status from events
+    node_status: dict[str, str] = {}
+    for evt in events:
+        et = evt.event_type
+        if et == "node_started":
+            node_status[evt.node_id] = "running"
+        elif et == "node_completed":
+            node_status[evt.node_id] = "completed"
+        elif et == "node_failed":
+            node_status[evt.node_id] = "failed"
+        elif et == "node_blocked":
+            node_status[evt.node_id] = "blocked"
+
+    _STATUS_COLOUR = {
+        "running": "blue",
+        "completed": "green",
+        "failed": "red",
+        "blocked": "yellow",
+        "pending": "dim",
+    }
+    console.print(f"[bold]Dispatch status[/bold]  dag_id=[cyan]{target}[/cyan]\n")
+    for nid, st in node_status.items():
+        col = _STATUS_COLOUR.get(st, "white")
+        console.print(f"  [{col}]{st:12}[/{col}]  {nid}")
+
+
+@dispatch_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def dispatch_list_cmd(project_dir: str) -> None:
+    """List all saved DAG dispatch runs."""
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    runs = EventEmitter.list_runs(root)
+    if not runs:
+        console.print("[dim]No dispatch runs found in .specsmith/dispatch/[/dim]")
+        return
+    console.print(f"[bold]Dispatch runs[/bold]  ({len(runs)})\n")
+    for run_id in runs:
+        events = EventEmitter.replay(root, run_id)
+        done = sum(1 for e in events if e.event_type == "node_completed")
+        failed = sum(1 for e in events if e.event_type == "node_failed")
+        console.print(f"  [cyan]{run_id}[/cyan]  completed={done}  failed={failed}")
+
+
+@dispatch_group.command(name="retry")
+@click.option("--node", "node_id", required=True, help="Node ID to retry.")
+@click.option("--dag-id", required=True, help="DAG run ID.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--endpoint", default="http://localhost:8000/v1")
+@click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8")
+def dispatch_retry_cmd(
+    node_id: str, dag_id: str, project_dir: str, endpoint: str, model: str
+) -> None:
+    """Re-run a single FAILED or BLOCKED node from a saved DAG run (REQ-330)."""
+    from pathlib import Path
+
+    from specsmith.agent.dispatch.dag import TaskDAG, TaskNode, TaskStatus
+    from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool
+    from specsmith.agent.dispatch.events import EventEmitter
+
+    root = Path(project_dir).resolve()
+    past_events = EventEmitter.replay(root, dag_id)
+    if not past_events:
+        console.print(f"[red]No events found for dag_id={dag_id!r}[/red]")
+        raise SystemExit(1)
+
+    # Reconstruct node set from events; honour COMPLETED nodes as-is (REQ-330)
+    node_roles: dict[str, str] = {}
+    node_statuses: dict[str, TaskStatus] = {}
+    for evt in past_events:
+        if evt.node_id:
+            et = evt.event_type
+            if et == "node_started":
+                node_roles[evt.node_id] = evt.payload.get("role", "coder")
+                node_statuses[evt.node_id] = TaskStatus.RUNNING
+            elif et == "node_completed":
+                node_statuses[evt.node_id] = TaskStatus.COMPLETED
+            elif et in ("node_failed", "node_blocked"):
+                node_statuses[evt.node_id] = (
+                    TaskStatus.FAILED if et == "node_failed" else TaskStatus.BLOCKED
+                )
+
+    if node_id not in node_statuses:
+        console.print(f"[red]Node {node_id!r} not found in dag_id={dag_id!r}[/red]")
+        raise SystemExit(1)
+
+    target_status = node_statuses.get(node_id)
+    if target_status == TaskStatus.COMPLETED:
+        console.print(f"[yellow]Node {node_id!r} is already COMPLETED — nothing to retry.[/yellow]")
+        raise SystemExit(0)
+
+    # Build a minimal single-node DAG for the retry
+    retry_dag = TaskDAG(dag_id=f"{dag_id}-retry-{node_id}")
+    retry_dag.add_node(
+        TaskNode(
+            id=node_id,
+            title=node_id,
+            role=node_roles.get(node_id, "coder"),
+        )
+    )
+
+    llm_config = {
+        "config_list": [{"model": model, "api_key": "specsmith-local-key", "base_url": endpoint}],
+        "temperature": 0.0,
+    }
+    emitter = EventEmitter(root, retry_dag.dag_id)
+    pool = AgentPool(llm_config, max_workers=1)
+    dispatcher = AgentDispatcher(retry_dag, pool, emitter, project_root=root, max_workers=1)
+    summary = dispatcher.run()
+
+    if summary.equilibrium:
+        console.print(f"[green]✓[/green] Retry of {node_id!r} completed successfully.")
+    else:
+        console.print(f"[red]✗[/red] Retry of {node_id!r} failed.")
+        raise SystemExit(1)
+
+
+main.add_command(dispatch_group)
+
+
+# ---------------------------------------------------------------------------
 # specsmith esdb — ChronoMemory ESDB management (Phase ESDB)
 # ---------------------------------------------------------------------------
 
@@ -8698,36 +9272,223 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
 
 @esdb_group.command(name="migrate")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def esdb_migrate_cmd(project_dir: str) -> None:
-    """Migrate .specsmith/ flat JSON to ESDB (stub — validates data)."""
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
+    """Validate .specsmith/ JSON state and write a migration manifest.
+
+    Reads requirements.json and testcases.json, validates record schema
+    (required fields, duplicate IDs, orphaned tests), and writes a
+    .specsmith/esdb_migration_manifest.json file recording the validation
+    state. This prepares the project for native Rust ChronoMemory ingestion.
+    """
+    import datetime
+    import json as _json
+
     from specsmith.esdb.bridge import EsdbBridge
 
+    root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
     reqs = bridge.requirements()
     tests = bridge.testcases()
-    console.print("[bold]Migration scan:[/bold]")
+
+    req_ids: set[str] = set()
+    issues: list[dict[str, str]] = []
+
+    # Validate requirements
+    req_id_counts: dict[str, int] = {}
+    for r in reqs:
+        if not r.id:
+            issues.append(
+                {"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"}
+            )  # noqa: E501
+            continue
+        req_id_counts[r.id] = req_id_counts.get(r.id, 0) + 1
+        req_ids.add(r.id)
+        if not r.label:
+            issues.append({"kind": "req-missing-title", "detail": f"{r.id} has no title"})
+    for rid, count in req_id_counts.items():
+        if count > 1:
+            issues.append(
+                {"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"}
+            )  # noqa: E501
+
+    # Validate testcases
+    test_id_counts: dict[str, int] = {}
+    for t in tests:
+        if not t.id:
+            issues.append(  # noqa: E501
+                {"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"}
+            )
+            continue
+        test_id_counts[t.id] = test_id_counts.get(t.id, 0) + 1
+        if not t.label:
+            issues.append({"kind": "test-missing-title", "detail": f"{t.id} has no title"})
+        req_ref = t.data.get("requirement_id", "")
+        if req_ref and req_ref not in req_ids:
+            issues.append(
+                {"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"}
+            )
+    for tid, count in test_id_counts.items():
+        if count > 1:
+            issues.append(
+                {"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"}
+            )
+
+    errors = [i for i in issues if i["kind"] not in ("req-missing-title", "test-missing-title")]
+    ok = len(errors) == 0
+    ts = datetime.datetime.now(tz=datetime.timezone.utc).isoformat()
+
+    manifest = {
+        "schema_version": 1,
+        "timestamp": ts,
+        "ok": ok,
+        "requirements": len(reqs),
+        "testcases": len(tests),
+        "issues": issues,
+        "error_count": len(errors),
+        "warning_count": len(issues) - len(errors),
+        "backend": "json-flat (.specsmith/)",
+        "next_step": (
+            "Ready for ChronoMemory native ingestion."
+            if ok
+            else "Fix errors above, then re-run to update the manifest."
+        ),
+    }
+
+    manifest_path = root / ".specsmith" / "esdb_migration_manifest.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    # --- Phase 2: migrate into ChronoStore WAL (if validation passed) ---
+    migrate_counts: dict[str, int] = {}
+    if ok:
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                migrate_counts = store.migrate_from_json(root / ".specsmith")
+            manifest["chrono_migrated"] = migrate_counts
+            manifest["chrono_backend"] = "ChronoStore WAL (.chronomemory/)"
+        except Exception as _me:  # noqa: BLE001
+            manifest["chrono_error"] = str(_me)
+
+    if as_json:
+        click.echo(_json.dumps(manifest, indent=2))
+        if not ok:
+            raise SystemExit(1)
+        return
+
+    icon = "[green]\u2713[/green]" if ok else "[red]\u2717[/red]"
+    console.print(f"{icon} [bold]ESDB migration scan[/bold]")
     console.print(f"  Requirements: {len(reqs)}")
     console.print(f"  Test cases:   {len(tests)}")
-    console.print("[green]\u2713[/green] Data validated. Full Rust ESDB migration not yet active.")
-    console.print(
-        "[dim]When ChronoMemory native engine is linked, run this again to migrate.[/dim]"
-    )
+    if issues:
+        color = "red" if errors else "yellow"
+        console.print(f"\n  [{color}]{len(issues)} issue(s):[/{color}]")
+        _warn_kinds = ("req-missing-title", "test-missing-title")
+        for issue in issues[:10]:
+            is_err = issue["kind"] not in _warn_kinds
+            prefix = "[red]\u2717[/red]" if is_err else "[yellow]\u26a0[/yellow]"
+            console.print(f"    {prefix} [{issue['kind']}] {issue['detail']}")
+        if len(issues) > 10:
+            console.print(f"    [dim]... and {len(issues) - 10} more[/dim]")
+    else:
+        console.print("  [green]\u2714[/green] All records valid")
+    if migrate_counts:
+        reqs_m = migrate_counts.get("requirements", 0)
+        tests_m = migrate_counts.get("testcases", 0)
+        skip_m = migrate_counts.get("skipped", 0)
+        console.print(
+            f"  [green]\u2714[/green] ChronoStore WAL: "
+            f"{reqs_m} reqs + {tests_m} tests migrated ({skip_m} skipped)"
+        )
+        console.print(f"  DB path: {root / '.chronomemory'}")
+    console.print(f"\n  Manifest written: {manifest_path.relative_to(root)}")
+    if not ok:
+        raise SystemExit(1)
 
 
 @esdb_group.command(name="replay")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def esdb_replay_cmd(project_dir: str) -> None:
-    """Replay ESDB WAL to verify state integrity (stub)."""
-    from specsmith.esdb.bridge import EsdbBridge
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_replay_cmd(project_dir: str, as_json: bool) -> None:
+    """Replay the trace vault WAL and verify SHA-256 hash chain integrity.
 
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
-    console.print(f"[bold]Replay check:[/bold] {st.backend}")
-    console.print(f"  Records: {st.record_count}")
-    if st.chain_valid:
-        console.print("[green]\u2714[/green] WAL chain valid \u2014 state consistent.")
+    Reads .specsmith/trace.jsonl and walks every seal entry, recomputing
+    each entry_hash from its stored content_hash + prev_hash and comparing
+    to the stored value. Any mismatch indicates tampering or corruption.
+    Also reports ledger.jsonl entry count as a secondary consistency signal.
+    """
+    import json as _json
+
+    from specsmith.trace import TraceVault
+
+    root = Path(project_dir).resolve()
+    vault = TraceVault(root)
+    seal_count = vault.count()
+
+    if seal_count == 0:
+        result = {
+            "ok": True,
+            "seal_count": 0,
+            "errors": [],
+            "ledger_entries": _count_ledger_entries(root),
+            "message": "Trace vault is empty — nothing to replay.",
+        }
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print("[dim]Trace vault is empty \u2014 nothing to replay.[/dim]")
+        return
+
+    valid, errors = vault.verify()
+    ledger_entries = _count_ledger_entries(root)
+
+    result = {
+        "ok": valid,
+        "seal_count": seal_count,
+        "errors": errors,
+        "ledger_entries": ledger_entries,
+        "message": "Chain intact." if valid else f"{len(errors)} integrity error(s) detected.",
+    }
+
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+        if not valid:
+            raise SystemExit(1)
+        return
+
+    icon = "[green]\u2714[/green]" if valid else "[red]\u2717[/red]"
+    console.print(f"{icon} [bold]WAL replay[/bold]: {seal_count} seal(s)")
+    if errors:
+        for err in errors:
+            console.print(f"  [red]\u2717[/red] {err}")
     else:
-        console.print("[red]\u2717[/red] WAL chain integrity failure detected.")
+        console.print("  [green]\u2714[/green] Hash chain intact \u2014 state consistent.")
+    if ledger_entries:
+        console.print(f"  Ledger entries: {ledger_entries}")
+    if not valid:
+        raise SystemExit(1)
+
+
+def _count_ledger_entries(root: Path) -> int:
+    """Count entries in .specsmith/ledger.jsonl (best-effort)."""
+    import contextlib
+    import json as _json
+
+    ledger = root / ".specsmith" / "ledger.jsonl"
+    if not ledger.is_file():
+        return 0
+    count = 0
+    with contextlib.suppress(OSError):
+        for line in ledger.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            with contextlib.suppress(ValueError):
+                _json.loads(line)
+                count += 1
+    return count
 
 
 @esdb_group.command(name="export")
@@ -8820,12 +9581,25 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
 
     from specsmith.esdb.bridge import EsdbBridge
 
+    root = Path(project_dir).resolve()
     bridge = EsdbBridge(project_dir)
     st = bridge.status()
     ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    dest_dir = (
-        Path(backup_dir) if backup_dir else Path(project_dir).resolve() / ".specsmith" / "backups"
-    )
+
+    # Prefer ChronoStore backup when WAL is available
+    chrono_backup_path: str = ""
+    wal = root / ".chronomemory" / "events.wal"
+    if wal.exists():
+        try:
+            from specsmith.esdb.store import ChronoStore
+
+            with ChronoStore(root) as store:
+                bp = store.backup()
+                chrono_backup_path = str(bp)
+        except Exception:  # noqa: BLE001
+            pass
+
+    dest_dir = Path(backup_dir) if backup_dir else root / ".specsmith" / "backups"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
     reqs = bridge.requirements()
@@ -8839,11 +9613,19 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
         "testcases": [t.to_dict() for t in tests],
     }
     dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    result = {"ok": True, "path": str(dest), "timestamp": ts, "records": st.record_count}
+    result = {
+        "ok": True,
+        "path": str(dest),
+        "timestamp": ts,
+        "records": st.record_count,
+        "chrono_backup": chrono_backup_path,
+    }
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
         console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+        if chrono_backup_path:
+            console.print(f"  ChronoStore WAL backup: {chrono_backup_path}")
 
 
 @esdb_group.command(name="rollback")
@@ -9055,7 +9837,11 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
             if row:
                 console.print(f"[bold]{row['model_name']}[/bold]")
                 console.print(f"  Reasoning:     {row.get('reasoning_score', 0):.2f}")
+                console.print(f"  Coding:        {row.get('coding_score', 0):.2f}")
                 console.print(f"  Conversational:{row.get('conversational_score', 0):.2f}")
+                console.print(f"  Requirements:  {row.get('requirements_score', 0):.2f}")
+                console.print(f"  Architecture:  {row.get('architecture_score', 0):.2f}")
+                console.print(f"  Debugging:     {row.get('debugging_score', 0):.2f}")
                 console.print(f"  Longform:      {row.get('longform_score', 0):.2f}")
             else:
                 console.print(f"[yellow]No scores found for '{model}'[/yellow]")
@@ -9070,8 +9856,12 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
             console.print(
                 f"  {r['model_name']:<40s}  "
                 f"R:{r.get('reasoning_score', 0):5.1f}  "
-                f"C:{r.get('conversational_score', 0):5.1f}  "
-                f"L:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
+                f"Cd:{r.get('coding_score', 0):5.1f}  "
+                f"Cv:{r.get('conversational_score', 0):5.1f}  "
+                f"Rq:{r.get('requirements_score', 0):5.1f}  "
+                f"Ar:{r.get('architecture_score', 0):5.1f}  "
+                f"Db:{r.get('debugging_score', 0):5.1f}  "
+                f"Lf:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
             )
         if len(rows) > 20:
             console.print(f"  ... {len(rows) - 20} more (use --json for full list)")
@@ -9081,7 +9871,17 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
 @click.option(
     "--bucket",
     default="reasoning",
-    type=click.Choice(["reasoning", "conversational", "longform"]),
+    type=click.Choice(
+        [
+            "reasoning",
+            "coding",
+            "conversational",
+            "requirements",
+            "architecture",
+            "debugging",
+            "longform",
+        ]
+    ),
     show_default=True,
 )
 @click.option("--top", default=10, help="Number of models to return.")
@@ -9183,6 +9983,670 @@ def agent_endpoint_presets_cmd(as_json: bool) -> None:
             console.print(
                 f"  [cyan]{p['id']:<15s}[/cyan]  {p['label']:<25s}  {url_base:<40s}  {key_note}"
             )
+
+
+# ---------------------------------------------------------------------------
+# issue — duplicate-guarded GitHub issue filing (REQ-303, REQ-304)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="issue")
+def issue_group() -> None:
+    """File and search GitHub issues with duplicate detection.
+
+    All commands check BitConcepts/kairos and BitConcepts/specsmith repos.
+    Duplicate detection uses title-word Jaccard similarity; issues with
+    similarity ≥ 0.60 block filing unless --force is passed.
+
+    Requires `gh` CLI for filing (github.com/cli/cli).  Search/check work
+    with unauthenticated GitHub REST when `gh` is absent.
+    """
+
+
+@issue_group.command(name="check")
+@click.argument("title")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+    help="Target repository.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
+    """Check for duplicate open issues matching TITLE.
+
+    Returns two lists: 'duplicates' (Jaccard ≥ 0.60, blocks filing)
+    and 'similar' (Jaccard ≥ 0.30, informational only).
+    """
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.issue_reporter import check_duplicate  # noqa: PLC0415
+
+    result = check_duplicate(repo, title)
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    if result.error:
+        console.print(f"[red]Error:[/red] {result.error}")
+        return
+
+    if result.duplicates:
+        console.print(
+            f"[red]\u26a0  {len(result.duplicates)} likely duplicate(s) found"
+            f" — filing blocked (use --force to override)[/red]"
+        )
+        for d in result.duplicates:
+            console.print(
+                f"  [bold]#{d['number']}[/bold]  {d['title']}  "
+                f"[dim](similarity {d['similarity']:.0%})[/dim]"
+            )
+            console.print(f"  [blue]{d['html_url']}[/blue]")
+    elif result.similar:
+        console.print(
+            f"[yellow]\u26a0  {len(result.similar)} similar issue(s) found "
+            f"(below duplicate threshold — filing allowed)[/yellow]"
+        )
+        for s in result.similar:
+            console.print(
+                f"  [bold]#{s['number']}[/bold]  {s['title']}  "
+                f"[dim](similarity {s['similarity']:.0%})[/dim]"
+            )
+            console.print(f"  [blue]{s['html_url']}[/blue]")
+    else:
+        console.print("[green]\u2714  No similar issues found — clear to file.[/green]")
+
+
+@issue_group.command(name="file")
+@click.argument("title")
+@click.option("--body", default="", help="Issue body / description.")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+)
+@click.option(
+    "--label",
+    "labels",
+    multiple=True,
+    help="One or more GitHub labels to apply (repeat for multiple).",
+)
+@click.option(
+    "--ai",
+    is_flag=True,
+    default=False,
+    help="Use the configured LLM to improve the issue title and body before filing.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="File even when likely duplicates exist.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_file_cmd(
+    title: str,
+    body: str,
+    repo: str,
+    labels: tuple[str, ...],
+    ai: bool,
+    force: bool,
+    as_json: bool,
+) -> None:
+    """File a new issue in REPO, blocked if likely duplicates exist.
+
+    Requires the `gh` CLI to be installed and authenticated.
+    Pass --ai to use the configured LLM to format the report.
+    Pass --force to bypass the duplicate guard.
+    """
+    import json as _json  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+
+    from specsmith.issue_reporter import (  # noqa: PLC0415
+        DuplicateBlockedError,
+        ai_enhance_report,
+        file_issue,
+    )
+
+    if ai:
+        if not as_json:
+            console.print("[dim]\u2728 Enhancing report with AI\u2026[/dim]")
+        title, body = ai_enhance_report(title, body)
+
+    try:
+        result = file_issue(repo, title, body, labels=labels, force=force)
+    except DuplicateBlockedError as exc:
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {"ok": False, "error": str(exc), **exc.result.to_dict()},
+                    indent=2,
+                )
+            )
+        else:
+            console.print(f"[red]\u26a0  Blocked:[/red] {exc}")
+            for d in exc.result.duplicates:
+                console.print(f"  #{d['number']}  {d['title']}  {d['html_url']}")
+            console.print("[dim]Use --force to file anyway.[/dim]")
+        sys.exit(3)
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        sys.exit(0 if result.ok else 1)
+
+    if result.ok:
+        console.print(
+            f"[green]\u2714  Filed:[/green] [bold]#{result.number}[/bold] "
+            f"{result.title}\n  [blue]{result.html_url}[/blue]"
+        )
+    else:
+        console.print(f"[red]Error filing issue:[/red] {result.error}")
+        sys.exit(1)
+
+
+@issue_group.command(name="search")
+@click.argument("query")
+@click.option(
+    "--repo",
+    default="kairos",
+    type=click.Choice(["kairos", "specsmith"]),
+    show_default=True,
+)
+@click.option(
+    "--max",
+    "max_results",
+    default=10,
+    show_default=True,
+    help="Maximum number of results.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> None:
+    """Search open issues in REPO by QUERY.  No similarity threshold applied."""
+    import json as _json  # noqa: PLC0415
+
+    from specsmith.issue_reporter import search_issues  # noqa: PLC0415
+
+    results = search_issues(repo, query, max_results=max_results)
+    if as_json:
+        click.echo(_json.dumps({"issues": results, "count": len(results)}, indent=2))
+        return
+
+    if not results:
+        console.print("[dim]No open issues found.[/dim]")
+        return
+
+    console.print(f"[bold]Open issues in {repo}[/bold] ({len(results)} results)\n")
+    for issue in results:
+        console.print(f"  [bold]#{issue['number']}[/bold]  {issue['title']}")
+        console.print(f"  [blue]{issue['html_url']}[/blue]")
+
+
+main.add_command(issue_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith ci — CI/CD automation (REQ-309)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="ci")
+def ci_group() -> None:
+    """Manage CI/CD automation for the current project."""
+
+
+@ci_group.command(name="enable")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--platform",
+    default=None,
+    type=click.Choice(["github", "gitlab", "bitbucket"]),
+    help="Override auto-detected platform.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing CI config.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def ci_enable_cmd(project_dir: str, platform: str | None, force: bool, as_json: bool) -> None:
+    """Generate or update CI/CD, Dependabot, and security configs.
+
+    Auto-detects the git platform from the remote URL. Writes
+    .github/workflows/ci.yml (or equivalent), dependabot.yml,
+    and CodeQL for Python/JS/TS/Go projects.
+    """
+    import json as _json
+
+    from specsmith.ci_manager import CiManager
+
+    try:
+        manager = CiManager(project_dir)
+        created = manager.enable(platform=platform, force=force)
+        result = {
+            "ok": True,
+            "platform": manager.platform_name,
+            "files_created": created,
+            "count": len(created),
+        }
+        if as_json:
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            console.print(f"[green]\u2714[/green] CI automation enabled ({manager.platform_name})")
+            for f in created:
+                console.print(f"  [green]\u2713[/green] {f}")
+            if not created:
+                console.print(  # noqa: E501
+                    "  [dim]All configs already up to date. Use --force to regenerate.[/dim]"
+                )
+    except RuntimeError as exc:
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": str(exc)}, indent=2))
+        else:
+            console.print(f"[red]\u2717[/red] {exc}")
+        raise SystemExit(1) from None
+
+
+@ci_group.command(name="status")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def ci_status_cmd(project_dir: str, as_json: bool) -> None:
+    """Show last CI run status, dependency alerts, and security alerts."""
+    import json as _json
+
+    from specsmith.ci_manager import CiManager
+
+    manager = CiManager(project_dir)
+    result = manager.status()
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    if result.error:
+        console.print(f"[yellow]\u26a0[/yellow] {result.error}")
+        return
+
+    status_color = (  # noqa: E501
+        "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
+    )
+    icon = "\u25cf"
+    console.print(f"  [{status_color}]{icon}[/{status_color}] CI: {result.last_run_status}")
+    if result.last_run_name:
+        console.print(f"    Run: {result.last_run_name}")
+    if result.last_run_url:
+        console.print(f"    URL: [blue]{result.last_run_url}[/blue]")
+    if result.open_dep_alerts > 0:
+        console.print(f"  [yellow]\u26a0[/yellow] Dependabot alerts: {result.open_dep_alerts}")
+    if result.open_security_alerts > 0:
+        console.print(f"  [red]\u26a0[/red] Security alerts: {result.open_security_alerts}")
+    if result.open_prs > 0:
+        console.print(f"  Open PRs: {result.open_prs}")
+
+
+@ci_group.command(name="watch")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--timeout", type=int, default=300, help="Max seconds to wait (default: 300).")
+@click.option("--interval", type=int, default=15, help="Poll interval in seconds (default: 15).")
+def ci_watch_cmd(project_dir: str, timeout: int, interval: int) -> None:
+    """Wait for the current CI run to complete and report result."""
+    import sys
+
+    from specsmith.ci_manager import CiManager
+
+    manager = CiManager(project_dir)
+    console.print(f"[bold]Watching CI[/bold] (timeout={timeout}s, poll={interval}s) …")
+
+    def _on_event(event: dict) -> None:
+        ts = event.get("timestamp", "")
+        status = event.get("status", "?")
+        console.print(f"  [{ts}] {status}")
+        sys.stdout.flush()
+
+    result = manager.watch(timeout=timeout, poll_interval=interval, on_event=_on_event)
+    if result.ci_passing:
+        console.print("[green]\u2714[/green] CI passed.")
+    elif result.ci_passing is False:
+        console.print("[red]\u2717[/red] CI failed.")
+        raise SystemExit(1)
+    else:
+        console.print("[yellow]\u2014[/yellow] CI status unknown after timeout.")
+
+
+main.add_command(ci_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith context — context window management (REQ-308/312)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="context")
+def context_group() -> None:
+    """Context window management and optimization."""
+
+
+@context_group.command(name="optimize")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Report what would be done without writing.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def context_optimize_cmd(project_dir: str, dry_run: bool, as_json: bool) -> None:
+    """Run all context optimization tiers: compress ledger, summarize history,
+    protect critical ESDB records, and free context window space.
+
+    Tiers:
+      Tier 1: compress LEDGER.md history (free ~20% context)
+      Tier 2: summarize conversation history + evict low-confidence records
+      Tier 3: emergency protection of critical records (confidence >= 0.7)
+    """
+    import json as _json
+
+    from specsmith.context_orchestrator import ContextOrchestrator
+
+    orchestrator = ContextOrchestrator(project_dir)
+    result = orchestrator.optimize_all(dry_run=dry_run)
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        return
+
+    console.print(result.summary())
+
+
+main.add_command(context_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith compliance — EU and North American AI regulation compliance
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="compliance")
+def compliance_group() -> None:
+    """EU and North American AI regulation compliance checking and reporting.
+
+    Supported regulations (May 2026):\n
+      eu-ai-act       EU AI Act 2024/1689\n
+      nist-rmf        NIST AI RMF 1.0 + AI 600-1 GenAI Profile\n
+      omb-m-24-10     OMB M-24-10 (Federal AI governance)\n
+      colorado-sb24-205  Colorado AI Act (effective Feb 2026)\n
+      texas-hb1709    Texas AI Transparency Act (effective Sep 2025)\n
+      illinois-aieta  Illinois AI Employment Transparency Act\n
+      california-admt California ADMT Regulations\n
+      nyc-ll144       NYC Local Law 144
+    """
+
+
+@compliance_group.command(name="list")
+def compliance_list_cmd() -> None:
+    """List all supported regulations."""
+    from specsmith.compliance.regulations import REGULATIONS
+
+    console.print("[bold]Supported AI Regulations (May 2026)[/bold]\n")
+    for reg in REGULATIONS.values():
+        console.print(
+            f"  [cyan]{reg.id:25s}[/cyan]  [{reg.jurisdiction}] "
+            f"{reg.name}  [dim](effective {reg.effective})[/dim]"
+        )
+
+
+@compliance_group.command(name="check")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--regulation",
+    default="all",
+    help="Regulation ID to check, or 'all' (default).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> None:
+    """Check compliance for one or all regulations.
+
+    Inspects the project's governance controls, ESDB records, and CI
+    configuration to assess compliance with each regulation's articles.
+    Results are returned as compliant / partial / gap status.
+    """
+    import json as _json
+
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.regulations import REGULATIONS
+
+    checker = ComplianceChecker(project_dir)
+
+    if regulation == "all":
+        results = checker.check_all()
+    else:
+        if regulation not in REGULATIONS:
+            console.print(
+                f"[red]Unknown regulation '{regulation}'.[/red] Valid IDs: {', '.join(REGULATIONS)}"
+            )
+            raise SystemExit(1)
+        results = [checker.check_regulation(regulation)]
+
+    if as_json:
+        output = {
+            "results": [r.to_dict() for r in results],
+            "checked": len(results),
+        }
+        click.echo(_json.dumps(output, indent=2))
+        return
+
+    _STATUS_ICON = {
+        "compliant": "[green]\u2714[/green]",
+        "partial": "[yellow]\u26a0[/yellow]",
+        "gap": "[red]\u2717[/red]",
+        "n_a": "[dim]\u2014[/dim]",
+    }
+
+    for result in results:
+        icon = _STATUS_ICON.get(result.overall_status, "?")
+        console.print(
+            f"  {icon} [bold]{result.regulation_name}[/bold]  "
+            f"[dim]{result.jurisdiction}[/dim]  "
+            f"confidence={result.overall_confidence:.0%}  "
+            f"gaps={result.gap_count}"
+        )
+        for ar in result.article_results:
+            a_icon = _STATUS_ICON.get(ar.status, "?")
+            console.print(f"      {a_icon} {ar.article_id:15s}  {ar.title[:50]}")
+
+    gap_total = sum(r.gap_count for r in results)
+    if gap_total == 0:
+        console.print("\n[bold green]All regulations: compliant or partial.[/bold green]")
+    else:
+        console.print(  # noqa: E501
+            f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report"
+        )
+
+
+@compliance_group.command(name="report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--format",
+    "output_format",
+    default="md",
+    type=click.Choice(["md", "json", "html"]),
+    help="Report format (default: md).",
+)
+@click.option("--output", default="", help="Write report to file instead of stdout.")
+@click.option(
+    "--regulation",
+    default="all",
+    help="Regulation ID to report, or 'all' (default).",
+)
+def compliance_report_cmd(
+    project_dir: str, output_format: str, output: str, regulation: str
+) -> None:
+    """Generate an AI compliance report (Markdown, JSON, or HTML).
+
+    The HTML format produces a self-contained file with no external
+    dependencies, suitable for offline viewing or regulatory submission.
+    """
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.regulations import REGULATIONS
+    from specsmith.compliance.reporter import ComplianceReporter
+
+    checker = ComplianceChecker(project_dir)
+    if regulation == "all":
+        results = checker.check_all()
+    else:
+        if regulation not in REGULATIONS:
+            console.print(f"[red]Unknown regulation '{regulation}'.[/red]")
+            raise SystemExit(1)
+        results = [checker.check_regulation(regulation)]
+
+    reporter = ComplianceReporter(results)
+
+    if output_format == "json":
+        content = reporter.to_json()
+    elif output_format == "html":
+        content = reporter.to_html()
+    else:
+        content = reporter.to_markdown()
+
+    if output:
+        from pathlib import Path
+
+        Path(output).write_text(content, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Report written to {output}")
+    else:
+        console.print(content)
+
+
+@compliance_group.command(name="audit")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
+    """Run a full compliance audit: check all regulations and persist results to ESDB.
+
+    Results are stored as ChronoRecord(kind='compliance_result') in the project's
+    ChronoStore so they contribute to the tamper-evident audit trail.
+    Exits non-zero if any regulation has gaps.
+    """
+    import json as _json
+
+    from specsmith.compliance.checker import ComplianceChecker
+    from specsmith.compliance.reporter import ComplianceReporter
+
+    checker = ComplianceChecker(project_dir)
+    results = checker.check_all()
+    written = checker.store_results_to_esdb(results)
+
+    reporter = ComplianceReporter(results)
+    summary = reporter._summary_dict()
+    summary["esdb_records_written"] = written
+
+    if as_json:
+        click.echo(  # noqa: E501
+            _json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2)
+        )
+    else:
+        _STATUS_ICON = {
+            "compliant": "[green]\u2714[/green]",
+            "partial": "[yellow]\u26a0[/yellow]",
+            "gap": "[red]\u2717[/red]",
+            "n_a": "[dim]\u2014[/dim]",
+        }
+        icon = _STATUS_ICON.get(summary["overall_status"], "?")
+        console.print(  # noqa: E501
+            f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}"
+        )
+        console.print(
+            f"  Compliant: {summary['compliant']}  "
+            f"Partial: {summary['partial']}  "
+            f"Gaps: {summary['gaps']}"
+        )
+        if written > 0:
+            console.print(f"  [green]\u2713[/green] {written} result(s) stored to ESDB")
+
+    if summary["gaps"] > 0:
+        raise SystemExit(1)
+
+
+main.add_command(compliance_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith migrate — versioned migration framework (REQ-318)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="migrate")
+def migrate_group() -> None:
+    """Run versioned project migrations.
+
+    Migrations move governance data from legacy locations to the
+    .specsmith/ directory, slim down AGENTS.md, initialize compliance
+    structures, and ensure ESDB is populated.
+
+    Migration state is tracked in .specsmith/migration-state.json.
+    """
+
+
+@migrate_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def migrate_list_cmd(project_dir: str) -> None:
+    """List available migrations and their status."""
+    from pathlib import Path
+
+    from specsmith.migrations import MigrationRegistry
+    from specsmith.migrations.runner import MigrationRunner
+
+    root = Path(project_dir).resolve()
+    runner = MigrationRunner(root)
+    applied = runner.applied_versions()
+    all_migrations = MigrationRegistry.all()
+
+    console.print("[bold]Available migrations[/bold]\n")
+    for m in all_migrations:
+        status = (
+            "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"
+        )  # noqa: E501
+        console.print(f"  v{m.version:03d}  {status}  {m.title}")
+
+
+@migrate_group.command(name="run")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--version", type=int, default=0, help="Run a specific migration version only.")
+@click.option("--dry-run", is_flag=True, default=False)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool) -> None:
+    """Run pending migrations (or a specific version)."""
+    import json as _json  # noqa: PLC0415
+    from pathlib import Path
+
+    from specsmith.migrations.runner import MigrationRunner
+
+    root = Path(project_dir).resolve()
+    runner = MigrationRunner(root)
+
+    if version:
+        results = [runner.run_one(version, dry_run=dry_run)]
+    else:
+        results = runner.run_pending(dry_run=dry_run)
+
+    if as_json:
+        click.echo(_json.dumps([r.to_dict() for r in results], indent=2))
+        return
+
+    if not results:
+        console.print("[dim]No pending migrations.[/dim]")
+        return
+
+    for r in results:
+        icon = "[green]\u2713[/green]" if r.success else "[red]\u2717[/red]"
+        dry = " [dim](dry run)[/dim]" if dry_run else ""
+        console.print(f"  {icon} v{r.version:03d} {r.title}{dry}")
+        if r.message:
+            console.print(f"      {r.message}")
+
+
+main.add_command(migrate_group)
 
 
 if __name__ == "__main__":

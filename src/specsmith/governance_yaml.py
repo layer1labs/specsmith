@@ -55,16 +55,51 @@ _OVERFLOW_GROUP = "overflow"
 
 
 def _req_num(req_id: str) -> int:
-    m = re.match(r"REQ-(\d+)$", req_id)
+    """Extract trailing number from any REQ-* format.
+
+    Handles both plain numeric (REQ-001) and namespaced (REQ-CTT-001) IDs.
+    Returns 9999 for unrecognised formats so they sort to the end.
+    """
+    m = re.search(r"(\d+)$", req_id)
     return int(m.group(1)) if m else 9999
 
 
 def _test_num(test_id: str) -> int:
-    m = re.match(r"TEST-(\d+)$", test_id)
+    """Extract trailing number from any TEST-* format."""
+    m = re.search(r"(\d+)$", test_id)
     return int(m.group(1)) if m else 9999
 
 
+def _req_namespace(req_id: str) -> str:
+    """Extract namespace prefix for grouping.
+
+    REQ-001       → 'default'
+    REQ-CTT-001   → 'ctt'
+    REQ-AUTH-023  → 'auth'
+    """
+    parts = req_id.split("-")
+    # At least: ['REQ', 'CTT', '001'] for namespaced; ['REQ', '001'] for plain
+    if len(parts) >= 3:
+        # Namespace = all middle parts (between REQ and the trailing number)
+        trailing = parts[-1]
+        if trailing.isdigit():
+            namespace_parts = parts[1:-1]
+            return "-".join(namespace_parts).lower()
+    return "default"
+
+
 def _group_for_req(req_id: str) -> str:
+    """Return the YAML file stem for a requirement ID.
+
+    For plain numeric IDs (REQ-001) the existing numeric-range table is used so
+    specsmith's own governance files stay in their canonical groups.  For
+    project-namespaced IDs (REQ-CTT-001, REQ-AUTH-023) the namespace prefix
+    ('ctt', 'auth') is used directly as the file stem (#149/#133).
+    """
+    ns = _req_namespace(req_id)
+    if ns != "default":
+        return ns  # Project-namespaced ID → use namespace as stem
+    # Plain numeric ID → look up in specsmith's own group table
     n = _req_num(req_id)
     for stem, ranges in _REQ_GROUPS:
         for lo, hi in ranges:
@@ -291,6 +326,81 @@ class StrictValidationReport:
 
     def add(self, check: str, message: str, severity: str = "error") -> None:
         self.violations.append(StrictViolation(check, message, severity))
+
+
+def next_req_id(root: Path) -> str:
+    """Return the next available REQ-NNN ID (max existing + 1, minimum REQ-001)."""
+    reqs = load_yaml_requirements(root)
+    if not reqs:
+        return "REQ-001"
+    nums = [_req_num(str(r.get("id", ""))) for r in reqs if _req_num(str(r.get("id", ""))) < 9999]
+    return f"REQ-{max(nums) + 1:03d}" if nums else "REQ-001"
+
+
+def next_test_id(root: Path) -> str:
+    """Return the next available TEST-NNN ID (max existing + 1, minimum TEST-001)."""
+    tests = load_yaml_tests(root)
+    if not tests:
+        return "TEST-001"
+    nums = [
+        _test_num(str(t.get("id", ""))) for t in tests if _test_num(str(t.get("id", ""))) < 9999
+    ]
+    return f"TEST-{max(nums) + 1:03d}" if nums else "TEST-001"
+
+
+def add_requirement(
+    root: Path,
+    title: str,
+    status: str = "planned",
+    description: str = "",
+    source: str = "",
+    req_id: str | None = None,
+) -> str:
+    """Append a new requirement to the appropriate YAML domain file and return its ID.
+
+    Only works in YAML-first mode. Raises RuntimeError if not in YAML mode.
+    """
+    if not is_yaml_mode(root):
+        raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
+    new_id = req_id if req_id else next_req_id(root)
+    entry: dict[str, Any] = {"id": new_id, "title": title, "status": status}
+    if description:
+        entry["description"] = description
+    if source:
+        entry["source"] = source
+    reqs = load_yaml_requirements(root)
+    reqs.append(entry)
+    save_yaml_requirements(root, reqs)
+    return new_id
+
+
+def add_test(
+    root: Path,
+    title: str,
+    requirement_id: str,
+    test_type: str = "integration",
+    verification_method: str = "",
+    description: str = "",
+    test_id: str | None = None,
+) -> str:
+    """Append a new test case to the appropriate YAML domain file and return its ID.
+
+    Only works in YAML-first mode. Raises RuntimeError if not in YAML mode.
+    """
+    if not is_yaml_mode(root):
+        raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
+    new_id = test_id if test_id else next_test_id(root)
+    entry: dict[str, Any] = {"id": new_id, "title": title, "requirement_id": requirement_id}
+    if test_type:
+        entry["type"] = test_type
+    if verification_method:
+        entry["verification_method"] = verification_method
+    if description:
+        entry["description"] = description
+    tests = load_yaml_tests(root)
+    tests.append(entry)
+    save_yaml_tests(root, tests)
+    return new_id
 
 
 def strict_validate(root: Path) -> StrictValidationReport:

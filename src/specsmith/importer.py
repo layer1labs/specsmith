@@ -121,12 +121,45 @@ def _detect_vcs_from_remote(remote_url: str) -> str:
     return ""
 
 
+def _load_gitignore_exclusions(root: Path) -> set[str]:
+    """Parse .gitignore and return a set of directory names to exclude.
+
+    Only directory-style patterns are extracted (e.g. 'external/', 'node_modules').
+    Used by detect_project() to respect .gitignore when scanning. (#135)
+    """
+    excluded: set[str] = set()
+    gitignore = root / ".gitignore"
+    if not gitignore.exists():
+        return excluded
+    try:
+        for line in gitignore.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Normalise: strip leading/trailing slashes, negations
+            if line.startswith("!"):
+                continue
+            # Glob wildcards — skip (too complex to evaluate here)
+            if "*" in line or "?" in line:
+                continue
+            # Bare name or trailing-slash pattern → add as dir exclusion
+            name = line.strip("/")
+            if name:
+                excluded.add(name)
+    except Exception:  # noqa: BLE001
+        pass
+    return excluded
+
+
 def detect_project(root: Path) -> DetectionResult:
     """Walk an existing project and detect its structure.
 
     Returns a DetectionResult with inferred configuration.
     """
     result = DetectionResult(root=root)
+
+    # .gitignore-aware exclusions (#135)
+    gitignore_exclusions = _load_gitignore_exclusions(root)
 
     # Walk directory tree
     lang_counter: Counter[str] = Counter()
@@ -148,6 +181,22 @@ def detect_project(root: Path) -> DetectionResult:
         ".tox",
         ".eggs",
     }
+    # Merge .gitignore-derived exclusions
+    skip_dirs |= gitignore_exclusions
+
+    # Also load scan_exclude_dirs from scaffold.yml if present (#146)
+    scaffold_yml = root / "scaffold.yml"
+    if not scaffold_yml.exists():
+        scaffold_yml = root / "docs" / "SPECSMITH.yml"
+    if scaffold_yml.exists():
+        try:
+            import yaml as _yaml
+
+            _sc_raw = _yaml.safe_load(scaffold_yml.read_text(encoding="utf-8")) or {}
+            for excl in _sc_raw.get("scan_exclude_dirs", []):
+                skip_dirs.add(excl.strip("/"))
+        except Exception:  # noqa: BLE001
+            pass
 
     for path in root.rglob("*"):
         if any(part in skip_dirs for part in path.parts):
@@ -664,7 +713,14 @@ def _parse_dependencies(root: Path) -> list[str]:
 
 
 def _extract_readme_summary(root: Path) -> str:
-    """Extract first heading + first paragraph from README.md."""
+    """Extract first heading + first paragraph from README.md.
+
+    Strips markdown formatting (bold, italic, backticks, links) so the
+    summary can be safely used as a plain-text scaffold.yml description.
+    Fix: #139 — description was truncated at the first '*' of **bold** markers.
+    """
+    import re
+
     readme = root / "README.md"
     if not readme.exists():
         return ""
@@ -687,7 +743,18 @@ def _extract_readme_summary(root: Path) -> str:
                 # Skip badges
                 if stripped.startswith("[!") or stripped.startswith("[!["):
                     continue
-                summary_parts.append(stripped)
+                # Strip markdown formatting for clean plain-text description (#139):
+                # 1. Remove inline links [text](url) → text
+                stripped = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", stripped)
+                # 2. Remove bold/italic (**text**, *text*, __text__, _text_)
+                stripped = re.sub(r"[*_]{1,3}(`[^`]+`|[^*_]+)[*_]{1,3}", r"\1", stripped)
+                stripped = re.sub(r"[*_]{1,3}", "", stripped)  # stray markers
+                # 3. Remove inline code backticks (keep content)
+                stripped = re.sub(r"`([^`]+)`", r"\1", stripped)
+                # 4. Collapse extra whitespace
+                stripped = re.sub(r" {2,}", " ", stripped).strip()
+                if stripped:
+                    summary_parts.append(stripped)
         return " ".join(summary_parts)[:500]
     except Exception:  # noqa: BLE001
         return ""
@@ -1092,6 +1159,13 @@ def _infer_type(result: DetectionResult) -> ProjectType:
             if (result.root / "manage.py").exists():
                 return ProjectType.BACKEND_FRONTEND
             return ProjectType.LIBRARY_PYTHON
+        # research-python: no CLI, no pyproject/setuptools, has experiments/ or data/ (#153)
+        if (result.root / "experiments").is_dir() or (result.root / "data").is_dir():
+            return ProjectType.RESEARCH_PYTHON
+        # embedded-python-hmi: Python project with Qt .ui files or HMI indicators (#109)
+        ui_files = list(result.root.rglob("*.ui"))  # Qt Designer files
+        if ui_files or (result.root / "kiosk").is_dir() or (result.root / "hmi").is_dir():
+            return ProjectType.EMBEDDED_PYTHON_HMI
         # Check for ML indicators — require strong signals, not just data/ dir
         has_notebooks = any(f.suffix == ".ipynb" for f in result.root.rglob("*.ipynb"))
         has_ml_marker = (result.root / "requirements-ml.txt").exists() or (
@@ -1102,6 +1176,53 @@ def _infer_type(result: DetectionResult) -> ProjectType:
         return ProjectType.CLI_PYTHON
 
     return ProjectType.CLI_PYTHON  # Safe default
+
+
+def _detect_branching_strategy(root: Path) -> str:
+    """Infer branching strategy from git history (#107).
+
+    Returns 'gitflow', 'trunk', or 'github-flow' based on:
+    - presence of remote origin/develop branch → gitflow
+    - PR merge commit patterns in log → github-flow
+    - all direct commits to main → trunk
+    """
+    try:
+        # Check if a develop branch exists remotely
+        branches = subprocess.run(
+            ["git", "-C", str(root), "branch", "-r"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if branches.returncode == 0:
+            remote_branches = branches.stdout
+            if "origin/develop" in remote_branches or "origin/dev" in remote_branches:
+                return "gitflow"
+
+        # Check git log for PR merge patterns
+        log = subprocess.run(
+            ["git", "-C", str(root), "log", "--oneline", "-20", "--merges"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if log.returncode == 0 and log.stdout.strip():
+            return "github-flow"
+
+        return "trunk"
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return "trunk"  # Safe default for unknown repos
+
+
+def _detect_shell_wrappers(root: Path) -> bool:
+    """Detect shell wrappers in scripts/ or root (#108)."""
+    for search_dir in [root / "scripts", root]:
+        if not search_dir.is_dir():
+            continue
+        for pattern in ("*.cmd", "*.sh", "*.ps1"):
+            if any(search_dir.glob(pattern)):
+                return True
+    return False
 
 
 def generate_import_config(result: DetectionResult) -> ProjectConfig:
@@ -1121,6 +1242,19 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         spec_version = _installed_ver
     except Exception:  # noqa: BLE001
         spec_version = "0.3.0"  # safe fallback
+
+    # Detect branching strategy from git history (#107)
+    branching_strategy = _detect_branching_strategy(result.root) if result.has_git else "trunk"
+    # Detect shell wrappers from scripts/ directory (#108)
+    shell_wrappers = _detect_shell_wrappers(result.root)
+    # Detect proprietary license: no LICENSE file + not a known open-source project
+    has_license = (result.root / "LICENSE").exists() or (result.root / "LICENSE.md").exists()
+    inferred_license = "proprietary" if not has_license else "MIT"
+    # Build community_files: exclude 'license' for proprietary projects (#143)
+    community_files = ["contributing", "security", "coc", "pr-template", "issue-templates"]
+    if has_license:
+        community_files.insert(1, "license")
+
     return ProjectConfig(
         name=result.root.name,
         type=result.inferred_type or ProjectType.CLI_PYTHON,
@@ -1132,6 +1266,10 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         vcs_platform=result.vcs_platform,
         detected_build_system=result.build_system,
         detected_test_framework=result.test_framework,
+        branching_strategy=branching_strategy,
+        shell_wrappers=shell_wrappers,
+        license=inferred_license,
+        community_files=community_files,
     )
 
 
@@ -1306,9 +1444,12 @@ def generate_overlay(
     if old_doc_wf.exists():
         old_doc_wf.unlink()  # replaced by LIFECYCLE.md + phase system
 
-    # If existing AGENTS.md is oversized, back it up and replace with a hub.
+    # If existing AGENTS.md is oversized AND --force is explicitly passed,
+    # back it up and replace with a modular hub.
+    # Without --force, we never overwrite AGENTS.md regardless of its size
+    # — this respects the dry-run contract and prevents data loss (#121).
     agents_path = target / "AGENTS.md"
-    if agents_path.exists():
+    if agents_path.exists() and force:
         agents_lines = len(agents_path.read_text(encoding="utf-8").splitlines())
         if agents_lines > 200:
             backup_path = target / "AGENTS.md.bak"

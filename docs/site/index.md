@@ -53,7 +53,7 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 
 **Governance Infrastructure:**
 
-- **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required)
+- **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required) and H15–H22 (OEA anti-hallucination rules)
 - **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
 - **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
 - **docs/REQUIREMENTS.md** — requirements parseable as `BeliefArtifact` instances
@@ -103,8 +103,7 @@ cargo run --release --bin kairos   # build and run from source
 
 **[→ Kairos on GitHub](https://github.com/BitConcepts/kairos)**
 
-!!! note "VS Code Extension deprecated"
-    The specsmith VS Code extension has been deprecated in favour of Kairos. Existing installs continue to work but will not receive new features.
+Kairos is the official specsmith client — governance panel, live dispatch view, and BYOE proxy built in.
 
 ## Quick Start
 

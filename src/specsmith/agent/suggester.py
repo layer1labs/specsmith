@@ -3,7 +3,7 @@
 """Lightweight NL-to-command suggester for `specsmith suggest-command` (REQ-131).
 
 Given a partial natural-language fragment, return a structured suggestion
-that the VS Code extension renders as inline ghost-text in the chat input.
+that Kairos renders as inline ghost-text in the chat input.
 Three classification buckets:
 
 * ``command`` -- the input is shell-y (starts with an imperative verb that

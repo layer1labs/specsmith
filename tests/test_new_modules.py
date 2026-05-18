@@ -227,7 +227,8 @@ class TestInstincts:
 
         store = InstinctStore(tmp_path)
         inst = store.add("pattern", "action content")
-        assert store.remove(inst.id) is True
+        removed = store.remove(inst.id)
+        assert removed is True
         assert len(store.all()) == 0
 
     def test_persistence(self, tmp_path: Path) -> None:

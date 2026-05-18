@@ -77,3 +77,93 @@
   expected_behavior: second run produces no changes; governance-mode=yaml;
     sync --check exits 0
   confidence: 1.0
+- id: TEST-305
+  title: ChronoStore WAL-Based ESDB Write Layer
+  description: >-
+    ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to
+    <project>/.chronomemory/events.wal. EsdbBridge.status() returns
+    chain_valid=True after appending records.
+  requirement_id: REQ-305
+  type: integration
+  verification_method: pytest
+  input: ChronoStore(tmp_path) append 3 records; EsdbBridge(tmp_path).status()
+  expected_behavior: WAL file exists with chained hashes; chain_valid=True
+  confidence: 0.95
+- id: TEST-306
+  title: ESDB Must Be Per-Project
+  description: >-
+    Two EsdbBridge instances on separate 	mp_path directories MUST have
+    independent .chronomemory/events.wal files; records from project A are
+    not visible in project B.
+  requirement_id: REQ-306
+  type: integration
+  verification_method: pytest
+  input: Two EsdbBridge instances on different tmp_path directories
+  expected_behavior: Each project has independent WAL; no cross-contamination
+  confidence: 0.95
+- id: TEST-307
+  title: Session State Must Survive Restart
+  description: >-
+    SessionStore MUST persist session context to .specsmith/session-state.json.
+    A new SessionStore instance on the same path MUST load the saved state.
+  requirement_id: REQ-307
+  type: integration
+  verification_method: pytest
+  input: SessionStore(tmp_path) save; new SessionStore(tmp_path) load
+  expected_behavior: Loaded state matches saved state; session-state.json exists
+  confidence: 0.95
+- id: TEST-308
+  title: Context Orchestrator Tiered Auto-Optimization
+  description: >-
+    ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier.
+    Data on disk MUST NEVER be deleted at any tier.
+  requirement_id: REQ-308
+  type: integration
+  verification_method: pytest
+  input: optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)
+  expected_behavior: Correct tier actions returned; no files deleted from disk
+  confidence: 0.90
+- id: TEST-309
+  title: CI Automation Togglable Per Project
+  description: >-
+    CiManager.enable(platform=github, force=True) MUST generate CI workflow
+    files and persist ci_automation_enabled=true to .specsmith/config.yml.
+  requirement_id: REQ-309
+  type: cli
+  verification_method: pytest
+  input: CiManager(tmp_path).enable(platform=github, force=True)
+  expected_behavior: CI files generated; config.yml has ci_automation_enabled=true
+  confidence: 0.90
+- id: TEST-310
+  title: OEA Anti-Hallucination Fields on ESDB Records
+  description: >-
+    ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default
+    all 7 OEA fields to safe non-blocking values.
+  requirement_id: REQ-310
+  type: unit
+  verification_method: pytest
+  input: ChronoRecord(kind=test, payload={}) inspect all 7 OEA fields
+  expected_behavior: source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False, recursion_depth=0
+  confidence: 0.95
+- id: TEST-311
+  title: RAG Retrieval Must Filter by Confidence
+  description: >-
+    ESDB retrieval MUST exclude records with confidence < min_confidence.
+    Records at exactly the threshold MUST be included.
+  requirement_id: REQ-311
+  type: unit
+  verification_method: pytest
+  input: Append records with confidence 0.3, 0.7, 0.9; query(min_confidence=0.7)
+  expected_behavior: Only confidence >= 0.7 records returned; 0.3 excluded
+  confidence: 0.90
+- id: TEST-312
+  title: Context Optimize Command
+  description: >-
+    specsmith context optimize --fill-pct N --json MUST exit 0 and return
+    JSON with 	ier, ctions, and 	okens_freed.
+  requirement_id: REQ-312
+  type: cli
+  verification_method: pytest
+  input: specsmith context optimize --fill-pct 65 --json --project-dir tmp
+  expected_behavior: Exit 0; JSON contains tier, actions list, tokens_freed integer
+  confidence: 0.90
