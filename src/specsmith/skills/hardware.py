@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Hardware EDA skills — KiCad, Altium, Vivado, Quartus, GTKWave, OpenOCD, JTAG."""
+"""Hardware EDA skills — KiCad, Altium, Vivado, Quartus, GTKWave, OpenOCD, JTAG, PYNQ."""
 
 from specsmith.skills import SkillDomain, SkillEntry
 
@@ -185,10 +185,13 @@ Project → Make Project Available Online → push to Altium 365
     # ── AMD/Xilinx Vivado ─────────────────────────────────────────────────────
     SkillEntry(
         slug="vivado",
-        name="AMD/Xilinx Vivado — project flow, IP, timing, bitstream",
+        name="AMD/Xilinx Vivado — install, project flow, IP, timing, ecosystem",
         description=(
-            "Vivado 2023+ FPGA design flow: project creation, IP integrator, "
-            "constraints, timing closure, bitstream generation, and ILA debug."
+            "Vivado 2022+ full workflow: installation (Windows/Linux), project and "
+            "batch-mode TCL, IP integrator, XDC constraints, timing closure, "
+            "bitstream generation, ILA debug, xsim simulation, XSCT/XSDB "
+            "programming, hardware handoff for Vitis, board files, and nuclear "
+            "rebuild discipline."
         ),
         domain=SkillDomain.HARDWARE,
         tags=[
@@ -205,6 +208,10 @@ Project → Make Project Available Online → push to Altium 365
             "ultrascale",
             "artix",
             "zynq",
+            "xsct",
+            "xsim",
+            "vitis",
+            "board-files",
         ],
         project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
         platforms=["windows", "linux"],
@@ -212,310 +219,731 @@ Project → Make Project Available Online → push to Altium 365
         body="""\
 # AMD/Xilinx Vivado Skill
 
-## Project flow (GUI or Tcl)
+## Platform support
+| Platform | Supported | Notes |
+|----------|-----------|-------|
+| Windows 10/11 | ✅ Yes | Primary; vivado.bat; PowerShell or cmd |
+| Linux (Ubuntu 20.04/22.04, RHEL 8) | ✅ Yes | Full support; vivado script |
+| macOS | ❌ No | Vivado does NOT run on macOS. Use a Linux VM (UTM, Parallels, VMware Fusion) or a remote Linux machine. |
+
+## Installation and tool detection
+### Windows
+```powershell
+# Detect most recent Vivado install
+$vbase = if (Test-Path "C:\\Xilinx\\Vivado") { "C:\\Xilinx\\Vivado" }
+         elseif (Test-Path "C:\\AMDDesignTools") {
+             (Get-ChildItem "C:\\AMDDesignTools" -Depth 1 -Directory |
+              Where-Object {$_.Name -match "Vivado"}).FullName
+         } else { $null }
+$vivado = if ($vbase) {
+    (Get-ChildItem $vbase -Directory | Sort-Object Name -Descending |
+     Select-Object -First 1).FullName + "\\bin\\vivado.bat"
+} elseif ($env:XILINX_VIVADO) { "$env:XILINX_VIVADO\\bin\\vivado.bat" } else { "vivado" }
+# Activate environment (if needed)
+& "C:\\Xilinx\\Vivado\\2023.2\\settings64.bat"  # optional; sets PATH, XILINX_VIVADO
+```
+### Linux
+```bash
+# Common install locations
+source /tools/Xilinx/Vivado/2023.2/settings64.sh   # Xilinx default
+source /opt/Xilinx/Vivado/2023.2/settings64.sh     # alternate
+# Or add to ~/.bashrc:
+export PATH="/tools/Xilinx/Vivado/2023.2/bin:$PATH"
+export XILINX_VIVADO=/tools/Xilinx/Vivado/2023.2
+# Invoke
+vivado -mode batch -source build.tcl
+vivado -mode tcl       # interactive
+vivado                 # GUI
+```
+
+## Vivado toolchain ecosystem
+```
+Vivado Design Suite
+├── Vivado IDE (GUI + batch Tcl)     — RTL synthesis, IP, impl, bitstream
+├── Vivado Simulator (xsim)         — built-in HDL simulation (VHDL/Verilog/SV)
+├── IP Integrator (BD)              — block design, PS config, AXI interconnect
+├── ILA / VIO                       — on-chip logic analyser / virtual I/O
+├── Hardware Manager                — JTAG connect, program, ILA capture
+├── write_cfgmem                    — bitstream format conversion (.bit → .bin)
+└── updatemem                       — update BRAM init in existing bitstream
+
+Related AMD tools (separate installers)
+├── Vitis IDE                       — PS application dev (C/C++, AI Engine)
+├── Vitis HLS                       — C/C++ → RTL high-level synthesis
+├── XSCT (Xilinx Software Cmd Tool) — Tcl: program, debug, boot image
+└── XSDB (older, still supported)   — same as XSCT, pre-Vitis name
+```
+
+## Common proven FPGA targets
+| Board | Part number | Fabric | License | Board files source |
+|-------|-------------|--------|---------|--------------------|
+| Arty A7-35T | xc7a35tcpg236-1 | Artix-7 | ML Standard (free) | Digilent |
+| Arty A7-100T | xc7a100tcsg324-1 | Artix-7 | ML Standard (free) | Digilent |
+| Basys3 | xc7a35tcpg236-1 | Artix-7 | ML Standard (free) | Digilent |
+| Nexys A7-50T | xc7a50tcsg324-1 | Artix-7 | ML Standard (free) | Digilent |
+| Nexys A7-100T | xc7a100tcsg324-1 | Artix-7 | ML Standard (free) | Digilent |
+| PYNQ-Z1 | xc7z010clg400-1 | Zynq-7000 | ML Standard (free) | TUL/Digilent |
+| PYNQ-Z2 | xc7z020clg400-1 | Zynq-7000 | ML Standard (free) | TUL |
+| ZedBoard | xc7z020clg484-1 | Zynq-7000 | ML Standard (free) | Avnet |
+| Ultra96-v2 | xczu3eg-sbva484-1-e | UltraScale+ | ML Standard (free) | Avnet |
+| Kria KV260 | xck26-sfvc784-1-e | UltraScale+ | ML Standard | AMD/Digilent |
+| Kria KR260 | xck26-sfvc784-2LV-c | UltraScale+ | ML Standard | AMD |
+| ZCU106 | xczu7ev-ffvc1156-2-e | UltraScale+ EV | Enterprise (paid) | AMD |
+
+## Board files installation
 ```tcl
-# Create project
-create_project myproj ./myproj -part xc7a35tcpg236-1
+# Vivado Tcl — install Digilent board files
+# 1. Download board files from github.com/Digilent/vivado-boards
+# 2. Copy /new/board_files/* to <Vivado>/data/xhub/boards/XilinxBoardStore/boards/Xilinx/
+#    (or /data/boards/board_files/ on older Vivado)
+# 3. Restart Vivado
+# OR — auto-install from Vivado:
+xhub::refresh_catalog [xhub::get_xstores xilinx_board_store]
+xhub::install [xhub::get_xitems -filter {name =~ "*pynq*"}]
+# Verify:
+get_board_parts *pynq*
+# Returns: tul.com.tw:pynq-z2:part0:1.0 etc.
+```
+
+## Project creation and build (Tcl batch)
+```tcl
+# Create project (run from .work/vivado/ to contain artifacts)
+set repo_root [file normalize [file join [file dirname [info script]] .. ..]]
+create_project myproj [file join $repo_root .work vivado myproj] \
+    -part xc7a35tcpg236-1
 set_property board_part digilentinc.com:arty-a7-35:part0:1.1 [current_project]
-
-# Add sources
-add_files -fileset sources_1 [glob src/hdl/*.v]
-add_files -fileset constrs_1 src/xdc/timing.xdc
-
-# Set top
+add_files -fileset sources_1 [glob [file join $repo_root src hdl *.v]]
+add_files -fileset constrs_1 [file join $repo_root src xdc constraints.xdc]
 set_property top my_top [current_fileset]
 
-# Run synthesis, implementation, bitstream
-launch_runs synth_1 -jobs 8
-wait_on_run synth_1
-launch_runs impl_1 -to_step write_bitstream -jobs 8
-wait_on_run impl_1
-```
+# Synthesis
+launch_runs synth_1 -jobs 8 && wait_on_run synth_1
+if {[get_property STATUS [get_runs synth_1]] != "synth_design Complete!"} {
+    error "Synthesis failed"; exit 1 }
 
-## XDC constraints file
-```tcl
-# Clock constraint
-create_clock -period 10.000 -name sys_clk [get_ports clk]
-# set_input_delay / set_output_delay
-set_input_delay  -clock sys_clk -max 2.0 [get_ports {data_in[*]}]
-set_output_delay -clock sys_clk -max 2.0 [get_ports {data_out[*]}]
+# Implementation + bitstream
+launch_runs impl_1 -to_step write_bitstream -jobs 8 && wait_on_run impl_1
 
-# Physical pins (Arty A7)
-set_property PACKAGE_PIN E3 [get_ports clk]
-set_property IOSTANDARD LVCMOS33 [get_ports clk]
-set_property PACKAGE_PIN U9 [get_ports reset_n]
-set_property IOSTANDARD LVCMOS33 [get_ports reset_n]
-
-# Timing exceptions
-set_false_path -from [get_clocks clk_a] -to [get_clocks clk_b]
-```
-
-## Timing closure workflow
-```tcl
-# After implementation, check timing
+# Reports
 open_run impl_1
-report_timing_summary -delay_type min_max -report_unconstrained \
-    -check_timing_verbose -max_paths 10 -input_pins
-report_clock_interaction -delay_type min_max
-report_cdc -details
-# Fix setup violations: pipeline, resource placement, Pblock constraints
-# Fix hold violations: usually CDC-related; add synchronisers
+report_utilization   -file [file join $repo_root reports utilization.txt]
+report_timing_summary -file [file join $repo_root reports timing.txt]
+report_power         -file [file join $repo_root reports power.txt]
+close_project
 ```
 
-## IP Integrator (Block Design)
+## XDC timing and pin constraints
+```tcl
+# Clock
+create_clock -period 10.000 -name sys_clk [get_ports clk]
+# False path between unrelated clocks
+set_false_path -from [get_clocks clk_a] -to [get_clocks clk_b]
+# Multicycle paths (relaxed setup)
+set_multicycle_path 2 -setup -to [get_cells {slow_path_reg[*]}]
+set_multicycle_path 1 -hold  -to [get_cells {slow_path_reg[*]}]
+
+# Physical pins (example: Arty A7 100 MHz clock on E3)
+set_property PACKAGE_PIN E3        [get_ports clk]
+set_property IOSTANDARD LVCMOS33   [get_ports clk]
+# Active-low reset
+set_property PACKAGE_PIN C2        [get_ports reset_n]
+set_property IOSTANDARD LVCMOS33   [get_ports reset_n]
+```
+
+## Reading timing reports
+```
+WNS (Worst Negative Slack) >= 0  →  timing CLOSED (good)
+WNS < 0                          →  FAILING; pipeline or relax clock
+TNS (Total Negative Slack) == 0  →  all paths pass
+WHS (Worst Hold Slack)  >= 0     →  hold timing OK
+
+Key fields in timing_summary.txt:
+  Design Timing Summary: WNS / TNS / WHS / WPSS lines
+  Clock Summary: all clocks, source, period
+To fix violations:
+  Setup (WNS<0): add pipeline registers; use Pblock to co-locate logic
+  Hold  (WHS<0): usually CDC issue; add 2-FF synchronisers + set_clock_groups
+```
+
+## IP Integrator — Block Design (Tcl)
 ```tcl
 create_bd_design "system"
-startgroup
-create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.4 ps
-apply_bd_automation -rule xilinx.com:bd_rule:zynq_ultra_ps_e \
-    -config "apply_board_preset 1" [get_bd_cells ps]
-endgroup
+# Add and connect PS (Zynq-7000 example)
+create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 ps7
+apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+    -config {make_external "FIXED_IO, DDR" apply_board_preset 1} [get_bd_cells ps7]
+# Validate, generate wrapper
 validate_bd_design
 make_wrapper -files [get_files system.bd] -top
-add_files -norecurse system_wrapper.v
+add_files -norecurse [glob .work/vivado/myproj/*.gen/sources_1/bd/system/hdl/*wrapper.v]
 ```
 
-## ILA (Integrated Logic Analyser) debug
+## ILA (on-chip logic analyser)
 ```tcl
-# In RTL: mark signals with (* mark_debug = "true" *)
-# Or in post-synth: set_property mark_debug true [get_nets my_sig]
-set_property C_DATA_DEPTH 1024 [get_debug_cores ila_0]
-# After bitstream: open Hardware Manager, connect, trigger on condition
+# Mark nets for debug in RTL (Verilog)
+# (* mark_debug = "true" *) wire [7:0] my_signal;
+
+# Or post-synthesis in Tcl:
+set_property mark_debug true [get_nets {my_signal[*]}]
+implemented_design  # after impl_1
+
+# Set depth and connect
+set_property C_DATA_DEPTH 4096 [get_debug_cores ila_0]
+write_debug_probes -quiet probes.ltx
+
+# After programming: Hardware Manager → trigger condition → arm → run
 ```
 
-## Batch mode scripting
+## Vivado Simulator (xsim)
 ```bash
-vivado -mode batch -source run_build.tcl
-vivado -mode tcl   # interactive Tcl shell
+# Compile and simulate Verilog
+xvlog src/hdl/my_module.v src/hdl/tb_my_module.v
+xelab tb_my_module -snapshot tb_snap --debug typical
+xsim tb_snap --runall --log sim.log
+# Or from Vivado GUI: Flow → Run Simulation → Run Behavioral Simulation
+```
+```tcl
+# From Vivado Tcl:
+launch_simulation
+run 1000ns
+close_sim
+```
+
+## XSCT — device programming and debug (command-line)
+```bash
+# Replaces XSDB in Vivado 2022.2+ and Vitis
+xsct  # interactive
+# Or batch:
+xsct program_device.tcl
+```
+```tcl
+# program_device.tcl — generic Zynq/UltraScale+
+connect
+targets -set -nocase -filter {name =~ "*PSU*" || name =~ "*PS*"}
+rst -system
+after 3000
+targets -set -nocase -filter {name =~ "*A53*#0" || name =~ "*A9*#0"}
+fpga /path/to/design.bit
+puts "Device programmed"
+disconnect
+```
+
+## Hardware handoff for Vitis / SDK
+```tcl
+# After implementation, export hardware platform (XSA) for PS software dev
+write_hw_platform -fixed -include_bit -force -file design.xsa
+# In Vitis:
+#   File → New → Platform Project → browse to design.xsa
+#   Creates BSP (Board Support Package) with PS drivers
+```
+
+## IP packaging (reusable IP core)
+```tcl
+# Create and package custom RTL as IP
+ipx::package_project -root_dir ip_repo/my_ip -vendor my_org \
+    -library ip -taxonomy /UserIP
+ipx::save_core [ipx::current_core]
+# Add to project IP repository:
+set_property ip_repo_paths ip_repo [current_project]
+update_ip_catalog
+create_bd_cell -type ip -vlnv my_org:ip:my_ip:1.0 my_ip_inst
+```
+
+## Nuclear rebuild rule (CRITICAL)
+After ANY edit to RTL sources or IP files, delete the Vivado project and rebuild
+from scratch. Incremental rebuild silently uses stale netlists.
+### Windows (PowerShell)
+```powershell
+Remove-Item -Recurse -Force .work\vivado -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path .work\vivado | Out-Null
+Push-Location .work\vivado
+& $vivado -mode batch -source "..\..\hardware\scripts\create_project.tcl"
+& $vivado -mode batch -source "..\..\hardware\scripts\build_bitstream.tcl"
+Pop-Location
+```
+### Linux (bash)
+```bash
+rm -rf .work/vivado && mkdir -p .work/vivado
+pushd .work/vivado
+vivado -mode batch -source ../../hardware/scripts/create_project.tcl
+vivado -mode batch -source ../../hardware/scripts/build_bitstream.tcl
+popd
+```
+
+## Working directory discipline (CRITICAL)
+NEVER invoke Vivado from the repo root — it creates `vivado.log`, `vivado.jou`,
+`.Xil/`, `webtalk/` at the repo root, polluting git.
+Always `Push-Location .work/vivado` (Windows) or `pushd .work/vivado` (Linux) first.
+
+## .gitignore for Vivado projects
+```
+.work/
+vivado.log
+vivado.jou
+vivado_*.backup.log
+vivado_*.backup.jou
+.Xil/
+NA/
+webtalk/
+*.xpr
+*.bit
+*.bit.bin
+*.xsa
+*.hbs
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.gen/
 ```
 
 ## Common pitfalls
-- Always set clock constraints before implementing —
-  unconstrained paths cause random timing failures.
-- Timing path → "Path not covered": check set_false_path and clock groups.
-- IP version mismatch after Vivado upgrade: Project → Report IP Status → Upgrade All.
-- License: Vivado ML Standard is free for smaller devices; larger ones need purchased license.
-
-## Nuclear rebuild rule (CRITICAL — UltraScale+/Zynq)
-After ANY edit to RTL sources or IP files, delete the entire Vivado project
-and rebuild from scratch. Incremental rebuild silently uses stale cached
-netlists and produces bitstreams that do NOT contain your code changes.
-```powershell
-# Step 1: Delete ALL Vivado work products
-Remove-Item -Recurse -Force .work\vivado -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path .work\vivado | Out-Null
-
-# Step 2: Recreate from TCL
-Push-Location .work\vivado
-& $vivado -mode batch -source ..\..\hardware\scripts\create_project.tcl
-& $vivado -mode batch -source ..\..\hardware\scripts\build_bitstream.tcl
-Pop-Location
-```
-This rule has NO exceptions — not for "quick tests", not for IP-only changes.
-Silent netlist staleness is the #1 source of "my code changes aren't in hardware" bugs.
-
-## Working directory discipline (CRITICAL)
-Always invoke Vivado from a dedicated work directory, NEVER from the repo root.
-Running `vivado -mode batch -source ...` from the repo root creates
-`vivado.log`, `vivado.jou`, `.Xil/`, `webtalk/` at the repo root — polluting git.
-```powershell
-# CORRECT: run from .work/vivado/
-Push-Location .work\vivado
-& $vivado -mode batch -source ..\..\hardware\scripts\build.tcl
-Pop-Location
-
-# WRONG: never do this
-vivado -mode batch -source hardware\scripts\build.tcl  # pollutes repo root
-```
-Add to .gitignore: `.work/`, `vivado.log`, `vivado.jou`, `.Xil/`, `*.xpr`, `*.runs/`.
-
-## Vivado detection (Windows PowerShell)
-```powershell
-# Standard Xilinx install path
-$vivado = (Get-ChildItem "C:\\Xilinx\\Vivado" -Directory |
-           Sort-Object Name -Descending |
-           Select-Object -First 1).FullName + "\\bin\\vivado.bat"
-# AMD 2025+ installer path
-if (-not (Test-Path $vivado)) {
-    $vivado = (Get-ChildItem "C:\\AMDDesignTools" -Recurse -Filter "vivado.bat" |
-               Select-Object -First 1).FullName
-}
-# Also check: $env:XILINX_VIVADO\\bin\\vivado.bat
-```
+- macOS: Vivado does NOT run on macOS — use Linux VM or remote Linux.
+- Always set `create_clock` before implementing; unconstrained clocks → random failures.
+- Timing "Path not covered": missing set_false_path or set_clock_groups for async paths.
+- IP mismatch after Vivado upgrade: Project → Report IP Status → Upgrade All IP.
+- ML Standard free tier: xc7a200t, xc7k, Zynq 7045+, and ZCU106 may require paid license;
+  check vivado-ml-editions.pdf.
+- Never commit `.xpr` — it contains absolute paths and breaks on other machines;
+  store project as TCL scripts instead.
+- Incremental builds after RTL changes produce stale bitstreams — always nuclear rebuild.
 """,
     ),
-    # ── AMD/Xilinx Vivado — Kria/Zynq UltraScale+ deployment ────────────────
+    # ── Zynq-7000 and Zynq UltraScale+ PS+PL deployment (Kria, ZedBoard, etc.) ─
     SkillEntry(
-        slug="vivado-kria-zynq",
-        name="Vivado — Kria KV260/KR260 & Zynq UltraScale+ deployment",
+        slug="vivado-zynq-ps-pl",
+        name="Vivado — Zynq PS+PL deployment (Kria, PYNQ-Z2, ZedBoard, UltraScale+)",
         description=(
-            "Kria SOM and Zynq UltraScale+ specific workflow: PS+PL block design, "
-            "AXI4-Lite register maps, fpgautil bitstream loading, MMIO Python access, "
-            "nuclear rebuild rule, and working directory discipline."
+            "Zynq-7000 and UltraScale+ MPSoC PS+PL workflow: block design, "
+            "AXI4-Lite slave IPs, clocking, fpgautil/PYNQ bitstream loading, "
+            "MMIO register access, hardware handoff for Vitis/PYNQ, XDC timing, "
+            "XSCT/XSDB programming, and platform-specific deployment."
         ),
         domain=SkillDomain.HARDWARE,
         tags=[
-            "vivado",
-            "kria",
-            "kv260",
-            "kr260",
-            "zynq",
-            "ultrascale",
-            "mpsoc",
-            "xck26",
-            "axi",
-            "fpgautil",
-            "fpga",
-            "amd",
-            "xilinx",
-            "ps-pl",
-            "mmio",
+            "vivado", "zynq", "zynq-7000", "ultrascale", "mpsoc",
+            "kria", "kv260", "kr260", "pynq", "pynq-z2", "zedboard",
+            "ultra96", "axi", "axi4-lite", "fpgautil", "mmio",
+            "ps-pl", "amd", "xilinx", "vitis",
         ],
         project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
         platforms=["windows", "linux"],
         prerequisites=["vivado"],
         body="""\
-# Vivado — Kria KV260/KR260 & Zynq UltraScale+ Skill
+# Vivado — Zynq PS+PL Deployment Skill
 
-## Target hardware quick reference
-| Board | SOM part | PL | PS clk | Tool |
-|-------|----------|----|--------|------|
-| Kria KV260 | xck26-sfvc784-1-e | UltraScale+ | 100 MHz (pl_clk0) | Vivado 2022.1+ |
-| Kria KR260 | xck26-sfvc784-2LV-c | UltraScale+ | 100 MHz (pl_clk0) | Vivado 2022.1+ |
-| ZCU106 | xczu7ev-ffvc1156 | UltraScale+ | 300 MHz | Vivado 2022.1+ |
+## Supported boards — quick reference
+| Board | Part | Zynq family | PS RAM | Default clk | Deploy method |
+|-------|------|-------------|--------|-------------|---------------|
+| PYNQ-Z1 | xc7z010clg400-1 | Zynq-7000 | 512 MB DDR3 | 125 MHz | PYNQ Python |
+| PYNQ-Z2 | xc7z020clg400-1 | Zynq-7000 | 512 MB DDR3 | 125 MHz | PYNQ Python |
+| ZedBoard | xc7z020clg484-1 | Zynq-7000 | 512 MB DDR3 | 100 MHz | fpgautil/XSCT |
+| Ultra96-v2 | xczu3eg-sbva484-1-e | UltraScale+ | 2 GB LPDDR4 | 100 MHz | fpgautil |
+| Kria KV260 | xck26-sfvc784-1-e | UltraScale+ | 4 GB LPDDR4 | 100 MHz | fpgautil |
+| Kria KR260 | xck26-sfvc784-2LV-c | UltraScale+ | 4 GB LPDDR4 | 100 MHz | fpgautil |
+| ZCU106 | xczu7ev-ffvc1156-2-e | UltraScale+ EV | 4 GB DDR4 | 300 MHz | XSCT/JTAG |
 
-## Block design PS configuration (Tcl)
+## Block design — Zynq-7000 PS (ps7) Tcl
+```tcl
+create_bd_design "system"
+# Create PS7 (Zynq-7000)
+create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 ps7
+apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+    -config {make_external "FIXED_IO, DDR" apply_board_preset 1} [get_bd_cells ps7]
+# Key PS7 config overrides (example: enable AXI GP0, set FCLK_CLK0 = 100 MHz)
+set_property -dict [list \
+    CONFIG.PCW_USE_M_AXI_GP0       {1} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+    CONFIG.PCW_EN_CLK0_PORT        {1} \
+    CONFIG.PCW_EN_RST0_PORT        {1} \
+] [get_bd_cells ps7]
+```
+
+## Block design — Zynq UltraScale+ PS (zynq_ultra_ps_e) Tcl
 ```tcl
 create_bd_design "system"
 create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.4 ps
-# Apply Kria board preset (if board files installed)
+# Apply board preset if board files are installed
 apply_bd_automation -rule xilinx.com:bd_rule:zynq_ultra_ps_e \
     -config {apply_board_preset 1} [get_bd_cells ps]
-# Enable pl_clk0 (100 MHz) + pl_clk1 (for PLL input)
+# Enable AXI GP0 + two PL clocks (cl_clk0=100MHz for AXI, pl_clk1 for PLL)
 set_property -dict [list \
+    CONFIG.PSU__USE__M_AXI_GP0             {1} \
     CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {100} \
     CONFIG.PSU__CRL_APB__PL1_REF_CTRL__FREQMHZ {100} \
-    CONFIG.PSU__USE__M_AXI_GP0 {1} \
 ] [get_bd_cells ps]
-# Add Clocking Wizard: pl_clk1 100 MHz → 400 MHz PL logic clock
+# Optional: Clocking Wizard for high-speed PL clock
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz
-set_property -dict [list \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {400} \
-] [get_bd_cells clk_wiz]
+set_property CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {400} [get_bd_cells clk_wiz]
 ```
 
-## AXI4-Lite slave register map pattern
+## AXI4-Lite slave — SmartConnect wiring and address assignment
 ```tcl
-# Add AXI SmartConnect (PS GP0 → custom IP)
+# Add SmartConnect between PS AXI master and custom IP slave
 create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 sc
 set_property CONFIG.NUM_SI {1} [get_bd_cells sc]
-# Connect PS AXI master → SmartConnect → custom IP
+# UltraScale+: M_AXI_HPM0_FPD; Zynq-7000: M_AXI_GP0
 connect_bd_intf_net [get_bd_intf_pins ps/M_AXI_HPM0_FPD] \
     [get_bd_intf_pins sc/S00_AXI]
-# Assign address: base=0x8000_0000, range=64K
-assign_bd_address [get_bd_addr_segs {my_ip/s_axi/reg0}]
-set_property offset 0x80000000 [get_bd_addr_segs {ps/Data/SEG_my_ip_reg0}]
-set_property range 64K         [get_bd_addr_segs {ps/Data/SEG_my_ip_reg0}]
+connect_bd_intf_net [get_bd_intf_pins sc/M00_AXI] \
+    [get_bd_intf_pins my_ip_0/s_axi]
+# Assign base address (0x8000_0000) and range (64 KB)
+assign_bd_address [get_bd_addr_segs {my_ip_0/s_axi/reg0}]
+set_property offset 0x80000000 \
+    [get_bd_addr_segs {ps/Data/SEG_my_ip_0_reg0}]
+set_property range 64K \
+    [get_bd_addr_segs {ps/Data/SEG_my_ip_0_reg0}]
 ```
 
-## Bitstream generation and fpgautil loading
+## Generate .bit.bin for fpgautil (UltraScale+ / Kria)
 ```tcl
-# Tcl: generate .bit and .bit.bin
-launch_runs impl_1 -to_step write_bitstream -jobs 8
-wait_on_run impl_1
-# Convert to fpgautil format
-set bit [glob [file join $impl_dir *.bit]]
+# After write_bitstream completes, convert to binary for fpgautil
+set impl_dir [file join $proj_dir "${proj_name}.runs" "impl_1"]
+set bit      [lindex [glob [file join $impl_dir "*.bit"]] 0]
 write_cfgmem -force -format BIN -interface SMAPx32 \
-    -disablebitswap -loadbit "up 0x0 $bit" output.bit.bin
+    -disablebitswap -loadbit "up 0x0 $bit" \
+    [file join $output_dir "design.bit.bin"]
+# Also copy .bit for JTAG/Vivado Hardware Manager:
+file copy -force $bit [file join $output_dir "design.bit"]
 ```
+
+## Hardware handoff (.xsa/.hwh) for Vitis or PYNQ
+```tcl
+# Export hardware platform for PS software development (Vitis) or PYNQ
+# Must be done AFTER implementation with bitstream
+write_hw_platform -fixed -include_bit -force \
+    -file [file join $output_dir "design.xsa"]
+# For PYNQ: also need .hwh (hardware handoff) — this is extracted from .xsa:
+# unzip design.xsa && find . -name "*.hwh"  (or Vivado generates it in .gen/)
+```
+
+## Deploy and load bitstream
+### Kria KV260 / KR260 / UltraScale+ (fpgautil)
 ```powershell
-# PowerShell: transfer and load on Kria
-scp output.bit.bin ubuntu@kria:/tmp/
-ssh ubuntu@kria "sudo fpgautil -b /tmp/output.bit.bin"
-ssh ubuntu@kria "sudo fpgautil -s"    # verify status
+# Windows PowerShell (SSH from dev machine to board)
+scp design.bit.bin ubuntu@192.168.1.xxx:/tmp/
+ssh ubuntu@192.168.1.xxx "sudo fpgautil -b /tmp/design.bit.bin"
+ssh ubuntu@192.168.1.xxx "sudo fpgautil -s"   # verify FPGA manager status
+# Install fpgautil on board if missing:
+ssh ubuntu@192.168.1.xxx "sudo apt install fpga-manager-util"
 ```
 ```bash
-# On Kria: alternative loading via sysfs
-sudo cp output.bit.bin /lib/firmware/mydesign.bit.bin
-echo "mydesign.bit.bin" | sudo tee /sys/class/fpga_manager/fpga0/firmware
-# Install fpgautil if missing:
-sudo apt install fpga-manager-util
+# Linux dev machine
+scp design.bit.bin ubuntu@kria:/tmp/
+ssh ubuntu@kria "sudo fpgautil -b /tmp/design.bit.bin && sudo fpgautil -s"
+# Alternative: sysfs method
+ssh ubuntu@kria "sudo cp design.bit.bin /lib/firmware/ && \
+    echo design.bit.bin | sudo tee /sys/class/fpga_manager/fpga0/firmware"
 ```
 
-## MMIO / AXI register access from Python (on Kria PS)
+### PYNQ-Z1 / PYNQ-Z2 (PYNQ Python library)
 ```python
-import mmap, os, struct
-
-AXI_BASE = 0x80000000   # base address from Vivado address editor
-REG_CTRL = 0x00
-REG_DATA = 0x04
-REG_STAT = 0x08
-
-with open("/dev/mem", "r+b") as f:
-    mem = mmap.mmap(f.fileno(), 0x10000,
-                    mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE,
-                    offset=AXI_BASE)
-    # Write CTRL register
-    mem[REG_CTRL:REG_CTRL+4] = struct.pack('<I', 0x00000001)
-    # Read STATUS register
-    val = struct.unpack('<I', mem[REG_STAT:REG_STAT+4])[0]
-    print(f"STATUS = 0x{val:08X}")
-    mem.close()
-# Note: /dev/mem requires sudo on Ubuntu with CONFIG_STRICT_DEVMEM=y
-# Alternative: use PYNQ library (from pynq import MMIO)
+# On board (via Jupyter notebook or SSH)
+from pynq import Overlay
+ol = Overlay("/home/xilinx/design.bit")   # loads .bit and .hwh from same dir
+# Access IP via generated driver:
+my_ip = ol.my_ip_0
+my_ip.write(0x00, 0x1)                    # write offset 0x00
+val = my_ip.read(0x08)                    # read offset 0x08
 ```
 
-## XDC constraints for Kria UltraScale+
+### ZedBoard / general Zynq (XSCT JTAG)
 ```tcl
-# PS clocks are auto-constrained by Vivado through PS8 IP + BUFG_PS
-# No create_clock needed for pl_clk0 / pl_clk1
-
-# PL logic clock from Clocking Wizard (auto-constrained if IP configured):
-# create_clock -period 2.500 -name pl_clk_400 [get_pins clk_wiz_0/clk_out1]
-
-# Async clock groups: AXI (100 MHz) vs PL logic (e.g. 400 MHz)
-set_clock_groups -asynchronous \
-    -group [get_clocks clk_pl_0] \
-    -group [get_clocks -include_generated_clocks pl_clk_400]
-
-# Kria-specific: LVCMOS18 for HPA bank (1.8V), LVCMOS33 for HDIO bank (3.3V)
-set_property IOSTANDARD LVCMOS18 [get_ports {my_io[*]}]  ;# HPA bank
-```
-
-## XSDB programming (JTAG via Vivado hardware server)
-```tcl
-# program_kr260.tcl
+# program_zynq.tcl — works for any Zynq-7000 or UltraScale+ via JTAG
 connect
+# Zynq-7000:
+targets -set -nocase -filter {name =~ "*ARM*#0"}
+fpga -file design.bit
+con
+# UltraScale+ / Kria:
 targets -set -nocase -filter {name =~ "*PSU*"}
-rst -system
-after 3000
+rst -system; after 3000
 targets -set -nocase -filter {name =~ "*A53*#0"}
-fpga /path/to/output.bit
-puts "Bitstream loaded"
+fpga design.bit
 disconnect
 ```
 ```bash
-xsdb program_kr260.tcl
-# Or from Vivado Tcl: open_hw_manager; connect_hw_server; program_hw_devices
+xsct program_zynq.tcl
+# or legacy:
+xsdb program_zynq.tcl
 ```
 
-## Common pitfalls (Kria/UltraScale+)
-- **Nuclear rebuild**: any RTL/IP change → delete `.work/vivado/` and fully rebuild.
-  Incremental builds silently ignore RTL changes. No exceptions.
-- **Never run Vivado from repo root** — logs/journals pollute `git status`.
-  Always `Push-Location .work/vivado` first.
-- **PS8 IP**: `apply_bd_automation` with `apply_board_preset 1` only works if
-  Kria board files are installed; otherwise configure PS manually.
-- **fpgautil format**: must use `.bit.bin` (from `write_cfgmem -format BIN`);
-  plain `.bit` files are NOT accepted by `fpgautil`.
-- **MMIO on Ubuntu**: `/dev/mem` requires `sudo`; use PYNQ library to avoid
-  or set `CONFIG_STRICT_DEVMEM=n` in kernel config.
-- **Clock domain crossing**: any signal crossing AXI↔PL clocks needs 2-FF
-  synchronisers; set `set_clock_groups -asynchronous` to silence false CDC errors.
-- **Kria KV260 vs KR260**: same xck26 SOM, different carrier boards;
-  KR260 adds Ethernet PHY and PCIe — pin constraints differ between the two.
-- **XPR not version-controlled**: recreate Vivado project from authoritative
-  TCL scripts (`create_project.tcl`); never commit `.xpr`, `.runs/`, `.cache/`.
+## MMIO / AXI register access from Python (bare-metal on board)
+```python
+import mmap, struct
+
+def open_mmio(base_addr, size=0x10000):
+    """Open /dev/mem region. Requires sudo on Ubuntu (CONFIG_STRICT_DEVMEM=y)."""
+    with open("/dev/mem", "r+b", 0) as f:
+        return mmap.mmap(f.fileno(), size,
+                         mmap.MAP_SHARED,
+                         mmap.PROT_READ | mmap.PROT_WRITE,
+                         offset=base_addr)
+
+def reg_write(mem, offset, value):
+    mem[offset:offset+4] = struct.pack('<I', value)
+
+def reg_read(mem, offset):
+    return struct.unpack('<I', mem[offset:offset+4])[0]
+
+# Usage:
+CTT_BASE = 0x80000000   # from Vivado address editor
+mem = open_mmio(CTT_BASE)
+reg_write(mem, 0x00, 0xAAAAAAAA)   # OBS_VEC
+violation = reg_read(mem, 0x08)   # VIOLATION flags
+mem.close()
+# Note: PYNQ Overlay.ip.write/read is preferred over /dev/mem directly.
+```
+
+## XDC timing constraints — Zynq-7000 and UltraScale+
+```tcl
+# Zynq-7000: FCLK_CLK0 is auto-constrained through PS7 IP
+# UltraScale+: pl_clk0 auto-constrained through PS8 IP
+# No create_clock needed for PS-generated clocks in block design.
+
+# PL logic clock from Clocking Wizard (only if not auto-constrained):
+# create_clock -period 10.000 -name pl_clk_100 [get_pins clk_wiz_0/clk_out1]
+
+# Async clock groups (AXI clock vs PL logic clock):
+set_clock_groups -asynchronous \
+    -group [get_clocks {clk_fpga_0 clk_pl_0}] \
+    -group [get_clocks -include_generated_clocks {pl_clk_fast}]
+
+# IO standards: Zynq-7000 HP banks = LVCMOS18; HR banks = LVCMOS33
+# UltraScale+ HPA bank = LVCMOS18; HDIO bank = LVCMOS33
+set_property IOSTANDARD LVCMOS18 [get_ports {hp_io[*]}]
+set_property IOSTANDARD LVCMOS33 [get_ports {hr_io[*]}]
+```
+
+## Common pitfalls
+- **Nuclear rebuild required** after any RTL or IP change — see `vivado` skill.
+- **Never run Vivado from repo root** — creates log/journal pollution.
+- **fpgautil format**: Kria/UltraScale+ requires `.bit.bin` from `write_cfgmem -format BIN`;
+  plain `.bit` is rejected. Zynq-7000 accepts `.bit` directly via XSCT.
+- **Board preset**: `apply_bd_automation` works only if board files are installed;
+  otherwise configure PS parameters manually.
+- **Hardware handoff**: PYNQ requires both `.bit` AND `.hwh` files in the same directory.
+  `.xsa` is for Vitis; PYNQ uses `.hwh` extracted from it.
+- **Clock domain crossing**: signals crossing AXI↔PL clocks need 2-FF synchronisers.
+  Set `set_clock_groups -asynchronous` to avoid false timing violations.
+- **ZedBoard clg484 vs PYNQ-Z2 clg400**: same xc7z020 die, different packages;
+  pin constraints are NOT interchangeable.
+- **MMIO on Ubuntu**: `/dev/mem` requires `sudo` (CONFIG_STRICT_DEVMEM=y by default);
+  use PYNQ Overlay/MMIO API or set `/proc/sys/dev/mem/restricted` to 0 temporarily.
+- **XSA not version-controlled**: `.xsa` is a large binary; commit only the TCL
+  scripts needed to recreate it.
+""",
+    ),
+    # ── PYNQ (PYNQ-Z1, PYNQ-Z2) ────────────────────────────────────────────
+    SkillEntry(
+        slug="pynq",
+        name="PYNQ — PYNQ-Z1/Z2, Overlay, MMIO, GPIO, DMA, Jupyter",
+        description=(
+            "PYNQ framework on Zynq-7000 boards (PYNQ-Z1/Z2): board setup, SSH/Jupyter "
+            "access, Overlay API, MMIO/GPIO/DMA Python drivers, custom overlay "
+            "development workflow (Vivado → .bit + .hwh → deploy), and common recipes."
+        ),
+        domain=SkillDomain.HARDWARE,
+        tags=[
+            "pynq",
+            "pynq-z1",
+            "pynq-z2",
+            "zynq",
+            "zynq-7000",
+            "overlay",
+            "mmio",
+            "dma",
+            "gpio",
+            "jupyter",
+            "fpga",
+            "amd",
+            "xilinx",
+            "python",
+            "axi",
+        ],
+        project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
+        platforms=["linux"],  # PYNQ runs ON the board (ARM Linux); dev machine can be any OS
+        prerequisites=["vivado"],
+        body="""\
+# PYNQ Skill (PYNQ-Z1 / PYNQ-Z2)
+
+## Board specifications
+| | PYNQ-Z1 | PYNQ-Z2 |
+|---|---|---|
+| Part | xc7z010clg400-1 | xc7z020clg400-1 |
+| PL LUTs | 17,600 | 53,200 |
+| PS RAM | 512 MB DDR3 | 512 MB DDR3 |
+| Board files | tul.com.tw:pynq-z1:part0:1.0 | tul.com.tw:pynq-z2:part0:1.0 |
+| PYNQ image | pynq.io/board.html | pynq.io/board.html |
+
+## Board access
+```bash
+# SSH (default credentials)
+ssh xilinx@192.168.2.99  # USB RNDIS default IP
+ssh xilinx@pynq          # if hostname resolves
+# Password: xilinx  (change after first boot!)
+
+# Jupyter notebook
+# Browser: http://192.168.2.99  (password: xilinx)
+# Or port 9090 on older PYNQ images: http://pynq:9090
+
+# USB UART (PS serial console)
+# Windows: COMx at 115200 baud via Device Manager
+# Linux: /dev/ttyUSB1  (115200 8N1)
+```
+
+## PYNQ Python library — core APIs
+```python
+from pynq import Overlay, MMIO, GPIO, allocate
+from pynq.lib import AxiGPIO, DMA
+from pynq import PL  # programmable logic state
+```
+
+## Loading an overlay (.bit + .hwh)
+```python
+# Both .bit and .hwh must be in the same directory with the same base name
+# Upload to board: scp mydesign.bit mydesign.hwh xilinx@pynq:/home/xilinx/
+from pynq import Overlay
+ol = Overlay('/home/xilinx/mydesign.bit')
+
+# List discovered IP blocks (from .hwh):
+print(ol.ip_dict.keys())
+# e.g. dict_keys(['my_ip_0', 'axi_gpio_0', 'axi_dma_0'])
+
+# Access generated driver (if IP has a known driver):
+my_ip = ol.my_ip_0
+my_ip.write(0x00, 1)   # write register at offset 0x00
+val = my_ip.read(0x04)  # read register at offset 0x04
+```
+
+## MMIO — direct AXI register access
+```python
+from pynq import MMIO
+
+# Base address from Vivado address editor
+mmio = MMIO(0x43C00000, 0x10000)   # base, length
+mmio.write(0x00, 0xDEADBEEF)       # write word at offset
+val = mmio.read(0x04)              # read word
+print(f"0x{val:08X}")
+
+# Array write/read:
+mmio.write(0x00, bytearray([0x01, 0x02, 0x03, 0x04]))
+buf = mmio.read(0x00, 4)           # read 4 bytes
+```
+
+## GPIO — AXI GPIO IP
+```python
+from pynq.lib import AxiGPIO
+
+# Instantiate from overlay (channel 1 = output, channel 2 = input)
+leds = AxiGPIO(ol.ip_dict['axi_gpio_leds']).channel1
+buts = AxiGPIO(ol.ip_dict['axi_gpio_btns']).channel2
+
+# Control
+leds.write(0xF, 0xF)   # mask, value: turn on all 4 LEDs
+but_val = buts.read()  # read button state
+```
+
+## DMA — AXI DMA (streaming data)
+```python
+from pynq import allocate
+from pynq.lib import DMA
+import numpy as np
+
+dma = DMA(ol.axi_dma_0)
+
+# Allocate contiguous physical memory buffers
+tx_buf = allocate(shape=(1024,), dtype=np.uint32)
+rx_buf = allocate(shape=(1024,), dtype=np.uint32)
+
+# Populate TX buffer
+tx_buf[:] = np.arange(1024, dtype=np.uint32)
+
+# Transfer
+dma.sendchannel.transfer(tx_buf)
+dma.recvchannel.transfer(rx_buf)
+dma.sendchannel.wait()
+dma.recvchannel.wait()
+
+print(rx_buf[:10])   # inspect received data
+
+# Free buffers when done
+tx_buf.freebuffer()
+rx_buf.freebuffer()
+```
+
+## Clocks — setting PL clock from Python
+```python
+from pynq import Clocks
+
+print(Clocks.fclk0_mhz)          # read current FCLK0 in MHz
+Clocks.fclk0_mhz = 100.0         # set FCLK0 to 100 MHz
+Clocks.fclk1_mhz = 200.0         # set FCLK1
+```
+
+## Custom overlay development workflow
+```
+1. In Vivado: create block design with PS7 + your IP
+   - Enable AXI GP0 (or HP0 for DMA)
+   - Set FCLK_CLK0 to target frequency
+   - Add and connect IP blocks
+   - Validate and generate bitstream
+
+2. Export:
+   write_hw_platform -fixed -include_bit -force -file mydesign.xsa
+   # Extract from .xsa:
+   # unzip mydesign.xsa -d xsa_contents
+   # find xsa_contents -name "*.hwh"  → copy to mydesign.hwh
+
+3. Deploy to board:
+   scp mydesign.bit mydesign.hwh xilinx@pynq:/home/xilinx/
+
+4. Load in Python / Jupyter:
+   from pynq import Overlay
+   ol = Overlay('/home/xilinx/mydesign.bit')
+
+5. Access IP via ol.<ip_name>.read/write(offset, value)
+```
+
+## Jupyter notebook tips
+```python
+# Run Python directly on the board from your browser:
+# 1. Navigate to http://pynq (or http://192.168.2.99)
+# 2. Upload .bit and .hwh via the Jupyter file browser
+# 3. Create new notebook in /home/xilinx/jupyter_notebooks/
+
+# Plot signals inline:
+import matplotlib.pyplot as plt
+%matplotlib inline
+plt.plot(np.array(rx_buf))
+plt.title('DMA received data')
+plt.show()
+
+# Time measurements:
+import time
+start = time.time()
+# ... operation ...
+elapsed = time.time() - start
+print(f"{elapsed*1e6:.1f} us")
+```
+
+## Common pitfalls
+- **Both .bit AND .hwh required**: `Overlay()` reads hardware description from .hwh;
+  if missing you get `FileNotFoundError` or an overlay with no IP drivers.
+- **IP base address mismatch**: PYNQ uses the address from .hwh; if you re-run impl
+  and the address changes, re-export .hwh and redeploy.
+- **USB RNDIS IP**: Windows requires installing the RNDIS/CDC-ECM gadget driver
+  (Device Manager → Update Driver → linux.org RNDIS).
+- **PYNQ version**: PYNQ 3.x (Ubuntu 22.04 base) differs from PYNQ 2.x in some
+  driver APIs; check pynq.readthedocs.io for your image version.
+- **FCLK and DMA**: if your IP uses AXI HP port for DMA, enable HP0/HP1 in PS7 config
+  and use `allocate()` (not numpy arrays) to ensure physically contiguous buffers.
+- **PYNQ-Z1 vs PYNQ-Z2**: Z1 has a smaller xc7z010 (17.6k LUTs); many
+  block-design IPs don't fit. Use xc7z020 (PYNQ-Z2) for anything beyond trivial.
+- **Default password**: change `xilinx` password immediately on any network-exposed board.
+- **Board file install**: `tul.com.tw:pynq-z2:part0:1.0` may need manual download
+  from pynq.io if not in Vivado's board store.
 """,
     ),
     # ── Intel Quartus Prime ───────────────────────────────────────────────────
