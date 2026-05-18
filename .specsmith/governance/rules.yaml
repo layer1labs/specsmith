@@ -129,3 +129,31 @@ rules:
     category: ci_cd
     oea_control: infrastructure_validity
     description: CI must run on Linux/macOS AND Windows. Green on a single platform alone is not cross-platform coverage.
+
+  # Documentation-first lifecycle rules
+
+  - id: H23
+    name: Documentation Lifecycle Gate
+    category: documentation
+    description: >
+      Work is not done until architecture, requirements, tests, AND docs are updated together
+      in the same work cycle. The required lifecycle order is arch -> req -> tests -> docs.
+      Skipping any stage requires an explicit written justification in the ledger entry.
+      Bare minimum documentation is always required; depth scales with feature size.
+    enforcement:
+      - rule: arch-change implies docs/ARCHITECTURE.md update
+      - rule: new requirement implies docs/REQUIREMENTS.md update
+      - rule: new feature implies docs/site/ page or section update
+      - rule: CI gate via specsmith sync --check on every push
+
+  - id: H24
+    name: Skills Documentation Required
+    category: documentation
+    description: >
+      Every new specsmith skill (slug) MUST appear in docs/site/skills-index.md within
+      the same commit that introduces the skill. The skills index is the canonical listing
+      of all built-in skills and is regenerated from the skill registry. A missing entry
+      is a governance violation and blocks the docs CI check.
+    enforcement:
+      - rule: skills-index.md must list every slug in SKILLS registry
+      - rule: validate-strict CI step checks for skills-index freshness

@@ -54,6 +54,7 @@ class SkillDomain(str, Enum):
     CROSS_PLATFORM = "cross-platform"
     PRODUCTIVITY = "productivity"
     CORPORATE = "corporate"
+    DOCS = "docs"  # documentation systems — H23/H24
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +115,7 @@ def _build_catalog() -> list[SkillEntry]:
         corporate,
         cross_platform,
         devops,
+        docs,
         embedded,
         governance,
         hardware,
@@ -133,6 +135,7 @@ def _build_catalog() -> list[SkillEntry]:
         + cross_platform.SKILLS
         + productivity.SKILLS
         + corporate.SKILLS
+        + docs.SKILLS
     )
 
 

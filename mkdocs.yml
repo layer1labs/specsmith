@@ -44,6 +44,7 @@ nav:
   - Kairos Terminal:
     - Overview & Install: kairos-terminal.md
     - Multi-Agent Dispatch: dispatch.md
+  - Skills Index: skills-index.md
   - Project Types: project-types.md
   - Tool Registry: tool-registry.md
   - Importing Projects: importing.md

@@ -79,8 +79,9 @@ jobs:
           gh release create latest-dev dist/* \
             --title "Latest dev build (${DEV_VERSION})" \
             --notes "Rolling dev pre-release built from the develop branch." \
-            --prerelease \
-            --no-latest
+            --prerelease
+          # --prerelease already prevents GitHub from marking this as the default
+          # 'latest' release — no extra flag needed.
 
   docs-build:
     needs: build-and-publish
