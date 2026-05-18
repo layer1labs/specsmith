@@ -8830,7 +8830,9 @@ def eval_run_cmd(suite_id: str, as_json: bool, use_real: bool, project_dir: str)
         raise SystemExit(1)
 
     mode_label = "[cyan]real[/cyan]" if use_real else "[dim]stub[/dim]"
-    console.print(f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n")
+    console.print(
+        f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n"
+    )
 
     report = run_suite(suite, stub=not use_real)
 

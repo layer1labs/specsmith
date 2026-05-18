@@ -224,7 +224,7 @@ Project → Make Project Available Online → push to Altium 365
 |----------|-----------|-------|
 | Windows 10/11 | ✅ Yes | Primary; vivado.bat; PowerShell or cmd |
 | Linux (Ubuntu 20.04/22.04, RHEL 8) | ✅ Yes | Full support; vivado script |
-| macOS | ❌ No | Vivado does NOT run on macOS. Use a Linux VM (UTM, Parallels, VMware Fusion) or a remote Linux machine. |
+| macOS | ❌ No | Vivado does NOT run on macOS. Use a Linux VM (UTM/Parallels/Fusion) or remote Linux. |
 
 ## Installation and tool detection
 ### Windows

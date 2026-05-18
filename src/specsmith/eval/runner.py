@@ -57,7 +57,7 @@ def run_case_real(case: EvalCase, *, provider: str = "ollama") -> EvalResult:
         # don't crash with AttributeError when stream=None.
         emitter = EventEmitter(stream=io.StringIO())
         result = run_chat(
-            case.input,
+            case.prompt,
             project_dir=project_dir,
             profile="standard",
             session_id=f"eval-{case.id}",
