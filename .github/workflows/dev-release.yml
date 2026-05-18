@@ -64,7 +64,8 @@ jobs:
 
       - name: Publish dev release to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        continue-on-error: true  # version already exists on PyPI is not a failure
+        with:
+          skip_existing: true  # gracefully skip if this exact version is already on PyPI
 
       # Create/update a rolling GitHub pre-release so users can track dev builds.
       # NOTE: when the first official stable release ships, remove this step and
