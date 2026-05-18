@@ -2462,6 +2462,167 @@ def push_cmd(project_dir: str, force: bool) -> None:
         console.print(f"[red]\u2717[/red] {result.message}")
 
 
+@main.command(name="save")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--message", "-m", default="", help="Commit message override.")
+@click.option(
+    "--no-push",
+    is_flag=True,
+    default=False,
+    help="Commit only; skip push.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def save_cmd(project_dir: str, message: str, no_push: bool, as_json: bool) -> None:
+    """Save governance state: ESDB backup, commit, and push.
+
+    Combines ``specsmith esdb backup`` + ``specsmith commit`` + ``specsmith push``
+    into a single governance-aware save command.  Use ``--no-push`` to stay local.
+    """
+    import json as _json
+
+    from specsmith.esdb.bridge import EsdbBridge
+    from specsmith.vcs_commands import has_uncommitted_changes, run_commit, run_push
+
+    root = Path(project_dir).resolve()
+    steps: list[dict[str, Any]] = []
+
+    # 1. ESDB backup
+    try:
+        bridge = EsdbBridge(str(root))
+        store = bridge._get_store()  # noqa: SLF001
+        if store is not None:
+            backup_path = store.backup()
+            steps.append({"step": "esdb_backup", "ok": True, "path": str(backup_path)})
+        else:
+            steps.append(
+                {"step": "esdb_backup", "ok": True, "note": "JSON fallback (no WAL to backup)"}
+            )
+    except Exception as exc:  # noqa: BLE001
+        steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
+
+    # 2. Commit
+    if not has_uncommitted_changes(root):
+        steps.append({"step": "commit", "ok": True, "note": "Nothing to commit"})
+    else:
+        commit_result = run_commit(root, message=message, auto_push=False)
+        steps.append(
+            {"step": "commit", "ok": commit_result.success, "message": commit_result.message}
+        )
+
+    # 3. Push
+    if not no_push:
+        push_result = run_push(root)
+        steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
+
+    ok = all(s["ok"] for s in steps)
+    result = {"ok": ok, "steps": steps}
+
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        for step in steps:
+            icon = "\u2713" if step["ok"] else "\u2717"
+            color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
+            note = step.get("message") or step.get("note") or step.get("error") or ""
+            console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
+
+    if not ok:
+        raise SystemExit(1)
+
+
+@main.command(name="load")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--from-backup",
+    "from_backup",
+    default=None,
+    type=click.Path(),
+    help="Restore ESDB WAL from a specific backup directory.",
+)
+@click.option(
+    "--pull",
+    "do_pull",
+    is_flag=True,
+    default=False,
+    help="git pull from remote before loading (default when no --from-backup).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def load_cmd(project_dir: str, from_backup: str | None, do_pull: bool, as_json: bool) -> None:
+    """Load governance state: pull from remote and/or restore ESDB from backup.
+
+    Default (no flags): pulls from the remote branch and reports ESDB status.
+    Use ``--from-backup PATH`` to restore a specific ESDB WAL backup.
+    Complement to ``specsmith save``.
+    """
+    import json as _json
+    import shutil
+
+    from specsmith.esdb.bridge import EsdbBridge
+    from specsmith.vcs_commands import run_sync
+
+    root = Path(project_dir).resolve()
+    steps: list[dict[str, Any]] = []
+
+    # 1. Git pull when explicitly requested or no backup path given.
+    if do_pull or not from_backup:
+        sync_result = run_sync(root)
+        steps.append(
+            {"step": "git_pull", "ok": sync_result.success, "message": sync_result.message}
+        )
+
+    # 2. Restore ESDB from backup if a path was supplied.
+    if from_backup:
+        backup_path = Path(from_backup).resolve()
+        esdb_dir = root / ".chronomemory"
+        if not backup_path.exists():
+            steps.append(
+                {
+                    "step": "esdb_restore",
+                    "ok": False,
+                    "error": f"Backup not found: {backup_path}",
+                }
+            )
+        else:
+            try:
+                if esdb_dir.exists():
+                    shutil.rmtree(esdb_dir)
+                shutil.copytree(str(backup_path), str(esdb_dir))
+                steps.append({"step": "esdb_restore", "ok": True, "path": str(backup_path)})
+            except Exception as exc:  # noqa: BLE001
+                steps.append({"step": "esdb_restore", "ok": False, "error": str(exc)})
+
+    # 3. Report ESDB status.
+    try:
+        bridge = EsdbBridge(str(root))
+        status = bridge.status()
+        steps.append(
+            {
+                "step": "esdb_status",
+                "ok": status.available,
+                "backend": status.backend,
+                "records": status.record_count,
+                "chain_valid": status.chain_valid,
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        steps.append({"step": "esdb_status", "ok": False, "error": str(exc)})
+
+    ok = all(s["ok"] for s in steps)
+    result: dict[str, Any] = {"ok": ok, "steps": steps}
+
+    if as_json:
+        click.echo(_json.dumps(result, indent=2))
+    else:
+        for step in steps:
+            icon = "\u2713" if step["ok"] else "\u2717"
+            color = "green" if step["ok"] else "red"
+            details = " | ".join(f"{k}={v}" for k, v in step.items() if k not in ("step", "ok"))
+            console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {details}")
+
+    if not ok:
+        raise SystemExit(1)
+
+
 @main.group(name="branch")
 def branch_group() -> None:
     """Branch management."""
@@ -10287,31 +10448,88 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
 
 @ci_group.command(name="watch")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-@click.option("--timeout", type=int, default=300, help="Max seconds to wait (default: 300).")
-@click.option("--interval", type=int, default=15, help="Poll interval in seconds (default: 15).")
-def ci_watch_cmd(project_dir: str, timeout: int, interval: int) -> None:
-    """Wait for the current CI run to complete and report result."""
+@click.option(
+    "--run-id",
+    "run_id",
+    default=None,
+    help="Specific run ID to watch (GitHub only). Defaults to latest.",
+)
+@click.option(
+    "--timeout",
+    type=int,
+    default=600,
+    help="Max seconds to wait (default: 600).",
+)
+@click.option(
+    "--interval",
+    type=int,
+    default=10,
+    help="Initial poll interval for GitLab/Bitbucket in seconds (default: 10).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def ci_watch_cmd(
+    project_dir: str, run_id: str | None, timeout: int, interval: int, as_json: bool
+) -> None:
+    """Block until the current CI run completes and report the result.
+
+    For GitHub projects, delegates to ``gh run watch --exit-status`` which
+    streams live output and exits immediately when the run finishes — no
+    polling sleep.
+
+    For GitLab / Bitbucket, polls with exponential backoff starting at
+    ``--interval`` seconds (doubles each cycle, max 60 s).
+
+    Exits 0 on success, 1 on failure or timeout.
+    """
+    import json as _json
     import sys
 
     from specsmith.ci_manager import CiManager
 
     manager = CiManager(project_dir)
-    console.print(f"[bold]Watching CI[/bold] (timeout={timeout}s, poll={interval}s) …")
+
+    if not as_json:
+        platform = manager.platform_name
+        if platform == "github":
+            console.print(f"[bold]Watching CI[/bold] via gh run watch (timeout={timeout}s) …")
+        else:
+            console.print(
+                f"[bold]Watching CI[/bold] ({platform}, poll={interval}s, timeout={timeout}s) …"
+            )
 
     def _on_event(event: dict) -> None:
+        if as_json:
+            return
         ts = event.get("timestamp", "")
         status = event.get("status", "?")
-        console.print(f"  [{ts}] {status}")
+        color = "green" if status == "success" else "red" if status == "failure" else "yellow"
+        console.print(f"  [{color}]{ts}[/{color}] {status}")
         sys.stdout.flush()
 
-    result = manager.watch(timeout=timeout, poll_interval=interval, on_event=_on_event)
+    result = manager.watch(
+        run_id=run_id, timeout=timeout, poll_interval=interval, on_event=_on_event
+    )
+
+    if as_json:
+        click.echo(_json.dumps(result.to_dict(), indent=2))
+        raise SystemExit(0 if result.ci_passing else 1)
+
+    if result.error:
+        console.print(f"[yellow]\u26a0[/yellow] {result.error}")
+        raise SystemExit(1)
+
     if result.ci_passing:
         console.print("[green]\u2714[/green] CI passed.")
+        if result.last_run_url:
+            console.print(f"  [blue]{result.last_run_url}[/blue]")
     elif result.ci_passing is False:
         console.print("[red]\u2717[/red] CI failed.")
+        if result.last_run_url:
+            console.print(f"  [blue]{result.last_run_url}[/blue]")
         raise SystemExit(1)
     else:
         console.print("[yellow]\u2014[/yellow] CI status unknown after timeout.")
+        raise SystemExit(1)
 
 
 main.add_command(ci_group)
