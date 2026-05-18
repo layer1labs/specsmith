@@ -570,24 +570,56 @@ class GovernanceHTTPServer:
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
-                elif self.path == "/api/governance/audit":
+                elif self.path in ("/api/governance/audit", "/api/audit"):
                     try:
                         from specsmith.auditor import run_audit
 
                         report = run_audit(Path(project_dir).resolve())
                         self._json_ok(
                             {
+                                "ok": True,
                                 "healthy": report.healthy,
                                 "passed": report.passed,
                                 "failed": report.failed,
+                                "fixable": report.fixable,
                                 "results": [
-                                    {"passed": r.passed, "message": r.message}
+                                    {
+                                        "name": r.name,
+                                        "passed": r.passed,
+                                        "message": r.message,
+                                    }
                                     for r in report.results
                                 ],
                             }
                         )
                     except Exception as exc:  # noqa: BLE001
-                        self._json_err(str(exc), code=500)
+                        self._json_ok({"ok": False, "error": str(exc)})
+
+                elif self.path.startswith("/api/session/context-seed"):
+                    try:
+                        from specsmith.agent.context_seed import build_context_seed
+
+                        root = Path(project_dir).resolve()
+                        seed = build_context_seed(root)
+                        self._json_ok(
+                            {
+                                "ok": True,
+                                "seed_turns": len(seed),
+                                "seed": seed,
+                                "project_dir": str(root),
+                            }
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_ok({"ok": False, "error": str(exc), "seed": []})
+
+                elif self.path == "/api/dispatch/list":
+                    try:
+                        from specsmith.agent.dispatch.events import EventEmitter
+
+                        runs = EventEmitter.list_runs(Path(project_dir))
+                        self._json_ok({"runs": runs, "count": len(runs)})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_ok({"ok": False, "error": str(exc), "runs": []})
 
                 # ── Providers ──────────────────────────────────────────
                 elif self.path == "/api/providers":
@@ -778,6 +810,20 @@ class GovernanceHTTPServer:
                         self._json_ok(result)
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
+                elif self.path == "/api/session/clear":
+                    try:
+                        root = Path(project_dir).resolve()
+                        specsmith_dir = root / ".specsmith"
+                        removed = []
+                        for fname in ("session-state.json", "conversation-history.jsonl"):
+                            p = specsmith_dir / fname
+                            if p.exists():
+                                p.unlink()
+                                removed.append(fname)
+                        self._json_ok({"ok": True, "removed": removed})
+                    except Exception as exc:  # noqa: BLE001
+                        self._json_ok({"ok": False, "error": str(exc)})
+
                 elif self.path == "/api/model-intel/sync":
                     try:
                         from specsmith.agent.hf_leaderboard import (  # noqa: PLC0415
@@ -839,12 +885,18 @@ class GovernanceHTTPServer:
             f"specsmith governance-serve — http://{self.host}:{self.port}\n"
             f"  Project:   {self.project_dir}\n"
             f"  Governance endpoints:\n"
-            f"    GET  /health                  liveness probe\n"
-            f"    POST /preflight               governance gate\n"
-            f"    POST /verify                  post-change verification\n"
+            f"    GET  /health                         liveness probe\n"
+            f"    POST /preflight                      governance gate\n"
+            f"    POST /verify                         post-change verification\n"
+            f"  Extended endpoints (used by Kairos UI):\n"
+            f"    GET  /api/audit                      governance audit status\n"
+            f"    GET  /api/session/context-seed       epistemic context seed\n"
+            f"    POST /api/session/clear              wipe session state\n"
+            f"    GET  /api/dispatch/list              DAG run IDs\n"
+            f"    GET  /api/compliance/summary         compliance summary\n"
+            f"    GET  /api/esdb/status                ESDB status\n"
             f"  Kairos BYOE gateway:\n"
-            f"    POST /v1/chat/completions     OpenAI-compatible proxy\n"
-            f"      Gate: preflight → forward to KAIROS_AI_BASE_URL → verify\n"
+            f"    POST /v1/chat/completions            OpenAI-compatible proxy\n"
             f"  Press Ctrl+C to stop.\n",
             file=sys.stderr,
         )

@@ -41,7 +41,9 @@ nav:
   - Agentic Client:
     - Overview: agent-client.md
     - Agent Integrations: agent-integrations.md
-    - Kairos Client: dispatch.md
+  - Kairos Terminal:
+    - Overview & Install: kairos-terminal.md
+    - Multi-Agent Dispatch: dispatch.md
   - Project Types: project-types.md
   - Tool Registry: tool-registry.md
   - Importing Projects: importing.md

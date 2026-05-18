@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import io
 import time
 
 from specsmith.eval import EvalCase, EvalReport, EvalResult, EvalSuite
@@ -15,9 +16,7 @@ def _provider_available() -> str | None:
     try:
         import urllib.request
 
-        req = urllib.request.Request(
-            "http://127.0.0.1:11434/api/tags", method="GET"
-        )
+        req = urllib.request.Request("http://127.0.0.1:11434/api/tags", method="GET")
         with urllib.request.urlopen(req, timeout=1):
             pass
         return "ollama"
@@ -52,9 +51,11 @@ def run_case_real(case: EvalCase, *, provider: str = "ollama") -> EvalResult:
         from specsmith.agent.events import EventEmitter
 
         project_dir = Path(os.environ.get("SPECSMITH_EVAL_PROJECT", ".")).resolve()
-        emitter = EventEmitter(stream=None)  # type: ignore[arg-type]
+        # Use an in-memory sink so event writes don't go to stdout and
+        # don't crash with AttributeError when stream=None.
+        emitter = EventEmitter(stream=io.StringIO())
         result = run_chat(
-            case.input,
+            case.prompt,
             project_dir=project_dir,
             profile="standard",
             session_id=f"eval-{case.id}",
@@ -198,4 +199,10 @@ def generate_markdown_report(report: EvalReport) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["generate_markdown_report", "run_case_stub", "run_suite", "score_output"]
+__all__ = [
+    "generate_markdown_report",
+    "run_case_real",
+    "run_case_stub",
+    "run_suite",
+    "score_output",
+]

@@ -13,6 +13,7 @@ Endpoints:
     GET  /api/status        — session state JSON
     POST /api/stop          — stop the current turn
     GET  /api/health        — liveness probe
+    GET  /api/audit         — governance audit health status
 
 Launch:
     specsmith serve --port 8421 --project-dir .
