@@ -295,6 +295,227 @@ vivado -mode tcl   # interactive Tcl shell
 - Timing path → "Path not covered": check set_false_path and clock groups.
 - IP version mismatch after Vivado upgrade: Project → Report IP Status → Upgrade All.
 - License: Vivado ML Standard is free for smaller devices; larger ones need purchased license.
+
+## Nuclear rebuild rule (CRITICAL — UltraScale+/Zynq)
+After ANY edit to RTL sources or IP files, delete the entire Vivado project
+and rebuild from scratch. Incremental rebuild silently uses stale cached
+netlists and produces bitstreams that do NOT contain your code changes.
+```powershell
+# Step 1: Delete ALL Vivado work products
+Remove-Item -Recurse -Force .work\vivado -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path .work\vivado | Out-Null
+
+# Step 2: Recreate from TCL
+Push-Location .work\vivado
+& $vivado -mode batch -source ..\..\hardware\scripts\create_project.tcl
+& $vivado -mode batch -source ..\..\hardware\scripts\build_bitstream.tcl
+Pop-Location
+```
+This rule has NO exceptions — not for "quick tests", not for IP-only changes.
+Silent netlist staleness is the #1 source of "my code changes aren't in hardware" bugs.
+
+## Working directory discipline (CRITICAL)
+Always invoke Vivado from a dedicated work directory, NEVER from the repo root.
+Running `vivado -mode batch -source ...` from the repo root creates
+`vivado.log`, `vivado.jou`, `.Xil/`, `webtalk/` at the repo root — polluting git.
+```powershell
+# CORRECT: run from .work/vivado/
+Push-Location .work\vivado
+& $vivado -mode batch -source ..\..\hardware\scripts\build.tcl
+Pop-Location
+
+# WRONG: never do this
+vivado -mode batch -source hardware\scripts\build.tcl  # pollutes repo root
+```
+Add to .gitignore: `.work/`, `vivado.log`, `vivado.jou`, `.Xil/`, `*.xpr`, `*.runs/`.
+
+## Vivado detection (Windows PowerShell)
+```powershell
+# Standard Xilinx install path
+$vivado = (Get-ChildItem "C:\\Xilinx\\Vivado" -Directory |
+           Sort-Object Name -Descending |
+           Select-Object -First 1).FullName + "\\bin\\vivado.bat"
+# AMD 2025+ installer path
+if (-not (Test-Path $vivado)) {
+    $vivado = (Get-ChildItem "C:\\AMDDesignTools" -Recurse -Filter "vivado.bat" |
+               Select-Object -First 1).FullName
+}
+# Also check: $env:XILINX_VIVADO\\bin\\vivado.bat
+```
+""",
+    ),
+    # ── AMD/Xilinx Vivado — Kria/Zynq UltraScale+ deployment ────────────────
+    SkillEntry(
+        slug="vivado-kria-zynq",
+        name="Vivado — Kria KV260/KR260 & Zynq UltraScale+ deployment",
+        description=(
+            "Kria SOM and Zynq UltraScale+ specific workflow: PS+PL block design, "
+            "AXI4-Lite register maps, fpgautil bitstream loading, MMIO Python access, "
+            "nuclear rebuild rule, and working directory discipline."
+        ),
+        domain=SkillDomain.HARDWARE,
+        tags=[
+            "vivado",
+            "kria",
+            "kv260",
+            "kr260",
+            "zynq",
+            "ultrascale",
+            "mpsoc",
+            "xck26",
+            "axi",
+            "fpgautil",
+            "fpga",
+            "amd",
+            "xilinx",
+            "ps-pl",
+            "mmio",
+        ],
+        project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
+        platforms=["windows", "linux"],
+        prerequisites=["vivado"],
+        body="""\
+# Vivado — Kria KV260/KR260 & Zynq UltraScale+ Skill
+
+## Target hardware quick reference
+| Board | SOM part | PL | PS clk | Tool |
+|-------|----------|----|--------|------|
+| Kria KV260 | xck26-sfvc784-1-e | UltraScale+ | 100 MHz (pl_clk0) | Vivado 2022.1+ |
+| Kria KR260 | xck26-sfvc784-2LV-c | UltraScale+ | 100 MHz (pl_clk0) | Vivado 2022.1+ |
+| ZCU106 | xczu7ev-ffvc1156 | UltraScale+ | 300 MHz | Vivado 2022.1+ |
+
+## Block design PS configuration (Tcl)
+```tcl
+create_bd_design "system"
+create_bd_cell -type ip -vlnv xilinx.com:ip:zynq_ultra_ps_e:3.4 ps
+# Apply Kria board preset (if board files installed)
+apply_bd_automation -rule xilinx.com:bd_rule:zynq_ultra_ps_e \
+    -config {apply_board_preset 1} [get_bd_cells ps]
+# Enable pl_clk0 (100 MHz) + pl_clk1 (for PLL input)
+set_property -dict [list \
+    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {100} \
+    CONFIG.PSU__CRL_APB__PL1_REF_CTRL__FREQMHZ {100} \
+    CONFIG.PSU__USE__M_AXI_GP0 {1} \
+] [get_bd_cells ps]
+# Add Clocking Wizard: pl_clk1 100 MHz → 400 MHz PL logic clock
+create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz
+set_property -dict [list \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {400} \
+] [get_bd_cells clk_wiz]
+```
+
+## AXI4-Lite slave register map pattern
+```tcl
+# Add AXI SmartConnect (PS GP0 → custom IP)
+create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 sc
+set_property CONFIG.NUM_SI {1} [get_bd_cells sc]
+# Connect PS AXI master → SmartConnect → custom IP
+connect_bd_intf_net [get_bd_intf_pins ps/M_AXI_HPM0_FPD] \
+    [get_bd_intf_pins sc/S00_AXI]
+# Assign address: base=0x8000_0000, range=64K
+assign_bd_address [get_bd_addr_segs {my_ip/s_axi/reg0}]
+set_property offset 0x80000000 [get_bd_addr_segs {ps/Data/SEG_my_ip_reg0}]
+set_property range 64K         [get_bd_addr_segs {ps/Data/SEG_my_ip_reg0}]
+```
+
+## Bitstream generation and fpgautil loading
+```tcl
+# Tcl: generate .bit and .bit.bin
+launch_runs impl_1 -to_step write_bitstream -jobs 8
+wait_on_run impl_1
+# Convert to fpgautil format
+set bit [glob [file join $impl_dir *.bit]]
+write_cfgmem -force -format BIN -interface SMAPx32 \
+    -disablebitswap -loadbit "up 0x0 $bit" output.bit.bin
+```
+```powershell
+# PowerShell: transfer and load on Kria
+scp output.bit.bin ubuntu@kria:/tmp/
+ssh ubuntu@kria "sudo fpgautil -b /tmp/output.bit.bin"
+ssh ubuntu@kria "sudo fpgautil -s"    # verify status
+```
+```bash
+# On Kria: alternative loading via sysfs
+sudo cp output.bit.bin /lib/firmware/mydesign.bit.bin
+echo "mydesign.bit.bin" | sudo tee /sys/class/fpga_manager/fpga0/firmware
+# Install fpgautil if missing:
+sudo apt install fpga-manager-util
+```
+
+## MMIO / AXI register access from Python (on Kria PS)
+```python
+import mmap, os, struct
+
+AXI_BASE = 0x80000000   # base address from Vivado address editor
+REG_CTRL = 0x00
+REG_DATA = 0x04
+REG_STAT = 0x08
+
+with open("/dev/mem", "r+b") as f:
+    mem = mmap.mmap(f.fileno(), 0x10000,
+                    mmap.MAP_SHARED, mmap.PROT_READ | mmap.PROT_WRITE,
+                    offset=AXI_BASE)
+    # Write CTRL register
+    mem[REG_CTRL:REG_CTRL+4] = struct.pack('<I', 0x00000001)
+    # Read STATUS register
+    val = struct.unpack('<I', mem[REG_STAT:REG_STAT+4])[0]
+    print(f"STATUS = 0x{val:08X}")
+    mem.close()
+# Note: /dev/mem requires sudo on Ubuntu with CONFIG_STRICT_DEVMEM=y
+# Alternative: use PYNQ library (from pynq import MMIO)
+```
+
+## XDC constraints for Kria UltraScale+
+```tcl
+# PS clocks are auto-constrained by Vivado through PS8 IP + BUFG_PS
+# No create_clock needed for pl_clk0 / pl_clk1
+
+# PL logic clock from Clocking Wizard (auto-constrained if IP configured):
+# create_clock -period 2.500 -name pl_clk_400 [get_pins clk_wiz_0/clk_out1]
+
+# Async clock groups: AXI (100 MHz) vs PL logic (e.g. 400 MHz)
+set_clock_groups -asynchronous \
+    -group [get_clocks clk_pl_0] \
+    -group [get_clocks -include_generated_clocks pl_clk_400]
+
+# Kria-specific: LVCMOS18 for HPA bank (1.8V), LVCMOS33 for HDIO bank (3.3V)
+set_property IOSTANDARD LVCMOS18 [get_ports {my_io[*]}]  ;# HPA bank
+```
+
+## XSDB programming (JTAG via Vivado hardware server)
+```tcl
+# program_kr260.tcl
+connect
+targets -set -nocase -filter {name =~ "*PSU*"}
+rst -system
+after 3000
+targets -set -nocase -filter {name =~ "*A53*#0"}
+fpga /path/to/output.bit
+puts "Bitstream loaded"
+disconnect
+```
+```bash
+xsdb program_kr260.tcl
+# Or from Vivado Tcl: open_hw_manager; connect_hw_server; program_hw_devices
+```
+
+## Common pitfalls (Kria/UltraScale+)
+- **Nuclear rebuild**: any RTL/IP change → delete `.work/vivado/` and fully rebuild.
+  Incremental builds silently ignore RTL changes. No exceptions.
+- **Never run Vivado from repo root** — logs/journals pollute `git status`.
+  Always `Push-Location .work/vivado` first.
+- **PS8 IP**: `apply_bd_automation` with `apply_board_preset 1` only works if
+  Kria board files are installed; otherwise configure PS manually.
+- **fpgautil format**: must use `.bit.bin` (from `write_cfgmem -format BIN`);
+  plain `.bit` files are NOT accepted by `fpgautil`.
+- **MMIO on Ubuntu**: `/dev/mem` requires `sudo`; use PYNQ library to avoid
+  or set `CONFIG_STRICT_DEVMEM=n` in kernel config.
+- **Clock domain crossing**: any signal crossing AXI↔PL clocks needs 2-FF
+  synchronisers; set `set_clock_groups -asynchronous` to silence false CDC errors.
+- **Kria KV260 vs KR260**: same xck26 SOM, different carrier boards;
+  KR260 adds Ethernet PHY and PCIe — pin constraints differ between the two.
+- **XPR not version-controlled**: recreate Vivado project from authoritative
+  TCL scripts (`create_project.tcl`); never commit `.xpr`, `.runs/`, `.cache/`.
 """,
     ),
     # ── Intel Quartus Prime ───────────────────────────────────────────────────
