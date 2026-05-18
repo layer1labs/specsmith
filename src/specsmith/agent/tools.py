@@ -347,6 +347,23 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
             func=run_vsg,
             epistemic_claims=["modifies VHDL source files in-place when fix=True"],
         ),
+        # ── Specsmith governance tool ────────────────────────────────────────
+        ToolSpec(
+            name="specsmith_run",
+            description=(
+                "Run any specsmith CLI command. Accepts slash-command form "
+                "('/specsmith save'), single-word verb shortcuts ('save', 'push', "
+                "'pull', 'load', 'sync', 'audit', 'status', 'watch', 'commit', "
+                "'validate', 'doctor', 'run'), or the full 'specsmith <args>' form. "
+                "Use this for all specsmith governance operations."
+            ),
+            func=specsmith_run,
+            epistemic_claims=[
+                "invokes specsmith CLI; may write to .specsmith/ and .chronomemory/",
+                "save/push/commit modify git history",
+                "load/pull may overwrite local governance state",
+            ],
+        ),
     ]
 
 
@@ -579,6 +596,72 @@ def run_vsg(
     return run_shell(cmd, cwd=cwd)
 
 
+# ---------------------------------------------------------------------------
+# specsmith_run — slash-command and verb shortcut routing
+# ---------------------------------------------------------------------------
+
+#: Single-word verb shortcuts that expand to their full `specsmith <verb>` form.
+_SPECSMITH_VERB_SHORTCUTS: frozenset[str] = frozenset(
+    [
+        "audit",
+        "commit",
+        "doctor",
+        "load",
+        "pull",
+        "push",
+        "run",
+        "save",
+        "status",
+        "sync",
+        "validate",
+        "watch",
+    ]
+)
+
+
+@validate_json_args
+def specsmith_run(
+    command: str,
+    cwd: str | None = None,
+    timeout: int = 120,
+) -> str:
+    """Run a specsmith CLI command with /specsmith prefix or verb shortcut support.
+
+    Accepts three input forms:
+      1. Slash prefix:  ``/specsmith save`` or ``/specsmith audit --strict``
+      2. Verb shortcut: ``save``, ``push``, ``pull``, etc.
+      3. Passthrough:   ``specsmith <anything>`` or any other full command
+
+    All forms are normalised to ``specsmith <args>`` and executed as a
+    subprocess so that agents can invoke governance commands uniformly.
+
+    Examples::
+
+        specsmith_run("/specsmith save")
+        specsmith_run("save")
+        specsmith_run("/specsmith audit --strict")
+        specsmith_run("specsmith status")
+    """
+    cmd = command.strip()
+
+    # Strip leading /specsmith prefix (slash-command form)
+    if cmd.startswith("/specsmith"):
+        cmd = cmd[len("/specsmith") :].strip()
+
+    # Strip leading 'specsmith ' if caller passed the full binary name
+    if cmd.startswith("specsmith "):
+        cmd = cmd[len("specsmith ") :].strip()
+
+    # Single-word verb shortcuts expand to their full command
+    first_word = cmd.split()[0] if cmd else ""
+    if first_word in _SPECSMITH_VERB_SHORTCUTS and not cmd.startswith("specsmith"):
+        # Already stripped to just the verb + optional args — wrap with binary
+        pass  # cmd is correct as-is; we prepend below
+
+    full_command = f"specsmith {cmd}" if cmd else "specsmith --help"
+    return run_shell(full_command, cwd=cwd, timeout=timeout)
+
+
 # Expose available tools as a list for AG2 tool registration
 AVAILABLE_TOOLS = [
     run_shell,
@@ -605,4 +688,6 @@ AVAILABLE_TOOLS = [
     run_clang_format,
     run_clang_tidy,
     run_vsg,
+    # Governance routing
+    specsmith_run,
 ]
