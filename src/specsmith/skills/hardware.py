@@ -200,6 +200,8 @@ Project → Make Project Available Online → push to Altium 365
             "amd",
             "xilinx",
             "verilog",
+            "systemverilog",
+            "sv",
             "vhdl",
             "timing",
             "bitstream",
@@ -274,6 +276,38 @@ Related AMD tools (separate installers)
 └── XSDB (older, still supported)   — same as XSCT, pre-Vitis name
 ```
 
+## HDL — Verilog vs VHDL
+
+Vivado supports Verilog (.v), SystemVerilog (.sv), and VHDL (.vhd/.vhdl).
+Most teams commit to **one** HDL for their own RTL; the other language appears
+only when vendor IP, third-party cores, or legacy modules arrive in it.
+
+| | Verilog / SystemVerilog | VHDL |
+|---|---|---|
+| Syntax | C-like; SV adds interfaces, packages, assertions | Ada-like; strong typing; verbose |
+| Common in | Open-source, US startups, new ASIC work | European, defence, automotive, legacy |
+| Vivado tool | `xvlog` (.v) / `xvlog -sv` (.sv) | `xvhdl` (.vhd / .vhdl) |
+| Mixed synthesis | Fully supported — file extension selects compiler | |
+
+### add_files patterns
+```tcl
+# Verilog / SystemVerilog project (common choice for new designs)
+add_files -fileset sources_1 \
+    [glob [file join $repo_root src hdl *.v *.sv]]
+
+# VHDL project
+add_files -fileset sources_1 \
+    [glob [file join $repo_root src hdl *.vhd *.vhdl]]
+
+# Mixed: own RTL in Verilog/SV + vendor/IP cores in VHDL (or vice versa).
+# Add each language set separately — Vivado picks the right compiler per file:
+add_files -fileset sources_1 \
+    [glob [file join $repo_root src hdl *.v *.sv]]
+add_files -fileset sources_1 \
+    [glob [file join $repo_root src hdl *.vhd *.vhdl]]
+# No extra configuration; elaboration order is resolved automatically.
+```
+
 ## Common proven FPGA targets
 | Board | Part number | Fabric | License | Board files source |
 |-------|-------------|--------|---------|--------------------|
@@ -312,7 +346,9 @@ set repo_root [file normalize [file join [file dirname [info script]] .. ..]]
 create_project myproj [file join $repo_root .work vivado myproj] \
     -part xc7a35tcpg236-1
 set_property board_part digilentinc.com:arty-a7-35:part0:1.1 [current_project]
-add_files -fileset sources_1 [glob [file join $repo_root src hdl *.v]]
+# Add RTL sources — glob *.v *.sv for Verilog/SV, or *.vhd *.vhdl for VHDL;
+# use both globs for a mixed-language project:
+add_files -fileset sources_1 [glob [file join $repo_root src hdl *.v *.sv]]
 add_files -fileset constrs_1 [file join $repo_root src xdc constraints.xdc]
 set_property top my_top [current_fileset]
 
@@ -375,13 +411,17 @@ apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
 # Validate, generate wrapper
 validate_bd_design
 make_wrapper -files [get_files system.bd] -top
-add_files -norecurse [glob .work/vivado/myproj/*.gen/sources_1/bd/system/hdl/*wrapper.v]
+# Wrapper is Verilog by default; change *.v to *.vhd for VHDL-default projects:
+add_files -norecurse \
+    [glob .work/vivado/myproj/*.gen/sources_1/bd/system/hdl/*wrapper.v]
 ```
 
 ## ILA (on-chip logic analyser)
 ```tcl
-# Mark nets for debug in RTL (Verilog)
-# (* mark_debug = "true" *) wire [7:0] my_signal;
+# Mark nets for debug in RTL (any HDL):
+# Verilog/SV: (* mark_debug = "true" *) wire [7:0] my_signal;
+# VHDL:       attribute mark_debug : string;
+#             attribute mark_debug of my_signal : signal is "true";
 
 # Or post-synthesis in Tcl:
 set_property mark_debug true [get_nets {my_signal[*]}]
@@ -396,8 +436,17 @@ write_debug_probes -quiet probes.ltx
 
 ## Vivado Simulator (xsim)
 ```bash
-# Compile and simulate Verilog
+# Compile Verilog / SystemVerilog:
 xvlog src/hdl/my_module.v src/hdl/tb_my_module.v
+# Or SystemVerilog (add -sv flag):
+# xvlog -sv src/hdl/my_module.sv src/hdl/tb_my_module.sv
+
+# Compile VHDL (xvhdl instead of xvlog):
+# xvhdl src/hdl/my_module.vhd src/hdl/tb_my_module.vhd
+
+# Mixed: run both xvlog and xvhdl, then elab/sim as normal.
+
+# Elaborate and simulate (same regardless of HDL):
 xelab tb_my_module -snapshot tb_snap --debug typical
 xsim tb_snap --runall --log sim.log
 # Or from Vivado GUI: Flow → Run Simulation → Run Behavioral Simulation
@@ -542,6 +591,9 @@ webtalk/
             "amd",
             "xilinx",
             "vitis",
+            "verilog",
+            "systemverilog",
+            "vhdl",
         ],
         project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
         platforms=["windows", "linux"],
@@ -593,6 +645,13 @@ set_property -dict [list \
 create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz
 set_property CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {400} [get_bd_cells clk_wiz]
 ```
+
+## PL custom IP — HDL language choice
+Custom AXI peripherals and PL logic can be written in Verilog/SystemVerilog or
+VHDL. Pick one for your own code; Vivado's IP Integrator generates its own
+wrappers (usually Verilog by default). Mixed-language projects work fine:
+add both `.v/.sv` and `.vhd` source sets and Vivado resolves elaboration.
+See the `vivado` skill's **HDL — Verilog vs VHDL** section for add_files patterns.
 
 ## AXI4-Lite slave — SmartConnect wiring and address assignment
 ```tcl
@@ -777,6 +836,8 @@ set_property IOSTANDARD LVCMOS33 [get_ports {hr_io[*]}]
             "xilinx",
             "python",
             "axi",
+            "verilog",
+            "vhdl",
         ],
         project_types=["fpga-rtl-amd", "fpga-rtl", "mixed-fpga-embedded"],
         platforms=["linux"],  # PYNQ runs ON the board (ARM Linux); dev machine can be any OS
@@ -996,7 +1057,10 @@ project_new myproj -overwrite
 set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE22F17C6
 set_global_assignment -name TOP_LEVEL_ENTITY my_top
+# Verilog/SV: use VERILOG_FILE (or SYSTEMVERILOG_FILE for .sv)
 set_global_assignment -name VERILOG_FILE src/my_top.v
+# VHDL alternative: set_global_assignment -name VHDL_FILE src/my_top.vhd
+# Mixed: add both VERILOG_FILE and VHDL_FILE assignments as needed.
 set_global_assignment -name SDC_FILE constraints/timing.sdc
 project_close
 ```
@@ -1054,6 +1118,12 @@ report_metastability
 quartus_pgm -m jtag -o "P;output_files/myproj.sof@1"  # SRAM (volatile)
 quartus_pgm -m jtag -o "bpf;output_files/myproj.pof@1" # Flash (persistent)
 ```
+
+## HDL choice in Quartus
+Quartus supports Verilog (.v), SystemVerilog (.sv), and VHDL (.vhd). Most
+teams use one primary HDL; mixed projects add both file types. SignalTap works
+with any HDL — mark signals with the `synthesis keep` attribute in VHDL or
+`/* synthesis keep */` comment in Verilog.
 
 ## Common pitfalls
 - Quartus Lite is free for Cyclone/Arria devices; Stratix requires paid license.
