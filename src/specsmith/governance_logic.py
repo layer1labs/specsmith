@@ -90,54 +90,49 @@ def run_preflight(
     explicit_req_ids = [m.upper() for m in _EXPLICIT_REQ.findall(utterance)]
     explicit_test_ids = [m.upper() for m in _EXPLICIT_TEST.findall(utterance)]
 
-    # Validate explicit REQ IDs against requirements.json and add any that match.
-    # Paths below are: resolved trusted root + constant string suffixes — no user
-    # data flows into the filename components. The intermediary names are local
-    # constants to make this obvious to static analysis tools.
-    _REQS_SUFFIX = ".specsmith/requirements.json"
-    _TC_SUFFIX = ".specsmith/testcases.json"
-    if explicit_req_ids:
-        rq_json = (root / _REQS_SUFFIX).resolve()
-        if rq_json.is_file():
-            try:
-                rq_records = _json.loads(rq_json.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                rq_records = []
-            known_req_ids = {r["id"] for r in rq_records if isinstance(r, dict) and r.get("id")}
-            for eid in explicit_req_ids:
-                if eid in known_req_ids and eid not in requirement_ids:
-                    requirement_ids.append(eid)
+    # Pre-compute .specsmith/ sub-paths via os.path.join from the already-sanitised
+    # root string.  os.path.join(str(root), const) is unambiguously clean to
+    # CodeQL's py/path-injection taint tracker: the left operand is the output of
+    # os.path.realpath (see _safe_resolve) and the right operands are literals.
+    _root_str: str = str(root)
+    _reqs_json_path = os.path.join(_root_str, ".specsmith", "requirements.json")
+    _tc_json_path = os.path.join(_root_str, ".specsmith", "testcases.json")
+
+    if explicit_req_ids and os.path.isfile(_reqs_json_path):
+        try:
+            rq_records = _json.loads(Path(_reqs_json_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            rq_records = []
+        known_req_ids = {r["id"] for r in rq_records if isinstance(r, dict) and r.get("id")}
+        for eid in explicit_req_ids:
+            if eid in known_req_ids and eid not in requirement_ids:
+                requirement_ids.append(eid)
 
     # Resolve test case IDs from machine state
     test_case_ids: list[str] = []
-    # Include any explicitly named TEST-* IDs from the utterance.
-    if explicit_test_ids:
-        tc_json_explicit = (root / _TC_SUFFIX).resolve()
-        if tc_json_explicit.is_file():
-            try:
-                tc_explicit = _json.loads(tc_json_explicit.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                tc_explicit = []
-            known_tc_ids = {r["id"] for r in tc_explicit if isinstance(r, dict) and r.get("id")}
-            for eid in explicit_test_ids:
-                if eid in known_tc_ids:
-                    test_case_ids.append(eid)
-    if requirement_ids:
-        tc_json = (root / _TC_SUFFIX).resolve()
-        if tc_json.is_file():
-            try:
-                records = _json.loads(tc_json.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                records = []
-            req_set = set(requirement_ids)
-            for rec in records:
-                if (
-                    isinstance(rec, dict)
-                    and rec.get("requirement_id") in req_set
-                    and isinstance(rec.get("id"), str)
-                    and rec["id"] not in test_case_ids
-                ):
-                    test_case_ids.append(rec["id"])
+    if explicit_test_ids and os.path.isfile(_tc_json_path):
+        try:
+            tc_explicit = _json.loads(Path(_tc_json_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            tc_explicit = []
+        known_tc_ids = {r["id"] for r in tc_explicit if isinstance(r, dict) and r.get("id")}
+        for eid in explicit_test_ids:
+            if eid in known_tc_ids:
+                test_case_ids.append(eid)
+    if requirement_ids and os.path.isfile(_tc_json_path):
+        try:
+            records = _json.loads(Path(_tc_json_path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            records = []
+        req_set = set(requirement_ids)
+        for rec in records:
+            if (
+                isinstance(rec, dict)
+                and rec.get("requirement_id") in req_set
+                and isinstance(rec.get("id"), str)
+                and rec["id"] not in test_case_ids
+            ):
+                test_case_ids.append(rec["id"])
 
     # Decision policy (deterministic, no LLM)
     # decision_str and instruction are always set by the intent dispatch below;
