@@ -5,18 +5,17 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
-  workflow_dispatch:  # allow manual re-runs via gh CLI or GitHub UI
+  workflow_dispatch:
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
+# Default: deny all permissions. Each job grants only what it needs.
+permissions: {}
 
 jobs:
   lint:
+    name: Lint (ruff)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -25,11 +24,16 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: pip install ruff
-      - run: ruff check src/ tests/
-      - run: ruff format --check src/ tests/
+      - name: ruff format --check
+        run: ruff format --check src/ tests/
+      - name: ruff check
+        run: ruff check src/ tests/
 
   typecheck:
+    name: Type check (mypy)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -41,13 +45,15 @@ jobs:
       - run: mypy src/specsmith/
 
   test:
-    needs: [lint, typecheck]
+    name: Test (Python ${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.12", "3.13"]
-    runs-on: ${{ matrix.os }}
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -56,10 +62,13 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
-      - run: pytest --cov=specsmith --cov-report=term-missing
+      - run: pytest --cov=specsmith --cov-report=term-missing --cov-fail-under=85
 
   security:
+    name: Security audit (pip-audit)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -73,7 +82,10 @@ jobs:
 
   sync-check:
     # REQ-003 guard: fail CI if .specsmith/ JSON drifts from docs/ Markdown.
+    name: Sync check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -90,7 +102,10 @@ jobs:
 
   validate-strict:
     # YAML governance schema guard: duplicate IDs, orphan tests, missing fields.
+    name: Validate strict
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -107,10 +122,11 @@ jobs:
 
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
-    # if the live output drifts from the committed fixture. Catches accidental
-    # command additions / removals in PRs without forcing every contributor
-    # to remember to run `specsmith api-surface > tests/fixtures/api_surface.json`.
+    # if the live output drifts from the committed fixture.
+    name: API surface
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6

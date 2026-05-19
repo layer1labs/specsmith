@@ -3309,5 +3309,115 @@
     "input": "NEXUS_BANNER string; mock subprocess.run for /specsmith status; /specsmith with no args; timeout simulation",
     "expected_behavior": "Banner contains '/specsmith'; subprocess called with correct args; timeout handled gracefully; REPL loop continues after error",
     "confidence": 0.9
+  },
+  {
+    "id": "TEST-341",
+    "title": "terminal-awareness Skill Exists in Skills Catalog",
+    "description": "specsmith.skills.get('terminal-awareness') MUST return a non-None SkillEntry with domain=CROSS_PLATFORM. The skill body MUST contain sections for shell detection, PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish, Python subprocess PID tracking, and a cleanup checklist. specsmith skill list MUST include terminal-awareness in its output.",
+    "requirement_id": "REQ-341",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "from specsmith.skills import get; get('terminal-awareness')",
+    "expected_behavior": "Non-None SkillEntry; domain=CROSS_PLATFORM; body contains expected sections",
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-342",
+    "title": "Shell Detection Returns Correct Shell for Active Environment",
+    "description": "The detect_shell() example in terminal-awareness skill MUST return 'bash' when SHELL ends with 'bash', 'zsh' when SHELL ends with 'zsh', 'fish' when SHELL ends with 'fish', 'cmd' when ComSpec is set, and 'powershell' when PSModulePath is set but ComSpec is not.",
+    "requirement_id": "REQ-342",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "Patch os.environ for each shell type; call detect_shell()",
+    "expected_behavior": "Returns correct shell string for each patched environment",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-343",
+    "title": "run_tracked Uses DEVNULL stdin and communicate with Timeout",
+    "description": "specsmith.executor.run_tracked MUST call subprocess.Popen with stdin=subprocess.DEVNULL and must call proc.communicate(timeout=N) not proc.wait(). On timeout, it MUST call proc.kill() then proc.communicate() to drain. Spawned PIDs MUST be tracked in .specsmith/pids/.",
+    "requirement_id": "REQ-343",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "run_tracked(tmp_path, 'echo ok', timeout=10); mock subprocess.Popen",
+    "expected_behavior": "DEVNULL stdin; communicate called with timeout; PID file written",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-344",
+    "title": "specsmith.esdb Namespace Exports Full chronomemory v0.1.1 Surface",
+    "description": "from specsmith.esdb import ChronoStore, ChronoRecord, EsdbBridge, DepGraph, ContextPackCompiler, RUST_BACKEND, query, metrics MUST all succeed without ImportError. RUST_BACKEND MUST be a bool. query MUST be a module with what_is_known. metrics MUST be a module with record_token_metric.",
+    "requirement_id": "REQ-344",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "from specsmith.esdb import <all exports>",
+    "expected_behavior": "All imports succeed; RUST_BACKEND is bool; query/metrics are modules",
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-345",
+    "title": "LLM Context Build Does Not Call store.query(rag_filter=True)",
+    "description": "specsmith.retrieval.build_index and specsmith.agent.context_seed._load_esdb_snippet MUST NOT call store.query(rag_filter=True). Both MUST call query.what_is_known(store). A grep over the codebase for 'rag_filter=True' in retrieval.py and context_seed.py MUST return zero matches.",
+    "requirement_id": "REQ-345",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "inspect source of retrieval.py and context_seed.py for rag_filter=True",
+    "expected_behavior": "No occurrences of rag_filter=True in the LLM context code paths",
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-346",
+    "title": "specsmith save --force Bypasses Gitflow Guard",
+    "description": "specsmith save --force on a project with branching_strategy=gitflow on the main branch MUST NOT return the 'Refusing to push directly to main' error. run_push() called with force=True MUST issue git push --force-with-lease. Without --force on main, save MUST still refuse.",
+    "requirement_id": "REQ-346",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "run_push(tmp_path, force=True) on gitflow main; run_push(tmp_path, force=False) on main",
+    "expected_behavior": "force=True succeeds; force=False returns failure with guard message",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-347",
+    "title": "specsmith pull --discard Hard-Resets Working Tree to Remote",
+    "description": "specsmith.vcs_commands.run_discard MUST issue git fetch then git reset --hard origin/<branch>. The result.success MUST be True on success. The result.message MUST contain 'reset to origin/<branch>'. With clean=False, git clean MUST NOT be called.",
+    "requirement_id": "REQ-347",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "run_discard(tmp_path, clean=False); mock _run_git",
+    "expected_behavior": "fetch then reset called; success=True; message contains 'reset to origin/'",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-348",
+    "title": "specsmith pull --clean Also Runs git clean -fd",
+    "description": "specsmith.vcs_commands.run_discard(clean=True) MUST call git clean -fd after the hard reset. The result.message MUST mention 'untracked files removed'. With clean=False, git clean MUST NOT be called.",
+    "requirement_id": "REQ-348",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "run_discard(tmp_path, clean=True) vs run_discard(tmp_path, clean=False); mock _run_git",
+    "expected_behavior": "clean=True calls git clean -fd and message notes untracked removal; clean=False does not",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-349",
+    "title": "gh-ci-polling Skill Exists and Contains gh run watch Pattern",
+    "description": "specsmith.skills.get('gh-ci-polling') MUST return a non-None SkillEntry with domain=GOVERNANCE. The skill body MUST contain 'gh run watch', 'NEVER', and explicit prohibition of 'Start-Sleep' and 'sleep'. It MUST contain a PowerShell example and a bash example.",
+    "requirement_id": "REQ-349",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "from specsmith.skills import get; get('gh-ci-polling')",
+    "expected_behavior": "Non-None; body contains 'gh run watch', 'NEVER', 'Start-Sleep', pwsh and bash examples",
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-350",
+    "title": "Sync Pipeline Passes Through platform/boundary/confidence Fields",
+    "description": "When a YAML requirement entry includes platform, boundary, or confidence fields, run_sync MUST include those fields in the corresponding .specsmith/requirements.json entry. When those fields are absent from the YAML entry, they MUST NOT appear in the JSON entry (not written as null or empty string).",
+    "requirement_id": "REQ-350",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": "YAML req with platform='linux', boundary='OS', confidence='0.9'; run_sync; inspect JSON",
+    "expected_behavior": "JSON entry has platform, boundary, confidence keys; absent fields not present",
+    "confidence": 0.9
   }
 ]

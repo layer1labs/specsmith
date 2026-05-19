@@ -841,3 +841,45 @@ Implementation:
 - Startup banner advertises the command: `"Use /specsmith <args> to run any specsmith CLI command directly."`
 
 **Architecture invariant (I11):** The `/specsmith` handler MUST precede the broker branch in the REPL dispatch loop so governance commands bypass the LLM preflight path entirely.
+
+## 36. specsmith.esdb Namespace — chronomemory v0.1.1 Full API Surface
+Source: `src/specsmith/esdb/__init__.py`; `src/specsmith/esdb/bridge.py`
+
+`specsmith.esdb` is the canonical import namespace for the chronomemory ESDB within specsmith code. It re-exports the full chronomemory v0.1.1 public surface so internal modules never import chronomemory directly in more than one place (REQ-344).
+
+**Re-exported types:**
+- Core: `ChronoStore`, `ChronoRecord`, `WalEvent`, `open_store`
+- Bridge: `EsdbBridge`, `EsdbRecord`, `EsdbStatus`
+- Phase 2: `DepGraph`, `DependencyEdge`, `RollbackReport`, `invalidate`, `ContextPack`, `ContextPackCompiler`, `ContextPackEntry`
+- Phase 3: `RustChronoStore`, `RustRecord`, `RUST_BACKEND`
+- Modules: `query` (18 §23 query functions), `metrics` (token tracking + skill system)
+
+**Architecture invariant (I12):** Code injecting ESDB records into LLM context MUST use `query.what_is_known(store)` not `store.query(rag_filter=True)`. The former excludes infrastructure record kinds (`edge`, `rollback_event`, `token_metric`, `skill_run`) which must never appear in agent-facing context (REQ-345).
+
+## 37. Skills Catalog — Terminal Awareness, ESDB, CI Polling, GitHub CI Pattern
+Source: `src/specsmith/skills/`
+
+The specsmith skills catalog (`specsmith skill list`) includes four new governance skills added in v0.11.3 (REQ-341, REQ-349):
+
+- **`terminal-awareness`** (cross-platform): Shell detection, PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish patterns, Python subprocess spawn with PID tracking, hanging-process prevention, cross-platform command equivalents table.
+- **`chronomemory-esdb`** (governance): Full chronomemory v0.1.1 API reference + 5 critical rules. Activated by `esdb`, `chronomemory`, `wal`, `query` tags.
+- **`gh-ci-polling`** (governance): Documents `gh run watch` as the correct CI-wait primitive. Explicitly prohibits `sleep`/`Start-Sleep`/`time.sleep` as CI wait mechanisms (REQ-349).
+- **`github-actions-ci`** (devops): Layer1Labs CI pattern — `permissions: {}` at workflow level, per-job `contents: read`, parallel jobs, Python 3.10–3.13 matrix, `--cov-fail-under=85`.
+
+**Architecture invariant (I13):** Every new specsmith feature MUST be reflected in the skills catalog if it introduces a workflow an agent must follow. Skills are activated by tag matching against agent task labels.
+
+## 38. VCS Force Operations — save --force, pull --discard, pull --clean
+Source: `src/specsmith/cli.py`; `src/specsmith/vcs_commands.py`
+
+Three escape-hatch VCS flags added to resolve agentic workflow blockers (REQ-346, REQ-347, REQ-348):
+
+**`specsmith save --force`**
+Propagates `--force` to the underlying `run_push()` call, bypassing the gitflow direct-to-main guard. Uses `git push --force-with-lease` (safer than `--force`). Equivalent to: `specsmith save --no-push && specsmith push --force`.
+
+**`specsmith pull --discard`**
+Hard-resets the working tree to `origin/<branch>` via `git fetch` + `git reset --hard origin/<branch>`. Discards all local uncommitted changes. Used when an agentic session has drifted and a clean slate is needed.
+
+**`specsmith pull --clean`**
+Same as `--discard` plus `git clean -fd` to remove all untracked files. Equivalent to a full workspace reset to remote state.
+
+**Architecture invariant (I14):** `--force` and `--discard` flags MUST be used only when explicitly requested. They bypass safety guards intentionally designed to prevent accidental data loss. Agents MUST NOT invoke these flags without explicit user confirmation.

@@ -2386,3 +2386,83 @@
 - **Source:** ARCHITECTURE.md §Nexus REPL — /specsmith Handler
 - **Test_Ids:** ['TEST-340']
 
+## REQ-341. Terminal Awareness Skill in Skills Catalog
+- **ID:** REQ-341
+- **Title:** Terminal Awareness Skill in Skills Catalog
+- **Description:** specsmith.skills MUST include a 	erminal-awareness skill in the CROSS_PLATFORM domain covering: (1) shell detection from Python and from the shell itself; (2) PowerShell 5 vs 7 syntax differences (null-coalescing, ternary, parallel ForEach-Object, encoding, &&/|| availability); (3) cmd.exe rules (no PowerShell cmdlets in pipelines, % variables, ^ continuation); (4) bash/zsh/fish patterns (background PID capture, trap cleanup, timeout); (5) Python subprocess spawn with PID tracking using communicate(timeout) and DEVNULL stdin; (6) PowerShell Start-Process -PassThru PID tracking with WaitForExit; (7) a cross-platform command equivalents table; (8) a cleanup checklist for spawned processes.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §37 Skills Catalog
+- **Test_Ids:** ['TEST-341']
+
+## REQ-342. Shell-Aware Command Generation
+- **ID:** REQ-342
+- **Title:** Shell-Aware Command Generation
+- **Description:** Agents operating on behalf of specsmith MUST detect the active shell before emitting shell commands. PowerShell cmdlets (Write-Host, Get-ChildItem, Start-Process, etc.) MUST NOT be emitted when the active shell is bash, zsh, fish, or cmd.exe. bash-isms (, export, $!) MUST NOT be emitted in PowerShell or cmd.exe contexts. The terminal-awareness skill provides the detection and equivalents reference that agents MUST consult.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §37 Skills Catalog
+- **Test_Ids:** ['TEST-342']
+
+## REQ-343. Subprocess Spawn with PID Tracking and Cleanup
+- **ID:** REQ-343
+- **Title:** Subprocess Spawn with PID Tracking and Cleanup
+- **Description:** specsmith process execution (specsmith exec, run_tracked) MUST spawn subprocesses using communicate(timeout=N) with stdin=DEVNULL to prevent hanging. Spawned PIDs MUST be written to .specsmith/pids/<pid>.json so specsmith ps and specsmith abort can list and kill them. On timeout, the implementation MUST call proc.kill() then proc.communicate() to drain pipes and avoid zombie processes. On Windows, CREATE_NEW_PROCESS_GROUP MUST be set for clean signal forwarding.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §37 Skills Catalog
+- **Test_Ids:** ['TEST-343']
+
+## REQ-344. specsmith.esdb Namespace Re-exports chronomemory v0.1.1
+- **ID:** REQ-344
+- **Title:** specsmith.esdb Namespace Re-exports chronomemory v0.1.1
+- **Description:** src/specsmith/esdb/__init__.py MUST re-export the full chronomemory v0.1.1 public API surface under the specsmith.esdb namespace: ChronoStore, ChronoRecord, WalEvent, open_store, EsdbBridge, EsdbRecord, EsdbStatus, DepGraph, DependencyEdge, RollbackReport, invalidate, ContextPack, ContextPackCompiler, ContextPackEntry, RustChronoStore, RustRecord, RUST_BACKEND, plus module-level references to query and metrics. specsmith.esdb.bridge MUST expose EsdbBridge, ContextPackCompiler, DepGraph, RUST_BACKEND, query, and metrics.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §36 specsmith.esdb Namespace
+- **Test_Ids:** ['TEST-344']
+
+## REQ-345. LLM Context MUST Use query.what_is_known Not store.query(rag_filter)
+- **ID:** REQ-345
+- **Title:** LLM Context MUST Use query.what_is_known Not store.query(rag_filter)
+- **Description:** All specsmith code paths that inject ESDB ChronoRecords into LLM context (retrieval index building, context seed generation, context orchestrator eviction decisions) MUST use query.what_is_known(store) instead of store.query(rag_filter=True). query.what_is_known excludes infrastructure record kinds (edge, rollback_event, token_metric, skill_run) in addition to applying the confidence >= 0.6 filter. Infrastructure records MUST NEVER appear in agent-facing context.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §36 specsmith.esdb Namespace
+- **Test_Ids:** ['TEST-345']
+
+## REQ-346. specsmith save --force Propagates Force to Push
+- **ID:** REQ-346
+- **Title:** specsmith save --force Propagates Force to Push
+- **Description:** specsmith save MUST accept a --force flag that propagates to the underlying run_push() call, bypassing the gitflow direct-to-main guard and any other push safety checks. The push MUST use git push --force-with-lease (not --force) to avoid overwriting concurrent remote changes. --force has no effect when --no-push is also passed. When --force is omitted, all existing safety checks apply unchanged.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §38 VCS Force Operations
+- **Test_Ids:** ['TEST-346']
+
+## REQ-347. specsmith pull --discard Hard-Resets to Remote Branch
+- **ID:** REQ-347
+- **Title:** specsmith pull --discard Hard-Resets to Remote Branch
+- **Description:** specsmith pull MUST accept a --discard flag. When passed, the implementation MUST: (1) run git fetch origin <branch> to bring the remote ref current; (2) run git reset --hard origin/<branch> to hard-reset the working tree; (3) report success with the branch name. All local uncommitted changes are discarded. This replaces the normal git pull (which preserves local state) when a clean reset to remote is required.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §38 VCS Force Operations
+- **Test_Ids:** ['TEST-347']
+
+## REQ-348. specsmith pull --clean Removes Untracked Files After Discard
+- **ID:** REQ-348
+- **Title:** specsmith pull --clean Removes Untracked Files After Discard
+- **Description:** When specsmith pull --clean is passed, the implementation MUST perform the same hard-reset sequence as --discard and additionally run git clean -fd to remove all untracked files and directories. The success message MUST note that untracked files were removed. --clean implies --discard; passing --clean without --discard MUST produce the same result.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §38 VCS Force Operations
+- **Test_Ids:** ['TEST-348']
+
+## REQ-349. gh-ci-polling Skill Prohibits Sleep-Based CI Waiting
+- **ID:** REQ-349
+- **Title:** gh-ci-polling Skill Prohibits Sleep-Based CI Waiting
+- **Description:** specsmith.skills MUST include a gh-ci-polling skill in the GOVERNANCE domain documenting gh run watch as the correct CI-wait primitive. The skill MUST explicitly prohibit Start-Sleep, sleep, and time.sleep as CI wait mechanisms. It MUST provide: (1) the canonical gh run watch pattern for bash and PowerShell; (2) non-blocking gh run list --json conclusion status check; (3) the one acceptable polling loop (with state check, minimum 15-second interval) for when gh run watch is unavailable; (4) gh run view --log-failed for immediate failure triage.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §37 Skills Catalog
+- **Test_Ids:** ['TEST-349']
+
+## REQ-350. Epistemic Metadata Passthrough in Sync Pipeline
+- **ID:** REQ-350
+- **Title:** Epistemic Metadata Passthrough in Sync Pipeline
+- **Description:** specsmith sync MUST pass through platform, boundary, and confidence fields from YAML requirement sources into the .specsmith/requirements.json machine-state entries when those fields are present in the YAML. These fields are used by generate_requirements_md to render them into REQUIREMENTS.md and by belief.py to parse Platform/Boundary/Confidence metadata. Absent fields MUST be omitted from the JSON entry (not written as null).
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
+- **Test_Ids:** ['TEST-350']
+
