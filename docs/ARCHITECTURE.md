@@ -760,10 +760,84 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 
 **CI integration**: The `validate-strict` job in `.github/workflows/ci.yml` runs `specsmith validate --strict --json` on every push and PR. The `sync-check` step runs `specsmith sync --check`. Both block the build on failure.
 
-**Migration**: `scripts/migrate_governance_to_yaml.py` — idempotent script converting an existing Markdown-primary project to YAML-first mode:
-1. Remove duplicate REQs from REQUIREMENTS.md
-2. Re-sync `.specsmith/` JSON from cleaned Markdown
-3. Export JSON to grouped YAML domain files under `docs/requirements/` and `docs/tests/`
-4. Write `.specsmith/governance-mode = yaml`
+## 32. CI Automation Manager — save/load Commands
+Source: `src/specsmith/cli.py` §`save`, `load`; `src/specsmith/ci_manager.py`
 
-Re-running the script on an already-migrated project produces no changes.
+Two top-level CLI commands provide a complete governance checkpoint cycle:
+
+**`specsmith save`** (REQ-336):
+1. Create a timestamped ESDB backup via `ChronoStore.backup()` (written to `.chronomemory/backup/<timestamp>/`)
+2. `git add` all governance files and `git commit` with an auto-generated message
+3. `git push` the current branch to origin
+- `--json` emits `{backup_path, commit_hash, push_ok}`
+- Exits 0 on success; exits 1 on any step failure
+
+**`specsmith load`** (REQ-337):
+1. `git pull` the current branch from origin
+2. Optionally restore the latest ESDB backup when `--restore-backup` is passed
+3. Print a summary of files changed
+- `--json` emits `{pull_ok, files_changed, backup_restored}`
+- Exits 1 on unresolvable merge conflict
+
+**`specsmith ci watch`**:
+Uses `gh run watch --exit-status` (native blocking for GitHub) or exponential-backoff polling (other platforms, starting at 10 s, capped at 60 s). Eliminates busy-wait `time.sleep` loops.
+
+## 33. Agent Tool Registry — specsmith_run
+Source: `src/specsmith/agent/tools.py` §`specsmith_run`, `AVAILABLE_TOOLS`, `build_tool_registry`
+
+`specsmith_run(command)` is the canonical agent tool for all specsmith governance operations (REQ-338). It normalises three input forms:
+
+| Input form | Example | Resolved command |
+|---|---|---|
+| Slash prefix | `/specsmith save` | `specsmith save` |
+| Verb shortcut | `save` | `specsmith save` |
+| Full passthrough | `specsmith audit --strict` | `specsmith audit --strict` |
+
+Verb shortcuts: `audit`, `commit`, `doctor`, `load`, `pull`, `push`, `run`, `save`, `status`, `sync`, `validate`, `watch`.
+
+Registered in `AVAILABLE_TOOLS` and `build_tool_registry()` with REG-001/REG-002 epistemic claims:
+- `invokes specsmith CLI; may write to .specsmith/ and .chronomemory/`
+- `save/push/commit modify git history`
+- `load/pull may overwrite local governance state`
+
+**Architecture invariant (I10):** Agents MUST use `specsmith_run` for all governance CLI operations. Direct `run_shell('specsmith ...')` calls are prohibited when `specsmith_run` is available in the tool registry.
+
+## 34. Migration Framework — M005 Agent-Run-Tool Migration
+Source: `src/specsmith/migrations/m005_agent_run_tool.py`; `src/specsmith/migrations/__init__.py`
+
+M005 (version=5) is the auto-upgrade migration that registers `specsmith_run` as the primary governance command for existing projects (REQ-339).
+
+**Step 1 — Write `.specsmith/agent-tools.json`:**
+```json
+{
+  "schema_version": 1,
+  "primary_governance_command": "specsmith_run",
+  "slash_prefix": "/specsmith",
+  "verb_shortcuts": ["audit", "commit", "doctor", "load", ...]
+}
+```
+
+**Step 2 — Patch `AGENTS.md`:**
+Appends a "Governance commands (specsmith_run / /specsmith)" section documenting all slash-command forms and verb shortcuts. Original `AGENTS.md` is backed up to `.specsmith/agents.md.m005.bak` before modification.
+
+Both steps support `dry_run=True` (reports what would change without writing) and `rollback()` (restores backup, removes `agent-tools.json`). M005 is registered in `MigrationRegistry` and runs automatically via `specsmith migrate-project`.
+
+## 35. Nexus REPL — /specsmith Slash-Command Handler
+Source: `src/specsmith/agent/repl.py` §`/specsmith` handler
+
+The Nexus REPL (`specsmith run`) handles `/specsmith <args>` as a first-class slash command (REQ-340):
+
+```
+nexus> /specsmith save
+nexus> /specsmith audit --strict
+nexus> /specsmith status
+```
+
+Implementation:
+- `command == '/specsmith'` branch intercepts the input before the broker
+- Invokes `subprocess.run(f'specsmith {sm_args}', shell=True, capture_output=False)` — output streams directly to terminal
+- Timeout: 120 s; graceful error handling (no REPL crash)
+- Empty `/specsmith` (no args) shows `specsmith --help`
+- Startup banner advertises the command: `"Use /specsmith <args> to run any specsmith CLI command directly."`
+
+**Architecture invariant (I11):** The `/specsmith` handler MUST precede the broker branch in the REPL dispatch loop so governance commands bypass the LLM preflight path entirely.

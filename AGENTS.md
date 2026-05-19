@@ -23,6 +23,17 @@ py -m specsmith migrate list
 Only proceed with the requested task once all three steps complete without errors.
 If `audit` reports failures, surface them to the user before starting work.
 
+## Session Teardown
+
+At the end of **every** session, always run:
+
+```bash
+py -m specsmith kill-session
+```
+
+This stops `governance-serve` and any other tracked agent processes.
+Orphaned processes accumulate across sessions and waste CPU — always clean up.
+
 ## For AI Agents
 
 All governance rules, session state, requirements, and epistemic constraints

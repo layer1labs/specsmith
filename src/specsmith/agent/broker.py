@@ -141,7 +141,6 @@ def classify_intent(utterance: str) -> Intent:
 # ---------------------------------------------------------------------------
 
 
-_REQ_HEADING = re.compile(r"^##\s+\d+\.\s+(?P<title>.+)\s*$", re.MULTILINE)
 # Extended to match project-prefixed IDs e.g. REQ-NN-001, REQ-CLI-042
 _REQ_ID = re.compile(r"-\s*\*\*ID:\*\*\s*(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+)")
 _REQ_DESC = re.compile(r"-\s*\*\*Description:\*\*\s*(.+)")

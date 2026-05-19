@@ -159,7 +159,12 @@ def _check_agents_md_refs(root: Path) -> list[ValidationResult]:
 
 
 def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
-    """Check that requirement IDs are unique within REQUIREMENTS.md."""
+    """Check that requirement IDs are unique within REQUIREMENTS.md.
+
+    Uses only the canonical **ID:** field to count each REQ once (#171).
+    The generated REQUIREMENTS.md repeats each ID in both the section heading
+    and the '**ID:** REQ-XXX' field — a raw findall would double-count every ID.
+    """
     results: list[ValidationResult] = []
     req_path = root / "docs" / "REQUIREMENTS.md"
 
@@ -167,7 +172,12 @@ def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
         return results
 
     text = req_path.read_text(encoding="utf-8")
-    req_ids = _REQ_PATTERN.findall(text)
+    # Match only canonical ID declarations, not heading or cross-references (#171).
+    # Pattern matches '- **ID:** REQ-XXX' or '**ID:** REQ-XXX' lines.
+    _ID_FIELD = re.compile(r"\*\*ID:\*\*\s*(REQ-(?:[A-Z]+-)*\d+)")
+    id_field_matches = _ID_FIELD.findall(text)
+    # Fall back to full scan if the markdown has no **ID:** fields (legacy format).
+    req_ids = id_field_matches if id_field_matches else _REQ_PATTERN.findall(text)
 
     seen: dict[str, int] = {}
     for rid in req_ids:

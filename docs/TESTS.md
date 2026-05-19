@@ -2737,3 +2737,58 @@
 - **Expected Behavior:** testcases.json updated; status transitions correct; ledger entry written; exit codes correct; JSON output valid
 - **Confidence:** 0.95
 
+## TEST-336. specsmith save Performs Backup, Commit, and Push
+- **ID:** TEST-336
+- **Title:** specsmith save Performs Backup, Commit, and Push
+- **Description:** `specsmith save` on a project with pending governance changes MUST create a timestamped backup under .chronomemory/backup/, git-commit all changed files, and git-push to origin. With --json it MUST emit {backup_path, commit_hash, push_ok}. With no pending changes it MUST exit 0 with a 'nothing to commit' message. On push failure it MUST exit 1 with an informative error.
+- **Requirement ID:** REQ-336
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith save [--json] on project with dirty governance files; repeat with clean repo
+- **Expected Behavior:** Backup created; git commit recorded; push attempted; exit 0 on success; --json payload valid; clean repo exits 0 with 'nothing to commit'
+- **Confidence:** 0.95
+
+## TEST-337. specsmith load Pulls Latest Governance State
+- **ID:** TEST-337
+- **Title:** specsmith load Pulls Latest Governance State
+- **Description:** `specsmith load` MUST execute git-pull on the current branch and report files changed. With `--restore-backup` it MUST also restore the most recent backup from .chronomemory/backup/. With --json it MUST emit {pull_ok, files_changed, backup_restored}. On merge conflict git-pull it MUST exit 1 with the conflict details.
+- **Requirement ID:** REQ-337
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith load [--restore-backup] [--json] on project with remote changes
+- **Expected Behavior:** git-pull executed; files_changed count correct; backup optionally restored; --json payload valid; conflict exits 1
+- **Confidence:** 0.9
+
+## TEST-338. specsmith_run Tool Normalises Slash-Command and Verb Shortcut Forms
+- **ID:** TEST-338
+- **Title:** specsmith_run Tool Normalises Slash-Command and Verb Shortcut Forms
+- **Description:** specsmith_run('/specsmith save') MUST execute `specsmith save`. specsmith_run('save') MUST execute `specsmith save`. specsmith_run('specsmith audit --strict') MUST execute `specsmith audit --strict`. specsmith_run('') MUST execute `specsmith --help`. specsmith_run MUST appear in AVAILABLE_TOOLS and build_tool_registry() and carry epistemic_claims listing side-effect categories.
+- **Requirement ID:** REQ-338
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** specsmith_run('/specsmith save'); specsmith_run('save'); specsmith_run('specsmith audit --strict'); specsmith_run('')
+- **Expected Behavior:** All three input forms resolve to the correct specsmith subprocess call; empty input triggers --help; tool registered with correct metadata
+- **Confidence:** 0.95
+
+## TEST-339. M005 Migration Writes agent-tools.json and Patches AGENTS.md
+- **ID:** TEST-339
+- **Title:** M005 Migration Writes agent-tools.json and Patches AGENTS.md
+- **Description:** Running AgentRunToolMigration().run(project_root) MUST create .specsmith/agent-tools.json with primary_governance_command=specsmith_run and the full verb_shortcuts list. It MUST append a Governance commands section to AGENTS.md and write .specsmith/agents.md.m005.bak. dry_run=True MUST report expected changes without writing. rollback() MUST remove agent-tools.json and restore AGENTS.md from backup. M005 MUST appear in MigrationRegistry.all().
+- **Requirement ID:** REQ-339
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** AgentRunToolMigration().run(tmp_path); dry_run=True; rollback()
+- **Expected Behavior:** agent-tools.json written with correct schema; AGENTS.md patched; backup created; dry_run produces no files; rollback restores state; registry includes v5
+- **Confidence:** 0.95
+
+## TEST-340. /specsmith REPL Handler Streams CLI Output
+- **ID:** TEST-340
+- **Title:** /specsmith REPL Handler Streams CLI Output
+- **Description:** In the Nexus REPL, entering `/specsmith status` MUST invoke `specsmith status` as a subprocess with shell=True, streaming output to the terminal (capture_output=False). `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout MUST print a timeout message without crashing the REPL loop. The REPL startup banner MUST contain the string '/specsmith'.
+- **Requirement ID:** REQ-340
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** NEXUS_BANNER string; mock subprocess.run for /specsmith status; /specsmith with no args; timeout simulation
+- **Expected Behavior:** Banner contains '/specsmith'; subprocess called with correct args; timeout handled gracefully; REPL loop continues after error
+- **Confidence:** 0.9
+

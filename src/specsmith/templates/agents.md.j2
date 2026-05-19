@@ -4,9 +4,12 @@ This project is governed by **specsmith**.
 
 ## Session Bootstrap
 
-Run these four steps at the start of **every** session before touching any code:
+Run these steps at the start of **every** session before touching any code:
 
 ```bash
+# 0. Kill any orphaned governance-serve from previous sessions
+specsmith kill-session 2>/dev/null || true
+
 # 1. Update specsmith to latest dev
 pip install --pre --upgrade specsmith
 
@@ -22,6 +25,17 @@ specsmith sync --project-dir .
 
 Only proceed with the requested task once all four steps complete without errors.
 If `audit` reports failures, surface them to the user before starting work.
+
+## Session Teardown
+
+At the end of **every** session, always run:
+
+```bash
+specsmith kill-session
+```
+
+This stops `governance-serve` and any other tracked agent processes.
+Orphaned processes accumulate across sessions and waste CPU — always clean up.
 
 ## For AI Agents
 
