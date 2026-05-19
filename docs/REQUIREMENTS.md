@@ -2490,3 +2490,27 @@
 - **Source:** ARCHITECTURE.md §Implemented Specsmith System
 - **Test_Ids:** ['TEST-353']
 
+## REQ-354. CodityAdapter Scaffolds AI Code Review CI Workflow
+- **ID:** REQ-354
+- **Title:** CodityAdapter Scaffolds AI Code Review CI Workflow
+- **Description:** specsmith MUST provide a CodityAdapter registered as 'codity' in the integrations registry. CodityAdapter.generate() MUST detect the VCS host from scaffold.yml content ('gitlab' keyword → gitlab, 'azure' keyword → azure, else github) and from directory heuristics (.gitlab-ci.yml → gitlab, azure-pipelines.yml → azure). For github it MUST write .github/workflows/codity-review.yml; for gitlab it MUST write .gitlab-ci-codity.yml; for azure it MUST write .azure-pipelines/codity-review.yml. All variants MUST install the Codity CLI via the official install script, run 'codity review --staged', and require CODITY_ACCESS_TOKEN. GitLab and Azure variants MUST additionally call 'codity config set-pat --provider <vcs>'. generate() MUST also write docs/codity-setup.md (one-time setup checklist) and append a TODO checklist to LEDGER.md if it exists. The adapter MUST be discoverable via specsmith integrate codity.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §39
+- **Test_Ids:** ['TEST-354', 'TEST-355']
+
+## REQ-355. AGENTS.md Template Includes Codity.ai Pre-commit Rule
+- **ID:** REQ-355
+- **Title:** AGENTS.md Template Includes Codity.ai Pre-commit Rule
+- **Description:** The AGENTS.md Jinja2 template (agents.md.j2) MUST include a 'Codity.ai Code Review' section that instructs agents: if 'codity doctor' exits 0 (Codity is configured), run 'codity review --staged' before any commit touching production code; HIGH-severity findings are blocking; MEDIUM-severity findings require inline acknowledgement in the commit message; setup is via 'specsmith integrate codity --project-dir .'.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §39
+- **Test_Ids:** ['TEST-357']
+
+## REQ-356. codity-ai-review Governance Skill in Skills Catalog
+- **ID:** REQ-356
+- **Title:** codity-ai-review Governance Skill in Skills Catalog
+- **Description:** specsmith MUST include a 'codity-ai-review' SkillEntry in the governance domain skills catalog. The skill MUST document: Codity CLI install command (curl install script), codity login (magic-link browser auth), codity init (per-repo initialisation), daily commands (review --staged, scan --staged, test-gen --staged, doctor), the AGENTS.md blocking rule (HIGH severity = commit blocked, MEDIUM = acknowledgement required), CI integration via specsmith integrate codity, GitHub App setup, GitLab PAT setup (codity config set-pat --provider gitlab), and Azure DevOps PAT setup. The skill MUST be tagged with codity, ai-review, code-review, security, test-gen, ci, github, gitlab, azure, staged, pre-commit and discoverable via specsmith skill list.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §39
+- **Test_Ids:** ['TEST-356']
+

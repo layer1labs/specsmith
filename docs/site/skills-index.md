@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **69 built-in skills** across 11 domains.
+specsmith ships with **70 built-in skills** across 11 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -16,13 +16,14 @@ Each skill is a curated `SKILL.md` injected into the agent context with
 
 ---
 
-## Governance (10)
+## Governance (11)
 
-Skills for project governance workflows, verification, release management, ESDB, CI polling, and IP prosecution.
+Skills for project governance workflows, verification, release management, ESDB, CI polling, IP prosecution, and AI code review.
 
 | Slug | Name | Key tags |
 |------|------|----------|
 | `chronomemory-esdb` | ChronoMemory ESDB — epistemic state database (v0.1.1) | esdb, chronomemory, wal, query, context-pack |
+| `codity-ai-review` | Codity.ai AI Review — staged-diff code review, security scan, test-gen | codity, ai-review, code-review, security, pre-commit |
 | `diff-reviewer` | Diff Reviewer — surface changes for approval | git, review, pr |
 | `gh-ci-polling` | GitHub Actions CI polling — smart wait (no sleep) | ci, gh, polling, github-actions |
 | `issue-triage` | Issue Triage — classify and prioritise GitHub issues | github, issues, labels |

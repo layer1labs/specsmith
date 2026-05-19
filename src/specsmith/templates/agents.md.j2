@@ -103,6 +103,17 @@ Agents MUST defer to specsmith for ALL governance decisions.
 
 ---
 
+## Codity.ai Code Review (if configured)
+
+If `codity doctor` exits 0 (Codity is configured), run
+`codity review --staged` before any commit touching production code.
+- **HIGH severity** findings block the commit.
+- **MEDIUM severity** requires inline acknowledgement in the commit message.
+
+To set up Codity: `specsmith integrate codity --project-dir .`
+
+---
+
 **Project:** {{ project.name }}
 **Type:** {{ project.type_label }}
 **Platforms:** {{ project.platform_names | join(', ') }}

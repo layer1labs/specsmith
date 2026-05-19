@@ -2935,3 +2935,47 @@
 - **Expected Behavior:** Each type has correct build tool; all five types in _TYPE_LABELS
 - **Confidence:** 0.95
 
+## TEST-354. CodityAdapter Generates GitHub Workflow by Default
+- **ID:** TEST-354
+- **Title:** CodityAdapter Generates GitHub Workflow by Default
+- **Description:** CodityAdapter().generate(config, tmp_path) on a directory with no VCS signals MUST create .github/workflows/codity-review.yml containing 'codity review --staged', 'curl -fsSL https://cli.codity.ai/install.sh | sh', 'CODITY_ACCESS_TOKEN', and 'actions/checkout@v4'. It MUST also create docs/codity-setup.md. When LEDGER.md exists, a TODO checklist entry MUST be appended containing 'codity login' and 'codity doctor'. CodityAdapter().name MUST equal 'codity'.
+- **Requirement ID:** REQ-354
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** CodityAdapter().generate(mock_config, tmp_path); tmp_path has no scaffold.yml or VCS hint files
+- **Expected Behavior:** .github/workflows/codity-review.yml created; docs/codity-setup.md created; LEDGER.md appended; name == 'codity'
+- **Confidence:** 0.95
+
+## TEST-355. CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
+- **ID:** TEST-355
+- **Title:** CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
+- **Description:** When scaffold.yml contains 'gitlab' (case-insensitive), _detect_vcs() MUST return 'gitlab' and generate() MUST write .gitlab-ci-codity.yml (not a GitHub workflow). When scaffold.yml contains 'azure', _detect_vcs() MUST return 'azure' and generate() MUST write .azure-pipelines/codity-review.yml. When .gitlab-ci.yml exists in the project root (no scaffold.yml), _detect_vcs() MUST return 'gitlab'. When azure-pipelines.yml exists, _detect_vcs() MUST return 'azure'. The GitLab workflow MUST contain 'codity config set-pat --provider gitlab'. The Azure workflow MUST contain 'codity config set-pat --provider azure'.
+- **Requirement ID:** REQ-354
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Scaffold.yml with gitlab/azure keyword; .gitlab-ci.yml present; azure-pipelines.yml present
+- **Expected Behavior:** Correct VCS detected; correct workflow file written; PAT setup command present
+- **Confidence:** 0.95
+
+## TEST-356. codity-ai-review Skill Is in Governance Skills Catalog
+- **ID:** TEST-356
+- **Title:** codity-ai-review Skill Is in Governance Skills Catalog
+- **Description:** specsmith.skills.governance.SKILLS MUST contain a SkillEntry with slug='codity-ai-review'. Its body MUST contain 'codity review --staged', 'codity login', 'codity init', 'codity scan --staged', 'codity test-gen --staged', 'codity doctor', 'specsmith integrate codity', 'HIGH severity', 'set-pat --provider gitlab', and 'set-pat --provider azure'. Its tags MUST include 'codity', 'ai-review', and 'pre-commit'. Its domain MUST be SkillDomain.GOVERNANCE.
+- **Requirement ID:** REQ-356
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** from specsmith.skills.governance import SKILLS; find slug='codity-ai-review'
+- **Expected Behavior:** SkillEntry found; body and tags correct; domain GOVERNANCE
+- **Confidence:** 0.95
+
+## TEST-357. AGENTS.md Template Contains Codity.ai Pre-commit Rule
+- **ID:** TEST-357
+- **Title:** AGENTS.md Template Contains Codity.ai Pre-commit Rule
+- **Description:** The rendered agents.md.j2 template MUST contain a 'Codity.ai Code Review' section. The section MUST instruct agents to run 'codity review --staged' if codity doctor exits 0; MUST state that HIGH-severity findings block the commit; MUST mention MEDIUM-severity acknowledgement; MUST reference 'specsmith integrate codity'. The section MUST appear after the Session Governance Protocol section and before the project metadata footer.
+- **Requirement ID:** REQ-355
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Read src/specsmith/templates/agents.md.j2 directly; render via Jinja2 with minimal context
+- **Expected Behavior:** Template contains Codity section with review --staged, HIGH severity, MEDIUM, integrate codity
+- **Confidence:** 0.95
+

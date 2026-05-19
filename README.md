@@ -202,7 +202,7 @@ be overwritten by the next sync.
 | `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer |
 | `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability |
 | `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
-| `docs/requirements/overflow.yml` | REQ-335..353 | VCS ops, skills catalog, ESDB namespace, session governance, modern web types |
+| `docs/requirements/overflow.yml` | REQ-335..356 | VCS ops, skills catalog, ESDB namespace, session governance, modern web types, Codity.ai integration |
 
 **Migration from Markdown-primary:**
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
@@ -860,6 +860,25 @@ production LLM systems:
 - **H20** — Falsifiability required: cite sources or flag claims as `[HYPOTHESIS]`.
 - **H21** — Disclose all model-specific assumptions (context window, format, temperature).
 - **H22** — Cross-platform CI: green on one OS ≠ cross-platform coverage.
+
+---
+
+## Codity.ai AI Code Review Integration
+
+specsmith can scaffold [Codity.ai](https://codity.ai) AI code review into any project:
+
+```bash
+specsmith integrate codity --project-dir ./my-project
+```
+
+This generates:
+- `.github/workflows/codity-review.yml` (GitHub Actions) or `.gitlab-ci-codity.yml` / `.azure-pipelines/codity-review.yml` depending on your VCS
+- `docs/codity-setup.md` — one-time setup checklist
+- Appends a TODO checklist to `LEDGER.md`
+
+**AGENTS.md rule (REQ-355):** Projects with Codity configured SHOULD run `codity review --staged` before any commit touching production code. HIGH-severity findings are blocking; MEDIUM findings require inline acknowledgement.
+
+See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-review`) for the full CLI workflow reference.
 
 ---
 

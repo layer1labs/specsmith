@@ -883,3 +883,24 @@ Hard-resets the working tree to `origin/<branch>` via `git fetch` + `git reset -
 Same as `--discard` plus `git clean -fd` to remove all untracked files. Equivalent to a full workspace reset to remote state.
 
 **Architecture invariant (I14):** `--force` and `--discard` flags MUST be used only when explicitly requested. They bypass safety guards intentionally designed to prevent accidental data loss. Agents MUST NOT invoke these flags without explicit user confirmation.
+
+## 39. Codity.ai Integration — AI Code Review Adapter
+Source: `src/specsmith/integrations/codity.py`; `src/specsmith/skills/governance.py` (`codity-ai-review`)
+
+`CodityAdapter` (REQ-354) scaffolds Codity.ai AI-code-review CI workflows into target projects via `specsmith integrate codity`. It detects the VCS host from `scaffold.yml` content and directory heuristics (`.gitlab-ci.yml`, `azure-pipelines.yml`) and generates the appropriate CI file:
+
+| VCS host | Generated file |
+|---|---|
+| GitHub (default) | `.github/workflows/codity-review.yml` |
+| GitLab | `.gitlab-ci-codity.yml` |
+| Azure DevOps | `.azure-pipelines/codity-review.yml` |
+
+All variants: install Codity CLI via `curl -fsSL https://cli.codity.ai/install.sh | sh`, run `codity review --staged`, require `CODITY_ACCESS_TOKEN` secret. GitLab/Azure additionally call `codity config set-pat --provider <vcs>` with a PAT.
+
+`generate()` also writes `docs/codity-setup.md` (one-time setup checklist) and appends a TODO checklist to `LEDGER.md`.
+
+The **`codity-ai-review`** governance skill (REQ-356) documents the full Codity.ai CLI workflow for agents: install, `codity login` (magic-link auth), `codity init`, daily commands (`review --staged`, `scan --staged`, `test-gen --staged`, `doctor`), VCS-specific PAT setup, and the AGENTS.md rule.
+
+The **AGENTS.md template** (REQ-355) includes a conditional Codity section: projects with Codity configured SHOULD run `codity review --staged` before commits touching production code; HIGH-severity findings block the commit; MEDIUM findings require inline acknowledgement.
+
+**Architecture invariant (I15):** The VCS-detection heuristic MUST default to `"github"` when no signals are present (scaffold.yml absent, no `.gitlab-ci.yml`, no `azure-pipelines.yml`). New VCS hosts require a new detection heuristic AND a corresponding workflow writer method.

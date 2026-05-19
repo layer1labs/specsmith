@@ -559,6 +559,33 @@ specsmith apply --project-dir ./my-project
 
 Re-renders GitHub Actions / GitLab CI / Bitbucket Pipelines config and agent integration files (CLAUDE.md, GEMINI.md, `.agents/skills/SKILL.md`, etc.). Safe: never overwrites AGENTS.md, LEDGER.md, or user-authored docs.
 
+## `specsmith integrate`
+
+Scaffold third-party tool integrations into a project.
+
+```bash
+specsmith integrate codity --project-dir ./my-project   # Codity.ai AI code review
+specsmith integrate agent-skill                         # Agent skill SKILL.md
+specsmith integrate claude-code                         # CLAUDE.md for Claude Code
+specsmith integrate cursor                              # .cursor/rules/ for Cursor
+specsmith integrate aider                               # .aider.conf.yml
+specsmith integrate copilot                             # .github/copilot-instructions.md
+specsmith integrate gemini                              # GEMINI.md
+specsmith integrate windsurf                            # .windsurfrules
+```
+
+**`codity` integration** (REQ-354):
+
+Generates the Codity.ai AI code review CI workflow for the detected VCS host:
+
+- **GitHub** (default): `.github/workflows/codity-review.yml` (GitHub Actions, uses `CODITY_ACCESS_TOKEN` secret)
+- **GitLab** (detected from scaffold.yml or `.gitlab-ci.yml`): `.gitlab-ci-codity.yml`
+- **Azure DevOps** (detected from scaffold.yml or `azure-pipelines.yml`): `.azure-pipelines/codity-review.yml`
+
+Also writes `docs/codity-setup.md` (setup checklist) and appends a TODO entry to LEDGER.md.
+
+See [Codity.ai Setup](../docs/codity-setup.md) and the `codity-ai-review` skill for the pre-commit workflow.
+
 ## `specsmith migrate-project`
 
 Migrate project scaffold to the current specsmith version.

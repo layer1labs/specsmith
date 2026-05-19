@@ -634,6 +634,115 @@ Increment NNN by scanning existing PAR entries in `docs/LEDGER.md`.
 """,
     ),
     SkillEntry(
+        slug="codity-ai-review",
+        name="Codity.ai AI Review — staged-diff code review, security scan, test-gen",
+        description=(
+            "Codity.ai CLI workflow: install, authenticate, initialise, and run "
+            "codity review --staged / scan --staged / test-gen --staged on every commit "
+            "that touches production code. Covers GitHub App, GitLab PAT, Azure PAT "
+            "setup, CI integration via specsmith integrate codity, and the AGENTS.md rule."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=[
+            "codity",
+            "ai-review",
+            "code-review",
+            "security",
+            "test-gen",
+            "ci",
+            "github",
+            "gitlab",
+            "azure",
+            "staged",
+            "pre-commit",
+        ],
+        prerequisites=[],
+        body="""\
+# Codity.ai AI Review Skill
+
+Codity.ai provides AI-powered code review, security scanning, and test
+generation that runs against staged changes (`--staged`) before every commit
+that touches production code.
+
+## Installation
+```bash
+curl -fsSL https://cli.codity.ai/install.sh | sh
+```
+
+## Authentication
+```bash
+codity login   # browser magic-link; no password required
+```
+Config stored at `~/.codity/config.yaml`.
+Override with env var: `CODITY_ACCESS_TOKEN=<token>`.
+
+## Project initialisation (once per repo)
+```bash
+codity init
+```
+
+## Daily commands (run on staged changes)
+
+| Command | Effect |
+|---|---|
+| `codity review --staged` | AI inline code review of staged diff |
+| `codity scan --staged` | Security & quality scan of staged diff |
+| `codity test-gen --staged` | Generate tests for staged changes |
+| `codity doctor` | Health-check CLI + project config |
+
+## AGENTS.md rule (non-negotiable)
+
+Projects with Codity configured SHOULD run `codity review --staged` before
+any commit that touches production code.
+
+- **HIGH severity** findings are **blocking** — do not commit until resolved.
+- **MEDIUM severity** findings require inline acknowledgement in the commit
+  message or PR description.
+- Run `codity scan --staged` for security issues on any auth/crypto/infra change.
+
+## CI integration (via specsmith)
+
+```bash
+specsmith integrate codity --project-dir .
+```
+
+This scaffolds:
+- `.github/workflows/codity-review.yml` (GitHub Actions)
+- `.gitlab-ci-codity.yml` (GitLab CI, when gitlab detected)
+- `.azure-pipelines/codity-review.yml` (Azure Pipelines, when azure detected)
+- `docs/codity-setup.md` — one-time setup checklist
+- Appends TODO items to `LEDGER.md`
+
+## VCS-specific setup
+
+### GitHub (recommended)
+1. Install the Codity GitHub App: <https://github.com/apps/codity>
+2. Grant access to your repo(s).
+3. (Optional) Add `CODITY_ACCESS_TOKEN` as a repo secret for CLI auth.
+
+### GitLab
+```bash
+codity config set-pat --provider gitlab --token <YOUR_PAT>
+```
+Add `CODITY_GITLAB_PAT` as a CI/CD variable (masked, protected).
+
+### Azure DevOps
+```bash
+codity config set-pat --provider azure --token <YOUR_PAT>
+```
+Add `CODITY_AZURE_PAT` as a secret pipeline variable.
+
+## Health check
+```bash
+codity doctor
+# Expected output:
+# ✓ CLI version: x.y.z
+# ✓ Authenticated: <email>
+# ✓ Project: initialised
+```
+""",
+    ),
+    SkillEntry(
         slug="issue-triage",
         name="Issue Triage — classify and prioritise GitHub issues",
         description=(
