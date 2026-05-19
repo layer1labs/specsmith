@@ -14,12 +14,22 @@ SKILLS: list[SkillEntry] = [
         ),
         domain=SkillDomain.DEVOPS,
         tags=[
-            "ci", "github-actions", "permissions", "pytest", "coverage",
-            "ruff", "mypy", "security", "python", "matrix", "zero-trust",
+            "ci",
+            "github-actions",
+            "permissions",
+            "pytest",
+            "coverage",
+            "ruff",
+            "mypy",
+            "security",
+            "python",
+            "matrix",
+            "zero-trust",
         ],
         platforms=["linux", "windows", "macos"],
         prerequisites=["gh"],
-        body=("""\
+        body=(
+            """\
 # GitHub Actions CI Skill (Layer1Labs pattern)
 
 Standard CI pattern used across all Layer1Labs / BitConcepts Python projects.
@@ -161,7 +171,8 @@ jobs:
       - run: cargo install cargo-audit --locked
       - run: cargo audit
 ```
-"""),
+"""
+        ),
     ),
     SkillEntry(
         slug="docker-workflow",

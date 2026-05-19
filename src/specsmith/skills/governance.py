@@ -150,12 +150,22 @@ SKILLS: list[SkillEntry] = [
         ),
         domain=SkillDomain.GOVERNANCE,
         tags=[
-            "esdb", "chronomemory", "epistemics", "wal", "persistence",
-            "context-pack", "query", "dep-graph", "rollback", "token-metrics",
-            "aee", "anti-hallucination",
+            "esdb",
+            "chronomemory",
+            "epistemics",
+            "wal",
+            "persistence",
+            "context-pack",
+            "query",
+            "dep-graph",
+            "rollback",
+            "token-metrics",
+            "aee",
+            "anti-hallucination",
         ],
         prerequisites=["chronomemory"],
-        body=("""\
+        body=(
+            """\
 # ChronoMemory ESDB Skill (v0.1.1)
 
 EpiStemic State Database for Layer1Labs agentic projects.
@@ -280,7 +290,105 @@ from chronomemory import RUST_BACKEND
 # When True, RustChronoStore and RustRecord are available.
 print("Rust backend:", RUST_BACKEND)
 ```
-"""),
+"""
+        ),
+    ),
+    SkillEntry(
+        slug="gh-ci-polling",
+        name="GitHub Actions CI polling — smart wait with gh CLI",
+        description=(
+            "Poll GitHub Actions CI using gh run watch or gh run list with JSON output. "
+            "Never use sleep-based waiting. Covers: wait for run, check latest run status, "
+            "tail failure logs, and poll a specific job."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=[
+            "ci",
+            "github-actions",
+            "gh",
+            "polling",
+            "wait",
+            "workflow",
+            "devops",
+        ],
+        prerequisites=["gh"],
+        body=(
+            """\
+# GitHub Actions CI Polling Skill
+
+## Rule: NEVER sleep-wait for CI
+Do NOT use `Start-Sleep`, `sleep`, `time.sleep`, or any fixed delay to wait
+for CI. Always use `gh run watch` or poll with `gh run list --json`.
+
+## 1. Wait for the most recent run on a branch to complete
+```bash
+# Blocks until the latest run finishes, then exits 0 (pass) or non-zero (fail)
+gh run watch --repo <owner>/<repo> $(gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')
+```
+```pwsh
+# PowerShell equivalent
+$runId = gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId | ConvertFrom-Json | Select-Object -ExpandProperty databaseId
+gh run watch --repo <owner>/<repo> $runId
+```
+
+## 2. Check status of the latest N runs (non-blocking)
+```bash
+gh run list --repo <owner>/<repo> --limit 3 --branch <branch>
+# STATUS column: ✓ = success  X = failure  * = in_progress  - = queued
+```
+
+## 3. Check if latest run is complete and passed (scripted)
+```bash
+status=$(gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json conclusion --jq '.[0].conclusion')
+echo "Conclusion: $status"   # success | failure | cancelled | ""
+# Empty string = still running
+```
+```pwsh
+$status = gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json conclusion | ConvertFrom-Json | Select-Object -ExpandProperty conclusion
+```
+
+## 4. Poll until complete (manual loop — use only when gh run watch unavailable)
+```bash
+while true; do
+  status=$(gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json status,conclusion --jq '.[0]')
+  running=$(echo $status | jq -r '.status')
+  conclusion=$(echo $status | jq -r '.conclusion')
+  if [ "$running" != "in_progress" ] && [ "$running" != "queued" ]; then
+    echo "Done: $conclusion"; break
+  fi
+  echo "Still running ($running)..."
+  sleep 15   # Only acceptable here — inside an explicit polling loop with state check
+done
+```
+
+## 5. View failure logs immediately
+```bash
+# Show only the failed step logs for the latest run
+gh run view --repo <owner>/<repo> --log-failed $(gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')
+```
+
+## 6. Watch a specific run ID
+```bash
+gh run watch --repo <owner>/<repo> <run-id>     # blocks, streams progress
+gh run view  --repo <owner>/<repo> <run-id>     # snapshot of current state
+gh run view  --repo <owner>/<repo> <run-id> --log-failed  # failure logs only
+```
+
+## Extracting run IDs after a push
+```bash
+# Get the run triggered by the most recent push
+gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId,status,name
+```
+
+## Key rules
+- `gh run watch` is the correct primitive — it polls internally and exits when done.
+- Never substitute `sleep N; gh run list` for `gh run watch`.
+- If `gh run watch` is unavailable (older gh version), use the polling loop in §4
+  with a minimum 15-second interval and an explicit status check, NOT a fixed sleep.
+- Always check `conclusion` (not just `status`) to determine pass/fail.
+  `status=completed` with `conclusion=failure` is a failure.
+"""
+        ),
     ),
     SkillEntry(
         slug="issue-triage",

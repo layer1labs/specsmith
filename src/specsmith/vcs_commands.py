@@ -191,9 +191,7 @@ def run_discard(root: Path, *, clean: bool = False) -> GitResult:
     if clean:
         clean_result = _run_git(root, ["clean", "-fd"])
         if not clean_result.success:
-            return GitResult(
-                success=False, message=f"clean failed: {clean_result.message}"
-            )
+            return GitResult(success=False, message=f"clean failed: {clean_result.message}")
 
     return GitResult(
         success=True,
