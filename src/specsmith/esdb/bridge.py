@@ -1,10 +1,28 @@
-"""specsmith.esdb.bridge — thin re-export of chronomemory.EsdbBridge.
+"""specsmith.esdb.bridge — backward-compat bridge shim (chronomemory v0.1.1).
 
-EsdbBridge lives in the chronomemory package; this module exposes it under
-the specsmith.esdb.bridge namespace so that save/load commands can import it
-without depending directly on chronomemory at the top of cli.py.
+For direct use prefer importing from specsmith.esdb (the package __init__)
+which re-exports the full chronomemory v0.1.1 surface.  This module is kept
+for any code that specifically imports from specsmith.esdb.bridge.
 """
 
-from chronomemory import EsdbBridge
+from chronomemory import (
+    RUST_BACKEND,
+    ContextPackCompiler,
+    DepGraph,
+    EsdbBridge,
+    EsdbRecord,
+    EsdbStatus,
+    metrics,
+    query,
+)
 
-__all__ = ["EsdbBridge"]
+__all__ = [
+    "EsdbBridge",
+    "EsdbRecord",
+    "EsdbStatus",
+    "ContextPackCompiler",
+    "DepGraph",
+    "RUST_BACKEND",
+    "query",
+    "metrics",
+]
