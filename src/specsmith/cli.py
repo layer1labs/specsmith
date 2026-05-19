@@ -2471,8 +2471,14 @@ def push_cmd(project_dir: str, force: bool) -> None:
     default=False,
     help="Commit only; skip push.",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Override push safety checks (e.g. direct-to-main guard).",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
-def save_cmd(project_dir: str, message: str, no_push: bool, as_json: bool) -> None:
+def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json: bool) -> None:
     """Save governance state: ESDB backup, commit, and push.
 
     Combines ``specsmith esdb backup`` + ``specsmith commit`` + ``specsmith push``
@@ -2511,7 +2517,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, as_json: bool) -> No
 
     # 3. Push
     if not no_push:
-        push_result = run_push(root)
+        push_result = run_push(root, force=force)
         steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
 
     ok = all(s["ok"] for s in steps)
@@ -2688,11 +2694,28 @@ def pr_cmd(project_dir: str, title: str, draft: bool) -> None:
 
 @main.command(name="pull")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def pull_cmd(project_dir: str) -> None:
-    """Pull latest changes and check for governance conflicts."""
-    from specsmith.vcs_commands import run_sync
+@click.option(
+    "--discard",
+    is_flag=True,
+    default=False,
+    help="Hard-reset to remote and pull, discarding all local changes.",
+)
+@click.option(
+    "--clean",
+    is_flag=True,
+    default=False,
+    help="Like --discard but also removes untracked files (git clean -fd).",
+)
+def pull_cmd(project_dir: str, discard: bool, clean: bool) -> None:
+    """Pull latest changes and check for governance conflicts.
 
-    result = run_sync(Path(project_dir).resolve())
+    Use --discard to hard-reset to the remote branch, discarding local
+    changes.  Add --clean to also remove untracked files.
+    """
+    from specsmith.vcs_commands import run_discard, run_sync
+
+    root = Path(project_dir).resolve()
+    result = run_discard(root, clean=clean) if discard or clean else run_sync(root)
     if result.success:
         console.print(f"[green]\u2713[/green] {result.message}")
     else:
