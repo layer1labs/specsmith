@@ -5,6 +5,192 @@ from specsmith.skills import SkillDomain, SkillEntry
 
 SKILLS: list[SkillEntry] = [
     SkillEntry(
+        slug="github-health-check",
+        name="GitHub Health Check — CI/PR/security/code-quality triage",
+        description=(
+            "Systematic triage playbook for GitHub repository health: CI failures, "
+            "open PRs and review status, CodeQL security alerts, Dependabot alerts, "
+            "and code quality issues. Uses gh CLI and gh api exclusively."
+        ),
+        domain=SkillDomain.DEVOPS,
+        tags=[
+            "ci",
+            "github",
+            "security",
+            "codeql",
+            "dependabot",
+            "pr",
+            "triage",
+            "alerts",
+            "code-quality",
+            "gh",
+        ],
+        platforms=["linux", "windows", "macos"],
+        prerequisites=["gh"],
+        body="""\
+# GitHub Health Check Skill
+
+## Triage order (always run in this sequence)
+1. **CI status** — are the latest runs passing?
+2. **Open PRs** — any blocked, unreviewed, or failing PRs?
+3. **CodeQL / security alerts** — any open code-scanning alerts?
+4. **Dependabot alerts** — any vulnerable dependencies?
+5. **Code quality / policy violations** — any rule violations?
+
+---
+
+## 1. CI status
+```bash
+# Latest runs on a branch (all workflows)
+gh run list --repo <owner>/<repo> --branch <branch> --limit 5
+
+# Check conclusion of the single latest run
+gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json conclusion,status,name,databaseId
+
+# View failure logs for the latest failed run
+gh run view --repo <owner>/<repo> --log-failed \
+  $(gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId --jq '.[0].databaseId')
+
+# Wait for a specific run (never use sleep)
+gh run watch --repo <owner>/<repo> <run-id>
+```
+```pwsh
+# PowerShell
+$runId = (gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId | ConvertFrom-Json).databaseId
+gh run watch --repo <owner>/<repo> $runId
+```
+
+**Reading status:**
+- `conclusion: success` — green
+- `conclusion: failure` — red; use `--log-failed` to triage
+- `conclusion: null` + `status: in_progress` — still running; use `gh run watch`
+- `conclusion: cancelled` — was aborted; re-run if stale
+
+---
+
+## 2. Open PRs and review status
+```bash
+# List all open PRs with review state
+gh pr list --repo <owner>/<repo> --state open --json number,title,reviewDecision,statusCheckRollup,author
+
+# PRs with failed CI
+gh pr list --repo <owner>/<repo> --state open --json number,title,statusCheckRollup \
+  --jq '[.[] | select(.statusCheckRollup[] | .conclusion == "FAILURE")]'
+
+# PRs awaiting review (no decision yet)
+gh pr list --repo <owner>/<repo> --state open --json number,title,reviewDecision \
+  --jq '[.[] | select(.reviewDecision == null or .reviewDecision == "REVIEW_REQUIRED")]'
+
+# Full PR detail
+gh pr view <number> --repo <owner>/<repo>
+gh pr checks <number> --repo <owner>/<repo>   # all CI check results for a PR
+```
+
+**Review decision values:**
+- `APPROVED` — at least one approval, no blockers
+- `CHANGES_REQUESTED` — blocked by reviewer
+- `REVIEW_REQUIRED` — no reviews yet
+- `null` — no review policy configured
+
+---
+
+## 3. CodeQL / code-scanning alerts
+```bash
+# All open code-scanning (CodeQL) alerts
+gh api /repos/<owner>/<repo>/code-scanning/alerts?state=open --paginate \
+  --jq '.[] | {number: .number, rule: .rule.id, severity: .rule.severity, file: .most_recent_instance.location.path}'
+
+# High/critical only
+gh api "/repos/<owner>/<repo>/code-scanning/alerts?state=open&severity=high" --paginate
+gh api "/repos/<owner>/<repo>/code-scanning/alerts?state=open&severity=critical" --paginate
+
+# Dismiss a false-positive alert (requires security_events permission)
+gh api --method PATCH /repos/<owner>/<repo>/code-scanning/alerts/<number> \
+  -f dismissed_reason='false positive' \
+  -f dismissed_comment='CodeQL does not track custom sanitizer <function_name>'
+
+# Alert count summary
+gh api /repos/<owner>/<repo>/code-scanning/alerts?state=open --paginate --jq 'length'
+```
+
+**Severity triage order:** `critical` → `high` → `error` → `warning` → `note`
+
+---
+
+## 4. Dependabot alerts
+```bash
+# All open Dependabot vulnerability alerts
+gh api /repos/<owner>/<repo>/dependabot/alerts?state=open --paginate \
+  --jq '.[] | {number: .number, severity: .security_advisory.severity, package: .dependency.package.name, cve: .security_advisory.cve_id}'
+
+# Critical/high only
+gh api "/repos/<owner>/<repo>/dependabot/alerts?state=open&severity=critical" --paginate
+gh api "/repos/<owner>/<repo>/dependabot/alerts?state=open&severity=high" --paginate
+
+# Check for auto-generated Dependabot PRs
+gh pr list --repo <owner>/<repo> --author 'dependabot[bot]' --state open
+
+# Dismiss an alert (requires correct permission)
+gh api --method PATCH /repos/<owner>/<repo>/dependabot/alerts/<number> \
+  -f state=dismissed \
+  -f dismissed_reason='tolerable_risk' \
+  -f dismissed_comment='Not reachable in production'
+```
+
+**Severity triage order:** `critical` → `high` → `medium` → `low`
+
+---
+
+## 5. Code quality / policy violations
+```bash
+# Repository rule violations (branch protection)
+gh api /repos/<owner>/<repo>/rules/branches/<branch> 2>/dev/null | \
+  jq '.rules[] | {type: .type, enforcement: .enforcement}'
+
+# Recent workflow runs with bypass violations
+gh run list --repo <owner>/<repo> --limit 20 --json event,conclusion,displayTitle \
+  --jq '[.[] | select(.conclusion == "failure")]'
+
+# Check branch protection status
+gh api /repos/<owner>/<repo>/branches/<branch>/protection 2>/dev/null
+
+# Secret scanning alerts (requires advanced security)
+gh api /repos/<owner>/<repo>/secret-scanning/alerts?state=open 2>/dev/null --paginate
+```
+
+---
+
+## Full health snapshot (one-shot)
+```bash
+#!/usr/bin/env bash
+REPO="<owner>/<repo>"
+BRANCH="<branch>"
+
+echo "=== CI (latest 3 runs) ==="
+gh run list --repo $REPO --branch $BRANCH --limit 3
+
+echo "=== Open PRs ==="
+gh pr list --repo $REPO --state open --json number,title,reviewDecision,author \
+  --jq '.[] | "#\(.number) \(.title) [\(.reviewDecision // "NO_REVIEW")] by \(.author.login)"'
+
+echo "=== CodeQL alerts (open) ==="
+gh api /repos/$REPO/code-scanning/alerts?state=open --paginate --jq 'length'
+
+echo "=== Dependabot alerts (open) ==="
+gh api /repos/$REPO/dependabot/alerts?state=open --paginate --jq 'length' 2>/dev/null || echo "N/A"
+```
+
+---
+
+## Key rules
+- **Always triage in order**: CI → PRs → CodeQL → Dependabot → policy.
+- Never dismiss a CodeQL alert as false positive without a specific comment explaining why.
+- Dependabot `tolerable_risk` dismissals require a comment with the CVE and reachability rationale.
+- `gh api` requires the `repo` or `security_events` scope depending on alert type.
+- Check `gh auth status` first if any API calls return 401/403.
+""",
+    ),
+    SkillEntry(
         slug="github-actions-ci",
         name="GitHub Actions CI — Layer1Labs pattern (zero-trust, parallel, coverage-gated)",
         description=(

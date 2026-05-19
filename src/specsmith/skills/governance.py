@@ -391,6 +391,146 @@ gh run list --repo <owner>/<repo> --branch <branch> --limit 1 --json databaseId,
         ),
     ),
     SkillEntry(
+        slug="patent-prosecution-workflow",
+        name="Patent Prosecution Workflow — prior-art protocol, USPTO MCP, claim themes",
+        description=(
+            "IP prosecution workflow for patent-prosecution type projects: prior-art protocol "
+            "execution, USPTO MCP server selection, PPUBS\u2192PatentsView fallback, PAR ID "
+            "assignment, claim theme tracking, and ledger entry format."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=[
+            "patent",
+            "patent-prosecution",
+            "prior-art",
+            "uspto",
+            "mcp",
+            "ppubs",
+            "patentsview",
+            "claim-themes",
+            "ip",
+            "par",
+        ],
+        prerequisites=[],
+        body="""\
+# Patent Prosecution Workflow Skill
+
+For use with `type: patent-prosecution` projects (e.g. cpsc-core).
+All MCP tool outputs are INFORMATIONAL. Never alter normative specifications
+based on MCP output. No legal conclusions from tool output.
+
+## Prior-art protocol trigger
+
+When a user issues a command beginning with `prior-art protocol:`, follow
+this sequence:
+
+1. Re-read the current protocol text from `docs/ip/prosecution/` and `docs/ip/strategy/`.
+2. Identify which themes/claims are covered and which MCP sources are available.
+3. Execute the relevant portions using the appropriate MCP servers (see selection below).
+4. Assign a Run ID: `PAR-YYYY-MM-DD-NNN` (e.g. `PAR-2026-05-19-001`).
+5. Append a ledger entry (see format below).
+
+Recognised command patterns (not a closed list):
+```
+prior-art protocol: start Themes A-H (PPUBS only)
+prior-art protocol: start Themes A-H (PTAB+PFW+CitA only)
+prior-art protocol: status (USPTO MCP)
+prior-art protocol: rerun since <reason> (USPTO MCP)
+```
+
+## MCP server selection matrix
+
+| Need | Server |
+|---|---|
+| Front-door full-text patent search | `patents` (PPUBS / PatentsView) |
+| PatentsView landscape query (CPC) | `patents` (`patentsview_search_by_cpc`) |
+| PTAB trial / appeal research | `uspto_ptab` |
+| File-wrapper, claim evolution, NOAs, office actions, examiner citations | `uspto_pfw` |
+| Final petition decisions | `uspto_fpd` |
+| Enriched citation analysis | `uspto_enriched_citations` |
+
+For theme-based prior-art protocols: treat `uspto_ptab`, `uspto_pfw`, `uspto_fpd`,
+`uspto_enriched_citations` as **primary** structured sources. Treat `patents`
+(PPUBS/PatentsView) as **complementary** front-door search.
+
+## PPUBS → PatentsView fallback
+
+When `patents` MCP returns HTTP 500 `INTERNAL_SERVER_ERROR` with
+`"Unable to Process"` developer message:
+
+1. This is an **upstream PPUBS service issue** — not a misconfiguration.
+2. Immediately fall back to `patentsview_search_patents` (or `patentsview_search_by_cpc`).
+3. Continue the protocol using PatentsView + USPTO v3 MCP servers.
+4. Note explicitly in the response: *PPUBS 500 — results based on PatentsView / USPTO MCP*.
+
+PPUBS 500s MUST NOT block prior-art protocol execution.
+
+## Claim theme tracking
+
+Themes are defined in `scaffold.yml` under `claim_themes`. Each theme has:
+- `id` — letter (A, B, C...)
+- `name` — human description
+- `risk` — `101-alice`, `103-low`, `103-moderate-high`, `none`, etc.
+- `primary_comparator` — US patent number or null
+- `last_par_run` — PAR ID of the most recent covering run
+
+Before running a protocol, check which themes have stale `last_par_run`
+values (run predates the most recent spec update).
+
+## PAR ID format
+
+```
+PAR-YYYY-MM-DD-NNN
+PAR-2026-05-19-001  # first run on 2026-05-19
+PAR-2026-05-19-002  # second run same day
+```
+
+Increment NNN by scanning existing PAR entries in `docs/LEDGER.md`.
+
+## Ledger entry format (append to docs/LEDGER.md)
+
+```markdown
+## PAR-YYYY-MM-DD-NNN — Prior-Art Run
+
+- **Date**: YYYY-MM-DD
+- **Trigger**: <user command or reason>
+- **Themes**: A, B, C (or ALL)
+- **MCP sources**: PPUBS, PatentsView, uspto_ptab, uspto_pfw, uspto_fpd, uspto_enriched_citations
+- **Risk levels**: Theme A: 101-alice — Theme B: 103-moderate-high — ...
+- **Conclusion summary**: <1-3 sentence summary of findings>
+- **Stale themes post-run**: <list any themes needing re-run or NONE>
+```
+
+## Prosecution phases (patent-prosecution lifecycle)
+
+| Phase | Key milestone |
+|---|---|
+| `provisional-draft` | Invention disclosure written; at least one embodiment documented |
+| `filing` | Filed PDF in `docs/ip/filings/`; SHA-256 recorded in LEDGER.md |
+| `prior-art-search` | All themes searched; each has ≥1 PAR run; risk levels assigned |
+| `claim-hardening` | PAR findings applied to draft claims; counsel reviewed |
+| `non-provisional-draft` | Draft complete; figures rendered; claim set approved by counsel |
+| `examination` | Filed non-provisional; examiner assigned; responding to OAs |
+| `allowance` | NOA received OR continuation filed |
+
+## Roles (agents in IP repos)
+
+| Role | What they may do |
+|---|---|
+| **Spec Drafter** | Draft spec text; NOT finalize |
+| **Reviewer** | Analyze, comment; NOT modify normative text |
+| **Example Generator** | Non-normative folders only |
+| **Implementation Assistant** | Cannot modify specs |
+
+## Invariants (NEVER violate)
+- No legal conclusions from MCP tool output.
+- No new semantics introduced without inventor approval.
+- Filed artifacts in `docs/ip/filings/` are immutable.
+- Normative content lives under `docs/ip/specs/` only.
+- Experiment data belongs in `cpsc-engine-rtl`, not cpsc-core.
+""",
+    ),
+    SkillEntry(
         slug="issue-triage",
         name="Issue Triage — classify and prioritise GitHub issues",
         description=(

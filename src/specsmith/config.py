@@ -66,6 +66,8 @@ class ProjectType(str, Enum):
     EMBEDDED_PYTHON_HMI = "embedded-python-hmi"  # #109: hardware-interfacing kiosk/HMI
     RESEARCH_PYTHON = "research-python"  # #153: experiment/research packages (no CLI)
     SAFETY_CRITICAL = "safety-critical"  # #129: IEC 60204-1/62061/61508 safety-critical
+    # IP / Patent
+    PATENT_PROSECUTION = "patent-prosecution"  # #177: IP prosecution with USPTO MCP lifecycle
 
 
 class Platform(str, Enum):
@@ -192,6 +194,67 @@ class ProjectConfig(BaseModel):
             "and Python verification. Each discipline generates extra CI jobs and "
             "tool registry entries."
         ),
+    )
+
+    # Fallback type — used when this project type is not yet supported
+    # by the installed specsmith version. specsmith silently falls back to
+    # this type for scaffolding purposes while still recording the intended type.
+    fallback_type: str = Field(
+        default="",
+        description=(
+            "Fallback project type for scaffold generation when `type` is not yet "
+            "supported by the installed specsmith version (e.g. 'spec-document' as "
+            "fallback for 'patent-prosecution')."
+        ),
+    )
+
+    # IP prosecution fields (used when type == 'patent-prosecution')
+    provisional_app_number: str = Field(
+        default="", description="USPTO provisional application number (e.g. '63/980,251')"
+    )
+    provisional_filed_date: str = Field(
+        default="", description="Date the provisional was filed (YYYY-MM-DD)"
+    )
+    non_provisional_deadline: str = Field(
+        default="",
+        description="12-month non-provisional conversion deadline (YYYY-MM-DD)",
+    )
+    entity_status: str = Field(default="", description="USPTO entity status: small, micro, large")
+    assignee: str = Field(default="", description="Patent assignee / rights holder")
+    counsel: str = Field(default="", description="Patent counsel firm name")
+    inventors: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="List of inventors with name and role keys",
+    )
+    ip_families: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "IP patent families. Each entry: {id, name, phase, provisional, themes, "
+            "anchor_spec, ...}."
+        ),
+    )
+    claim_themes: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Claim themes for the primary IP family. Each entry: {id, name, description, "
+            "risk, primary_comparator, last_par_run}."
+        ),
+    )
+    specs_dir: str = Field(
+        default="docs/ip/specs",
+        description="Normative specification directory for IP repos",
+    )
+    prosecution_dir: str = Field(
+        default="docs/ip/prosecution",
+        description="Prior-art protocol and prosecution planning directory",
+    )
+    strategy_dir: str = Field(
+        default="docs/ip/strategy",
+        description="IP strategy documents directory",
+    )
+    filings_dir: str = Field(
+        default="docs/ip/filings",
+        description="Immutable filed artifacts directory",
     )
 
     # FPGA-specific
@@ -471,6 +534,8 @@ _TYPE_LABELS: dict[str, str] = {
     ProjectType.EMBEDDED_PYTHON_HMI: "Embedded Python HMI / kiosk (hardware-interfacing)",
     ProjectType.RESEARCH_PYTHON: "Research Python (experiments, no CLI distribution)",
     ProjectType.SAFETY_CRITICAL: "Safety-critical embedded (IEC 60204-1/62061/61508)",
+    # IP / Patent
+    ProjectType.PATENT_PROSECUTION: "Patent prosecution repository (USPTO IP lifecycle)",
 }
 
 _SECTION_REFS: dict[str, str] = {

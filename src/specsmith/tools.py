@@ -311,6 +311,14 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         build=["vivado -mode batch"],
         format=["ruff format"],
     ),
+    # --- IP / Patent prosecution ---
+    ProjectType.PATENT_PROSECUTION: ToolSet(
+        lint=["vale", "cspell"],
+        format=["prettier"],
+        build=["pandoc"],
+        compliance=["specsmith trace verify", "claim-ref-check"],
+        test=["markdown-link-check"],
+    ),
     # --- AEE / Epistemic project types ---
     ProjectType.EPISTEMIC_PIPELINE: ToolSet(
         lint=["ruff check", "specsmith stress-test"],
