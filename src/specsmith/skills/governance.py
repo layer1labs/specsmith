@@ -141,6 +141,148 @@ SKILLS: list[SkillEntry] = [
         ),
     ),
     SkillEntry(
+        slug="chronomemory-esdb",
+        name="ChronoMemory ESDB — epistemic state database (v0.1.1)",
+        description=(
+            "Full API reference and critical rules for chronomemory v0.1.1: "
+            "ChronoStore WAL, query module, ContextPackCompiler, DepGraph, "
+            "token metrics, skills system, and Rust acceleration."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=[
+            "esdb", "chronomemory", "epistemics", "wal", "persistence",
+            "context-pack", "query", "dep-graph", "rollback", "token-metrics",
+            "aee", "anti-hallucination",
+        ],
+        prerequisites=["chronomemory"],
+        body=("""\
+# ChronoMemory ESDB Skill (v0.1.1)
+
+EpiStemic State Database for Layer1Labs agentic projects.
+WAL at `<root>/.chronomemory/events.wal` — NDJSON, append-only, SHA-256 chained.
+
+## Imports
+```python
+from chronomemory import (
+    ChronoStore, ChronoRecord, WalEvent, open_store,   # Core
+    EsdbBridge,                                         # Backward-compat bridge
+    DepGraph, DependencyEdge,                           # Phase 2: dep graph
+    RollbackReport, invalidate,                         # Phase 2: rollback
+    ContextPack, ContextPackCompiler, ContextPackEntry, # Phase 2: context packs
+    RustChronoStore, RustRecord, RUST_BACKEND,          # Phase 3: Rust (optional)
+)
+from chronomemory import query    # 18 ESDB §23 query functions
+from chronomemory import metrics  # token metrics + skill system
+
+# Or via specsmith.esdb namespace (preferred within specsmith code):
+from specsmith.esdb import ChronoStore, query, metrics, ContextPackCompiler
+```
+
+## Critical rules — never break these
+1. `dependencies = []` in pyproject.toml must stay empty — chronomemory is stdlib-only.
+2. Never physically delete WAL records — always `store.delete(id)` (tombstone only).
+3. Use `query.what_is_known(store)` not `store.query(rag_filter=True)` for LLM context
+   — the former excludes infra record kinds (edge, rollback_event, token_metric, skill_run).
+4. Governance status (`defined`/`implemented`) ≠ ESDB status (`active`/`tombstone`)
+   — never conflate when migrating from `.specsmith/*.json`.
+5. WAL is append-only NDJSON — one JSON object per line, SHA-256 chained.
+
+## Core write/read
+```python
+with ChronoStore(project_root) as store:
+    store.upsert(ChronoRecord(
+        id="FACT-001", kind="fact",
+        label="CPSC projection is the sole validity authority",
+        source_type="observed", confidence=0.99,
+        evidence=["CPSC-Specification.md §9"],
+    ))
+    store.delete("OLD-001")     # tombstone only — never physically removes
+    store.chain_valid()         # verify SHA-256 WAL integrity
+
+# For LLM context — always use query.what_is_known (rule #3)
+with ChronoStore(project_root) as store:
+    beliefs = query.what_is_known(store)   # active, conf>=0.6, no infra records
+    hypotheses = query.what_requires_reverification(store)
+    done = query.has_this_work_been_done(store, "migrate flat JSON")
+```
+
+## Backward-compat bridge
+```python
+bridge = EsdbBridge(project_root)
+bridge.status().backend  # "ChronoStore WAL" or "json"
+store.migrate_from_json(Path(project_root) / ".specsmith")
+```
+
+## Dependency graph
+```python
+g = DepGraph(store=store)
+g.add_edge("HYP-001", "FACT-001", "depends_on")
+# Valid edge types: assumes contradicts depends_on derived_from
+#                  generated_from invalidates supports supersedes validated_by
+```
+
+## Epistemic rollback
+```python
+report = store.invalidate("FACT-001", "reason", dep_graph=g)
+# Cascades depends_on/derived_from → status=hypothesis, confidence halved
+```
+
+## Context pack for LLM injection
+```python
+pack = ContextPackCompiler(store).compile(
+    task_id="TASK-42", goal="fix ruff errors", token_budget=4096
+)
+context_json = pack.to_dict()  # inject into LLM context
+# Excludes: tombstone/invalidated/hypothesis, conf<0.6, infra kinds, over-budget
+```
+
+## Query API (18 functions — all degrade gracefully without dep_graph)
+```python
+query.what_is_known(store)                   # active beliefs, no infra kinds
+query.what_requires_reverification(store)    # hypotheses needing confirmation
+query.has_this_work_been_done(store, label)  # bool — check prior decisions
+query.why_do_we_believe(store, "FACT-001")   # evidence chain for a record
+query.what_skills_apply(store, "run lint")   # skills matching task label
+query.what_changed_since(store, seq)         # records written after WAL seq N
+query.what_confidence_collapsed(store, 0.6)  # hypotheses below threshold
+query.what_can_agent_do_next(store, goal)    # unblocked action records
+query.what_should_agent_not_do(store)        # stop_condition records
+query.is_this_action_duplicate(store, label) # alias for has_this_work_been_done
+```
+
+## Token metrics
+```python
+metrics.record_token_metric(
+    store, task_id="TASK-1",
+    context_tokens=512, input_tokens=256, output_tokens=128,
+    tool_calls=4, elapsed_ms=1800, success=True,
+)
+metrics.token_efficiency_report(store)  # {tokens_per_success, avg_tool_calls, ...}
+```
+
+## Skills system
+```python
+# Register a skill
+store.upsert(ChronoRecord(
+    id="SKILL-ruff", kind="skill", label="ruff linter", confidence=0.9,
+    data={"activation": ["lint", "ruff", "python"]},
+))
+metrics.find_skills(store, "run ruff lint")    # returns matching skill records
+metrics.record_skill_run(store, "SKILL-ruff",  # writes a skill_run WAL record
+    success=True, tokens_used=150, output={"errors": 0})
+```
+
+## Rust acceleration (Phase 3)
+```python
+from chronomemory import RUST_BACKEND
+# False by default — requires: pip install maturin
+#   maturin develop --manifest-path crates/chronomemory-py/Cargo.toml
+# When True, RustChronoStore and RustRecord are available.
+print("Rust backend:", RUST_BACKEND)
+```
+"""),
+    ),
+    SkillEntry(
         slug="issue-triage",
         name="Issue Triage — classify and prioritise GitHub issues",
         description=(

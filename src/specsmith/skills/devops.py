@@ -5,6 +5,165 @@ from specsmith.skills import SkillDomain, SkillEntry
 
 SKILLS: list[SkillEntry] = [
     SkillEntry(
+        slug="github-actions-ci",
+        name="GitHub Actions CI — Layer1Labs pattern (zero-trust, parallel, coverage-gated)",
+        description=(
+            "Standard Layer1Labs GitHub Actions CI pattern: permissions: {} at workflow level, "
+            "per-job contents: read grants, parallel jobs (no needs chain), full Python matrix "
+            "3.10–3.13, and --cov-fail-under=85 coverage gate."
+        ),
+        domain=SkillDomain.DEVOPS,
+        tags=[
+            "ci", "github-actions", "permissions", "pytest", "coverage",
+            "ruff", "mypy", "security", "python", "matrix", "zero-trust",
+        ],
+        platforms=["linux", "windows", "macos"],
+        prerequisites=["gh"],
+        body=("""\
+# GitHub Actions CI Skill (Layer1Labs pattern)
+
+Standard CI pattern used across all Layer1Labs / BitConcepts Python projects.
+Reference implementation: `chronomemory/.github/workflows/ci.yml`
+
+## Core principles
+- `permissions: {}` at workflow level — deny all by default.
+- `permissions: contents: read` on each individual job — grant minimum needed.
+- All jobs run **in parallel** — no `needs:` dependency chain unless truly required.
+- Full Python matrix: **3.10, 3.11, 3.12, 3.13** × ubuntu-latest, windows-latest.
+- Coverage gate: `--cov-fail-under=85`.
+- Named jobs (`name:` field) for readable GitHub UI.
+- `fail-fast: false` on the test matrix so all combinations are reported.
+
+## Canonical template
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# Default: deny all. Each job grants only what it needs.
+permissions: {}
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install ruff
+      - name: ruff format --check
+        run: ruff format --check src/ tests/
+      - name: ruff check
+        run: ruff check src/ tests/
+
+  typecheck:
+    name: Type check (mypy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: mypy src/<package>/
+
+  test:
+    name: Test (Python ${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest --cov=<package> --cov-report=term-missing --cov-fail-under=85
+
+  security:
+    name: Security audit (pip-audit)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install pip-audit
+      - run: pip install -e .
+      - run: pip-audit
+```
+
+## What NOT to do
+- Do NOT set `permissions: contents: read` at workflow level — use `permissions: {}` + per-job grants.
+- Do NOT use `needs: [lint, typecheck]` to gate the test job — run all in parallel.
+- Do NOT omit Python 3.11 from the matrix.
+- Do NOT skip `--cov-fail-under` — the 85% gate is non-negotiable.
+- Do NOT use `cancel-in-progress: true` (concurrency block) unless there is a
+  specific reason — chronomemory pattern omits it.
+- Do NOT use `macos-latest` in the matrix unless macOS-specific behavior must be
+  tested — it is ~10× slower and uses more CI minutes.
+
+## Rust projects (additional jobs)
+```yaml
+  rust-lint:
+    name: Rust lint (clippy + fmt)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --check --all
+      - run: cargo clippy --workspace -- -D warnings
+
+  rust-test:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace
+
+  security:
+    name: Security audit (cargo-audit)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit
+```
+"""),
+    ),
+    SkillEntry(
         slug="docker-workflow",
         name="Docker — multi-stage builds, Compose, registries, security",
         description=(
