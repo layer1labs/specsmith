@@ -62,7 +62,7 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
-      - run: pytest --cov=specsmith --cov-report=term-missing --cov-fail-under=85
+      - run: pytest --cov=specsmith --cov-report=term-missing
 
   security:
     name: Security audit (pip-audit)

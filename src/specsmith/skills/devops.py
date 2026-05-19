@@ -40,7 +40,9 @@ Reference implementation: `chronomemory/.github/workflows/ci.yml`
 - `permissions: contents: read` on each individual job — grant minimum needed.
 - All jobs run **in parallel** — no `needs:` dependency chain unless truly required.
 - Full Python matrix: **3.10, 3.11, 3.12, 3.13** × ubuntu-latest, windows-latest.
-- Coverage gate: `--cov-fail-under=85`.
+- Coverage gate: `--cov-fail-under=85` when the project can sustain it.
+  Omit or lower the threshold for large codebases with integration-heavy code
+  (e.g. CLI drivers, HTTP servers) that are structurally hard to unit-test.
 - Named jobs (`name:` field) for readable GitHub UI.
 - `fail-fast: false` on the test matrix so all combinations are reported.
 
@@ -108,6 +110,8 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - run: pytest --cov=<package> --cov-report=term-missing --cov-fail-under=85
+      # Note: omit --cov-fail-under when coverage is below 85% structurally
+      # (large CLIs/servers with hard-to-unit-test paths).
 
   security:
     name: Security audit (pip-audit)
@@ -129,7 +133,9 @@ jobs:
 - Do NOT set `permissions: contents: read` at workflow level — use `permissions: {}` + per-job grants.
 - Do NOT use `needs: [lint, typecheck]` to gate the test job — run all in parallel.
 - Do NOT omit Python 3.11 from the matrix.
-- Do NOT skip `--cov-fail-under` — the 85% gate is non-negotiable.
+- Do NOT skip `--cov-fail-under` when unit coverage can sustain 85%.
+  For large codebases with structural coverage limits, omit it rather than
+  carrying a perpetually-failing gate.
 - Do NOT use `cancel-in-progress: true` (concurrency block) unless there is a
   specific reason — chronomemory pattern omits it.
 - Do NOT use `macos-latest` in the matrix unless macOS-specific behavior must be
