@@ -2346,3 +2346,43 @@
 - **Source:** ARCHITECTURE.md §Governance CLI
 - **Test_Ids:** ['TEST-335']
 
+## REQ-336. specsmith save CLI Command
+- **ID:** REQ-336
+- **Title:** specsmith save CLI Command
+- **Description:** specsmith MUST provide a top-level `save` CLI command that performs a full governance checkpoint in three steps: (1) create a timestamped ESDB backup via ChronoStore.backup(); (2) git-commit all pending governance changes (LEDGER.md, .specsmith/, docs/) with an auto-generated commit message; (3) git-push the current branch to origin. The command MUST exit 0 on success, exit 1 on any step failure, and print a human-readable summary of what was saved. `--json` MUST emit a structured payload with backup_path, commit_hash, and push_ok fields.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §CI Automation Manager — save/load Commands
+- **Test_Ids:** ['TEST-336']
+
+## REQ-337. specsmith load CLI Command
+- **ID:** REQ-337
+- **Title:** specsmith load CLI Command
+- **Description:** specsmith MUST provide a top-level `load` CLI command that pulls the latest governance state from origin: (1) git-pull the current branch; (2) optionally restore the latest ESDB backup when `--restore-backup` is passed; (3) print a status report of what changed. The command MUST exit 0 on success and exit 1 if git-pull fails with an unresolvable conflict. `--json` MUST emit a structured payload with pull_ok, files_changed, and backup_restored fields.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §CI Automation Manager — save/load Commands
+- **Test_Ids:** ['TEST-337']
+
+## REQ-338. specsmith_run Agent Tool with Slash-Command Routing
+- **ID:** REQ-338
+- **Title:** specsmith_run Agent Tool with Slash-Command Routing
+- **Description:** The agent tool registry MUST expose a `specsmith_run(command)` tool that normalises three input forms to `specsmith <args>` and executes via subprocess: (1) slash-command prefix (`/specsmith save`); (2) single-word verb shortcuts (`save`, `load`, `push`, `pull`, `sync`, `audit`, `status`, `watch`, `commit`, `validate`, `doctor`, `run`); (3) full passthrough (`specsmith <args>`). The tool MUST be registered in AVAILABLE_TOOLS and build_tool_registry() with REG-001/REG-002 epistemic claim metadata. Agents MUST use specsmith_run for all governance CLI operations instead of raw run_shell calls.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Agent Tool Registry — specsmith_run
+- **Test_Ids:** ['TEST-338']
+
+## REQ-339. M005 Agent-Run-Tool Migration
+- **ID:** REQ-339
+- **Title:** M005 Agent-Run-Tool Migration
+- **Description:** The migration framework MUST include migration M005 (version=5) that auto-upgrades existing projects to use the specsmith_run governance command. M005 MUST: (1) write `.specsmith/agent-tools.json` declaring specsmith_run as the primary_governance_command with a full verb_shortcuts list; (2) append a "Governance commands" section to AGENTS.md documenting all /specsmith slash-command forms, backing up the original to `.specsmith/agents.md.m005.bak`. Both steps MUST be non-destructive and support `dry_run=True` and `rollback()`. M005 MUST be registered in MigrationRegistry.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Migration Framework — M005
+- **Test_Ids:** ['TEST-339']
+
+## REQ-340. /specsmith REPL Slash-Command Handler
+- **ID:** REQ-340
+- **Title:** /specsmith REPL Slash-Command Handler
+- **Description:** The Nexus REPL (agent/repl.py) MUST handle `/specsmith <args>` as a first-class slash command that passes args verbatim to the specsmith CLI subprocess and streams output directly to the terminal without buffering. The handler MUST gracefully handle subprocess timeout (120 s default) and unexpected exceptions without crashing the REPL. The REPL startup banner MUST advertise the /specsmith command. Invoking `/specsmith` with no args MUST display specsmith --help.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Nexus REPL — /specsmith Handler
+- **Test_Ids:** ['TEST-340']
+
