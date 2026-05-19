@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.4] - 2026-05-19
+
+### Added
+
+- **Codity.ai integration** (#179): \CodityAdapter\ scaffolds AI code review CI workflows via \specsmith integrate codity\; supports GitHub (default), GitLab, Azure DevOps; VCS auto-detected from \scaffold.yml\ and directory heuristics
+- **\codity-ai-review\ governance skill** (70th built-in skill): full CLI workflow reference including install, magic-link auth, \codity review --staged\, \codity scan --staged\, \codity test-gen --staged\, VCS-specific PAT setup
+- **AGENTS.md template Codity section**: pre-commit rule — HIGH-severity findings block commits, MEDIUM requires acknowledgement
+- **ARCH §39** with architecture invariant I15
+- **REQ-354/355/356** and **TEST-354/355/356/357** (318 tests total, 28/28 audit clean)
+
 ## [Unreleased]
 
 ## [0.11.3-post3] — 2026-05-17
@@ -100,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.11.2] — 2026-05-11
 ### Added
-- **esdb rollback real restore (REQ-252)** — now finds the N-th most recent backup in .specsmith/backups/ and restores equirements.json + 	estcases.json from it. Exits non-zero when no backups exist.
+- **esdb rollback real restore (REQ-252)** — now finds the N-th most recent backup in .specsmith/backups/ and restores 
+equirements.json + 	estcases.json from it. Exits non-zero when no backups exist.
 - **esdb compact real deduplication (REQ-253)** — reads .specsmith/requirements.json and .specsmith/testcases.json, deduplicates by ID (last-write-wins), drops ID-less entries, writes compacted lists back to disk.
 - **12 CodeQL security fixes** — py/path-injection (10): _safe_resolve() + _safe_file_read() helpers reject null bytes and .. traversal before file reads; py/http-response-splitting (1): strip CR/LF from HTTP response headers; py/incomplete-url-substring-sanitization (1): urlparse() hostname comparison in test.
 ### Changed
@@ -109,7 +120,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test suite updated to match new esdb rollback/compact contracts. 670 passing.
 ### Validation
 - pytest: **670 passed, 2 skipped, 5 xfailed**.
-- uff check + uff format --check: clean.
+- 
+uff check + 
+uff format --check: clean.
 ## [0.11.1] â€” 2026-05-11
 ### Added
 - **`specsmith channel` group (REQ-248)** â€” `channel set {stable|dev}`, `channel get [--json]`, `channel clear`. Persists preferred update channel to `~/.specsmith/channel`; `self-update` and project-update checks honour the resolved channel.
