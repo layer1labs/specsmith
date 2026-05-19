@@ -171,7 +171,7 @@ gh run list --repo $REPO --branch $BRANCH --limit 3
 
 echo "=== Open PRs ==="
 gh pr list --repo $REPO --state open --json number,title,reviewDecision,author \
-  --jq '.[] | "#\(.number) \(.title) [\(.reviewDecision // "NO_REVIEW")] by \(.author.login)"'
+  --jq '.[] | "#\\(.number) \\(.title) [\\(.reviewDecision // "NO_REVIEW")] by \\(.author.login)"'
 
 echo "=== CodeQL alerts (open) ==="
 gh api /repos/$REPO/code-scanning/alerts?state=open --paginate --jq 'length'
