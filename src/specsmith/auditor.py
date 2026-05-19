@@ -1017,9 +1017,7 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     import fnmatch as _fnmatch
 
     _raw_excl = raw.get("scan_exclude_dirs") or []
-    _excl_dirs = {
-        str(d).strip().rstrip("/") for d in _raw_excl if isinstance(d, str) and d.strip()
-    }
+    _excl_dirs = {str(d).strip().rstrip("/") for d in _raw_excl if isinstance(d, str) and d.strip()}
     _raw_pat = raw.get("scan_exclude_patterns") or []
     _excl_patterns: list[str] = [str(p) for p in _raw_pat if isinstance(p, str) and p.strip()]
     # Always skip VCS / toolchain dirs
