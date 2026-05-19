@@ -68,6 +68,12 @@ class ProjectType(str, Enum):
     SAFETY_CRITICAL = "safety-critical"  # #129: IEC 60204-1/62061/61508 safety-critical
     # IP / Patent
     PATENT_PROSECUTION = "patent-prosecution"  # #177: IP prosecution with USPTO MCP lifecycle
+    # Modern web frameworks
+    NEXTJS_APP = "nextjs-app"  # Next.js / React full-stack app
+    NUXT_APP = "nuxt-app"  # Nuxt.js / Vue full-stack app
+    SVELTEKIT_APP = "sveltekit-app"  # SvelteKit app
+    REMIX_APP = "remix-app"  # Remix full-stack React app
+    ASTRO_SITE = "astro-site"  # Astro static/SSR site
 
 
 class Platform(str, Enum):
@@ -536,6 +542,12 @@ _TYPE_LABELS: dict[str, str] = {
     ProjectType.SAFETY_CRITICAL: "Safety-critical embedded (IEC 60204-1/62061/61508)",
     # IP / Patent
     ProjectType.PATENT_PROSECUTION: "Patent prosecution repository (USPTO IP lifecycle)",
+    # Modern web frameworks
+    ProjectType.NEXTJS_APP: "Next.js application (React + SSR/SSG)",
+    ProjectType.NUXT_APP: "Nuxt.js application (Vue + SSR/SSG)",
+    ProjectType.SVELTEKIT_APP: "SvelteKit application",
+    ProjectType.REMIX_APP: "Remix application (React + full-stack)",
+    ProjectType.ASTRO_SITE: "Astro site (static / SSR)",
 }
 
 _SECTION_REFS: dict[str, str] = {

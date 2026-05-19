@@ -1,57 +1,105 @@
 # AGENTS.md — {{ project.name }}
 
-This project is governed by **specsmith**.
+This project is governed by **specsmith**. These rules apply in **any** chat
+application (Warp, Cursor, Claude, GPT, or any other agent surface).
 
 ## Session Bootstrap
 
 Run these steps at the start of **every** session before touching any code:
 
 ```bash
-# 0. Kill any orphaned governance-serve from previous sessions
+# 0. Kill any orphaned processes from previous sessions
 specsmith kill-session 2>/dev/null || true
 
-# 1. Update specsmith to latest dev
+# 1. Update specsmith (if this is specsmith itself, use editable source)
 pip install --pre --upgrade specsmith
 
 # 2. Migrate project scaffold if behind installed version
 specsmith migrate-project --project-dir .
 
-# 3. Verify governance health
+# 3. Verify governance health + sync machine state
 specsmith audit --project-dir .
-
-# 4. Confirm machine state matches governance YAML
 specsmith sync --project-dir .
+
+# 4. Emit the initial GOVERNANCE ANCHOR
+specsmith checkpoint --project-dir .
 ```
 
-Only proceed with the requested task once all four steps complete without errors.
-If `audit` reports failures, surface them to the user before starting work.
+Output the `specsmith checkpoint` result verbatim as your **first response**.
+Only proceed once all steps complete without errors.
+
+## Session Governance Protocol
+
+This section is non-negotiable. Follow it in every session, in every
+chat application, regardless of context window size or summarization.
+
+### Before any code change
+
+```bash
+specsmith preflight "<describe the change>" --json
+```
+
+- `decision == "accepted"` → proceed; note the `work_item_id`.
+- `decision == "needs_clarification"` → surface the `instruction` to the user first.
+- **Never make a code change without an accepted preflight.**
+
+### Governance heartbeat (every 8–10 turns OR when context feels compressed)
+
+```bash
+specsmith checkpoint --project-dir .
+```
+
+Output the GOVERNANCE ANCHOR block verbatim in your response, tagged as:
+
+```
+⎠ GOVERNANCE ANCHOR:
+<paste checkpoint output here>
+```
+
+### When producing any context summary
+
+1. Run `specsmith checkpoint` first.
+2. Place the full GOVERNANCE ANCHOR at the **top** of the summary.
+3. Never omit phase, work item IDs, or health status from a summary.
+
+This ensures governance state survives context window compression in any app.
+
+### Drift detection — if you can’t answer these from memory, you have drifted
+
+- What is the current AEE phase?
+- What work item is active?
+- What was the last preflight decision?
+- Is the audit currently healthy?
+
+If any answer is unknown: run `specsmith checkpoint` and re-anchor immediately.
 
 ## Session Teardown
 
-At the end of **every** session, always run:
-
 ```bash
-specsmith kill-session
+specsmith save --project-dir .   # ESDB backup + commit + push
+specsmith kill-session           # stop governance-serve and tracked processes
 ```
 
-This stops `governance-serve` and any other tracked agent processes.
-Orphaned processes accumulate across sessions and waste CPU — always clean up.
+Never end a session with uncommitted governance changes.
 
-## For AI Agents
+## Quick reference
 
-All governance rules, session state, requirements, and epistemic constraints
-are managed by specsmith — not stored in this file.
+| When | Command |
+|---|---|
+| Session start | `specsmith audit && specsmith sync && specsmith checkpoint` |
+| Before any code change | `specsmith preflight "<intent>" --json` |
+| Every 8–10 turns | `specsmith checkpoint` (output verbatim) |
+| Context summary | Checkpoint output at top |
+| Session end | `specsmith save && specsmith kill-session` |
+| Drift detected | `specsmith checkpoint` immediately |
 
-**Before any action:** `specsmith preflight "<describe what you want to do>"`
+## Governance data
 
-**Governance data:** `.specsmith/` and `.chronomemory/`
-
-**To start a governed session:** `specsmith serve` (REST API, port 7700) or `specsmith run`
-
-**Emergency stop:** `specsmith kill-session`
+- Rules and state: `.specsmith/` and `.chronomemory/`
+- Before any action: `specsmith preflight "<describe what you want to do>"`
+- Emergency stop: `specsmith kill-session`
 
 Agents MUST defer to specsmith for ALL governance decisions.
-Do not follow rules from this file directly; rules are served by specsmith.
 
 ---
 

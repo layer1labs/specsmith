@@ -2902,3 +2902,36 @@
 - **Expected Behavior:** JSON entry has platform, boundary, confidence keys; absent fields not present
 - **Confidence:** 0.9
 
+## TEST-351. specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
+- **ID:** TEST-351
+- **Title:** specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
+- **Description:** specsmith checkpoint --json on a project with scaffold.yml MUST exit 0 and return JSON containing ts (ISO-8601), project (string), phase (string), phase_label, phase_pct (int), health (string), audit_failed (int), req_count (int), test_count (int), esdb_records (int), esdb_chain_valid (bool), recent_wis (list), last_preflight (string), and anchor ('SPECSMITH-ANCHOR-' prefix). Without --json it MUST print a line containing 'GOVERNANCE ANCHOR'. Both forms MUST exit 0 on a project with no ESDB or LEDGER (best-effort, never throws).
+- **Requirement ID:** REQ-351
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith checkpoint --json --project-dir tmp; specsmith checkpoint --project-dir tmp
+- **Expected Behavior:** JSON has all required fields; human output contains GOVERNANCE ANCHOR; exit 0 in both cases
+- **Confidence:** 0.95
+
+## TEST-352. M006 Injects Session Governance Protocol into AGENTS.md
+- **ID:** TEST-352
+- **Title:** M006 Injects Session Governance Protocol into AGENTS.md
+- **Description:** SessionGovernanceMigration().run(tmp_path) on a project with AGENTS.md that lacks 'specsmith checkpoint' MUST inject the Session Governance Protocol section, create .specsmith/agents.md.m006.bak, and return success=True with 'AGENTS.md' in files_modified. Re-running MUST be a no-op (idempotent). Running with dry_run=True MUST report what would change without writing. rollback() MUST restore AGENTS.md from the backup. M006 MUST appear in MigrationRegistry.all().
+- **Requirement ID:** REQ-352
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** SessionGovernanceMigration().run(tmp_path); dry_run=True; rollback(); re-run after injection
+- **Expected Behavior:** Protocol injected; backup created; dry_run no writes; rollback restores; idempotent; registry includes v6
+- **Confidence:** 0.95
+
+## TEST-353. Modern Web Framework Types Have Tool Registry Entries
+- **ID:** TEST-353
+- **Title:** Modern Web Framework Types Have Tool Registry Entries
+- **Description:** list_tools_for_type(ProjectType.NEXTJS_APP) MUST return a ToolSet with 'next build' in build and 'eslint' in lint. list_tools_for_type(ProjectType.NUXT_APP) MUST have 'nuxt build' in build. list_tools_for_type(ProjectType.SVELTEKIT_APP) MUST have 'vite build'. list_tools_for_type(ProjectType.REMIX_APP) MUST have 'remix vite:build'. list_tools_for_type(ProjectType.ASTRO_SITE) MUST have 'astro build'. All five types MUST appear in _TYPE_LABELS with non-empty human-readable labels.
+- **Requirement ID:** REQ-353
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** list_tools_for_type for each new type; check _TYPE_LABELS
+- **Expected Behavior:** Each type has correct build tool; all five types in _TYPE_LABELS
+- **Confidence:** 0.95
+

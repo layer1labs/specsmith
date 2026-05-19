@@ -2466,3 +2466,27 @@
 - **Source:** ARCHITECTURE.md §YAML-Native Governance Layer
 - **Test_Ids:** ['TEST-350']
 
+## REQ-351. specsmith checkpoint Governance Anchor Command
+- **ID:** REQ-351
+- **Title:** specsmith checkpoint Governance Anchor Command
+- **Description:** specsmith MUST provide a checkpoint CLI command that emits a compact GOVERNANCE ANCHOR summarising the current project state: project name (from scaffold.yml), AEE phase with readiness percentage, audit health and failed check count, REQ count, TEST count, ESDB record count with chain validity, up to 3 recent WI- identifiers from LEDGER.md, and the last preflight acceptance line. With --json it MUST emit a JSON payload containing ts, project, phase, phase_label, phase_pct, health, audit_failed, req_count, test_count, esdb_records, esdb_chain_valid, recent_wis, last_preflight, and anchor fields. Without --json it MUST emit a human-readable bordered GOVERNANCE ANCHOR block with a footer instructing agents to include it verbatim in any context summary. All data gathering MUST be best-effort (exceptions silently swallowed) so the command never fails even on projects with no ESDB or LEDGER.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Session Governance Protocol
+- **Test_Ids:** ['TEST-351']
+
+## REQ-352. M006 Session Governance Migration Auto-injects Protocol into AGENTS.md
+- **ID:** REQ-352
+- **Title:** M006 Session Governance Migration Auto-injects Protocol into AGENTS.md
+- **Description:** specsmith MUST include migration M006 (version=6) that detects whether AGENTS.md contains any of the sentinel strings 'specsmith checkpoint', 'Session Governance Protocol', 'GOVERNANCE ANCHOR', or 'governance heartbeat'. When none are present, M006 MUST back up AGENTS.md to .specsmith/agents.md.m006.bak and inject the full Session Governance Protocol section (heartbeat every 8-10 turns, preflight gate, drift detection checklist, checkpoint-in-summary rule, session end). M006 MUST be idempotent (re-running when section is present is a no-op), non-destructive (original always backed up), and registered in MigrationRegistry so it runs automatically via specsmith migrate-project and specsmith upgrade --full.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Session Governance Protocol
+- **Test_Ids:** ['TEST-352']
+
+## REQ-353. Modern Web Framework Project Types
+- **ID:** REQ-353
+- **Title:** Modern Web Framework Project Types
+- **Description:** specsmith MUST support the following modern web framework project types in addition to the existing web-frontend and fullstack-js types: nextjs-app (Next.js / React with SSR/SSG, next lint, jest/playwright), nuxt-app (Nuxt.js / Vue, vitest, playwright), sveltekit-app (SvelteKit, vitest, playwright), remix-app (Remix React, vitest, playwright), astro-site (Astro static/SSR, vitest, playwright). Each MUST have a corresponding ToolSet entry in the tool registry with appropriate lint, typecheck, test, security, build, and format tools. Each MUST appear in _TYPE_LABELS with a human-readable label.
+- **Status:** implemented
+- **Source:** ARCHITECTURE.md §Implemented Specsmith System
+- **Test_Ids:** ['TEST-353']
+
