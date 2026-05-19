@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **67 built-in skills** across 11 domains.
+specsmith ships with **69 built-in skills** across 11 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -30,6 +30,7 @@ Skills for project governance workflows, verification, release management, ESDB,
 | `patent-prosecution-workflow` | Patent Prosecution Workflow — prior-art, USPTO MCP, PAR | patent, uspto, ppubs, claim-themes, ip |
 | `planner` | Planner — propose-then-execute | planning, aee, governance |
 | `release-pilot` | Release Pilot — gitflow release cut | git, semver, release, gitflow |
+| `specsmith-session-governance` | Specsmith Session Governance — drift prevention, heartbeat, preflight gate | governance, session, drift, checkpoint, anchor |
 | `verifier` | Verifier — five-gate verification | audit, tests, verification |
 
 ---

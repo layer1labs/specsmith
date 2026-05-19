@@ -202,8 +202,9 @@ be overwritten by the next sync.
 | `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer |
 | `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability |
 | `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
+| `docs/requirements/overflow.yml` | REQ-335..353 | VCS ops, skills catalog, ESDB namespace, session governance, modern web types |
 
-**Migration from Markdown-primary:** Run
+**Migration from Markdown-primary:**
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
 Idempotent — safe to re-run.
 

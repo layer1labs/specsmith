@@ -152,6 +152,39 @@ specsmith import --project-dir ./my-project --guided
 
 **Detection:** Language (by file extension counts), build system (pyproject.toml, Cargo.toml, etc.), test framework, CI platform, VCS remote, modules, entry points, test files, existing governance. See [Importing Projects](importing.md) for full details.
 
+## `specsmith checkpoint`
+
+Emit a compact **GOVERNANCE ANCHOR** to prevent session drift (REQ-351). Run this every
+8–10 turns and **always include the output verbatim in any context summary** so governance
+state survives context window compression in any chat application.
+
+```bash
+specsmith checkpoint                      # human-readable GOVERNANCE ANCHOR block
+specsmith checkpoint --json               # machine-readable JSON payload
+specsmith checkpoint --project-dir ./my-project
+```
+
+**Output fields (`--json`):** `ts`, `project`, `phase`, `phase_label`, `phase_pct`,
+`health`, `audit_failed`, `req_count`, `test_count`, `esdb_records`, `esdb_chain_valid`,
+`recent_wis`, `last_preflight`, `anchor`.
+
+**Typical agent usage:**
+
+```bash
+# At session start (output verbatim as first response)
+specsmith audit && specsmith sync && specsmith checkpoint
+
+# Every 8-10 turns — tag the output clearly
+# ⎠ GOVERNANCE ANCHOR:
+# <paste checkpoint output here>
+
+# When producing any context summary — checkpoint goes at top
+specsmith checkpoint --json   # machine-readable for programmatic injection
+```
+
+All data gathering is best-effort: the command never fails even on projects with no
+ESDB WAL, no LEDGER.md, or no `.specsmith/` directory.
+
 ## `specsmith sync`
 
 Sync `.specsmith/` machine-state JSON from `docs/` Markdown (REQ-003).
@@ -444,13 +477,20 @@ specsmith push --force
 
 ## `specsmith pull`
 
-Pull latest and warn about governance conflicts.
+Pull latest, or discard local changes and hard-reset to remote.
 
 ```bash
-specsmith pull --project-dir ./my-project
+specsmith pull --project-dir ./my-project            # standard git pull
+specsmith pull --discard --project-dir ./my-project  # git fetch + reset --hard
+specsmith pull --clean --project-dir ./my-project    # reset + git clean -fd
 ```
 
-Runs `git pull` and checks for conflicts in governance files (AGENTS.md, LEDGER.md, docs/governance/*).
+**Options:**
+
+- `--discard` — Hard-reset to `origin/<branch>`, discarding all local uncommitted changes. Runs `git fetch` first.
+- `--clean` — Same as `--discard` plus `git clean -fd` to remove untracked files. Useful for a full workspace reset.
+
+Standard pull warns about conflicts in governance files (AGENTS.md, LEDGER.md, docs/governance/*).
 
 ## `specsmith branch`
 
