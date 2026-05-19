@@ -1012,13 +1012,30 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     declared_eds = declared.get("canopen_eds", []) or []
     declared_paths = {e.get("path", "") for e in declared_eds if isinstance(e, dict)}
 
-    # Scan for .eds and .xdd files
-    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__"}
+    # Scan for .eds and .xdd files — respect scan_exclude_dirs and
+    # scan_exclude_patterns from scaffold.yml (#175).
+    import fnmatch as _fnmatch
+
+    _raw_excl = raw.get("scan_exclude_dirs") or []
+    _excl_dirs = {
+        str(d).strip().rstrip("/") for d in _raw_excl if isinstance(d, str) and d.strip()
+    }
+    _raw_pat = raw.get("scan_exclude_patterns") or []
+    _excl_patterns: list[str] = [str(p) for p in _raw_pat if isinstance(p, str) and p.strip()]
+    # Always skip VCS / toolchain dirs
+    skip_dirs = {".git", "node_modules", ".venv", "venv", "__pycache__"} | _excl_dirs
+
     found_eds: list[Path] = []
     for ext in (".eds", ".xdd"):
         for f in root.rglob(f"*{ext}"):
-            if not any(p in skip_dirs for p in f.parts):
-                found_eds.append(f)
+            rel = f.relative_to(root).as_posix()
+            # Skip if any path component is in skip_dirs
+            if any(p in skip_dirs for p in f.parts):
+                continue
+            # Skip if the relative path matches any exclude pattern
+            if any(_fnmatch.fnmatch(rel, pat) for pat in _excl_patterns):
+                continue
+            found_eds.append(f)
 
     if not found_eds:
         return results  # No industrial artifacts found

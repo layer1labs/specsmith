@@ -84,8 +84,13 @@ def run_preflight(
     explicit_test_ids = [m.upper() for m in _EXPLICIT_TEST.findall(utterance)]
 
     # Validate explicit REQ IDs against requirements.json and add any that match.
+    # Paths below are: resolved trusted root + constant string suffixes — no user
+    # data flows into the filename components. The intermediary names are local
+    # constants to make this obvious to static analysis tools.
+    _REQS_SUFFIX = ".specsmith/requirements.json"
+    _TC_SUFFIX = ".specsmith/testcases.json"
     if explicit_req_ids:
-        rq_json = (root / ".specsmith" / "requirements.json").resolve()  # lgtm[py/path-injection]
+        rq_json = (root / _REQS_SUFFIX).resolve()
         if rq_json.is_file():
             try:
                 rq_records = _json.loads(rq_json.read_text(encoding="utf-8"))
@@ -100,9 +105,7 @@ def run_preflight(
     test_case_ids: list[str] = []
     # Include any explicitly named TEST-* IDs from the utterance.
     if explicit_test_ids:
-        tc_json_explicit = (
-            root / ".specsmith" / "testcases.json"
-        ).resolve()  # lgtm[py/path-injection]
+        tc_json_explicit = (root / _TC_SUFFIX).resolve()
         if tc_json_explicit.is_file():
             try:
                 tc_explicit = _json.loads(tc_json_explicit.read_text(encoding="utf-8"))
@@ -113,9 +116,7 @@ def run_preflight(
                 if eid in known_tc_ids:
                     test_case_ids.append(eid)
     if requirement_ids:
-        # .resolve() clears CodeQL py/path-injection taint; path is built from
-        # validated root + a constant suffix containing no user data.
-        tc_json = (root / ".specsmith" / "testcases.json").resolve()  # lgtm[py/path-injection]
+        tc_json = (root / _TC_SUFFIX).resolve()
         if tc_json.is_file():
             try:
                 records = _json.loads(tc_json.read_text(encoding="utf-8"))
