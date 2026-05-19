@@ -841,3 +841,66 @@ Implementation:
 - Startup banner advertises the command: `"Use /specsmith <args> to run any specsmith CLI command directly."`
 
 **Architecture invariant (I11):** The `/specsmith` handler MUST precede the broker branch in the REPL dispatch loop so governance commands bypass the LLM preflight path entirely.
+
+## 36. specsmith.esdb Namespace — chronomemory v0.1.1 Full API Surface
+Source: `src/specsmith/esdb/__init__.py`; `src/specsmith/esdb/bridge.py`
+
+`specsmith.esdb` is the canonical import namespace for the chronomemory ESDB within specsmith code. It re-exports the full chronomemory v0.1.1 public surface so internal modules never import chronomemory directly in more than one place (REQ-344).
+
+**Re-exported types:**
+- Core: `ChronoStore`, `ChronoRecord`, `WalEvent`, `open_store`
+- Bridge: `EsdbBridge`, `EsdbRecord`, `EsdbStatus`
+- Phase 2: `DepGraph`, `DependencyEdge`, `RollbackReport`, `invalidate`, `ContextPack`, `ContextPackCompiler`, `ContextPackEntry`
+- Phase 3: `RustChronoStore`, `RustRecord`, `RUST_BACKEND`
+- Modules: `query` (18 §23 query functions), `metrics` (token tracking + skill system)
+
+**Architecture invariant (I12):** Code injecting ESDB records into LLM context MUST use `query.what_is_known(store)` not `store.query(rag_filter=True)`. The former excludes infrastructure record kinds (`edge`, `rollback_event`, `token_metric`, `skill_run`) which must never appear in agent-facing context (REQ-345).
+
+## 37. Skills Catalog — Terminal Awareness, ESDB, CI Polling, GitHub CI Pattern
+Source: `src/specsmith/skills/`
+
+The specsmith skills catalog (`specsmith skill list`) includes four new governance skills added in v0.11.3 (REQ-341, REQ-349):
+
+- **`terminal-awareness`** (cross-platform): Shell detection, PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish patterns, Python subprocess spawn with PID tracking, hanging-process prevention, cross-platform command equivalents table.
+- **`chronomemory-esdb`** (governance): Full chronomemory v0.1.1 API reference + 5 critical rules. Activated by `esdb`, `chronomemory`, `wal`, `query` tags.
+- **`gh-ci-polling`** (governance): Documents `gh run watch` as the correct CI-wait primitive. Explicitly prohibits `sleep`/`Start-Sleep`/`time.sleep` as CI wait mechanisms (REQ-349).
+- **`github-actions-ci`** (devops): Layer1Labs CI pattern — `permissions: {}` at workflow level, per-job `contents: read`, parallel jobs, Python 3.10–3.13 matrix, `--cov-fail-under=85`.
+
+**Architecture invariant (I13):** Every new specsmith feature MUST be reflected in the skills catalog if it introduces a workflow an agent must follow. Skills are activated by tag matching against agent task labels.
+
+## 38. VCS Force Operations — save --force, pull --discard, pull --clean
+Source: `src/specsmith/cli.py`; `src/specsmith/vcs_commands.py`
+
+Three escape-hatch VCS flags added to resolve agentic workflow blockers (REQ-346, REQ-347, REQ-348):
+
+**`specsmith save --force`**
+Propagates `--force` to the underlying `run_push()` call, bypassing the gitflow direct-to-main guard. Uses `git push --force-with-lease` (safer than `--force`). Equivalent to: `specsmith save --no-push && specsmith push --force`.
+
+**`specsmith pull --discard`**
+Hard-resets the working tree to `origin/<branch>` via `git fetch` + `git reset --hard origin/<branch>`. Discards all local uncommitted changes. Used when an agentic session has drifted and a clean slate is needed.
+
+**`specsmith pull --clean`**
+Same as `--discard` plus `git clean -fd` to remove all untracked files. Equivalent to a full workspace reset to remote state.
+
+**Architecture invariant (I14):** `--force` and `--discard` flags MUST be used only when explicitly requested. They bypass safety guards intentionally designed to prevent accidental data loss. Agents MUST NOT invoke these flags without explicit user confirmation.
+
+## 39. Codity.ai Integration — AI Code Review Adapter
+Source: `src/specsmith/integrations/codity.py`; `src/specsmith/skills/governance.py` (`codity-ai-review`)
+
+`CodityAdapter` (REQ-354) scaffolds Codity.ai AI-code-review CI workflows into target projects via `specsmith integrate codity`. It detects the VCS host from `scaffold.yml` content and directory heuristics (`.gitlab-ci.yml`, `azure-pipelines.yml`) and generates the appropriate CI file:
+
+| VCS host | Generated file |
+|---|---|
+| GitHub (default) | `.github/workflows/codity-review.yml` |
+| GitLab | `.gitlab-ci-codity.yml` |
+| Azure DevOps | `.azure-pipelines/codity-review.yml` |
+
+All variants: install Codity CLI via `curl -fsSL https://cli.codity.ai/install.sh | sh`, run `codity review --staged`, require `CODITY_ACCESS_TOKEN` secret. GitLab/Azure additionally call `codity config set-pat --provider <vcs>` with a PAT.
+
+`generate()` also writes `docs/codity-setup.md` (one-time setup checklist) and appends a TODO checklist to `LEDGER.md`.
+
+The **`codity-ai-review`** governance skill (REQ-356) documents the full Codity.ai CLI workflow for agents: install, `codity login` (magic-link auth), `codity init`, daily commands (`review --staged`, `scan --staged`, `test-gen --staged`, `doctor`), VCS-specific PAT setup, and the AGENTS.md rule.
+
+The **AGENTS.md template** (REQ-355) includes a conditional Codity section: projects with Codity configured SHOULD run `codity review --staged` before commits touching production code; HIGH-severity findings block the commit; MEDIUM findings require inline acknowledgement.
+
+**Architecture invariant (I15):** The VCS-detection heuristic MUST default to `"github"` when no signals are present (scaffold.yml absent, no `.gitlab-ci.yml`, no `azure-pipelines.yml`). New VCS hosts require a new detection heuristic AND a corresponding workflow writer method.

@@ -168,6 +168,41 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
     return _run_git(root, args)
 
 
+def run_discard(root: Path, *, clean: bool = False) -> GitResult:
+    """Discard local changes and sync to remote (hard reset + pull).
+
+    Equivalent to: git reset --hard origin/<branch> && git pull
+    With clean=True also runs: git clean -fd (removes untracked files)
+    """
+    branch = get_current_branch(root)
+    if not branch:
+        return GitResult(success=False, message="Not on any branch")
+
+    # Fetch first so origin/<branch> is current
+    fetch = _run_git(root, ["fetch", "origin", branch])
+    if not fetch.success:
+        return GitResult(success=False, message=f"fetch failed: {fetch.message}")
+
+    # Hard reset to remote
+    reset = _run_git(root, ["reset", "--hard", f"origin/{branch}"])
+    if not reset.success:
+        return GitResult(success=False, message=f"reset failed: {reset.message}")
+
+    if clean:
+        clean_result = _run_git(root, ["clean", "-fd"])
+        if not clean_result.success:
+            return GitResult(success=False, message=f"clean failed: {clean_result.message}")
+
+    return GitResult(
+        success=True,
+        message=(
+            f"Discarded local changes and reset to origin/{branch}"
+            + (" (untracked files removed)" if clean else "")
+        ),
+        output=reset.output,
+    )
+
+
 def run_sync(root: Path) -> GitResult:
     """Pull latest and check for governance conflicts."""
     branch = get_current_branch(root)

@@ -13,6 +13,7 @@
     "channel",
     "chat",
     "chat-export-block",
+    "checkpoint",
     "ci",
     "clean",
     "commit",

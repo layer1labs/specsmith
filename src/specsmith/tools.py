@@ -311,6 +311,55 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         build=["vivado -mode batch"],
         format=["ruff format"],
     ),
+    # --- Modern web frameworks ---
+    ProjectType.NEXTJS_APP: ToolSet(
+        lint=["eslint", "next lint"],
+        typecheck=["tsc"],
+        test=["jest", "vitest", "playwright"],
+        security=["npm audit"],
+        build=["next build"],
+        format=["prettier"],
+    ),
+    ProjectType.NUXT_APP: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest", "playwright"],
+        security=["npm audit"],
+        build=["nuxt build"],
+        format=["prettier"],
+    ),
+    ProjectType.SVELTEKIT_APP: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest", "playwright"],
+        security=["npm audit"],
+        build=["vite build"],
+        format=["prettier"],
+    ),
+    ProjectType.REMIX_APP: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest", "playwright"],
+        security=["npm audit"],
+        build=["remix vite:build"],
+        format=["prettier"],
+    ),
+    ProjectType.ASTRO_SITE: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest", "playwright"],
+        security=["npm audit"],
+        build=["astro build"],
+        format=["prettier"],
+    ),
+    # --- IP / Patent prosecution ---
+    ProjectType.PATENT_PROSECUTION: ToolSet(
+        lint=["vale", "cspell"],
+        format=["prettier"],
+        build=["pandoc"],
+        compliance=["specsmith trace verify", "claim-ref-check"],
+        test=["markdown-link-check"],
+    ),
     # --- AEE / Epistemic project types ---
     ProjectType.EPISTEMIC_PIPELINE: ToolSet(
         lint=["ruff check", "specsmith stress-test"],

@@ -40,14 +40,18 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
     """
     entries: list[dict[str, str]] = []
 
-    # H18: inject high-confidence ESDB records as retrieval context
+    # H18: inject high-confidence ESDB records as retrieval context.
+    # Use query.what_is_known() (not store.query(rag_filter=True)) so that
+    # infrastructure records (edge, rollback_event, token_metric, skill_run)
+    # are excluded from the RAG index — critical rule §18.
     wal = root / ".chronomemory" / "events.wal"
     if wal.exists():
         try:
             from chronomemory import ChronoStore
+            from chronomemory import query as _cm_query
 
             with ChronoStore(root) as store:
-                for rec in store.query(rag_filter=True):  # confidence >= 0.6
+                for rec in _cm_query.what_is_known(store):
                     if rec.data:
                         content = (
                             f"[{rec.kind.upper()} {rec.id}] {rec.label}\n"

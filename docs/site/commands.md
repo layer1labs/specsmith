@@ -152,6 +152,39 @@ specsmith import --project-dir ./my-project --guided
 
 **Detection:** Language (by file extension counts), build system (pyproject.toml, Cargo.toml, etc.), test framework, CI platform, VCS remote, modules, entry points, test files, existing governance. See [Importing Projects](importing.md) for full details.
 
+## `specsmith checkpoint`
+
+Emit a compact **GOVERNANCE ANCHOR** to prevent session drift (REQ-351). Run this every
+8–10 turns and **always include the output verbatim in any context summary** so governance
+state survives context window compression in any chat application.
+
+```bash
+specsmith checkpoint                      # human-readable GOVERNANCE ANCHOR block
+specsmith checkpoint --json               # machine-readable JSON payload
+specsmith checkpoint --project-dir ./my-project
+```
+
+**Output fields (`--json`):** `ts`, `project`, `phase`, `phase_label`, `phase_pct`,
+`health`, `audit_failed`, `req_count`, `test_count`, `esdb_records`, `esdb_chain_valid`,
+`recent_wis`, `last_preflight`, `anchor`.
+
+**Typical agent usage:**
+
+```bash
+# At session start (output verbatim as first response)
+specsmith audit && specsmith sync && specsmith checkpoint
+
+# Every 8-10 turns — tag the output clearly
+# ⎠ GOVERNANCE ANCHOR:
+# <paste checkpoint output here>
+
+# When producing any context summary — checkpoint goes at top
+specsmith checkpoint --json   # machine-readable for programmatic injection
+```
+
+All data gathering is best-effort: the command never fails even on projects with no
+ESDB WAL, no LEDGER.md, or no `.specsmith/` directory.
+
 ## `specsmith sync`
 
 Sync `.specsmith/` machine-state JSON from `docs/` Markdown (REQ-003).
@@ -444,13 +477,20 @@ specsmith push --force
 
 ## `specsmith pull`
 
-Pull latest and warn about governance conflicts.
+Pull latest, or discard local changes and hard-reset to remote.
 
 ```bash
-specsmith pull --project-dir ./my-project
+specsmith pull --project-dir ./my-project            # standard git pull
+specsmith pull --discard --project-dir ./my-project  # git fetch + reset --hard
+specsmith pull --clean --project-dir ./my-project    # reset + git clean -fd
 ```
 
-Runs `git pull` and checks for conflicts in governance files (AGENTS.md, LEDGER.md, docs/governance/*).
+**Options:**
+
+- `--discard` — Hard-reset to `origin/<branch>`, discarding all local uncommitted changes. Runs `git fetch` first.
+- `--clean` — Same as `--discard` plus `git clean -fd` to remove untracked files. Useful for a full workspace reset.
+
+Standard pull warns about conflicts in governance files (AGENTS.md, LEDGER.md, docs/governance/*).
 
 ## `specsmith branch`
 
@@ -518,6 +558,33 @@ specsmith apply --project-dir ./my-project
 ```
 
 Re-renders GitHub Actions / GitLab CI / Bitbucket Pipelines config and agent integration files (CLAUDE.md, GEMINI.md, `.agents/skills/SKILL.md`, etc.). Safe: never overwrites AGENTS.md, LEDGER.md, or user-authored docs.
+
+## `specsmith integrate`
+
+Scaffold third-party tool integrations into a project.
+
+```bash
+specsmith integrate codity --project-dir ./my-project   # Codity.ai AI code review
+specsmith integrate agent-skill                         # Agent skill SKILL.md
+specsmith integrate claude-code                         # CLAUDE.md for Claude Code
+specsmith integrate cursor                              # .cursor/rules/ for Cursor
+specsmith integrate aider                               # .aider.conf.yml
+specsmith integrate copilot                             # .github/copilot-instructions.md
+specsmith integrate gemini                              # GEMINI.md
+specsmith integrate windsurf                            # .windsurfrules
+```
+
+**`codity` integration** (REQ-354):
+
+Generates the Codity.ai AI code review CI workflow for the detected VCS host:
+
+- **GitHub** (default): `.github/workflows/codity-review.yml` (GitHub Actions, uses `CODITY_ACCESS_TOKEN` secret)
+- **GitLab** (detected from scaffold.yml or `.gitlab-ci.yml`): `.gitlab-ci-codity.yml`
+- **Azure DevOps** (detected from scaffold.yml or `azure-pipelines.yml`): `.azure-pipelines/codity-review.yml`
+
+Also writes `docs/codity-setup.md` (setup checklist) and appends a TODO entry to LEDGER.md.
+
+See [Codity.ai Setup](../docs/codity-setup.md) and the `codity-ai-review` skill for the pre-commit workflow.
 
 ## `specsmith migrate-project`
 

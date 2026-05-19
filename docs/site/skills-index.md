@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **62 built-in skills** across 11 domains.
+specsmith ships with **70 built-in skills** across 11 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -16,17 +16,22 @@ Each skill is a curated `SKILL.md` injected into the agent context with
 
 ---
 
-## Governance (6)
+## Governance (11)
 
-Skills for project governance workflows, verification, and release management.
+Skills for project governance workflows, verification, release management, ESDB, CI polling, IP prosecution, and AI code review.
 
 | Slug | Name | Key tags |
 |------|------|----------|
+| `chronomemory-esdb` | ChronoMemory ESDB — epistemic state database (v0.1.1) | esdb, chronomemory, wal, query, context-pack |
+| `codity-ai-review` | Codity.ai AI Review — staged-diff code review, security scan, test-gen | codity, ai-review, code-review, security, pre-commit |
 | `diff-reviewer` | Diff Reviewer — surface changes for approval | git, review, pr |
+| `gh-ci-polling` | GitHub Actions CI polling — smart wait (no sleep) | ci, gh, polling, github-actions |
 | `issue-triage` | Issue Triage — classify and prioritise GitHub issues | github, issues, labels |
 | `onboarding-coach` | Onboarding Coach — guided first session | onboarding, first-run |
+| `patent-prosecution-workflow` | Patent Prosecution Workflow — prior-art, USPTO MCP, PAR | patent, uspto, ppubs, claim-themes, ip |
 | `planner` | Planner — propose-then-execute | planning, aee, governance |
 | `release-pilot` | Release Pilot — gitflow release cut | git, semver, release, gitflow |
+| `specsmith-session-governance` | Specsmith Session Governance — drift prevention, heartbeat, preflight gate | governance, session, drift, checkpoint, anchor |
 | `verifier` | Verifier — five-gate verification | audit, tests, verification |
 
 ---
@@ -119,14 +124,16 @@ Cloud CLI and infrastructure skills.
 
 ---
 
-## DevOps (4)
+## DevOps (6)
 
-Container, orchestration, and CI/CD skills.
+Container, orchestration, CI/CD, and GitHub health skills.
 
 | Slug | Name | Key tags |
 |------|------|----------|
 | `ci-cd-github-actions` | GitHub Actions — workflows, matrix, secrets, caching | github-actions, ci, yaml |
 | `docker-workflow` | Docker — multi-stage builds, Compose, registries | docker, compose, dockerfile |
+| `github-actions-ci` | GitHub Actions CI — Layer1Labs pattern (zero-trust, parallel) | ci, permissions, zero-trust, matrix |
+| `github-health-check` | GitHub Health Check — CI/PR/security/code-quality triage | ci, codeql, dependabot, pr, triage |
 | `kubernetes` | Kubernetes — kubectl, Helm, namespaces, GitOps | kubernetes, helm, gitops |
 | `terraform` | Terraform — init/plan/apply, state, modules | terraform, iac, hcl |
 
@@ -145,14 +152,15 @@ iOS, Android, Flutter, and React Native skills.
 
 ---
 
-## Cross-Platform (2)
+## Cross-Platform (3)
 
-Cross-platform build and package manager skills.
+Cross-platform build, package manager, and shell awareness skills.
 
 | Slug | Name | Key tags |
 |------|------|----------|
 | `cmake-cross-platform` | CMake — cross-platform builds, vcpkg, conan, presets | cmake, vcpkg, conan |
 | `package-managers` | Package Managers — brew, winget, scoop, apt, nix | brew, winget, apt, nix |
+| `terminal-awareness` | Terminal Awareness — PowerShell 5/7, cmd.exe, bash/zsh/fish, PID | powershell, pwsh, cmd, bash, pid, subprocess |
 
 ---
 

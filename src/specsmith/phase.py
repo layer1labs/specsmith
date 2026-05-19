@@ -398,6 +398,153 @@ PHASES: list[Phase] = [
 PHASE_MAP: dict[str, Phase] = {p.key: p for p in PHASES}
 PHASE_ORDER: list[str] = [p.key for p in PHASES]
 
+# ---------------------------------------------------------------------------
+# IP Prosecution phases  (patent-prosecution project type — issue #177)
+# ---------------------------------------------------------------------------
+
+PROSECUTION_PHASES: list[Phase] = [
+    Phase(
+        key="provisional-draft",
+        label="Provisional Draft",
+        emoji="\U0001f4dd",
+        description="Invention disclosure and provisional specification being written.",
+        checks=[
+            PhaseCheck("AGENTS.md exists", _file_exists("AGENTS.md")),
+            PhaseCheck("docs/ip/specs/ exists", _file_exists("docs/ip/specs")),
+            PhaseCheck("scaffold.yml has ip_families field", _scaffold_field("ip_families")),
+        ],
+        commands=["specsmith audit", 'specsmith ledger add "Provisional draft in progress"'],
+        next_phase="filing",
+    ),
+    Phase(
+        key="filing",
+        label="Filing",
+        emoji="\U0001f4e8",
+        description="Provisional application prepared and submitted to USPTO.",
+        checks=[
+            PhaseCheck("docs/ip/filings/ exists", _file_exists("docs/ip/filings")),
+            PhaseCheck(
+                "scaffold.yml has provisional_app_number",
+                _scaffold_field("provisional_app_number"),
+            ),
+            PhaseCheck(
+                "scaffold.yml has provisional_filed_date",
+                _scaffold_field("provisional_filed_date"),
+            ),
+        ],
+        commands=[
+            'specsmith ledger add "Provisional filed at USPTO — App. <number>"',
+            'specsmith trace seal milestone "Provisional filed"',
+        ],
+        next_phase="prior-art-search",
+    ),
+    Phase(
+        key="prior-art-search",
+        label="Prior-Art Search",
+        emoji="\U0001f50e",
+        description="Systematic prior-art protocol executed across all claim themes.",
+        checks=[
+            PhaseCheck(
+                "scaffold.yml has provisional_app_number",
+                _scaffold_field("provisional_app_number"),
+            ),
+            PhaseCheck(
+                "LEDGER.md has PAR run entry",
+                lambda root: any(
+                    "PAR-" in (root / c).read_text(encoding="utf-8", errors="ignore")
+                    for c in ["docs/LEDGER.md", "LEDGER.md"]
+                    if (root / c).exists()
+                ),
+            ),
+            PhaseCheck("docs/ip/prosecution/ exists", _file_exists("docs/ip/prosecution")),
+        ],
+        commands=[
+            "prior-art protocol: start Themes A-H (USPTO MCP)",
+            'specsmith ledger add "PAR-YYYY-MM-DD-001 complete — Themes A-H"',
+        ],
+        next_phase="claim-hardening",
+    ),
+    Phase(
+        key="claim-hardening",
+        label="Claim Hardening",
+        emoji="\U0001f527",
+        description="Claim language refined based on prior-art findings; §101/§102/§103 addressed.",
+        checks=[
+            PhaseCheck(
+                "LEDGER.md has PAR run entry",
+                lambda root: any(
+                    "PAR-" in (root / c).read_text(encoding="utf-8", errors="ignore")
+                    for c in ["docs/LEDGER.md", "LEDGER.md"]
+                    if (root / c).exists()
+                ),
+            ),
+            PhaseCheck("docs/ip/specs/ has content", _file_min_lines("docs/ip/specs", 1)),
+            PhaseCheck("docs/ip/strategy/ exists", _file_exists("docs/ip/strategy")),
+        ],
+        commands=[
+            'specsmith ledger add "Claim hardening session — Theme <X> hardened"',
+            'specsmith trace seal decision "Claim strategy approved by counsel"',
+        ],
+        next_phase="non-provisional-draft",
+    ),
+    Phase(
+        key="non-provisional-draft",
+        label="Non-Provisional Draft",
+        emoji="\U0001f4c4",
+        description="Anchor non-provisional and continuation drafts being prepared by counsel.",
+        checks=[
+            PhaseCheck(
+                "scaffold.yml has non_provisional_deadline",
+                _scaffold_field("non_provisional_deadline"),
+            ),
+            PhaseCheck("docs/ip/filings/ exists", _file_exists("docs/ip/filings")),
+            PhaseCheck("docs/ip/strategy/ exists", _file_exists("docs/ip/strategy")),
+        ],
+        commands=[
+            'specsmith ledger add "Non-provisional draft v<N> submitted to counsel"',
+        ],
+        next_phase="examination",
+    ),
+    Phase(
+        key="examination",
+        label="Examination",
+        emoji="\U0001f50d",
+        description="Application under examination at USPTO. Responding to office actions.",
+        checks=[
+            PhaseCheck("docs/ip/filings/ exists", _file_exists("docs/ip/filings")),
+            PhaseCheck(
+                "scaffold.yml has provisional_app_number",
+                _scaffold_field("provisional_app_number"),
+            ),
+        ],
+        commands=[
+            'specsmith ledger add "OA response filed — <date>"',
+            'specsmith trace seal milestone "Office action response submitted"',
+        ],
+        next_phase="allowance",
+    ),
+    Phase(
+        key="allowance",
+        label="Allowance",
+        emoji="\u2705",
+        description="Patent allowed or continuation strategy in execution.",
+        checks=[
+            PhaseCheck("docs/ip/filings/ exists", _file_exists("docs/ip/filings")),
+            PhaseCheck("Trace vault has seals", _trace_vault_exists()),
+        ],
+        commands=[
+            'specsmith ledger add "NOA received — patent allowed"',
+            'specsmith trace seal milestone "Patent allowed"',
+        ],
+        next_phase=None,
+    ),
+]
+
+# Merge prosecution phases into PHASE_MAP so read_phase() can find them.
+# Prosecution phases are intentionally NOT in PHASE_ORDER (the AEE sequence).
+PROSECUTION_PHASE_MAP: dict[str, Phase] = {p.key: p for p in PROSECUTION_PHASES}
+PHASE_MAP.update(PROSECUTION_PHASE_MAP)
+
 
 # ---------------------------------------------------------------------------
 # scaffold.yml I/O

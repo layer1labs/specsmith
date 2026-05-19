@@ -2792,3 +2792,190 @@
 - **Expected Behavior:** Banner contains '/specsmith'; subprocess called with correct args; timeout handled gracefully; REPL loop continues after error
 - **Confidence:** 0.9
 
+## TEST-341. terminal-awareness Skill Exists in Skills Catalog
+- **ID:** TEST-341
+- **Title:** terminal-awareness Skill Exists in Skills Catalog
+- **Description:** specsmith.skills.get('terminal-awareness') MUST return a non-None SkillEntry with domain=CROSS_PLATFORM. The skill body MUST contain sections for shell detection, PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish, Python subprocess PID tracking, and a cleanup checklist. specsmith skill list MUST include terminal-awareness in its output.
+- **Requirement ID:** REQ-341
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** from specsmith.skills import get; get('terminal-awareness')
+- **Expected Behavior:** Non-None SkillEntry; domain=CROSS_PLATFORM; body contains expected sections
+- **Confidence:** 0.95
+
+## TEST-342. Shell Detection Returns Correct Shell for Active Environment
+- **ID:** TEST-342
+- **Title:** Shell Detection Returns Correct Shell for Active Environment
+- **Description:** The detect_shell() example in terminal-awareness skill MUST return 'bash' when SHELL ends with 'bash', 'zsh' when SHELL ends with 'zsh', 'fish' when SHELL ends with 'fish', 'cmd' when ComSpec is set, and 'powershell' when PSModulePath is set but ComSpec is not.
+- **Requirement ID:** REQ-342
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Patch os.environ for each shell type; call detect_shell()
+- **Expected Behavior:** Returns correct shell string for each patched environment
+- **Confidence:** 0.9
+
+## TEST-343. run_tracked Uses DEVNULL stdin and communicate with Timeout
+- **ID:** TEST-343
+- **Title:** run_tracked Uses DEVNULL stdin and communicate with Timeout
+- **Description:** specsmith.executor.run_tracked MUST call subprocess.Popen with stdin=subprocess.DEVNULL and must call proc.communicate(timeout=N) not proc.wait(). On timeout, it MUST call proc.kill() then proc.communicate() to drain. Spawned PIDs MUST be tracked in .specsmith/pids/.
+- **Requirement ID:** REQ-343
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** run_tracked(tmp_path, 'echo ok', timeout=10); mock subprocess.Popen
+- **Expected Behavior:** DEVNULL stdin; communicate called with timeout; PID file written
+- **Confidence:** 0.9
+
+## TEST-344. specsmith.esdb Namespace Exports Full chronomemory v0.1.1 Surface
+- **ID:** TEST-344
+- **Title:** specsmith.esdb Namespace Exports Full chronomemory v0.1.1 Surface
+- **Description:** from specsmith.esdb import ChronoStore, ChronoRecord, EsdbBridge, DepGraph, ContextPackCompiler, RUST_BACKEND, query, metrics MUST all succeed without ImportError. RUST_BACKEND MUST be a bool. query MUST be a module with what_is_known. metrics MUST be a module with record_token_metric.
+- **Requirement ID:** REQ-344
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** from specsmith.esdb import <all exports>
+- **Expected Behavior:** All imports succeed; RUST_BACKEND is bool; query/metrics are modules
+- **Confidence:** 0.95
+
+## TEST-345. LLM Context Build Does Not Call store.query(rag_filter=True)
+- **ID:** TEST-345
+- **Title:** LLM Context Build Does Not Call store.query(rag_filter=True)
+- **Description:** specsmith.retrieval.build_index and specsmith.agent.context_seed._load_esdb_snippet MUST NOT call store.query(rag_filter=True). Both MUST call query.what_is_known(store). A grep over the codebase for 'rag_filter=True' in retrieval.py and context_seed.py MUST return zero matches.
+- **Requirement ID:** REQ-345
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** inspect source of retrieval.py and context_seed.py for rag_filter=True
+- **Expected Behavior:** No occurrences of rag_filter=True in the LLM context code paths
+- **Confidence:** 0.95
+
+## TEST-346. specsmith save --force Bypasses Gitflow Guard
+- **ID:** TEST-346
+- **Title:** specsmith save --force Bypasses Gitflow Guard
+- **Description:** specsmith save --force on a project with branching_strategy=gitflow on the main branch MUST NOT return the 'Refusing to push directly to main' error. run_push() called with force=True MUST issue git push --force-with-lease. Without --force on main, save MUST still refuse.
+- **Requirement ID:** REQ-346
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** run_push(tmp_path, force=True) on gitflow main; run_push(tmp_path, force=False) on main
+- **Expected Behavior:** force=True succeeds; force=False returns failure with guard message
+- **Confidence:** 0.9
+
+## TEST-347. specsmith pull --discard Hard-Resets Working Tree to Remote
+- **ID:** TEST-347
+- **Title:** specsmith pull --discard Hard-Resets Working Tree to Remote
+- **Description:** specsmith.vcs_commands.run_discard MUST issue git fetch then git reset --hard origin/<branch>. The result.success MUST be True on success. The result.message MUST contain 'reset to origin/<branch>'. With clean=False, git clean MUST NOT be called.
+- **Requirement ID:** REQ-347
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** run_discard(tmp_path, clean=False); mock _run_git
+- **Expected Behavior:** fetch then reset called; success=True; message contains 'reset to origin/'
+- **Confidence:** 0.9
+
+## TEST-348. specsmith pull --clean Also Runs git clean -fd
+- **ID:** TEST-348
+- **Title:** specsmith pull --clean Also Runs git clean -fd
+- **Description:** specsmith.vcs_commands.run_discard(clean=True) MUST call git clean -fd after the hard reset. The result.message MUST mention 'untracked files removed'. With clean=False, git clean MUST NOT be called.
+- **Requirement ID:** REQ-348
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** run_discard(tmp_path, clean=True) vs run_discard(tmp_path, clean=False); mock _run_git
+- **Expected Behavior:** clean=True calls git clean -fd and message notes untracked removal; clean=False does not
+- **Confidence:** 0.9
+
+## TEST-349. gh-ci-polling Skill Exists and Contains gh run watch Pattern
+- **ID:** TEST-349
+- **Title:** gh-ci-polling Skill Exists and Contains gh run watch Pattern
+- **Description:** specsmith.skills.get('gh-ci-polling') MUST return a non-None SkillEntry with domain=GOVERNANCE. The skill body MUST contain 'gh run watch', 'NEVER', and explicit prohibition of 'Start-Sleep' and 'sleep'. It MUST contain a PowerShell example and a bash example.
+- **Requirement ID:** REQ-349
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** from specsmith.skills import get; get('gh-ci-polling')
+- **Expected Behavior:** Non-None; body contains 'gh run watch', 'NEVER', 'Start-Sleep', pwsh and bash examples
+- **Confidence:** 0.95
+
+## TEST-350. Sync Pipeline Passes Through platform/boundary/confidence Fields
+- **ID:** TEST-350
+- **Title:** Sync Pipeline Passes Through platform/boundary/confidence Fields
+- **Description:** When a YAML requirement entry includes platform, boundary, or confidence fields, run_sync MUST include those fields in the corresponding .specsmith/requirements.json entry. When those fields are absent from the YAML entry, they MUST NOT appear in the JSON entry (not written as null or empty string).
+- **Requirement ID:** REQ-350
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** YAML req with platform='linux', boundary='OS', confidence='0.9'; run_sync; inspect JSON
+- **Expected Behavior:** JSON entry has platform, boundary, confidence keys; absent fields not present
+- **Confidence:** 0.9
+
+## TEST-351. specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
+- **ID:** TEST-351
+- **Title:** specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
+- **Description:** specsmith checkpoint --json on a project with scaffold.yml MUST exit 0 and return JSON containing ts (ISO-8601), project (string), phase (string), phase_label, phase_pct (int), health (string), audit_failed (int), req_count (int), test_count (int), esdb_records (int), esdb_chain_valid (bool), recent_wis (list), last_preflight (string), and anchor ('SPECSMITH-ANCHOR-' prefix). Without --json it MUST print a line containing 'GOVERNANCE ANCHOR'. Both forms MUST exit 0 on a project with no ESDB or LEDGER (best-effort, never throws).
+- **Requirement ID:** REQ-351
+- **Type:** cli
+- **Verification Method:** pytest
+- **Input:** specsmith checkpoint --json --project-dir tmp; specsmith checkpoint --project-dir tmp
+- **Expected Behavior:** JSON has all required fields; human output contains GOVERNANCE ANCHOR; exit 0 in both cases
+- **Confidence:** 0.95
+
+## TEST-352. M006 Injects Session Governance Protocol into AGENTS.md
+- **ID:** TEST-352
+- **Title:** M006 Injects Session Governance Protocol into AGENTS.md
+- **Description:** SessionGovernanceMigration().run(tmp_path) on a project with AGENTS.md that lacks 'specsmith checkpoint' MUST inject the Session Governance Protocol section, create .specsmith/agents.md.m006.bak, and return success=True with 'AGENTS.md' in files_modified. Re-running MUST be a no-op (idempotent). Running with dry_run=True MUST report what would change without writing. rollback() MUST restore AGENTS.md from the backup. M006 MUST appear in MigrationRegistry.all().
+- **Requirement ID:** REQ-352
+- **Type:** integration
+- **Verification Method:** pytest
+- **Input:** SessionGovernanceMigration().run(tmp_path); dry_run=True; rollback(); re-run after injection
+- **Expected Behavior:** Protocol injected; backup created; dry_run no writes; rollback restores; idempotent; registry includes v6
+- **Confidence:** 0.95
+
+## TEST-353. Modern Web Framework Types Have Tool Registry Entries
+- **ID:** TEST-353
+- **Title:** Modern Web Framework Types Have Tool Registry Entries
+- **Description:** list_tools_for_type(ProjectType.NEXTJS_APP) MUST return a ToolSet with 'next build' in build and 'eslint' in lint. list_tools_for_type(ProjectType.NUXT_APP) MUST have 'nuxt build' in build. list_tools_for_type(ProjectType.SVELTEKIT_APP) MUST have 'vite build'. list_tools_for_type(ProjectType.REMIX_APP) MUST have 'remix vite:build'. list_tools_for_type(ProjectType.ASTRO_SITE) MUST have 'astro build'. All five types MUST appear in _TYPE_LABELS with non-empty human-readable labels.
+- **Requirement ID:** REQ-353
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** list_tools_for_type for each new type; check _TYPE_LABELS
+- **Expected Behavior:** Each type has correct build tool; all five types in _TYPE_LABELS
+- **Confidence:** 0.95
+
+## TEST-354. CodityAdapter Generates GitHub Workflow by Default
+- **ID:** TEST-354
+- **Title:** CodityAdapter Generates GitHub Workflow by Default
+- **Description:** CodityAdapter().generate(config, tmp_path) on a directory with no VCS signals MUST create .github/workflows/codity-review.yml containing 'codity review --staged', 'curl -fsSL https://cli.codity.ai/install.sh | sh', 'CODITY_ACCESS_TOKEN', and 'actions/checkout@v4'. It MUST also create docs/codity-setup.md. When LEDGER.md exists, a TODO checklist entry MUST be appended containing 'codity login' and 'codity doctor'. CodityAdapter().name MUST equal 'codity'.
+- **Requirement ID:** REQ-354
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** CodityAdapter().generate(mock_config, tmp_path); tmp_path has no scaffold.yml or VCS hint files
+- **Expected Behavior:** .github/workflows/codity-review.yml created; docs/codity-setup.md created; LEDGER.md appended; name == 'codity'
+- **Confidence:** 0.95
+
+## TEST-355. CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
+- **ID:** TEST-355
+- **Title:** CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
+- **Description:** When scaffold.yml contains 'gitlab' (case-insensitive), _detect_vcs() MUST return 'gitlab' and generate() MUST write .gitlab-ci-codity.yml (not a GitHub workflow). When scaffold.yml contains 'azure', _detect_vcs() MUST return 'azure' and generate() MUST write .azure-pipelines/codity-review.yml. When .gitlab-ci.yml exists in the project root (no scaffold.yml), _detect_vcs() MUST return 'gitlab'. When azure-pipelines.yml exists, _detect_vcs() MUST return 'azure'. The GitLab workflow MUST contain 'codity config set-pat --provider gitlab'. The Azure workflow MUST contain 'codity config set-pat --provider azure'.
+- **Requirement ID:** REQ-354
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Scaffold.yml with gitlab/azure keyword; .gitlab-ci.yml present; azure-pipelines.yml present
+- **Expected Behavior:** Correct VCS detected; correct workflow file written; PAT setup command present
+- **Confidence:** 0.95
+
+## TEST-356. codity-ai-review Skill Is in Governance Skills Catalog
+- **ID:** TEST-356
+- **Title:** codity-ai-review Skill Is in Governance Skills Catalog
+- **Description:** specsmith.skills.governance.SKILLS MUST contain a SkillEntry with slug='codity-ai-review'. Its body MUST contain 'codity review --staged', 'codity login', 'codity init', 'codity scan --staged', 'codity test-gen --staged', 'codity doctor', 'specsmith integrate codity', 'HIGH severity', 'set-pat --provider gitlab', and 'set-pat --provider azure'. Its tags MUST include 'codity', 'ai-review', and 'pre-commit'. Its domain MUST be SkillDomain.GOVERNANCE.
+- **Requirement ID:** REQ-356
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** from specsmith.skills.governance import SKILLS; find slug='codity-ai-review'
+- **Expected Behavior:** SkillEntry found; body and tags correct; domain GOVERNANCE
+- **Confidence:** 0.95
+
+## TEST-357. AGENTS.md Template Contains Codity.ai Pre-commit Rule
+- **ID:** TEST-357
+- **Title:** AGENTS.md Template Contains Codity.ai Pre-commit Rule
+- **Description:** The rendered agents.md.j2 template MUST contain a 'Codity.ai Code Review' section. The section MUST instruct agents to run 'codity review --staged' if codity doctor exits 0; MUST state that HIGH-severity findings block the commit; MUST mention MEDIUM-severity acknowledgement; MUST reference 'specsmith integrate codity'. The section MUST appear after the Session Governance Protocol section and before the project metadata footer.
+- **Requirement ID:** REQ-355
+- **Type:** unit
+- **Verification Method:** pytest
+- **Input:** Read src/specsmith/templates/agents.md.j2 directly; render via Jinja2 with minimal context
+- **Expected Behavior:** Template contains Codity section with review --staged, HIGH severity, MEDIUM, integrate codity
+- **Confidence:** 0.95
+

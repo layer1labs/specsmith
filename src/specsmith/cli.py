@@ -2471,8 +2471,14 @@ def push_cmd(project_dir: str, force: bool) -> None:
     default=False,
     help="Commit only; skip push.",
 )
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Override push safety checks (e.g. direct-to-main guard).",
+)
 @click.option("--json", "as_json", is_flag=True, default=False)
-def save_cmd(project_dir: str, message: str, no_push: bool, as_json: bool) -> None:
+def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json: bool) -> None:
     """Save governance state: ESDB backup, commit, and push.
 
     Combines ``specsmith esdb backup`` + ``specsmith commit`` + ``specsmith push``
@@ -2511,7 +2517,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, as_json: bool) -> No
 
     # 3. Push
     if not no_push:
-        push_result = run_push(root)
+        push_result = run_push(root, force=force)
         steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
 
     ok = all(s["ok"] for s in steps)
@@ -2688,11 +2694,28 @@ def pr_cmd(project_dir: str, title: str, draft: bool) -> None:
 
 @main.command(name="pull")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
-def pull_cmd(project_dir: str) -> None:
-    """Pull latest changes and check for governance conflicts."""
-    from specsmith.vcs_commands import run_sync
+@click.option(
+    "--discard",
+    is_flag=True,
+    default=False,
+    help="Hard-reset to remote and pull, discarding all local changes.",
+)
+@click.option(
+    "--clean",
+    is_flag=True,
+    default=False,
+    help="Like --discard but also removes untracked files (git clean -fd).",
+)
+def pull_cmd(project_dir: str, discard: bool, clean: bool) -> None:
+    """Pull latest changes and check for governance conflicts.
 
-    result = run_sync(Path(project_dir).resolve())
+    Use --discard to hard-reset to the remote branch, discarding local
+    changes.  Add --clean to also remove untracked files.
+    """
+    from specsmith.vcs_commands import run_discard, run_sync
+
+    root = Path(project_dir).resolve()
+    result = run_discard(root, clean=clean) if discard or clean else run_sync(root)
     if result.success:
         console.print(f"[green]\u2713[/green] {result.message}")
     else:
@@ -2974,6 +2997,178 @@ def session_clear_cmd(project_dir: str, yes: bool) -> None:
         t.unlink()
         console.print(f"  [red]\u2717[/red] Removed {t.name}")
     console.print("[green]\u2713[/green] Session context cleared.")
+
+
+@main.command(name="checkpoint")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit as JSON.")
+def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
+    """Emit a compact governance anchor to prevent session drift.
+
+    Run this every 8-10 turns and ALWAYS include the output in any context
+    summary. The anchor captures the exact governance state (phase, health,
+    work items, REQ/TEST counts, ESDB chain) so the next context window is
+    never blind to where the project stands.
+
+    Usage pattern (copy the output into the conversation)::
+
+        specsmith checkpoint              # human-readable anchor block
+        specsmith checkpoint --json       # machine-readable JSON
+
+    In AGENTS.md: agents MUST emit ``specsmith checkpoint`` output verbatim
+    whenever they produce a context summary.
+    """
+    import json as _json
+    import re
+    import time
+
+    root = Path(project_dir).resolve()
+    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    # ── Project name ──────────────────────────────────────────────────────────
+    project_name = root.name
+    try:
+        from specsmith.paths import find_scaffold
+
+        sp = find_scaffold(root)
+        if sp:
+            import yaml as _yaml
+
+            raw = _yaml.safe_load(sp.read_text(encoding="utf-8")) or {}
+            project_name = str(raw.get("name", root.name))
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ── Phase ─────────────────────────────────────────────────────────────────
+    phase_key, phase_label, phase_emoji, phase_pct = "unknown", "Unknown", "", 0
+    try:
+        from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
+
+        phase_key = read_phase(root)
+        phase = PHASE_MAP.get(phase_key)
+        if phase:
+            phase_label = phase.label
+            phase_emoji = phase.emoji
+            phase_pct = phase_progress_pct(phase, root)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ── Audit health ──────────────────────────────────────────────────────────
+    health_ok, audit_failed = True, 0
+    try:
+        from specsmith.auditor import run_audit
+
+        report = run_audit(root)
+        health_ok = report.healthy
+        audit_failed = report.failed
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ── REQ / TEST counts ─────────────────────────────────────────────────────
+    req_count, test_count = 0, 0
+    try:
+        import json as _jl
+
+        rp = root / ".specsmith" / "requirements.json"
+        tp = root / ".specsmith" / "testcases.json"
+        if rp.exists():
+            req_count = len(_jl.loads(rp.read_text(encoding="utf-8")))
+        if tp.exists():
+            test_count = len(_jl.loads(tp.read_text(encoding="utf-8")))
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ── ESDB ──────────────────────────────────────────────────────────────────
+    esdb_ok, esdb_records = True, 0
+    try:
+        from chronomemory import ChronoStore
+
+        wal = root / ".chronomemory" / "events.wal"
+        if wal.exists():
+            with ChronoStore(root) as store:
+                esdb_ok = store.chain_valid()
+                esdb_records = store.record_count()
+    except Exception:  # noqa: BLE001
+        pass
+
+    # ── Recent work items + last preflight from LEDGER.md ─────────────────────
+    recent_wis: list[str] = []
+    last_preflight = ""
+    try:
+        ledger_candidates = ["docs/LEDGER.md", "LEDGER.md"]
+        for cand in ledger_candidates:
+            lp = root / cand
+            if lp.exists():
+                text = lp.read_text(encoding="utf-8", errors="ignore")
+                wis = re.findall(r"\bWI-[A-F0-9]{8}\b", text)
+                seen: set[str] = set()
+                for wi in reversed(wis):
+                    if wi not in seen:
+                        seen.add(wi)
+                        recent_wis.insert(0, wi)
+                    if len(seen) >= 3:
+                        break
+                pf = re.findall(r"preflight accepted[^\n]{0,80}", text)
+                if pf:
+                    last_preflight = pf[-1]
+                break
+    except Exception:  # noqa: BLE001
+        pass
+
+    payload: dict[str, Any] = {
+        "ts": ts,
+        "project": project_name,
+        "phase": phase_key,
+        "phase_label": f"{phase_emoji} {phase_label}",
+        "phase_pct": phase_pct,
+        "health": "clean" if health_ok else f"{audit_failed} issues",
+        "audit_failed": audit_failed,
+        "req_count": req_count,
+        "test_count": test_count,
+        "esdb_records": esdb_records,
+        "esdb_chain_valid": esdb_ok,
+        "recent_wis": recent_wis,
+        "last_preflight": last_preflight,
+        "anchor": f"SPECSMITH-ANCHOR-{ts}",
+    }
+
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+
+    # ── Human-readable anchor block ───────────────────────────────────────────
+    # Designed to be compact and survive context summarization.
+    hbar = "\u2550" * 57  # ═══…
+    vbar = "\u2551"  # ║
+    health_icon = "\u2713" if health_ok else "\u2717"
+    esdb_icon = "\u2713" if esdb_ok else "\u2717"
+    wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
+
+    console.print(f"[bold cyan]\u2554{hbar}\u2557[/bold cyan]")
+    console.print(f"[bold cyan]{vbar}[/bold cyan] GOVERNANCE ANCHOR  {ts}")
+    console.print(f"[bold cyan]{vbar}[/bold cyan] Project : [bold]{project_name}[/bold]")
+    console.print(
+        f"[bold cyan]{vbar}[/bold cyan] Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
+    )
+    health_str = (
+        f"[green]{health_icon} clean[/green]"
+        if health_ok
+        else f"[red]{health_icon} {audit_failed} issues[/red]"
+    )
+    console.print(f"[bold cyan]{vbar}[/bold cyan] Health  : {health_str}")
+    console.print(
+        f"[bold cyan]{vbar}[/bold cyan] REQs    : {req_count}   TESTs: {test_count}"
+        f"   ESDB: {esdb_records} records ({esdb_icon} chain)"
+    )
+    console.print(f"[bold cyan]{vbar}[/bold cyan] WIs     : {wi_str}")
+    if last_preflight:
+        pf_short = last_preflight[:55]
+        console.print(f"[bold cyan]{vbar}[/bold cyan] Preflight: {pf_short}")
+    console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
+    console.print(
+        "[dim]Include this block verbatim in any context summary "
+        r"(\`specsmith checkpoint\` re-generates it).[/dim]"
+    )
 
 
 @main.command(name="session-end")

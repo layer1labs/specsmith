@@ -28,6 +28,7 @@ def _load_adapters() -> None:
     from specsmith.integrations.agent_skill import AgentSkillAdapter
     from specsmith.integrations.aider import AiderAdapter
     from specsmith.integrations.claude_code import ClaudeCodeAdapter
+    from specsmith.integrations.codity import CodityAdapter
     from specsmith.integrations.copilot import CopilotAdapter
     from specsmith.integrations.cursor import CursorAdapter
     from specsmith.integrations.gemini import GeminiAdapter
@@ -36,6 +37,7 @@ def _load_adapters() -> None:
     for cls in (
         AgentSkillAdapter,
         ClaudeCodeAdapter,
+        CodityAdapter,
         CursorAdapter,
         CopilotAdapter,
         GeminiAdapter,

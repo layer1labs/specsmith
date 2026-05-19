@@ -186,12 +186,18 @@ def _load_ledger_snippet(root: Path, *, max_lines: int) -> str:
 
 
 def _load_esdb_snippet(root: Path, *, max_records: int) -> str:
-    """Return a compact summary of the most recent ESDB ChronoRecords."""
+    """Return a compact summary of the most recent ESDB ChronoRecords.
+
+    Uses query.what_is_known() (not store.query()) so infrastructure records
+    (edge, rollback_event, token_metric, skill_run) are excluded from the
+    LLM context seed — critical rule §23 / ESDB spec rule 3.
+    """
     try:
         from chronomemory import ChronoStore
+        from chronomemory import query as _cm_query
 
         with ChronoStore(root) as store:
-            all_records = store.query()  # active records in insertion order
+            all_records = _cm_query.what_is_known(store)  # active, conf>=0.6, no infra
         recent = all_records[-max_records:] if len(all_records) > max_records else all_records
         if not recent:
             return ""

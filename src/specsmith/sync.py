@@ -257,6 +257,12 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                 "source": r.get("source", "docs/requirements/"),
                 "status": str(r.get("status", "defined")),
                 "test_ids": _req_to_tests.get(r["id"], []),
+                # Epistemic metadata — passed through from YAML so that
+                # generate_requirements_md renders them into REQUIREMENTS.md
+                # and belief.py can parse Platform/Boundary/Confidence fields.
+                **({"platform": str(r["platform"])} if r.get("platform") else {}),
+                **({"boundary": str(r["boundary"])} if r.get("boundary") else {}),
+                **({"confidence": str(r["confidence"])} if r.get("confidence") else {}),
             }
             for r in new_reqs
         ]
