@@ -15,8 +15,8 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**0.11.0 — EU AI Act / NIST AI RMF compliance, context window management, and governance tools panel.**
-Specsmith now ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
+**v0.11.4 — Codity.ai AI code review integration, 70 built-in skills, EU AI Act / NIST AI RMF compliance, context window management, and governance tools panel.**
+Specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
 overflow, and a dedicated governance tools panel in Kairos surfaces compliance settings
@@ -168,12 +168,12 @@ specsmith phase --project-dir ./my-project
 
 ## Machine State Sync + YAML Governance
 
-As of v0.12, specsmith uses **YAML-first governance**: `docs/requirements/*.yml`
+As of v0.11, specsmith uses **YAML-first governance**: `docs/requirements/*.yml`
 and `docs/tests/*.yml` are the canonical sources. `REQUIREMENTS.md` and `TESTS.md`
 are **generated artifacts** — do not hand-edit them.
 
 ```bash
-# YAML-first pipeline (v0.12+)
+# YAML-first pipeline (v0.11+)
 specsmith sync                     # YAML → .specsmith/*.json → docs/*.md (all in one)
 specsmith generate docs            # regenerate only the Markdown artifacts from YAML
 specsmith generate docs --check    # dry-run: report what would change
@@ -253,11 +253,11 @@ human oversight, and robustness. specsmith implements:
 across the AI lifecycle. specsmith addresses all four core functions:
 
 | NIST AI RMF Function | specsmith Mechanism |
-||---|
-|| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
-|| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
-|| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
-|| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
+|---|---|
+| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
+| **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
+| **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
+| **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
 
 ### How Each Compliance Mechanism Works
 
@@ -288,7 +288,7 @@ Every preflight response includes a mandatory `ai_disclosure` block:
     "governance_gated": true,
     "provider": "ollama",
     "model": "qwen2.5:14b",
-    "spec_version": "0.11.0"
+    "spec_version": "0.11.4"
   }
 }
 ```
@@ -490,7 +490,6 @@ The Nexus broker:
 - **Bounded retry**: failed actions retry up to 3× with strategy classification
 - **Execution trace**: every action is sealed in the cryptographic trace vault
 - **`/why` toggle**: shows governance rationale in human-readable form
-```
 
 **How it works.** A natural-language **broker** classifies intent, infers scope from
 your requirements, and asks Specsmith to **preflight** the request. Only when the
@@ -683,7 +682,7 @@ result = run_vsg("rtl/top.vhd", rules="vsg_rules.yaml")
 
 ## Kairos — Flagship Terminal Client
 
-**[Kairos](https://github.com/BitConcepts/kairos)** is the recommended terminal client for specsmith.
+**[Kairos](https://github.com/layer1labs/kairos)** is the recommended terminal client for specsmith.
 Kairos spawns specsmith as a managed governance child process at startup and routes all
 preflight, verify, and BYOE proxy calls through it. The Governance settings page shows live
 specsmith status, version, and one-click update.
@@ -709,13 +708,13 @@ Use `pipx install specsmith` for standalone CLI usage from any terminal.
 
 specsmith is open source and built by a small team. Every bit of support helps:
 
-- ⭐ **Star** [specsmith](https://github.com/BitConcepts/specsmith) and [kairos](https://github.com/BitConcepts/kairos) on GitHub
+- ⭐ **Star** [specsmith](https://github.com/layer1labs/specsmith) and [kairos](https://github.com/layer1labs/kairos) on GitHub
 - 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
-- 🐛 **Report bugs** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues) — even small ones help
-- 💡 **Suggest features** via [GitHub Discussions](https://github.com/BitConcepts/specsmith/discussions) — we read every suggestion
+- 🐛 **Report bugs** via [GitHub Issues](https://github.com/layer1labs/specsmith/issues) — even small ones help
+- 💡 **Suggest features** via [GitHub Discussions](https://github.com/layer1labs/specsmith/discussions) — we read every suggestion
 - 🔧 **Fix bugs and contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md); PRs welcome
 - 📝 **Write about specsmith** — blog posts, tutorials, and talks help the community grow
-- ❤️ **[Sponsor BitConcepts](https://github.com/sponsors/BitConcepts)** — directly funds development
+- ❤️ **[Sponsor layer1labs](https://github.com/sponsors/layer1labs)** — directly funds development
 
 ---
 
@@ -763,7 +762,7 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Governance:** `init` `import` `audit` `validate` `diff` `upgrade` `compress` `doctor` `export` `architect`
 
-**AEE Epistemic:** `stress-test` `epistemic-audit` `belief-graph` `trace seal/verify/log` `integrate`
+**AEE Epistemic:** `stress-test` `epistemic-audit` `belief-graph` `trace seal/verify/log`
 
 **Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
 
@@ -777,11 +776,13 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Workspace:** `workspace init/audit/export`
 
-**VCS:** `commit` `push` `sync` `branch` `pr` `status`
+**Integrations:** `integrate codity` `integrate claude-code` `integrate cursor` `integrate copilot` `integrate aider` `integrate gemini` `integrate windsurf` `integrate agent-skill`
+
+**VCS:** `commit` `push` `pull` `save` `load` `sync` `branch` `pr` `status` `checkpoint`
 
 **Tools:** `tools scan [--fpga]` `tools install <tool>` `tools rules [--tool] [--list]`
 
-**Tools:** `exec` `ps` `abort` `watch` `optimize` `credits` `self-update`
+**Session & Process:** `exec` `ps` `abort` `watch` `credits` `self-update` `kill-session` `session-end`
 
 **Auth:** `auth set/list/remove/check`
 
@@ -789,15 +790,17 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 ---
 
-## 35 Project Types
+## 47 Project Types
 
-**Software:** Python CLI/lib/web, Rust, Go, C/C++, .NET, Node.js/TypeScript, mobile, microservices, data/ML.
+**Software:** Python CLI/lib/web/API, Rust, Go, C/C++, .NET, Node.js/TypeScript, mobile, microservices, data/ML.
 
-**Hardware/Embedded:** FPGA/RTL (Xilinx, Intel, Lattice, generic), Yocto BSP, embedded C/C++.
+**Modern web:** `nextjs-app`, `nuxt-app`, `sveltekit-app`, `remix-app`, `astro-site`.
 
-**Documents:** Technical specs, research papers, API specs, requirements management.
+**Hardware/Embedded:** FPGA/RTL (Xilinx, Intel, Lattice, generic), Yocto BSP, embedded C/C++, PCB.
 
-**Business/Legal:** Business plans, patent applications, compliance frameworks.
+**Documents & IP:** Technical specs, research papers, API specs, requirements management, patent prosecution.
+
+**Business/Legal:** Business plans, patent applications, compliance frameworks, legal compliance.
 
 ---
 
@@ -886,7 +889,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
 in this repo to check its governance health. This means every feature we add to specsmith is
-immediately dogfooded on specsmith itself. [Kairos](https://github.com/BitConcepts/kairos)
+immediately dogfooded on specsmith itself. [Kairos](https://github.com/layer1labs/kairos)
 is the companion terminal and flagship client.
 
 ## Documentation
@@ -899,7 +902,7 @@ command reference, project types, tool registry, governance model, Ollama guide,
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
 - [Changelog](CHANGELOG.md)
-- [Kairos terminal client](https://github.com/BitConcepts/kairos)
+- [Kairos terminal client](https://github.com/layer1labs/kairos)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 

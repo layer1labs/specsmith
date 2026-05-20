@@ -120,6 +120,23 @@ jobs:
           SPECSMITH_PYPI_CHECKED: "1"
         run: python -m specsmith validate --strict --json --project-dir .
 
+  docs-build:
+    # H23/H24 guard: mkdocs build --strict fails on any doc warning.
+    name: Docs build (mkdocs --strict)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[docs]"
+      - name: Build docs (strict)
+        run: mkdocs build --strict
+
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
     # if the live output drifts from the committed fixture.

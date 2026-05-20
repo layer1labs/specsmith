@@ -1,8 +1,8 @@
 site_name: specsmith
 site_description: Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines.
 site_url: https://specsmith.readthedocs.io
-repo_url: https://github.com/BitConcepts/specsmith
-repo_name: BitConcepts/specsmith
+repo_url: https://github.com/layer1labs/specsmith
+repo_name: layer1labs/specsmith
 edit_uri: edit/main/docs/site/
 
 docs_dir: docs/site
