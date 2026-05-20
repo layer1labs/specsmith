@@ -69,11 +69,18 @@ def _read_json_file(root: Path, *parts: str) -> list[Any]:
     """
     import json as _json
 
+    # _safe_child validates that the path stays within root (raises on escape).
     path = _safe_child(root, *parts)
-    if not path.is_file():
+    # Re-apply os.path.realpath at the call site so CodeQL's taint tracker
+    # recognises the sanitiser immediately before each filesystem call.
+    # Inter-procedural sanitisation from _safe_child is not propagated by the
+    # CodeQL py/path-injection taint model across function-return boundaries.
+    safe = os.path.realpath(str(path))
+    if not os.path.isfile(safe):
         return []
     try:
-        data = _json.loads(path.read_text(encoding="utf-8"))
+        with open(safe, encoding="utf-8") as fh:
+            data = _json.loads(fh.read())
     except (OSError, ValueError):
         return []
     return data if isinstance(data, list) else []
