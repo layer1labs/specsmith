@@ -4778,8 +4778,13 @@ def watch_cmd(project_dir: str, interval: int, no_notify: bool) -> None:
         _has_watchdog = False
     if not _has_watchdog:
         console.print(
-            "[dim]watchdog not installed — using polling mode. "
-            "For faster detection: pip install watchdog[/dim]\n"
+            "[yellow]⚠[/yellow] [dim]watchdog not installed — using polling mode "
+            f"({interval}s interval).[/dim]\n"
+            "  [dim]For native filesystem events, add [bold]watchdog>=4.0[/bold] to your "
+            "project's dev extras:[/dim]\n"
+            "  [dim]  pip install watchdog[/dim]\n"
+            "  [dim]  or add to pyproject.toml: "
+            '[bold][project.optional-dependencies] dev = ["watchdog>=4.0"][/bold][/dim]\n'
         )
 
     from specsmith.auditor import run_audit
