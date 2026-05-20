@@ -43,6 +43,42 @@ def _safe_resolve(path: str | Path) -> Path:
     return Path(os.path.realpath(raw))
 
 
+def _safe_child(root: Path, *parts: str) -> Path:
+    """Return a validated child path under ``root``.
+
+    The project directory may be provided by a caller, but all files read by
+    this module are fixed governance files inside that project root. Resolve
+    the child path and verify it cannot escape ``root`` through traversal or
+    symlinks before any file-system operation.
+    """
+    base = Path(os.path.realpath(str(root)))
+    child = Path(os.path.realpath(os.path.join(str(base), *parts)))
+    try:
+        child.relative_to(base)
+    except ValueError as exc:
+        joined = os.path.join(*parts)
+        raise ValueError(f"Resolved path escapes project root: {joined!r}") from exc
+    return child
+
+
+def _read_json_file(root: Path, *parts: str) -> list[Any]:
+    """Read a JSON array from a fixed governance child file.
+
+    Missing or invalid files degrade to an empty list because preflight should
+    remain best-effort when machine state has not yet been generated.
+    """
+    import json as _json
+
+    path = _safe_child(root, *parts)
+    if not path.is_file():
+        return []
+    try:
+        data = _json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return data if isinstance(data, list) else []
+
+
 def run_preflight(
     utterance: str,
     project_dir: str | Path = ".",
@@ -65,7 +101,6 @@ def run_preflight(
         ``decision``, ``work_item_id``, ``requirement_ids``, ``test_case_ids``,
         ``confidence_target``, ``instruction``, ``intent``, ``ai_disclosure``.
     """
-    import json as _json
     import re as _re
 
     from specsmith import __version__
@@ -90,19 +125,8 @@ def run_preflight(
     explicit_req_ids = [m.upper() for m in _EXPLICIT_REQ.findall(utterance)]
     explicit_test_ids = [m.upper() for m in _EXPLICIT_TEST.findall(utterance)]
 
-    # Pre-compute .specsmith/ sub-paths via os.path.join from the already-sanitised
-    # root string.  os.path.join(str(root), const) is unambiguously clean to
-    # CodeQL's py/path-injection taint tracker: the left operand is the output of
-    # os.path.realpath (see _safe_resolve) and the right operands are literals.
-    _root_str: str = str(root)
-    _reqs_json_path = os.path.join(_root_str, ".specsmith", "requirements.json")
-    _tc_json_path = os.path.join(_root_str, ".specsmith", "testcases.json")
-
-    if explicit_req_ids and os.path.isfile(_reqs_json_path):
-        try:
-            rq_records = _json.loads(Path(_reqs_json_path).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            rq_records = []
+    if explicit_req_ids:
+        rq_records = _read_json_file(root, ".specsmith", "requirements.json")
         known_req_ids = {r["id"] for r in rq_records if isinstance(r, dict) and r.get("id")}
         for eid in explicit_req_ids:
             if eid in known_req_ids and eid not in requirement_ids:
@@ -110,20 +134,15 @@ def run_preflight(
 
     # Resolve test case IDs from machine state
     test_case_ids: list[str] = []
-    if explicit_test_ids and os.path.isfile(_tc_json_path):
-        try:
-            tc_explicit = _json.loads(Path(_tc_json_path).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            tc_explicit = []
+    tc_records = _read_json_file(root, ".specsmith", "testcases.json")
+    if explicit_test_ids:
+        tc_explicit = tc_records
         known_tc_ids = {r["id"] for r in tc_explicit if isinstance(r, dict) and r.get("id")}
         for eid in explicit_test_ids:
             if eid in known_tc_ids:
                 test_case_ids.append(eid)
-    if requirement_ids and os.path.isfile(_tc_json_path):
-        try:
-            records = _json.loads(Path(_tc_json_path).read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            records = []
+    if requirement_ids:
+        records = tc_records
         req_set = set(requirement_ids)
         for rec in records:
             if (
