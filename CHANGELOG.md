@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.5] - 2026-05-20
+
+### Fixed
+
+- **Security:** CodeQL `py/path-injection` false positives in `governance_logic.py` — dismissed 6
+  alerts with documented justification. The only variable path component is the validated project
+  root (`_safe_resolve`: null-byte check, traversal rejection, `os.path.realpath`); all file names
+  appended (`.specsmith/requirements.json`, `.specsmith/testcases.json`) are hardcoded literals.
+- **CI — ruff format:** stray blank line in `governance_logic.py` after `_safe_resolve` caused
+  `ruff format --check` to fail on the release workflow.
+- **CI — MkDocs strict:** four broken relative links in `docs/site/agents.md` (→ `../REQUIREMENTS.md`,
+  `../../src/…`) and `docs/site/commands.md` (→ `../docs/codity-setup.md`) rejected by
+  `mkdocs build --strict`; links replaced with plain-text references.
+- **release.yml:** add `rtd-publish` job that triggers ReadTheDocs `stable` + `latest` builds
+  after every PyPI publish; previously only `dev-release.yml` triggered RTD.
+
+### Changed
+
+- GitHub repository topics updated to 20 current capability-focused tags.
+- GitHub repository About description updated to reflect AEE toolkit scope.
+
 ## [0.11.4] - 2026-05-19
 
 ### Added
