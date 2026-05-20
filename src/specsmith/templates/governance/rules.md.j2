@@ -55,6 +55,21 @@ All proposals MUST state their epistemic boundaries. A proposal without explicit
 
 Hidden assumptions are not acceptable. Declare all epistemic boundaries in the `Assumptions:` field of every proposal.
 
+### H23 — No Bare Sleep Delays in Scripts
+Scripts MUST NOT use `sleep N`, `Start-Sleep`, or equivalent blocking waits as a
+standalone timing mechanism without a guaranteed exit path.
+
+Every wait that depends on an external condition MUST use a polling loop with:
+1. A **maximum iteration count** or **wall-clock timeout**
+2. A **non-zero exit code** on timeout
+3. An **explicit sleep interval** inside the loop body
+
+**Applies to:** `.sh`, `.bash`, `.ps1`, `.cmd`, `.bat`, CI `run:` blocks, Makefile recipes.
+**Does NOT apply to:** production source code (`time.sleep`, `thread::sleep`, etc.).
+
+`specsmith validate` checks scripts for bare sleep patterns without loop/retry constructs
+and emits a warning (H23).
+
 ---
 
 ## Stop Conditions

@@ -182,6 +182,24 @@ does NOT constitute cross-platform coverage.
 - `specsmith validate --strict` checks for the presence of a `.github/workflows/*.yml`
   file and emits a warning (H22) when none is found.
 
+### H23 — No Bare Sleep Delays in Scripts
+Scripts MUST NOT use `sleep N`, `Start-Sleep`, or equivalent blocking waits as a
+standalone timing mechanism without a guaranteed exit path.
+
+Every wait that depends on an external condition MUST use a polling loop with:
+1. A **maximum iteration count** or **wall-clock timeout**
+2. A **non-zero exit code** on timeout
+3. An **explicit sleep interval** inside the loop body
+
+Bare `sleep N; command` is the root cause of hung CI pipelines, stuck terminal sessions,
+and zombie processes when the awaited condition never arrives.
+
+**Applies to:** `.sh`, `.bash`, `.ps1`, `.cmd`, `.bat`, CI `run:` blocks, Makefile recipes.
+**Does NOT apply to:** production source code (`time.sleep`, `thread::sleep`, etc.).
+
+`specsmith validate` checks scripts under `scripts/` and the project root for bare sleep
+patterns without adjacent loop/retry constructs and emits a warning (H23).
+
 ---
 
 ## Governance Invariants for ESDB and Context Management

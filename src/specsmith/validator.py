@@ -63,6 +63,25 @@ _DEADLINE_GUARD_PATTERNS = (
 # Script file extensions to scan (exclude general source dirs to avoid false positives)
 _SCRIPT_EXTENSIONS = {".sh", ".cmd", ".ps1", ".bash"}
 
+# Bare-sleep patterns: standalone timing delays that block indefinitely (H23)
+# Applies to scripts only — NOT to general source code.
+_BARE_SLEEP_PATTERNS = (
+    re.compile(r"^\s*sleep\s+\d", re.MULTILINE | re.IGNORECASE),  # bash: sleep N
+    re.compile(r"^\s*Start-Sleep\b", re.MULTILINE | re.IGNORECASE),  # PowerShell
+)
+
+# Loop / retry constructs that justify a sleep — if any are present the sleep
+# is inside a polling loop and should not be flagged.
+_SLEEP_LOOP_CONTEXT = (
+    re.compile(r"\bfor\b"),
+    re.compile(r"\bwhile\b"),
+    re.compile(r"\buntil\b"),
+    re.compile(r"max_retries", re.IGNORECASE),
+    re.compile(r"max_attempts", re.IGNORECASE),
+    re.compile(r"\bretry\b", re.IGNORECASE),
+    re.compile(r"\bseq\s+\d"),  # bash `for i in $(seq N)`
+)
+
 
 def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
     """Check that scaffold.yml exists and is valid YAML."""
@@ -333,6 +352,78 @@ def _check_blocking_loops(root: Path) -> list[ValidationResult]:
     return results
 
 
+def _check_bare_sleep(root: Path) -> list[ValidationResult]:
+    """Scan script files for bare sleep delays without a loop/retry context (H23).
+
+    A bare sleep is a ``sleep N`` / ``Start-Sleep`` line that appears in a script
+    file that contains NO loop or retry constructs.  This is a timing anti-pattern
+    that blocks indefinitely when the awaited condition never arrives.
+
+    Files with a loop/retry context (``for``, ``while``, ``until``, ``max_retries``)
+    are skipped — the sleep is part of a legitimate polling loop in those cases.
+
+    Emits a warning (not a hard error) to allow gradual adoption.
+    """
+    results: list[ValidationResult] = []
+
+    candidates: list[Path] = []
+    for path in root.iterdir():
+        if path.is_file() and path.suffix.lower() in _SCRIPT_EXTENSIONS:
+            candidates.append(path)
+    scripts_dir = root / "scripts"
+    if scripts_dir.is_dir():
+        for path in scripts_dir.rglob("*"):
+            if path.is_file() and path.suffix.lower() in _SCRIPT_EXTENSIONS:
+                candidates.append(path)
+
+    if not candidates:
+        return results
+
+    flagged: list[str] = []
+    for script_path in candidates:
+        try:
+            text = script_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+
+        has_sleep = any(p.search(text) for p in _BARE_SLEEP_PATTERNS)
+        if not has_sleep:
+            continue
+
+        # Sleep inside a loop/retry context is acceptable
+        has_loop_context = any(p.search(text) for p in _SLEEP_LOOP_CONTEXT)
+        if not has_loop_context:
+            try:
+                rel = script_path.relative_to(root)
+            except ValueError:
+                rel = script_path
+            flagged.append(str(rel))
+
+    if flagged:
+        for name in flagged:
+            results.append(
+                ValidationResult(
+                    name=f"bare-sleep:{name}",
+                    passed=False,
+                    message=(
+                        f"{name}: bare sleep delay without a polling loop (H23 warning). "
+                        "Replace with a retry loop that has a max iteration count and "
+                        "non-zero exit on timeout."
+                    ),
+                )
+            )
+    else:
+        results.append(
+            ValidationResult(
+                name="bare-sleep",
+                passed=True,
+                message=f"{len(candidates)} script file(s) checked — no bare sleep delays found",
+            )
+        )
+
+    return results
+
+
 def run_validate(root: Path) -> ValidationReport:
     """Run all validation checks and return a report."""
     report = ValidationReport()
@@ -341,4 +432,5 @@ def run_validate(root: Path) -> ValidationReport:
     report.results.extend(_check_req_ids_unique(root))
     report.results.extend(_check_architecture_reqs(root))
     report.results.extend(_check_blocking_loops(root))
+    report.results.extend(_check_bare_sleep(root))
     return report
