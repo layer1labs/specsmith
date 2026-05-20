@@ -9,15 +9,18 @@ from pathlib import Path
 
 # Flexible patterns that handle both two-part (REQ-001) and three-part
 # (REQ-CLI-001, REG-012) identifiers used across projects.
+# Letter suffixes (e.g. TEST-NN-002a, TEST-NN-002b) are supported via [a-z]* —
+# without this, the \b word boundary after \d+ would not match when a letter
+# follows digits, causing the ID to be silently skipped (#183).
 _FLEX_REQ = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
-_FLEX_TEST = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+"
+_FLEX_TEST = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[a-z]*"
 
 _REQ_PATTERN = re.compile(r"\b(" + _FLEX_REQ + r")\b")
 _TEST_COVERS_PATTERN = re.compile(
     r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
     r"(" + _FLEX_REQ + r"(?:\s*,\s*" + _FLEX_REQ + r")*)"
 )
-_TEST_ID_PATTERN = re.compile(r"\b(" + _FLEX_TEST + r")\b")
+_TEST_ID_PATTERN = re.compile(r"\b(TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[a-z]*)\b")
 
 # Heading detectors for REQUIREMENTS.md (two styles supported):
 #   Style A: ## REQ-001 or ## REQ-CLI-001
@@ -111,15 +114,44 @@ def add_req(
 
 
 def trace_reqs(root: Path) -> list[dict[str, object]]:
-    """Map each REQ to its covering TESTs."""
+    """Map each REQ to its covering TESTs.
+
+    In YAML-first mode, reads .specsmith/testcases.json directly — this avoids
+    regex-based ID parsing entirely and correctly handles letter-suffix IDs
+    (e.g. TEST-NN-002a, TEST-NN-002b) that were previously misidentified (#183).
+    Falls back to TESTS.md regex parsing in legacy Markdown mode.
+    """
+    import json as _json
+
     req_path = root / "docs" / "REQUIREMENTS.md"
     test_path = root / "docs" / "TESTS.md"
+    testcases_json = root / ".specsmith" / "testcases.json"
 
     req_ids: list[str] = []
     if req_path.exists():
         req_ids = sorted(set(_REQ_PATTERN.findall(req_path.read_text(encoding="utf-8"))))
 
     covered_by: dict[str, list[str]] = {r: [] for r in req_ids}
+
+    # YAML mode: prefer machine-readable testcases.json — exact IDs, no regex.
+    if testcases_json.is_file():
+        try:
+            records = _json.loads(testcases_json.read_text(encoding="utf-8"))
+            for record in records:
+                if (
+                    isinstance(record, dict)
+                    and isinstance(record.get("requirement_id"), str)
+                    and isinstance(record.get("id"), str)
+                ):
+                    rid = record["requirement_id"]
+                    if rid in covered_by:
+                        covered_by[rid].append(record["id"])
+            return [
+                {"req": r, "tests": tests, "covered": len(tests) > 0}
+                for r, tests in covered_by.items()
+            ]
+        except (OSError, ValueError):
+            pass  # Fall through to TESTS.md regex parsing
 
     if test_path.exists():
         test_text = test_path.read_text(encoding="utf-8")

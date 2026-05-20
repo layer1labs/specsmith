@@ -41,7 +41,8 @@ _DIRECT_HEADING = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\b")
 _ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_REQ_ID + r")")
 _FIELD_LINE = re.compile(r"^-\s+\*\*(.+?):\*\*\s+(.+)")
 
-_FLEX_TEST_ID = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+"
+# Letter suffixes (e.g. TEST-NN-002a) are supported via [a-z]* — fixes #183.
+_FLEX_TEST_ID = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[a-z]*"
 _TEST_NUMBERED_HEADING = re.compile(r"^#{1,3}\s+(?:TEST-[A-Z0-9_-]+\s+)?(.+?)\s*$")
 _TEST_ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_TEST_ID + r")")
 
