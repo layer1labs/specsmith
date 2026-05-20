@@ -43,7 +43,6 @@ def _safe_resolve(path: str | Path) -> Path:
     return Path(os.path.realpath(raw))
 
 
-
 def run_preflight(
     utterance: str,
     project_dir: str | Path = ".",

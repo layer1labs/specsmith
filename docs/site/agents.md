@@ -174,7 +174,7 @@ unreachable, the fallback chain walks `ollama/qwen2.5-coder:7b` next
 
 ## Reference
 
-- [REQ-146 — Agent profiles + activity routing](../REQUIREMENTS.md)
-- [`specsmith.agent.profiles`](../../src/specsmith/agent/profiles.py) — `Profile`, `ProfileStore`, `apply_preset`, `provider_family`
-- [`specsmith.agent.fallback`](../../src/specsmith/agent/fallback.py) — `run_with_fallback`, `parse_target`
+- REQ-146 — Agent profiles + activity routing (see `docs/REQUIREMENTS.md` in the repository)
+- `specsmith.agent.profiles` — `Profile`, `ProfileStore`, `apply_preset`, `provider_family`
+- `specsmith.agent.fallback` — `run_with_fallback`, `parse_target`
 - [`docs/site/api-stability.md`](api-stability.md) — public surface contract

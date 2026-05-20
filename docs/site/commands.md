@@ -584,7 +584,7 @@ Generates the Codity.ai AI code review CI workflow for the detected VCS host:
 
 Also writes `docs/codity-setup.md` (setup checklist) and appends a TODO entry to LEDGER.md.
 
-See [Codity.ai Setup](../docs/codity-setup.md) and the `codity-ai-review` skill for the pre-commit workflow.
+See the generated `docs/codity-setup.md` file in your project and the `codity-ai-review` skill for the pre-commit workflow.
 
 ## `specsmith migrate-project`
 
