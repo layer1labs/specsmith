@@ -171,10 +171,12 @@ class TestReqTraceLetterSuffixRegression:
         state = tmp_path / ".specsmith"
         state.mkdir()
         (state / "testcases.json").write_text(
-            json.dumps([
-                {"id": "TEST-NN-002a", "requirement_id": "REQ-NN-002"},
-                {"id": "TEST-NN-002b", "requirement_id": "REQ-NN-002"},
-            ]),
+            json.dumps(
+                [
+                    {"id": "TEST-NN-002a", "requirement_id": "REQ-NN-002"},
+                    {"id": "TEST-NN-002b", "requirement_id": "REQ-NN-002"},
+                ]
+            ),
             encoding="utf-8",
         )
 
