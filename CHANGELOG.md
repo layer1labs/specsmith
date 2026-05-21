@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.6] - 2026-05-21
+
+### Fixed
+
+- **`specsmith run` silent no-response** — three compounding bugs caused all user input to be silently discarded:
+  - Wrong default Ollama model (`qwen2.5:7b`) not installed; HTTP 404 swallowed silently.
+  - `_handle_command` returned `None` with zero output when no provider responded.
+  - `EventEmitter.token()` emitted raw JSONL even in interactive terminal mode.
+- **`req trace` wrong test IDs for letter-suffix TEST IDs** — `_TEST_ID_PATTERN` used `\d+\b`; the `\b` word boundary cannot match between a digit and a letter (`TEST-NN-002a`), causing the previous test ID to persist as `current_test`. Fixed by extending patterns to `\d+[a-z]*`. `trace_reqs()` now prefers `.specsmith/testcases.json` in YAML mode (exact IDs, no regex). Same fix applied to `sync.py`'s `_FLEX_TEST_ID`. (Closes #183)
+- **`specsmith watch` unhelpful fallback message** — replaced bare "pip install watchdog" hint with an actionable message showing the polling interval and the `pyproject.toml [project.optional-dependencies].dev` form.
+
+### Added
+
+- **`specsmith run --check`** — validates all LLM provider configurations and exits 0/1 without starting the REPL. Shows provider name, resolved model, and install count.
+- **`specsmith run` startup banner** — displays a full provider status table (Ollama/Anthropic/OpenAI/Gemini) with ✓/✗, resolved model name, and actionable hints before the first prompt.
+- **`_pick_ollama_model()`** — queries Ollama `/api/tags` and selects the first installed model from a preference list; `SPECSMITH_OLLAMA_MODEL` env var wins unconditionally.
+- **`PlainTextEmitter`** — new `EventEmitter` subclass for interactive terminal mode; `token()` writes raw text, `emit()` is a no-op. Eliminates JSONL blobs in the interactive REPL.
+- **`check_providers()`** — probes all four providers and returns `ProviderStatus` dataclass (name, available, model, note, model_count).
+- **H23 governance rule** — "No bare sleep delays in scripts"; added to `RULES.md`, scaffold template, and `specsmith validate` checker (`_check_bare_sleep()`). (Closes #184)
+- **`watchdog>=4.0`** in `pyproject.toml.j2` scaffold template dev extras. (Closes #182)
+- **19 new regression tests** (`test_agent_run_feedback.py`) covering model selection, `PlainTextEmitter`, `check_providers()`, `AgentRunner` feedback, and `--check` CLI.
+
 ## [0.11.5] - 2026-05-20
 
 ### Fixed

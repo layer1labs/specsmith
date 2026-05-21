@@ -115,7 +115,7 @@ class TestCLIUpgrade:
         target = _scaffold_governed(tmp_path)
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.11.5"]
+            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.11.6"]
         )
         assert result.exit_code == 0
         assert "Upgraded" in result.output
