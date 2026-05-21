@@ -27,13 +27,160 @@ from pathlib import Path
 from typing import Any
 
 from specsmith.agent.core import AgentState, ModelTier
-from specsmith.agent.events import EventEmitter
+from specsmith.agent.events import EventEmitter, PlainTextEmitter
 
 # These imports are kept lazy in the public API so that a busted optional
 # dependency (e.g. ``ag2``) doesn't keep the bridge from emitting ``ready``.
 # The import itself happens on the first call that actually needs the
 # orchestrator group chat.
-__all__ = ["AgentRunner", "_capabilities"]
+__all__ = ["AgentRunner", "ProviderStatus", "check_providers", "_capabilities"]
+
+
+# ---------------------------------------------------------------------------
+# Provider health check
+# ---------------------------------------------------------------------------
+
+
+from dataclasses import dataclass  # noqa: E402 — after __all__
+
+
+@dataclass
+class ProviderStatus:
+    """Health snapshot for a single LLM provider."""
+
+    name: str
+    available: bool
+    model: str = ""  # resolved model name (empty when unavailable)
+    note: str = ""  # human-readable reason (error or extra context)
+    model_count: int = 0  # number of installed models (Ollama only)
+
+    @property
+    def icon(self) -> str:
+        return "\u2713" if self.available else "\u2717"
+
+
+def check_providers() -> list[ProviderStatus]:
+    """Probe every supported LLM provider and return a status list.
+
+    Safe to call at any time — never raises, never blocks for more than
+    a couple of seconds.  Used by ``_print_banner`` and ``specsmith run
+    --check``.
+    """
+    import importlib
+    import os
+
+    from specsmith.agent.chat_runner import (
+        _OLLAMA_MODEL_PREFERENCE,
+        DEFAULT_OLLAMA_HOST,
+        DEFAULT_OLLAMA_MODEL,
+        _ollama_alive,
+    )
+
+    results: list[ProviderStatus] = []
+
+    # ── Ollama ───────────────────────────────────────────────────────────
+    host = os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
+    if _ollama_alive(host):
+        try:
+            import json
+            from urllib.request import urlopen
+
+            with urlopen(f"{host}/api/tags", timeout=2) as resp:  # noqa: S310
+                data = json.loads(resp.read())
+            installed = [m["name"] for m in data.get("models", []) if m.get("name")]
+            installed_set = set(installed)
+            model = os.environ.get("SPECSMITH_OLLAMA_MODEL", "").strip()
+            source = "env"
+            if not model:
+                source = "auto"
+                for candidate in _OLLAMA_MODEL_PREFERENCE:
+                    if candidate in installed_set:
+                        model = candidate
+                        break
+                if not model and installed:
+                    model = sorted(installed_set)[0]
+                if not model:
+                    model = DEFAULT_OLLAMA_MODEL
+            note = f"{source}, {len(installed)} installed"
+            results.append(
+                ProviderStatus(
+                    name="ollama",
+                    available=True,
+                    model=model,
+                    note=note,
+                    model_count=len(installed),
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            results.append(
+                ProviderStatus(name="ollama", available=False, note=f"error reading tags: {exc}")
+            )
+    else:
+        results.append(
+            ProviderStatus(
+                name="ollama",
+                available=False,
+                note=f"not running at {host} — start with: ollama serve",
+            )
+        )
+
+    # ── Anthropic ────────────────────────────────────────────────────────
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not key:
+        results.append(
+            ProviderStatus(name="anthropic", available=False, note="no ANTHROPIC_API_KEY")
+        )
+    elif importlib.util.find_spec("anthropic") is None:
+        results.append(
+            ProviderStatus(
+                name="anthropic",
+                available=False,
+                note="key set but SDK missing — run: pipx inject specsmith anthropic",
+            )
+        )
+    else:
+        model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
+        results.append(
+            ProviderStatus(name="anthropic", available=True, model=model, note="key configured")
+        )
+
+    # ── OpenAI ───────────────────────────────────────────────────────────
+    key = os.environ.get("OPENAI_API_KEY", "")
+    if not key:
+        results.append(ProviderStatus(name="openai", available=False, note="no OPENAI_API_KEY"))
+    elif importlib.util.find_spec("openai") is None:
+        results.append(
+            ProviderStatus(
+                name="openai",
+                available=False,
+                note="key set but SDK missing — run: pipx inject specsmith openai",
+            )
+        )
+    else:
+        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+        results.append(
+            ProviderStatus(name="openai", available=True, model=model, note="key configured")
+        )
+
+    # ── Gemini ───────────────────────────────────────────────────────────
+    key = os.environ.get("GOOGLE_API_KEY", "")
+    if not key:
+        results.append(ProviderStatus(name="gemini", available=False, note="no GOOGLE_API_KEY"))
+    elif importlib.util.find_spec("google.genai") is None:
+        results.append(
+            ProviderStatus(
+                name="gemini",
+                available=False,
+                note="key set but SDK missing — run: pipx inject specsmith google-genai",
+            )
+        )
+    else:
+        model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        results.append(
+            ProviderStatus(name="gemini", available=True, model=model, note="key configured")
+        )
+
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +303,14 @@ class AgentRunner:
         self.endpoint_id = (endpoint_id or "").strip() or None
         self.profile_id = (profile_id or "").strip() or None
 
-        self._emitter = emitter or EventEmitter(stream=sys.stdout)
+        # Use a plain-text emitter in interactive mode so LLM tokens render
+        # as readable prose instead of raw JSONL frames on the terminal.
+        if emitter is not None:
+            self._emitter = emitter
+        elif json_events:
+            self._emitter = EventEmitter(stream=sys.stdout)
+        else:
+            self._emitter = PlainTextEmitter(stream=sys.stdout)
         self._state = AgentState(
             provider_name=self.provider_name,
             model_name=self.model,
@@ -187,37 +341,58 @@ class AgentRunner:
     # ── Public lifecycle ───────────────────────────────────────────────
 
     def _print_banner(self) -> None:
-        """Emit the ``ready`` handshake (or print a plain banner).
+        """Emit the ``ready`` handshake (or print a plain banner.
 
         Called exactly once at process start. The bridge waits up to 20 s
-        for this frame; when ``json_events`` is False we still emit a
-        terminal-friendly banner so interactive ``specsmith run`` users
-        see the same boot text they used to.
+        for this frame; when ``json_events`` is False we print a human-
+        readable provider status table so the user knows exactly what will
+        respond to their commands before they type anything.
         """
         version = self._package_version()
         if self.json_events:
+            # When a model/provider was explicitly set (e.g. via CLI flag or test),
+            # use those.  Only probe check_providers() when no model was pinned.
+            if self.model:
+                provider_for_ready = self.provider_name
+                model_for_ready = self.model
+            else:
+                statuses = check_providers()
+                active = next((s for s in statuses if s.available), None)
+                provider_for_ready = active.name if active else self.provider_name
+                model_for_ready = active.model if active else ""
             self._emitter.ready(
                 agent="nexus",
                 version=version,
                 project_dir=self.project_dir,
-                provider=self.provider_name,
-                model=self.model,
+                provider=provider_for_ready,
+                model=model_for_ready,
                 profile_id=self.profile_id or "",
                 capabilities=_capabilities(),
                 endpoint_id=self.endpoint_id or "",
             )
         else:
-            print(
-                f"Nexus {version} — Local-first Agentic Development Environment "
-                f"(Specsmith-governed)\n"
-                f"  project: {self.project_dir}\n"
-                f"  provider: {self.provider_name}\n"
-                f"  model: {self.model or '(default)'}\n"
-                f"  profile: {self.profile_id or '(default)'}\n"
-                "Type plain English, or use slash commands "
-                "(/plan, /ask, /fix, /test, /commit, /pr, /why, /exit).",
-                flush=True,
-            )
+            statuses = check_providers()
+            active_count = sum(1 for s in statuses if s.available)
+            lines = [
+                f"Nexus {version} — specsmith run",
+                f"  project : {self.project_dir}",
+                f"  profile : {self.profile_id or '(default)'}",
+                "",
+                "  LLM providers:",
+            ]
+            for s in statuses:
+                if s.available:
+                    lines.append(
+                        f"    {s.icon} {s.name:<10} ✓ ready   model: {s.model}  ({s.note})"
+                    )
+                else:
+                    lines.append(f"    {s.icon} {s.name:<10} ✗ {s.note}")
+            lines.append("")
+            if active_count == 0:
+                lines.append("  ⚠  No provider available — commands will return no response.")
+            else:
+                lines.append("  Type plain English, or use /plan /ask /fix /test /commit /pr /exit")
+            print("\n".join(lines), flush=True)
 
     def run_interactive(self) -> None:
         """Read stdin lines and dispatch each to :meth:`_handle_command`."""
@@ -230,6 +405,10 @@ class AgentRunner:
                 if line.strip().lower() in {"/exit", "/quit"}:
                     break
                 self._handle_command(line)
+                # Ensure streamed tokens are followed by a newline so the
+                # next input prompt doesn't bleed onto the response line.
+                if not self.json_events:
+                    print(flush=True)
                 if self.json_events:
                     self._emit_event(type="turn_done")
                 if self._hard_stop:
@@ -316,7 +495,12 @@ class AgentRunner:
 
         block_id = self._next_block_id()
         try:
-            from specsmith.agent.chat_runner import run_chat
+            from specsmith.agent.chat_runner import (
+                DEFAULT_OLLAMA_HOST,
+                _ollama_alive,
+                _pick_ollama_model,
+                run_chat,
+            )
 
             result = run_chat(
                 full_prompt,
@@ -334,6 +518,28 @@ class AgentRunner:
                 message=f"chat turn failed: {exc}",
                 recoverable=True,
             )
+            return None
+
+        if result is None:
+            # All providers failed — give the user an actionable explanation
+            # rather than silent emptiness.
+            import os as _os
+
+            host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
+            if _ollama_alive(host):
+                model = _pick_ollama_model(host)
+                hint = (
+                    f"Ollama is running but returned no response "
+                    f"(model: {model}). "
+                    "Try: ollama run " + model
+                )
+            else:
+                hint = (
+                    "No LLM provider available. Options:\n"
+                    "  • Start Ollama: ollama serve\n"
+                    "  • Set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY"
+                )
+            self._emit_event(type="system", message=hint)
             return None
 
         # Aggregate metrics into the session state (C1).

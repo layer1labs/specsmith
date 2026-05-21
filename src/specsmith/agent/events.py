@@ -231,4 +231,24 @@ class EventEmitter:
         )
 
 
-__all__ = ["EventEmitter"]
+class PlainTextEmitter(EventEmitter):
+    """Human-readable variant of EventEmitter for interactive terminal sessions.
+
+    Writes LLM token chunks directly to the stream (no JSON wrapping) so
+    ``specsmith run`` without ``--json-events`` produces readable output.
+    All non-token protocol events are silently dropped — system messages
+    are handled separately by ``AgentRunner._default_emit_event``.
+    """
+
+    def token(self, block_id: str, text: str) -> None:  # noqa: ARG002
+        self.stream.write(text)
+        with contextlib.suppress(Exception):
+            self.stream.flush()
+
+    def emit(self, event: dict[str, Any]) -> None:
+        # Drop JSONL protocol frames in plain-text mode; token() handles
+        # the only output that matters for interactive sessions.
+        pass
+
+
+__all__ = ["EventEmitter", "PlainTextEmitter"]
