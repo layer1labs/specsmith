@@ -3769,13 +3769,11 @@ def run_cmd(
         if any_ok:
             active = next(s for s in statuses if s.available)
             console.print(
-                f"[bold green]Ready.[/bold green] "
-                f"Primary provider: {active.name} / {active.model}"
+                f"[bold green]Ready.[/bold green] Primary provider: {active.name} / {active.model}"
             )
         else:
             console.print(
-                "[bold red]No provider available.[/bold red] "
-                "Start Ollama or set an API key."
+                "[bold red]No provider available.[/bold red] Start Ollama or set an API key."
             )
             raise SystemExit(1)
         return
