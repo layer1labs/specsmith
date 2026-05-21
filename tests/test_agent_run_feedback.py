@@ -336,8 +336,9 @@ class TestRunCheckCLI:
     def test_check_flag_exits_one_when_no_provider(self, tmp_path):
         """specsmith run --check exits 1 when no provider is available."""
         from click.testing import CliRunner
-        from specsmith.cli import main
+
         from specsmith.agent.runner import ProviderStatus
+        from specsmith.cli import main
 
         fake_statuses = [
             ProviderStatus(name="ollama", available=False, note="not running"),
