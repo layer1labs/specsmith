@@ -34,6 +34,24 @@ from specsmith.agent.verifier import (
 
 DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
 DEFAULT_OLLAMA_MODEL = os.environ.get("SPECSMITH_OLLAMA_MODEL", "qwen2.5:7b")
+
+# Ordered preference list used by _pick_ollama_model() when the default
+# model is not installed.  Lighter / faster models first so the REPL
+# stays responsive on developer hardware.
+_OLLAMA_MODEL_PREFERENCE = [
+    "qwen2.5:7b",
+    "qwen2.5-coder:7b-instruct",
+    "qwen3:8b",
+    "mistral:7b-instruct-q4_0",
+    "llama3:8b-instruct-q4_K_M",
+    "qwen2.5:14b",
+    "qwen2.5-coder:14b",
+    "qwen3:14b",
+    "mistral-nemo:12b",
+    "phi4:14b-q4_K_M",
+    "deepseek-r1:14b",
+    "qwen3:30b-a3b",
+]
 SYSTEM_PROMPT = (
     "You are Nexus, the local-first agentic developer assistant inside "
     "Specsmith. Always end your response with the canonical contract:\n"
@@ -239,6 +257,40 @@ def run_single_prompt(prompt: str, *, max_tokens: int = 500) -> str | None:  # n
 # ---------------------------------------------------------------------------
 
 
+def _ollama_alive(host: str) -> bool:
+    try:
+        with urlopen(f"{host}/api/tags", timeout=2):  # noqa: S310
+            return True
+    except (URLError, TimeoutError, OSError):
+        return False
+
+
+def _pick_ollama_model(host: str) -> str:
+    """Return the best available Ollama model for this machine.
+
+    Checks the installed model list from ``/api/tags`` and walks
+    ``_OLLAMA_MODEL_PREFERENCE`` to find the first match.  Falls back
+    to ``DEFAULT_OLLAMA_MODEL`` when the API is unreachable or the list
+    is empty.  An explicit ``SPECSMITH_OLLAMA_MODEL`` env var always wins.
+    """
+    env_override = os.environ.get("SPECSMITH_OLLAMA_MODEL", "").strip()
+    if env_override:
+        return env_override
+    try:
+        with urlopen(f"{host}/api/tags", timeout=2) as resp:  # noqa: S310
+            data = json.loads(resp.read())
+        installed = {m["name"] for m in data.get("models", []) if m.get("name")}
+        for candidate in _OLLAMA_MODEL_PREFERENCE:
+            if candidate in installed:
+                return candidate
+        # None of the preferred models found — use whatever is first
+        if installed:
+            return sorted(installed)[0]
+    except Exception:  # noqa: BLE001 — best-effort; fall through to default
+        pass
+    return DEFAULT_OLLAMA_MODEL
+
+
 def _run_ollama(
     messages: list[dict[str, str]],
     emitter: EventEmitter,
@@ -246,11 +298,12 @@ def _run_ollama(
 ) -> tuple[str | None, _UsageDelta]:
     """Stream from a local Ollama daemon using only stdlib."""
     host = os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
-    model = os.environ.get("SPECSMITH_OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
     usage = _UsageDelta()
 
     if not _ollama_alive(host):
         return None, usage
+
+    model = _pick_ollama_model(host)
 
     payload = json.dumps({"model": model, "messages": messages, "stream": True}).encode("utf-8")
     req = Request(  # noqa: S310 - URL is a hardcoded localhost default
@@ -282,14 +335,6 @@ def _run_ollama(
                 usage.cost_usd = 0.0
                 break
     return ("".join(pieces) if pieces else None), usage
-
-
-def _ollama_alive(host: str) -> bool:
-    try:
-        with urlopen(f"{host}/api/tags", timeout=2):  # noqa: S310
-            return True
-    except (URLError, TimeoutError, OSError):
-        return False
 
 
 def _run_anthropic(

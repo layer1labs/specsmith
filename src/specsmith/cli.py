@@ -3662,6 +3662,13 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
 @main.command(name="run")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option(
+    "--check",
+    "check_only",
+    is_flag=True,
+    default=False,
+    help="Check provider availability and exit (no REPL started).",
+)
+@click.option(
     "--task",
     "task",
     default="",
@@ -3718,6 +3725,7 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
 )
 def run_cmd(
     project_dir: str,
+    check_only: bool,
     task: str,
     provider_name: str | None,
     model: str | None,
@@ -3737,10 +3745,41 @@ def run_cmd(
       Ollama running    → local LLMs (zero config)
       SPECSMITH_PROVIDER=<name> → explicit override
 
+    Use --check to validate provider configuration without starting a session.
+
     Install a provider:
       pipx inject specsmith anthropic             # Claude
       pipx inject specsmith openai               # GPT/O-series
     """
+    from specsmith.agent.runner import check_providers
+
+    if check_only:
+        statuses = check_providers()
+        any_ok = any(s.available for s in statuses)
+        console.print("[bold]specsmith run --check[/bold]\n")
+        for s in statuses:
+            if s.available:
+                console.print(
+                    f"  [green]\u2713[/green] {s.name:<10} "
+                    f"model: [bold]{s.model}[/bold]  ({s.note})"
+                )
+            else:
+                console.print(f"  [red]\u2717[/red] {s.name:<10} {s.note}")
+        console.print()
+        if any_ok:
+            active = next(s for s in statuses if s.available)
+            console.print(
+                f"[bold green]Ready.[/bold green] "
+                f"Primary provider: {active.name} / {active.model}"
+            )
+        else:
+            console.print(
+                "[bold red]No provider available.[/bold red] "
+                "Start Ollama or set an API key."
+            )
+            raise SystemExit(1)
+        return
+
     from specsmith.agent.core import ModelTier
     from specsmith.agent.runner import AgentRunner
 
