@@ -2350,7 +2350,7 @@ def release(version: str, project_dir: str) -> None:
         f"\n[bold]Next steps:[/bold]\n"
         f"  1. Update CHANGELOG.md with [{version}] section\n"
         f"  2. git add -A && git commit -m 'release: v{version}'\n"
-        f"  3. git checkout main && git merge develop\n"
+        f"  3. git checkout main && git merge develop --no-edit\n"
         f"  4. git tag -a v{version} -m 'v{version}'\n"
         f"  5. git push origin main develop --tags"
     )
