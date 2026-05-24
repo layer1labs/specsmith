@@ -97,12 +97,31 @@ class _AutoUpdateGroup(click.Group):
 
     def invoke(self, ctx: click.Context) -> object:
         import os
-
-        # Skip if explicitly disabled or if this is a meta-command
-        # ctx.protected_args is deprecated in Click 9.0; suppress the warning
-        # on access (it still works in 8.x). In 9.0 the subcommand moves to args.
         import warnings
 
+        # ── Pipx-only enforcement ─────────────────────────────────────────────
+        # specsmith MUST be installed and invoked through pipx.
+        # Any invocation from a non-pipx Python environment is rejected unless
+        # the escape hatch SPECSMITH_ALLOW_NON_PIPX=1 is set (CI / dev only).
+        if not os.environ.get("SPECSMITH_ALLOW_NON_PIPX"):
+            from specsmith.updater import is_pipx_install
+            if not is_pipx_install():
+                click.echo(
+                    "ERROR: specsmith must be installed and run via pipx only.\n"
+                    "  Any pip install, venv install, or editable dev install\n"
+                    "  is rejected to prevent version conflicts.\n"
+                    "\n"
+                    "  Install:      pipx install specsmith\n"
+                    "  Upgrade:      pipx upgrade specsmith\n"
+                    "  Remove other: pip uninstall specsmith\n"
+                    "\n"
+                    "  CI/testing override: set SPECSMITH_ALLOW_NON_PIPX=1",
+                    err=True,
+                )
+                raise SystemExit(1)
+
+        # ── Version checks (skip for meta-commands) ───────────────────────────
+        # ctx.protected_args is deprecated in Click 9.0; suppress the warning.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             protected = list(ctx.protected_args)  # [subcommand] in 8.x, [] in 9.0
@@ -182,17 +201,55 @@ def _maybe_prompt_project_update() -> None:
 def _maybe_notify_pypi_update() -> None:
     """Check PyPI for a newer specsmith version. Prints one-liner if outdated.
 
-    Runs at most once per shell session (tracked via env var). Uses a 3-second
-    timeout to avoid blocking the CLI. Only checks stable versions.
+    Persists the last-check timestamp to ``~/.specsmith/last-update-check``
+    so the network call is only made when it has been more than
+    ``SPECSMITH_UPDATE_INTERVAL_HOURS`` hours since the previous check
+    (default: 24h).  Within that window the function returns immediately
+    without any I/O — adding zero latency to every CLI invocation.
+
+    Override the interval::
+
+        SPECSMITH_UPDATE_INTERVAL_HOURS=4 specsmith audit
+
+    Disable entirely::
+
+        SPECSMITH_NO_UPDATE_CHECK=1 specsmith audit
+
+    Uses a 3-second network timeout so a slow/offline connection never
+    blocks the user.
     """
     import os
+    import time
+    from pathlib import Path
 
+    if os.environ.get("SPECSMITH_NO_UPDATE_CHECK"):
+        return
+
+    # One check per shell session — never fire twice in the same process tree.
     session_key = "SPECSMITH_PYPI_CHECKED"
     if os.environ.get(session_key):
         return
     os.environ[session_key] = "1"
 
     try:
+        interval_h = float(os.environ.get("SPECSMITH_UPDATE_INTERVAL_HOURS", "24"))
+        interval_s = interval_h * 3600
+
+        stamp_file = Path.home() / ".specsmith" / "last-update-check"
+        now = time.time()
+
+        # Read persisted last-check time (best-effort).
+        last_check = 0.0
+        if stamp_file.is_file():
+            try:
+                last_check = float(stamp_file.read_text(encoding="utf-8").strip())
+            except (ValueError, OSError):
+                pass
+
+        # Not due yet — skip entirely (no network call).
+        if now - last_check < interval_s:
+            return
+
         import json as _json  # noqa: PLC0415
         from urllib.request import urlopen  # noqa: PLC0415
 
@@ -202,9 +259,16 @@ def _maybe_notify_pypi_update() -> None:
         if not latest:
             return
 
-        # Simple version comparison: split into tuples of ints
+        # Persist the timestamp now that we have a successful response.
+        try:
+            stamp_file.parent.mkdir(parents=True, exist_ok=True)
+            stamp_file.write_text(str(now), encoding="utf-8")
+        except OSError:
+            pass  # Never fail the CLI over a timestamp write error
+
+        # Simple version comparison — no packaging dep needed.
         def _ver(v: str) -> tuple[int, ...]:
-            import re
+            import re  # noqa: PLC0415
 
             clean = re.match(r"(\d+\.\d+\.\d+)", v)
             return tuple(int(x) for x in clean.group(1).split(".")) if clean else (0,)
