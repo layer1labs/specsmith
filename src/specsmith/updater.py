@@ -66,17 +66,35 @@ def is_outdated() -> bool:
 def is_pipx_install() -> bool:
     """Return True if specsmith was installed via pipx.
 
-    Checks sys.executable path and PIPX_HOME / PIPX_LOCAL_VENVS env vars.
+    Checks sys.executable path against known pipx venv locations and the
+    PIPX_HOME / PIPX_LOCAL_VENVS env vars.  Robust on Windows where pipx
+    stores venvs in ``~/pipx/venvs/`` without setting PIPX_HOME.
     """
     import os
     import sys
+    from pathlib import Path
 
     exe = sys.executable.replace("\\", "/").lower()
-    return (
-        "pipx" in exe
-        or bool(os.environ.get("PIPX_HOME"))
-        or bool(os.environ.get("PIPX_LOCAL_VENVS"))
-    )
+
+    # 1. Executable path contains 'pipx' (catches most OS defaults)
+    if "pipx" in exe:
+        return True
+
+    # 2. Explicit pipx env vars (set by some CI / pipx versions)
+    if os.environ.get("PIPX_HOME") or os.environ.get("PIPX_LOCAL_VENVS"):
+        return True
+
+    # 3. Windows default: ~/pipx/venvs/<pkg>/Scripts/python.exe
+    win_pipx = (Path.home() / "pipx" / "venvs").as_posix().lower()
+    if exe.startswith(win_pipx):
+        return True
+
+    # 4. Linux/macOS default: ~/.local/pipx/venvs/<pkg>/bin/python
+    unix_pipx = (Path.home() / ".local" / "pipx" / "venvs").as_posix().lower()
+    if exe.startswith(unix_pipx):
+        return True
+
+    return False
 
 
 def run_self_update(

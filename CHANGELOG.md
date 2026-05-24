@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.7] - 2026-05-24
+
+### Added
+
+- **Pipx-only enforcement** — `specsmith` now rejects invocations from any
+  non-pipx Python environment at startup. Running via `pip install`, an editable
+  dev install, or inside a project venv raises a clear error with install
+  instructions. Override for CI with `SPECSMITH_ALLOW_NON_PIPX=1`.
+- **Persistent 24-hour update check** — `_maybe_notify_pypi_update()` now
+  persists the last-check timestamp to `~/.specsmith/last-update-check` and
+  contacts PyPI at most once per `SPECSMITH_UPDATE_INTERVAL_HOURS` hours
+  (default 24). Previously fired a network call on every shell session; now
+  zero-latency within the window. Disable with `SPECSMITH_NO_UPDATE_CHECK=1`.
+- **Hardened `is_pipx_install()`** — correctly detects Windows pipx venvs at
+  `~/pipx/venvs/` without requiring `PIPX_HOME` env var, plus Linux/macOS
+  `~/.local/pipx/venvs/` paths.
+
+### Fixed
+
+- Removed competing pip-editable `__editable__.specsmith-0.11.3.pth` and
+  `__editable__.specsmith-0.11.5.pth` from the system Python site-packages
+  that caused `import specsmith` to resolve to stale dev copies.
+
 ## [0.11.6] - 2026-05-21
 
 ### Fixed
