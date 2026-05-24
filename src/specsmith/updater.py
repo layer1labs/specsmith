@@ -91,10 +91,7 @@ def is_pipx_install() -> bool:
 
     # 4. Linux/macOS default: ~/.local/pipx/venvs/<pkg>/bin/python
     unix_pipx = (Path.home() / ".local" / "pipx" / "venvs").as_posix().lower()
-    if exe.startswith(unix_pipx):
-        return True
-
-    return False
+    return bool(exe.startswith(unix_pipx))
 
 
 def run_self_update(
@@ -147,6 +144,7 @@ def check_project_version(root: Path) -> tuple[str, str]:
     Returns (project_version, installed_version).
     """
     import yaml
+
     from specsmith.paths import find_scaffold
 
     scaffold_path = find_scaffold(root)
@@ -180,7 +178,9 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
 
     scaffold_path = find_scaffold(root)
     if scaffold_path is None:
-        return ["No scaffold config found (docs/SPECSMITH.yml or scaffold.yml) — nothing to migrate"]
+        return [
+            "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml) — nothing to migrate"
+        ]
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f) or {}
