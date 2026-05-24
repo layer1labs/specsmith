@@ -113,6 +113,15 @@ class TestCLIUpgrade:
 
     def test_upgrade_to_new_version(self, tmp_path: Path) -> None:
         target = _scaffold_governed(tmp_path)
+        # Backdate spec_version so there is an actual upgrade to perform.
+        # Without this the scaffold is already at __version__ and the
+        # command would return "Already at spec version" instead.
+        scaffold_yml = target / "scaffold.yml"
+        with open(scaffold_yml) as fh:
+            data = yaml.safe_load(fh)
+        data["spec_version"] = "0.11.6"
+        with open(scaffold_yml, "w") as fh:
+            yaml.dump(data, fh, default_flow_style=False)
         runner = CliRunner()
         result = runner.invoke(
             main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.11.7"]
