@@ -91,10 +91,7 @@ def is_pipx_install() -> bool:
 
     # 4. Linux/macOS default: ~/.local/pipx/venvs/<pkg>/bin/python
     unix_pipx = (Path.home() / ".local" / "pipx" / "venvs").as_posix().lower()
-    if exe.startswith(unix_pipx):
-        return True
-
-    return False
+    return bool(exe.startswith(unix_pipx))
 
 
 def run_self_update(
@@ -141,14 +138,17 @@ def run_self_update(
 
 
 def check_project_version(root: Path) -> tuple[str, str]:
-    """Compare scaffold.yml spec_version to installed version.
+    """Compare scaffold config spec_version to installed version.
 
+    Checks ``docs/SPECSMITH.yml`` (canonical) then ``scaffold.yml`` (legacy).
     Returns (project_version, installed_version).
     """
     import yaml
 
-    scaffold_path = root / "scaffold.yml"
-    if not scaffold_path.exists():
+    from specsmith.paths import find_scaffold
+
+    scaffold_path = find_scaffold(root)
+    if scaffold_path is None:
         return "", __version__
 
     with open(scaffold_path) as f:
@@ -168,15 +168,19 @@ def needs_migration(root: Path) -> bool:
 def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     """Migrate a project to the current specsmith version.
 
+    Checks ``docs/SPECSMITH.yml`` (canonical) then ``scaffold.yml`` (legacy).
     Returns list of actions taken (or that would be taken for dry_run).
     """
     import yaml
 
     from specsmith.ledger import add_entry
+    from specsmith.paths import find_scaffold
 
-    scaffold_path = root / "scaffold.yml"
-    if not scaffold_path.exists():
-        return ["No scaffold.yml found — nothing to migrate"]
+    scaffold_path = find_scaffold(root)
+    if scaffold_path is None:
+        return [
+            "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml) — nothing to migrate"
+        ]
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f) or {}

@@ -105,6 +105,7 @@ class _AutoUpdateGroup(click.Group):
         # the escape hatch SPECSMITH_ALLOW_NON_PIPX=1 is set (CI / dev only).
         if not os.environ.get("SPECSMITH_ALLOW_NON_PIPX"):
             from specsmith.updater import is_pipx_install
+
             if not is_pipx_install():
                 click.echo(
                     "ERROR: specsmith must be installed and run via pipx only.\n"
@@ -241,10 +242,8 @@ def _maybe_notify_pypi_update() -> None:
         # Read persisted last-check time (best-effort).
         last_check = 0.0
         if stamp_file.is_file():
-            try:
+            with contextlib.suppress(ValueError, OSError):
                 last_check = float(stamp_file.read_text(encoding="utf-8").strip())
-            except (ValueError, OSError):
-                pass
 
         # Not due yet — skip entirely (no network call).
         if now - last_check < interval_s:
