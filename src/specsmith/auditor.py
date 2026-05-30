@@ -23,6 +23,7 @@ class AuditResult:
     passed: bool
     message: str
     fixable: bool = False
+    suppressed: bool = False
 
 
 @dataclass
@@ -37,7 +38,7 @@ class AuditReport:
 
     @property
     def failed(self) -> int:
-        return sum(1 for r in self.results if not r.passed)
+        return sum(1 for r in self.results if not r.passed and not r.suppressed)
 
     @property
     def fixable(self) -> int:
@@ -46,6 +47,39 @@ class AuditReport:
     @property
     def healthy(self) -> bool:
         return self.failed == 0
+
+    @property
+    def suppressed_count(self) -> int:
+        return sum(1 for r in self.results if r.suppressed)
+
+
+# ---------------------------------------------------------------------------
+# Suppression aliases (scaffold.yml accepted_warnings → AuditResult.name)
+# ---------------------------------------------------------------------------
+
+_SUPPRESSION_ALIASES: dict[str, str] = {
+    "scaffold_type_mismatch": "type-mismatch",
+    "ledger_line_threshold": "ledger-size",
+    "open_todo_count": "ledger-open-todos",
+    "ledger_size": "ledger-size",
+}
+
+
+def _apply_accepted_warnings(report: AuditReport, accepted: list[str]) -> None:
+    """Mark audit results matching *accepted* warning names as suppressed.
+
+    Each entry in *accepted* is either a key in ``_SUPPRESSION_ALIASES`` or a
+    direct ``AuditResult.name`` (exact match or prefix match up to ``:``).
+    Matched results are set to ``suppressed=True`` and ``passed=True`` so they
+    no longer count as failures.
+    """
+    resolved: list[str] = [_SUPPRESSION_ALIASES.get(a, a) for a in accepted]
+    for result in report.results:
+        for name in resolved:
+            if result.name == name or result.name.startswith(name + ":"):
+                result.suppressed = True
+                result.passed = True
+                break
 
 
 # ---------------------------------------------------------------------------
@@ -386,10 +420,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
 
     # Size check — uses configurable threshold (#145)
     threshold = _get_ledger_threshold(root)
-    # Check audit_suppressions for opt-out
-    raw = _read_scaffold_raw(root)
-    suppressed = "ledger_size" in (raw.get("audit_suppressions") or [])
-    if not suppressed and line_count > threshold:
+    if line_count > threshold:
         results.append(
             AuditResult(
                 name="ledger-size",
@@ -1171,6 +1202,15 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_industrial_artifacts(root))
     report.results.extend(check_derived_artifacts(root))
     report.results.extend(check_cross_repo_dependencies(root))
+
+    # Apply accepted_warnings / audit_suppressions from scaffold.yml (REQ-357)
+    raw = _read_scaffold_raw(root)
+    _accepted: list[str] = list(raw.get("accepted_warnings") or [])
+    # backward-compat: audit_suppressions list (pre-#188 ledger_size suppression)
+    _old_suppressed: list[str] = list(raw.get("audit_suppressions") or [])
+    _accepted = _accepted + _old_suppressed
+    if _accepted:
+        _apply_accepted_warnings(report, _accepted)
     return report
 
 
@@ -1182,7 +1222,7 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
     fixed: list[str] = []
 
     for result in report.results:
-        if result.passed:
+        if result.passed or result.suppressed:
             continue
 
         # Fix missing required files with minimal stubs
