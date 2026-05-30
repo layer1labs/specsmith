@@ -11,16 +11,17 @@ existing code continues to work without changes.
 
 Domain modules
 ~~~~~~~~~~~~~~
-  governance   — project governance, verification, review, release workflows
-  embedded     — RTOS/BSP: Zephyr, Yocto, FreeRTOS, NuttX, Buildroot, Azure RTOS …
-  hardware     — EDA: KiCad, Altium, Vivado, Quartus, GTKWave, OpenOCD, JTAG
-  mobile       — iOS (Xcode/Swift/TestFlight), Android (Gradle/ADB), Flutter, RN
-  cloud        — AWS CLI, Azure CLI, GCP, GitHub CLI (gh)
-  devops       — Docker, Kubernetes, Terraform, CI/CD pipelines
-  ssh          — SSH key management, remote-dev, WSL2
-  cross_platform — CMake/vcpkg/conan, package managers, cross-OS CI
-  productivity — Email, presentations, Gamma.ai, MS Office, LibreOffice
-  corporate    — Budgets, project mgmt, HR, fundraising, marketing, sales, legal
+  governance        — project governance, verification, review, release workflows
+  specsmith_skills  — specsmith self-referential skills (save, audit, reference)
+  embedded          — RTOS/BSP: Zephyr, Yocto, FreeRTOS, NuttX, Buildroot, Azure RTOS …
+  hardware          — EDA: KiCad, Altium, Vivado, Quartus, GTKWave, OpenOCD, JTAG
+  mobile            — iOS (Xcode/Swift/TestFlight), Android (Gradle/ADB), Flutter, RN
+  cloud             — AWS CLI, Azure CLI, GCP, GitHub CLI (gh)
+  devops            — Docker, Kubernetes, Terraform, CI/CD pipelines
+  ssh               — SSH key management, remote-dev, WSL2
+  cross_platform    — CMake/vcpkg/conan, package managers, cross-OS CI
+  productivity      — Email, presentations, Gamma.ai, MS Office, LibreOffice
+  corporate         — Budgets, project mgmt, HR, fundraising, marketing, sales, legal
 
 Usage
 ~~~~~
@@ -121,6 +122,7 @@ def _build_catalog() -> list[SkillEntry]:
         hardware,
         mobile,
         productivity,
+        specsmith_skills,
         ssh,
     )
 
@@ -136,6 +138,7 @@ def _build_catalog() -> list[SkillEntry]:
         + productivity.SKILLS
         + corporate.SKILLS
         + docs.SKILLS
+        + specsmith_skills.SKILLS
     )
 
 
