@@ -441,8 +441,14 @@ def audit(fix: bool, project_dir: str) -> None:
     report = run_audit(root)
 
     for r in report.results:
-        icon = "[green]✓[/green]" if r.passed else "[red]✗[/red]"
-        console.print(f"  {icon} {r.message}")
+        if r.suppressed:
+            icon = "[dim]~[/dim]"
+        elif r.passed:
+            icon = "[green]✓[/green]"
+        else:
+            icon = "[red]✗[/red]"
+        msg = r.message + " [dim](accepted)[/dim]" if r.suppressed else r.message
+        console.print(f"  {icon} {msg}")
 
     console.print()
     if report.healthy:
