@@ -441,8 +441,14 @@ def audit(fix: bool, project_dir: str) -> None:
     report = run_audit(root)
 
     for r in report.results:
-        icon = "[green]✓[/green]" if r.passed else "[red]✗[/red]"
-        console.print(f"  {icon} {r.message}")
+        if r.suppressed:
+            icon = "[dim]~[/dim]"
+        elif r.passed:
+            icon = "[green]✓[/green]"
+        else:
+            icon = "[red]✗[/red]"
+        msg = r.message + " [dim](accepted)[/dim]" if r.suppressed else r.message
+        console.print(f"  {icon} {msg}")
 
     console.print()
     if report.healthy:
@@ -8524,9 +8530,19 @@ def skill_list(project_dir: str, as_json: bool) -> None:
     from specsmith import skills as _skills
 
     root = Path(project_dir).resolve()
-    installed = [p.name for p in _skills.installed_skills(root)]
+    installed_paths = _skills.installed_skills(root)
+    # Build identifier list: slug (subdir) or filename (flat legacy)
+    installed: list[str] = []
+    installed_slugs: set[str] = set()
+    for p in installed_paths:
+        if p.name == "SKILL.md":  # subdir format: <slug>/SKILL.md
+            installed.append(p.parent.name)
+            installed_slugs.add(p.parent.name)
+        else:  # legacy flat format: <slug>.md
+            installed.append(p.name)
+            installed_slugs.add(p.stem)
     catalog = [
-        {"slug": entry.slug, "name": entry.name, "installed": f"{entry.slug}.md" in installed}
+        {"slug": entry.slug, "name": entry.name, "installed": entry.slug in installed_slugs}
         for entry in _skills.CATALOG
     ]
     if as_json:

@@ -199,3 +199,108 @@ class TestReqTraceLetterSuffixRegression:
         assert "TEST-NN-002a" in ids
         assert "TEST-NN-002b" in ids
         assert "TEST-NN-002" not in ids  # must not be truncated
+
+
+# ---------------------------------------------------------------------------
+# REQ-357: accepted_warnings suppression
+# ---------------------------------------------------------------------------
+
+
+class TestAcceptedWarningsSuppression:
+    """Tests for REQ-357 — accepted_warnings suppression in auditor."""
+
+    def test_accepted_warnings_suppresses_type_mismatch(self, tmp_path: Path) -> None:
+        """scaffold_type_mismatch alias should suppress the type-mismatch check."""
+        # Set up a minimal project with a type that will mismatch detection
+        (tmp_path / "AGENTS.md").write_text("# AGENTS\nShort.\n", encoding="utf-8")
+        (tmp_path / "LEDGER.md").write_text("# Ledger\nDone.\n", encoding="utf-8")
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "TESTS.md").write_text("# Tests\n", encoding="utf-8")
+        # Use a type that differs from what detect_project will infer.
+        # "backend-frontend" is unlikely to match a near-empty tmp project.
+        (tmp_path / "scaffold.yml").write_text(
+            "name: test\n"
+            "type: backend-frontend\n"
+            "spec_version: 0.10.1\n"
+            "vcs_platform: github\n"
+            "accepted_warnings:\n"
+            "  - scaffold_type_mismatch\n",
+            encoding="utf-8",
+        )
+
+        report = run_audit(tmp_path)
+
+        # Find the type-mismatch result
+        tm_results = [r for r in report.results if r.name == "type-mismatch"]
+        if tm_results:
+            assert tm_results[0].suppressed is True
+            assert tm_results[0].passed is True
+        # The suppressed result must not count as a failure
+        type_mismatch_failures = [
+            r for r in report.results if r.name == "type-mismatch" and not r.passed
+        ]
+        assert len(type_mismatch_failures) == 0
+
+    def test_ledger_line_threshold_suppresses_ledger_size(self, tmp_path: Path) -> None:
+        """ledger_line_threshold alias should suppress ledger-size check."""
+        (tmp_path / "AGENTS.md").write_text("# AGENTS\nShort.\n", encoding="utf-8")
+        big_ledger = "# Ledger\n" + "\n".join(f"Line {i}" for i in range(600))
+        (tmp_path / "LEDGER.md").write_text(big_ledger, encoding="utf-8")
+        (tmp_path / "scaffold.yml").write_text(
+            "name: test\n"
+            "type: cli-python\n"
+            "spec_version: 0.10.1\n"
+            "vcs_platform: github\n"
+            "accepted_warnings:\n"
+            "  - ledger_line_threshold\n",
+            encoding="utf-8",
+        )
+
+        report = run_audit(tmp_path)
+
+        size_results = [r for r in report.results if r.name == "ledger-size"]
+        assert len(size_results) == 1
+        assert size_results[0].suppressed is True
+        assert size_results[0].passed is True
+        # Should not count toward failures
+        assert all(r.passed or r.name != "ledger-size" for r in report.results)
+
+    def test_audit_suppressions_backward_compat(self, tmp_path: Path) -> None:
+        """Old audit_suppressions: [ledger_size] field should still suppress ledger-size."""
+        (tmp_path / "AGENTS.md").write_text("# AGENTS\nShort.\n", encoding="utf-8")
+        big_ledger = "# Ledger\n" + "\n".join(f"Line {i}" for i in range(600))
+        (tmp_path / "LEDGER.md").write_text(big_ledger, encoding="utf-8")
+        (tmp_path / "scaffold.yml").write_text(
+            "name: test\n"
+            "type: cli-python\n"
+            "spec_version: 0.10.1\n"
+            "vcs_platform: github\n"
+            "audit_suppressions:\n"
+            "  - ledger_size\n",
+            encoding="utf-8",
+        )
+
+        report = run_audit(tmp_path)
+
+        size_results = [r for r in report.results if r.name == "ledger-size"]
+        assert len(size_results) == 1
+        assert size_results[0].suppressed is True
+        assert size_results[0].passed is True
+
+    def test_suppressed_count_property(self, tmp_path: Path) -> None:
+        """AuditReport.suppressed_count should reflect the number of suppressed results."""
+        from specsmith.auditor import AuditReport, AuditResult, _apply_accepted_warnings
+
+        report = AuditReport(
+            results=[
+                AuditResult(name="ledger-size", passed=False, message="too big", fixable=True),
+                AuditResult(name="type-mismatch", passed=False, message="mismatch"),
+                AuditResult(name="other-check", passed=True, message="ok"),
+            ]
+        )
+        _apply_accepted_warnings(report, ["ledger_line_threshold", "scaffold_type_mismatch"])
+
+        assert report.suppressed_count == 2
+        assert report.failed == 0
+        assert report.healthy is True

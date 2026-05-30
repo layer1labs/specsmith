@@ -2514,3 +2514,43 @@
 - **Source:** ARCHITECTURE.md §39
 - **Test_Ids:** ['TEST-356']
 
+## REQ-357. Audit accepted_warnings Suppression in scaffold.yml
+- **ID:** REQ-357
+- **Title:** Audit accepted_warnings Suppression in scaffold.yml
+- **Description:** scaffold.yml MUST support an `accepted_warnings` list field. When a check's name (or a canonical alias) appears in `accepted_warnings`, `specsmith audit` MUST render that check as `~ <check> (accepted)` instead of `✗`, exclude it from the failure count and the non-zero exit code, and prevent `specsmith audit --fix` from auto-correcting that field. Supported canonical aliases MUST include at minimum: `scaffold_type_mismatch` (for the `type-mismatch` check), `ledger_line_threshold` (for `ledger-size`), and `open_todo_count` (for `ledger-open-todos`).
+- **Status:** implemented
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-358']
+
+## REQ-358. Sync Markdown Fallback When YAML Mode Has No YAML Files
+- **ID:** REQ-358
+- **Title:** Sync Markdown Fallback When YAML Mode Has No YAML Files
+- **Description:** When `specsmith sync` is invoked in YAML-first mode (`governance-mode == yaml`) but `load_yaml_requirements` returns zero entries AND `docs/REQUIREMENTS.md` exists with non-trivial content (≥ 5 REQ- patterns), `sync` MUST fall back to Markdown parsing for the current sync run rather than treating the empty YAML result as authoritative. This prevents a fresh YAML-mode project from silently losing its Markdown-authored requirements in the JSON machine-state cache.
+- **Status:** implemented
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-359']
+
+## REQ-359. Phase Check _req_count Detects H2 REQ Headings
+- **ID:** REQ-359
+- **Title:** Phase Check _req_count Detects H2 REQ Headings
+- **Description:** The `_req_count` readiness check in `phase.py` MUST count requirement headings at both H2 (`##`) and H3 (`###`) depth. The current implementation only detects `^###\s+REQ-` patterns, causing false `At least N requirements defined` failures for projects whose `REQUIREMENTS.md` uses `## REQ-DOMAIN-NNN` H2-style headings. The fix MUST also count `## REQ-` (H2) headings so phase-readiness percentages reflect the actual requirement count visible to `specsmith validate` and `specsmith audit`.
+- **Status:** implemented
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-360']
+
+## REQ-360. Skills Catalog Self-Referential Entries and Subdirectory Install Format
+- **ID:** REQ-360
+- **Title:** Skills Catalog Self-Referential Entries and Subdirectory Install Format
+- **Description:** specsmith.skills MUST include three self-referential SkillEntry entries in the GOVERNANCE domain: `specsmith` (master CLI reference), `specsmith-save` (save workflow), and `specsmith-audit` (audit workflow). These MUST be installable via `specsmith skill install <slug>`. The `install()` function MUST write skills to `.agents/skills/<slug>/SKILL.md` (subdirectory format) rather than `.agents/skills/<slug>.md` (flat format) so Warp, Claude Code, and Codex discover them automatically. The `installed_skills()` function MUST detect both legacy flat files and subdirectory format.
+- **Status:** implemented
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-361']
+
+## REQ-361. Skills System Documented in RTD, README, AGENTS.md, and CHANGELOG
+- **ID:** REQ-361
+- **Title:** Skills System Documented in RTD, README, AGENTS.md, and CHANGELOG
+- **Description:** The specsmith skills system MUST be documented in four locations: (1) `README.md` MUST have a `## Skills` section showing `specsmith skill list`, `specsmith skill install <slug>`, the `.agents/skills/` directory format, Warp/Claude Code/Codex compatibility, and the remote reference format `--skill "layer1labs/specsmith:<slug>"`. (2) `docs/site/skills-index.md` MUST include the three new `specsmith-*` skills in the Governance table. (3) `AGENTS.md` MUST mention `.agents/skills/` and list the three self-referential skills. (4) `CHANGELOG.md` MUST have an entry for the skills feature addition.
+- **Status:** implemented
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-362']
+

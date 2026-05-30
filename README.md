@@ -885,6 +885,43 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ---
 
+## Skills
+
+specsmith ships **70+ built-in skills** across 11 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+
+```bash
+# List all available skills
+specsmith skill list
+
+# Search by keyword
+specsmith skill search zephyr
+
+# Install a skill into .agents/skills/
+specsmith skill install specsmith
+specsmith skill install specsmith-save
+specsmith skill install specsmith-audit
+```
+
+Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered by any AI tool that scans `.agents/skills/`.
+
+### Self-referential governance skills
+
+Three skills document specsmith itself:
+
+| Slug | Purpose |
+|------|--------|
+| `specsmith` | Master CLI reference — session workflow, commands, audit codes |
+| `specsmith-save` | When and how to run `specsmith save` |
+| `specsmith-audit` | Running audits and interpreting results |
+
+### Remote reference (Warp Oz cloud agents)
+
+```bash
+oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save my work"
+```
+
+---
+
 ## The specsmith Bootstrap
 
 specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
