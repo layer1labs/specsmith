@@ -5,12 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.11.8] - 2026-05-30
 
 ### Added
 
 - **`specsmith-*` self-referential skills** (#190): three built-in skills (`specsmith`, `specsmith-save`, `specsmith-audit`) added to the governance skills catalog and installable via `specsmith skill install <slug>`. `install()` now writes `<slug>/SKILL.md` (subdirectory format) for Warp/Claude Code/Codex auto-discovery. `installed_skills()` detects both flat and subdirectory formats.
-- **`accepted_warnings` audit suppression** (#188): `scaffold.yml` now supports `accepted_warnings: [alias, ...]` to suppress specific audit checks. Suppressed checks render as `~ <check> (accepted)` and are excluded from the failure count and exit code.
+- **`accepted_warnings` audit suppression** (#188): `scaffold.yml` now supports `accepted_warnings: [alias, ...]` to suppress specific audit checks. Suppressed checks render as `~ <check> (accepted)` and are excluded from the failure count and exit code. Supported aliases: `scaffold_type_mismatch`, `ledger_line_threshold`, `open_todo_count`.
+- **`SPECSMITH_ALLOW_NON_PIPX=1` autouse in conftest** — test suite no longer requires pipx to run CLI tests under editable installs.
+
+### Fixed
+
 - **Phase check H2 REQ heading support** (#189): `_req_count` in `phase.py` now counts both `##` and `###` REQ headings, fixing false phase-readiness failures for projects using `## REQ-DOMAIN-NNN` format.
 - **Sync Markdown fallback in YAML mode** (#189): `specsmith sync` now falls back to Markdown parsing when YAML mode is active but no YAML requirement files exist, preventing silent loss of Markdown-authored requirements.
 
