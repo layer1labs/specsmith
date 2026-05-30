@@ -1,4 +1,5 @@
 """Quick smoke test: verify .env loads and each configured provider responds."""
+
 import os
 import sys
 

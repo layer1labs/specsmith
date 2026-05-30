@@ -23,6 +23,7 @@ from pathlib import Path
 
 import yaml  # PyYAML — already in specsmith's deps
 
+
 def _get_root() -> Path:
     """Resolve the target project root.
 
