@@ -294,6 +294,172 @@ print("Rust backend:", RUST_BACKEND)
         ),
     ),
     SkillEntry(
+        slug="specsmith",
+        name="Specsmith — master governance CLI reference",
+        description=(
+            "Master reference for the specsmith AEE governance tool — key concepts, "
+            "common commands, session workflow, phase advancement, and audit codes. "
+            "Use whenever working in a specsmith-governed project."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["specsmith", "governance", "aee", "cli", "session", "audit", "phase", "ledger"],
+        prerequisites=["specsmith"],
+        body="""\
+# Specsmith — Master Governance CLI Reference
+
+specsmith is the Applied Epistemic Engineering (AEE) toolkit for AI-assisted
+development.  It governs projects through a 7-phase lifecycle and enforces
+22 hard rules (H1–H22) via preflight gates, audits, and cryptographic trace
+vaults.
+
+## Key Concepts
+- **AEE Phase** — inception → architecture → requirements → test_spec →
+  implementation → verification → release.  `specsmith phase` shows the
+  current phase and readiness percentage.
+- **Preflight Gate** — every proposed change must pass
+  `specsmith preflight "<intent>" --json` before execution.
+- **Work Item** — a scoped unit of work (`WI-<hash>`) assigned by preflight.
+- **Governance Anchor** — `specsmith checkpoint` emits a timestamped snapshot
+  of phase, health, and active work items.
+- **ESDB** — EpiStemic State Database (ChronoMemory WAL) stores beliefs,
+  decisions, and trace seals.
+
+## Common Commands
+```bash
+specsmith audit              # governance health (28 checks)
+specsmith sync               # YAML → JSON → Markdown sync
+specsmith validate --strict  # schema validation
+specsmith preflight "..."    # preflight gate
+specsmith checkpoint         # emit GOVERNANCE ANCHOR
+specsmith save               # ESDB backup + commit + push
+specsmith phase              # show current phase + readiness
+specsmith phase next         # advance phase (checks prerequisites)
+specsmith kill-session       # terminate all agent processes
+specsmith ledger add "msg"   # append to LEDGER.md
+```
+
+## Session Workflow
+1. `specsmith audit && specsmith sync && specsmith checkpoint`
+2. `specsmith preflight "<describe change>" --json`
+3. Execute work (only if decision == accepted)
+4. Every 8-10 turns: `specsmith checkpoint` (output verbatim)
+5. `specsmith save && specsmith kill-session`
+
+## Audit Codes
+- 28 checks across structure, REQ↔TEST coverage, governance size,
+  tool config, phase readiness, and supplementary rules.
+- `specsmith audit --fix` auto-repairs missing files and CI configs.
+
+## Phase Advancement
+- `specsmith phase next` checks prerequisites before advancing.
+- `specsmith phase set <phase>` jumps (with `--force` to skip checks).
+- Phase stored as `aee_phase` in `scaffold.yml`.
+""",
+    ),
+    SkillEntry(
+        slug="specsmith-audit",
+        name="Specsmith Audit — drift detection and governance health",
+        description=(
+            "Run specsmith audit to check for governance drift between requirements, "
+            "tests, and architecture. Required before advancing an AEE phase."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["specsmith", "audit", "drift", "health", "governance", "aee", "requirements"],
+        prerequisites=["specsmith"],
+        body="""\
+# Specsmith Audit — Drift Detection and Governance Health
+
+## When to Run
+- At the start of every session (part of bootstrap)
+- Before advancing an AEE phase (`specsmith phase next`)
+- After significant code or requirements changes
+- When drift is suspected (stale coverage, missing tests)
+
+## Command
+```bash
+specsmith audit                    # full 28-check governance audit
+specsmith audit --fix              # auto-repair missing files
+specsmith audit --project-dir .    # explicit project root
+```
+
+## What It Checks (28 checks)
+1. Governance file structure (.specsmith/, docs/, AGENTS.md)
+2. REQ↔TEST bidirectional coverage (no orphan tests, no untested REQs)
+3. Governance file size thresholds
+4. CI tool configuration matches project type
+5. Phase readiness prerequisites
+6. Supplementary rules referenced in AGENTS.md
+7. Duplicate governance files (root vs docs/ canonical)
+8. YAML↔JSON↔Markdown sync state
+
+## Interpreting Results
+- **28/28 checks passed** — governance is healthy
+- **Failures** — surface to user before starting work
+- **Warnings** — non-blocking but should be addressed
+
+## Suppressing Warnings
+In `scaffold.yml`:
+```yaml
+accepted_warnings:
+  - <alias>     # renders as ~ <check> (accepted), excluded from failure count
+```
+
+## Integration with Phase Advancement
+`specsmith phase next` runs audit internally. All checks must pass
+(or be accepted) before the phase advances.
+""",
+    ),
+    SkillEntry(
+        slug="specsmith-save",
+        name="Specsmith Save — governance-aware save workflow",
+        description=(
+            "Run specsmith save to commit and push all current changes with governance "
+            "state backup. Use at the end of any work session or after completing a feature/fix."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["specsmith", "save", "commit", "push", "esdb", "backup", "governance"],
+        prerequisites=["specsmith"],
+        body="""\
+# Specsmith Save — Governance-Aware Save Workflow
+
+## When to Use
+- At the end of every work session
+- After completing a feature or fix
+- Before switching branches or contexts
+- Never end a session with uncommitted governance changes
+
+## Command
+```bash
+specsmith save                     # ESDB backup + commit + push
+specsmith save --project-dir .     # explicit project root
+```
+
+## What It Does (in order)
+1. Creates a timestamped ESDB backup (.specsmith/backups/)
+2. Runs `git add -A` to stage all changes
+3. Commits with a governance-stamped message
+4. Pushes to the current remote branch
+
+## Prerequisites
+- All governance changes must be consistent (run `specsmith audit` first
+  if unsure)
+- A git remote must be configured
+- Working tree should have changes to commit
+
+## Session End Protocol
+```bash
+specsmith save --project-dir .    # ESDB backup + commit + push
+specsmith kill-session            # stop governance-serve and tracked processes
+```
+
+## ESDB Backup Details
+- Backups are written to `.specsmith/backups/`
+- Filename format: `backup-YYYY-MM-DDTHH-MM-SS.json`
+- Contains requirements.json and testcases.json snapshots
+- Use `specsmith esdb rollback --steps N` to restore from backup
+""",
+    ),
+    SkillEntry(
         slug="specsmith-session-governance",
         name="Specsmith Session Governance — drift prevention, heartbeat, preflight gate",
         description=(
