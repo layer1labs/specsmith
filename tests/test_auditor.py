@@ -264,9 +264,7 @@ class TestAcceptedWarningsSuppression:
         assert size_results[0].suppressed is True
         assert size_results[0].passed is True
         # Should not count toward failures
-        assert all(
-            r.passed or r.name != "ledger-size" for r in report.results
-        )
+        assert all(r.passed or r.name != "ledger-size" for r in report.results)
 
     def test_audit_suppressions_backward_compat(self, tmp_path: Path) -> None:
         """Old audit_suppressions: [ledger_size] field should still suppress ledger-size."""
@@ -294,11 +292,13 @@ class TestAcceptedWarningsSuppression:
         """AuditReport.suppressed_count should reflect the number of suppressed results."""
         from specsmith.auditor import AuditReport, AuditResult, _apply_accepted_warnings
 
-        report = AuditReport(results=[
-            AuditResult(name="ledger-size", passed=False, message="too big", fixable=True),
-            AuditResult(name="type-mismatch", passed=False, message="mismatch"),
-            AuditResult(name="other-check", passed=True, message="ok"),
-        ])
+        report = AuditReport(
+            results=[
+                AuditResult(name="ledger-size", passed=False, message="too big", fixable=True),
+                AuditResult(name="type-mismatch", passed=False, message="mismatch"),
+                AuditResult(name="other-check", passed=True, message="ok"),
+            ]
+        )
         _apply_accepted_warnings(report, ["ledger_line_threshold", "scaffold_type_mismatch"])
 
         assert report.suppressed_count == 2

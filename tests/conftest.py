@@ -58,6 +58,11 @@ def _disable_specsmith_auto_update(monkeypatch: pytest.MonkeyPatch) -> None:
     ``--interactive`` protocol. The second hits the network. Pinning the
     suppression env vars keeps tests hermetic, deterministic, and free of
     network access.
+
+    ``SPECSMITH_ALLOW_NON_PIPX=1`` bypasses the pipx-only enforcement gate
+    (introduced in 0.11.7) so tests running under a dev editable install
+    (``pip install -e``) are not rejected at startup.
     """
     monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
     monkeypatch.setenv("SPECSMITH_PYPI_CHECKED", "1")
+    monkeypatch.setenv("SPECSMITH_ALLOW_NON_PIPX", "1")

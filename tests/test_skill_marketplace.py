@@ -55,7 +55,8 @@ def test_get_returns_none_for_unknown_slug() -> None:
 def test_install_writes_skill_md(tmp_path: Path) -> None:
     target = skills.install("verifier", tmp_path)
     assert target.is_file()
-    assert target.parent == tmp_path / ".agents" / "skills"
+    assert target.name == "SKILL.md"
+    assert target.parent == tmp_path / ".agents" / "skills" / "verifier"
     assert target.read_text(encoding="utf-8").startswith("# Verifier Skill")
 
 
@@ -89,8 +90,8 @@ def test_installed_skills_lists_md_files(tmp_path: Path) -> None:
     skills.install("verifier", tmp_path)
     skills.install("planner", tmp_path)
     listed = skills.installed_skills(tmp_path)
-    names = sorted(p.name for p in listed)
-    assert names == ["planner.md", "verifier.md"]
+    names = sorted(p.parent.name for p in listed if p.name == "SKILL.md")
+    assert names == ["planner", "verifier"]
 
 
 # ---------------------------------------------------------------------------
@@ -133,14 +134,14 @@ def test_cli_skill_install_then_list(tmp_path: Path) -> None:
         ["skill", "install", "verifier", "--project-dir", str(tmp_path)],
     )
     assert res.exit_code == 0, res.output
-    assert (tmp_path / ".agents" / "skills" / "verifier.md").is_file()
+    assert (tmp_path / ".agents" / "skills" / "verifier" / "SKILL.md").is_file()
 
     res2 = runner.invoke(
         main,
         ["skill", "list", "--json", "--project-dir", str(tmp_path)],
     )
     payload = json.loads(res2.output)
-    assert "verifier.md" in payload["installed"]
+    assert "verifier" in payload["installed"]
     verifier_entry = next(e for e in payload["catalog"] if e["slug"] == "verifier")
     assert verifier_entry["installed"] is True
 
@@ -175,7 +176,7 @@ def test_cli_skill_install_force_overwrites(tmp_path: Path) -> None:
         main,
         ["skill", "install", "verifier", "--project-dir", str(tmp_path)],
     )
-    target = tmp_path / ".agents" / "skills" / "verifier.md"
+    target = tmp_path / ".agents" / "skills" / "verifier" / "SKILL.md"
     target.write_text("STALE", encoding="utf-8")
     res = runner.invoke(
         main,
@@ -183,3 +184,45 @@ def test_cli_skill_install_force_overwrites(tmp_path: Path) -> None:
     )
     assert res.exit_code == 0, res.output
     assert target.read_text(encoding="utf-8").startswith("# Verifier Skill")
+
+
+# ---------------------------------------------------------------------------
+# New tests for REQ-360/REQ-361
+# ---------------------------------------------------------------------------
+
+
+def test_catalog_has_specsmith_skills() -> None:
+    assert skills.get("specsmith") is not None
+    assert skills.get("specsmith-save") is not None
+    assert skills.get("specsmith-audit") is not None
+
+
+def test_specsmith_skill_domain_is_governance() -> None:
+    from specsmith.skills import SkillDomain
+
+    entry = skills.get("specsmith")
+    assert entry is not None
+    assert entry.domain == SkillDomain.GOVERNANCE
+
+
+def test_install_writes_subdirectory_format(tmp_path: Path) -> None:
+    target = skills.install("verifier", tmp_path)
+    assert target.name == "SKILL.md"
+    assert target.parent.name == "verifier"  # <slug>/SKILL.md
+    assert target.parent.parent == tmp_path / ".agents" / "skills"
+    assert target.is_file()
+
+
+def test_installed_skills_detects_subdir_format(tmp_path: Path) -> None:
+    skills.install("verifier", tmp_path)
+    listed = skills.installed_skills(tmp_path)
+    assert any(p.name == "SKILL.md" and p.parent.name == "verifier" for p in listed)
+
+
+def test_installed_skills_detects_flat_format(tmp_path: Path) -> None:
+    # Simulate legacy flat install
+    base = tmp_path / ".agents" / "skills"
+    base.mkdir(parents=True)
+    (base / "legacy.md").write_text("# Legacy", encoding="utf-8")
+    listed = skills.installed_skills(tmp_path)
+    assert any(p.name == "legacy.md" for p in listed)

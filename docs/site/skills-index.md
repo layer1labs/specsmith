@@ -16,7 +16,7 @@ Each skill is a curated `SKILL.md` injected into the agent context with
 
 ---
 
-## Governance (11)
+## Governance (14)
 
 Skills for project governance workflows, verification, release management, ESDB, CI polling, IP prosecution, and AI code review.
 
@@ -31,6 +31,9 @@ Skills for project governance workflows, verification, release management, ESDB,
 | `patent-prosecution-workflow` | Patent Prosecution Workflow — prior-art, USPTO MCP, PAR | patent, uspto, ppubs, claim-themes, ip |
 | `planner` | Planner — propose-then-execute | planning, aee, governance |
 | `release-pilot` | Release Pilot — gitflow release cut | git, semver, release, gitflow |
+| `specsmith` | Specsmith — master governance CLI reference | specsmith, aee, session, audit, phase |
+| `specsmith-audit` | Specsmith Audit — drift detection and governance health | specsmith, audit, drift, health, aee |
+| `specsmith-save` | Specsmith Save — governance-aware save workflow | specsmith, save, commit, esdb, backup |
 | `specsmith-session-governance` | Specsmith Session Governance — drift prevention, heartbeat, preflight gate | governance, session, drift, checkpoint, anchor |
 | `verifier` | Verifier — five-gate verification | audit, tests, verification |
 

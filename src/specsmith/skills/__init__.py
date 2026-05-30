@@ -207,15 +207,21 @@ def by_project_type(project_type: str) -> list[SkillEntry]:
 
 
 def installed_skills(project_dir: Path) -> list[Path]:
-    """Return SKILL.md files installed under ``.agents/skills/``."""
+    """Return installed skill files under ``.agents/skills/`` (both flat and subdir formats)."""
     base = project_dir / ".agents" / "skills"
     if not base.is_dir():
         return []
-    return sorted(p for p in base.iterdir() if p.is_file() and p.suffix == ".md")
+    paths: list[Path] = []
+    for item in sorted(base.iterdir()):
+        if item.is_file() and item.suffix == ".md":  # legacy flat format
+            paths.append(item)
+        elif item.is_dir() and (item / "SKILL.md").exists():  # subdir format
+            paths.append(item / "SKILL.md")
+    return sorted(paths)
 
 
 def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
-    """Copy skill *slug* into ``<project_dir>/.agents/skills/<slug>.md``.
+    """Copy skill *slug* into ``<project_dir>/.agents/skills/<slug>/SKILL.md``.
 
     Raises
     ------
@@ -229,7 +235,10 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
         raise KeyError(f"Unknown skill: {slug!r}")
     base = project_dir / ".agents" / "skills"
     base.mkdir(parents=True, exist_ok=True)
-    target = base / f"{slug}.md"
+    # Subdirectory format: <slug>/SKILL.md (REQ-360)
+    skill_dir = base / slug
+    skill_dir.mkdir(exist_ok=True)
+    target = skill_dir / "SKILL.md"
     if target.exists() and not force:
         raise FileExistsError(f"Already installed: {target}. Pass force=True to overwrite.")
     target.write_text(entry.body, encoding="utf-8")

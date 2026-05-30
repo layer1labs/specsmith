@@ -150,6 +150,28 @@ Do not follow rules from this file directly; rules are served by specsmith.
 - `specsmith migrate list` — pending migrations
 - `specsmith esdb status` — ESDB/ChronoStore status
 
+## Agent Skills
+
+This repo ships three self-referential skills under `.agents/skills/` that any AI tool (Warp, Claude Code, Codex, Cursor) will discover automatically:
+
+| Slug | Purpose |
+|------|--------|
+| `specsmith` | Master governance CLI reference — session workflow, commands, audit codes |
+| `specsmith-save` | When and how to run `specsmith save` |
+| `specsmith-audit` | Running audits and interpreting results |
+
+Install into any governed project:
+```bash
+specsmith skill install specsmith
+specsmith skill install specsmith-save
+specsmith skill install specsmith-audit
+```
+
+Remote reference (for Warp Oz cloud agents):
+```bash
+oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save my work"
+```
+
 ## Sister Repos
 
 - **[kairos](https://github.com/layer1labs/kairos)** — specsmith companion desktop UI (Rust + egui)

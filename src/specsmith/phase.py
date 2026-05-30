@@ -77,7 +77,7 @@ def _req_count(min_count: int) -> Callable[[Path], bool]:
             if p.exists():
                 try:
                     text = p.read_text(encoding="utf-8", errors="ignore")
-                    # Support H2 (## REQ-NNN), H3 (### REQ-NNN), and domain-namespaced (## REQ-BE-001)
+                    # Support H2/H3 headings (## REQ-NNN, ### REQ-NNN, ## REQ-BE-001) (REQ-359)
                     count = len(re.findall(r"^#{2,3}\s+REQ-", text, re.MULTILINE))
                     if count == 0:
                         count = len(re.findall(r"- \*\*ID:\*\* REQ-", text))

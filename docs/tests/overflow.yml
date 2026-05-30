@@ -488,3 +488,85 @@
   input: Read src/specsmith/templates/agents.md.j2 directly; render via Jinja2 with minimal context
   expected_behavior: Template contains Codity section with review --staged, HIGH severity, MEDIUM, integrate codity
   confidence: 0.95
+- id: TEST-358
+  title: accepted_warnings Suppresses Matching Audit Check
+  description: >-
+    When scaffold.yml contains `accepted_warnings: [scaffold_type_mismatch]` and the
+    type-mismatch check fires, `run_audit` MUST mark that result as suppressed=True,
+    AuditReport.failed MUST NOT count it, AuditReport.healthy MUST be True if no other
+    failures exist, and the CLI MUST render it as '~ type-mismatch (accepted)' rather
+    than '✗ type-mismatch'. ledger_line_threshold suppresses ledger-size similarly.
+  requirement_id: REQ-357
+  type: unit
+  verification_method: pytest
+  input: >-
+    run_audit(tmp_path) with scaffold.yml containing type!=detected AND
+    accepted_warnings: [scaffold_type_mismatch]; repeat for ledger_line_threshold
+  expected_behavior: >-
+    suppressed=True on matched result; failed count excludes suppressed; healthy=True;
+    ledger-size suppressed by ledger_line_threshold alias
+  confidence: 0.95
+- id: TEST-359
+  title: Sync Falls Back to Markdown When YAML Mode Has No YAML Files
+  description: >-
+    `run_sync(root)` on a project where governance-mode=yaml but docs/requirements/ has
+    no .yml files AND docs/REQUIREMENTS.md has >= 5 REQ- patterns MUST parse the Markdown
+    and populate .specsmith/requirements.json with those requirements rather than writing
+    an empty list. The sync result MUST show reqs_after >= 5.
+  requirement_id: REQ-358
+  type: unit
+  verification_method: pytest
+  input: >-
+    tmp_path with .specsmith/governance-mode=yaml; no docs/requirements/*.yml;
+    docs/REQUIREMENTS.md with 6 ## REQ-BE-NNN headings; run_sync(root)
+  expected_behavior: requirements.json contains 6 entries; reqs_after=6
+  confidence: 0.95
+- id: TEST-360
+  title: _req_count Returns True for H2 REQ Headings
+  description: >-
+    `_req_count(5)(root)` MUST return True when docs/REQUIREMENTS.md uses `## REQ-BE-001`
+    through `## REQ-BE-005` H2 headings (not H3 `###`). Currently it returns False for H2
+    headings, causing false phase failures on domain-namespaced Markdown projects.
+  requirement_id: REQ-359
+  type: unit
+  verification_method: pytest
+  input: >-
+    tmp_path/docs/REQUIREMENTS.md with 5 `## REQ-BE-NNN: Title` H2 headings;
+    _req_count(5)(tmp_path)
+  expected_behavior: Returns True
+  confidence: 0.95
+- id: TEST-361
+  title: Skills Catalog Contains specsmith/specsmith-save/specsmith-audit Entries
+  description: >-
+    `specsmith.skills.get('specsmith')`, `get('specsmith-save')`, and
+    `get('specsmith-audit')` MUST each return a non-None SkillEntry with
+    domain=GOVERNANCE. The `specsmith` body MUST contain 'specsmith audit', 'specsmith save',
+    and 'specsmith checkpoint'. `specsmith skill install specsmith` MUST create
+    `.agents/skills/specsmith/SKILL.md` (subdirectory format). `installed_skills(root)` MUST
+    return paths to both flat `<slug>.md` and subdirectory `<slug>/SKILL.md` installations.
+  requirement_id: REQ-360
+  type: unit
+  verification_method: pytest
+  input: >-
+    get('specsmith'); get('specsmith-save'); get('specsmith-audit');
+    install('specsmith', tmp_path); installed_skills(tmp_path)
+  expected_behavior: >-
+    All three entries exist in GOVERNANCE domain; install writes <slug>/SKILL.md;
+    installed_skills returns the subdirectory path
+  confidence: 0.95
+- id: TEST-362
+  title: Skills System Documented in README, skills-index.md, AGENTS.md, and CHANGELOG
+  description: >-
+    README.md MUST contain a `## Skills` section with `specsmith skill list` and
+    `specsmith skill install`. `docs/site/skills-index.md` MUST list specsmith, specsmith-save,
+    and specsmith-audit in the Governance table. AGENTS.md MUST mention `.agents/skills/`.
+    CHANGELOG.md MUST have an entry (unreleased or versioned) describing the skills feature.
+  requirement_id: REQ-361
+  type: unit
+  verification_method: manual
+  input: >-
+    Read README.md for Skills section; grep skills-index.md for specsmith-save;
+    grep AGENTS.md for .agents/skills/; grep CHANGELOG for skills
+  expected_behavior: >-
+    All four documentation locations contain the required skills content
+  confidence: 0.9

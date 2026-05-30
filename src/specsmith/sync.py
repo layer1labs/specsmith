@@ -245,6 +245,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         if not new_reqs and reqs_md_path.exists():
             _md_text = reqs_md_path.read_text(encoding="utf-8")
             import re as _re
+
             if len(_re.findall(r"REQ-[A-Z0-9-]+", _md_text)) >= 5:
                 new_reqs = parse_requirements_md(_md_text)
 
