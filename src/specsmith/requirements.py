@@ -20,7 +20,7 @@ _TEST_COVERS_PATTERN = re.compile(
     r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
     r"(" + _FLEX_REQ + r"(?:\s*,\s*" + _FLEX_REQ + r")*)"
 )
-_TEST_ID_PATTERN = re.compile(r"\b(TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[a-z]*)\b")
+_TEST_ID_PATTERN = re.compile(r"\b(" + _FLEX_TEST + r")\b")
 
 # Heading detectors for REQUIREMENTS.md (two styles supported):
 #   Style A: ## REQ-001 or ## REQ-CLI-001
