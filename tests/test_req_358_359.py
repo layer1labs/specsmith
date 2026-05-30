@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 # ── REQ-359 / TEST-359: _req_count H2 heading support ─────────────────────────
 
 
@@ -41,11 +40,7 @@ class TestReqCountH2:
 
         docs = tmp_path / "docs"
         docs.mkdir()
-        content = (
-            "## REQ-BE-001: First\n"
-            "### REQ-BE-002: Second\n"
-            "## REQ-BE-003: Third\n"
-        )
+        content = "## REQ-BE-001: First\n### REQ-BE-002: Second\n## REQ-BE-003: Third\n"
         (docs / "REQUIREMENTS.md").write_text(content, encoding="utf-8")
 
         assert _req_count(3)(tmp_path) is True

@@ -308,3 +308,9 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `13907d72d47f3708...`
+
+## 2026-05-29T22:14 — specsmith migration: 0.11.3.dev420 → 0.11.7
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `cf168f65d973f62b...`
