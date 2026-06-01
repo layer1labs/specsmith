@@ -9019,6 +9019,75 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
             console.print(f"    [dim]{s['description']}[/dim]")
 
 
+@mcp_group.command(name="serve")
+@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
+def mcp_serve_cmd(project_dir: str) -> None:
+    """Start the native governance MCP stdio server (REQ-363).
+
+    Implements MCP 2024-11-05 over stdin/stdout (JSON-RPC 2.0).
+    Exposes six governance tools to any MCP client:
+
+    \b
+    governance_audit        Run governance audit
+    governance_checkpoint   Emit GOVERNANCE ANCHOR JSON
+    governance_preflight    Preflight a change intent
+    governance_phase        Current AEE phase + readiness %
+    governance_req_list     List all requirements
+    governance_trace_seal   Seal a milestone/decision
+
+    \b
+    Warp config (Settings → Agents → MCP servers)::
+
+        {"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}
+
+    \b
+    Or pass inline to oz::
+
+        oz agent run --mcp '{"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}' ...
+    """
+    from specsmith.mcp_server import run_server
+
+    run_server(project_dir=project_dir)
+
+
+@mcp_group.command(name="install-warp")
+@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON config only.")
+def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
+    """Print the Warp MCP config snippet for the governance server (REQ-363).
+
+    Copy the output into Warp Settings → Agents → MCP servers, or pass it
+    to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
+    """
+    import json as _json
+    import os
+    import sys
+
+    config = {
+        "specsmith-governance": {
+            "command": sys.executable if os.environ.get("SPECSMITH_ALLOW_NON_PIPX") else "specsmith",
+            "args": ["mcp", "serve", "--project-dir", str(Path(project_dir).resolve())],
+        }
+    }
+
+    if as_json:
+        click.echo(_json.dumps(config, indent=2))
+        return
+
+    console.print("[bold green]specsmith Governance MCP Server[/bold green]\n")
+    console.print(
+        "Add the following to [bold]Warp Settings → Agents → MCP servers[/bold],\n"
+        "or pass inline to [bold]oz agent run --mcp '<json>'[/bold]:\n"
+    )
+    console.print(_json.dumps(config, indent=2))
+    console.print(
+        "\n[dim]After adding, Warp/Oz can call governance_audit, governance_preflight,\n"
+        "governance_checkpoint, governance_phase, governance_req_list, and\n"
+        "governance_trace_seal as structured MCP tool calls.\n"
+        "\nVerify with: specsmith mcp serve (then send an initialize message).[/dim]"
+    )
+
+
 main.add_command(mcp_group)
 
 

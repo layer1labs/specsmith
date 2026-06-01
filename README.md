@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.11.4 — Codity.ai AI code review integration, 70 built-in skills, EU AI Act / NIST AI RMF compliance, context window management, and governance tools panel.**
+**v0.12.0 — Native Warp/Oz MCP governance server, repository workflows, 72 built-in skills, EU AI Act / NIST AI RMF compliance, multi-agent DAG dispatch, and context window management.**
 Specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -919,6 +919,59 @@ Three skills document specsmith itself:
 ```bash
 oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save my work"
 ```
+
+---
+
+## Warp Terminal Integration (v0.12.0)
+
+specsmith ships native integration with [Warp](https://www.warp.dev) terminal — both as
+an MCP server and as repository workflows.
+
+### Native MCP Governance Server
+
+`specsmith mcp serve` starts a zero-dependency stdio MCP server (JSON-RPC 2.0, MCP 2024-11-05).
+Warp/Oz, Cursor, Claude Code, or any other MCP client can call governance commands as structured
+tool calls — no shell roundtrip, fully typed inputs and outputs.
+
+**Setup (one time):**
+
+```bash
+# Get the Warp config snippet
+specsmith mcp install-warp
+```
+
+Copy the output JSON into **Warp Settings → Agents → MCP servers**. Or pass it inline:
+
+```bash
+oz agent run --mcp '{"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}' \
+  --prompt "check governance health and preflight my next change"
+```
+
+**Six MCP tools exposed:**
+
+| Tool | What it returns |
+|---|---|
+| `governance_audit` | Full audit health JSON — passed/failed checks, fixable count |
+| `governance_checkpoint` | GOVERNANCE ANCHOR snapshot — phase, health, REQ/TEST counts, ESDB chain |
+| `governance_preflight` | Preflight decision — `accepted`/`needs_clarification` + `work_item_id` |
+| `governance_phase` | Current AEE phase, readiness %, failing checks |
+| `governance_req_list` | All requirements with status + test coverage, filterable |
+| `governance_trace_seal` | Create a cryptographic trace vault seal |
+
+### Repository Workflows (Ctrl+Shift+R)
+
+Clone this repo and open it in Warp — seven governance workflows appear automatically in
+`Ctrl+Shift+R` search:
+
+| Workflow | Command |
+|---|---|
+| specsmith — Session Start | Full bootstrap: kill → migrate → audit → sync → checkpoint |
+| specsmith — Audit | `specsmith audit` |
+| specsmith — Checkpoint | `specsmith checkpoint` (emits GOVERNANCE ANCHOR) |
+| specsmith — Preflight | `specsmith preflight "{{intent}}" --json` |
+| specsmith — Save | `specsmith save` |
+| specsmith — Phase Status | `specsmith phase show` |
+| specsmith — Session End | `specsmith save && specsmith kill-session` |
 
 ---
 

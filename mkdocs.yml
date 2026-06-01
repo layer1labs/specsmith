@@ -41,6 +41,7 @@ nav:
   - Agentic Client:
     - Overview: agent-client.md
     - Agent Integrations: agent-integrations.md
+    - Warp Integration: warp-integration.md
   - Kairos Terminal:
     - Overview & Install: kairos-terminal.md
     - Multi-Agent Dispatch: dispatch.md

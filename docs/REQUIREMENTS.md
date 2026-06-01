@@ -2562,3 +2562,11 @@
 - **Source:** docs/requirements/
 - **Test_Ids:** ['TEST-363']
 
+## REQ-363. specsmith mcp serve: native stdio MCP server exposing governance tools to Warp, Cursor, and Claude Code agents
+- **ID:** REQ-363
+- **Title:** specsmith mcp serve: native stdio MCP server exposing governance tools to Warp, Cursor, and Claude Code agents
+- **Description:** specsmith exposes an MCP-compliant stdio server via 'specsmith mcp serve'. The server implements JSON-RPC 2.0 over stdin/stdout and offers six governance tools: governance_audit, governance_checkpoint, governance_preflight, governance_phase, governance_req_list, and governance_trace_seal. Any MCP client (Warp/Oz, Cursor, Claude Code) can add specsmith as a tool server and call governance commands as structured tool calls without shell roundtrips. A companion 'specsmith mcp install-warp' command prints the Warp MCP config snippet.
+- **Status:** planned
+- **Source:** docs/requirements/
+- **Test_Ids:** ['TEST-364']
+

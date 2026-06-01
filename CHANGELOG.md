@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-06-01
+
+### Added
+
+- **Native MCP governance server** (`specsmith mcp serve`, REQ-363): a zero-dependency stdio MCP server implementing JSON-RPC 2.0 (MCP 2024-11-05). Exposes six structured tools to any MCP client — Warp/Oz, Cursor, Claude Code, or any IDE that supports the Model Context Protocol:
+  - `governance_audit` — run the full governance audit, returns structured health JSON
+  - `governance_checkpoint` — emit the GOVERNANCE ANCHOR JSON (phase, health, REQ/TEST counts, ESDB chain)
+  - `governance_preflight` — preflight a change intent, returns decision + work_item_id
+  - `governance_phase` — current AEE phase, readiness %, and failing checks
+  - `governance_req_list` — list all requirements with coverage status, filterable by status
+  - `governance_trace_seal` — seal a milestone or decision in the cryptographic trace vault
+- **`specsmith mcp install-warp`**: prints the Warp MCP config JSON snippet for one-paste setup. Add to **Settings → Agents → MCP servers** or pass inline to `oz agent run --mcp`.
+- **Warp repository workflows** (`.warp/workflows/`, REQ-362): seven `Ctrl+Shift+R`-searchable workflow YAML files for Warp terminal — Session Start, Audit, Checkpoint, Preflight, Save, Phase Status, Session End.
+- **`specsmith-session-governance` skill**: drift prevention, heartbeat, and preflight gate for Oz/AI sessions. Auto-discovered from `.agents/skills/`.
+- **`release-pilot` skill**: gitflow release-cut workflow for the Release phase.
+- **REQ-362** (Warp terminal integration) and **REQ-363** (MCP governance server) with corresponding test cases TEST-363 and TEST-364.
+- `tests/test_mcp_server.py`: 20 new pytest cases covering the MCP protocol handshake, all six tool handlers, error paths, and CLI subprocess smoke tests.
+
+### Changed
+
+- Version bumped from `0.11.8` to `0.12.0` (significant new capability: native MCP server).
+
 ## [0.11.8] - 2026-05-30
 
 ### Added

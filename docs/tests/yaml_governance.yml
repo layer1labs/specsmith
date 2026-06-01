@@ -813,3 +813,10 @@
   verification_method: Open Warp in project directory, press Ctrl+Shift+R, search
     'specsmith'; confirm Session Start, Audit, Checkpoint, Preflight, Save, Phase,
     and Session End workflows appear.
+- id: TEST-364
+  title: specsmith mcp serve starts a stdio MCP server that responds to initialize,
+    tools/list, and tools/call for all six governance tools
+  requirement_id: REQ-363
+  type: unit
+  verification_method: pytest tests/test_mcp_server.py — tests drive the server via
+    subprocess with JSON-RPC messages and assert structured responses for each tool
