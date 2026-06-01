@@ -2554,3 +2554,11 @@
 - **Source:** GitHub issue
 - **Test_Ids:** ['TEST-362']
 
+## REQ-362. Warp terminal integration: repository workflow YAML files for common governance commands
+- **ID:** REQ-362
+- **Title:** Warp terminal integration: repository workflow YAML files for common governance commands
+- **Description:** The specsmith repository ships .warp/workflows/ YAML files so developers using Warp terminal can invoke governance commands (audit, checkpoint, preflight, save, session-start) directly from the Warp command palette without context-switching.
+- **Status:** planned
+- **Source:** docs/requirements/
+- **Test_Ids:** []
+

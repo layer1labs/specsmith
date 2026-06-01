@@ -514,16 +514,17 @@
   status: implemented
 - id: REQ-128
   title: Cross-Repo Security Sweep
-  description: 'The specsmith and kairos repos both run `pip-audit` / `cargo audit`
+  description: The specsmith and kairos repos both run `pip-audit` / `cargo audit`
     in CI and fail on high-or-critical findings. Dependabot manifests in both repos
-    are reviewed and any open alert at 1.0 release time is documented.'
+    are reviewed and any open alert at 1.0 release time is documented.
   source: .github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml
   status: implemented
 - id: REQ-129
   title: 1.0 API Stability Commitment
   description: '`docs/site/api-stability.md` enumerates the public surfaces frozen
     at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify
-    / chat events, broker module API, ledger event schemas, Kairos CLI API surface). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable`
+    / chat events, broker module API, ledger event schemas, Kairos CLI API surface).
+    The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable`
     and `pyproject.toml` to `1.0.0`.'
   source: docs/site/api-stability.md, pyproject.toml
   status: implemented
