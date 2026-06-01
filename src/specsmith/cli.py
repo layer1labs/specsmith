@@ -9041,9 +9041,9 @@ def mcp_serve_cmd(project_dir: str) -> None:
         {"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}
 
     \b
-    Or pass inline to oz::
+    Or pass inline to oz (use ``specsmith mcp install-warp`` for the full snippet)::
 
-        oz agent run --mcp '{"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}' ...
+        oz agent run --mcp "$(specsmith mcp install-warp --json)" --prompt "..."
     """
     from specsmith.mcp_server import run_server
 
@@ -9065,7 +9065,9 @@ def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
 
     config = {
         "specsmith-governance": {
-            "command": sys.executable if os.environ.get("SPECSMITH_ALLOW_NON_PIPX") else "specsmith",
+            "command": (
+                sys.executable if os.environ.get("SPECSMITH_ALLOW_NON_PIPX") else "specsmith"
+            ),
             "args": ["mcp", "serve", "--project-dir", str(Path(project_dir).resolve())],
         }
     }
