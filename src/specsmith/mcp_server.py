@@ -254,7 +254,7 @@ def _handle_governance_checkpoint(args: dict[str, Any]) -> dict[str, Any]:
     try:
         from specsmith.phase import (  # noqa: PLC0415
             PHASE_MAP,
-            phase_failing_checks,
+            evaluate_phase,
             phase_progress_pct,
             read_phase,
         )
@@ -265,7 +265,7 @@ def _handle_governance_checkpoint(args: dict[str, Any]) -> dict[str, Any]:
             phase_label = phase.label
             phase_emoji = phase.emoji
             phase_pct = phase_progress_pct(phase, root)
-            failing_phase_checks = phase_failing_checks(phase, root)
+            _, failing_phase_checks = evaluate_phase(phase, root)
     except Exception:  # noqa: BLE001
         pass
 
@@ -366,7 +366,8 @@ def _handle_governance_preflight(args: dict[str, Any]) -> dict[str, Any]:
                 timeout=30,
                 cwd=str(root),
             )
-            return json.loads(proc.stdout)
+            parsed: dict[str, Any] = json.loads(proc.stdout)
+            return parsed
         except Exception as exc2:  # noqa: BLE001
             return {
                 "decision": "needs_clarification",
@@ -387,12 +388,12 @@ def _handle_governance_phase(args: dict[str, Any]) -> dict[str, Any]:
             return {"phase": phase_key, "label": "Unknown", "pct": 0, "failing_checks": []}
 
         pct = phase_progress_pct(phase, root)
-        # Try to get failing checks
+        # Get failing checks via evaluate_phase
         failing: list[str] = []
         try:
-            from specsmith.phase import phase_failing_checks
+            from specsmith.phase import evaluate_phase
 
-            failing = phase_failing_checks(phase, root)
+            _, failing = evaluate_phase(phase, root)
         except Exception:  # noqa: BLE001
             pass
 

@@ -223,6 +223,8 @@ module = [
     "specsmith.ci_manager",
     "specsmith.context_orchestrator",
     "specsmith.session_store",
+    # MCP server: lazy in-function imports and dynamic Any patterns
+    "specsmith.mcp_server",
 ]
 ignore_errors = true
 
