@@ -1,0 +1,10 @@
+name: specsmith — Session End
+command: specsmith save && specsmith kill-session
+tags:
+  - specsmith
+  - governance
+description: >
+  End-of-session teardown: runs specsmith save (ESDB backup + commit +
+  push) then kills governance-serve and any tracked agent processes.
+  Always run this before closing Warp. Never leave a session with
+  uncommitted governance changes.

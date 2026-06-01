@@ -1,0 +1,10 @@
+name: specsmith — Session Start
+command: specsmith kill-session 2>/dev/null || true && specsmith migrate run && specsmith audit && specsmith sync && specsmith checkpoint
+tags:
+  - specsmith
+  - governance
+description: >
+  Full specsmith session bootstrap: kill any orphaned processes, apply
+  pending migrations, run governance audit, confirm machine sync, and
+  emit the GOVERNANCE ANCHOR checkpoint. Run this at the start of every
+  session before touching any code.

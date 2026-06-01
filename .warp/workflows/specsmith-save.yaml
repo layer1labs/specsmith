@@ -1,0 +1,10 @@
+name: specsmith — Save (commit + push + ESDB backup)
+command: specsmith save
+tags:
+  - specsmith
+  - governance
+description: >
+  Governance-aware save: backs up the ESDB (ChronoStore), creates a
+  governed git commit if there are staged changes, and pushes. Always
+  use this instead of plain `git commit`. Run at the end of every
+  session or after completing a feature or fix.

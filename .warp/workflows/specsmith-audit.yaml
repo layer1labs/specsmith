@@ -1,0 +1,9 @@
+name: specsmith — Audit
+command: specsmith audit
+tags:
+  - specsmith
+  - governance
+description: >
+  Run the specsmith governance audit. Checks requirements vs tests vs
+  architecture for drift. Required before advancing an AEE phase.
+  All 27 checks must pass (or be suppressed) before a phase advance.

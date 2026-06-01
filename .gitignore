@@ -71,7 +71,11 @@ _diag_*.py
 .specsmith/esdb_migration_manifest.json
 
 # Old Warp branding directory — renamed to .kairos/; prevent accidental re-creation
-.warp/
+# Exception: .warp/workflows/ is the standard Warp terminal repository workflow location.
+# Use .warp/* (not .warp/) so git recurses into subdirectories for the !-exceptions below.
+.warp/*
+!.warp/workflows
+!.warp/workflows/**
 
 # Rust build artifacts
 crates/chronomemory/target/

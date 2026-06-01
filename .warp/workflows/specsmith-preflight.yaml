@@ -1,0 +1,14 @@
+name: specsmith — Preflight
+command: specsmith preflight "{{intent}}" --json
+tags:
+  - specsmith
+  - governance
+description: >
+  Run a governance preflight check before any code change. Describe what
+  you intend to do; the broker returns accepted / needs_clarification /
+  rejected plus a work_item_id. Never make a code change without an
+  accepted preflight.
+arguments:
+  - name: intent
+    description: One sentence describing the change you are about to make (e.g. "fix the parser bug in lexer.py")
+    default_value: describe your intended change here
