@@ -10,7 +10,7 @@ Covers:
 - CLI smoke: specsmith mcp serve responds to initialize
 """
 
-from __future__ import annotations
+from __future__ import annotations  # noqa: I001
 
 import json
 import os
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import pytest  # noqa: I001
+import pytest
 
 
 # ---------------------------------------------------------------------------
