@@ -35,6 +35,7 @@ No external dependencies — stdlib only + existing specsmith modules.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sys
 import time
@@ -229,8 +230,9 @@ def _handle_governance_checkpoint(args: dict[str, Any]) -> dict[str, Any]:
     # Project name
     project_name = root.name
     try:
-        from specsmith.paths import find_scaffold
         import yaml as _yaml
+
+        from specsmith.paths import find_scaffold
 
         sp = find_scaffold(root)
         if sp:
@@ -243,7 +245,12 @@ def _handle_governance_checkpoint(args: dict[str, Any]) -> dict[str, Any]:
     phase_key, phase_label, phase_emoji, phase_pct = "unknown", "Unknown", "", 0
     failing_phase_checks: list[str] = []
     try:
-        from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase, phase_failing_checks
+        from specsmith.phase import (  # noqa: PLC0415
+            PHASE_MAP,
+            phase_failing_checks,
+            phase_progress_pct,
+            read_phase,
+        )
 
         phase_key = read_phase(root)
         phase = PHASE_MAP.get(phase_key)
@@ -573,10 +580,8 @@ def run_server(project_dir: str = ".") -> None:
 
     # Set working directory so relative paths in tool calls resolve correctly
     if project_dir and project_dir != ".":
-        try:
+        with contextlib.suppress(OSError):
             os.chdir(project_dir)
-        except OSError:
-            pass
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()

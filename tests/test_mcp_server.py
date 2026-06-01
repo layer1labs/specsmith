@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import pytest
+import pytest  # noqa: I001
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +386,7 @@ class TestMcpServeCli:
         except subprocess.TimeoutExpired:
             pytest.skip("mcp serve subprocess timed out (slow CI env)")
 
-        lines = [l for l in proc.stdout.strip().splitlines() if l.strip()]
+        lines = [ln for ln in proc.stdout.strip().splitlines() if ln.strip()]
         assert len(lines) >= 2, f"Expected ≥2 responses, got: {lines}"
         # Last response should be tools/list result
         tools_resp = json.loads(lines[-1])
