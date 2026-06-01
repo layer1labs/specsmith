@@ -704,8 +704,8 @@
   title: API Stability Doc Enumerates Frozen Surface
   description: '`docs/site/api-stability.md` exists and enumerates: CLI subcommands,
     exit codes, JSON payload schemas, broker module API, ledger event schemas, VS
-    Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier
-    is `Production/Stable`.'
+    Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is
+    `Production/Stable`.'
   requirement_id: REQ-129
   type: unit
   verification_method: pytest

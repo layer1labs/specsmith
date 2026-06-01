@@ -3551,5 +3551,16 @@
     "input": "Read README.md for Skills section; grep skills-index.md for specsmith-save; grep AGENTS.md for .agents/skills/; grep CHANGELOG for skills",
     "expected_behavior": "All four documentation locations contain the required skills content",
     "confidence": 0.9
+  },
+  {
+    "id": "TEST-363",
+    "title": "Verify .warp/workflows/ YAML files exist in repo and are loadable by Warp terminal",
+    "description": "",
+    "requirement_id": "REQ-362",
+    "type": "manual",
+    "verification_method": "Open Warp in project directory, press Ctrl+Shift+R, search 'specsmith'; confirm Session Start, Audit, Checkpoint, Preflight, Save, Phase, and Session End workflows appear.",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

@@ -7,27 +7,24 @@
 # Required fields: id, title, requirement_id
 - id: TEST-300
   title: YAML-First Sync Reads YAML and Writes JSON + MD
-  description: >-
-    When `.specsmith/governance-mode` == `yaml` and docs/requirements/*.yml
-    exist, `specsmith sync` reads from YAML files, writes .specsmith/
-    requirements.json + testcases.json, and regenerates docs/REQUIREMENTS.md
-    + docs/TESTS.md. `specsmith sync --check` exits 0 after sync. In legacy
-    mode (no governance-mode file), sync reads from REQUIREMENTS.md as before.
+  description: When `.specsmith/governance-mode` == `yaml` and docs/requirements/*.yml
+    exist, `specsmith sync` reads from YAML files, writes .specsmith/ requirements.json
+    + testcases.json, and regenerates docs/REQUIREMENTS.md + docs/TESTS.md. `specsmith
+    sync --check` exits 0 after sync. In legacy mode (no governance-mode file), sync
+    reads from REQUIREMENTS.md as before.
   requirement_id: REQ-300
   type: integration
   verification_method: pytest
   input: tmp_path with YAML files + governance-mode=yaml
-  expected_behavior: JSON updated; REQUIREMENTS.md regenerated; sync --check
-    exits 0
+  expected_behavior: JSON updated; REQUIREMENTS.md regenerated; sync --check exits
+    0
   confidence: 1.0
 - id: TEST-301
   title: validate --strict Enforces All 8 Schema Checks
-  description: >-
-    `specsmith validate --strict --json` returns `{ok: true, strict_errors: 0}`
-    on a clean project. When a duplicate REQ ID is injected, strict_errors > 0
-    and exit code is 1. When an untested REQ exists, strict_warnings > 0 but
-    exit code is still 0. The `validate-strict` CI job runs this gate on every
-    push.
+  description: '`specsmith validate --strict --json` returns `{ok: true, strict_errors:
+    0}` on a clean project. When a duplicate REQ ID is injected, strict_errors > 0
+    and exit code is 1. When an untested REQ exists, strict_warnings > 0 but exit
+    code is still 0. The `validate-strict` CI job runs this gate on every push.'
   requirement_id: REQ-301
   type: cli
   verification_method: pytest
@@ -38,25 +35,23 @@
   confidence: 1.0
 - id: TEST-302
   title: generate docs Renders YAML to REQUIREMENTS.md and TESTS.md
-  description: >-
-    `specsmith generate docs --json` in YAML-first mode exits 0 and returns
-    `{ok: true, reqs: N, tests: M}`. The regenerated docs/REQUIREMENTS.md
-    contains a heading for each REQ in the YAML files. `--check` flag reports
-    changes without writing.
+  description: '`specsmith generate docs --json` in YAML-first mode exits 0 and returns
+    `{ok: true, reqs: N, tests: M}`. The regenerated docs/REQUIREMENTS.md contains
+    a heading for each REQ in the YAML files. `--check` flag reports changes without
+    writing.'
   requirement_id: REQ-302
   type: cli
   verification_method: pytest
   input: specsmith generate docs --json; specsmith generate docs --check --json
-  expected_behavior: exits 0; ok=true; REQUIREMENTS.md updated; check exits 0
-    with dry_run=true
+  expected_behavior: exits 0; ok=true; REQUIREMENTS.md updated; check exits 0 with
+    dry_run=true
   confidence: 1.0
 - id: TEST-303
   title: governance-mode Flag Controls YAML vs Markdown Authority
-  description: >-
-    `is_yaml_mode(root)` returns True when `.specsmith/governance-mode` == `yaml`
-    and False when the file is absent or contains `markdown`. `specsmith sync`
-    uses YAML sources when yaml_mode=True and Markdown sources when False.
-    The flag is preserved across specsmith upgrades.
+  description: '`is_yaml_mode(root)` returns True when `.specsmith/governance-mode`
+    == `yaml` and False when the file is absent or contains `markdown`. `specsmith
+    sync` uses YAML sources when yaml_mode=True and Markdown sources when False. The
+    flag is preserved across specsmith upgrades.'
   requirement_id: REQ-303
   type: unit
   verification_method: pytest
@@ -65,24 +60,22 @@
   confidence: 1.0
 - id: TEST-304
   title: Migration Script Is Idempotent
-  description: >-
-    Running `scripts/migrate_governance_to_yaml.py` twice produces the same
-    result as running it once. After migration: docs/requirements/ and
-    docs/tests/ contain YAML files, .specsmith/governance-mode == `yaml`,
-    and `specsmith sync --check` exits 0.
+  description: 'Running `scripts/migrate_governance_to_yaml.py` twice produces the
+    same result as running it once. After migration: docs/requirements/ and docs/tests/
+    contain YAML files, .specsmith/governance-mode == `yaml`, and `specsmith sync
+    --check` exits 0.'
   requirement_id: REQ-304
   type: integration
   verification_method: script
   input: scripts/migrate_governance_to_yaml.py run twice on same project
-  expected_behavior: second run produces no changes; governance-mode=yaml;
-    sync --check exits 0
+  expected_behavior: second run produces no changes; governance-mode=yaml; sync --check
+    exits 0
   confidence: 1.0
 - id: TEST-305
   title: ChronoStore WAL-Based ESDB Write Layer
-  description: >-
-    ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to
-    <project>/.chronomemory/events.wal. EsdbBridge.status() returns
-    chain_valid=True after appending records.
+  description: ChronoStore MUST append events as NDJSON with SHA-256 hash chaining
+    to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True
+    after appending records.
   requirement_id: REQ-305
   type: integration
   verification_method: pytest
@@ -91,10 +84,9 @@
   confidence: 0.95
 - id: TEST-306
   title: ESDB Must Be Per-Project
-  description: >-
-    Two EsdbBridge instances on separate 	mp_path directories MUST have
-    independent .chronomemory/events.wal files; records from project A are
-    not visible in project B.
+  description: "Two EsdbBridge instances on separate \tmp_path directories MUST have\
+    \ independent .chronomemory/events.wal files; records from project A are not visible\
+    \ in project B."
   requirement_id: REQ-306
   type: integration
   verification_method: pytest
@@ -103,8 +95,7 @@
   confidence: 0.95
 - id: TEST-307
   title: Session State Must Survive Restart
-  description: >-
-    SessionStore MUST persist session context to .specsmith/session-state.json.
+  description: SessionStore MUST persist session context to .specsmith/session-state.json.
     A new SessionStore instance on the same path MUST load the saved state.
   requirement_id: REQ-307
   type: integration
@@ -114,56 +105,711 @@
   confidence: 0.95
 - id: TEST-308
   title: Context Orchestrator Tiered Auto-Optimization
-  description: >-
-    ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier.
+  description: ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier.
     Data on disk MUST NEVER be deleted at any tier.
   requirement_id: REQ-308
   type: integration
   verification_method: pytest
   input: optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)
   expected_behavior: Correct tier actions returned; no files deleted from disk
-  confidence: 0.90
+  confidence: 0.9
 - id: TEST-309
   title: CI Automation Togglable Per Project
-  description: >-
-    CiManager.enable(platform=github, force=True) MUST generate CI workflow
+  description: CiManager.enable(platform=github, force=True) MUST generate CI workflow
     files and persist ci_automation_enabled=true to .specsmith/config.yml.
   requirement_id: REQ-309
   type: cli
   verification_method: pytest
   input: CiManager(tmp_path).enable(platform=github, force=True)
   expected_behavior: CI files generated; config.yml has ci_automation_enabled=true
-  confidence: 0.90
+  confidence: 0.9
 - id: TEST-310
   title: OEA Anti-Hallucination Fields on ESDB Records
-  description: >-
-    ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default
+  description: ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default
     all 7 OEA fields to safe non-blocking values.
   requirement_id: REQ-310
   type: unit
   verification_method: pytest
   input: ChronoRecord(kind=test, payload={}) inspect all 7 OEA fields
-  expected_behavior: source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False, recursion_depth=0
+  expected_behavior: source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False,
+    recursion_depth=0
   confidence: 0.95
 - id: TEST-311
   title: RAG Retrieval Must Filter by Confidence
-  description: >-
-    ESDB retrieval MUST exclude records with confidence < min_confidence.
+  description: ESDB retrieval MUST exclude records with confidence < min_confidence.
     Records at exactly the threshold MUST be included.
   requirement_id: REQ-311
   type: unit
   verification_method: pytest
   input: Append records with confidence 0.3, 0.7, 0.9; query(min_confidence=0.7)
   expected_behavior: Only confidence >= 0.7 records returned; 0.3 excluded
-  confidence: 0.90
+  confidence: 0.9
 - id: TEST-312
   title: Context Optimize Command
-  description: >-
-    specsmith context optimize --fill-pct N --json MUST exit 0 and return
-    JSON with 	ier, ctions, and 	okens_freed.
+  description: "specsmith context optimize --fill-pct N --json MUST exit 0 and return\
+    \ JSON with \tier, ctions, and \tokens_freed."
   requirement_id: REQ-312
   type: cli
   verification_method: pytest
   input: specsmith context optimize --fill-pct 65 --json --project-dir tmp
   expected_behavior: Exit 0; JSON contains tier, actions list, tokens_freed integer
-  confidence: 0.90
+  confidence: 0.9
+- id: TEST-313
+  title: Dispatch Run Appends Ledger Entry
+  description: After dispatching a single-node DAG to completion via AgentDispatcher,
+    a governance ledger entry MUST exist in LEDGER.md containing dag_id, task, node
+    counts, and equilibrium result.
+  requirement_id: REQ-313
+  type: integration
+  verification_method: pytest
+  input: AgentDispatcher.run() on single-node DAG; inspect LEDGER.md
+  expected_behavior: LEDGER.md contains dispatch ledger entry with dag_id and equilibrium=True
+  confidence: 0.9
+- id: TEST-314
+  title: node_started Payload Contains Worker Role
+  description: EventEmitter.node_started() MUST persist a role key in the payload
+    of the node_started JSONL event. Replay must return the same role.
+  requirement_id: REQ-314
+  type: unit
+  verification_method: pytest
+  input: EventEmitter(tmp_path, 'dag'); node_started('n1', 'coder'); replay()
+  expected_behavior: Replayed node_started event has payload.role == 'coder'
+  confidence: 1.0
+- id: TEST-315
+  title: DispatchSummary Contains dag_id for Traceability
+  description: DispatchSummary.dag_id MUST match the TaskDAG.dag_id used to create
+    the dispatcher. CLI output MUST display the dag_id on completion.
+  requirement_id: REQ-315
+  type: unit
+  verification_method: pytest
+  input: TaskDAGBuilder.build('t', dag_id='trace-001'); run; summary.dag_id
+  expected_behavior: summary.dag_id == 'trace-001'
+  confidence: 1.0
+- id: TEST-316
+  title: Governance Block Recorded in Node Error
+  description: When _governance_preflight raises _GovernanceBlockedError, the DispatchResult.error
+    MUST start with 'Governance preflight blocked'.
+  requirement_id: REQ-316
+  type: unit
+  verification_method: pytest
+  input: Mock _governance_preflight to raise _GovernanceBlockedError('denied')
+  expected_behavior: summary.failed[0].error starts with 'Governance preflight blocked'
+  confidence: 1.0
+- id: TEST-317
+  title: Context Injection via ESDB Record IDs Is Traceable
+  description: TaskNode.context_in MUST contain the esdb_record_id of a completed
+    predecessor node after _propagate_context runs. The context_in list is part of
+    TaskNode.to_dict() and available for replay inspection.
+  requirement_id: REQ-317
+  type: unit
+  verification_method: pytest
+  input: 2-node DAG; complete root with esdb_id='rec-xyz'; check child.context_in
+  expected_behavior: child.context_in contains 'rec-xyz'
+  confidence: 1.0
+- id: TEST-318
+  title: Completed Nodes Not Re-Executed on Retry
+  description: dispatch retry must identify node_completed events from events.jsonl
+    and refuse to retry nodes whose last event is node_completed. The retry CLI command
+    returns an error when asked to retry a completed node.
+  requirement_id: REQ-318
+  type: cli
+  verification_method: pytest
+  input: EventEmitter with node_completed; CliRunner invoke dispatch retry --node
+    n1
+  expected_behavior: CLI exits 0 but prints 'already completed'; does not start new
+    run
+  confidence: 0.9
+- id: TEST-319
+  title: ESDB dispatch_result Record Contains DAG Lineage
+  description: ChronoRecords written by _write_esdb_record MUST have dag_id and node_id
+    in both evidence list and data dict.
+  requirement_id: REQ-319
+  type: unit
+  verification_method: pytest
+  input: _write_esdb_record(node, run_result); inspect ChronoRecord
+  expected_behavior: record.evidence contains 'dag=...' and 'node=...'; record.data
+    has dag_id and node_id keys
+  confidence: 1.0
+- id: TEST-320
+  title: Abort Signal Recorded as Aborted in Error
+  description: When abort_node() is called before or during node execution, the FAILED
+    DispatchResult.error MUST contain the string 'Aborted'.
+  requirement_id: REQ-320
+  type: unit
+  verification_method: pytest
+  input: Pre-arm abort_node('task-main'); run dispatcher; check summary.failed
+  expected_behavior: summary.failed[0].error contains 'Aborted'
+  confidence: 1.0
+- id: TEST-321
+  title: Orchestrator Is Sole Dispatch Entry Point
+  description: The Orchestrator source MUST document REQ-321 and the sole-entry-point
+    constraint. Worker agents MUST NOT expose a public method to initiate dispatches.
+  requirement_id: REQ-321
+  type: unit
+  verification_method: pytest
+  input: inspect.getsource(orchestrator); check for REQ-321 and 'sole entry point'
+  expected_behavior: Both strings present in source; no AgentDispatcher.run() call
+    outside orchestrator
+  confidence: 0.95
+- id: TEST-322
+  title: DAG Decomposition Before Worker Dispatch
+  description: TaskDAGBuilder.build() decomposes task into a valid acyclic DAG. Cycles
+    raise DAGValidationError before any worker starts. Single-node fallback used when
+    no planner output is provided.
+  requirement_id: REQ-322
+  type: integration
+  verification_method: pytest
+  input: Build DAG from plan list; build DAG from JSON string; build with cycle; build
+    with no planner output
+  expected_behavior: Valid plan builds DAG; JSON string extracted and built; cycle
+    raises DAGValidationError; no planner builds single-node fallback
+  confidence: 1.0
+- id: TEST-323
+  title: TaskNode Must Carry Required Fields
+  description: A TaskNode constructed with minimal args MUST default status=PENDING,
+    context_in=[], context_out=None, result=None. to_dict() MUST include all required
+    fields.
+  requirement_id: REQ-323
+  type: unit
+  verification_method: pytest
+  input: TaskNode(id=n, title=T, role=coder, depends_on=[dep])
+  expected_behavior: All 8 REQ-323 fields populated with correct types and defaults
+  confidence: 1.0
+- id: TEST-324
+  title: Concurrent Dispatch Bounded by max_workers
+  description: AgentPool MUST return None when active_count >= max_workers, preventing
+    over-dispatch. Pool with idle workers returns a reused agent without spawning.
+  requirement_id: REQ-324
+  type: unit
+  verification_method: pytest
+  input: Pool at capacity; pool with idle worker
+  expected_behavior: acquire() returns None at cap; acquire() returns idle worker
+    without spawning new agent
+  confidence: 1.0
+- id: TEST-325
+  title: Fail-Forward BLOCKED Propagation
+  description: When a node transitions to FAILED, all transitive dependents are marked
+    BLOCKED while non-dependent siblings remain PENDING. all_terminal() returns True
+    after full propagation of a single-dependency chain.
+  requirement_id: REQ-325
+  type: integration
+  verification_method: pytest
+  input: 4-node DAG; fail impl; check review=BLOCKED and test=PENDING
+  expected_behavior: review BLOCKED; test unaffected; all_terminal() True after a+b
+    fail+block
+  confidence: 1.0
+- id: TEST-326
+  title: AgentPool Must Reuse Idle Workers
+  description: After release(), a subsequent acquire() for the same role returns the
+    previously released agent object without spawning a new one.
+  requirement_id: REQ-326
+  type: unit
+  verification_method: pytest
+  input: Insert sentinel into pool._idle['coder']; call acquire('coder')
+  expected_behavior: acquire() returns sentinel; active_count increments; release()
+    decrements count and returns sentinel to idle
+  confidence: 1.0
+- id: TEST-327
+  title: ESDB Context Written on Node Completion
+  description: AgentDispatcher calls _write_esdb_record on node completion and sets
+    context_out. Downstream nodes receive context_in populated with predecessor record
+    ID.
+  requirement_id: REQ-327
+  type: integration
+  verification_method: pytest
+  input: Single-node DAG with mocked worker; mock _write_esdb_record returning 'rec-xyz'
+  expected_behavior: summary.completed[0].esdb_record_id == 'rec-xyz'; node.context_out
+    set
+  confidence: 0.9
+- id: TEST-328
+  title: DAG State Transitions Persisted as JSONL Events
+  description: EventEmitter writes node_started, node_completed, node_failed, and
+    dag_done events as JSONL to .specsmith/dispatch/<dag_id>/events.jsonl. The file
+    is created before the first emit.
+  requirement_id: REQ-328
+  type: integration
+  verification_method: pytest
+  input: EventEmitter(tmp_path, 'dag-id'); emit node_started, node_completed, node_failed
+  expected_behavior: events.jsonl exists immediately after construction; 3 JSONL lines
+    with correct event_type values
+  confidence: 1.0
+- id: TEST-329
+  title: Per-Node Governance Preflight Before Worker Start
+  description: AgentDispatcher._governance_preflight() is called for each node before
+    worker acquisition. A mock that raises _GovernanceBlockedError causes the node
+    to transition to FAILED without calling _invoke_worker.
+  requirement_id: REQ-329
+  type: unit
+  verification_method: pytest
+  input: Single-node DAG; patch _governance_preflight to raise; mock _invoke_worker
+  expected_behavior: _invoke_worker not called; node.status = FAILED; summary.failed
+    contains node
+  confidence: 0.9
+- id: TEST-330
+  title: DAG Run Must Be Resumable from Checkpoint
+  description: EventEmitter.replay() returns all persisted events for a dag_id. dispatch
+    retry command identifies FAILED/BLOCKED nodes from past events and re-executes
+    only those nodes.
+  requirement_id: REQ-330
+  type: integration
+  verification_method: pytest
+  input: EventEmitter(tmp_path, dag); emit node_started+completed+dag_done; call EventEmitter.replay()
+  expected_behavior: replay() returns 3 events in order; list_runs() includes dag_id
+  confidence: 1.0
+- id: TEST-331
+  title: Dispatch CLI Group with run/status/list/retry
+  description: specsmith dispatch --help lists run, status, list, retry. Each subcommand
+    shows expected options. dispatch list on empty project exits 0. dispatch status
+    with unknown dag_id exits 0.
+  requirement_id: REQ-331
+  type: cli
+  verification_method: pytest
+  input: CliRunner invoke dispatch --help; dispatch run --help; dispatch list; dispatch
+    status --dag-id nonexistent
+  expected_behavior: All exit 0; --help shows expected subcommands and options
+  confidence: 1.0
+- id: TEST-332
+  title: Kairos Live DAG Graph Panel
+  description: DispatchApp renders a DAG graph panel subscribed to the SSE stream.
+    Nodes are coloured by status. A node click opens a side panel with role, summary,
+    ESDB record ID.
+  requirement_id: REQ-332
+  type: integration
+  verification_method: evaluator
+  input: Kairos DispatchApp with mock SSE events for each NodeStatus variant
+  expected_behavior: Each node rendered in correct colour; side panel opens on click
+    showing node metadata
+  confidence: 0.85
+- id: TEST-333
+  title: Kairos Gantt Timeline Strip
+  description: GanttStrip renders one row per node with a time-proportional bar. Nodes
+    with overlapping started_at/finished_at ranges show visual concurrency.
+  requirement_id: REQ-333
+  type: integration
+  verification_method: evaluator
+  input: GanttStrip with 2 nodes having overlapping start/end times
+  expected_behavior: Both nodes show bars; bar widths proportional to duration; overlap
+    visible
+  confidence: 0.85
+- id: TEST-334
+  title: Kairos Per-Node Retry and Abort Controls
+  description: ControlsPanel Retry button is enabled for FAILED/BLOCKED nodes and
+    disabled for others. Abort button is enabled only for RUNNING nodes. Clicking
+    calls the correct POST endpoint.
+  requirement_id: REQ-334
+  type: unit
+  verification_method: evaluator
+  input: ControlsPanel for each NodeStatus (Pending/Running/Completed/Failed/Blocked)
+  expected_behavior: Retry enabled only for Failed/Blocked; Abort enabled only for
+    Running; click invokes correct action callback
+  confidence: 0.9
+- id: TEST-335
+  title: specsmith test-ran Records Test Result in testcases.json
+  description: 'Running `specsmith test-ran TEST-001 --result passed` on a project
+    with a valid testcases.json MUST: (1) update last_result to ''passed'' and set
+    last_run_at to an ISO-8601 UTC timestamp; (2) transition status from pending to
+    implemented; (3) write a ledger entry of type test-ran; (4) exit 0. Running with
+    --result failed MUST set status to failing. Running with an unknown TEST-ID MUST
+    exit 1. Running with --json MUST emit a valid JSON payload with ok, test_id, result,
+    old_status, new_status, and recorded_at fields.'
+  requirement_id: REQ-335
+  type: cli
+  verification_method: pytest
+  input: specsmith test-ran TEST-001 --result passed / failed / unknown-id / --json
+  expected_behavior: testcases.json updated; status transitions correct; ledger entry
+    written; exit codes correct; JSON output valid
+  confidence: 0.95
+- id: TEST-336
+  title: specsmith save Performs Backup, Commit, and Push
+  description: '`specsmith save` on a project with pending governance changes MUST
+    create a timestamped backup under .chronomemory/backup/, git-commit all changed
+    files, and git-push to origin. With --json it MUST emit {backup_path, commit_hash,
+    push_ok}. With no pending changes it MUST exit 0 with a ''nothing to commit''
+    message. On push failure it MUST exit 1 with an informative error.'
+  requirement_id: REQ-336
+  type: cli
+  verification_method: pytest
+  input: specsmith save [--json] on project with dirty governance files; repeat with
+    clean repo
+  expected_behavior: Backup created; git commit recorded; push attempted; exit 0 on
+    success; --json payload valid; clean repo exits 0 with 'nothing to commit'
+  confidence: 0.95
+- id: TEST-337
+  title: specsmith load Pulls Latest Governance State
+  description: '`specsmith load` MUST execute git-pull on the current branch and report
+    files changed. With `--restore-backup` it MUST also restore the most recent backup
+    from .chronomemory/backup/. With --json it MUST emit {pull_ok, files_changed,
+    backup_restored}. On merge conflict git-pull it MUST exit 1 with the conflict
+    details.'
+  requirement_id: REQ-337
+  type: cli
+  verification_method: pytest
+  input: specsmith load [--restore-backup] [--json] on project with remote changes
+  expected_behavior: git-pull executed; files_changed count correct; backup optionally
+    restored; --json payload valid; conflict exits 1
+  confidence: 0.9
+- id: TEST-338
+  title: specsmith_run Tool Normalises Slash-Command and Verb Shortcut Forms
+  description: specsmith_run('/specsmith save') MUST execute `specsmith save`. specsmith_run('save')
+    MUST execute `specsmith save`. specsmith_run('specsmith audit --strict') MUST
+    execute `specsmith audit --strict`. specsmith_run('') MUST execute `specsmith
+    --help`. specsmith_run MUST appear in AVAILABLE_TOOLS and build_tool_registry()
+    and carry epistemic_claims listing side-effect categories.
+  requirement_id: REQ-338
+  type: unit
+  verification_method: pytest
+  input: specsmith_run('/specsmith save'); specsmith_run('save'); specsmith_run('specsmith
+    audit --strict'); specsmith_run('')
+  expected_behavior: All three input forms resolve to the correct specsmith subprocess
+    call; empty input triggers --help; tool registered with correct metadata
+  confidence: 0.95
+- id: TEST-339
+  title: M005 Migration Writes agent-tools.json and Patches AGENTS.md
+  description: Running AgentRunToolMigration().run(project_root) MUST create .specsmith/agent-tools.json
+    with primary_governance_command=specsmith_run and the full verb_shortcuts list.
+    It MUST append a Governance commands section to AGENTS.md and write .specsmith/agents.md.m005.bak.
+    dry_run=True MUST report expected changes without writing. rollback() MUST remove
+    agent-tools.json and restore AGENTS.md from backup. M005 MUST appear in MigrationRegistry.all().
+  requirement_id: REQ-339
+  type: integration
+  verification_method: pytest
+  input: AgentRunToolMigration().run(tmp_path); dry_run=True; rollback()
+  expected_behavior: agent-tools.json written with correct schema; AGENTS.md patched;
+    backup created; dry_run produces no files; rollback restores state; registry includes
+    v5
+  confidence: 0.95
+- id: TEST-340
+  title: /specsmith REPL Handler Streams CLI Output
+  description: In the Nexus REPL, entering `/specsmith status` MUST invoke `specsmith
+    status` as a subprocess with shell=True, streaming output to the terminal (capture_output=False).
+    `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout
+    MUST print a timeout message without crashing the REPL loop. The REPL startup
+    banner MUST contain the string '/specsmith'.
+  requirement_id: REQ-340
+  type: unit
+  verification_method: pytest
+  input: NEXUS_BANNER string; mock subprocess.run for /specsmith status; /specsmith
+    with no args; timeout simulation
+  expected_behavior: Banner contains '/specsmith'; subprocess called with correct
+    args; timeout handled gracefully; REPL loop continues after error
+  confidence: 0.9
+- id: TEST-341
+  title: terminal-awareness Skill Exists in Skills Catalog
+  description: specsmith.skills.get('terminal-awareness') MUST return a non-None SkillEntry
+    with domain=CROSS_PLATFORM. The skill body MUST contain sections for shell detection,
+    PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish, Python subprocess
+    PID tracking, and a cleanup checklist. specsmith skill list MUST include terminal-awareness
+    in its output.
+  requirement_id: REQ-341
+  type: unit
+  verification_method: pytest
+  input: from specsmith.skills import get; get('terminal-awareness')
+  expected_behavior: Non-None SkillEntry; domain=CROSS_PLATFORM; body contains expected
+    sections
+  confidence: 0.95
+- id: TEST-342
+  title: Shell Detection Returns Correct Shell for Active Environment
+  description: The detect_shell() example in terminal-awareness skill MUST return
+    'bash' when SHELL ends with 'bash', 'zsh' when SHELL ends with 'zsh', 'fish' when
+    SHELL ends with 'fish', 'cmd' when ComSpec is set, and 'powershell' when PSModulePath
+    is set but ComSpec is not.
+  requirement_id: REQ-342
+  type: unit
+  verification_method: pytest
+  input: Patch os.environ for each shell type; call detect_shell()
+  expected_behavior: Returns correct shell string for each patched environment
+  confidence: 0.9
+- id: TEST-343
+  title: run_tracked Uses DEVNULL stdin and communicate with Timeout
+  description: specsmith.executor.run_tracked MUST call subprocess.Popen with stdin=subprocess.DEVNULL
+    and must call proc.communicate(timeout=N) not proc.wait(). On timeout, it MUST
+    call proc.kill() then proc.communicate() to drain. Spawned PIDs MUST be tracked
+    in .specsmith/pids/.
+  requirement_id: REQ-343
+  type: unit
+  verification_method: pytest
+  input: run_tracked(tmp_path, 'echo ok', timeout=10); mock subprocess.Popen
+  expected_behavior: DEVNULL stdin; communicate called with timeout; PID file written
+  confidence: 0.9
+- id: TEST-344
+  title: specsmith.esdb Namespace Exports Full chronomemory v0.1.1 Surface
+  description: from specsmith.esdb import ChronoStore, ChronoRecord, EsdbBridge, DepGraph,
+    ContextPackCompiler, RUST_BACKEND, query, metrics MUST all succeed without ImportError.
+    RUST_BACKEND MUST be a bool. query MUST be a module with what_is_known. metrics
+    MUST be a module with record_token_metric.
+  requirement_id: REQ-344
+  type: unit
+  verification_method: pytest
+  input: from specsmith.esdb import <all exports>
+  expected_behavior: All imports succeed; RUST_BACKEND is bool; query/metrics are
+    modules
+  confidence: 0.95
+- id: TEST-345
+  title: LLM Context Build Does Not Call store.query(rag_filter=True)
+  description: specsmith.retrieval.build_index and specsmith.agent.context_seed._load_esdb_snippet
+    MUST NOT call store.query(rag_filter=True). Both MUST call query.what_is_known(store).
+    A grep over the codebase for 'rag_filter=True' in retrieval.py and context_seed.py
+    MUST return zero matches.
+  requirement_id: REQ-345
+  type: unit
+  verification_method: pytest
+  input: inspect source of retrieval.py and context_seed.py for rag_filter=True
+  expected_behavior: No occurrences of rag_filter=True in the LLM context code paths
+  confidence: 0.95
+- id: TEST-346
+  title: specsmith save --force Bypasses Gitflow Guard
+  description: specsmith save --force on a project with branching_strategy=gitflow
+    on the main branch MUST NOT return the 'Refusing to push directly to main' error.
+    run_push() called with force=True MUST issue git push --force-with-lease. Without
+    --force on main, save MUST still refuse.
+  requirement_id: REQ-346
+  type: unit
+  verification_method: pytest
+  input: run_push(tmp_path, force=True) on gitflow main; run_push(tmp_path, force=False)
+    on main
+  expected_behavior: force=True succeeds; force=False returns failure with guard message
+  confidence: 0.9
+- id: TEST-347
+  title: specsmith pull --discard Hard-Resets Working Tree to Remote
+  description: specsmith.vcs_commands.run_discard MUST issue git fetch then git reset
+    --hard origin/<branch>. The result.success MUST be True on success. The result.message
+    MUST contain 'reset to origin/<branch>'. With clean=False, git clean MUST NOT
+    be called.
+  requirement_id: REQ-347
+  type: unit
+  verification_method: pytest
+  input: run_discard(tmp_path, clean=False); mock _run_git
+  expected_behavior: fetch then reset called; success=True; message contains 'reset
+    to origin/'
+  confidence: 0.9
+- id: TEST-348
+  title: specsmith pull --clean Also Runs git clean -fd
+  description: specsmith.vcs_commands.run_discard(clean=True) MUST call git clean
+    -fd after the hard reset. The result.message MUST mention 'untracked files removed'.
+    With clean=False, git clean MUST NOT be called.
+  requirement_id: REQ-348
+  type: unit
+  verification_method: pytest
+  input: run_discard(tmp_path, clean=True) vs run_discard(tmp_path, clean=False);
+    mock _run_git
+  expected_behavior: clean=True calls git clean -fd and message notes untracked removal;
+    clean=False does not
+  confidence: 0.9
+- id: TEST-349
+  title: gh-ci-polling Skill Exists and Contains gh run watch Pattern
+  description: specsmith.skills.get('gh-ci-polling') MUST return a non-None SkillEntry
+    with domain=GOVERNANCE. The skill body MUST contain 'gh run watch', 'NEVER', and
+    explicit prohibition of 'Start-Sleep' and 'sleep'. It MUST contain a PowerShell
+    example and a bash example.
+  requirement_id: REQ-349
+  type: unit
+  verification_method: pytest
+  input: from specsmith.skills import get; get('gh-ci-polling')
+  expected_behavior: Non-None; body contains 'gh run watch', 'NEVER', 'Start-Sleep',
+    pwsh and bash examples
+  confidence: 0.95
+- id: TEST-350
+  title: Sync Pipeline Passes Through platform/boundary/confidence Fields
+  description: When a YAML requirement entry includes platform, boundary, or confidence
+    fields, run_sync MUST include those fields in the corresponding .specsmith/requirements.json
+    entry. When those fields are absent from the YAML entry, they MUST NOT appear
+    in the JSON entry (not written as null or empty string).
+  requirement_id: REQ-350
+  type: unit
+  verification_method: pytest
+  input: YAML req with platform='linux', boundary='OS', confidence='0.9'; run_sync;
+    inspect JSON
+  expected_behavior: JSON entry has platform, boundary, confidence keys; absent fields
+    not present
+  confidence: 0.9
+- id: TEST-351
+  title: specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
+  description: specsmith checkpoint --json on a project with scaffold.yml MUST exit
+    0 and return JSON containing ts (ISO-8601), project (string), phase (string),
+    phase_label, phase_pct (int), health (string), audit_failed (int), req_count (int),
+    test_count (int), esdb_records (int), esdb_chain_valid (bool), recent_wis (list),
+    last_preflight (string), and anchor ('SPECSMITH-ANCHOR-' prefix). Without --json
+    it MUST print a line containing 'GOVERNANCE ANCHOR'. Both forms MUST exit 0 on
+    a project with no ESDB or LEDGER (best-effort, never throws).
+  requirement_id: REQ-351
+  type: cli
+  verification_method: pytest
+  input: specsmith checkpoint --json --project-dir tmp; specsmith checkpoint --project-dir
+    tmp
+  expected_behavior: JSON has all required fields; human output contains GOVERNANCE
+    ANCHOR; exit 0 in both cases
+  confidence: 0.95
+- id: TEST-352
+  title: M006 Injects Session Governance Protocol into AGENTS.md
+  description: SessionGovernanceMigration().run(tmp_path) on a project with AGENTS.md
+    that lacks 'specsmith checkpoint' MUST inject the Session Governance Protocol
+    section, create .specsmith/agents.md.m006.bak, and return success=True with 'AGENTS.md'
+    in files_modified. Re-running MUST be a no-op (idempotent). Running with dry_run=True
+    MUST report what would change without writing. rollback() MUST restore AGENTS.md
+    from the backup. M006 MUST appear in MigrationRegistry.all().
+  requirement_id: REQ-352
+  type: integration
+  verification_method: pytest
+  input: SessionGovernanceMigration().run(tmp_path); dry_run=True; rollback(); re-run
+    after injection
+  expected_behavior: Protocol injected; backup created; dry_run no writes; rollback
+    restores; idempotent; registry includes v6
+  confidence: 0.95
+- id: TEST-353
+  title: Modern Web Framework Types Have Tool Registry Entries
+  description: list_tools_for_type(ProjectType.NEXTJS_APP) MUST return a ToolSet with
+    'next build' in build and 'eslint' in lint. list_tools_for_type(ProjectType.NUXT_APP)
+    MUST have 'nuxt build' in build. list_tools_for_type(ProjectType.SVELTEKIT_APP)
+    MUST have 'vite build'. list_tools_for_type(ProjectType.REMIX_APP) MUST have 'remix
+    vite:build'. list_tools_for_type(ProjectType.ASTRO_SITE) MUST have 'astro build'.
+    All five types MUST appear in _TYPE_LABELS with non-empty human-readable labels.
+  requirement_id: REQ-353
+  type: unit
+  verification_method: pytest
+  input: list_tools_for_type for each new type; check _TYPE_LABELS
+  expected_behavior: Each type has correct build tool; all five types in _TYPE_LABELS
+  confidence: 0.95
+- id: TEST-354
+  title: CodityAdapter Generates GitHub Workflow by Default
+  description: CodityAdapter().generate(config, tmp_path) on a directory with no VCS
+    signals MUST create .github/workflows/codity-review.yml containing 'codity review
+    --staged', 'curl -fsSL https://cli.codity.ai/install.sh | sh', 'CODITY_ACCESS_TOKEN',
+    and 'actions/checkout@v4'. It MUST also create docs/codity-setup.md. When LEDGER.md
+    exists, a TODO checklist entry MUST be appended containing 'codity login' and
+    'codity doctor'. CodityAdapter().name MUST equal 'codity'.
+  requirement_id: REQ-354
+  type: unit
+  verification_method: pytest
+  input: CodityAdapter().generate(mock_config, tmp_path); tmp_path has no scaffold.yml
+    or VCS hint files
+  expected_behavior: .github/workflows/codity-review.yml created; docs/codity-setup.md
+    created; LEDGER.md appended; name == 'codity'
+  confidence: 0.95
+- id: TEST-355
+  title: CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
+  description: When scaffold.yml contains 'gitlab' (case-insensitive), _detect_vcs()
+    MUST return 'gitlab' and generate() MUST write .gitlab-ci-codity.yml (not a GitHub
+    workflow). When scaffold.yml contains 'azure', _detect_vcs() MUST return 'azure'
+    and generate() MUST write .azure-pipelines/codity-review.yml. When .gitlab-ci.yml
+    exists in the project root (no scaffold.yml), _detect_vcs() MUST return 'gitlab'.
+    When azure-pipelines.yml exists, _detect_vcs() MUST return 'azure'. The GitLab
+    workflow MUST contain 'codity config set-pat --provider gitlab'. The Azure workflow
+    MUST contain 'codity config set-pat --provider azure'.
+  requirement_id: REQ-354
+  type: unit
+  verification_method: pytest
+  input: Scaffold.yml with gitlab/azure keyword; .gitlab-ci.yml present; azure-pipelines.yml
+    present
+  expected_behavior: Correct VCS detected; correct workflow file written; PAT setup
+    command present
+  confidence: 0.95
+- id: TEST-356
+  title: codity-ai-review Skill Is in Governance Skills Catalog
+  description: specsmith.skills.governance.SKILLS MUST contain a SkillEntry with slug='codity-ai-review'.
+    Its body MUST contain 'codity review --staged', 'codity login', 'codity init',
+    'codity scan --staged', 'codity test-gen --staged', 'codity doctor', 'specsmith
+    integrate codity', 'HIGH severity', 'set-pat --provider gitlab', and 'set-pat
+    --provider azure'. Its tags MUST include 'codity', 'ai-review', and 'pre-commit'.
+    Its domain MUST be SkillDomain.GOVERNANCE.
+  requirement_id: REQ-356
+  type: unit
+  verification_method: pytest
+  input: from specsmith.skills.governance import SKILLS; find slug='codity-ai-review'
+  expected_behavior: SkillEntry found; body and tags correct; domain GOVERNANCE
+  confidence: 0.95
+- id: TEST-357
+  title: AGENTS.md Template Contains Codity.ai Pre-commit Rule
+  description: The rendered agents.md.j2 template MUST contain a 'Codity.ai Code Review'
+    section. The section MUST instruct agents to run 'codity review --staged' if codity
+    doctor exits 0; MUST state that HIGH-severity findings block the commit; MUST
+    mention MEDIUM-severity acknowledgement; MUST reference 'specsmith integrate codity'.
+    The section MUST appear after the Session Governance Protocol section and before
+    the project metadata footer.
+  requirement_id: REQ-355
+  type: unit
+  verification_method: pytest
+  input: Read src/specsmith/templates/agents.md.j2 directly; render via Jinja2 with
+    minimal context
+  expected_behavior: Template contains Codity section with review --staged, HIGH severity,
+    MEDIUM, integrate codity
+  confidence: 0.95
+- id: TEST-358
+  title: accepted_warnings Suppresses Matching Audit Check
+  description: 'When scaffold.yml contains `accepted_warnings: [scaffold_type_mismatch]`
+    and the type-mismatch check fires, `run_audit` MUST mark that result as suppressed=True,
+    AuditReport.failed MUST NOT count it, AuditReport.healthy MUST be True if no other
+    failures exist, and the CLI MUST render it as ''~ type-mismatch (accepted)'' rather
+    than ''✗ type-mismatch''. ledger_line_threshold suppresses ledger-size similarly.'
+  requirement_id: REQ-357
+  type: unit
+  verification_method: pytest
+  input: 'run_audit(tmp_path) with scaffold.yml containing type!=detected AND accepted_warnings:
+    [scaffold_type_mismatch]; repeat for ledger_line_threshold'
+  expected_behavior: suppressed=True on matched result; failed count excludes suppressed;
+    healthy=True; ledger-size suppressed by ledger_line_threshold alias
+  confidence: 0.95
+- id: TEST-359
+  title: Sync Falls Back to Markdown When YAML Mode Has No YAML Files
+  description: '`run_sync(root)` on a project where governance-mode=yaml but docs/requirements/
+    has no .yml files AND docs/REQUIREMENTS.md has >= 5 REQ- patterns MUST parse the
+    Markdown and populate .specsmith/requirements.json with those requirements rather
+    than writing an empty list. The sync result MUST show reqs_after >= 5.'
+  requirement_id: REQ-358
+  type: unit
+  verification_method: pytest
+  input: 'tmp_path with .specsmith/governance-mode=yaml; no docs/requirements/*.yml;
+    docs/REQUIREMENTS.md with 6 ## REQ-BE-NNN headings; run_sync(root)'
+  expected_behavior: requirements.json contains 6 entries; reqs_after=6
+  confidence: 0.95
+- id: TEST-360
+  title: _req_count Returns True for H2 REQ Headings
+  description: '`_req_count(5)(root)` MUST return True when docs/REQUIREMENTS.md uses
+    `## REQ-BE-001` through `## REQ-BE-005` H2 headings (not H3 `###`). Currently
+    it returns False for H2 headings, causing false phase failures on domain-namespaced
+    Markdown projects.'
+  requirement_id: REQ-359
+  type: unit
+  verification_method: pytest
+  input: 'tmp_path/docs/REQUIREMENTS.md with 5 `## REQ-BE-NNN: Title` H2 headings;
+    _req_count(5)(tmp_path)'
+  expected_behavior: Returns True
+  confidence: 0.95
+- id: TEST-361
+  title: Skills Catalog Contains specsmith/specsmith-save/specsmith-audit Entries
+  description: '`specsmith.skills.get(''specsmith'')`, `get(''specsmith-save'')`,
+    and `get(''specsmith-audit'')` MUST each return a non-None SkillEntry with domain=GOVERNANCE.
+    The `specsmith` body MUST contain ''specsmith audit'', ''specsmith save'', and
+    ''specsmith checkpoint''. `specsmith skill install specsmith` MUST create `.agents/skills/specsmith/SKILL.md`
+    (subdirectory format). `installed_skills(root)` MUST return paths to both flat
+    `<slug>.md` and subdirectory `<slug>/SKILL.md` installations.'
+  requirement_id: REQ-360
+  type: unit
+  verification_method: pytest
+  input: get('specsmith'); get('specsmith-save'); get('specsmith-audit'); install('specsmith',
+    tmp_path); installed_skills(tmp_path)
+  expected_behavior: All three entries exist in GOVERNANCE domain; install writes
+    <slug>/SKILL.md; installed_skills returns the subdirectory path
+  confidence: 0.95
+- id: TEST-362
+  title: Skills System Documented in README, skills-index.md, AGENTS.md, and CHANGELOG
+  description: README.md MUST contain a `## Skills` section with `specsmith skill
+    list` and `specsmith skill install`. `docs/site/skills-index.md` MUST list specsmith,
+    specsmith-save, and specsmith-audit in the Governance table. AGENTS.md MUST mention
+    `.agents/skills/`. CHANGELOG.md MUST have an entry (unreleased or versioned) describing
+    the skills feature.
+  requirement_id: REQ-361
+  type: unit
+  verification_method: manual
+  input: Read README.md for Skills section; grep skills-index.md for specsmith-save;
+    grep AGENTS.md for .agents/skills/; grep CHANGELOG for skills
+  expected_behavior: All four documentation locations contain the required skills
+    content
+  confidence: 0.9
+- id: TEST-363
+  title: Verify .warp/workflows/ YAML files exist in repo and are loadable by Warp
+    terminal
+  requirement_id: REQ-362
+  type: manual
+  verification_method: Open Warp in project directory, press Ctrl+Shift+R, search
+    'specsmith'; confirm Session Start, Audit, Checkpoint, Preflight, Save, Phase,
+    and Session End workflows appear.

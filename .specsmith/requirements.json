@@ -3199,6 +3199,8 @@
     "description": "The specsmith repository ships .warp/workflows/ YAML files so developers using Warp terminal can invoke governance commands (audit, checkpoint, preflight, save, session-start) directly from the Warp command palette without context-switching.",
     "source": "docs/requirements/",
     "status": "planned",
-    "test_ids": []
+    "test_ids": [
+      "TEST-363"
+    ]
   }
 ]

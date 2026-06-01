@@ -3034,3 +3034,11 @@
 - **Expected Behavior:** All four documentation locations contain the required skills content
 - **Confidence:** 0.9
 
+## TEST-363. Verify .warp/workflows/ YAML files exist in repo and are loadable by Warp terminal
+- **ID:** TEST-363
+- **Title:** Verify .warp/workflows/ YAML files exist in repo and are loadable by Warp terminal
+- **Requirement ID:** REQ-362
+- **Type:** manual
+- **Verification Method:** Open Warp in project directory, press Ctrl+Shift+R, search 'specsmith'; confirm Session Start, Audit, Checkpoint, Preflight, Save, Phase, and Session End workflows appear.
+- **Confidence:** 1.0
+
