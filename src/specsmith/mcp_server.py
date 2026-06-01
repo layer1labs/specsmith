@@ -160,7 +160,14 @@ _TOOLS: list[dict[str, Any]] = [
             "properties": {
                 "seal_type": {
                     "type": "string",
-                    "enum": ["decision", "milestone", "audit-gate", "logic-knot", "stress-test", "epistemic"],
+                    "enum": [
+                        "decision",
+                        "milestone",
+                        "audit-gate",
+                        "logic-knot",
+                        "stress-test",
+                        "epistemic",
+                    ],
                     "description": "Type of seal to create.",
                 },
                 "description": {
