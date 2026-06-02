@@ -9060,14 +9060,17 @@ def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
     to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
     """
     import json as _json
-    import os
+    import shutil
     import sys
 
+    # Resolve the specsmith CLI executable: prefer the one on PATH, then
+    # fall back to deriving it from the current interpreter (dev installs).
+    specsmith_exe = shutil.which("specsmith") or str(
+        Path(sys.executable).parent / ("specsmith.exe" if sys.platform == "win32" else "specsmith")
+    )
     config = {
         "specsmith-governance": {
-            "command": (
-                sys.executable if os.environ.get("SPECSMITH_ALLOW_NON_PIPX") else "specsmith"
-            ),
+            "command": specsmith_exe,
             "args": ["mcp", "serve", "--project-dir", str(Path(project_dir).resolve())],
         }
     }
