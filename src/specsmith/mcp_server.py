@@ -36,6 +36,7 @@ No external dependencies — stdlib only + existing specsmith modules.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -58,6 +59,67 @@ _DEFAULT_PROJECT_DIR: str = "."
 
 # All registered project directories (absolute paths), default first.
 _REGISTERED_PROJECTS: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Persistent project registry  (~/.specsmith/mcp-projects.json)
+# ---------------------------------------------------------------------------
+
+
+def _registry_file() -> Path:
+    """Return the path to the user-level MCP project registry file.
+
+    Respects ``SPECSMITH_HOME`` if set; otherwise uses
+    ``~/.specsmith/mcp-projects.json``.
+    """
+    base = os.environ.get("SPECSMITH_HOME", "").strip()
+    home = Path(base) if base else Path.home() / ".specsmith"
+    return home / "mcp-projects.json"
+
+
+def read_registry() -> list[str]:
+    """Return all absolute project paths from the registry.
+
+    Returns an empty list when the registry file is missing or malformed.
+    Invalid entries (empty strings, non-strings) are silently skipped.
+    """
+    try:
+        data = json.loads(_registry_file().read_text(encoding="utf-8"))
+        projects = data.get("projects", []) if isinstance(data, dict) else []
+        return [p for p in projects if isinstance(p, str) and p]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def write_registry(paths: list[str]) -> None:
+    """Persist *paths* to the registry file (creates parent dirs as needed)."""
+    reg = _registry_file()
+    reg.parent.mkdir(parents=True, exist_ok=True)
+    reg.write_text(
+        json.dumps({"projects": paths}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def register_project(path: str = ".") -> bool:
+    """Add *path* to the registry. Returns True if it was newly added."""
+    abs_path = str(Path(path).resolve())
+    projects = read_registry()
+    if abs_path in projects:
+        return False
+    projects.append(abs_path)
+    write_registry(projects)
+    return True
+
+
+def unregister_project(path: str = ".") -> bool:
+    """Remove *path* from the registry. Returns True if it was present."""
+    abs_path = str(Path(path).resolve())
+    projects = read_registry()
+    if abs_path not in projects:
+        return False
+    write_registry([p for p in projects if p != abs_path])
+    return True
 
 _TOOLS: list[dict[str, Any]] = [
     {
@@ -615,7 +677,7 @@ def _handle_request(msg: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def run_server(
-    project_dir: str = ".",
+    project_dir: str | None = None,
     extra_project_dirs: list[str] | None = None,
 ) -> None:
     """Start the MCP stdio server. Blocks until stdin closes.
@@ -623,23 +685,48 @@ def run_server(
     Reads newline-delimited JSON-RPC 2.0 messages from stdin and
     writes responses to stdout. Stderr is used for diagnostic messages.
 
-    ``project_dir`` becomes the default for tool calls that omit
-    ``project_dir``.  ``extra_project_dirs`` registers additional projects
-    accessible via ``governance_project_list`` and addressable by any tool
-    using their absolute path as ``project_dir``.
+    Project discovery order (highest priority first):
 
-    The server no longer calls ``os.chdir()``; all paths are resolved
-    absolutely, so the server can serve multiple projects from one process.
+    1. ``project_dir`` — if provided, becomes the *default* project (first
+       slot).  Any tool call that omits ``project_dir`` will target this.
+    2. **Registry** — all paths in ``~/.specsmith/mcp-projects.json`` are
+       merged in.  Run ``specsmith mcp register`` in a project once to add it.
+    3. ``extra_project_dirs`` — additional paths appended after the registry.
+    4. **Fallback** — if nothing resolves, the current working directory is
+       used (useful for development/testing).
+
+    All paths are resolved to absolute form; duplicates are silently dropped.
+    The server never calls ``os.chdir()``.
     """
     global _DEFAULT_PROJECT_DIR, _REGISTERED_PROJECTS
 
-    # Register projects — always use absolute paths
-    _DEFAULT_PROJECT_DIR = str(Path(project_dir).resolve())
-    _REGISTERED_PROJECTS = [_DEFAULT_PROJECT_DIR]
-    for extra in extra_project_dirs or []:
-        abs_extra = str(Path(extra).resolve())
-        if abs_extra not in _REGISTERED_PROJECTS:
-            _REGISTERED_PROJECTS.append(abs_extra)
+    all_dirs: list[str] = []
+    seen: set[str] = set()
+
+    def _add(p: str) -> None:
+        abs_p = str(Path(p).resolve())
+        if abs_p not in seen:
+            seen.add(abs_p)
+            all_dirs.append(abs_p)
+
+    # 1. Explicit primary project (becomes the default)
+    if project_dir is not None:
+        _add(project_dir)
+
+    # 2. Persistent registry
+    for p in read_registry():
+        _add(p)
+
+    # 3. Additional explicit dirs
+    for p in extra_project_dirs or []:
+        _add(p)
+
+    # 4. CWD fallback when nothing is registered
+    if not all_dirs:
+        _add(".")
+
+    _DEFAULT_PROJECT_DIR = all_dirs[0]
+    _REGISTERED_PROJECTS = all_dirs
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
@@ -665,4 +752,14 @@ def run_server(
             _send(response)
 
 
-__all__ = ["run_server", "SERVER_NAME", "SERVER_VERSION", "_TOOLS", "_HANDLERS"]
+__all__ = [
+    "run_server",
+    "read_registry",
+    "write_registry",
+    "register_project",
+    "unregister_project",
+    "SERVER_NAME",
+    "SERVER_VERSION",
+    "_TOOLS",
+    "_HANDLERS",
+]

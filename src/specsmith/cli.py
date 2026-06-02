@@ -350,6 +350,16 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
 
     write_phase(target, "inception")
 
+    # Auto-register with the MCP governance server (best-effort, never blocks)
+    with contextlib.suppress(Exception):
+        from specsmith.mcp_server import register_project
+
+        if register_project(str(target)):
+            console.print(
+                "  [dim]\u2713 Registered with MCP server "
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+            )
+
 
 def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
     """Load scaffold.yml, merging parent config if `extends` is set."""
@@ -1745,6 +1755,16 @@ def import_project(
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
     console.print("Governance files generated. Review project configuration.")
+
+    # Auto-register with the MCP governance server (best-effort, never blocks)
+    with contextlib.suppress(Exception):
+        from specsmith.mcp_server import register_project
+
+        if register_project(str(root)):
+            console.print(
+                "  [dim]\u2713 Registered with MCP server "
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+            )
 
 
 def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
@@ -9049,46 +9069,45 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
 
 
 @mcp_group.command(name="serve")
-@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
+@click.option(
+    "--project-dir",
+    type=click.Path(),
+    default=None,
+    help=(
+        "Set this path as the *primary* project (first slot / default for tool calls "
+        "that omit project_dir). Omit to use the registry automatically."
+    ),
+)
 @click.option(
     "--project-dirs",
     default="",
     help=(
-        "Additional project directories to register (comma-separated absolute paths). "
-        "All registered projects are accessible to any tool call via their "
-        "absolute path as the project_dir argument."
+        "Extra project directories to add on top of the registry "
+        "(comma-separated absolute paths)."
     ),
 )
-def mcp_serve_cmd(project_dir: str, project_dirs: str) -> None:
+def mcp_serve_cmd(project_dir: str | None, project_dirs: str) -> None:
     """Start the native governance MCP stdio server (REQ-363).
 
     Implements MCP 2024-11-05 over stdin/stdout (JSON-RPC 2.0).
-    Exposes seven governance tools to any MCP client:
+    Exposes seven governance tools to any MCP client.
 
     \b
-    governance_project_list List all registered projects
-    governance_audit        Run governance audit
-    governance_checkpoint   Emit GOVERNANCE ANCHOR JSON
-    governance_preflight    Preflight a change intent
-    governance_phase        Current AEE phase + readiness %
-    governance_req_list     List all requirements
-    governance_trace_seal   Seal a milestone/decision
+    Recommended Warp config (set once, never touch again)::
+
+        {"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}
 
     \b
-    Single-project Warp config (Settings → Agents → MCP servers)::
+    Then register each project once from inside that project::
 
-        {"specsmith-governance": {"command": "specsmith",
-         "args": ["mcp", "serve", "--project-dir", "/path/to/project"]}}
-
-    \b
-    Multi-project Warp config::
-
-        {"specsmith-governance": {"command": "specsmith",
-         "args": ["mcp", "serve", "--project-dir", "/path/to/proj1",
-                  "--project-dirs", "/path/to/proj2,/path/to/proj3"]}}
+        specsmith mcp register
 
     \b
-    Or pass inline to oz (use ``specsmith mcp install-warp`` for the full snippet)::
+    The server reads the registry at startup and serves all registered
+    projects automatically — no config changes needed for new projects.
+
+    \b
+    Or pass inline to oz (use ``specsmith mcp install-warp`` for the snippet)::
 
         oz agent run --mcp "$(specsmith mcp install-warp --json)" --prompt "..."
     """
@@ -9099,21 +9118,17 @@ def mcp_serve_cmd(project_dir: str, project_dirs: str) -> None:
 
 
 @mcp_group.command(name="install-warp")
-@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
-@click.option(
-    "--project-dirs",
-    default="",
-    help="Additional project dirs (comma-separated) to include in the multi-project config.",
-)
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON config only.")
-def mcp_install_warp_cmd(project_dir: str, project_dirs: str, as_json: bool) -> None:
+def mcp_install_warp_cmd(as_json: bool) -> None:
     """Print the Warp MCP config snippet for the governance server (REQ-363).
+
+    Generates a minimal, registry-aware config — paste it into Warp once
+    and never change it again.  Register new projects with::
+
+        specsmith mcp register          # in the project directory
 
     Copy the output into Warp Settings → Agents → MCP servers, or pass it
     to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
-
-    For multi-project setups pass ``--project-dirs`` with comma-separated
-    absolute paths; one server instance will serve all projects.
     """
     import json as _json
     import shutil
@@ -9124,17 +9139,10 @@ def mcp_install_warp_cmd(project_dir: str, project_dirs: str, as_json: bool) -> 
     specsmith_exe = shutil.which("specsmith") or str(
         Path(sys.executable).parent / ("specsmith.exe" if sys.platform == "win32" else "specsmith")
     )
-    default_dir = str(Path(project_dir).resolve())
-    args: list[str] = ["mcp", "serve", "--project-dir", default_dir]
-
-    extra_dirs = [p.strip() for p in project_dirs.split(",") if p.strip()] if project_dirs else []
-    if extra_dirs:
-        args += ["--project-dirs", ",".join(extra_dirs)]
-
     config = {
         "specsmith-governance": {
             "command": specsmith_exe,
-            "args": args,
+            "args": ["mcp", "serve"],
         }
     }
 
@@ -9148,22 +9156,125 @@ def mcp_install_warp_cmd(project_dir: str, project_dirs: str, as_json: bool) -> 
         "or pass inline to [bold]oz agent run --mcp '<json>'[/bold]:\n"
     )
     console.print(_json.dumps(config, indent=2))
-    if extra_dirs:
-        console.print(
-            f"\n[dim]Serving {1 + len(extra_dirs)} projects. "
-            "Call [bold]governance_project_list[/bold] to see all registered paths,\n"
-            "then pass any path as [bold]project_dir[/bold] to target a specific project.[/dim]"
-        )
+    console.print(
+        "\n[dim][bold]One-time setup[/bold] — paste this config into Warp once,"  # noqa: E501
+        " then never touch it again.\n"
+        "\nTo add each project, run this inside the project directory:\n"
+        "  [bold]specsmith mcp register[/bold]\n"
+        "\nThe server reads [bold]~/.specsmith/mcp-projects.json[/bold] at startup\n"
+        "and serves all registered projects automatically.\n"
+        "\nView registered projects: [bold]specsmith mcp projects[/bold]\n"
+        "\nVerify server: specsmith mcp serve (then send an initialize message).[/dim]"
+    )
+
+
+@mcp_group.command(name="register")
+@click.argument("path", default=".", required=False)
+def mcp_register_cmd(path: str) -> None:
+    """Register a project directory with the MCP server registry.
+
+    Run once inside a project directory to add it to
+    ``~/.specsmith/mcp-projects.json``.  The next ``specsmith mcp serve``
+    invocation will automatically include it — no Warp config changes needed.
+
+    \b
+    Examples::
+
+        specsmith mcp register          # register current directory
+        specsmith mcp register /path/to/myproject
+    """
+    from specsmith.mcp_server import register_project
+
+    root = Path(path).resolve()
+    if not root.exists():
+        console.print(f"[red]\u2717[/red] Path does not exist: {root}")
+        raise SystemExit(1)
+
+    added = register_project(str(root))
+    if added:
+        console.print(f"[green]\u2713[/green] Registered: [bold]{root}[/bold]")
+        if not (root / ".specsmith").exists():
+            console.print(
+                "  [yellow]\u26a0[/yellow] No .specsmith/ found. "
+                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold] first."
+            )
     else:
+        console.print(f"[dim]Already registered: {root}[/dim]")
+    console.print(
+        "  [dim]specsmith mcp projects  ← view all registered[/dim]\n"
+        "  [dim]specsmith mcp serve      ← start the server[/dim]"
+    )
+
+
+@mcp_group.command(name="unregister")
+@click.argument("path", default=".", required=False)
+def mcp_unregister_cmd(path: str) -> None:
+    """Remove a project directory from the MCP server registry.
+
+    \b
+    Examples::
+
+        specsmith mcp unregister          # unregister current directory
+        specsmith mcp unregister /path/to/myproject
+    """
+    from specsmith.mcp_server import unregister_project
+
+    root = Path(path).resolve()
+    removed = unregister_project(str(root))
+    if removed:
+        console.print(f"[green]\u2713[/green] Unregistered: [bold]{root}[/bold]")
+    else:
+        console.print(f"[yellow]Not registered: {root}[/yellow]")
+
+
+@mcp_group.command(name="projects")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit as JSON.")
+def mcp_projects_cmd(as_json: bool) -> None:
+    """List all projects registered with the MCP server.
+
+    Shows each registered project path and whether it still exists on disk.
+    The first entry is the default (used when a tool call omits project_dir).
+    """
+    import json as _json
+    import os
+
+    from specsmith.mcp_server import _registry_file, read_registry
+
+    projects = read_registry()
+    reg_path = _registry_file()
+
+    if as_json:
+        entries = [
+            {"path": p, "exists": Path(p).exists(), "is_default": i == 0}
+            for i, p in enumerate(projects)
+        ]
+        click.echo(_json.dumps({"registry": str(reg_path), "projects": entries}, indent=2))
+        return
+
+    if not projects:
+        console.print("[yellow]No projects registered.[/yellow]")
         console.print(
-            "\n[dim]After adding, Warp/Oz can call governance_project_list, "
-            "governance_audit, governance_preflight,\n"
-            "governance_checkpoint, governance_phase, governance_req_list, and\n"
-            "governance_trace_seal as structured MCP tool calls.\n"
-            "\nFor multiple projects add --project-dirs /path/a,/path/b to serve them "
-            "all from one server instance.\n"
-            "\nVerify with: specsmith mcp serve (then send an initialize message).[/dim]"
+            "[dim]Run [bold]specsmith mcp register[/bold] inside a project to add it.[/dim]"
         )
+        return
+
+    console.print(
+        f"[bold]Registered MCP projects[/bold] ({len(projects)})  "
+        f"[dim]{reg_path}[/dim]\n"
+    )
+    for i, p in enumerate(projects):
+        exists = Path(p).exists()
+        default_tag = "  [bold cyan][default][/bold cyan]" if i == 0 else ""
+        health = "[green]\u2713 exists[/green]" if exists else "[red]\u2717 not found[/red]"
+        # Abbreviate long paths using ~ for home
+        display = p.replace(os.path.expanduser("~"), "~")
+        console.print(f"  {health}  {display}{default_tag}")
+
+    console.print(
+        "\n[dim]  specsmith mcp register [path]    ← add a project"
+        "\n  specsmith mcp unregister [path]  ← remove a project"
+        "\n  specsmith mcp serve              ← start the server[/dim]"
+    )
 
 
 main.add_command(mcp_group)
