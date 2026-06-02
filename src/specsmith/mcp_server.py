@@ -35,7 +35,6 @@ No external dependencies — stdlib only + existing specsmith modules.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import sys
 import time
@@ -50,7 +49,30 @@ MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "specsmith-governance"
 SERVER_VERSION = "0.12.0"
 
+# ---------------------------------------------------------------------------
+# Multi-project state — populated by run_server() at startup
+# ---------------------------------------------------------------------------
+
+# Default project dir used when a tool call omits ``project_dir``.
+_DEFAULT_PROJECT_DIR: str = "."
+
+# All registered project directories (absolute paths), default first.
+_REGISTERED_PROJECTS: list[str] = []
+
 _TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "governance_project_list",
+        "description": (
+            "List all project directories registered in this MCP server instance. "
+            "Use the returned paths as the `project_dir` argument for other tools "
+            "when working with multiple simultaneous projects."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
     {
         "name": "governance_audit",
         "description": (
@@ -195,8 +217,23 @@ _TOOLS: list[dict[str, Any]] = [
 
 
 def _resolve_root(args: dict[str, Any]) -> Path:
-    raw = args.get("project_dir", ".")
+    """Resolve project_dir from args, falling back to the server default.
+
+    If ``project_dir`` is not in *args* (or is empty), we use
+    ``_DEFAULT_PROJECT_DIR`` so callers don't have to repeat the path on
+    every tool call when only one project is active.
+    """
+    raw = args.get("project_dir") or _DEFAULT_PROJECT_DIR
     return Path(str(raw)).resolve()
+
+
+def _handle_governance_project_list(args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG001
+    """Return the list of projects registered in this server instance."""
+    return {
+        "default_project": _DEFAULT_PROJECT_DIR,
+        "projects": _REGISTERED_PROJECTS,
+        "count": len(_REGISTERED_PROJECTS),
+    }
 
 
 def _handle_governance_audit(args: dict[str, Any]) -> dict[str, Any]:
@@ -487,6 +524,7 @@ def _handle_governance_trace_seal(args: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
+    "governance_project_list": _handle_governance_project_list,
     "governance_audit": _handle_governance_audit,
     "governance_checkpoint": _handle_governance_checkpoint,
     "governance_preflight": _handle_governance_preflight,
@@ -576,20 +614,32 @@ def _handle_request(msg: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def run_server(project_dir: str = ".") -> None:
+def run_server(
+    project_dir: str = ".",
+    extra_project_dirs: list[str] | None = None,
+) -> None:
     """Start the MCP stdio server. Blocks until stdin closes.
 
     Reads newline-delimited JSON-RPC 2.0 messages from stdin and
     writes responses to stdout. Stderr is used for diagnostic messages.
-    The ``project_dir`` is injected into every tool call that doesn't
-    supply its own ``project_dir`` argument.
-    """
-    import os
 
-    # Set working directory so relative paths in tool calls resolve correctly
-    if project_dir and project_dir != ".":
-        with contextlib.suppress(OSError):
-            os.chdir(project_dir)
+    ``project_dir`` becomes the default for tool calls that omit
+    ``project_dir``.  ``extra_project_dirs`` registers additional projects
+    accessible via ``governance_project_list`` and addressable by any tool
+    using their absolute path as ``project_dir``.
+
+    The server no longer calls ``os.chdir()``; all paths are resolved
+    absolutely, so the server can serve multiple projects from one process.
+    """
+    global _DEFAULT_PROJECT_DIR, _REGISTERED_PROJECTS
+
+    # Register projects — always use absolute paths
+    _DEFAULT_PROJECT_DIR = str(Path(project_dir).resolve())
+    _REGISTERED_PROJECTS = [_DEFAULT_PROJECT_DIR]
+    for extra in extra_project_dirs or []:
+        abs_extra = str(Path(extra).resolve())
+        if abs_extra not in _REGISTERED_PROJECTS:
+            _REGISTERED_PROJECTS.append(abs_extra)
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()

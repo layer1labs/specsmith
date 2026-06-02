@@ -3207,32 +3207,61 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
 
     # ── Human-readable anchor block ───────────────────────────────────────────
     # Designed to be compact and survive context summarization.
-    hbar = "\u2550" * 57  # ═══…
+    _w = 57  # interior width — must match len(hbar)
+    hbar = "\u2550" * _w  # ═══…
     vbar = "\u2551"  # ║
     health_icon = "\u2713" if health_ok else "\u2717"
     esdb_icon = "\u2713" if esdb_ok else "\u2717"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
+    def _arow(rich: str, plain: str, wide: int = 0) -> str:
+        """Format one anchor box row: ║ <content padded to _w terminal cols> ║.
+
+        ``plain`` is the markup-free string used for width calculation.
+        ``wide`` is the count of 2-wide (full-width/emoji) characters in ``plain``
+        that add an extra terminal column beyond their Python ``len()``.
+        """
+        pad = " " * max(0, _w - len(plain) - wide)
+        return f"[bold cyan]{vbar}[/bold cyan]{rich}{pad}[bold cyan]{vbar}[/bold cyan]"
+
     console.print(f"[bold cyan]\u2554{hbar}\u2557[/bold cyan]")
-    console.print(f"[bold cyan]{vbar}[/bold cyan] GOVERNANCE ANCHOR  {ts}")
-    console.print(f"[bold cyan]{vbar}[/bold cyan] Project : [bold]{project_name}[/bold]")
-    console.print(
-        f"[bold cyan]{vbar}[/bold cyan] Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
-    )
-    health_str = (
-        f"[green]{health_icon} clean[/green]"
+
+    r1 = f" GOVERNANCE ANCHOR  {ts}"
+    console.print(_arow(r1, r1))
+
+    r2_plain = f" Project : {project_name}"
+    console.print(_arow(f" Project : [bold]{project_name}[/bold]", r2_plain))
+
+    r3_plain = f" Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
+    console.print(_arow(r3_plain, r3_plain, wide=1 if phase_emoji else 0))
+
+    r4_plain = (
+        f" Health  : {health_icon} clean"
         if health_ok
-        else f"[red]{health_icon} {audit_failed} issues[/red]"
+        else f" Health  : {health_icon} {audit_failed} issues"
     )
-    console.print(f"[bold cyan]{vbar}[/bold cyan] Health  : {health_str}")
-    console.print(
-        f"[bold cyan]{vbar}[/bold cyan] REQs    : {req_count}   TESTs: {test_count}"
+    r4_rich = (
+        f" Health  : [green]{health_icon} clean[/green]"
+        if health_ok
+        else f" Health  : [red]{health_icon} {audit_failed} issues[/red]"
+    )
+    console.print(_arow(r4_rich, r4_plain))
+
+    r5 = (
+        f" REQs    : {req_count}   TESTs: {test_count}"
         f"   ESDB: {esdb_records} records ({esdb_icon} chain)"
     )
-    console.print(f"[bold cyan]{vbar}[/bold cyan] WIs     : {wi_str}")
+    console.print(_arow(r5, r5))
+
+    r6 = f" WIs     : {wi_str}"
+    console.print(_arow(r6, r6))
+
     if last_preflight:
-        pf_short = last_preflight[:55]
-        console.print(f"[bold cyan]{vbar}[/bold cyan] Preflight: {pf_short}")
+        _pf_max = _w - len(" Preflight: ")  # 45 — was incorrectly 55
+        pf_short = last_preflight[:_pf_max]
+        r7 = f" Preflight: {pf_short}"
+        console.print(_arow(r7, r7))
+
     console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
     console.print(
         "[dim]Include this block verbatim in any context summary "
@@ -9021,13 +9050,23 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
 
 @mcp_group.command(name="serve")
 @click.option("--project-dir", type=click.Path(), default=".", show_default=True)
-def mcp_serve_cmd(project_dir: str) -> None:
+@click.option(
+    "--project-dirs",
+    default="",
+    help=(
+        "Additional project directories to register (comma-separated absolute paths). "
+        "All registered projects are accessible to any tool call via their "
+        "absolute path as the project_dir argument."
+    ),
+)
+def mcp_serve_cmd(project_dir: str, project_dirs: str) -> None:
     """Start the native governance MCP stdio server (REQ-363).
 
     Implements MCP 2024-11-05 over stdin/stdout (JSON-RPC 2.0).
-    Exposes six governance tools to any MCP client:
+    Exposes seven governance tools to any MCP client:
 
     \b
+    governance_project_list List all registered projects
     governance_audit        Run governance audit
     governance_checkpoint   Emit GOVERNANCE ANCHOR JSON
     governance_preflight    Preflight a change intent
@@ -9036,9 +9075,17 @@ def mcp_serve_cmd(project_dir: str) -> None:
     governance_trace_seal   Seal a milestone/decision
 
     \b
-    Warp config (Settings → Agents → MCP servers)::
+    Single-project Warp config (Settings → Agents → MCP servers)::
 
-        {"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}
+        {"specsmith-governance": {"command": "specsmith",
+         "args": ["mcp", "serve", "--project-dir", "/path/to/project"]}}
+
+    \b
+    Multi-project Warp config::
+
+        {"specsmith-governance": {"command": "specsmith",
+         "args": ["mcp", "serve", "--project-dir", "/path/to/proj1",
+                  "--project-dirs", "/path/to/proj2,/path/to/proj3"]}}
 
     \b
     Or pass inline to oz (use ``specsmith mcp install-warp`` for the full snippet)::
@@ -9047,17 +9094,26 @@ def mcp_serve_cmd(project_dir: str) -> None:
     """
     from specsmith.mcp_server import run_server
 
-    run_server(project_dir=project_dir)
+    extra = [p.strip() for p in project_dirs.split(",") if p.strip()] if project_dirs else []
+    run_server(project_dir=project_dir, extra_project_dirs=extra)
 
 
 @mcp_group.command(name="install-warp")
 @click.option("--project-dir", type=click.Path(), default=".", show_default=True)
+@click.option(
+    "--project-dirs",
+    default="",
+    help="Additional project dirs (comma-separated) to include in the multi-project config.",
+)
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON config only.")
-def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
+def mcp_install_warp_cmd(project_dir: str, project_dirs: str, as_json: bool) -> None:
     """Print the Warp MCP config snippet for the governance server (REQ-363).
 
     Copy the output into Warp Settings → Agents → MCP servers, or pass it
     to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
+
+    For multi-project setups pass ``--project-dirs`` with comma-separated
+    absolute paths; one server instance will serve all projects.
     """
     import json as _json
     import shutil
@@ -9068,10 +9124,17 @@ def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
     specsmith_exe = shutil.which("specsmith") or str(
         Path(sys.executable).parent / ("specsmith.exe" if sys.platform == "win32" else "specsmith")
     )
+    default_dir = str(Path(project_dir).resolve())
+    args: list[str] = ["mcp", "serve", "--project-dir", default_dir]
+
+    extra_dirs = [p.strip() for p in project_dirs.split(",") if p.strip()] if project_dirs else []
+    if extra_dirs:
+        args += ["--project-dirs", ",".join(extra_dirs)]
+
     config = {
         "specsmith-governance": {
             "command": specsmith_exe,
-            "args": ["mcp", "serve", "--project-dir", str(Path(project_dir).resolve())],
+            "args": args,
         }
     }
 
@@ -9085,12 +9148,22 @@ def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
         "or pass inline to [bold]oz agent run --mcp '<json>'[/bold]:\n"
     )
     console.print(_json.dumps(config, indent=2))
-    console.print(
-        "\n[dim]After adding, Warp/Oz can call governance_audit, governance_preflight,\n"
-        "governance_checkpoint, governance_phase, governance_req_list, and\n"
-        "governance_trace_seal as structured MCP tool calls.\n"
-        "\nVerify with: specsmith mcp serve (then send an initialize message).[/dim]"
-    )
+    if extra_dirs:
+        console.print(
+            f"\n[dim]Serving {1 + len(extra_dirs)} projects. "
+            "Call [bold]governance_project_list[/bold] to see all registered paths,\n"
+            "then pass any path as [bold]project_dir[/bold] to target a specific project.[/dim]"
+        )
+    else:
+        console.print(
+            "\n[dim]After adding, Warp/Oz can call governance_project_list, "
+            "governance_audit, governance_preflight,\n"
+            "governance_checkpoint, governance_phase, governance_req_list, and\n"
+            "governance_trace_seal as structured MCP tool calls.\n"
+            "\nFor multiple projects add --project-dirs /path/a,/path/b to serve them "
+            "all from one server instance.\n"
+            "\nVerify with: specsmith mcp serve (then send an initialize message).[/dim]"
+        )
 
 
 main.add_command(mcp_group)
