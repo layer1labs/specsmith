@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.12.0 — Native Warp/Oz MCP governance server, repository workflows, 72 built-in skills, EU AI Act / NIST AI RMF compliance, multi-agent DAG dispatch, and context window management.**
+**v0.12.0 — Native Warp/Oz MCP governance server, 131 built-in skills across 16 domains, 53 project types, EU AI Act / NIST AI RMF compliance, multi-agent DAG dispatch, and context window management.**
 Specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -790,17 +790,33 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 ---
 
-## 47 Project Types
+## 53 Project Types
 
-**Software:** Python CLI/lib/web/API, Rust, Go, C/C++, .NET, Node.js/TypeScript, mobile, microservices, data/ML.
+**Python:** `cli-python`, `library-python`, `backend-frontend`, `backend-frontend-tray`, `embedded-python-hmi`, `research-python`.
 
-**Modern web:** `nextjs-app`, `nuxt-app`, `sveltekit-app`, `remix-app`, `astro-site`.
+**Systems languages:** `cli-rust`, `library-rust`, `cli-go`, `cli-c`, `library-c`, `dotnet-app`.
 
-**Hardware/Embedded:** FPGA/RTL (Xilinx, Intel, Lattice, generic), Yocto BSP, embedded C/C++, PCB.
+**Modern web:** `web-frontend`, `fullstack-js`, `nextjs-app`, `nuxt-app`, `sveltekit-app`, `remix-app`, `astro-site`.
 
-**Documents & IP:** Technical specs, research papers, API specs, requirements management, patent prosecution.
+**AI / Agents:** `llm-app`, `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform`.
 
-**Business/Legal:** Business plans, patent applications, compliance frameworks, legal compliance.
+**JVM:** `java-spring`, `java-library`.
+
+**Mobile:** `mobile-app`.
+
+**Infrastructure:** `serverless`, `kubernetes-operator`, `microservices`, `devops-iac`, `streaming-pipeline`, `data-warehouse`, `data-ml`.
+
+**Game development:** `game-unity`, `game-godot`.
+
+**Web3:** `smart-contract`.
+
+**Desktop:** `desktop-electron`, `desktop-tauri`.
+
+**Hardware / Embedded:** `fpga-rtl`, `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`, `mixed-fpga-embedded`, `mixed-fpga-firmware`, `yocto-bsp`, `embedded-hardware`, `pcb-hardware`, `safety-critical`.
+
+**Documents & IP:** `spec-document`, `user-manual`, `research-paper`, `research-python`, `api-specification`, `requirements-mgmt`, `patent-application`, `patent-prosecution`.
+
+**Business / Legal / AEE:** `business-plan`, `legal-compliance`, `monorepo`, `browser-extension`, `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
 
 ---
 
@@ -887,7 +903,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **70+ built-in skills** across 11 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+specsmith ships **131 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
 
 ```bash
 # List all available skills
@@ -903,6 +919,27 @@ specsmith skill install specsmith-audit
 ```
 
 Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered by any AI tool that scans `.agents/skills/`.
+
+### Skill domains
+
+| Domain | Count | Coverage |
+|--------|-------|----------|
+| `governance` | 14 | AEE workflows, verification, release, CI polling, patent prosecution |
+| `ai-agents` | 14 | LLM apps, MCP servers, agent orchestration, RAG, prompt engineering, fine-tuning, MLOps |
+| `software-engineering` | 12 | Code review, TDD, debugging, security hardening, API design, ADRs |
+| `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
+| `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
+| `embedded` | 10 | Zephyr, Yocto, FreeRTOS, NuttX, Buildroot, Azure RTOS |
+| `docs` | 10 | MkDocs, Sphinx, Doxygen, JSDoc, OpenAPI, mdBook |
+| `data-engineering` | 8 | ETL/ELT, dbt, Spark, data quality, feature stores, Delta Lake |
+| `hardware` | 9 | KiCad, Altium, Vivado, Quartus, GTKWave, JTAG |
+| `corporate` | 7 | Budgets, fundraising, marketing, HR, legal |
+| `devops` | 6 | Docker, Kubernetes, Terraform, GitHub Actions |
+| `cloud` | 4 | AWS, Azure, GCP, GitHub CLI |
+| `mobile` | 4 | iOS, Android, Flutter, React Native |
+| `ssh` | 3 | SSH, WSL2, remote dev |
+| `cross-platform` | 3 | CMake, package managers, terminal awareness |
+| `productivity` | 3 | Email, presentations, MS Office |
 
 ### Self-referential governance skills
 

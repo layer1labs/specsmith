@@ -10,7 +10,7 @@ extends: path/to/org-defaults.yml
 
 # Project identity
 name: my-project                    # Required — used for directory and package name
-type: cli-python                    # Required — one of 30 project types
+type: cli-python                    # Required — one of 53 project types
 platforms: [windows, linux, macos]  # Target platforms
 language: python                    # Primary language/runtime
 description: "Short description"    # Optional project description
@@ -75,7 +75,7 @@ description: "Inherits org defaults, overrides name"
 ```
 
 ### `type`
-One of 30 project types. Determines directory structure, verification tools, CI config, governance rules, and template starters. See [Project Types](project-types.md).
+One of 53 project types. Determines directory structure, verification tools, CI config, governance rules, and template starters. See [Project Types](project-types.md).
 
 ### `vcs_platform`
 Controls which CI config is generated:

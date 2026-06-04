@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **70 built-in skills** across 11 domains.
+specsmith ships with **131 built-in skills** across 16 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -204,6 +204,106 @@ Business operations, fundraising, and legal skills.
 | `marketing-gtm` | Marketing GTM — positioning, ICP, content, demand gen | marketing, gtm, icp |
 | `project-management` | Project Management — scope, milestones, RACI, risk | pm, raci, milestones |
 | `sales-crm` | Sales CRM — pipeline, outreach, discovery, closing | sales, crm, pipeline |
+
+---
+
+## AI / LLM / Agents (14)
+
+Skills for building and governing AI-powered systems — LLM apps, MCP servers, agent orchestration, RAG pipelines, and MLOps.
+
+| Slug | Name | Key tags |
+|------|------|----------|
+| `llm-app-development` | LLM App Development — production LLM apps with LangChain/SDK | llm, langchain, openai, anthropic, streaming, tool-use |
+| `mcp-server-development` | MCP Server Development — Model Context Protocol servers | mcp, fastmcp, tools, resources, stdio |
+| `agent-orchestration` | Agent Orchestration — multi-agent with LangGraph/AutoGen/CrewAI | agents, multi-agent, langgraph, autogen, crewai, dag |
+| `prompt-engineering` | Prompt Engineering — design, caching, and optimising prompts | prompt, system-prompt, caching, anthropic, token-cost |
+| `rag-development` | RAG Development — retrieval-augmented generation pipelines | rag, embeddings, vector-database, chunking, reranking |
+| `context-engineering` | Context Engineering — managing LLM context windows | context, tokens, summarization, sliding-window |
+| `ai-safety-review` | AI Safety Review — safety, alignment, and bias review | ai-safety, prompt-injection, bias, pii, red-teaming |
+| `langchain-development` | LangChain Development — LCEL chains, agents, and tools | langchain, lcel, runnable, langsmith, structured-output |
+| `langgraph-development` | LangGraph Development — stateful agent workflows | langgraph, state-machine, tool-loop, human-in-the-loop |
+| `vector-database` | Vector Database — choosing, configuring, and querying vector stores | chromadb, pgvector, qdrant, faiss, hybrid-search, ann |
+| `model-evaluation` | Model Evaluation — LLM quality measurement and benchmarking | evals, llm-as-judge, faithfulness, ragas, deepeval |
+| `fine-tuning-workflow` | Fine-Tuning Workflow — PEFT / LoRA / SFT fine-tuning | fine-tuning, lora, peft, qlora, huggingface, trl |
+| `computer-vision-pipeline` | Computer Vision Pipeline — CV model training and deployment | yolo, pytorch, object-detection, segmentation, roboflow |
+| `mlops-workflow` | MLOps Workflow — pipeline orchestration, tracking, and serving | mlflow, prefect, bentoml, ray-serve, model-registry, drift |
+
+---
+
+## Software Engineering (12)
+
+Workflow skills for software engineering best practices — code review, TDD, debugging, security, and architecture.
+
+| Slug | Name | Key tags |
+|------|------|----------|
+| `code-review` | Code Review — systematic pull request review workflow | code-review, pull-request, correctness, security, design |
+| `test-driven-development` | Test-Driven Development — red-green-refactor workflow | tdd, test-first, red-green-refactor, pytest, jest |
+| `debugging` | Debugging — systematic error diagnosis and recovery | debugging, error, root-cause, pdb, traceback |
+| `refactoring` | Refactoring — improving code structure without changing behaviour | refactoring, clean-code, extract, simplify, duplication |
+| `security-hardening` | Security Hardening — OWASP-aligned application security review | owasp, injection, xss, auth, secrets, hardening |
+| `performance-optimization` | Performance Optimization — profiling and resolving bottlenecks | profiling, n+1, caching, latency, benchmark |
+| `api-design` | API Design — REST, GraphQL, and gRPC API design principles | rest, graphql, grpc, openapi, versioning, pagination |
+| `database-design` | Database Design — schema design, migrations, and query optimisation | postgresql, schema, migration, index, normalisation |
+| `dependency-management` | Dependency Management — keeping dependencies secure and up to date | pip, npm, cargo, dependabot, lockfile, supply-chain |
+| `git-workflow` | Git Workflow — branching strategy and commit conventions | git, gitflow, conventional-commits, rebase, squash |
+| `pr-workflow` | PR Workflow — creating, reviewing, and merging pull requests | pull-request, review, merge, github, ci |
+| `architecture-decision-records` | Architecture Decision Records — documenting architectural decisions | adr, architecture, madr, decision, documentation |
+
+---
+
+## Web / Backend (11)
+
+Frontend engineering, web performance, and backend patterns for modern web apps.
+
+| Slug | Name | Key tags |
+|------|------|----------|
+| `frontend-ui-engineering` | Frontend UI Engineering — component architecture and state management | react, vue, components, state, zustand, storybook |
+| `web-performance` | Web Performance — Core Web Vitals and bundle optimisation | lcp, cls, inp, bundle, lighthouse, lazy-loading |
+| `accessibility` | Accessibility — WCAG 2.1 AA implementation | a11y, wcag, aria, keyboard, screen-reader, axe |
+| `testing-e2e` | End-to-End Testing — Playwright workflow for web apps | playwright, e2e, page-object, flaky-tests, ci |
+| `nextjs-development` | Next.js Development — App Router, Server Components, Server Actions | nextjs, rsc, app-router, server-actions, hydration |
+| `rest-api-development` | REST API Development — production-grade REST APIs with FastAPI | fastapi, rest, authentication, jwt, rate-limiting |
+| `graphql-development` | GraphQL Development — schema design, resolvers, and N+1 prevention | graphql, strawberry, dataloader, n+1, subscription |
+| `database-postgresql` | PostgreSQL — production setup, queries, and maintenance | postgresql, pgbouncer, vacuum, replication, pgvector |
+| `caching-redis` | Caching with Redis — patterns, pitfalls, and eviction strategies | redis, cache-aside, ttl, stampede, pub-sub |
+| `message-queue` | Message Queues — async task processing with Celery/RabbitMQ | celery, redis, rabbitmq, background-jobs, dead-letter |
+| `websocket-realtime` | WebSocket & Real-Time — building real-time features | websocket, sse, pub-sub, reconnection, collaboration |
+
+---
+
+## Data Engineering (8)
+
+Data pipeline design, transformation, quality, and stream processing.
+
+| Slug | Name | Key tags |
+|------|------|----------|
+| `data-pipeline-etl` | Data Pipeline — ETL/ELT design with Airflow, Prefect, or dbt | etl, elt, pipeline, airflow, prefect, idempotent |
+| `dbt-development` | dbt Development — data modelling, testing, and documentation | dbt, data-modelling, staging, marts, incremental |
+| `data-quality` | Data Quality — validation and monitoring with Great Expectations | great-expectations, schema-validation, profiling, soda |
+| `stream-processing` | Stream Processing — real-time data with Kafka and Flink | kafka, flink, spark-streaming, exactly-once, cdc |
+| `ml-experiment-tracking` | ML Experiment Tracking — MLflow, W&B, and reproducible experiments | mlflow, wandb, model-registry, reproducibility |
+| `feature-engineering` | Feature Engineering — feature stores, transformations, versioning | feature-store, feast, sklearn, training-serving-skew |
+| `data-lakehouse` | Data Lakehouse — Delta Lake, Iceberg, and open table formats | delta-lake, iceberg, acid, time-travel, schema-evolution |
+| `spark-pipeline` | Apache Spark — distributed data processing with PySpark | spark, pyspark, partitioning, broadcast-join, databricks |
+
+---
+
+## Platform Engineering (10)
+
+Kubernetes, observability, GitOps, security, and resilience engineering.
+
+| Slug | Name | Key tags |
+|------|------|----------|
+| `helm-chart` | Helm Chart — packaging K8s applications with Helm | helm, kubernetes, chart, values, upgrade, hooks |
+| `monitoring-observability` | Monitoring & Observability — OpenTelemetry, Prometheus, Grafana | opentelemetry, prometheus, grafana, tracing, slo, alerting |
+| `incident-response` | Incident Response — production incident handling and post-mortems | incident, on-call, post-mortem, runbook, blameless |
+| `secret-management` | Secret Management — Vault, SOPS, and Kubernetes secrets | vault, sops, external-secrets, rotation, gitops |
+| `gitops` | GitOps — declarative infrastructure with ArgoCD and Flux | argocd, flux, kustomize, promotion, sync |
+| `serverless-functions` | Serverless Functions — AWS Lambda, GCP Functions, Cloudflare Workers | lambda, cold-start, sam, faas, cloudflare-workers |
+| `oauth2-auth` | OAuth2 & Authentication — OAuth2/OIDC implementation | oauth2, oidc, jwt, pkce, keycloak, auth0 |
+| `api-gateway` | API Gateway — Kong, AWS API Gateway, rate limiting | kong, nginx, rate-limiting, cors, circuit-breaker |
+| `chaos-engineering` | Chaos Engineering — controlled failure injection with Litmus | litmus, chaos-monkey, resilience, game-day, steady-state |
+| `service-mesh` | Service Mesh — Istio and Linkerd for microservices communication | istio, linkerd, mtls, canary, zero-trust, envoy |
 
 ---
 
