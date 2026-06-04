@@ -1142,15 +1142,81 @@ def _infer_type(result: DetectionResult) -> ProjectType:
             pkg = result.root / "package.json"
             if pkg.exists():
                 content = pkg.read_text(encoding="utf-8")
+                if "electron" in content:
+                    return ProjectType.DESKTOP_ELECTRON
+                if "solidity" in content or "hardhat" in content or "ethers" in content:
+                    return ProjectType.SMART_CONTRACT
+                if (result.root / "serverless.yml").exists() or (
+                    result.root / "wrangler.toml"
+                ).exists():
+                    return ProjectType.SERVERLESS
                 if "react" in content or "vue" in content or "angular" in content:
                     # Check if there's also a server
                     if (result.root / "server").exists() or "express" in content:
                         return ProjectType.FULLSTACK_JS
                     return ProjectType.WEB_FRONTEND
+        # Tauri: has src-tauri/
+        if (result.root / "src-tauri").is_dir():
+            return ProjectType.DESKTOP_TAURI
         return ProjectType.FULLSTACK_JS
 
+    # Data warehouse: dbt_project.yml is a strong signal
+    if (result.root / "dbt_project.yml").exists():
+        return ProjectType.DATA_WAREHOUSE
+    # Kubernetes operator: Go + controllers/ dir
+    if lang == "go" and (result.root / "controllers").is_dir():
+        return ProjectType.KUBERNETES_OPERATOR
+    # Serverless: serverless.yml or SAM template.yaml or wrangler.toml
+    if (
+        (result.root / "serverless.yml").exists()
+        or (result.root / "serverless.yaml").exists()
+        or (result.root / "wrangler.toml").exists()
+    ):
+        return ProjectType.SERVERLESS
     # Python types
     if lang == "python":
+        # Detect AI / agent project types from dependencies before build-system checks
+        _req_text = ""
+        for _rf in (
+            result.root / "requirements.txt",
+            result.root / "pyproject.toml",
+        ):
+            if _rf.exists():
+                _req_text += _rf.read_text(encoding="utf-8", errors="ignore").lower()
+        _mcp_indicators = {"mcp", "model-context-protocol", "fastmcp", "modelcontextprotocol"}
+        _agent_orch_indicators = {"autogen", "crewai", "langgraph", "swarm", "ag2", "pyautogen"}
+        _llm_indicators = {
+            "langchain",
+            "llama-index",
+            "llama_index",
+            "haystack",
+            "openai",
+            "anthropic",
+            "litellm",
+        }
+        _rag_indicators = {
+            "chromadb",
+            "faiss",
+            "pinecone",
+            "weaviate",
+            "qdrant",
+            "pgvector",
+            "llama-index",
+        }
+        _mlops_indicators = {"mlflow", "bentoml", "ray", "kubeflow", "prefect", "airflow"}
+        _streaming_indicators = {"kafka", "flink", "pyflink", "apache-beam", "pyspark"}
+        if any(ind in _req_text for ind in _mcp_indicators):
+            return ProjectType.MCP_SERVER
+        if any(ind in _req_text for ind in _agent_orch_indicators):
+            return ProjectType.AGENT_ORCHESTRATION
+        if any(ind in _req_text for ind in _rag_indicators):
+            return ProjectType.RAG_PIPELINE
+        if any(ind in _req_text for ind in _mlops_indicators):
+            return ProjectType.MLOPS_PLATFORM
+        if any(ind in _req_text for ind in _streaming_indicators):
+            return ProjectType.STREAMING_PIPELINE
+        if any(ind in _req_text for ind in _llm_indicators):
+            return ProjectType.LLM_APP
         if build in ("pyproject", "setuptools"):
             # Check for CLI entry point
             if any("cli.py" in e for e in result.entry_points):

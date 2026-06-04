@@ -435,6 +435,175 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "tests",
             ]
         )
+    # --- AI / LLM / Agents ---
+    elif config.type == ProjectType.LLM_APP:
+        dirs.extend(
+            [
+                target / "src" / config.package_name,
+                target / "src" / config.package_name / "agents",
+                target / "src" / config.package_name / "tools",
+                target / "src" / config.package_name / "prompts",
+                target / "tests",
+            ]
+        )
+    elif config.type == ProjectType.AGENT_ORCHESTRATION:
+        dirs.extend(
+            [
+                target / "src" / config.package_name,
+                target / "src" / config.package_name / "agents",
+                target / "src" / config.package_name / "tools",
+                target / "src" / config.package_name / "memory",
+                target / "tests",
+                target / "examples",
+            ]
+        )
+    elif config.type == ProjectType.MCP_SERVER:
+        dirs.extend(
+            [
+                target / "src" / config.package_name,
+                target / "src" / config.package_name / "tools",
+                target / "src" / config.package_name / "resources",
+                target / "tests",
+            ]
+        )
+    elif config.type == ProjectType.RAG_PIPELINE:
+        dirs.extend(
+            [
+                target / "src" / config.package_name,
+                target / "src" / config.package_name / "ingestion",
+                target / "src" / config.package_name / "retrieval",
+                target / "src" / config.package_name / "generation",
+                target / "data",
+                target / "tests",
+            ]
+        )
+    elif config.type == ProjectType.MLOPS_PLATFORM:
+        dirs.extend(
+            [
+                target / "src" / config.package_name,
+                target / "pipelines",
+                target / "models",
+                target / "experiments",
+                target / "serving",
+                target / "tests",
+            ]
+        )
+    # --- JVM ---
+    elif config.type == ProjectType.JAVA_SPRING:
+        dirs.extend(
+            [
+                target / "src/main/java",
+                target / "src/main/resources",
+                target / "src/test/java",
+                target / "src/test/resources",
+            ]
+        )
+    elif config.type == ProjectType.JAVA_LIBRARY:
+        dirs.extend(
+            [
+                target / "src/main/java",
+                target / "src/test/java",
+                target / "examples",
+            ]
+        )
+    # --- Cloud / Infrastructure ---
+    elif config.type == ProjectType.SERVERLESS:
+        dirs.extend(
+            [
+                target / "functions",
+                target / "shared",
+                target / "tests",
+                target / "infrastructure",
+            ]
+        )
+    elif config.type == ProjectType.KUBERNETES_OPERATOR:
+        dirs.extend(
+            [
+                target / "cmd/manager",
+                target / "controllers",
+                target / "api/v1alpha1",
+                target / "config/crd",
+                target / "config/rbac",
+                target / "config/manager",
+                target / "tests/e2e",
+            ]
+        )
+    elif config.type == ProjectType.STREAMING_PIPELINE:
+        dirs.extend(
+            [
+                target / "src" / config.package_name / "sources",
+                target / "src" / config.package_name / "transforms",
+                target / "src" / config.package_name / "sinks",
+                target / "tests",
+                target / "deploy",
+            ]
+        )
+    elif config.type == ProjectType.DATA_WAREHOUSE:
+        dirs.extend(
+            [
+                target / "models",
+                target / "models/staging",
+                target / "models/intermediate",
+                target / "models/marts",
+                target / "macros",
+                target / "tests",
+                target / "seeds",
+                target / "analyses",
+            ]
+        )
+    # --- Game development ---
+    elif config.type == ProjectType.GAME_UNITY:
+        dirs.extend(
+            [
+                target / "Assets/Scripts",
+                target / "Assets/Scenes",
+                target / "Assets/Prefabs",
+                target / "Assets/Materials",
+                target / "Assets/Audio",
+                target / "Assets/Tests",
+            ]
+        )
+    elif config.type == ProjectType.GAME_GODOT:
+        dirs.extend(
+            [
+                target / "scenes",
+                target / "scripts",
+                target / "assets/sprites",
+                target / "assets/audio",
+                target / "tests",
+            ]
+        )
+    # --- Web3 ---
+    elif config.type == ProjectType.SMART_CONTRACT:
+        dirs.extend(
+            [
+                target / "contracts",
+                target / "contracts/interfaces",
+                target / "scripts",
+                target / "test",
+                target / "deployments",
+            ]
+        )
+    # --- Desktop ---
+    elif config.type == ProjectType.DESKTOP_ELECTRON:
+        dirs.extend(
+            [
+                target / "src/main",
+                target / "src/renderer",
+                target / "src/shared",
+                target / "tests",
+                target / "build",
+            ]
+        )
+    elif config.type == ProjectType.DESKTOP_TAURI:
+        dirs.extend(
+            [
+                target / "src",
+                target / "src-tauri/src",
+                target / "src-tauri/icons",
+                target / "tests",
+            ]
+        )
     # --- AEE / Epistemic project types ---
     elif config.type == ProjectType.EPISTEMIC_PIPELINE:
         dirs.extend(

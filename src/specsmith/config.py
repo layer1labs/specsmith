@@ -74,6 +74,28 @@ class ProjectType(str, Enum):
     SVELTEKIT_APP = "sveltekit-app"  # SvelteKit app
     REMIX_APP = "remix-app"  # Remix full-stack React app
     ASTRO_SITE = "astro-site"  # Astro static/SSR site
+    # AI / LLM / Agents
+    LLM_APP = "llm-app"  # LLM-powered app (LangChain / LlamaIndex / custom SDK)
+    AGENT_ORCHESTRATION = "agent-orchestration"  # Multi-agent system (AutoGen/CrewAI/LangGraph)
+    MCP_SERVER = "mcp-server"  # Model Context Protocol server
+    RAG_PIPELINE = "rag-pipeline"  # RAG + embedding pipeline
+    MLOPS_PLATFORM = "mlops-platform"  # MLOps platform (MLflow / BentoML / Ray Serve)
+    # JVM
+    JAVA_SPRING = "java-spring"  # Spring Boot application
+    JAVA_LIBRARY = "java-library"  # Java library / SDK
+    # Cloud / Infrastructure
+    SERVERLESS = "serverless"  # FaaS (Lambda / GCP Functions / Cloudflare Workers)
+    KUBERNETES_OPERATOR = "kubernetes-operator"  # K8s controller / operator
+    STREAMING_PIPELINE = "streaming-pipeline"  # Kafka / Flink / Beam / Spark Streaming
+    DATA_WAREHOUSE = "data-warehouse"  # dbt / Snowflake / BigQuery / Redshift
+    # Game development
+    GAME_UNITY = "game-unity"  # Unity game project
+    GAME_GODOT = "game-godot"  # Godot game project
+    # Web3 / blockchain
+    SMART_CONTRACT = "smart-contract"  # Solidity / EVM smart contracts
+    # Desktop
+    DESKTOP_ELECTRON = "desktop-electron"  # Electron desktop app
+    DESKTOP_TAURI = "desktop-tauri"  # Tauri desktop app (Rust + WebView)
 
 
 class Platform(str, Enum):
@@ -548,6 +570,28 @@ _TYPE_LABELS: dict[str, str] = {
     ProjectType.SVELTEKIT_APP: "SvelteKit application",
     ProjectType.REMIX_APP: "Remix application (React + full-stack)",
     ProjectType.ASTRO_SITE: "Astro site (static / SSR)",
+    # AI / LLM / Agents
+    ProjectType.LLM_APP: "LLM-powered application (LangChain / LlamaIndex / custom)",
+    ProjectType.AGENT_ORCHESTRATION: "Multi-agent orchestration (AutoGen / CrewAI / LangGraph)",
+    ProjectType.MCP_SERVER: "MCP server (Model Context Protocol)",
+    ProjectType.RAG_PIPELINE: "RAG / embedding pipeline",
+    ProjectType.MLOPS_PLATFORM: "MLOps platform (MLflow / BentoML / Ray Serve)",
+    # JVM
+    ProjectType.JAVA_SPRING: "Java Spring Boot application",
+    ProjectType.JAVA_LIBRARY: "Java library / SDK",
+    # Cloud / Infrastructure
+    ProjectType.SERVERLESS: "Serverless / FaaS (Lambda / GCP Functions / Cloudflare Workers)",
+    ProjectType.KUBERNETES_OPERATOR: "Kubernetes operator / controller",
+    ProjectType.STREAMING_PIPELINE: "Streaming data pipeline (Kafka / Flink / Beam)",
+    ProjectType.DATA_WAREHOUSE: "Data warehouse (dbt / Snowflake / BigQuery)",
+    # Game development
+    ProjectType.GAME_UNITY: "Game (Unity)",
+    ProjectType.GAME_GODOT: "Game (Godot)",
+    # Web3
+    ProjectType.SMART_CONTRACT: "Smart contract (Solidity / EVM)",
+    # Desktop
+    ProjectType.DESKTOP_ELECTRON: "Desktop application (Electron)",
+    ProjectType.DESKTOP_TAURI: "Desktop application (Tauri — Rust + WebView)",
 }
 
 _SECTION_REFS: dict[str, str] = {
@@ -584,4 +628,26 @@ _SECTION_REFS: dict[str, str] = {
     ProjectType.EPISTEMIC_PIPELINE: "17.31",
     ProjectType.KNOWLEDGE_ENGINEERING: "17.32",
     ProjectType.AEE_RESEARCH: "17.33",
+    # AI / LLM / Agents
+    ProjectType.LLM_APP: "17.34",
+    ProjectType.AGENT_ORCHESTRATION: "17.35",
+    ProjectType.MCP_SERVER: "17.36",
+    ProjectType.RAG_PIPELINE: "17.37",
+    ProjectType.MLOPS_PLATFORM: "17.38",
+    # JVM
+    ProjectType.JAVA_SPRING: "17.39",
+    ProjectType.JAVA_LIBRARY: "17.40",
+    # Cloud / Infrastructure
+    ProjectType.SERVERLESS: "17.41",
+    ProjectType.KUBERNETES_OPERATOR: "17.42",
+    ProjectType.STREAMING_PIPELINE: "17.43",
+    ProjectType.DATA_WAREHOUSE: "17.44",
+    # Game development
+    ProjectType.GAME_UNITY: "17.45",
+    ProjectType.GAME_GODOT: "17.46",
+    # Web3
+    ProjectType.SMART_CONTRACT: "17.47",
+    # Desktop
+    ProjectType.DESKTOP_ELECTRON: "17.48",
+    ProjectType.DESKTOP_TAURI: "17.49",
 }

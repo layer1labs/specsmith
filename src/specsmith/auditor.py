@@ -724,6 +724,8 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
 # mismatch.  See GitHub issue #194.
 _EXPLICIT_ONLY_TYPES: frozenset[str] = frozenset(
     [
+        # Hardware / vendor-specific types that cannot be auto-detected from
+        # file extensions (Python/C tooling dominates file counts).
         "fpga-rtl",
         "fpga-rtl-amd",
         "fpga-rtl-intel",
@@ -733,6 +735,23 @@ _EXPLICIT_ONLY_TYPES: frozenset[str] = frozenset(
         "embedded-hardware",
         "pcb-hardware",
         "yocto-bsp",
+        # Infrastructure types where auxiliary Python/JS glue code dominates
+        # and a generic detection pass would misclassify the primary type.
+        "kubernetes-operator",
+        "streaming-pipeline",
+        "serverless",
+        # AI / agent types: an LLM app is indistinguishable from a regular
+        # Python library unless dependency signals are present.  Suppress
+        # false-positive mismatches when the type is set explicitly.
+        "agent-orchestration",
+        "mcp-server",
+        "rag-pipeline",
+        "mlops-platform",
+        # Game engines: Unity / Godot projects often have Python tooling alongside.
+        "game-unity",
+        "game-godot",
+        # Data warehouse: dbt + SQL projects have no primary-language file bias.
+        "data-warehouse",
     ]
 )
 
