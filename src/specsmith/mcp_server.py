@@ -121,6 +121,7 @@ def unregister_project(path: str = ".") -> bool:
     write_registry([p for p in projects if p != abs_path])
     return True
 
+
 _TOOLS: list[dict[str, Any]] = [
     {
         "name": "governance_project_list",

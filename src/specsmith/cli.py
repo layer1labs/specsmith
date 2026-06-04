@@ -9082,8 +9082,7 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
     "--project-dirs",
     default="",
     help=(
-        "Extra project directories to add on top of the registry "
-        "(comma-separated absolute paths)."
+        "Extra project directories to add on top of the registry (comma-separated absolute paths)."
     ),
 )
 def mcp_serve_cmd(project_dir: str | None, project_dirs: str) -> None:
@@ -9134,15 +9133,36 @@ def mcp_install_warp_cmd(as_json: bool) -> None:
     import shutil
     import sys
 
-    # Resolve the specsmith CLI executable: prefer the one on PATH, then
-    # fall back to deriving it from the current interpreter (dev installs).
-    specsmith_exe = shutil.which("specsmith") or str(
-        Path(sys.executable).parent / ("specsmith.exe" if sys.platform == "win32" else "specsmith")
-    )
+    # Env vars the server needs regardless of how it is invoked.
+    # SPECSMITH_ALLOW_NON_PIPX=1  — prevents the pipx-enforcement gate from
+    #   exiting before the MCP handshake when Warp starts the server directly.
+    # SPECSMITH_NO_AUTO_UPDATE / SPECSMITH_PYPI_CHECKED  — suppress network
+    #   calls on startup so the server responds immediately.
+    server_env = {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1",
+    }
+
+    # Executable detection strategy (in priority order):
+    # 1. specsmith (or specsmith.exe) on PATH — covers pipx shims and system installs.
+    # 2. python -m specsmith via the current interpreter — reliable fallback
+    #    for editable dev installs and venvs where the console script wrapper
+    #    is absent or resolves incorrectly (e.g. some Windows pipx setups).
+    specsmith_exe = shutil.which("specsmith") or shutil.which("specsmith.exe")
+    if specsmith_exe:
+        cmd = specsmith_exe
+        args: list[str] = ["mcp", "serve"]
+    else:
+        # Fall back to `python -m specsmith` using the current interpreter.
+        cmd = sys.executable
+        args = ["-m", "specsmith", "mcp", "serve"]
+
     config = {
         "specsmith-governance": {
-            "command": specsmith_exe,
-            "args": ["mcp", "serve"],
+            "command": cmd,
+            "args": args,
+            "env": server_env,
         }
     }
 
@@ -9259,8 +9279,7 @@ def mcp_projects_cmd(as_json: bool) -> None:
         return
 
     console.print(
-        f"[bold]Registered MCP projects[/bold] ({len(projects)})  "
-        f"[dim]{reg_path}[/dim]\n"
+        f"[bold]Registered MCP projects[/bold] ({len(projects)})  [dim]{reg_path}[/dim]\n"
     )
     for i, p in enumerate(projects):
         exists = Path(p).exists()

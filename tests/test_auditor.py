@@ -304,3 +304,92 @@ class TestAcceptedWarningsSuppression:
         assert report.suppressed_count == 2
         assert report.failed == 0
         assert report.healthy is True
+
+
+# ---------------------------------------------------------------------------
+# Regression: issue #195 — LEDGER open-TODO counter false positive
+# ---------------------------------------------------------------------------
+
+
+class TestLedgerTodoCounterRegression:
+    """Regression tests for #195 — prose '- [ ]' strings must not be counted."""
+
+    def test_prose_todo_reference_not_counted(self, tmp_path: Path) -> None:
+        """A narrative Checks run: line referencing '- [ ]' must not add open TODOs."""
+        from specsmith.auditor import check_ledger_health
+
+        ledger = (
+            "# Ledger\n\n"
+            "## Session 2026-05-30\n"
+            "### Checks run:\n"
+            "- TODO closure: all 109 - [ ] items changed to - [x] (batch, 2026-05-30)\n"
+        )
+        (tmp_path / "LEDGER.md").write_text(ledger, encoding="utf-8")
+        results = check_ledger_health(tmp_path)
+        todo_result = next(r for r in results if r.name == "ledger-open-todos")
+        assert todo_result.passed
+        assert "0 open" in todo_result.message
+
+    def test_real_open_todo_is_counted(self, tmp_path: Path) -> None:
+        """A genuine checklist item starting with '- [ ]' must still be counted."""
+        from specsmith.auditor import check_ledger_health
+
+        ledger = "# Ledger\n\n" + "\n".join(f"- [ ] item {i}" for i in range(25))
+        (tmp_path / "LEDGER.md").write_text(ledger, encoding="utf-8")
+        results = check_ledger_health(tmp_path)
+        todo_result = next(r for r in results if r.name == "ledger-open-todos")
+        assert not todo_result.passed
+        assert "25 open" in todo_result.message
+
+
+# ---------------------------------------------------------------------------
+# Regression: issue #194 — check_type_mismatch false positive for FPGA types
+# ---------------------------------------------------------------------------
+
+
+class TestTypeMismatchExplicitOnlyTypes:
+    """Regression tests for #194 — hardware/vendor types skip auto-detection."""
+
+    def test_fpga_rtl_amd_skips_detection(self, tmp_path: Path) -> None:
+        """fpga-rtl-amd type must pass type-mismatch even when Python files dominate."""
+        from specsmith.auditor import check_type_mismatch
+
+        # Lots of .py files to simulate an FPGA project with Python tooling
+        src = tmp_path / "python"
+        src.mkdir()
+        for i in range(20):
+            (src / f"tool_{i}.py").write_text("pass\n", encoding="utf-8")
+
+        (tmp_path / "scaffold.yml").write_text(
+            "name: fpga-project\ntype: fpga-rtl-amd\nspec_version: 0.10.1\nvcs_platform: github\n",
+            encoding="utf-8",
+        )
+        results = check_type_mismatch(tmp_path)
+        assert len(results) == 1
+        assert results[0].passed
+        assert "explicitly set" in results[0].message
+
+    @pytest.mark.parametrize(
+        "ptype",
+        [
+            "fpga-rtl",
+            "fpga-rtl-intel",
+            "fpga-rtl-lattice",
+            "mixed-fpga-embedded",
+            "mixed-fpga-firmware",
+            "embedded-hardware",
+            "pcb-hardware",
+            "yocto-bsp",
+        ],
+    )
+    def test_all_explicit_only_types_skip_detection(self, tmp_path: Path, ptype: str) -> None:
+        """Every member of _EXPLICIT_ONLY_TYPES must bypass auto-detection."""
+        from specsmith.auditor import check_type_mismatch
+
+        (tmp_path / "scaffold.yml").write_text(
+            f"name: proj\ntype: {ptype}\nspec_version: 0.10.1\nvcs_platform: github\n",
+            encoding="utf-8",
+        )
+        results = check_type_mismatch(tmp_path)
+        assert len(results) == 1
+        assert results[0].passed
