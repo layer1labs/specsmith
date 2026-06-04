@@ -21,6 +21,8 @@ from typing import Any
 
 import pytest
 
+import specsmith.mcp_server as mcp_mod
+
 
 # ---------------------------------------------------------------------------
 # Autouse: suppress auto-update noise
@@ -48,9 +50,7 @@ def _make_rpc(method: str, params: dict[str, Any] | None = None, req_id: int = 1
 
 def _send_rpc(msg: dict[str, Any]) -> dict[str, Any]:
     """Feed one JSON-RPC message to _handle_request and return its response."""
-    from specsmith.mcp_server import _handle_request
-
-    resp = _handle_request(msg)
+    resp = mcp_mod._handle_request(msg)
     assert resp is not None, "Expected a response but got None"
     return resp
 
@@ -100,11 +100,9 @@ class TestMcpProtocol:
             assert tool["inputSchema"]["type"] == "object"
 
     def test_notification_returns_none(self) -> None:
-        from specsmith.mcp_server import _handle_request
-
         # Notifications have no id — no response expected
         msg = {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}
-        assert _handle_request(msg) is None
+        assert mcp_mod._handle_request(msg) is None
 
     def test_unknown_method_returns_error(self) -> None:
         resp = _send_rpc(_make_rpc("no_such_method", {}, req_id=99))
@@ -126,10 +124,10 @@ class TestMcpProtocol:
         assert resp["result"] == {}
 
     def test_parse_error_on_bad_json(self) -> None:
-        from specsmith.mcp_server import _handle_request
-
         # _handle_request only processes dicts; parse errors are handled in run_server
-        resp = _handle_request({"jsonrpc": "2.0", "method": "initialize", "id": 10, "params": {}})
+        resp = mcp_mod._handle_request(
+            {"jsonrpc": "2.0", "method": "initialize", "id": 10, "params": {}}
+        )
         assert resp is not None
         assert "result" in resp
 
@@ -141,15 +139,11 @@ class TestMcpProtocol:
 
 class TestGovernanceAudit:
     def test_returns_healthy_key(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_audit
-
-        result = _handle_governance_audit({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_audit({"project_dir": str(tmp_path)})
         assert "healthy" in result
 
     def test_returns_checks_list(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_audit
-
-        result = _handle_governance_audit({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_audit({"project_dir": str(tmp_path)})
         assert isinstance(result.get("checks"), list)
 
     def test_via_tools_call(self, tmp_path: Path) -> None:
@@ -167,16 +161,12 @@ class TestGovernanceAudit:
 
 class TestGovernanceCheckpoint:
     def test_returns_anchor_key(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_checkpoint
-
-        result = _handle_governance_checkpoint({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_checkpoint({"project_dir": str(tmp_path)})
         assert "anchor" in result
         assert result["anchor"].startswith("SPECSMITH-ANCHOR-")
 
     def test_returns_phase_and_health(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_checkpoint
-
-        result = _handle_governance_checkpoint({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_checkpoint({"project_dir": str(tmp_path)})
         assert "health" in result
         assert "phase" in result
         assert "req_count" in result
@@ -196,15 +186,11 @@ class TestGovernanceCheckpoint:
 
 class TestGovernancePreflight:
     def test_empty_intent_returns_rejected(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_preflight
-
-        result = _handle_governance_preflight({"intent": "", "project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_preflight({"intent": "", "project_dir": str(tmp_path)})
         assert result["decision"] == "rejected"
 
     def test_returns_decision_key(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_preflight
-
-        result = _handle_governance_preflight(
+        result = mcp_mod._handle_governance_preflight(
             {
                 "intent": "read governance health status",
                 "project_dir": str(tmp_path),
@@ -233,9 +219,7 @@ class TestGovernancePreflight:
 
 class TestGovernancePhase:
     def test_returns_phase_key(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_phase
-
-        result = _handle_governance_phase({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_phase({"project_dir": str(tmp_path)})
         assert "phase" in result
 
     def test_via_tools_call(self, tmp_path: Path) -> None:
@@ -253,9 +237,7 @@ class TestGovernancePhase:
 
 class TestGovernanceReqList:
     def test_missing_requirements_json_returns_error(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_req_list
-
-        result = _handle_governance_req_list({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(tmp_path)})
         assert "error" in result
 
     def test_with_requirements_json(self, tmp_path: Path) -> None:
@@ -270,9 +252,7 @@ class TestGovernanceReqList:
             json.dumps([{"id": "TEST-001", "covers": "REQ-001"}]), encoding="utf-8"
         )
 
-        from specsmith.mcp_server import _handle_governance_req_list
-
-        result = _handle_governance_req_list({"project_dir": str(tmp_path)})
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(tmp_path)})
         assert result["total"] == 2
         assert result["covered"] == 1
         req_ids = [r["id"] for r in result["reqs"]]
@@ -290,9 +270,7 @@ class TestGovernanceReqList:
         ]
         (spec_dir / "requirements.json").write_text(json.dumps(reqs), encoding="utf-8")
 
-        from specsmith.mcp_server import _handle_governance_req_list
-
-        result = _handle_governance_req_list(
+        result = mcp_mod._handle_governance_req_list(
             {
                 "project_dir": str(tmp_path),
                 "status_filter": "planned",
@@ -318,68 +296,56 @@ class TestRegistryFunctions:
     def test_read_registry_missing_file_returns_empty(  # noqa: E501
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         # No file created — should return empty list
-        result = _mod.read_registry()
+        result = mcp_mod.read_registry()
         assert result == []
 
     def test_write_then_read_roundtrip(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         paths = ["/path/to/proj1", "/path/to/proj2"]
-        _mod.write_registry(paths)
-        assert _mod.read_registry() == paths
+        mcp_mod.write_registry(paths)
+        assert mcp_mod.read_registry() == paths
 
     def test_register_project_adds_new_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        added = _mod.register_project(str(proj))
+        added = mcp_mod.register_project(str(proj))
         assert added is True
-        assert str(proj) in _mod.read_registry()
+        assert str(proj) in mcp_mod.read_registry()
 
     def test_register_project_idempotent(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        _mod.register_project(str(proj))
-        added_again = _mod.register_project(str(proj))
+        mcp_mod.register_project(str(proj))
+        added_again = mcp_mod.register_project(str(proj))
         assert added_again is False
-        assert _mod.read_registry().count(str(proj)) == 1
+        assert mcp_mod.read_registry().count(str(proj)) == 1
 
     def test_unregister_project_removes_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        _mod.register_project(str(proj))
-        removed = _mod.unregister_project(str(proj))
+        mcp_mod.register_project(str(proj))
+        removed = mcp_mod.unregister_project(str(proj))
         assert removed is True
-        assert str(proj) not in _mod.read_registry()
+        assert str(proj) not in mcp_mod.read_registry()
 
     def test_unregister_project_returns_false_if_not_registered(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import specsmith.mcp_server as _mod
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
-        result = _mod.unregister_project("/nonexistent/path")
+        result = mcp_mod.unregister_project("/nonexistent/path")
         assert result is False
 
     def test_registry_based_server_startup(
@@ -388,50 +354,40 @@ class TestRegistryFunctions:
         """run_server with no args should pick up projects from the registry."""
         import io
 
-        import specsmith.mcp_server as _mod
-        from specsmith.mcp_server import run_server
-
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj_a = tmp_path / "alpha"
         proj_a.mkdir()
         proj_b = tmp_path / "beta"
         proj_b.mkdir()
-        _mod.register_project(str(proj_a))
-        _mod.register_project(str(proj_b))
+        mcp_mod.register_project(str(proj_a))
+        mcp_mod.register_project(str(proj_b))
 
         old_stdin = sys.stdin
         sys.stdin = io.StringIO("")
         try:
-            run_server()  # no project_dir arg — should use registry
+            mcp_mod.run_server()  # no project_dir arg — should use registry
         finally:
             sys.stdin = old_stdin
 
         # First registered project is the default
-        assert str(proj_a) == _mod._DEFAULT_PROJECT_DIR
-        assert str(proj_b) in _mod._REGISTERED_PROJECTS
+        assert str(proj_a) == mcp_mod._DEFAULT_PROJECT_DIR
+        assert str(proj_b) in mcp_mod._REGISTERED_PROJECTS
 
 
 class TestGovernanceProjectList:
     def test_returns_default_project(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_project_list, run_server
-
         # Prime server state with a known directory
-        run_server.__func__ if hasattr(run_server, "__func__") else run_server  # noqa: B018
-        import specsmith.mcp_server as _mod
+        mcp_mod._DEFAULT_PROJECT_DIR = str(tmp_path)
+        mcp_mod._REGISTERED_PROJECTS = [str(tmp_path)]
 
-        _mod._DEFAULT_PROJECT_DIR = str(tmp_path)
-        _mod._REGISTERED_PROJECTS = [str(tmp_path)]
-
-        result = _handle_governance_project_list({})
+        result = mcp_mod._handle_governance_project_list({})
         assert result["default_project"] == str(tmp_path)
         assert str(tmp_path) in result["projects"]
         assert result["count"] >= 1
 
     def test_via_tools_call(self, tmp_path: Path) -> None:
-        import specsmith.mcp_server as _mod
-
-        _mod._DEFAULT_PROJECT_DIR = str(tmp_path)
-        _mod._REGISTERED_PROJECTS = [str(tmp_path)]
+        mcp_mod._DEFAULT_PROJECT_DIR = str(tmp_path)
+        mcp_mod._REGISTERED_PROJECTS = [str(tmp_path)]
 
         resp = _send_rpc(
             _make_rpc(
@@ -449,9 +405,6 @@ class TestGovernanceProjectList:
         """run_server registers extra_project_dirs and they appear in project_list."""
         import io
 
-        import specsmith.mcp_server as _mod
-        from specsmith.mcp_server import run_server
-
         extra = tmp_path / "extra"
         extra.mkdir()
 
@@ -459,26 +412,24 @@ class TestGovernanceProjectList:
         old_stdin = sys.stdin
         sys.stdin = io.StringIO("")
         try:
-            run_server(project_dir=str(tmp_path), extra_project_dirs=[str(extra)])
+            mcp_mod.run_server(project_dir=str(tmp_path), extra_project_dirs=[str(extra)])
         finally:
             sys.stdin = old_stdin
 
-        assert str(tmp_path.resolve()) == _mod._DEFAULT_PROJECT_DIR
-        assert str(extra.resolve()) in _mod._REGISTERED_PROJECTS
-        assert _mod._REGISTERED_PROJECTS[0] == str(tmp_path.resolve())
+        assert str(tmp_path.resolve()) == mcp_mod._DEFAULT_PROJECT_DIR
+        assert str(extra.resolve()) in mcp_mod._REGISTERED_PROJECTS
+        assert mcp_mod._REGISTERED_PROJECTS[0] == str(tmp_path.resolve())
 
     def test_no_chdir_called(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """run_server must NOT call os.chdir — paths are resolved absolutely."""
         import io
-
-        from specsmith.mcp_server import run_server
 
         chdir_calls: list[str] = []
         monkeypatch.setattr("os.chdir", lambda p: chdir_calls.append(str(p)))
         old_stdin = sys.stdin
         sys.stdin = io.StringIO("")
         try:
-            run_server(project_dir=str(tmp_path))
+            mcp_mod.run_server(project_dir=str(tmp_path))
         finally:
             sys.stdin = old_stdin
 
@@ -487,9 +438,7 @@ class TestGovernanceProjectList:
 
 class TestGovernanceTraceSeal:
     def test_missing_description_returns_error(self, tmp_path: Path) -> None:
-        from specsmith.mcp_server import _handle_governance_trace_seal
-
-        result = _handle_governance_trace_seal(
+        result = mcp_mod._handle_governance_trace_seal(
             {
                 "seal_type": "milestone",
                 "description": "",
@@ -503,9 +452,7 @@ class TestGovernanceTraceSeal:
         spec_dir = tmp_path / ".specsmith"
         spec_dir.mkdir()
 
-        from specsmith.mcp_server import _handle_governance_trace_seal
-
-        result = _handle_governance_trace_seal(
+        result = mcp_mod._handle_governance_trace_seal(
             {
                 "seal_type": "milestone",
                 "description": "test seal for pytest",
@@ -520,12 +467,10 @@ class TestGovernanceTraceSeal:
         spec_dir = tmp_path / ".specsmith"
         spec_dir.mkdir()
 
-        from specsmith.mcp_server import _handle_governance_trace_seal
-
-        _handle_governance_trace_seal(
+        mcp_mod._handle_governance_trace_seal(
             {"seal_type": "decision", "description": "first", "project_dir": str(tmp_path)}
         )
-        result2 = _handle_governance_trace_seal(
+        result2 = mcp_mod._handle_governance_trace_seal(
             {"seal_type": "milestone", "description": "second", "project_dir": str(tmp_path)}
         )
         assert result2["seal_id"] == "SEAL-0002"
@@ -586,8 +531,9 @@ class TestMcpServeCli:
                 timeout=15,
                 env=env,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired:  # pragma: no cover
             pytest.skip("mcp serve subprocess timed out (slow CI env)")
+            return  # never reached; satisfies flow analysis
 
         assert proc.stdout, f"No output from mcp serve (stderr: {proc.stderr[:500]})"
         response = json.loads(proc.stdout.strip().splitlines()[0])
@@ -623,8 +569,9 @@ class TestMcpServeCli:
                 timeout=15,
                 env=env,
             )
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired:  # pragma: no cover
             pytest.skip("mcp serve subprocess timed out (slow CI env)")
+            return  # never reached; satisfies flow analysis
 
         lines = [ln for ln in proc.stdout.strip().splitlines() if ln.strip()]
         assert len(lines) >= 2, f"Expected ≥2 responses, got: {lines}"
