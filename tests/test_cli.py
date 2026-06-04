@@ -131,7 +131,7 @@ class TestCLIUpgrade:
         # Verify scaffold.yml spec_version was updated to the target version
         with open(target / "scaffold.yml") as fh:
             data = yaml.safe_load(fh)
-        assert data["spec_version"] == "0.11.8"
+        assert data["spec_version"] == "0.13.0"
 
 
 class TestCLICreditsLimits:
