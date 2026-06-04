@@ -441,9 +441,11 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
             )
         )
 
-    # Open TODOs
-    open_todos = sum(1 for line in lines if "- [ ]" in line)
-    closed_todos = sum(1 for line in lines if "- [x]" in line)
+    # Open TODOs — only count lines where the checklist marker is at the
+    # start of the trimmed line, not prose references such as:
+    #   "- TODO closure: all 109 - [ ] items changed to - [x]"
+    open_todos = sum(1 for line in lines if line.lstrip().startswith("- [ ]"))
+    closed_todos = sum(1 for line in lines if line.lstrip().startswith("- [x]"))
     if open_todos > 20:
         results.append(
             AuditResult(
@@ -715,8 +717,53 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
     return results
 
 
+# Types that require explicit configuration and cannot be reliably inferred
+# from file-extension counts alone.  When a project declares one of these,
+# auto-detection is skipped so that auxiliary tooling languages (e.g. Python
+# verification scripts in an FPGA project) do not produce a false-positive
+# mismatch.  See GitHub issue #194.
+_EXPLICIT_ONLY_TYPES: frozenset[str] = frozenset(
+    [
+        # Hardware / vendor-specific types that cannot be auto-detected from
+        # file extensions (Python/C tooling dominates file counts).
+        "fpga-rtl",
+        "fpga-rtl-amd",
+        "fpga-rtl-intel",
+        "fpga-rtl-lattice",
+        "mixed-fpga-embedded",
+        "mixed-fpga-firmware",
+        "embedded-hardware",
+        "pcb-hardware",
+        "yocto-bsp",
+        # Infrastructure types where auxiliary Python/JS glue code dominates
+        # and a generic detection pass would misclassify the primary type.
+        "kubernetes-operator",
+        "streaming-pipeline",
+        "serverless",
+        # AI / agent types: an LLM app is indistinguishable from a regular
+        # Python library unless dependency signals are present.  Suppress
+        # false-positive mismatches when the type is set explicitly.
+        "agent-orchestration",
+        "mcp-server",
+        "rag-pipeline",
+        "mlops-platform",
+        # Game engines: Unity / Godot projects often have Python tooling alongside.
+        "game-unity",
+        "game-godot",
+        # Data warehouse: dbt + SQL projects have no primary-language file bias.
+        "data-warehouse",
+    ]
+)
+
+
 def check_type_mismatch(root: Path) -> list[AuditResult]:
-    """Check if scaffold.yml type matches actual detected project type."""
+    """Check if scaffold.yml type matches actual detected project type.
+
+    For hardware / vendor-specific types that cannot be auto-detected from
+    file-extension counts (see ``_EXPLICIT_ONLY_TYPES``), the detection step
+    is skipped entirely so that auxiliary languages (e.g. Python scripts in an
+    FPGA project) never produce a false-positive mismatch.
+    """
     results: list[AuditResult] = []
     scaffold_path = root / "scaffold.yml"
     if not scaffold_path.exists():
@@ -731,6 +778,20 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f)
         config = ProjectConfig(**raw)
+
+        # Skip auto-detection for types that must be specified explicitly.
+        if config.type in _EXPLICIT_ONLY_TYPES:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=(
+                        f"Project type {config.type} is explicitly set; auto-detection skipped"
+                    ),
+                )
+            )
+            return results
+
         detected = detect_project(root)
         if detected.inferred_type and detected.inferred_type != config.type:
             results.append(

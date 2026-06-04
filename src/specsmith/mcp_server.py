@@ -35,8 +35,8 @@ No external dependencies — stdlib only + existing specsmith modules.
 
 from __future__ import annotations
 
-import contextlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -48,9 +48,94 @@ from typing import Any
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "specsmith-governance"
-SERVER_VERSION = "0.12.0"
+SERVER_VERSION = "0.13.0"
+
+# ---------------------------------------------------------------------------
+# Multi-project state — populated by run_server() at startup
+# ---------------------------------------------------------------------------
+
+# Default project dir used when a tool call omits ``project_dir``.
+_DEFAULT_PROJECT_DIR: str = "."
+
+# All registered project directories (absolute paths), default first.
+_REGISTERED_PROJECTS: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Persistent project registry  (~/.specsmith/mcp-projects.json)
+# ---------------------------------------------------------------------------
+
+
+def _registry_file() -> Path:
+    """Return the path to the user-level MCP project registry file.
+
+    Respects ``SPECSMITH_HOME`` if set; otherwise uses
+    ``~/.specsmith/mcp-projects.json``.
+    """
+    base = os.environ.get("SPECSMITH_HOME", "").strip()
+    home = Path(base) if base else Path.home() / ".specsmith"
+    return home / "mcp-projects.json"
+
+
+def read_registry() -> list[str]:
+    """Return all absolute project paths from the registry.
+
+    Returns an empty list when the registry file is missing or malformed.
+    Invalid entries (empty strings, non-strings) are silently skipped.
+    """
+    try:
+        data = json.loads(_registry_file().read_text(encoding="utf-8"))
+        projects = data.get("projects", []) if isinstance(data, dict) else []
+        return [p for p in projects if isinstance(p, str) and p]
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def write_registry(paths: list[str]) -> None:
+    """Persist *paths* to the registry file (creates parent dirs as needed)."""
+    reg = _registry_file()
+    reg.parent.mkdir(parents=True, exist_ok=True)
+    reg.write_text(
+        json.dumps({"projects": paths}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def register_project(path: str = ".") -> bool:
+    """Add *path* to the registry. Returns True if it was newly added."""
+    abs_path = str(Path(path).resolve())
+    projects = read_registry()
+    if abs_path in projects:
+        return False
+    projects.append(abs_path)
+    write_registry(projects)
+    return True
+
+
+def unregister_project(path: str = ".") -> bool:
+    """Remove *path* from the registry. Returns True if it was present."""
+    abs_path = str(Path(path).resolve())
+    projects = read_registry()
+    if abs_path not in projects:
+        return False
+    write_registry([p for p in projects if p != abs_path])
+    return True
+
 
 _TOOLS: list[dict[str, Any]] = [
+    {
+        "name": "governance_project_list",
+        "description": (
+            "List all project directories registered in this MCP server instance. "
+            "Use the returned paths as the `project_dir` argument for other tools "
+            "when working with multiple simultaneous projects."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
     {
         "name": "governance_audit",
         "description": (
@@ -195,8 +280,23 @@ _TOOLS: list[dict[str, Any]] = [
 
 
 def _resolve_root(args: dict[str, Any]) -> Path:
-    raw = args.get("project_dir", ".")
+    """Resolve project_dir from args, falling back to the server default.
+
+    If ``project_dir`` is not in *args* (or is empty), we use
+    ``_DEFAULT_PROJECT_DIR`` so callers don't have to repeat the path on
+    every tool call when only one project is active.
+    """
+    raw = args.get("project_dir") or _DEFAULT_PROJECT_DIR
     return Path(str(raw)).resolve()
+
+
+def _handle_governance_project_list(args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG001
+    """Return the list of projects registered in this server instance."""
+    return {
+        "default_project": _DEFAULT_PROJECT_DIR,
+        "projects": _REGISTERED_PROJECTS,
+        "count": len(_REGISTERED_PROJECTS),
+    }
 
 
 def _handle_governance_audit(args: dict[str, Any]) -> dict[str, Any]:
@@ -487,6 +587,7 @@ def _handle_governance_trace_seal(args: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
+    "governance_project_list": _handle_governance_project_list,
     "governance_audit": _handle_governance_audit,
     "governance_checkpoint": _handle_governance_checkpoint,
     "governance_preflight": _handle_governance_preflight,
@@ -576,20 +677,57 @@ def _handle_request(msg: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def run_server(project_dir: str = ".") -> None:
+def run_server(
+    project_dir: str | None = None,
+    extra_project_dirs: list[str] | None = None,
+) -> None:
     """Start the MCP stdio server. Blocks until stdin closes.
 
     Reads newline-delimited JSON-RPC 2.0 messages from stdin and
     writes responses to stdout. Stderr is used for diagnostic messages.
-    The ``project_dir`` is injected into every tool call that doesn't
-    supply its own ``project_dir`` argument.
-    """
-    import os
 
-    # Set working directory so relative paths in tool calls resolve correctly
-    if project_dir and project_dir != ".":
-        with contextlib.suppress(OSError):
-            os.chdir(project_dir)
+    Project discovery order (highest priority first):
+
+    1. ``project_dir`` — if provided, becomes the *default* project (first
+       slot).  Any tool call that omits ``project_dir`` will target this.
+    2. **Registry** — all paths in ``~/.specsmith/mcp-projects.json`` are
+       merged in.  Run ``specsmith mcp register`` in a project once to add it.
+    3. ``extra_project_dirs`` — additional paths appended after the registry.
+    4. **Fallback** — if nothing resolves, the current working directory is
+       used (useful for development/testing).
+
+    All paths are resolved to absolute form; duplicates are silently dropped.
+    The server never calls ``os.chdir()``.
+    """
+    global _DEFAULT_PROJECT_DIR, _REGISTERED_PROJECTS
+
+    all_dirs: list[str] = []
+    seen: set[str] = set()
+
+    def _add(p: str) -> None:
+        abs_p = str(Path(p).resolve())
+        if abs_p not in seen:
+            seen.add(abs_p)
+            all_dirs.append(abs_p)
+
+    # 1. Explicit primary project (becomes the default)
+    if project_dir is not None:
+        _add(project_dir)
+
+    # 2. Persistent registry
+    for p in read_registry():
+        _add(p)
+
+    # 3. Additional explicit dirs
+    for p in extra_project_dirs or []:
+        _add(p)
+
+    # 4. CWD fallback when nothing is registered
+    if not all_dirs:
+        _add(".")
+
+    _DEFAULT_PROJECT_DIR = all_dirs[0]
+    _REGISTERED_PROJECTS = all_dirs
 
     for raw_line in sys.stdin:
         raw_line = raw_line.strip()
@@ -615,4 +753,14 @@ def run_server(project_dir: str = ".") -> None:
             _send(response)
 
 
-__all__ = ["run_server", "SERVER_NAME", "SERVER_VERSION", "_TOOLS", "_HANDLERS"]
+__all__ = [
+    "run_server",
+    "read_registry",
+    "write_registry",
+    "register_project",
+    "unregister_project",
+    "SERVER_NAME",
+    "SERVER_VERSION",
+    "_TOOLS",
+    "_HANDLERS",
+]

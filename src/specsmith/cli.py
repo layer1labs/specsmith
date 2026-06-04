@@ -350,6 +350,16 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
 
     write_phase(target, "inception")
 
+    # Auto-register with the MCP governance server (best-effort, never blocks)
+    with contextlib.suppress(Exception):
+        from specsmith.mcp_server import register_project
+
+        if register_project(str(target)):
+            console.print(
+                "  [dim]\u2713 Registered with MCP server "
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+            )
+
 
 def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
     """Load scaffold.yml, merging parent config if `extends` is set."""
@@ -1745,6 +1755,16 @@ def import_project(
 
     console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
     console.print("Governance files generated. Review project configuration.")
+
+    # Auto-register with the MCP governance server (best-effort, never blocks)
+    with contextlib.suppress(Exception):
+        from specsmith.mcp_server import register_project
+
+        if register_project(str(root)):
+            console.print(
+                "  [dim]\u2713 Registered with MCP server "
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+            )
 
 
 def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
@@ -3207,32 +3227,61 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
 
     # ── Human-readable anchor block ───────────────────────────────────────────
     # Designed to be compact and survive context summarization.
-    hbar = "\u2550" * 57  # ═══…
+    _w = 57  # interior width — must match len(hbar)
+    hbar = "\u2550" * _w  # ═══…
     vbar = "\u2551"  # ║
     health_icon = "\u2713" if health_ok else "\u2717"
     esdb_icon = "\u2713" if esdb_ok else "\u2717"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
+    def _arow(rich: str, plain: str, wide: int = 0) -> str:
+        """Format one anchor box row: ║ <content padded to _w terminal cols> ║.
+
+        ``plain`` is the markup-free string used for width calculation.
+        ``wide`` is the count of 2-wide (full-width/emoji) characters in ``plain``
+        that add an extra terminal column beyond their Python ``len()``.
+        """
+        pad = " " * max(0, _w - len(plain) - wide)
+        return f"[bold cyan]{vbar}[/bold cyan]{rich}{pad}[bold cyan]{vbar}[/bold cyan]"
+
     console.print(f"[bold cyan]\u2554{hbar}\u2557[/bold cyan]")
-    console.print(f"[bold cyan]{vbar}[/bold cyan] GOVERNANCE ANCHOR  {ts}")
-    console.print(f"[bold cyan]{vbar}[/bold cyan] Project : [bold]{project_name}[/bold]")
-    console.print(
-        f"[bold cyan]{vbar}[/bold cyan] Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
-    )
-    health_str = (
-        f"[green]{health_icon} clean[/green]"
+
+    r1 = f" GOVERNANCE ANCHOR  {ts}"
+    console.print(_arow(r1, r1))
+
+    r2_plain = f" Project : {project_name}"
+    console.print(_arow(f" Project : [bold]{project_name}[/bold]", r2_plain))
+
+    r3_plain = f" Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
+    console.print(_arow(r3_plain, r3_plain, wide=1 if phase_emoji else 0))
+
+    r4_plain = (
+        f" Health  : {health_icon} clean"
         if health_ok
-        else f"[red]{health_icon} {audit_failed} issues[/red]"
+        else f" Health  : {health_icon} {audit_failed} issues"
     )
-    console.print(f"[bold cyan]{vbar}[/bold cyan] Health  : {health_str}")
-    console.print(
-        f"[bold cyan]{vbar}[/bold cyan] REQs    : {req_count}   TESTs: {test_count}"
+    r4_rich = (
+        f" Health  : [green]{health_icon} clean[/green]"
+        if health_ok
+        else f" Health  : [red]{health_icon} {audit_failed} issues[/red]"
+    )
+    console.print(_arow(r4_rich, r4_plain))
+
+    r5 = (
+        f" REQs    : {req_count}   TESTs: {test_count}"
         f"   ESDB: {esdb_records} records ({esdb_icon} chain)"
     )
-    console.print(f"[bold cyan]{vbar}[/bold cyan] WIs     : {wi_str}")
+    console.print(_arow(r5, r5))
+
+    r6 = f" WIs     : {wi_str}"
+    console.print(_arow(r6, r6))
+
     if last_preflight:
-        pf_short = last_preflight[:55]
-        console.print(f"[bold cyan]{vbar}[/bold cyan] Preflight: {pf_short}")
+        _pf_max = _w - len(" Preflight: ")  # 45 — was incorrectly 55
+        pf_short = last_preflight[:_pf_max]
+        r7 = f" Preflight: {pf_short}"
+        console.print(_arow(r7, r7))
+
     console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
     console.print(
         "[dim]Include this block verbatim in any context summary "
@@ -9020,55 +9069,100 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
 
 
 @mcp_group.command(name="serve")
-@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
-def mcp_serve_cmd(project_dir: str) -> None:
+@click.option(
+    "--project-dir",
+    type=click.Path(),
+    default=None,
+    help=(
+        "Set this path as the *primary* project (first slot / default for tool calls "
+        "that omit project_dir). Omit to use the registry automatically."
+    ),
+)
+@click.option(
+    "--project-dirs",
+    default="",
+    help=(
+        "Extra project directories to add on top of the registry (comma-separated absolute paths)."
+    ),
+)
+def mcp_serve_cmd(project_dir: str | None, project_dirs: str) -> None:
     """Start the native governance MCP stdio server (REQ-363).
 
     Implements MCP 2024-11-05 over stdin/stdout (JSON-RPC 2.0).
-    Exposes six governance tools to any MCP client:
+    Exposes seven governance tools to any MCP client.
 
     \b
-    governance_audit        Run governance audit
-    governance_checkpoint   Emit GOVERNANCE ANCHOR JSON
-    governance_preflight    Preflight a change intent
-    governance_phase        Current AEE phase + readiness %
-    governance_req_list     List all requirements
-    governance_trace_seal   Seal a milestone/decision
-
-    \b
-    Warp config (Settings → Agents → MCP servers)::
+    Recommended Warp config (set once, never touch again)::
 
         {"specsmith-governance": {"command": "specsmith", "args": ["mcp", "serve"]}}
 
     \b
-    Or pass inline to oz (use ``specsmith mcp install-warp`` for the full snippet)::
+    Then register each project once from inside that project::
+
+        specsmith mcp register
+
+    \b
+    The server reads the registry at startup and serves all registered
+    projects automatically — no config changes needed for new projects.
+
+    \b
+    Or pass inline to oz (use ``specsmith mcp install-warp`` for the snippet)::
 
         oz agent run --mcp "$(specsmith mcp install-warp --json)" --prompt "..."
     """
     from specsmith.mcp_server import run_server
 
-    run_server(project_dir=project_dir)
+    extra = [p.strip() for p in project_dirs.split(",") if p.strip()] if project_dirs else []
+    run_server(project_dir=project_dir, extra_project_dirs=extra)
 
 
 @mcp_group.command(name="install-warp")
-@click.option("--project-dir", type=click.Path(), default=".", show_default=True)
 @click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON config only.")
-def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
+def mcp_install_warp_cmd(as_json: bool) -> None:
     """Print the Warp MCP config snippet for the governance server (REQ-363).
+
+    Generates a minimal, registry-aware config — paste it into Warp once
+    and never change it again.  Register new projects with::
+
+        specsmith mcp register          # in the project directory
 
     Copy the output into Warp Settings → Agents → MCP servers, or pass it
     to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
     """
     import json as _json
-    import os
+    import shutil
     import sys
+
+    # Env vars the server needs regardless of how it is invoked.
+    # SPECSMITH_ALLOW_NON_PIPX=1  — prevents the pipx-enforcement gate from
+    #   exiting before the MCP handshake when Warp starts the server directly.
+    # SPECSMITH_NO_AUTO_UPDATE / SPECSMITH_PYPI_CHECKED  — suppress network
+    #   calls on startup so the server responds immediately.
+    server_env = {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1",
+    }
+
+    # Executable detection strategy (in priority order):
+    # 1. specsmith (or specsmith.exe) on PATH — covers pipx shims and system installs.
+    # 2. python -m specsmith via the current interpreter — reliable fallback
+    #    for editable dev installs and venvs where the console script wrapper
+    #    is absent or resolves incorrectly (e.g. some Windows pipx setups).
+    specsmith_exe = shutil.which("specsmith") or shutil.which("specsmith.exe")
+    if specsmith_exe:
+        cmd = specsmith_exe
+        args: list[str] = ["mcp", "serve"]
+    else:
+        # Fall back to `python -m specsmith` using the current interpreter.
+        cmd = sys.executable
+        args = ["-m", "specsmith", "mcp", "serve"]
 
     config = {
         "specsmith-governance": {
-            "command": (
-                sys.executable if os.environ.get("SPECSMITH_ALLOW_NON_PIPX") else "specsmith"
-            ),
-            "args": ["mcp", "serve", "--project-dir", str(Path(project_dir).resolve())],
+            "command": cmd,
+            "args": args,
+            "env": server_env,
         }
     }
 
@@ -9083,10 +9177,122 @@ def mcp_install_warp_cmd(project_dir: str, as_json: bool) -> None:
     )
     console.print(_json.dumps(config, indent=2))
     console.print(
-        "\n[dim]After adding, Warp/Oz can call governance_audit, governance_preflight,\n"
-        "governance_checkpoint, governance_phase, governance_req_list, and\n"
-        "governance_trace_seal as structured MCP tool calls.\n"
-        "\nVerify with: specsmith mcp serve (then send an initialize message).[/dim]"
+        "\n[dim][bold]One-time setup[/bold] — paste this config into Warp once,"  # noqa: E501
+        " then never touch it again.\n"
+        "\nTo add each project, run this inside the project directory:\n"
+        "  [bold]specsmith mcp register[/bold]\n"
+        "\nThe server reads [bold]~/.specsmith/mcp-projects.json[/bold] at startup\n"
+        "and serves all registered projects automatically.\n"
+        "\nView registered projects: [bold]specsmith mcp projects[/bold]\n"
+        "\nVerify server: specsmith mcp serve (then send an initialize message).[/dim]"
+    )
+
+
+@mcp_group.command(name="register")
+@click.argument("path", default=".", required=False)
+def mcp_register_cmd(path: str) -> None:
+    """Register a project directory with the MCP server registry.
+
+    Run once inside a project directory to add it to
+    ``~/.specsmith/mcp-projects.json``.  The next ``specsmith mcp serve``
+    invocation will automatically include it — no Warp config changes needed.
+
+    \b
+    Examples::
+
+        specsmith mcp register          # register current directory
+        specsmith mcp register /path/to/myproject
+    """
+    from specsmith.mcp_server import register_project
+
+    root = Path(path).resolve()
+    if not root.exists():
+        console.print(f"[red]\u2717[/red] Path does not exist: {root}")
+        raise SystemExit(1)
+
+    added = register_project(str(root))
+    if added:
+        console.print(f"[green]\u2713[/green] Registered: [bold]{root}[/bold]")
+        if not (root / ".specsmith").exists():
+            console.print(
+                "  [yellow]\u26a0[/yellow] No .specsmith/ found. "
+                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold] first."
+            )
+    else:
+        console.print(f"[dim]Already registered: {root}[/dim]")
+    console.print(
+        "  [dim]specsmith mcp projects  ← view all registered[/dim]\n"
+        "  [dim]specsmith mcp serve      ← start the server[/dim]"
+    )
+
+
+@mcp_group.command(name="unregister")
+@click.argument("path", default=".", required=False)
+def mcp_unregister_cmd(path: str) -> None:
+    """Remove a project directory from the MCP server registry.
+
+    \b
+    Examples::
+
+        specsmith mcp unregister          # unregister current directory
+        specsmith mcp unregister /path/to/myproject
+    """
+    from specsmith.mcp_server import unregister_project
+
+    root = Path(path).resolve()
+    removed = unregister_project(str(root))
+    if removed:
+        console.print(f"[green]\u2713[/green] Unregistered: [bold]{root}[/bold]")
+    else:
+        console.print(f"[yellow]Not registered: {root}[/yellow]")
+
+
+@mcp_group.command(name="projects")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit as JSON.")
+def mcp_projects_cmd(as_json: bool) -> None:
+    """List all projects registered with the MCP server.
+
+    Shows each registered project path and whether it still exists on disk.
+    The first entry is the default (used when a tool call omits project_dir).
+    """
+    import json as _json
+    import os
+
+    from specsmith.mcp_server import _registry_file, read_registry
+
+    projects = read_registry()
+    reg_path = _registry_file()
+
+    if as_json:
+        entries = [
+            {"path": p, "exists": Path(p).exists(), "is_default": i == 0}
+            for i, p in enumerate(projects)
+        ]
+        click.echo(_json.dumps({"registry": str(reg_path), "projects": entries}, indent=2))
+        return
+
+    if not projects:
+        console.print("[yellow]No projects registered.[/yellow]")
+        console.print(
+            "[dim]Run [bold]specsmith mcp register[/bold] inside a project to add it.[/dim]"
+        )
+        return
+
+    console.print(
+        f"[bold]Registered MCP projects[/bold] ({len(projects)})  [dim]{reg_path}[/dim]\n"
+    )
+    for i, p in enumerate(projects):
+        exists = Path(p).exists()
+        default_tag = "  [bold cyan][default][/bold cyan]" if i == 0 else ""
+        health = "[green]\u2713 exists[/green]" if exists else "[red]\u2717 not found[/red]"
+        # Abbreviate long paths using ~ for home
+        display = p.replace(os.path.expanduser("~"), "~")
+        console.print(f"  {health}  {display}{default_tag}")
+
+    console.print(
+        "\n[dim]  specsmith mcp register [path]    ← add a project"
+        "\n  specsmith mcp unregister [path]  ← remove a project"
+        "\n  specsmith mcp serve              ← start the server[/dim]"
     )
 
 

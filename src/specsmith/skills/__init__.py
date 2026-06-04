@@ -56,6 +56,12 @@ class SkillDomain(str, Enum):
     PRODUCTIVITY = "productivity"
     CORPORATE = "corporate"
     DOCS = "docs"  # documentation systems — H23/H24
+    # New domains
+    AI_AGENTS = "ai-agents"  # LLM/agent development, RAG, MCP, MLOps
+    SOFTWARE_ENGINEERING = "software-engineering"  # code review, TDD, debugging, security
+    WEB_BACKEND = "web-backend"  # frontend, REST, GraphQL, databases, caching
+    DATA_ENGINEERING = "data-engineering"  # ETL, dbt, Spark, data quality
+    PLATFORM_ENGINEERING = "platform-engineering"  # K8s, observability, GitOps, secrets
 
 
 # ---------------------------------------------------------------------------
@@ -112,18 +118,23 @@ _CATALOG: list[SkillEntry] | None = None
 def _build_catalog() -> list[SkillEntry]:
     """Import every domain module and concatenate their SKILLS lists."""
     from specsmith.skills import (  # noqa: PLC0415
+        ai_agents,
         cloud,
         corporate,
         cross_platform,
+        data_engineering,
         devops,
         docs,
         embedded,
         governance,
         hardware,
         mobile,
+        platform_engineering,
         productivity,
+        software_engineering,
         specsmith_skills,
         ssh,
+        web_backend,
     )
 
     return (
@@ -139,6 +150,12 @@ def _build_catalog() -> list[SkillEntry]:
         + corporate.SKILLS
         + docs.SKILLS
         + specsmith_skills.SKILLS
+        # New domains
+        + ai_agents.SKILLS
+        + software_engineering.SKILLS
+        + web_backend.SKILLS
+        + data_engineering.SKILLS
+        + platform_engineering.SKILLS
     )
 
 

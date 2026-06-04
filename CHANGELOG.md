@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-06-04
+
+### Added
+
+- **16 new project types** expanding coverage from 47 to 53 types:
+  - **AI / LLM / Agents**: `llm-app`, `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform` — with auto-detection from dependency signals (crewai/langgraph → `agent-orchestration`, chromadb/faiss → `rag-pipeline`, mlflow/bentoml → `mlops-platform`, mcp package → `mcp-server`)
+  - **JVM**: `java-spring` (Spring Boot detection via `pom.xml`/`build.gradle`), `java-library`
+  - **Infrastructure / Cloud**: `serverless` (Lambda/GCP Functions/Cloudflare Workers), `kubernetes-operator` (Go + controllers/ detection), `streaming-pipeline` (Kafka/Flink/Beam), `data-warehouse` (dbt/Snowflake/BigQuery, detected via `dbt_project.yml`)
+  - **Game development**: `game-unity`, `game-godot` (detected via `project.godot`/`Assets/`)
+  - **Web3**: `smart-contract` (Solidity/EVM, detected via `.sol` language or `hardhat`/`ethers` in package.json)
+  - **Desktop**: `desktop-electron` (detected via `electron` in package.json), `desktop-tauri` (detected via `src-tauri/`)
+  - All 16 new types have full `ToolSet` entries, scaffold directory structures, and `_EXPLICIT_ONLY_TYPES` membership where auto-detection would produce false positives
+
+- **55 new built-in skills across 5 new domains** — catalog grows from 76 to 131 skills (16 domains):
+  - **`ai-agents` (14)**: `llm-app-development`, `mcp-server-development`, `agent-orchestration`, `prompt-engineering`, `rag-development`, `context-engineering`, `ai-safety-review`, `langchain-development`, `langgraph-development`, `vector-database`, `model-evaluation`, `fine-tuning-workflow`, `computer-vision-pipeline`, `mlops-workflow`
+  - **`software-engineering` (12)**: `code-review`, `test-driven-development`, `debugging`, `refactoring`, `security-hardening`, `performance-optimization`, `api-design`, `database-design`, `dependency-management`, `git-workflow`, `pr-workflow`, `architecture-decision-records`
+  - **`web-backend` (11)**: `frontend-ui-engineering`, `web-performance`, `accessibility`, `testing-e2e`, `nextjs-development`, `rest-api-development`, `graphql-development`, `database-postgresql`, `caching-redis`, `message-queue`, `websocket-realtime`
+  - **`data-engineering` (8)**: `data-pipeline-etl`, `dbt-development`, `data-quality`, `stream-processing`, `ml-experiment-tracking`, `feature-engineering`, `data-lakehouse`, `spark-pipeline`
+  - **`platform-engineering` (10)**: `helm-chart`, `monitoring-observability`, `incident-response`, `secret-management`, `gitops`, `serverless-functions`, `oauth2-auth`, `api-gateway`, `chaos-engineering`, `service-mesh`
+
+- **`_EXPLICIT_ONLY_TYPES` extended** — `kubernetes-operator`, `streaming-pipeline`, `serverless`, `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform`, `game-unity`, `game-godot`, `data-warehouse` added. These types use explicit configuration and bypass auto-detection to prevent false-positive type mismatches from auxiliary language files.
+
+### Fixed
+
+- **#195 — LEDGER open-TODO counter false positive**: `check_ledger_health` counted any line containing `- [ ]` as an open TODO, causing false positives when prose narrative fields (e.g., `Checks run:`) referenced checklist syntax. Fixed to `line.lstrip().startswith("- [ ]")` — only lines where the checklist marker starts the trimmed line are counted.
+
+- **#194 — `check_type_mismatch` false positive for FPGA projects with auxiliary Python**: `check_type_mismatch` called `detect_project()` even when `scaffold.yml` had an explicit hardware/vendor type set. Python tooling files in FPGA projects dominated the file-extension count, making `detect_project()` infer `library-python` instead of `fpga-rtl-amd`. Fixed by introducing `_EXPLICIT_ONLY_TYPES` — when `config.type` is in this frozenset, auto-detection is skipped entirely. Regression tests added.
+
+- **ruff format drift in `cli.py` and `mcp_server.py`**: two source files had diverged from the `ruff format` output, failing the CI lint step. Applied `ruff format` to restore compliance.
+
+### Changed
+
+- **Documentation comprehensively updated**: README.md, `docs/site/project-types.md`, `docs/site/skills-index.md`, `docs/site/configuration.md` all reflect the new 53 project types and 131 skills. GitHub repository description and topics updated.
+- Version bumped from `0.12.0` to `0.13.0`.
+
 ## [0.12.0] - 2026-06-01
 
 ### Added

@@ -315,16 +315,40 @@
 - **Status**: complete
 - **Chain hash**: `cf168f65d973f62b...`
 
-## 2026-06-01T14:24 — specsmith migration: 0.11.7 → 0.11.8
-- **Author**: specsmith
-- **Type**: migration
-- **Status**: complete
-- **Chain hash**: `140b955937d3f838...`
-
-## 2026-06-01T14:24 — KILL SWITCH ACTIVATED: emergency stop
+## 2026-06-01T16:40 — KILL SWITCH ACTIVATED: emergency stop
 - **Author**: specsmith-operator
 - **Type**: kill-switch
 - **REQs affected**: REG-005
 - **Status**: complete
 - **Epistemic status**: high
-- **Chain hash**: `2b86b178470fd0a1...`
+- **Chain hash**: `07bb2a0d68f4025a...`
+
+## 2026-06-02T05:52 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `c524743e645bae62...`
+
+## 2026-06-02T06:17 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `2c2f46ee6e095aa7...`
+
+## 2026-06-03T21:25 — specsmith migration: 0.11.7 → 0.12.0
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `a73f1db336999c91...`
+
+## 2026-06-03T21:25 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `23df42362ffb6d46...`
