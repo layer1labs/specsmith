@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.12.0 — Native Warp/Oz MCP governance server, 131 built-in skills across 16 domains, 53 project types, EU AI Act / NIST AI RMF compliance, multi-agent DAG dispatch, and context window management.**
+**v0.13.0 — 16 new project types (LLM apps, MCP servers, Kubernetes operators, game dev, Web3, desktop, JVM and more), 131 built-in skills across 16 domains, EU AI Act / NIST AI RMF compliance, native Warp/Oz MCP governance server, multi-agent DAG dispatch, and context window management.**
 Specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -959,7 +959,7 @@ oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save 
 
 ---
 
-## Warp Terminal Integration (v0.12.0)
+## Warp Terminal Integration (v0.13.0)
 
 specsmith ships native integration with [Warp](https://www.warp.dev) terminal — both as
 an MCP server and as repository workflows.
