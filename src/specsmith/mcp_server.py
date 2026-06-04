@@ -48,7 +48,7 @@ from typing import Any
 
 MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "specsmith-governance"
-SERVER_VERSION = "0.12.0"
+SERVER_VERSION = "0.13.0"
 
 # ---------------------------------------------------------------------------
 # Multi-project state — populated by run_server() at startup
