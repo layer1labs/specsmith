@@ -92,19 +92,33 @@ def add_req(
     root: Path,
     req_id: str,
     *,
+    title: str = "",
     component: str = "",
     priority: str = "medium",
     description: str = "",
 ) -> None:
-    """Append a new requirement to REQUIREMENTS.md."""
+    """Append a new requirement to REQUIREMENTS.md.
+
+    Emits the standard Style A format::
+
+        ## REQ-NNN: Title
+        Description text as a plain paragraph.
+
+    This matches the format already used by every other requirement in
+    REQUIREMENTS.md and is correctly parsed by ``sync`` and ``preflight``.
+    """
     req_path = root / "docs" / "REQUIREMENTS.md"
-    entry = f"\n### {req_id}\n"
+    # Build heading:  ## REQ-NNN  or  ## REQ-NNN: Title
+    heading_title = f": {title}" if title else ""
+    entry = f"\n## {req_id}{heading_title}\n"
+    if description:
+        # Plain paragraph — not a bullet list (matches parser expectations)
+        entry += f"{description}\n"
+    # Legacy fields kept for backward-compat but written as metadata bullets
     if component:
         entry += f"- **Component**: {component}\n"
-    entry += f"- **Priority**: {priority}\n"
-    entry += "- **Status**: Draft\n"
-    if description:
-        entry += f"- **Description**: {description}\n"
+    if priority and priority != "medium":
+        entry += f"- **Priority**: {priority}\n"
 
     content = req_path.read_text(encoding="utf-8") if req_path.exists() else "# Requirements\n"
 

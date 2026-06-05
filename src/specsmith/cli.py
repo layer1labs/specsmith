@@ -2159,6 +2159,7 @@ def req_add(
         add_req(
             root,
             effective_id,
+            title=title,
             component=component,
             priority=priority,
             description=description,
@@ -2592,6 +2593,13 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
             steps.append(
                 {"step": "esdb_backup", "ok": True, "note": "JSON fallback (no WAL to backup)"}
             )
+    except ImportError:
+        # chronomemory not installed — non-fatal; commit and push still proceed.
+        # Install with: pipx inject specsmith
+        #   "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1"
+        from specsmith.esdb import _INSTALL_HINT  # noqa: PLC0415
+
+        steps.append({"step": "esdb_backup", "ok": True, "note": f"skipped — {_INSTALL_HINT}"})
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
 

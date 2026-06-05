@@ -224,6 +224,18 @@ class ProjectConfig(BaseModel):
         ),
     )
 
+    # Explicit type override — suppresses the type-mismatch audit check.
+    # Set this when your project uses a custom or research-specific type string
+    # that cannot be auto-detected (e.g. 'research-mathematics').  When
+    # type_override matches type, check_type_mismatch is suppressed.
+    type_override: str = Field(
+        default="",
+        description=(
+            "Explicit type override.  When set to the same value as `type`, "
+            "the type-mismatch audit check is suppressed regardless of what "
+            "auto-detection infers from the project files."
+        ),
+    )
     # Fallback type — used when this project type is not yet supported
     # by the installed specsmith version. specsmith silently falls back to
     # this type for scaffolding purposes while still recording the intended type.

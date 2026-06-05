@@ -779,6 +779,34 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
             raw = yaml.safe_load(f)
         config = ProjectConfig(**raw)
 
+        # Skip when type_override == type (explicit user suppression, #196).
+        if config.type_override and config.type_override == config.type:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=(
+                        f"Project type {config.type} is explicitly overridden; "
+                        f"auto-detection skipped"
+                    ),
+                )
+            )
+            return results
+
+        # Skip for unrecognised (custom) type strings — there is no known
+        # ProjectType to compare against, so detection is meaningless.
+        if config.project_type_enum is None:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=(
+                        f"Project type {config.type!r} is a custom type; auto-detection skipped"
+                    ),
+                )
+            )
+            return results
+
         # Skip auto-detection for types that must be specified explicitly.
         if config.type in _EXPLICIT_ONLY_TYPES:
             results.append(
