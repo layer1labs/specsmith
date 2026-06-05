@@ -225,6 +225,10 @@ module = [
     "specsmith.session_store",
     # MCP server: lazy in-function imports and dynamic Any patterns
     "specsmith.mcp_server",
+    # ESDB package: conditional chronomemory stubs in except ImportError branch
+    # produce type[_Stub] vs type[ChronoRecord] assignment errors that are
+    # correct at runtime but cannot be expressed statically without TYPE_CHECKING.
+    "specsmith.esdb",
 ]
 ignore_errors = true
 
