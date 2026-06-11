@@ -201,12 +201,12 @@ jobs:
       - name: "[ChronoStore] Verify CI license key is valid"
         run: |
           python -c "
-import sys
-from specsmith.esdb._license import verify_license_file
-status = verify_license_file('$HOME/.specsmith/esdb.key')
-print(f'valid={status.valid} customer={status.customer}')
-sys.exit(0 if status.valid else 1)
-"
+          import sys, os
+          from specsmith.esdb._license import verify_license_file
+          s = verify_license_file(os.path.expanduser('~/.specsmith/esdb.key'))
+          print(f'valid={s.valid} customer={s.customer}')
+          sys.exit(0 if s.valid else 1)
+          "
 
       - name: "[ChronoStore] esdb status returns chronomemory backend"
         run: |
