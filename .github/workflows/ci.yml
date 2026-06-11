@@ -137,6 +137,116 @@ jobs:
       - name: Build docs (strict)
         run: mkdocs build --strict
 
+  esdb-backends:
+    # REQ-365 + REQ-366 guard: both ESDB backends must work on every push.
+    # SQLite path: default, no license, no extra deps.
+    # ChronoStore path: specsmith[esdb] installed + CI debug license from secret.
+    name: ESDB backends (SQLite + ChronoStore)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: python -m pip install --upgrade pip
+
+      # ── SQLite path (default, no license, no chronomemory) ──────────────
+      - name: Install specsmith (core only — SQLite default)
+        run: pip install -e ".[dev]"
+
+      - name: "[SQLite] esdb status is sqlite backend"
+        env:
+          SPECSMITH_ESDB_BACKEND: sqlite
+          SPECSMITH_ALLOW_NON_PIPX: "1"
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+        run: |
+          python -m specsmith esdb status --json | python -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['backend'] == 'sqlite', f'Expected sqlite, got: {d[\"backend\"]}'
+print('PASS: SQLite backend confirmed')
+"
+
+      - name: "[SQLite] SqliteStore unit tests"
+        env:
+          SPECSMITH_ESDB_BACKEND: sqlite
+        run: pytest tests/test_esdb_sqlite.py -v --tb=short
+
+      - name: "[SQLite] License gate tests (no chronomemory installed)"
+        env:
+          SPECSMITH_ESDB_BACKEND: sqlite
+        run: pytest tests/test_esdb_license.py -v --tb=short
+
+      # ── ChronoStore path (specsmith[esdb] + CI debug license) ───────────
+      - name: Install specsmith[esdb] (chronomemory from PyPI)
+        run: pip install -e ".[esdb]"
+
+      - name: Write CI debug license key from secret
+        env:
+          SPECSMITH_ESDB_CI_KEY_B64: ${{ secrets.SPECSMITH_ESDB_CI_KEY }}
+        run: |
+          mkdir -p $HOME/.specsmith
+          echo "$SPECSMITH_ESDB_CI_KEY_B64" | python -c "
+import base64, sys, os
+data = base64.b64decode(sys.stdin.read().strip())
+path = os.path.expanduser('~/.specsmith/esdb.key')
+open(path, 'wb').write(data)
+print(f'License written to {path}')
+"
+
+      - name: "[ChronoStore] esdb enable validates CI license"
+        env:
+          SPECSMITH_ALLOW_NON_PIPX: "1"
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+        run: |
+          python -m specsmith esdb enable --key-file $HOME/.specsmith/esdb.key --json | python -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['ok'], f'License enable failed: {d}'
+assert d['customer'] == 'ci-debug', f'Wrong customer: {d}'
+print(f'PASS: License activated for {d[\"customer\"]}, expires {d[\"expires_at\"]}')
+"
+
+      - name: "[ChronoStore] esdb status is chronomemory backend"
+        env:
+          SPECSMITH_ALLOW_NON_PIPX: "1"
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+        run: |
+          python -m specsmith esdb status --json | python -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d['backend'] == 'chronomemory', f'Expected chronomemory, got: {d[\"backend\"]}'
+assert d['license']['active'], f'License not active: {d[\"license\"]}'
+print(f'PASS: ChronoStore active, license for {d[\"license\"][\"customer\"]}')
+"
+
+      - name: "[ChronoStore] esdb migrate loads records into ChronoStore"
+        env:
+          SPECSMITH_ALLOW_NON_PIPX: "1"
+          SPECSMITH_NO_AUTO_UPDATE: "1"
+        run: |
+          python -m specsmith esdb migrate --json | python -c "
+import json, sys
+d = json.load(sys.stdin)
+assert d.get('ok'), f'migrate failed: {d}'
+mig = d.get('migrated', {})
+print(f'PASS: Migrated {mig.get(\"requirements\",0)} reqs + {mig.get(\"testcases\",0)} tests into {d.get(\"backend\",\"?\")}')
+"
+
+      - name: "[ChronoStore] License gate + SQLite unit tests with real chronomemory"
+        env:
+          SPECSMITH_ESDB_KEY: "$HOME/.specsmith/esdb.key"
+        run: pytest tests/test_esdb_license.py tests/test_esdb_sqlite.py -v --tb=short
+
+      - name: Cleanup CI license key
+        if: always()
+        run: rm -f $HOME/.specsmith/esdb.key
+
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
     # if the live output drifts from the committed fixture.
