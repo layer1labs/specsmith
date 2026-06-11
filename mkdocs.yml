@@ -51,6 +51,7 @@ nav:
   - Importing Projects: importing.md
   - Configuration: configuration.md
   - Governance Model: governance.md
+  - ESDB: esdb.md
   - Doctor: doctor.md
   - Export & Compliance: export.md
   - Rate Limit Pacing: rate-limits.md

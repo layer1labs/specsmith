@@ -10005,31 +10005,167 @@ main.add_command(dispatch_group)
 
 @main.group(name="esdb")
 def esdb_group() -> None:
-    """Manage the ChronoMemory Epistemic State Database."""
+    """Manage the ESDB (Epistemic State Database).
+
+    The free SQLite backend is active by default.  The commercial ChronoStore
+    backend (chronomemory) requires 'pip install specsmith[esdb]' and a valid
+    license — see 'specsmith esdb enable --help'.
+    """
 
 
 @esdb_group.command(name="status")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False)
 def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
-    """Show ESDB status and record counts."""
+    """Show ESDB backend, license status, and record counts."""
     import json as _json
 
-    from chronomemory import EsdbBridge
+    from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
+    from specsmith.esdb._license import check_license, resolve_license_path
 
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
-    counts = bridge.record_counts()
+    root = Path(project_dir).resolve()
+
+    # Determine license status without side-effect warnings
+    lic_path = resolve_license_path()
+    lic_status = check_license(warn=False) if lic_path else None
+
+    # Open the appropriate store (no warning — we'll report it ourselves)
+    store = open_default_store(root, warn=False)
+    from specsmith.esdb import ESDB_BACKEND
+
+    backend_label: str
+    chain_ok: bool = True
+    record_count: int = 0
+    counts: dict[str, int] = {}
+
+    try:
+        with store as s:  # type: ignore[attr-defined]
+            record_count = s.record_count()
+            chain_ok = s.chain_valid()
+            if ESDB_BACKEND == "sqlite":
+                from specsmith.esdb.sqlite_store import SqliteStore
+
+                sqlite_db = root / ".specsmith" / "esdb.sqlite3"
+                backend_label = f"SQLite (free, MIT) — {sqlite_db}"
+                # count by kind for sqlite
+                for k in ("requirement", "testcase", "fact", "hypothesis", "decision"):
+                    n = len(s.query(kind=k))
+                    if n:
+                        counts[k] = n
+            else:
+                backend_label = "ChronoStore WAL (chronomemory commercial)"
+                from chronomemory import EsdbBridge
+
+                bridge = EsdbBridge(str(root))
+                counts = bridge.record_counts()
+    except Exception as exc:  # noqa: BLE001
+        backend_label = f"{ESDB_BACKEND} (error: {exc})"
+
+    license_info: dict[str, object]
+    if not CHRONO_AVAILABLE:
+        license_info = {"chronomemory_installed": False, "active": False}
+    elif lic_status is None:
+        license_info = {"chronomemory_installed": True, "active": False, "reason": "no license file found"}
+    else:
+        license_info = {
+            "chronomemory_installed": True,
+            "active": lic_status.valid,
+            "customer": lic_status.customer,
+            "expires_at": lic_status.expires_at,
+            "reason": lic_status.reason if not lic_status.valid else "",
+        }
+
     if as_json:
-        click.echo(_json.dumps({"status": st.to_dict(), "counts": counts}, indent=2))
+        click.echo(
+            _json.dumps(
+                {
+                    "backend": ESDB_BACKEND,
+                    "backend_label": backend_label,
+                    "record_count": record_count,
+                    "chain_valid": chain_ok,
+                    "counts": counts,
+                    "license": license_info,
+                },
+                indent=2,
+            )
+        )
         return
-    icon = "[green]\u25cf[/green]" if st.available else "[red]\u25cf[/red]"
-    console.print(f"{icon} ESDB — {st.backend}")
-    console.print(f"  Records: {st.record_count}")
+
+    icon = "[green]\u25cf[/green]"
+    console.print(f"{icon} ESDB — {backend_label}")
+    console.print(f"  Records: {record_count}")
     for kind, count in counts.items():
         console.print(f"    {kind}: {count}")
-    if st.chain_valid:
-        console.print("  [green]\u2714[/green] WAL chain integrity OK")
+    chain_icon = "[green]\u2714[/green]" if chain_ok else "[red]\u2717[/red]"
+    console.print(f"  {chain_icon} Integrity OK")
+    # License line
+    if not CHRONO_AVAILABLE:
+        console.print("  [dim]chronomemory not installed — run 'pip install specsmith[esdb]' for ChronoStore[/dim]")
+    elif lic_status and lic_status.valid:
+        console.print(
+            f"  [green]\u2714[/green] License: {lic_status.customer} (expires {lic_status.expires_at})"
+        )
+    else:
+        reason = lic_status.reason if lic_status else "no license file"
+        console.print(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
+        console.print("  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]")
+
+
+@esdb_group.command(name="enable")
+@click.option(
+    "--key-file",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to the Ed25519-signed ESDB license JSON file issued by Layer1Labs.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
+    """Validate and install an ESDB commercial license key.
+
+    Verifies the Ed25519 signature on the provided license file, then copies
+    it to ~/.specsmith/esdb.key so that subsequent commands automatically
+    activate the ChronoStore backend.
+
+    Obtain a license: licensing@layer1labs.com
+    """
+    import json as _json
+    import shutil
+
+    from specsmith.esdb._license import verify_license_file
+
+    status = verify_license_file(key_file)
+    if not status.valid:
+        if as_json:
+            click.echo(_json.dumps({"ok": False, "error": status.reason}))
+        else:
+            console.print(f"[red]\u2717[/red] License invalid: {status.reason}")
+            console.print(
+                "[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]"
+            )
+        raise SystemExit(1)
+
+    dest = Path.home() / ".specsmith" / "esdb.key"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(key_file, dest)
+
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "ok": True,
+                    "customer": status.customer,
+                    "expires_at": status.expires_at,
+                    "installed_at": str(dest),
+                }
+            )
+        )
+        return
+
+    console.print(f"[green]\u2714[/green] ESDB license activated")
+    console.print(f"  Customer : {status.customer}")
+    console.print(f"  Expires  : {status.expires_at}")
+    console.print(f"  Key path : {dest}")
+    console.print("  [dim]Run 'specsmith esdb status' to confirm ChronoStore is active.[/dim]")
 
 
 @esdb_group.command(name="migrate")
@@ -10121,16 +10257,21 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # --- Phase 2: migrate into ChronoStore WAL (if validation passed) ---
+    # --- Phase 2: migrate into active ESDB backend (if validation passed) ---
     migrate_counts: dict[str, int] = {}
     if ok:
         try:
-            from chronomemory import ChronoStore
+            from specsmith.esdb import open_default_store
 
-            with ChronoStore(root) as store:
+            with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
                 migrate_counts = store.migrate_from_json(root / ".specsmith")
-            manifest["chrono_migrated"] = migrate_counts
-            manifest["chrono_backend"] = "ChronoStore WAL (.chronomemory/)"
+            from specsmith.esdb import ESDB_BACKEND
+
+            manifest["migrated"] = migrate_counts
+            if ESDB_BACKEND == "chronomemory":
+                manifest["backend"] = "ChronoStore WAL (.chronomemory/)"
+            else:
+                manifest["backend"] = "SQLite (.specsmith/esdb.sqlite3)"
         except Exception as _me:  # noqa: BLE001
             manifest["chrono_error"] = str(_me)
 

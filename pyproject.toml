@@ -41,7 +41,9 @@ dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
-    "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1",
+    # chronomemory is now an OPTIONAL commercial dep (specsmith[esdb]).
+    # The free SQLite backend is built-in and requires no extra install.
+    # To unlock ChronoStore: pip install specsmith[esdb] + specsmith esdb enable
 ]
 
 [project.optional-dependencies]
@@ -52,6 +54,13 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.0",
     "types-pyyaml>=6.0",
+]
+# ESDB commercial backend — requires a valid license from licensing@layer1labs.com
+# Install: pip install specsmith[esdb]
+# Activate: specsmith esdb enable --key-file /path/to/your.esdb.key
+esdb = [
+    "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1",
+    "cryptography>=42.0",
 ]
 docs = [
     "mkdocs>=1.6",
@@ -75,7 +84,7 @@ history-semantic = ["sentence-transformers>=2.2", "numpy>=1.24"]
 voice = ["whisper-cpp-python>=0.2"]
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
-# Convenience bundle: everything
+# Convenience bundle: everything EXCEPT esdb (commercial license required separately)
 all = [
     "anthropic>=0.56",
     "openai>=1.0",
@@ -84,6 +93,8 @@ all = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
+# cryptography for license verification (usable without full esdb extra)
+license-verify = ["cryptography>=42.0"]
 
 [project.scripts]
 specsmith = "specsmith.cli:main"

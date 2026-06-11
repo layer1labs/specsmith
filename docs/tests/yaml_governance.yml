@@ -820,3 +820,36 @@
   type: unit
   verification_method: pytest tests/test_mcp_server.py — tests drive the server via
     subprocess with JSON-RPC messages and assert structured responses for each tool
+- id: TEST-365
+  title: governance_req_list MCP tool returns YAML-sourced requirements in YAML-mode
+    without requiring specsmith sync
+  requirement_id: REQ-364
+  type: unit
+  verification_method: pytest tests/test_mcp_server.py::test_governance_req_list_yaml_mode
+    — create temp project in yaml mode, add REQ to YAML file without syncing JSON,
+    call _handle_governance_req_list, assert new REQ appears in results
+- id: TEST-366
+  title: SqliteStore creates esdb.sqlite3, supports upsert/query/delete/record_count/wal_seq/chain_valid
+    with no external deps
+  requirement_id: REQ-365
+  type: unit
+  verification_method: pytest tests/test_esdb_sqlite.py — cover open/close context
+    manager, upsert roundtrip, query filters, delete tombstone, migrate_from_json,
+    wal_seq monotonically increasing, chain_valid always True
+- id: TEST-367
+  title: specsmith.esdb activates ChronoStore only when a valid Ed25519 license key
+    is present; falls back to SqliteStore otherwise
+  requirement_id: REQ-366
+  type: unit
+  verification_method: pytest tests/test_esdb_license.py — scenarios cover valid key
+    (ChronoStore selected), missing key (SqliteStore), expired key (SqliteStore +
+    warning), tampered signature (SqliteStore + warning), SPECSMITH_ESDB_BACKEND=sqlite
+    env override (SqliteStore even with valid key)
+- id: TEST-368
+  title: chronomemory LICENSE file contains proprietary commercial text and pyproject.toml
+    declares Proprietary license
+  requirement_id: REQ-367
+  type: integration
+  verification_method: pytest tests/test_esdb_license.py::test_chronomemory_license_is_proprietary
+    — read chronomemory LICENSE file and pyproject.toml, assert MIT not present and
+    Proprietary classifier present
