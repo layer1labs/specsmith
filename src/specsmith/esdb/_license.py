@@ -174,7 +174,6 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
 
     # Signature verification
     try:
-
         sig_bytes = base64.b64decode(data["signature"])
         payload = _canonical_payload(data)
         pub_key.verify(sig_bytes, payload)  # raises InvalidSignature on failure

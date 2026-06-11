@@ -4234,13 +4234,15 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
         )
         action = "skills_hint"
     elif any(k in lower for k in ("esdb", "database", "backup", "export", "records")):
-        from chronomemory import EsdbBridge
+        import specsmith.esdb as _esdb
 
+        action = "esdb_status"
         try:
-            bridge = EsdbBridge(project_dir)
-            st = bridge.status()
-            reply = f"ESDB: {st.backend} | {st.record_count} records | chain_valid={st.chain_valid}"
-            action = "esdb_status"
+            store = _esdb.open_default_store(project_dir, warn=False)
+            with store:
+                count = store.record_count()
+                chain_ok = store.chain_valid()
+            reply = f"ESDB: {_esdb.ESDB_BACKEND} | {count} records | chain_valid={chain_ok}"
         except Exception as exc:  # noqa: BLE001
             reply = f"ESDB unavailable: {exc}"
     elif any(k in lower for k in ("mcp", "server", "tool server")):
