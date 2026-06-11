@@ -131,9 +131,7 @@ in your own application without managing a pipx environment.
 **ESDB ChronoStore (commercial, requires license):**
 
 ```bash
-pipx inject specsmith "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1"
-# or:
-pip install "specsmith[esdb]"             # + chronomemory (commercial — requires license key)
+pip install "specsmith[esdb]"             # + chronomemory from PyPI (commercial — requires license key)
 specsmith esdb enable --key-file /path/to/your.esdb.key
 specsmith esdb status                     # confirms ChronoStore is active
 ```

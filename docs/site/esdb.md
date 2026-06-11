@@ -279,30 +279,19 @@ without creating duplicates.
 
 ## chronomemory availability and distribution
 
-### Current: git URL dep
-
-The `specsmith[esdb]` extra currently installs chronomemory from its GitHub repository:
+chronomemory v0.1.2+ is available on [PyPI](https://pypi.org/project/chronomemory/).
+`pip install specsmith[esdb]` resolves it cleanly with no git dependency:
 
 ```bash
 pip install "specsmith[esdb]"
-# resolves to:
-# chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1
+# resolves chronomemory>=0.1.2 from PyPI — no git required
 ```
 
-This requires git to be installed and resolves at install time. It works for all
-current use cases.
-
-### Roadmap: GitHub Releases wheel → public PyPI
-
-| Stage | Mechanism | Notes |
-|---|---|---|
-| **Now** | git URL in `[esdb]` extra | Requires git at install time |
-| **Near** | `.whl` published to GitHub Releases | `pip install specsmith[esdb]` points to release asset URL |
-| **Later** | Public PyPI (`pip install specsmith[esdb]`) | Standard PyPI distribution; proprietary license terms enforced by the key gate in specsmith |
-
-Publishing to PyPI with a proprietary license is permitted — PyPI does not restrict
-non-open-source packages.  The license key gate in specsmith is the enforcement
-mechanism; the proprietary `LICENSE` file governs legal terms.
+The package carries a proprietary commercial license.  PyPI does not restrict
+non-open-source packages — the license key gate in specsmith (`specsmith esdb enable`)
+is the technical enforcement; the [chronomemory LICENSE](https://github.com/layer1labs/chronomemory/blob/main/LICENSE)
+and [COMMERCIAL-LICENSE.md](https://github.com/layer1labs/chronomemory/blob/main/COMMERCIAL-LICENSE.md)
+govern the legal terms.
 
 ### Using the `epistemic` library without pipx
 

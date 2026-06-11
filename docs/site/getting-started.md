@@ -44,7 +44,7 @@ ChronoStore backend adds cryptographic tamper-evidence, OEA anti-hallucination f
 Rust acceleration, and epistemic rollback:
 
 ```bash
-pip install "specsmith[esdb]"                  # installs chronomemory
+pip install "specsmith[esdb]"                  # installs chronomemory from PyPI
 specsmith esdb enable --key-file your.esdb.key  # activate license
 specsmith esdb status                           # confirm ChronoStore active
 ```
