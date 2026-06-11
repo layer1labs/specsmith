@@ -112,5 +112,4 @@ session-level model dropdown instead.
 
 * **PR-2 (this milestone):** wires `--endpoint <id>` into `run`,
   `chat`, and `serve`, plus a new `_run_openai_compat` provider driver.
-* **PR-3:** Endpoints tab and a per-session dropdown in Kairos.
 * **PR-4:** 0.8.0 release notes + tag.

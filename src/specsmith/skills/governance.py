@@ -142,11 +142,12 @@ SKILLS: list[SkillEntry] = [
     ),
     SkillEntry(
         slug="chronomemory-esdb",
-        name="ChronoMemory ESDB — epistemic state database (v0.1.1)",
+        name="ChronoMemory ESDB — epistemic state database (v0.1.2)",
         description=(
-            "Full API reference and critical rules for chronomemory v0.1.1: "
+            "Full API reference and critical rules for chronomemory v0.1.2: "
             "ChronoStore WAL, query module, ContextPackCompiler, DepGraph, "
-            "token metrics, skills system, and Rust acceleration."
+            "token metrics, skills system, and Rust acceleration. "
+            "Commercial license required — see specsmith.readthedocs.io/esdb."
         ),
         domain=SkillDomain.GOVERNANCE,
         tags=[
@@ -562,6 +563,301 @@ Run `specsmith checkpoint` and copy the output into your response.
 | Drift detected | `specsmith checkpoint` immediately |
 """,
     ),
+    # ── AI client integration skills ─────────────────────────────────────
+    SkillEntry(
+        slug="claude-code-integration",
+        name="Claude Code — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into Claude Code: generate CLAUDE.md, "
+            "wire MCP server, and enforce session protocol in every Claude session."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["claude-code", "mcp", "integration", "governance", "session"],
+        prerequisites=["specsmith"],
+        body="""\
+# Claude Code — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate claude-code   # generates CLAUDE.md in project root
+```
+
+For MCP server (structured tool calls without shell roundtrips), add to `.mcp.json`:
+```json
+{
+  "mcpServers": {
+    "specsmith-governance": {
+      "command": "specsmith",
+      "args": ["mcp", "serve", "--project-dir", "."]
+    }
+  }
+}
+```
+Or run: `specsmith mcp install-claude-code`
+
+## Every Claude Code session — mandatory protocol
+1. Run at session start:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Output the checkpoint block verbatim before any other response.
+3. Before every code change: `specsmith preflight "<intent>" --json`
+   - `decision == "accepted"` → proceed with `work_item_id` in scope
+   - `decision == "needs_clarification"` → surface instruction to user first
+4. Every 8–10 turns: `specsmith checkpoint` (output verbatim)
+5. Session end: `specsmith save && specsmith kill-session`
+
+## Via MCP (preferred when configured)
+Claude can call `governance_preflight`, `governance_audit`, `governance_checkpoint`,
+`governance_req_list`, `governance_phase`, and `governance_trace_seal` as native tools.
+
+## Key files
+- `CLAUDE.md` — project-level governance instructions (read by Claude automatically)
+- `.mcp.json` — MCP server config (project root or `~/.claude/mcp.json` for global)
+- `.agents/skills/` — skill files auto-discovered by Claude Code 3.x+
+""",
+    ),
+    SkillEntry(
+        slug="cursor-integration",
+        name="Cursor — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into Cursor: generate .cursor/rules, "
+            "configure MCP server, and enforce preflight gate in every Cursor session."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["cursor", "mcp", "integration", "governance", "session", "rules"],
+        prerequisites=["specsmith"],
+        body="""\
+# Cursor — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate cursor   # generates .cursor/rules/governance.mdc
+```
+
+For MCP in Cursor (Settings → MCP or `.cursor/mcp.json`):
+```json
+{
+  "specsmith-governance": {
+    "command": "specsmith",
+    "args": ["mcp", "serve", "--project-dir", "${workspaceFolder}"]
+  }
+}
+```
+
+## Every Cursor session — mandatory protocol
+1. Run at session start:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Output the checkpoint block verbatim.
+3. Before every code change: `specsmith preflight "<intent>" --json`
+4. Every 8–10 turns: `specsmith checkpoint` (output verbatim)
+5. Session end: `specsmith save && specsmith kill-session`
+
+## Key files
+- `.cursor/rules/governance.mdc` — Cursor rule file (applied to all files)
+- `.cursor/mcp.json` — project-level MCP config
+- `AGENTS.md` — universal governance hub (Cursor reads this as project context)
+- `.agents/skills/` — skill files (Cursor Agent mode discovers these)
+""",
+    ),
+    SkillEntry(
+        slug="copilot-integration",
+        name="GitHub Copilot — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into GitHub Copilot: generate "
+            ".github/copilot-instructions.md and enforce the session protocol."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["copilot", "github", "integration", "governance", "session"],
+        prerequisites=["specsmith"],
+        body="""\
+# GitHub Copilot — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate copilot   # generates .github/copilot-instructions.md
+```
+
+Copilot reads `.github/copilot-instructions.md` automatically for all workspace
+interactions. The generated file embeds the preflight gate, session protocol,
+and hard rules.
+
+## Every Copilot session — mandatory protocol
+1. Run at session start:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Output checkpoint block verbatim.
+3. Before every code change: `specsmith preflight "<intent>" --json`
+   - Only proceed if `decision == "accepted"`
+4. Every 8–10 turns: `specsmith checkpoint` (output verbatim)
+5. Session end: `specsmith save && specsmith kill-session`
+
+## Key files
+- `.github/copilot-instructions.md` — Copilot workspace instructions
+- `AGENTS.md` — universal governance hub
+- `.agents/skills/specsmith/SKILL.md` — master CLI reference
+
+## Note
+Copilot does not natively support MCP as of 2026. Governance is enforced
+through `.github/copilot-instructions.md` and AGENTS.md.
+""",
+    ),
+    SkillEntry(
+        slug="windsurf-integration",
+        name="Windsurf — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into Windsurf: generate .windsurfrules, "
+            "configure MCP, and enforce preflight gate in every Windsurf session."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["windsurf", "mcp", "integration", "governance", "session", "rules"],
+        prerequisites=["specsmith"],
+        body="""\
+# Windsurf — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate windsurf   # generates .windsurfrules
+```
+
+For MCP in Windsurf (Settings → MCP Servers):
+```json
+{
+  "specsmith-governance": {
+    "command": "specsmith",
+    "args": ["mcp", "serve"]
+  }
+}
+```
+
+## Every Windsurf session — mandatory protocol
+1. Run at session start:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Output checkpoint block verbatim.
+3. Before every code change: `specsmith preflight "<intent>" --json`
+4. Every 8–10 turns: `specsmith checkpoint` (output verbatim)
+5. Session end: `specsmith save && specsmith kill-session`
+
+## Key files
+- `.windsurfrules` — Windsurf global rules file
+- `AGENTS.md` — universal governance hub
+- `.agents/skills/` — skill directory (Cascade agent reads these)
+""",
+    ),
+    SkillEntry(
+        slug="gemini-cli-integration",
+        name="Gemini CLI — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into Gemini CLI: generate GEMINI.md "
+            "and enforce the session protocol in every Gemini CLI session."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["gemini", "google", "integration", "governance", "session"],
+        prerequisites=["specsmith"],
+        body="""\
+# Gemini CLI — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate gemini   # generates GEMINI.md in project root
+```
+
+Gemini CLI reads `GEMINI.md` from the project root automatically.
+
+## Every Gemini CLI session — mandatory protocol
+1. Run at session start:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Output checkpoint block verbatim.
+3. Before every code change: `specsmith preflight "<intent>" --json`
+4. Every 8–10 turns: `specsmith checkpoint` (output verbatim)
+5. Session end: `specsmith save && specsmith kill-session`
+
+## Key files
+- `GEMINI.md` — Gemini CLI project instructions
+- `AGENTS.md` — universal governance hub
+- `.agents/skills/` — skill files referenced from GEMINI.md
+""",
+    ),
+    SkillEntry(
+        slug="aider-integration",
+        name="Aider — specsmith governance integration",
+        description=(
+            "Integrate specsmith governance into Aider: configure .aider.conf.yml "
+            "to load AGENTS.md and skills, and enforce the session protocol."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=["aider", "integration", "governance", "session", "git"],
+        prerequisites=["specsmith", "aider"],
+        body="""\
+# Aider — specsmith Governance Integration
+
+## One-time setup
+```bash
+specsmith integrate aider   # generates .aider.conf.yml
+```
+
+Manual: add to `.aider.conf.yml`:
+```yaml
+read:
+  - AGENTS.md
+  - .agents/skills/specsmith/SKILL.md
+  - .agents/skills/specsmith-session-governance/SKILL.md
+  - .agents/skills/specsmith-save/SKILL.md
+```
+
+Or pass at startup:
+```bash
+aider --read AGENTS.md \
+      --read .agents/skills/specsmith-session-governance/SKILL.md
+```
+
+## Every Aider session — mandatory protocol
+1. Run before starting aider:
+```bash
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .
+```
+2. Tell aider the governance anchor before any request:
+   `"Session anchor: [paste checkpoint output here]. Use preflight before changes."`
+3. Before aider makes code changes, verify preflight in a separate terminal:
+   `specsmith preflight "<intent>" --json`
+4. After aider commits, run: `specsmith save` to add ESDB backup.
+
+## Note
+Aider auto-commits via git. For full governance, configure aider with
+`--no-auto-commits` and manage commits through `specsmith save` instead.
+
+## Key files
+- `.aider.conf.yml` — aider configuration (reads AGENTS.md + skills)
+- `AGENTS.md` — universal governance hub
+- `.agents/skills/` — skills loaded via `read:` in aider config
+""",
+    ),
+    # ── CI / DevOps ────────────────────────────────────────────────────────
     SkillEntry(
         slug="gh-ci-polling",
         name="GitHub Actions CI polling — smart wait with gh CLI",

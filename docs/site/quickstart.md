@@ -105,4 +105,4 @@ missing and re-run from that step.
 ## Next steps
 - [`docs/site/agents.md`](agents.md) — the full multi-agent walkthrough
 - [`docs/site/api-stability.md`](api-stability.md) — the public surface contract
-- [`docs/site/dispatch.md`](dispatch.md) — multi-agent DAG dispatcher and Kairos live view
+- [`docs/site/dispatch.md`](dispatch.md) — multi-agent DAG dispatcher

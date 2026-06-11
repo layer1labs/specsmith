@@ -61,7 +61,7 @@ preflight`, and gates execution: only `accepted` decisions proceed. Toggle `/why
 to reveal the underlying `work_item_id`, `requirement_ids`, and `test_case_ids` Specsmith assigned.
 ## `specsmith chat`
 
-Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients (e.g. Kairos and compatible IDE clients).
+Run a single chat turn that emits the JSONL block protocol on stdout (REQ-112, REQ-113, REQ-114, REQ-115, REQ-116). This is the wire format consumed by IDE clients and MCP-compatible AI agents.
 
 ```bash
 specsmith chat "add a hello world greeter" --project-dir .
@@ -201,10 +201,10 @@ any edit to `docs/REQUIREMENTS.md` or `docs/TESTS.md`.
 
 ## `specsmith governance-serve`
 
-Start the governance REST API server for Kairos (REQ-001 Kairos side).
+Start the governance REST API server.
 
 ```bash
-specsmith governance-serve --port 7700   # default port for Kairos integration
+specsmith governance-serve --port 7700
 specsmith governance-serve --port 7700 --project-dir ./my-project
 ```
 
@@ -864,11 +864,11 @@ specsmith mcp generate "Calculate BMI" --json
 }
 ```
 
-The generated stub can be appended to `~/.specsmith/mcp.json` for use with the Kairos AI Builder card.
+The generated stub can be appended to `~/.specsmith/mcp.json`.
 
 ## `specsmith agent ask` (REQ-257)
 
-Keyword-based routing dispatcher that answers settings and status queries without requiring an LLM. Useful for IDE integrations and the Kairos settings agent widget.
+Keyword-based routing dispatcher that answers settings and status queries without requiring an LLM. Useful for IDE integrations and scripting.
 
 ```bash
 specsmith agent ask "show esdb status" --json-output

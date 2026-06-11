@@ -8,9 +8,9 @@
 pipx install specsmith
 ```
 
-Use pipx when you want the full `specsmith` CLI (audit, phase, run, agent, etc.) and
-Kairos integration.  pipx creates an isolated environment that prevents dependency
-conflicts with your project venvs.
+Use pipx when you want the full `specsmith` CLI (audit, phase, run, agent, etc.).
+pipx creates an isolated environment that prevents dependency conflicts with your project
+venvs.
 
 ```bash
 # Optional extras
@@ -179,7 +179,12 @@ This works in Claude Code, Cursor, terminal-native AI agents that load `.agents/
 
 After the agent is loaded, use the quick command `start` to trigger the full session start protocol.
 
-**Or use [Kairos](https://github.com/BitConcepts/kairos):** Launch Kairos and it automatically starts specsmith as a governance backend. The Governance panel shows your current AEE phase, compliance status, and all governance file health.
+Use any AI client (Warp, Cursor, Claude Code, Copilot, Windsurf, Aider) with the skills integration:
+```bash
+specsmith skill install specsmith-session-governance
+specsmith skill install claude-code-integration   # or cursor-integration, copilot-integration, etc.
+```
+See [Agent Integrations](agent-integrations.md) for per-client setup.
 
 ## Tutorial: Import an Existing Project
 

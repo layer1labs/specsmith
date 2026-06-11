@@ -42,9 +42,6 @@ nav:
     - Overview: agent-client.md
     - Agent Integrations: agent-integrations.md
     - Warp Integration: warp-integration.md
-  - Kairos Terminal:
-    - Overview & Install: kairos-terminal.md
-    - Multi-Agent Dispatch: dispatch.md
   - Skills Index: skills-index.md
   - Project Types: project-types.md
   - Tool Registry: tool-registry.md

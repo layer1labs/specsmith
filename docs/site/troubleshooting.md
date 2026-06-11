@@ -8,12 +8,12 @@ Check your Python version (requires 3.10+) and that pip is up to date: `pip inst
 ### `python -m specsmith` gives "No module named specsmith.__main__"
 Update to the latest version: `pipx upgrade specsmith` (or `pip install --upgrade specsmith` if not using pipx).
 
-## Version Mismatch — terminal vs VS Code
+## Version Mismatch — multiple binaries on PATH
 
-### Kairos shows a different specsmith version than `specsmith --version` in the terminal
+### One shell shows a different specsmith version than another
 
 This almost always means you have **two specsmith binaries** on PATH and they
-resolve differently between Kairos and your shell.
+resolve differently between shells or tools.
 
 Diagnose:
 ```powershell
