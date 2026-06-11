@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Integration tests for ChronoMemory ESDB — TEST-ESDB-001 through TEST-ESDB-020.
 
 use chronomemory::context_pack::ContextPackRequest;

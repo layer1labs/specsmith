@@ -55,7 +55,7 @@ Full comparison: [ESDB docs](esdb.md)
 ### From Source
 
 ```bash
-git clone https://github.com/BitConcepts/specsmith.git
+git clone https://github.com/layer1labs/specsmith.git
 cd specsmith
 pip install -e ".[dev]"
 ```

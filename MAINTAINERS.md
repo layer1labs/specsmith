@@ -8,8 +8,8 @@
 
 ## Organization
 
-**BitConcepts, LLC.**
-- Repository: [BitConcepts/specsmith](https://github.com/BitConcepts/specsmith)
+**Layer1Labs Silicon, Inc.**
+- Repository: [layer1labs/specsmith](https://github.com/layer1labs/specsmith)
 - License: MIT
 
 ## Responsibilities

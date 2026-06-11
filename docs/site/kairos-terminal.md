@@ -28,20 +28,20 @@ Kairos is distributed as pre-built binaries via GitHub Releases.
 
 ```bash
 # macOS Apple Silicon
-curl -Lo kairos https://github.com/BitConcepts/kairos/releases/latest/download/kairos-macos-aarch64
+curl -Lo kairos https://github.com/layer1labs/kairos/releases/latest/download/kairos-macos-aarch64
 chmod +x kairos && ./kairos
 
 # macOS Intel
-curl -Lo kairos https://github.com/BitConcepts/kairos/releases/latest/download/kairos-macos-x86_64
+curl -Lo kairos https://github.com/layer1labs/kairos/releases/latest/download/kairos-macos-x86_64
 chmod +x kairos && ./kairos
 
 # Linux x86_64
-curl -Lo kairos https://github.com/BitConcepts/kairos/releases/latest/download/kairos-linux-x86_64
+curl -Lo kairos https://github.com/layer1labs/kairos/releases/latest/download/kairos-linux-x86_64
 chmod +x kairos && ./kairos
 ```
 
 Windows: download `kairos-windows-x86_64.exe` from the
-[Releases page](https://github.com/BitConcepts/kairos/releases/latest) and run it.
+[Releases page](https://github.com/layer1labs/kairos/releases/latest) and run it.
 
 ### Update channels
 
@@ -64,7 +64,7 @@ the default will switch to **Stable**.
 Requires Rust stable (1.92+) and a platform C compiler.
 
 ```bash
-git clone https://github.com/BitConcepts/kairos
+git clone https://github.com/layer1labs/kairos
 cd kairos
 cargo build --release --bin kairos
 ./target/release/kairos

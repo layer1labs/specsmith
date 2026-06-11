@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 #
 # Run ruff check + ruff format --check under UTF-8 so any Unicode in error
 # messages or rule descriptions renders correctly.

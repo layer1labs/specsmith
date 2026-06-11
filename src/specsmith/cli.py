@@ -11042,7 +11042,7 @@ def agent_endpoint_presets_cmd(as_json: bool) -> None:
 def issue_group() -> None:
     """File and search GitHub issues with duplicate detection.
 
-    All commands check BitConcepts/kairos and BitConcepts/specsmith repos.
+    All commands check layer1labs/kairos and layer1labs/specsmith repos.
     Duplicate detection uses title-word Jaccard similarity; issues with
     similarity ≥ 0.60 block filing unless --force is passed.
 

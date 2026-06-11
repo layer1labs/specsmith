@@ -26,7 +26,7 @@ You control which provider is used. Layer1Labs has no visibility into what is se
 
 ### GitHub issues (`specsmith` doesn't file issues automatically)
 
-The specsmith CLI itself never creates GitHub issues. Kairos has an optional, consent-gated bug reporter — see the [Kairos PRIVACY.md](https://github.com/BitConcepts/kairos/blob/main/PRIVACY.md).
+The specsmith CLI itself never creates GitHub issues. Kairos has an optional, consent-gated bug reporter — see the [Kairos PRIVACY.md](https://github.com/layer1labs/kairos/blob/main/PRIVACY.md).
 
 ### Patent search (`specsmith patent`)
 
@@ -66,4 +66,4 @@ specsmith does **not**:
 
 ## Contact
 
-For privacy questions: open an issue at https://github.com/BitConcepts/specsmith or email privacy@bitconcepts.dev
+For privacy questions: open an issue at https://github.com/layer1labs/specsmith or email privacy@layer1labs.dev

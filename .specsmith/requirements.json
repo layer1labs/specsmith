@@ -1263,7 +1263,7 @@
     "id": "REQ-128",
     "title": "Cross-Repo Security Sweep",
     "description": "The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.",
-    "source": ".github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml",
+    "source": ".github/workflows/ci.yml, layer1labs/kairos/.github/workflows/ci.yml",
     "status": "implemented",
     "test_ids": [
       "TEST-128"
@@ -3246,7 +3246,7 @@
   {
     "id": "REQ-367",
     "title": "chronomemory must carry a proprietary commercial license separate from specsmith MIT",
-    "description": "The chronomemory package LICENSE file must be a proprietary commercial license (not MIT) requiring written permission from Layer1Labs Silicon, Inc. / BitConcepts, LLC. to use, copy, or distribute. The chronomemory pyproject.toml must declare license = Proprietary and must not be uploaded to PyPI without explicit authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial add-on tier.",
+    "description": "The chronomemory package LICENSE file must be a proprietary commercial license (not MIT) requiring written permission from Layer1Labs Silicon, Inc. / Layer1Labs Silicon, Inc. to use, copy, or distribute. The chronomemory pyproject.toml must declare license = Proprietary and must not be uploaded to PyPI without explicit authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial add-on tier.",
     "source": "commercial licensing model",
     "status": "accepted",
     "test_ids": [

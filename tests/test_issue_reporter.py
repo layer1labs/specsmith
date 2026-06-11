@@ -255,7 +255,7 @@ class TestFileIssue:
             "specsmith.issue_reporter._gh_api_post",
             lambda path, payload: {
                 "number": 99,
-                "html_url": "https://github.com/BitConcepts/kairos/issues/99",
+                "html_url": "https://github.com/layer1labs/kairos/issues/99",
                 "title": payload["title"],
             },
         )
@@ -273,7 +273,7 @@ class TestFileIssue:
             "specsmith.issue_reporter._gh_api_post",
             lambda path, payload: {
                 "number": 42,
-                "html_url": "https://github.com/BitConcepts/kairos/issues/42",
+                "html_url": "https://github.com/layer1labs/kairos/issues/42",
                 "title": "My Bug",
             },
         )

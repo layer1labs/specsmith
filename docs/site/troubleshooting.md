@@ -57,7 +57,7 @@ a global shell export.
 Override during import — when prompted "Proceed with these settings?" answer `n`, then select the correct type from the list. Or override language: you'll be prompted for it.
 
 ### Import doesn't detect my build system
-Currently detected: pyproject.toml, Cargo.toml, go.mod, package.json, CMakeLists.txt, west.yml, build.gradle.kts, pubspec.yaml, *.csproj, Makefile. If yours isn't listed, [file an issue](https://github.com/BitConcepts/specsmith/issues/new?template=feature_request.md).
+Currently detected: pyproject.toml, Cargo.toml, go.mod, package.json, CMakeLists.txt, west.yml, build.gradle.kts, pubspec.yaml, *.csproj, Makefile. If yours isn't listed, [file an issue](https://github.com/layer1labs/specsmith/issues/new?template=feature_request.md).
 
 ### Import overwrote my AGENTS.md
 Without `--force`, import never overwrites existing files. If you used `--force`, that's the intended behavior. Re-create your AGENTS.md or restore from git.

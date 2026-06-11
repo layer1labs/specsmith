@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Core ESDB types — record types, IDs, status, and epistemic primitives.
 
 use chrono::{DateTime, Utc};

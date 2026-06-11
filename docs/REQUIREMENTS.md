@@ -1014,7 +1014,7 @@
 - **Title:** Cross-Repo Security Sweep
 - **Description:** The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.
 - **Status:** implemented
-- **Source:** .github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml
+- **Source:** .github/workflows/ci.yml, layer1labs/kairos/.github/workflows/ci.yml
 - **Test_Ids:** ['TEST-128']
 
 ## REQ-129. 1.0 API Stability Commitment

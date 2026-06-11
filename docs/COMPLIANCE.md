@@ -68,9 +68,9 @@
 - `8ed9a9e fix: verification phase â€” all 5 checks now pass (100%)`
 - `7c85e2f chore: normalize to LF, remove stale files, commit pending work`
 - `d3f1b2d docs: rename Praxis -> Kairos, add Sister Repos section to AGENTS.md`
-- `b448043 Merge pull request #96 from BitConcepts/develop`
+- `b448043 Merge pull request #96 from layer1labs/develop`
 - `b7fa720 chore(release): bump version to 0.10.1`
-- `e44fce2 Merge pull request #95 from BitConcepts/develop`
+- `e44fce2 Merge pull request #95 from layer1labs/develop`
 - `9f961a0 feat(0.10.1): G1-G4 + C1 + H1-H4 follow-up sweep (#94)`
 
 **Contributors:**

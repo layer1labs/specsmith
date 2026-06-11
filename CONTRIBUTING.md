@@ -9,7 +9,7 @@ Until then, governance files in this repo (`AGENTS.md`, `LEDGER.md`, `docs/gover
 ## Development Setup
 
 ```bash
-git clone https://github.com/BitConcepts/specsmith.git
+git clone https://github.com/layer1labs/specsmith.git
 cd specsmith
 pip install -e ".[dev]"
 ```
@@ -91,7 +91,7 @@ When adding rules for a new tool:
 
 ## Supporting the Project
 
-Star the repo, report issues, and consider [sponsoring Layer1Labs](https://github.com/sponsors/BitConcepts).
+Star the repo, report issues, and consider [sponsoring Layer1Labs](https://github.com/sponsors/layer1labs).
 
 ## Importing Existing Projects
 

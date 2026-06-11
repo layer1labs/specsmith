@@ -43,8 +43,8 @@ from typing import Any
 # ── Repo mapping ────────────────────────────────────────────────────────────
 
 ORGS: dict[str, str] = {
-    "kairos": "BitConcepts/kairos",
-    "specsmith": "BitConcepts/specsmith",
+    "kairos": "layer1labs/kairos",
+    "specsmith": "layer1labs/specsmith",
 }
 
 _GITHUB_API = "https://api.github.com"
@@ -241,7 +241,7 @@ def search_issues(
     ``repo`` is a short name: ``"kairos"`` or ``"specsmith"``.
     Returns a list of issue dicts with keys: number, title, html_url, state.
     """
-    full_repo = ORGS.get(repo, f"BitConcepts/{repo}")
+    full_repo = ORGS.get(repo, f"layer1labs/{repo}")
     keywords = "+".join(list(_words(query))[:8])
     q = f"repo:{full_repo}+is:issue+is:open+{urllib.parse.quote(keywords, safe='+:')}"
     path = f"search/issues?q={q}&per_page={max_results}"
@@ -304,7 +304,7 @@ def file_issue(
         if check.blocked:
             raise DuplicateBlockedError(check)
 
-    full_repo = ORGS.get(repo, f"BitConcepts/{repo}")
+    full_repo = ORGS.get(repo, f"layer1labs/{repo}")
     payload: dict[str, Any] = {"title": title, "body": body}
     if labels:
         payload["labels"] = list(labels)
