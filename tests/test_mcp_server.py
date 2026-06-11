@@ -639,7 +639,8 @@ class TestGovernanceReqListYamlMode:
         result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
         req_ids = {r["id"] for r in result["reqs"]}
         assert "REQ-NEW" in req_ids, (
-            f"REQ-NEW should be visible from YAML source (stale cache only has REQ-001); got: {req_ids}"
+            "REQ-NEW should be visible from YAML source "
+            f"(stale cache only has REQ-001); got: {req_ids}"
         )
         assert result["total"] == 2
 

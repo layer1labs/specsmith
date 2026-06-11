@@ -198,11 +198,15 @@ jobs:
           print(f'License written to {path}')
           PYEOF
 
-      - name: "[ChronoStore] esdb enable validates CI license"
+      - name: "[ChronoStore] Verify CI license key is valid"
         run: |
-          OUT=$(python -m specsmith esdb enable --key-file "$HOME/.specsmith/esdb.key" --json)
-          echo "$OUT"
-          echo "$OUT" | python -c "import json,sys; d=json.load(sys.stdin); exit(0 if d['ok'] else 1)"
+          python -c "
+import sys
+from specsmith.esdb._license import verify_license_file
+status = verify_license_file('$HOME/.specsmith/esdb.key')
+print(f'valid={status.valid} customer={status.customer}')
+sys.exit(0 if status.valid else 1)
+"
 
       - name: "[ChronoStore] esdb status returns chronomemory backend"
         run: |

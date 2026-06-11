@@ -10,22 +10,17 @@ from __future__ import annotations
 import base64
 import json
 import os
-import shutil
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from specsmith.esdb._license import (
-    LicenseStatus,
-    _ESDB_PUBLIC_KEY_B64,
     _PRODUCT_NAME,
-    _canonical_payload,
     check_license,
     resolve_license_path,
     verify_license_file,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers — generate a valid license using the test private key
@@ -46,12 +41,11 @@ def _make_license_file(
 ) -> Path:
     """Create a signed license file in tmp_path and return its path."""
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 
     priv_bytes = base64.b64decode(_PRIVATE_KEY_B64)
     priv_key = Ed25519PrivateKey.from_private_bytes(priv_bytes)
 
-    payload = f"{customer}|{product}|{issued_at}|{expires_at}".encode("utf-8")
+    payload = f"{customer}|{product}|{issued_at}|{expires_at}".encode()
     sig_bytes = priv_key.sign(payload)
     sig_b64 = base64.b64encode(sig_bytes).decode("ascii")
 
@@ -161,27 +155,26 @@ def test_resolve_license_path_from_env(tmp_path: Path) -> None:
 
 
 def test_resolve_license_path_default(tmp_path: Path) -> None:
-    key = _make_license_file(tmp_path, filename="esdb.key")
-    default = Path.home() / ".specsmith" / "esdb.key"
-    # Temporarily patch home to tmp_path
-    with patch("specsmith.esdb._license.Path") as MockPath:
-        # Only mock Path.home(); let other Path calls through
-        import specsmith.esdb._license as lic_mod
+    # resolve_license_path looks for Path.home() / ".specsmith" / "esdb.key"
+    specsmith_dir = tmp_path / ".specsmith"
+    specsmith_dir.mkdir()
+    _make_license_file(specsmith_dir, filename="esdb.key")
+    import specsmith.esdb._license as lic_mod
 
-        original_home = Path.home
+    def fake_home() -> Path:
+        return tmp_path
 
-        def fake_home():
-            return tmp_path
-
-        with patch.object(Path, "home", staticmethod(fake_home)):
-            found = lic_mod.resolve_license_path()
-        assert found is not None
+    with patch.object(Path, "home", staticmethod(fake_home)):
+        found = lic_mod.resolve_license_path()
+    assert found is not None
 
 
 def test_check_license_no_key_returns_invalid() -> None:
-    with patch.dict(os.environ, {}, clear=True):
-        with patch("specsmith.esdb._license.resolve_license_path", return_value=None):
-            status = check_license(warn=False)
+    with (
+        patch.dict(os.environ, {}, clear=True),
+        patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+    ):
+        status = check_license(warn=False)
     assert status.valid is False
 
 
@@ -193,9 +186,11 @@ def test_check_license_valid_key(tmp_path: Path) -> None:
 
 
 def test_check_license_issues_warning_on_failure() -> None:
-    with patch("specsmith.esdb._license.resolve_license_path", return_value=None):
-        with pytest.warns(UserWarning, match="ESDB"):
-            check_license(warn=True)
+    with (
+        patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+        pytest.warns(UserWarning, match="ESDB"),
+    ):
+        check_license(warn=True)
 
 
 # ---------------------------------------------------------------------------

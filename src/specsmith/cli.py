@@ -10043,8 +10043,6 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
             record_count = s.record_count()
             chain_ok = s.chain_valid()
             if ESDB_BACKEND == "sqlite":
-                from specsmith.esdb.sqlite_store import SqliteStore
-
                 sqlite_db = root / ".specsmith" / "esdb.sqlite3"
                 backend_label = f"SQLite (free, MIT) — {sqlite_db}"
                 # count by kind for sqlite
@@ -10105,11 +10103,13 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     # License line
     if not CHRONO_AVAILABLE:
         console.print(
-            "  [dim]chronomemory not installed — run 'pip install specsmith[esdb]' for ChronoStore[/dim]"
+            "  [dim]chronomemory not installed — run "
+            "'pip install specsmith[esdb]' for ChronoStore[/dim]"
         )
     elif lic_status and lic_status.valid:
         console.print(
-            f"  [green]\u2714[/green] License: {lic_status.customer} (expires {lic_status.expires_at})"
+            f"  [green]\u2714[/green] License: {lic_status.customer} "
+            f"(expires {lic_status.expires_at})"
         )
     else:
         reason = lic_status.reason if lic_status else "no license file"
@@ -10167,7 +10167,7 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
         )
         return
 
-    console.print(f"[green]\u2714[/green] ESDB license activated")
+    console.print("[green]\u2714[/green] ESDB license activated")
     console.print(f"  Customer : {status.customer}")
     console.print(f"  Expires  : {status.expires_at}")
     console.print(f"  Key path : {dest}")
@@ -10185,15 +10185,29 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     .specsmith/esdb_migration_manifest.json file recording the validation
     state. This prepares the project for native Rust ChronoMemory ingestion.
     """
+    import contextlib
     import datetime
     import json as _json
 
-    from chronomemory import EsdbBridge
-
     root = Path(project_dir).resolve()
-    bridge = EsdbBridge(project_dir)
-    reqs = bridge.requirements()
-    tests = bridge.testcases()
+    state_dir = root / ".specsmith"
+    # Load from flat JSON (migrate always reads from the JSON cache as source)
+    reqs_raw: list[dict] = []
+    tests_raw: list[dict] = []
+    with contextlib.suppress(OSError, ValueError):
+        reqs_raw = _json.loads((state_dir / "requirements.json").read_text(encoding="utf-8"))
+    with contextlib.suppress(OSError, ValueError):
+        tests_raw = _json.loads((state_dir / "testcases.json").read_text(encoding="utf-8"))
+
+    # Wrap as minimal EsdbRecord-like objects for validation
+    class _Rec:
+        def __init__(self, d: dict) -> None:
+            self.id = str(d.get("id", ""))
+            self.label = str(d.get("title", d.get("label", "")))
+            self.data = d
+
+    reqs = [_Rec(r) for r in reqs_raw]
+    tests = [_Rec(t) for t in tests_raw]
 
     req_ids: set[str] = set()
     issues: list[dict[str, str]] = []
@@ -10557,8 +10571,6 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     and restores requirements.json + testcases.json from it.
     """
     import json as _json
-
-    from chronomemory import EsdbBridge
 
     root = Path(project_dir).resolve()
     backups_dir = root / ".specsmith" / "backups"

@@ -8,13 +8,11 @@ chain_valid, migrate_from_json, and concurrent re-open semantics.
 from __future__ import annotations
 
 import json
-import sqlite3
 from pathlib import Path
 
 import pytest
 
 from specsmith.esdb.sqlite_store import SqliteRecord, SqliteStore
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -54,7 +52,7 @@ def specsmith_dir(tmp_path: Path) -> Path:
 
 
 def test_open_creates_db_file(tmp_path: Path) -> None:
-    with SqliteStore(tmp_path) as s:
+    with SqliteStore(tmp_path):
         assert (tmp_path / ".specsmith" / "esdb.sqlite3").exists()
 
 

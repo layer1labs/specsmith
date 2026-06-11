@@ -25,9 +25,8 @@ from __future__ import annotations
 
 import base64
 import json
-import sys
 import warnings
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -64,13 +63,16 @@ def _canonical_payload(data: dict[str, str]) -> bytes:
     ).encode("utf-8")
 
 
-def _load_pub_key() -> "object":
+def _load_pub_key() -> object:
     """Load the embedded Ed25519 public key via the *cryptography* library."""
     try:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (
             Ed25519PublicKey,
         )
-        from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat  # noqa: F401
+        from cryptography.hazmat.primitives.serialization import (  # noqa: F401
+            Encoding,
+            PublicFormat,
+        )
 
         raw = base64.b64decode(_ESDB_PUBLIC_KEY_B64)
         return Ed25519PublicKey.from_public_bytes(raw)
@@ -172,7 +174,6 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
 
     # Signature verification
     try:
-        from cryptography.exceptions import InvalidSignature
 
         sig_bytes = base64.b64decode(data["signature"])
         payload = _canonical_payload(data)
