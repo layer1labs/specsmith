@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    {name = "Layer1Labs"},
+    {name = "Layer1Labs Silicon, Inc."},
 ]
 keywords = [
     "agentic", "scaffold", "governance", "agents-md", "cli",
