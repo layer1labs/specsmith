@@ -62,6 +62,10 @@ from epistemic import AEESession         # works in any Python 3.10+ project
 from epistemic import BeliefArtifact, StressTester, CertaintyEngine
 ```
 
+> **Library vs CLI:** The `specsmith` CLI requires pipx for isolation. The `epistemic` library
+> (and `specsmith.esdb`) work in any venv — `pip install specsmith` is all you need for
+> library-only use. The pipx guard only fires on CLI invocations.
+
 ---
 
 ## What is Applied Epistemic Engineering?
@@ -104,7 +108,7 @@ commands, and a readiness percentage.
 
 ## Install
 
-**Recommended — via pipx (works with Kairos, any terminal, and CI):**
+**Recommended — via pipx (CLI + Kairos + CI):**
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
@@ -113,14 +117,31 @@ pipx inject specsmith openai              # + GPT / O-series support
 pipx inject specsmith google-generativeai # + Gemini support
 ```
 
-**Or with pip:**
+**Library-only use (venv / conda / any Python environment):**
 
 ```bash
-pip install specsmith                     # core
-pip install "specsmith[anthropic]"       # + Claude
-pip install "specsmith[openai]"          # + GPT/O-series
-pip install "specsmith[gemini]"          # + Gemini
+pip install specsmith          # epistemic library + SQLite ESDB — no pipx needed
 ```
+
+This makes `from epistemic import AEESession` and `from specsmith.esdb import SqliteStore`
+immediately importable.  The pipx isolation guard only applies to the `specsmith` CLI
+command — not to library imports.  Use this when you want the AEE belief-state machinery
+in your own application without managing a pipx environment.
+
+**ESDB ChronoStore (commercial, requires license):**
+
+```bash
+pipx inject specsmith "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1"
+# or:
+pip install "specsmith[esdb]"             # + chronomemory (commercial — requires license key)
+specsmith esdb enable --key-file /path/to/your.esdb.key
+specsmith esdb status                     # confirms ChronoStore is active
+```
+
+The default ESDB backend is SQLite (free, MIT, no license needed).  ChronoStore
+(tamper-evident WAL, OEA fields, Rust acceleration) is a commercial add-on.
+Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain a license.
+See [ESDB docs](https://specsmith.readthedocs.io/esdb) for a full feature comparison.
 
 **Update:**
 

@@ -277,6 +277,61 @@ without creating duplicates.
 
 ---
 
+## chronomemory availability and distribution
+
+### Current: git URL dep
+
+The `specsmith[esdb]` extra currently installs chronomemory from its GitHub repository:
+
+```bash
+pip install "specsmith[esdb]"
+# resolves to:
+# chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1
+```
+
+This requires git to be installed and resolves at install time. It works for all
+current use cases.
+
+### Roadmap: GitHub Releases wheel → public PyPI
+
+| Stage | Mechanism | Notes |
+|---|---|---|
+| **Now** | git URL in `[esdb]` extra | Requires git at install time |
+| **Near** | `.whl` published to GitHub Releases | `pip install specsmith[esdb]` points to release asset URL |
+| **Later** | Public PyPI (`pip install specsmith[esdb]`) | Standard PyPI distribution; proprietary license terms enforced by the key gate in specsmith |
+
+Publishing to PyPI with a proprietary license is permitted — PyPI does not restrict
+non-open-source packages.  The license key gate in specsmith is the enforcement
+mechanism; the proprietary `LICENSE` file governs legal terms.
+
+### Using the `epistemic` library without pipx
+
+`epistemic` ships inside the specsmith wheel and is immediately importable after
+`pip install specsmith` in any Python 3.10+ environment — no pipx required:
+
+```python
+# After: pip install specsmith
+from epistemic import AEESession, BeliefArtifact, StressTester, CertaintyEngine
+from specsmith.esdb import SqliteStore, open_default_store, ESDB_BACKEND
+```
+
+The pipx-only guard applies only to the `specsmith` CLI command, not to library imports.
+This makes it straightforward to embed the AEE belief-state machinery in any application
+or data pipeline without managing a dedicated pipx environment.
+
+To use ChronoStore in your own application (library-only, no CLI):
+
+```python
+from specsmith.esdb import open_default_store, ESDB_BACKEND
+
+# Place license at ~/.specsmith/esdb.key or set SPECSMITH_ESDB_KEY
+with open_default_store("/path/to/project") as store:
+    print(f"Backend: {ESDB_BACKEND}")
+    recs = store.query(kind="requirement", rag_filter=True)
+```
+
+---
+
 ## Environment variables
 
 | Variable | Effect |

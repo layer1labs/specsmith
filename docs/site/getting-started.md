@@ -2,11 +2,55 @@
 
 ## Installation
 
-### From PyPI
+### pipx — recommended for the CLI
 
 ```bash
-pip install specsmith
+pipx install specsmith
 ```
+
+Use pipx when you want the full `specsmith` CLI (audit, phase, run, agent, etc.) and
+Kairos integration.  pipx creates an isolated environment that prevents dependency
+conflicts with your project venvs.
+
+```bash
+# Optional extras
+pipx inject specsmith anthropic    # Claude
+pipx inject specsmith openai       # GPT / O-series
+pipx inject specsmith google-genai # Gemini
+```
+
+### pip — library-only use
+
+```bash
+pip install specsmith    # in any venv, conda env, or system Python
+```
+
+This gives you the `epistemic` AEE library and the `specsmith.esdb` SQLite backend
+without the pipx isolation overhead.  Import directly:
+
+```python
+from epistemic import AEESession, BeliefArtifact, StressTester, CertaintyEngine
+from specsmith.esdb import SqliteStore, open_default_store
+```
+
+> The pipx guard (`specsmith must be installed via pipx`) applies only to the
+> `specsmith` **CLI command**.  Library imports via `pip install specsmith` work
+> in any Python 3.10+ environment with no restriction.
+
+### ESDB ChronoStore (commercial add-on)
+
+The default ESDB backend is SQLite (free, MIT, included with specsmith). The commercial
+ChronoStore backend adds cryptographic tamper-evidence, OEA anti-hallucination fields,
+Rust acceleration, and epistemic rollback:
+
+```bash
+pip install "specsmith[esdb]"                  # installs chronomemory
+specsmith esdb enable --key-file your.esdb.key  # activate license
+specsmith esdb status                           # confirm ChronoStore active
+```
+
+Obtain a license: [licensing@layer1labs.com](mailto:licensing@layer1labs.com)
+Full comparison: [ESDB docs](esdb.md)
 
 ### From Source
 
@@ -22,7 +66,7 @@ pip install -e ".[dev]"
 specsmith --version
 # specsmith, version {{ version }}
 
-# Or via python module
+# Or via python module (requires SPECSMITH_ALLOW_NON_PIPX=1 outside pipx)
 python -m specsmith --version
 ```
 
