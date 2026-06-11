@@ -31,9 +31,9 @@ try:
         metrics,
         query,
     )
-except ImportError:
+except ImportError:  # pragma: no cover
 
-    class _Stub:  # type: ignore[no-redef]
+    class _Stub:  # noqa: F811
         """Placeholder that raises a clear error on instantiation or call."""
 
         def __init__(self, *_: object, **__: object) -> None:
@@ -42,14 +42,14 @@ except ImportError:
         def __call__(self, *_: object, **__: object) -> "_Stub":
             raise ImportError(_INSTALL_HINT)
 
-    class _StubModule:
+    class _StubModule:  # noqa: F811
         def __getattr__(self, name: str) -> "_Stub":
             raise ImportError(_INSTALL_HINT)
 
-    EsdbBridge = EsdbRecord = EsdbStatus = ContextPackCompiler = DepGraph = _Stub  # type: ignore[misc]
-    query = _StubModule()  # type: ignore[assignment]
-    metrics = _StubModule()  # type: ignore[assignment]
-    RUST_BACKEND: bool = False  # type: ignore[misc]
+    EsdbBridge = EsdbRecord = EsdbStatus = ContextPackCompiler = DepGraph = _Stub  # noqa: F811
+    query = _StubModule()  # noqa: F811
+    metrics = _StubModule()  # noqa: F811
+    RUST_BACKEND = False  # noqa: F811
 
 __all__ = [
     "EsdbBridge",

@@ -28,7 +28,7 @@ import json
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     pass
@@ -63,7 +63,7 @@ def _canonical_payload(data: dict[str, str]) -> bytes:
     ).encode("utf-8")
 
 
-def _load_pub_key() -> object:
+def _load_pub_key() -> Any:
     """Load the embedded Ed25519 public key via the *cryptography* library."""
     try:
         from cryptography.hazmat.primitives.asymmetric.ed25519 import (

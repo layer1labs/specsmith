@@ -240,7 +240,9 @@ module = [
     # ESDB package: conditional chronomemory stubs in except ImportError branch
     # produce type[_Stub] vs type[ChronoRecord] assignment errors that are
     # correct at runtime but cannot be expressed statically without TYPE_CHECKING.
+    # specsmith.esdb.* covers bridge.py and _license.py sub-modules too.
     "specsmith.esdb",
+    "specsmith.esdb.*",
 ]
 ignore_errors = true
 
