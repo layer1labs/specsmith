@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Failure-Mode Graph (G) — maps stress-test → breakpoint relations.
 
 The Failure-Mode Graph is a directed graph where:

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith compliance — EU and North American AI regulation compliance.
 
 Provides structured regulation definitions, ESDB-backed evidence collection,

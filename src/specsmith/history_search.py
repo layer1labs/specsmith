@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Keyword + (optional) semantic search over chat history (REQ-135).
 
 The default backend is keyword-based: tokenises the query, scores each

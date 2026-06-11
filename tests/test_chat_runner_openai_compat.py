@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """End-to-end test for the BYOE openai-compat driver (REQ-142, PR-2).
 
 Runs an in-process fake ``/chat/completions`` SSE server, wires up an

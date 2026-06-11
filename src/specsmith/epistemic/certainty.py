@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Certainty Engine — confidence scoring and propagation (CERTUS-inspired).
 
 The CertaintyEngine assigns numeric uncertainty scores to BeliefArtifacts

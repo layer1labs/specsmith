@@ -52,7 +52,7 @@ specsmith esdb status
 
 ChronoStore is the full Epistemic State Database engine from
 [chronomemory](https://github.com/layer1labs/chronomemory).  It is a commercial
-add-on that requires a valid license from Layer1Labs / BitConcepts.
+add-on that requires a valid license from Layer1Labs.
 
 **Storage:** `<project_root>/.chronomemory/events.wal` (human-readable NDJSON)
 

@@ -666,7 +666,7 @@ CLI: `specsmith agent suggest-profiles`.
 Source: `src/specsmith/compliance.py` §`get_governance_rules_status`; rules `H15`–`H22`
 
 Specsmith v0.11.3 integrates the findings of the *"Ontology-Epistemic-Agentic (OEA)
-Recursive Generative Stability"* study (BitConcepts Research, 2026) as eight enforceable
+Recursive Generative Stability"* study (Layer1Labs Research, 2026) as eight enforceable
 governance rules, extending the core H1–H14 engineering rules:
 
 | Rule | Name | Primary OEA Control |

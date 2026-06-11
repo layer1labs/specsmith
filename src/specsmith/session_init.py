@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Session initialization — detect project, load governance, offer onboarding (REQ-225).
 
 When Kairos opens or ``specsmith run`` starts, this module provides the

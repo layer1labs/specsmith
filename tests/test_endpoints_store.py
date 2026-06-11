@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Unit tests for ``specsmith.agent.endpoints`` (REQ-142, PR-1).
 
 Covers the pure data layer: validation, JSON persistence, redaction, token

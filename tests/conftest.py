@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Shared pytest configuration for specsmith tests.
 
 Includes a workaround for WinError 448 ("untrusted mount point") that

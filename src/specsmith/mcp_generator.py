@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc.
 """MCP Server Generator — auto-scaffold Model Context Protocol servers.
 
 Generates Python MCP servers from natural-language tool descriptions using

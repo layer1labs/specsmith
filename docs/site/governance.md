@@ -127,7 +127,7 @@ on AI hallucination and semantic drift in production LLM systems.
 ### Research Background
 
 The *"Ontology-Epistemic-Agentic (OEA) Recursive Generative Stability"* study
-(BitConcepts Research, 2026) identified the root causes of LLM hallucination and drift
+(Layer1Labs Research, 2026) identified the root causes of LLM hallucination and drift
 through controlled ablation experiments across multiple model families. It validated that
 four primary intervention categories reliably suppress hallucination in production systems:
 

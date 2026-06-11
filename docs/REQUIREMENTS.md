@@ -2597,7 +2597,7 @@
 ## REQ-367. chronomemory must carry a proprietary commercial license separate from specsmith MIT
 - **ID:** REQ-367
 - **Title:** chronomemory must carry a proprietary commercial license separate from specsmith MIT
-- **Description:** The chronomemory package LICENSE file must be a proprietary commercial license (not MIT) requiring written permission from Layer1Labs Silicon, Inc. / BitConcepts, LLC. to use, copy, or distribute. The chronomemory pyproject.toml must declare license = Proprietary and must not be uploaded to PyPI without explicit authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial add-on tier.
+- **Description:** The chronomemory package LICENSE file must be a proprietary commercial license (not MIT) requiring written permission from Layer1Labs Silicon, Inc. to use, copy, or distribute. The chronomemory pyproject.toml must declare license = Proprietary and must not be uploaded to PyPI without explicit authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial add-on tier.
 - **Status:** accepted
 - **Source:** commercial licensing model
 - **Test_Ids:** ['TEST-368']

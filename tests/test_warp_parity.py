@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Warp parity bundle tests (REQ-133..REQ-135, REQ-140).
 
 Exercises the modules introduced in MEGA-PR-CLI plus the API stability

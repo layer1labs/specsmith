@@ -13,7 +13,7 @@
 If you discover a security vulnerability in specsmith, please report it responsibly:
 
 1. **Do NOT open a public issue.**
-2. Email: **support@bitconcepts.tech**
+2. Email: **info@layer1labs.com**
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce

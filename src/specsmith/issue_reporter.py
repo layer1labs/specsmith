@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Issue reporter — duplicate-guarded GitHub issue filing (REQ-303, REQ-304).
 
 All filing goes through this module.  The caller always gets a structured

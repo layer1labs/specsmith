@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Patent — USPTO ODP API integration for patent prior art analysis.
 
 Uses the USPTO Open Data Portal API (https://data.uspto.gov/apis/).

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """HuggingFace Open LLM Leaderboard sync and bucket scoring (REQ-263..REQ-269).
 
 Fetches model benchmark data from the HuggingFace Datasets Server and computes

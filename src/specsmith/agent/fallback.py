@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Resilient fallback-chain executor for agent profiles (REQ-146).
 
 Profiles in :mod:`specsmith.agent.profiles` carry a ``fallback_chain``

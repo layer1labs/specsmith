@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Machine state sync — keeps .specsmith/ JSON in sync with governance sources.
 
 Implements REQ-003 (Machine State Must Reflect Governance State).

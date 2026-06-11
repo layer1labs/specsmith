@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc.
 """Regression tests for REQ-248 through REQ-262.
 
 Covers:

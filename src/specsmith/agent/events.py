@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Block-based JSONL event protocol for `specsmith chat` (REQ-112, REQ-113, REQ-114).
 
 The protocol is the contract between the Specsmith chat backend and any

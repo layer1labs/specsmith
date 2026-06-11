@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Sandbox lifecycle test: old project with WORKFLOW.md files upgrades correctly.
 
 Creates a project with old-style governance files (WORKFLOW.md), then

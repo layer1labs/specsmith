@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Multi-provider LLM client with automatic fallback (REQ-275..REQ-277).
 
 Tries a configurable ordered list of providers; first configured one that

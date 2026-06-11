@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Performance smoke harness for specsmith preflight (REQ-124).
 
 Generates a synthetic 1000-REQ ``REQUIREMENTS.md`` in a temp project,

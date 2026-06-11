@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith MCP Server — native governance tool server (REQ-363).
 
 Implements the Model Context Protocol (MCP) over stdio (JSON-RPC 2.0).

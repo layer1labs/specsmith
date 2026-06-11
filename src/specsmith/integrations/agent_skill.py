@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Agent skill integration adapter.
 
 Generates a generic ``SKILL.md`` file under ``.agents/skills/`` for any

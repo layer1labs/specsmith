@@ -846,7 +846,7 @@ Full rule text: [`docs/governance/RULES.md`](docs/governance/RULES.md)
 **H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
 
 Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
-Generative Stability"* study (BitConcepts Research, 2026), which empirically validated
+Generative Stability"* study (Layer1Labs Research, 2026), which empirically validated
 the primary control mechanisms for preventing hallucination and semantic drift in
 production LLM systems:
 
@@ -1012,4 +1012,4 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 
 ## License
 
-MIT — Copyright (c) 2026 BitConcepts, LLC.
+MIT — Copyright (c) 2026 Layer1Labs Silicon, Inc.

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Trace Vault — Sovereign Trace Protocol (STP) inspired decision sealing.
 
 The TraceVault provides cryptographic proof of "what was decided, when, and

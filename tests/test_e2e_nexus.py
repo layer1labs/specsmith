@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """End-to-end Nexus pipeline test (REQ-110, TEST-110).
 
 Exercises broker -> chat -> verify entirely in-process, with a fake

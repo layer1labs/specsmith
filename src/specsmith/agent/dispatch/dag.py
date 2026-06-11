@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Task DAG — directed acyclic graph of agent work items.
 
 REQ-322: TaskDAGBuilder validates acyclicity before any dispatch.

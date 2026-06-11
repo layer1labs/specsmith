@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Codity.ai integration adapter.
 
 Generates a GitHub Actions (or GitLab CI / Azure Pipelines) workflow that

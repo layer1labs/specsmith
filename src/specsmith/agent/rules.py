@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Project rules auto-injection for the Nexus orchestrator (REQ-119).
 
 Combines `docs/governance/*_RULES.md` files and the H-rules from

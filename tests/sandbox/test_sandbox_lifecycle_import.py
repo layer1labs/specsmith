@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Sandbox lifecycle test: import existing project and walk lifecycle.
 
 Creates a realistic project, imports it, then verifies governance files

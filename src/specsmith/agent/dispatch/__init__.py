@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith.agent.dispatch — Multi-agent DAG dispatcher.
 
 Public surface (REQ-321..REQ-330):

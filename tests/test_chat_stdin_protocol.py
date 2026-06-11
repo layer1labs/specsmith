@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for `specsmith chat --interactive` stdin decision protocol.
 
 The interactive flow lets an IDE consumer (e.g. Kairos)

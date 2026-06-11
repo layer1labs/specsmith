@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Mechanical compliance tests (tests/test_compliance.py).
 
 Covers REQ-206 through REQ-220 (EU AI Act / NIST AI RMF compliance mechanisms)

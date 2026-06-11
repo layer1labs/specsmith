@@ -218,7 +218,7 @@ gh api /repos/$REPO/dependabot/alerts?state=open --paginate --jq 'length' 2>/dev
             """\
 # GitHub Actions CI Skill (Layer1Labs pattern)
 
-Standard CI pattern used across all Layer1Labs / BitConcepts Python projects.
+Standard CI pattern used across all Layer1Labs Python projects.
 Reference implementation: `chronomemory/.github/workflows/ci.yml`
 
 ## Core principles

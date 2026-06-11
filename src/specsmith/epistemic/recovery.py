@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Recovery Operator (R) — resolves Logic Knots and Failure Modes.
 
 The Recovery Operator R resolves Logic Knots by proposing minimal primitive

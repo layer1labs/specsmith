@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for `specsmith chat --interactive` inline diff-decision flow.
 
 The diff-decision protocol is the second half of the interactive contract

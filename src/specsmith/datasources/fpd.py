@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """USPTO Final Petition Decisions (FPD) data source client.
 
 Search and retrieve petition decisions from the USPTO Director's office.

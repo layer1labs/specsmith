@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Web / backend skill domain — frontend engineering, web perf, accessibility, databases."""
 
 from specsmith.skills import SkillDomain, SkillEntry

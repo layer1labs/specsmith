@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for CodityAdapter (REQ-354, TEST-354/355) and codity-ai-review skill (REQ-356, TEST-356).
 
 Covers:

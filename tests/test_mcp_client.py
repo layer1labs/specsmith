@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """End-to-end tests for the real MCP JSON-RPC client (REQ-130 / TEST-130).
 
 Uses ``tests/fixtures/mcp_fake_server.py`` so we can drive the full

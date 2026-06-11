@@ -4,7 +4,7 @@
 
 | Name | Role | GitHub | Contact |
 |------|------|--------|---------|
-| Tristen Pierson | Owner, Lead Engineer | [@tbitcs](https://github.com/tbitcs) | tpierson@bitconcepts.tech |
+| Tristen Pierson | Owner, Lead Engineer | [@tbitcs](https://github.com/tbitcs) | info@layer1labs.com |
 
 ## Organization
 

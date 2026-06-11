@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Migration runner — tracks applied versions and executes pending migrations.
 
 Migration state is tracked in .specsmith/migration-state.json:

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for the glossa-lab AI intelligence patterns ported to specsmith.
 
 Covers TEST-263 through TEST-279 (REQ-263..REQ-279).

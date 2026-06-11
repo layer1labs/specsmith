@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for the multi-provider LLM client (TEST-274..TEST-276, REQ-275..REQ-277)."""
 
 from __future__ import annotations

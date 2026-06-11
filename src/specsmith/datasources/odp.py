@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """USPTO Open Data Portal (ODP) data source client.
 
 ODP provides application metadata, prosecution transactions, assignments,

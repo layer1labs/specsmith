@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """AI / LLM / Agent skill domain — skills for building and governing AI-powered systems."""
 
 from specsmith.skills import SkillDomain, SkillEntry

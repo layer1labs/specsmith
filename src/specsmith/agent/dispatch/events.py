@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Dispatch event bus — persists JSONL to disk and feeds live SSE subscribers.
 
 REQ-328: every node state transition is emitted as a DispatchEvent and

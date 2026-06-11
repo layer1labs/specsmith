@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith.esdb._license — offline Ed25519 license verification (REQ-366).
 
 The chronomemory ESDB backend (ChronoStore) is a commercial add-on that requires

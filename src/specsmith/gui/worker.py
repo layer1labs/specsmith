@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """AgentWorker — runs agent turns in a background QThread.
 
 GUIAgentRunner subclasses AgentRunner and overrides the three output

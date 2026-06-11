@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Bring-Your-Own-Endpoint (BYOE) data model and persistence (REQ-142).
 
 Specsmith historically hard-coded a closed provider list (``ollama`` /

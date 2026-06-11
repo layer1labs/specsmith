@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for the multi-agent DAG dispatcher (REQ-321..REQ-334).
 
 TEST-321: Orchestrator sole entry point (checked via import/source inspection)

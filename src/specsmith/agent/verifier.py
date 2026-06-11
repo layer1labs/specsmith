@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Real verifier signal for the Nexus orchestrator (REQ-108).
 
 Replaces the hardcoded ``0.85 / 0.4 / 0.0`` confidence in

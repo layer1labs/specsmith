@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Execution profiles — command allow/block lists for the agentic tool runner.
 
 Four built-in profiles control what the AI agent is permitted to do:

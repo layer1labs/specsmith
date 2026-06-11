@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Long-lived agent runtime driving ``specsmith run`` / ``specsmith serve``.
 
 The runner is the bridge between the Click entry points in :mod:`cli` and
