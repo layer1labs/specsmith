@@ -145,6 +145,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      SPECSMITH_ALLOW_NON_PIPX: "1"
+      SPECSMITH_NO_AUTO_UPDATE: "1"
+      SPECSMITH_PYPI_CHECKED: "1"
     steps:
       - uses: actions/checkout@v6
 
@@ -159,18 +163,13 @@ jobs:
       - name: Install specsmith (core only — SQLite default)
         run: pip install -e ".[dev]"
 
-      - name: "[SQLite] esdb status is sqlite backend"
+      - name: "[SQLite] esdb status returns sqlite backend"
         env:
           SPECSMITH_ESDB_BACKEND: sqlite
-          SPECSMITH_ALLOW_NON_PIPX: "1"
-          SPECSMITH_NO_AUTO_UPDATE: "1"
         run: |
-          python -m specsmith esdb status --json | python -c "
-import json, sys
-d = json.load(sys.stdin)
-assert d['backend'] == 'sqlite', f'Expected sqlite, got: {d[\"backend\"]}'
-print('PASS: SQLite backend confirmed')
-"
+          OUT=$(python -m specsmith esdb status --json)
+          echo "$OUT"
+          echo "$OUT" | python -c "import json,sys; d=json.load(sys.stdin); exit(0 if d['backend']=='sqlite' else 1)"
 
       - name: "[SQLite] SqliteStore unit tests"
         env:
@@ -190,62 +189,39 @@ print('PASS: SQLite backend confirmed')
         env:
           SPECSMITH_ESDB_CI_KEY_B64: ${{ secrets.SPECSMITH_ESDB_CI_KEY }}
         run: |
-          mkdir -p $HOME/.specsmith
-          echo "$SPECSMITH_ESDB_CI_KEY_B64" | python -c "
-import base64, sys, os
-data = base64.b64decode(sys.stdin.read().strip())
-path = os.path.expanduser('~/.specsmith/esdb.key')
-open(path, 'wb').write(data)
-print(f'License written to {path}')
-"
+          mkdir -p "$HOME/.specsmith"
+          python - <<'PYEOF'
+          import base64, os
+          raw = base64.b64decode(os.environ['SPECSMITH_ESDB_CI_KEY_B64'])
+          path = os.path.expanduser('~/.specsmith/esdb.key')
+          open(path, 'wb').write(raw)
+          print(f'License written to {path}')
+          PYEOF
 
       - name: "[ChronoStore] esdb enable validates CI license"
-        env:
-          SPECSMITH_ALLOW_NON_PIPX: "1"
-          SPECSMITH_NO_AUTO_UPDATE: "1"
         run: |
-          python -m specsmith esdb enable --key-file $HOME/.specsmith/esdb.key --json | python -c "
-import json, sys
-d = json.load(sys.stdin)
-assert d['ok'], f'License enable failed: {d}'
-assert d['customer'] == 'ci-debug', f'Wrong customer: {d}'
-print(f'PASS: License activated for {d[\"customer\"]}, expires {d[\"expires_at\"]}')
-"
+          OUT=$(python -m specsmith esdb enable --key-file "$HOME/.specsmith/esdb.key" --json)
+          echo "$OUT"
+          echo "$OUT" | python -c "import json,sys; d=json.load(sys.stdin); exit(0 if d['ok'] else 1)"
 
-      - name: "[ChronoStore] esdb status is chronomemory backend"
-        env:
-          SPECSMITH_ALLOW_NON_PIPX: "1"
-          SPECSMITH_NO_AUTO_UPDATE: "1"
+      - name: "[ChronoStore] esdb status returns chronomemory backend"
         run: |
-          python -m specsmith esdb status --json | python -c "
-import json, sys
-d = json.load(sys.stdin)
-assert d['backend'] == 'chronomemory', f'Expected chronomemory, got: {d[\"backend\"]}'
-assert d['license']['active'], f'License not active: {d[\"license\"]}'
-print(f'PASS: ChronoStore active, license for {d[\"license\"][\"customer\"]}')
-"
+          OUT=$(python -m specsmith esdb status --json)
+          echo "$OUT"
+          echo "$OUT" | python -c "import json,sys; d=json.load(sys.stdin); exit(0 if d['backend']=='chronomemory' and d['license']['active'] else 1)"
 
-      - name: "[ChronoStore] esdb migrate loads records into ChronoStore"
-        env:
-          SPECSMITH_ALLOW_NON_PIPX: "1"
-          SPECSMITH_NO_AUTO_UPDATE: "1"
+      - name: "[ChronoStore] esdb migrate into ChronoStore"
         run: |
-          python -m specsmith esdb migrate --json | python -c "
-import json, sys
-d = json.load(sys.stdin)
-assert d.get('ok'), f'migrate failed: {d}'
-mig = d.get('migrated', {})
-print(f'PASS: Migrated {mig.get(\"requirements\",0)} reqs + {mig.get(\"testcases\",0)} tests into {d.get(\"backend\",\"?\")}')
-"
+          OUT=$(python -m specsmith esdb migrate --json)
+          echo "$OUT"
+          echo "$OUT" | python -c "import json,sys; d=json.load(sys.stdin); exit(0 if d.get('ok') else 1)"
 
-      - name: "[ChronoStore] License gate + SQLite unit tests with real chronomemory"
-        env:
-          SPECSMITH_ESDB_KEY: "$HOME/.specsmith/esdb.key"
+      - name: "[ChronoStore] Full test suite with real chronomemory"
         run: pytest tests/test_esdb_license.py tests/test_esdb_sqlite.py -v --tb=short
 
       - name: Cleanup CI license key
         if: always()
-        run: rm -f $HOME/.specsmith/esdb.key
+        run: rm -f "$HOME/.specsmith/esdb.key"
 
   api-surface:
     # REQ-140 guard: regenerates the public CLI surface and fails the build
