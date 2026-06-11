@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Specsmith Drive (REQ-133) — sync rules/workflows/notebooks across machines.
 
 Backend agnostic: the default backend is a local filesystem mirror under

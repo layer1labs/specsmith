@@ -4,7 +4,7 @@
 
 ## Summary
 
-specsmith is a local CLI tool. It collects no telemetry, sends no analytics, and stores no data on BitConcepts servers. The only external network calls it makes are those you explicitly configure.
+specsmith is a local CLI tool. It collects no telemetry, sends no analytics, and stores no data on Layer1Labs servers. The only external network calls it makes are those you explicitly configure.
 
 ---
 
@@ -22,11 +22,11 @@ When you start an agent session, specsmith sends your project's governance files
 | Mistral | api.mistral.ai | https://mistral.ai/privacy |
 | Ollama | localhost (no network call) | n/a — runs locally |
 
-You control which provider is used. BitConcepts has no visibility into what is sent to these providers — all requests go directly from your machine to their API.
+You control which provider is used. Layer1Labs has no visibility into what is sent to these providers — all requests go directly from your machine to their API.
 
 ### GitHub issues (`specsmith` doesn't file issues automatically)
 
-The specsmith CLI itself never creates GitHub issues. Kairos has an optional, consent-gated bug reporter — see the [Kairos PRIVACY.md](https://github.com/BitConcepts/kairos/blob/main/PRIVACY.md).
+The specsmith CLI itself never creates GitHub issues. Kairos has an optional, consent-gated bug reporter — see the [Kairos PRIVACY.md](https://github.com/layer1labs/kairos/blob/main/PRIVACY.md).
 
 ### Patent search (`specsmith patent`)
 
@@ -51,7 +51,7 @@ All of the following are stored locally only, never uploaded:
 
 specsmith does **not**:
 
-- Send crash reports or usage analytics to BitConcepts
+- Send crash reports or usage analytics to Layer1Labs
 - Track which commands you run or how often
 - Phone home to check for updates automatically (the `specsmith update` command checks PyPI only when you run it)
 - Collect your name, email, or any personally identifiable information
@@ -66,4 +66,4 @@ specsmith does **not**:
 
 ## Contact
 
-For privacy questions: open an issue at https://github.com/BitConcepts/specsmith or email privacy@bitconcepts.dev
+For privacy questions: open an issue at https://github.com/layer1labs/specsmith or email privacy@layer1labs.dev

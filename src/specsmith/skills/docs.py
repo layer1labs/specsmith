@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Documentation-system skills — MkDocs, Sphinx, mdBook, Rustdoc, Doxygen, JSDoc, TypeDoc, OpenAPI.
 
 H23 Documentation Lifecycle Gate: architecture → requirements → tests → docs.
@@ -834,8 +834,7 @@ info:
   version: "0.1.0"
   description: Short description of the API.
   contact:
-    name: BitConcepts
-    url: https://bitconcepts.tech
+    name: Layer1Labs\n    url: https://layer1labs.com
 
 servers:
   - url: http://localhost:8421

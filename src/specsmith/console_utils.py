@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """UTF-8 safe ``rich.console.Console`` factory.
 
 Implements REQ-082: Specsmith CLI console output must not raise

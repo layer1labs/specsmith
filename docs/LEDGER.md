@@ -252,7 +252,7 @@
 - **Description**: Extended specsmith governance hard rules from H1–H14 to H1–H22.
   H12 updated for cross-platform coverage (Windows `.cmd/.ps1`, macOS/Linux `sh/bash`).
   H15–H22 added covering anti-hallucination principles from the OEA Recursive Generative
-  Stability research (BitConcepts Research, 2026): epistemic scope bounding (H15),
+  Stability research (Layer1Labs Research, 2026): epistemic scope bounding (H15),
   anti-drift recursion guard (H16), calibration direction (H17), RAG retrieval filtering (H18),
   synthetic contamination prevention (H19), falsifiability required (H20), no undisclosed
   model assumptions (H21), cross-platform CI enforcement (H22).
@@ -352,3 +352,35 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `23df42362ffb6d46...`
+
+## 2026-06-03T23:09 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `c8978a2f9a4eda4b...`
+
+## 2026-06-05T19:40 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `d8dfe50551959607...`
+
+## 2026-06-05T20:06 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `f216457cc8f7c904...`
+
+## 2026-06-11T12:23 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `e548e9fef9cf994d...`

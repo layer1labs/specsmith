@@ -31,4 +31,4 @@ What actually happened (include full error output).
 ```
 
 ---
-> **Terminal/UI bug?** File it in [kairos](https://github.com/BitConcepts/kairos/issues/new?template=bug_report.md) instead.
+> **Terminal/UI bug?** File it in [kairos](https://github.com/layer1labs/kairos/issues/new?template=bug_report.md) instead.

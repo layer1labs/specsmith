@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Software engineering workflow skills — code review, TDD, debugging, security, etc."""
 
 from specsmith.skills import SkillDomain, SkillEntry

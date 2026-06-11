@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Base DataSource protocol for all built-in data source clients.
 
 Every data source (PatentsView, PPUBS, ODP, PFW, Citations, FPD, PTAB)

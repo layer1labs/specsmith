@@ -7,7 +7,7 @@ These rules are non-negotiable. Violation of any hard rule is a stop condition.
 > **Research basis for H15–H22:** Rules H15 through H22 were derived from and
 > empirically validated by the study *"Ontology-Epistemic-Agentic (OEA) Recursive
 > Generative Stability: A Unified Framework for Preventing Hallucination and Drift in
-> Large Language Models"* (BitConcepts Research, 2026). The OEA framework validated
+> Large Language Models"* (Layer1Labs Research, 2026). The OEA framework validated
 > that calibration direction, epistemic scope bounding, retrieval filtering, and
 > recursion guard controls are the primary levers for suppressing hallucination and
 > semantic drift in production AI systems. specsmith encodes these findings as

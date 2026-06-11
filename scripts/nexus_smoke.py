@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Nexus smoke test — verify l1-nexus connectivity (REQ-089, REQ-095).
 
 Run manually when you have a local vLLM/Ollama instance:

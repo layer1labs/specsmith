@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for the multi-agent DAG dispatcher (REQ-321..REQ-334).
 
 TEST-321: Orchestrator sole entry point (checked via import/source inspection)
@@ -804,7 +804,9 @@ class TestMultiAgentCompliance:
     # REQ-319: ESDB record contains DAG lineage
     def test_esdb_record_contains_dag_lineage(self, tmp_path):
         """dispatch_result ChronoRecord MUST include dag_id and node_id (REQ-319)."""
-        from chronomemory import ChronoStore
+        ChronoStore = pytest.importorskip(
+            "chronomemory", reason="requires specsmith[esdb]"
+        ).ChronoStore  # noqa: N806
 
         from specsmith.agent.dispatch import EventEmitter, TaskDAGBuilder
         from specsmith.agent.dispatch.dispatcher import AgentDispatcher, AgentPool

@@ -4,12 +4,12 @@
 
 | Name | Role | GitHub | Contact |
 |------|------|--------|---------|
-| Tristen Pierson | Owner, Lead Engineer | [@tbitcs](https://github.com/tbitcs) | tpierson@bitconcepts.tech |
+| Tristen Pierson | Owner, Lead Engineer | [@tbitcs](https://github.com/tbitcs) | info@layer1labs.com |
 
 ## Organization
 
-**BitConcepts, LLC.**
-- Repository: [BitConcepts/specsmith](https://github.com/BitConcepts/specsmith)
+**Layer1Labs Silicon, Inc.**
+- Repository: [layer1labs/specsmith](https://github.com/layer1labs/specsmith)
 - License: MIT
 
 ## Responsibilities

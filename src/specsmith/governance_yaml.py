@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """YAML-native governance layer (REQ-003 extension).
 
 When ``docs/requirements/*.yml`` and ``docs/tests/*.yml`` exist and

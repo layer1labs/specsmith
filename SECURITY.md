@@ -13,7 +13,7 @@
 If you discover a security vulnerability in specsmith, please report it responsibly:
 
 1. **Do NOT open a public issue.**
-2. Email: **support@bitconcepts.tech**
+2. Email: **info@layer1labs.com**
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -22,7 +22,7 @@ If you discover a security vulnerability in specsmith, please report it responsi
 
 We will acknowledge receipt within **48 hours** and aim to provide a fix or mitigation within **7 days** for critical issues.
 
-You may also use [GitHub's private security advisory](https://github.com/BitConcepts/specsmith/security/advisories/new) workflow.
+You may also use [GitHub's private security advisory](https://github.com/layer1labs/specsmith/security/advisories/new) workflow.
 
 ## Scope
 

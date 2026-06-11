@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Real LLM-backed runner for `specsmith chat` (REQ-108, REQ-112-118).
 
 This module replaces the deterministic stub that previously lived inside

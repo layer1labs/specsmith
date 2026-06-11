@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Epistemic continuity — cross-session context seed for AgentRunner.
 
 Addresses the gap where ``AgentRunner`` always started with an empty

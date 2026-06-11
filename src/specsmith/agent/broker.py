@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Natural-Language Governance Broker (REQ-084).
 
 The broker translates plain-language user utterances into Specsmith-governed
@@ -144,6 +144,11 @@ def classify_intent(utterance: str) -> Intent:
 # Extended to match project-prefixed IDs e.g. REQ-NN-001, REQ-CLI-042
 _REQ_ID = re.compile(r"-\s*\*\*ID:\*\*\s*(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+)")
 _REQ_DESC = re.compile(r"-\s*\*\*Description:\*\*\s*(.+)")
+# Style A heading: ## REQ-001  or  ## REQ-CLI-001: Title
+_STYLE_A_HEADING = re.compile(
+    r"^#{1,3}\s+(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+)(?::\s*(.+))?\s*$",
+    re.MULTILINE,
+)
 
 # A small stopword list to keep keyword matches meaningful.
 _STOPWORDS = frozenset(
@@ -205,6 +210,19 @@ class RequirementSummary:
 def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
     """Parse REQUIREMENTS.md into ``RequirementSummary`` records.
 
+    Handles two heading styles:
+
+    Style A (standard specsmith format)::
+
+        ## REQ-001: Title
+        Description text as a plain paragraph.
+
+    Style B (numbered-heading format)::
+
+        ## 1. Title
+        - **ID:** REQ-001
+        - **Description:** description text
+
     Best-effort: missing files yield an empty list.
     """
     req_md_path = req_md_path.resolve()  # CodeQL py/path-injection: normalise before fs access
@@ -215,14 +233,53 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
     except ValueError:
         return []
     out: list[RequirementSummary] = []
+
+    # ── Style A: ## REQ-NNN: Title  (standard specsmith format) ────────────────
+    # Split on any Style A heading first; if the file uses this format
+    # exclusively, the Style B pass below will be a no-op.
+    lines = text.splitlines()
+    current_id: str = ""
+    current_title: str = ""
+    current_desc: str = ""
+    seen_ids: set[str] = set()
+
+    def _flush_style_a() -> None:
+        if current_id and current_id not in seen_ids:
+            seen_ids.add(current_id)
+            out.append(
+                RequirementSummary(req_id=current_id, title=current_title, description=current_desc)
+            )
+
+    for line in lines:
+        m_a = _STYLE_A_HEADING.match(line)
+        if m_a:
+            _flush_style_a()
+            current_id = m_a.group(1)
+            current_title = (m_a.group(2) or "").strip()
+            current_desc = ""
+            continue
+        if current_id:
+            stripped = line.strip()
+            # Bullet description fields
+            m_desc = _REQ_DESC.match(line)
+            if m_desc:
+                current_desc = current_desc or m_desc.group(1).strip()
+                continue
+            # Plain paragraph text (not a heading, not a bullet, not empty)
+            if stripped and not stripped.startswith("#") and not stripped.startswith("-"):
+                current_desc = current_desc or stripped
+    _flush_style_a()
+
+    # ── Style B: ## N. Title  with - **ID:** REQ-NNN inline ────────────────────
     blocks = re.split(r"^##\s+\d+\.\s+", text, flags=re.MULTILINE)[1:]
     for block in blocks:
-        lines = block.splitlines()
-        title = lines[0].strip() if lines else ""
+        block_lines = block.splitlines()
+        title = block_lines[0].strip() if block_lines else ""
         m_id = _REQ_ID.search(block)
         m_desc = _REQ_DESC.search(block)
-        if not m_id:
-            continue
+        if not m_id or m_id.group(1) in seen_ids:
+            continue  # skip if no ID or already captured by Style A pass
+        seen_ids.add(m_id.group(1))
         out.append(
             RequirementSummary(
                 req_id=m_id.group(1),

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """AEESession — high-level facade for Applied Epistemic Engineering.
 
 This is the primary entry point for projects that want to use AEE practices

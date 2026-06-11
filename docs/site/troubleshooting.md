@@ -8,12 +8,12 @@ Check your Python version (requires 3.10+) and that pip is up to date: `pip inst
 ### `python -m specsmith` gives "No module named specsmith.__main__"
 Update to the latest version: `pipx upgrade specsmith` (or `pip install --upgrade specsmith` if not using pipx).
 
-## Version Mismatch — terminal vs VS Code
+## Version Mismatch — multiple binaries on PATH
 
-### Kairos shows a different specsmith version than `specsmith --version` in the terminal
+### One shell shows a different specsmith version than another
 
 This almost always means you have **two specsmith binaries** on PATH and they
-resolve differently between Kairos and your shell.
+resolve differently between shells or tools.
 
 Diagnose:
 ```powershell
@@ -57,7 +57,7 @@ a global shell export.
 Override during import — when prompted "Proceed with these settings?" answer `n`, then select the correct type from the list. Or override language: you'll be prompted for it.
 
 ### Import doesn't detect my build system
-Currently detected: pyproject.toml, Cargo.toml, go.mod, package.json, CMakeLists.txt, west.yml, build.gradle.kts, pubspec.yaml, *.csproj, Makefile. If yours isn't listed, [file an issue](https://github.com/BitConcepts/specsmith/issues/new?template=feature_request.md).
+Currently detected: pyproject.toml, Cargo.toml, go.mod, package.json, CMakeLists.txt, west.yml, build.gradle.kts, pubspec.yaml, *.csproj, Makefile. If yours isn't listed, [file an issue](https://github.com/layer1labs/specsmith/issues/new?template=feature_request.md).
 
 ### Import overwrote my AGENTS.md
 Without `--force`, import never overwrites existing files. If you used `--force`, that's the intended behavior. Re-create your AGENTS.md or restore from git.

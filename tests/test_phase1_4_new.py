@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Unit tests for the Phase 1-4 agent modules (TEST-108..TEST-125)."""
 
 from __future__ import annotations

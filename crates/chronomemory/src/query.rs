@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Semantic query API (§23 of spec).
 
 use crate::dependency::DepGraph;

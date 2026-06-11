@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Voice transcription wrapper (REQ-141).
 
 Wraps the optional ``whisper_cpp_python`` library so the rest of specsmith

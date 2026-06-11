@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith MCP Server — native governance tool server (REQ-363).
 
 Implements the Model Context Protocol (MCP) over stdio (JSON-RPC 2.0).
@@ -509,42 +509,85 @@ def _handle_governance_phase(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _handle_governance_req_list(args: dict[str, Any]) -> dict[str, Any]:
-    """List requirements from the project."""
+    """List requirements from the project.
+
+    In YAML-mode the requirements are read directly from ``docs/requirements/*.yml``
+    so that callers always see the current YAML source without needing a prior
+    ``specsmith sync`` (fixes GH #201 — stale JSON cache false positive).
+    In legacy Markdown mode the JSON machine-state cache is used as before.
+    """
     root = _resolve_root(args)
     status_filter = str(args.get("status_filter", "")).strip().lower() or None
 
     try:
-        req_path = root / ".specsmith" / "requirements.json"
-        test_path = root / ".specsmith" / "testcases.json"
+        from specsmith.governance_yaml import (
+            is_yaml_mode,
+            load_yaml_requirements,
+            load_yaml_tests,
+        )
 
-        if not req_path.exists():
-            return {"error": "requirements.json not found — run specsmith sync first", "reqs": []}
+        if is_yaml_mode(root):
+            # ── YAML-mode: read canonical source directly (REQ-364) ──────────
+            yaml_reqs = load_yaml_requirements(root)
+            yaml_tests = load_yaml_tests(root)
 
-        reqs_raw: list[dict[str, Any]] = json.loads(req_path.read_text(encoding="utf-8"))
+            covered: set[str] = {
+                str(t.get("requirement_id", "")) for t in yaml_tests if t.get("requirement_id")
+            }
 
-        # Build set of covered req IDs from testcases.json
-        covered: set[str] = set()
-        if test_path.exists():
-            tests_raw: list[dict[str, Any]] = json.loads(test_path.read_text(encoding="utf-8"))
-            for t in tests_raw:
-                covers = t.get("covers", t.get("req_id", ""))
-                if covers:
-                    covered.add(str(covers))
+            reqs: list[dict[str, Any]] = []
+            for r in yaml_reqs:
+                rid = str(r.get("id", ""))
+                status = str(r.get("status", "")).lower()
+                if status_filter and status != status_filter:
+                    continue
+                reqs.append(
+                    {
+                        "id": rid,
+                        "title": str(r.get("title", r.get("description", ""))),
+                        "status": status,
+                        "covered": rid in covered,
+                    }
+                )
+        else:
+            # ── Legacy Markdown mode: use JSON cache ──────────────────────────
+            req_path = root / ".specsmith" / "requirements.json"
+            test_path = root / ".specsmith" / "testcases.json"
 
-        reqs: list[dict[str, Any]] = []
-        for r in reqs_raw:
-            rid = str(r.get("id", ""))
-            status = str(r.get("status", "")).lower()
-            if status_filter and status != status_filter:
-                continue
-            reqs.append(
-                {
-                    "id": rid,
-                    "title": str(r.get("title", r.get("description", ""))),
-                    "status": status,
-                    "covered": rid in covered,
+            if not req_path.exists():
+                return {
+                    "error": (
+                        "requirements.json not found — run `specsmith sync` to "
+                        "generate the JSON cache from your governance sources"
+                    ),
+                    "reqs": [],
                 }
-            )
+
+            reqs_raw: list[dict[str, Any]] = json.loads(req_path.read_text(encoding="utf-8"))
+
+            covered_json: set[str] = set()
+            if test_path.exists():
+                tests_raw: list[dict[str, Any]] = json.loads(test_path.read_text(encoding="utf-8"))
+                for t in tests_raw:
+                    covers = t.get("covers", t.get("req_id", t.get("requirement_id", "")))
+                    if covers:
+                        covered_json.add(str(covers))
+
+            reqs = []
+            covered = covered_json
+            for r in reqs_raw:
+                rid = str(r.get("id", ""))
+                status = str(r.get("status", "")).lower()
+                if status_filter and status != status_filter:
+                    continue
+                reqs.append(
+                    {
+                        "id": rid,
+                        "title": str(r.get("title", r.get("description", ""))),
+                        "status": status,
+                        "covered": rid in covered,
+                    }
+                )
 
         return {
             "total": len(reqs),

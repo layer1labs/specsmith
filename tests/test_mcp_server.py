@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for the native MCP governance server (REQ-363 / TEST-364).
 
 Covers:
@@ -580,3 +580,92 @@ class TestMcpServeCli:
         assert "result" in tools_resp
         tools = tools_resp["result"]["tools"]
         assert len(tools) == 7
+
+
+# ---------------------------------------------------------------------------
+# TEST-365 (REQ-364): governance_req_list reads YAML directly in yaml_mode
+# ---------------------------------------------------------------------------
+
+
+class TestGovernanceReqListYamlMode:
+    """Verify that _handle_governance_req_list bypasses stale JSON cache in YAML-mode.
+
+    Reproduces the scenario described in GitHub issue #201:
+    - Project is in YAML-mode (.specsmith/governance-mode == 'yaml')
+    - A new requirement is added to docs/requirements/*.yml
+    - The JSON cache (.specsmith/requirements.json) is NOT updated (stale)
+    - governance_req_list must still return the new requirement
+    """
+
+    @pytest.fixture()
+    def yaml_mode_project(self, tmp_path: Path) -> Path:
+        """Set up a minimal YAML-mode project with stale JSON cache."""
+        import yaml
+
+        # .specsmith/ structure
+        state = tmp_path / ".specsmith"
+        state.mkdir()
+        (state / "governance-mode").write_text("yaml", encoding="utf-8")
+
+        # docs/requirements/*.yml — canonical source
+        req_dir = tmp_path / "docs" / "requirements"
+        req_dir.mkdir(parents=True)
+        reqs = [
+            {"id": "REQ-001", "title": "Old requirement", "status": "accepted"},
+            {"id": "REQ-NEW", "title": "New requirement added to YAML", "status": "planned"},
+        ]
+        (req_dir / "governance.yml").write_text(yaml.dump(reqs), encoding="utf-8")
+
+        # docs/tests/*.yml
+        test_dir = tmp_path / "docs" / "tests"
+        test_dir.mkdir(parents=True)
+        tests = [
+            {"id": "TEST-001", "title": "Covers old req", "requirement_id": "REQ-001"},
+        ]
+        (test_dir / "governance.yml").write_text(yaml.dump(tests), encoding="utf-8")
+
+        # STALE JSON cache — only contains REQ-001, missing REQ-NEW
+        stale_reqs = [{"id": "REQ-001", "title": "Old requirement", "status": "accepted"}]
+        (state / "requirements.json").write_text(json.dumps(stale_reqs), encoding="utf-8")
+        (state / "testcases.json").write_text(
+            json.dumps([{"id": "TEST-001", "requirement_id": "REQ-001"}]), encoding="utf-8"
+        )
+        return tmp_path
+
+    def test_yaml_mode_returns_new_req_despite_stale_cache(self, yaml_mode_project: Path) -> None:
+        """REQ-364: governance_req_list in yaml_mode reads YAML, not JSON cache."""
+        import specsmith.mcp_server as mcp_mod
+
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
+        req_ids = {r["id"] for r in result["reqs"]}
+        assert "REQ-NEW" in req_ids, (
+            "REQ-NEW should be visible from YAML source "
+            f"(stale cache only has REQ-001); got: {req_ids}"
+        )
+        assert result["total"] == 2
+
+    def test_yaml_mode_coverage_from_yaml_tests(self, yaml_mode_project: Path) -> None:
+        """Coverage is computed from YAML tests, not stale JSON cache."""
+        import specsmith.mcp_server as mcp_mod
+
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
+        reqs_by_id = {r["id"]: r for r in result["reqs"]}
+        # REQ-001 has a test in YAML → covered
+        assert reqs_by_id["REQ-001"]["covered"] is True
+        # REQ-NEW has no test → not covered
+        assert reqs_by_id["REQ-NEW"]["covered"] is False
+
+    def test_legacy_mode_still_uses_json_cache(self, tmp_path: Path) -> None:
+        """Non-yaml-mode projects still use the JSON cache (backward compat)."""
+        import specsmith.mcp_server as mcp_mod
+
+        state = tmp_path / ".specsmith"
+        state.mkdir()
+        # No governance-mode file → legacy mode
+        reqs = [{"id": "REQ-001", "title": "Cached req", "status": "accepted"}]
+        (state / "requirements.json").write_text(json.dumps(reqs), encoding="utf-8")
+        (state / "testcases.json").write_text("[]", encoding="utf-8")
+
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(tmp_path)})
+        assert result["total"] == 1
+        assert result["reqs"][0]["id"] == "REQ-001"

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Fake stdio MCP server for unit tests (TEST-130).
 
 Implements just enough of the JSON-RPC 2.0 MCP protocol to exercise

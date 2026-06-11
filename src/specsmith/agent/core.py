@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Shared agent runtime primitives (REQ-145).
 
 Hosts low-level enums and dataclasses that span :mod:`specsmith.agent.runner`,

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc.
 """Tests for Skills Builder and MCP Server Generator."""
 
 from __future__ import annotations

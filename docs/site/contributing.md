@@ -3,7 +3,7 @@
 ## Setup
 
 ```bash
-git clone https://github.com/BitConcepts/specsmith.git
+git clone https://github.com/layer1labs/specsmith.git
 cd specsmith
 pip install -e ".[dev]"
 pre-commit install
@@ -35,7 +35,7 @@ This is the most common contribution. Follow these 10 steps:
 9. **Tests** — Add sandbox test in `tests/sandbox/`
 10. **Documentation** — Update `docs/site/project-types.md` and `README.md`
 
-Use the [New Project Type](https://github.com/BitConcepts/specsmith/issues/new?template=new_project_type.md) issue template.
+Use the [New Project Type](https://github.com/layer1labs/specsmith/issues/new?template=new_project_type.md) issue template.
 
 ## Code Standards
 
@@ -61,11 +61,11 @@ When making changes that affect user-facing behavior, **always update in the sam
 2. All CI must pass (lint, typecheck, test × 9 matrix, security)
 3. `specsmith audit` must pass on specsmith itself
 4. One approval required
-5. Use the [PR template](https://github.com/BitConcepts/specsmith/blob/main/.github/PULL_REQUEST_TEMPLATE.md) checklist
+5. Use the [PR template](https://github.com/layer1labs/specsmith/blob/main/.github/PULL_REQUEST_TEMPLATE.md) checklist
 
 ## Reporting Issues
 
-- [Bug Report](https://github.com/BitConcepts/specsmith/issues/new?template=bug_report.md)
-- [Feature Request](https://github.com/BitConcepts/specsmith/issues/new?template=feature_request.md)
-- [New Project Type](https://github.com/BitConcepts/specsmith/issues/new?template=new_project_type.md)
-- [Discussions](https://github.com/BitConcepts/specsmith/discussions) for questions and ideas
+- [Bug Report](https://github.com/layer1labs/specsmith/issues/new?template=bug_report.md)
+- [Feature Request](https://github.com/layer1labs/specsmith/issues/new?template=feature_request.md)
+- [New Project Type](https://github.com/layer1labs/specsmith/issues/new?template=new_project_type.md)
+- [Discussions](https://github.com/layer1labs/specsmith/discussions) for questions and ideas

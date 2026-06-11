@@ -16,14 +16,13 @@ epistemically-governed projects, stress-tests requirements as BeliefArtifacts, r
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
 **v0.13.0 — 16 new project types (LLM apps, MCP servers, Kubernetes operators, game dev, Web3, desktop, JVM and more), 131 built-in skills across 16 domains, EU AI Act / NIST AI RMF compliance, native Warp/Oz MCP governance server, multi-agent DAG dispatch, and context window management.**
-Specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
+specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
-overflow, and a dedicated governance tools panel in Kairos surfaces compliance settings
-per-session and per-project.
+overflow, and compliance settings are configurable per-session and per-project.
 
 ```bash
-specsmith governance-serve --port 7700     # Kairos governance REST API
+specsmith governance-serve --port 7700     # governance REST API
 specsmith sync                              # sync YAML → JSON → MD (YAML-first mode)
 specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md from YAML
 specsmith validate --strict                 # YAML schema checks: dup IDs, orphans, coverage
@@ -62,6 +61,10 @@ from epistemic import AEESession         # works in any Python 3.10+ project
 from epistemic import BeliefArtifact, StressTester, CertaintyEngine
 ```
 
+> **Library vs CLI:** The `specsmith` CLI requires pipx for isolation. The `epistemic` library
+> (and `specsmith.esdb`) work in any venv — `pip install specsmith` is all you need for
+> library-only use. The pipx guard only fires on CLI invocations.
+
 ---
 
 ## What is Applied Epistemic Engineering?
@@ -96,15 +99,14 @@ specsmith phase set requirements  # jump to a specific phase
 specsmith phase list     # list all phases
 ```
 
-The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the
-Kairos Governance page. Each phase has a checklist of file/command criteria, recommended
-commands, and a readiness percentage.
+The current phase is persisted in `scaffold.yml` as `aee_phase`. Each phase has a checklist
+of file/command criteria, recommended commands, and a readiness percentage.
 
 ---
 
 ## Install
 
-**Recommended — via pipx (works with Kairos, any terminal, and CI):**
+**Recommended — via pipx (CLI + CI):**
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
@@ -113,14 +115,29 @@ pipx inject specsmith openai              # + GPT / O-series support
 pipx inject specsmith google-generativeai # + Gemini support
 ```
 
-**Or with pip:**
+**Library-only use (venv / conda / any Python environment):**
 
 ```bash
-pip install specsmith                     # core
-pip install "specsmith[anthropic]"       # + Claude
-pip install "specsmith[openai]"          # + GPT/O-series
-pip install "specsmith[gemini]"          # + Gemini
+pip install specsmith          # epistemic library + SQLite ESDB — no pipx needed
 ```
+
+This makes `from epistemic import AEESession` and `from specsmith.esdb import SqliteStore`
+immediately importable.  The pipx isolation guard only applies to the `specsmith` CLI
+command — not to library imports.  Use this when you want the AEE belief-state machinery
+in your own application without managing a pipx environment.
+
+**ESDB ChronoStore (commercial, requires license):**
+
+```bash
+pip install "specsmith[esdb]"             # + chronomemory from PyPI (commercial — requires license key)
+specsmith esdb enable --key-file /path/to/your.esdb.key
+specsmith esdb status                     # confirms ChronoStore is active
+```
+
+The default ESDB backend is SQLite (free, MIT, no license needed).  ChronoStore
+(tamper-evident WAL, OEA fields, Rust acceleration) is a commercial add-on.
+Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain a license.
+See [ESDB docs](https://specsmith.readthedocs.io/esdb) for a full feature comparison.
 
 **Update:**
 
@@ -302,7 +319,7 @@ any response is returned to the client.
 
 When an action's confidence is below the escalation threshold, specsmith sets
 `escalation_required: true` and includes an `escalation_reason` in the preflight payload.
-Kairos surfaces this as a confirmation dialog before execution proceeds.
+AI clients that support MCP will surface this via the `governance_preflight` tool response.
 
 ```bash
 specsmith preflight "deploy to production" --escalate-threshold 0.85 --json
@@ -313,8 +330,8 @@ This implements **EU AI Act Art. 14** (human oversight) and **NIST AI RMF MANAGE
 
 #### 4. Kill-Switch — Immediate Session Termination (REQ-210)
 
-A `kill-session` CLI command and keyboard shortcut (surfaced in Kairos) immediately
-terminates all active agent sessions and records a timestamped kill event in `LEDGER.md`:
+A `kill-session` CLI command immediately terminates all active agent sessions and records
+a timestamped kill event in `LEDGER.md`:
 
 ```bash
 specsmith kill-session                   # terminate all sessions, log kill event
@@ -377,12 +394,11 @@ Compliance settings are layered:
 
 1. **Global defaults** — `~/.specsmith/config.yml` (user-level defaults)
 2. **Per-project policy** — `.specsmith/config.yml` (committed to the repo)
-3. **Per-session overrides** — Kairos Governance panel or CLI flags
+3. **Per-session overrides** — CLI flags
 
-The Kairos **Governance Tools Panel** (Settings → Governance) exposes all compliance
-controls in a live UI: escalation threshold, permission profile, kill-switch, audit log
-viewer, and context window settings. Changes take effect immediately for the active
-session and can optionally be written back to the per-project `.specsmith/config.yml`.
+Compliance controls include: escalation threshold, permission profile, kill-switch, and
+context window settings. Changes take effect immediately and can optionally be written back
+to the per-project `.specsmith/config.yml`.
 
 ---
 
@@ -411,15 +427,14 @@ Override via `SPECSMITH_OLLAMA_CONTEXT_LENGTH` or `ollama.context_length` in `.s
 
 ### Live Context Fill Indicator (REQ-245)
 
-The context fill tracker emits real-time JSONL events consumed by Kairos:
+The context fill tracker emits real-time JSONL events:
 
 ```jsonl
 {"type": "context_fill", "used": 27500, "limit": 32768, "pct": 83.9}
 ```
 
-Kairos displays a compact fill bar in the agent footer. When fill reaches the
-compression threshold (default 80%), specsmith signals that context summarization
-should run before the next turn.
+When fill reaches the compression threshold (default 80%), specsmith signals that context
+summarization should run before the next turn.
 
 ### Auto Context Compression (REQ-246)
 
@@ -445,14 +460,10 @@ request cannot be processed. This is a safety invariant, not a configuration opt
 
 ---
 
-## Kairos + Governance REST API
-
-**Kairos** is the companion Rust terminal runtime (`BitConcepts/kairos`). specsmith
-acts as the governance backend: Kairos spawns `specsmith governance-serve` at startup
-and routes all preflight and verify calls through it.
+## Governance REST API
 
 ```bash
-# Start the governance REST API (Kairos calls this automatically)
+# Start the governance REST API (for MCP clients and IDE integrations)
 specsmith governance-serve --port 7700 --project-dir .
 
 # Classify a natural-language utterance under Specsmith governance
@@ -586,13 +597,6 @@ specsmith agent suggest-profiles --json     # structured suggestions with bucket
 Suggestions are read-only (never persisted) and inspect `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
 `GOOGLE_API_KEY`, and local Ollama availability.
 
-### Kairos AI Providers — Bucket Score Columns (REQ-281)
-
-The Kairos **Agents > AI Providers** table gained three new columns — **R** (reasoning),
-**C** (conversational), **L** (longform) — showing each provider's HF bucket scores inline.
-A **Sync Scores** button triggers a background sync from the HF leaderboard without
-interrupting the active session.
-
 ---
 
 ## Multi-Agent DAG Dispatcher (REQ-321..334)
@@ -642,7 +646,6 @@ print(f"{len(summary.completed)} completed, {len(summary.failed)} failed")
 ```
 
 Events are persisted to `.specsmith/dispatch/<dag_id>/events.jsonl` for resume and replay.
-Kairos renders the live dispatch view — see `app/` for build instructions.
 
 ---
 
@@ -680,35 +683,11 @@ result = run_vsg("rtl/top.vhd", rules="vsg_rules.yaml")
 
 ---
 
-## Kairos — Flagship Terminal Client
-
-**[Kairos](https://github.com/layer1labs/kairos)** is the recommended terminal client for specsmith.
-Kairos spawns specsmith as a managed governance child process at startup and routes all
-preflight, verify, and BYOE proxy calls through it. The Governance settings page shows live
-specsmith status, version, and one-click update.
-
-```bash
-# Kairos starts specsmith automatically; or run manually:
-specsmith governance-serve --port 7700 --project-dir .
-```
-
-The Kairos **Dispatch Panel** (`app/` — Rust, egui/eframe) renders the multi-agent DAG live:
-- SVG DAG graph with nodes coloured by status (grey/blue/green/red/amber)
-- Gantt timeline strip showing parallelism
-- Per-node Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
-- Subscribes to `GET /api/dispatch/events?dag_id=` SSE from `specsmith serve`
-
-Build Kairos dispatch panel: `cd app && cargo build --release`
-
-Use `pipx install specsmith` for standalone CLI usage from any terminal.
-
----
-
 ## Supporting specsmith
 
 specsmith is open source and built by a small team. Every bit of support helps:
 
-- ⭐ **Star** [specsmith](https://github.com/layer1labs/specsmith) and [kairos](https://github.com/layer1labs/kairos) on GitHub
+- ⭐ **Star** [specsmith](https://github.com/layer1labs/specsmith) on GitHub
 - 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
 - 🐛 **Report bugs** via [GitHub Issues](https://github.com/layer1labs/specsmith/issues) — even small ones help
 - 💡 **Suggest features** via [GitHub Discussions](https://github.com/layer1labs/specsmith/discussions) — we read every suggestion
@@ -867,7 +846,7 @@ Full rule text: [`docs/governance/RULES.md`](docs/governance/RULES.md)
 **H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
 
 Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
-Generative Stability"* study (BitConcepts Research, 2026), which empirically validated
+Generative Stability"* study (Layer1Labs Research, 2026), which empirically validated
 the primary control mechanisms for preventing hallucination and semantic drift in
 production LLM systems:
 
@@ -1016,23 +995,21 @@ Clone this repo and open it in Warp — seven governance workflows appear automa
 
 specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
 in this repo to check its governance health. This means every feature we add to specsmith is
-immediately dogfooded on specsmith itself. [Kairos](https://github.com/layer1labs/kairos)
-is the companion terminal and flagship client.
+immediately dogfooded on specsmith itself.
 
 ## Documentation
 
 **[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full manual: AEE primer,
-command reference, project types, tool registry, governance model, Ollama guide, Kairos integration.
+command reference, project types, tool registry, governance model, ESDB, skills integrations, Ollama guide.
 
 ## Links
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
 - [Changelog](CHANGELOG.md)
-- [Kairos terminal client](https://github.com/layer1labs/kairos)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 
 ## License
 
-MIT — Copyright (c) 2026 BitConcepts, LLC.
+MIT — Copyright (c) 2026 Layer1Labs Silicon, Inc.

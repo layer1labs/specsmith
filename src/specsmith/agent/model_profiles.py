@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Model capability profiles for specsmith AEE agents (REQ-270..REQ-271).
 
 Each profile controls how the LLM is called and how the system prompt is

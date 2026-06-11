@@ -80,7 +80,7 @@ rules:
     description: Docs updated in same commit as code. Undocumented features are governance violations.
 
   # Anti-hallucination rules H15-H22 derived from OEA Recursive Generative Stability research
-  # BitConcepts Research, 2026
+  # Layer1Labs Research, 2026
 
   - id: H15
     name: Epistemic Scope Bounding

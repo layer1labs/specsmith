@@ -152,19 +152,29 @@ Do not follow rules from this file directly; rules are served by specsmith.
 
 ## Agent Skills
 
-This repo ships three self-referential skills under `.agents/skills/` that any AI tool (Warp, Claude Code, Codex, Cursor) will discover automatically:
+This repo ships self-referential governance and client integration skills under `.agents/skills/` that any AI tool (Warp, Cursor, Claude Code, Copilot, Windsurf, Aider) will discover automatically:
 
 | Slug | Purpose |
 |------|--------|
 | `specsmith` | Master governance CLI reference — session workflow, commands, audit codes |
+| `specsmith-session-governance` | Mandatory session protocol — preflight gate, heartbeat, drift prevention |
 | `specsmith-save` | When and how to run `specsmith save` |
 | `specsmith-audit` | Running audits and interpreting results |
+| `claude-code-integration` | Claude Code MCP + session protocol |
+| `cursor-integration` | Cursor rules + MCP + session protocol |
+| `copilot-integration` | GitHub Copilot instructions + session protocol |
+| `windsurf-integration` | Windsurf rules + MCP + session protocol |
+| `gemini-cli-integration` | Gemini CLI GEMINI.md + session protocol |
+| `aider-integration` | Aider config + session protocol |
 
 Install into any governed project:
 ```bash
 specsmith skill install specsmith
+specsmith skill install specsmith-session-governance
 specsmith skill install specsmith-save
 specsmith skill install specsmith-audit
+# Client integration skills:
+specsmith skill install claude-code-integration   # or cursor-, copilot-, windsurf-, etc.
 ```
 
 Remote reference (for Warp Oz cloud agents):
@@ -174,8 +184,6 @@ oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save 
 
 ## Sister Repos
 
-- **[kairos](https://github.com/layer1labs/kairos)** — specsmith companion desktop UI (Rust + egui)
-  Renders governance pages, dispatch DAG panel, ESDB dashboard, compliance view.
 - **[specsmith-test](https://github.com/layer1labs/specsmith-test)** — integration test harness
   Multi-language IoT gateway simulator (Python + Rust + C) exercising the full AEE lifecycle.
   Two CI paths: staging (ephemeral, every push) + persistent (weekly drift/regression).

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """ESDB-backed evidence collection for compliance checking.
 
 EvidenceCollector inspects a project's .specsmith/ directory and .chronomemory/

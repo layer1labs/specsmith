@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Team definitions for multi-agent coordination.
 
 ARCHITECTURE.md §13 Phase 2: predefined agent team compositions.

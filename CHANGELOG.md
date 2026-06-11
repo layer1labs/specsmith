@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -280,7 +280,7 @@ uff format --check: clean.
 - **ARCHITECTURE.md** â€” new sections: Update Channel, AI Skills Builder Phase A, ESDB Extended, MCP Generator, Agent Ask Dispatcher, Kairos Settings Extensions.
 - **docs/site/commands.md** â€” documented `channel`, extended `esdb`, extended `skills`, `mcp generate`, `agent ask`.
 ### Changed
-- CI badge and sponsor links updated from `BitConcepts` â†’ `layer1labs`.
+- CI badge and sponsor links updated from `layer1labs` â†’ `layer1labs`.
 - Kairos repo migrated to `layer1labs/kairos`; specsmith repo to `layer1labs/specsmith`.
 - `specsmith-vscode` extension deprecated; Kairos is the flagship client.
 ### Validation
@@ -308,7 +308,7 @@ uff format --check: clean.
 - **15 AI regulation requirements added** (REQ-206..REQ-220).
 - **docs/COMPLIANCE.md** â€” machine-generated compliance export with AI System Inventory, REQâ†”TEST coverage, audit summary, and governance file inventory.
 - **`specsmith audit`** â€” duplicate-file enforcement: warns when root copy AND `docs/` canonical copy both exist.
-- **kairos** â€” sister repository (`BitConcepts/kairos`) bootstrapped: Rust governance client (`src/governance/client.rs`, `server.rs`, `mod.rs`) with `GovernanceClient` (health/preflight/verify), `GovernanceServer` (managed child process), `GovernanceConfig` with I2 invariant enforcement.
+- **kairos** â€” sister repository (`layer1labs/kairos`) bootstrapped: Rust governance client (`src/governance/client.rs`, `server.rs`, `mod.rs`) with `GovernanceClient` (health/preflight/verify), `GovernanceServer` (managed child process), `GovernanceConfig` with I2 invariant enforcement.
 ### Changed
 - `ledger.py`: `add_entry()` / `list_entries()` use `find_ledger()` (docs/LEDGER.md canonical).
 - `compressor.py`: uses `find_ledger()` + `safe_overwrite()`.
@@ -682,7 +682,7 @@ uff format --check: clean.
 - **`docs/site/aee-primer.md`**: 10-part comprehensive guide from zero AEE knowledge to full productivity. Covers theory, formal machinery, 4-step method, belief artifacts, logic knots, certainty engine, trace vault, practical workflow, domain examples, and references.
 - **`docs/site/epistemic-library.md`**: full API reference for the standalone `epistemic` library with integration examples for glossa-lab, compliance, and FastAPI.
 - RTD nav updated with "Applied Epistemic Engineering" section and "Agentic Client" section.
-- ECC reference cloned locally: `C:\Users\trist\Development\BitConcepts\everything-claude-code`
+- ECC reference cloned locally: `C:\Users\trist\Development\layer1labs\everything-claude-code`
 
 ### Changed
 
@@ -893,19 +893,19 @@ uff format --check: clean.
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[0.6.0]: https://github.com/BitConcepts/specsmith/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/BitConcepts/specsmith/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/BitConcepts/specsmith/compare/v0.3.13...v0.4.0
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/BitConcepts/specsmith/compare/v0.6.0...v0.7.0
-[0.2.3]: https://github.com/BitConcepts/specsmith/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.3...v0.2.0
-[0.1.3]: https://github.com/BitConcepts/specsmith/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/BitConcepts/specsmith/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.2...v0.1.0
-[0.1.0-alpha.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
-[0.1.0-alpha.1]: https://github.com/BitConcepts/specsmith/releases/tag/v0.1.0-alpha.1
+[0.6.0]: https://github.com/layer1labs/specsmith/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/layer1labs/specsmith/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/layer1labs/specsmith/compare/v0.3.13...v0.4.0
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/layer1labs/specsmith/compare/v0.6.0...v0.7.0
+[0.2.3]: https://github.com/layer1labs/specsmith/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/layer1labs/specsmith/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/layer1labs/specsmith/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/layer1labs/specsmith/compare/v0.1.3...v0.2.0
+[0.1.3]: https://github.com/layer1labs/specsmith/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/layer1labs/specsmith/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/layer1labs/specsmith/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/layer1labs/specsmith/compare/v0.1.0-alpha.2...v0.1.0
+[0.1.0-alpha.2]: https://github.com/layer1labs/specsmith/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
+[0.1.0-alpha.1]: https://github.com/layer1labs/specsmith/releases/tag/v0.1.0-alpha.1
 

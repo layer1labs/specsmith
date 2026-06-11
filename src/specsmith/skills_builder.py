@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc.
 """AI-powered Skills Builder — generate agent skills from natural-language descriptions.
 
 Skills follow the SkillNet-style ontology: each skill is a folder containing

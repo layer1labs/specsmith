@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Machine state sync — keeps .specsmith/ JSON in sync with governance sources.
 
 Implements REQ-003 (Machine State Must Reflect Governance State).
@@ -33,11 +33,13 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 # Matches either:
-#   Style A: ## REQ-001  or  ## REQ-CLI-001 — Title
+#   Style A: ## REQ-001  or  ## REQ-CLI-001: Title
+#     The optional ": Title" suffix is captured in group(2).
 #   Style B: ## N. Title  (ID comes from inline - **ID:** REQ-NNN field)
 _FLEX_REQ_ID = r"REQ-(?:[A-Z][A-Z0-9_]*-)?\d+"
 _NUMBERED_HEADING = re.compile(r"^#{1,3}\s+\d+\.\s+(.+?)\s*$")
-_DIRECT_HEADING = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")\b")
+# Group 1: REQ-ID,  Group 2 (optional): title text after the colon.
+_DIRECT_HEADING = re.compile(r"^#{1,3}\s+(" + _FLEX_REQ_ID + r")(?::\s*(.+))?\s*$")
 _ID_FIELD = re.compile(r"^-\s+\*\*ID:\*\*\s+(" + _FLEX_REQ_ID + r")")
 _FIELD_LINE = re.compile(r"^-\s+\*\*(.+?):\*\*\s+(.+)")
 
@@ -61,7 +63,11 @@ def parse_requirements_md(text: str) -> list[dict[str, Any]]:
         m_direct = _DIRECT_HEADING.match(line)
         if m_direct:
             _flush()
+            # Group 2 carries the title when the heading is '## REQ-NNN: Title'
+            inline_title = (m_direct.group(2) or "").strip()
             current = {"id": m_direct.group(1)}
+            if inline_title:
+                current["title"] = inline_title
             pending_title = ""
             continue
 
@@ -86,6 +92,10 @@ def parse_requirements_md(text: str) -> list[dict[str, Any]]:
                 val = m_field.group(2).strip()
                 if key not in ("id",):
                     current.setdefault(key, val)
+            elif line.strip() and not line.startswith("#"):
+                # Plain paragraph text after the heading — capture as description
+                # (e.g. '## REQ-001: Title\nThe system SHALL...')
+                current.setdefault("description", line.strip())
 
     _flush()
     return [

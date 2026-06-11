@@ -84,26 +84,7 @@ specsmith phase next     # advance to next phase (checks prerequisites first)
 specsmith phase list     # list all 7 phases
 ```
 
-The active phase is shown in the Kairos Governance panel as a colored pill with readiness % and a Next Phase button.
-
-## Kairos — Recommended Terminal Client
-
-**[Kairos](https://github.com/BitConcepts/kairos)** is the recommended client for specsmith — a fully local, governance-ready terminal with zero cloud dependencies.
-
-- **Governance Tools Panel** — live compliance controls, kill-switch, permission profile, audit log viewer
-- **Context window fill indicator** — real-time fill bar; auto-compression at 80%; hard 15% ceiling
-- **AI Providers table** — bucket score columns (R/C/L) sourced from HF leaderboard sync
-- **ESDB, Skills, Eval, MCP pages** — full specsmith feature surface under Settings → Specsmith
-- **BYOE** — any OpenAI-compatible endpoint; defaults to local specsmith on `127.0.0.1:7700`
-- **Zero telemetry, zero login** — credentials stay local; no account required
-
-```bash
-cargo run --release --bin kairos   # build and run from source
-```
-
-**[→ Kairos on GitHub](https://github.com/BitConcepts/kairos)**
-
-Kairos is the official specsmith client — governance panel, live dispatch view, and BYOE proxy built in.
+The current phase and readiness percentage are shown by `specsmith phase`.
 
 ## Quick Start
 
@@ -166,7 +147,9 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
 | [Configuration](configuration.md) | Every scaffold.yml field explained with examples |
 | [Governance Model](governance.md) | The closed-loop workflow, file hierarchy, modular governance |
+| [ESDB](esdb.md) | SQLite vs ChronoStore, licensing, CLI reference, Python API |
 | [YAML Governance](yaml-governance.md) | YAML-first governance: domain files, sync pipeline, strict validation, migration |
+| [Agent Integrations](agent-integrations.md) | Skills for Warp, Cursor, Claude Code, Copilot, Windsurf, Aider |
 | [Export & Compliance](export.md) | Generating coverage reports, understanding the output |
 | [Troubleshooting](troubleshooting.md) | Common issues and solutions |
 | [Contributing](contributing.md) | Adding project types, code standards, PR process |

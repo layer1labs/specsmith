@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Replay engine — deterministic state reconstruction from WAL (Invariant 8).
 
 use crate::dependency::DepGraph;

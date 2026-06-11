@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith GUI bootstrap — QApplication setup and launch() entry point."""
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def launch(
 
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("specsmith AEE Workbench")
-    app.setOrganizationName("BitConcepts")
+    app.setOrganizationName("Layer1Labs")
 
     # Fusion style as the base (cross-platform, neutral widgets)
     app.setStyle("Fusion")

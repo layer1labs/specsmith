@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Stress-Test Operator (S) — AEE adversarial challenge engine.
 
 Part of the standalone ``epistemic`` library. Zero external dependencies.

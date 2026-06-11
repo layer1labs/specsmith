@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Persistent session memory for the Nexus chat surface (REQ-120, REQ-125).
 
 Every chat turn (user utterance, broker decision, task result, tool calls)

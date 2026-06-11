@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Ledger — structured change ledger management with cryptographic audit chain.
 
 The CryptoAuditChain class provides a SHA-256 chained hash over all ledger

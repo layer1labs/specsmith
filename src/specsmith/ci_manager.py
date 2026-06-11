@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """CI/CD Manager — enable, monitor, and watch CI/CD for any git platform.
 
 Supports GitHub (gh CLI), GitLab (glab CLI), and Bitbucket (bb CLI).

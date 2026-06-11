@@ -10,7 +10,7 @@ Instead of running agents sequentially in a flat GroupChat, the dispatcher:
 2. Runs independent nodes **concurrently** (up to `max_workers`)
 3. Uses **fail-forward** semantics: a failed node blocks only its dependents; siblings keep running
 4. Passes each completed node's output to its successors via ESDB context injection
-5. Persists all state transitions to `.specsmith/dispatch/<dag_id>/events.jsonl` for resume and Kairos live view
+5. Persists all state transitions to `.specsmith/dispatch/<dag_id>/events.jsonl` for resume and replay
 
 ## CLI
 
@@ -164,23 +164,6 @@ Each event is a JSON object on a single line (JSONL):
 Events are persisted to `.specsmith/dispatch/<dag_id>/events.jsonl` and this
 directory is excluded from git (see `.gitignore`).
 
-## Kairos dispatch panel
-
-The `app/` directory contains a Rust (egui/eframe) application that subscribes
-to the SSE stream and renders the dispatch view:
-
-- **DAG graph** — nodes coloured by status (grey/blue/green/red/amber), click to open detail
-- **Gantt timeline** — horizontal bars showing parallelism
-- **Controls** — Retry (FAILED/BLOCKED), Abort (RUNNING) per node
-
-```bash
-cd app
-cargo build --release
-./target/release/kairos --dag-id abc123def456
-```
-
-See `app/README.md` for full build and usage instructions.
-
 ## Resumability (REQ-330)
 
 A saved run can be resumed by replaying its events:
@@ -204,17 +187,11 @@ minimal single-node DAG from the original run's role information and run it
 as a new checkpoint-linked sub-run.
 
 
-## Kairos DAG Panel — Topological Layout
+## SSE Event Layout
 
-The Kairos dispatch panel (`app/`) uses a **topological layout** algorithm:
-each node is positioned at a horizontal level equal to the depth of its
-longest dependency path. Root nodes (no deps) are at level 0; a node depending
-on a level-2 node sits at level 3. Within each level, nodes are evenly
-distributed vertically.
-
-`depends_on` is included in every `node_started` SSE event payload so Kairos
-can reconstruct the full dependency graph from the live stream without any
-separate graph-structure endpoint.
+The `depends_on` field is included in every `node_started` SSE event payload,
+allowing any SSE consumer to reconstruct the full dependency graph from the
+live stream without a separate graph-structure endpoint.
 
 **Edges** are drawn as cubic bezier curves from the right edge of each parent
 to the left edge of each child, with arrowheads at the child end, rendered

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Real MCP (Model Context Protocol) client for Nexus (REQ-121, REQ-130).
 
 Replaces the prior loader-only stub with a working JSON-RPC 2.0 client

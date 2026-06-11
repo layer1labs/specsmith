@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """M002 — Slim AGENTS.md migration.
 
 If AGENTS.md is > 50 lines (indicating it's the old verbose format),

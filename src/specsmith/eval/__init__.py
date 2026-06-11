@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Eval-Driven Development framework (ARCHITECTURE.md §13 Phase 1).
 
 Provides structured eval suites that test AI model capabilities against

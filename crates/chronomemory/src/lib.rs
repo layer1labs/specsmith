@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! ChronoMemory ESDB — Epistemic State Database engine.
 //!
 //! "A governed epistemic cognition substrate for autonomous intelligence."

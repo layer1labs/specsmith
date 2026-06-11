@@ -89,7 +89,7 @@ was answered empirically by the study:
 
 > *"Ontology-Epistemic-Agentic (OEA) Recursive Generative Stability: A Unified Framework
 > for Preventing Hallucination and Drift in Large Language Models"*
-> — BitConcepts Research, 2026
+> — Layer1Labs Research, 2026
 
 The OEA study ran controlled ablation experiments across several LLM families and
 identified the following correspondences between AEE axioms and measurable hallucination

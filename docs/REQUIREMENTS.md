@@ -1014,7 +1014,7 @@
 - **Title:** Cross-Repo Security Sweep
 - **Description:** The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.
 - **Status:** implemented
-- **Source:** .github/workflows/ci.yml, BitConcepts/kairos/.github/workflows/ci.yml
+- **Source:** .github/workflows/ci.yml, layer1labs/kairos/.github/workflows/ci.yml
 - **Test_Ids:** ['TEST-128']
 
 ## REQ-129. 1.0 API Stability Commitment
@@ -2569,4 +2569,36 @@
 - **Status:** planned
 - **Source:** docs/requirements/
 - **Test_Ids:** ['TEST-364']
+
+## REQ-364. MCP governance_req_list must read YAML source directly in YAML-mode
+- **ID:** REQ-364
+- **Title:** MCP governance_req_list must read YAML source directly in YAML-mode
+- **Description:** When .specsmith/governance-mode equals yaml, the governance_req_list MCP tool must read requirements from docs/requirements/*.yml directly instead of the .specsmith/requirements.json JSON cache. This eliminates false-positive orphaned-tests audit failures caused by stale cache state after YAML edits without an intervening specsmith sync.
+- **Status:** accepted
+- **Source:** GitHub issue
+- **Test_Ids:** ['TEST-365']
+
+## REQ-365. specsmith ESDB must provide a SQLite-backed free default backend with no external dependencies
+- **ID:** REQ-365
+- **Title:** specsmith ESDB must provide a SQLite-backed free default backend with no external dependencies
+- **Description:** specsmith ships a SqliteStore class (stdlib sqlite3 only, MIT licensed) as the default ESDB backend. It stores records in .specsmith/esdb.sqlite3, exposes the same open/close/upsert/query/delete/record_count/wal_seq/chain_valid interface as ChronoStore, and can bulk-import from .specsmith/requirements.json and testcases.json. No network access or commercial license is required to use the SQLite backend.
+- **Status:** accepted
+- **Source:** ESDB dual-tier architecture
+- **Test_Ids:** ['TEST-366']
+
+## REQ-366. Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
+- **ID:** REQ-366
+- **Title:** Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
+- **Description:** When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore. The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.
+- **Status:** accepted
+- **Source:** commercial licensing model
+- **Test_Ids:** ['TEST-367']
+
+## REQ-367. chronomemory must carry a proprietary commercial license separate from specsmith MIT
+- **ID:** REQ-367
+- **Title:** chronomemory must carry a proprietary commercial license separate from specsmith MIT
+- **Description:** The chronomemory package LICENSE file must be a proprietary commercial license (not MIT) requiring written permission from Layer1Labs Silicon, Inc. to use, copy, or distribute. The chronomemory pyproject.toml must declare license = Proprietary and must not be uploaded to PyPI without explicit authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial add-on tier.
+- **Status:** accepted
+- **Source:** commercial licensing model
+- **Test_Ids:** ['TEST-368']
 

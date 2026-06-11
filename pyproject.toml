@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.13.0"
-description = "Applied Epistemic Engineering toolkit — AEE agent sessions, execution profiles, FPGA/HDL governance, tool installer, 50+ CLI commands."
+version = "0.13.1"
+description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, and Aider."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [
-    {name = "BitConcepts"},
+    {name = "Layer1Labs Silicon, Inc."},
 ]
 keywords = [
     "agentic", "scaffold", "governance", "agents-md", "cli",
@@ -41,7 +41,9 @@ dependencies = [
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
-    "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1",
+    # chronomemory is now an OPTIONAL commercial dep (specsmith[esdb]).
+    # The free SQLite backend is built-in and requires no extra install.
+    # To unlock ChronoStore: pip install specsmith[esdb] + specsmith esdb enable
 ]
 
 [project.optional-dependencies]
@@ -52,6 +54,14 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.0",
     "types-pyyaml>=6.0",
+    "cryptography>=42.0",   # needed for test_esdb_license.py signing helpers
+]
+# ESDB commercial backend — requires a valid license from licensing@layer1labs.com
+# Install: pip install specsmith[esdb]
+# Activate: specsmith esdb enable --key-file /path/to/your.esdb.key
+esdb = [
+    "chronomemory>=0.1.4",   # proprietary commercial — see chronomemory LICENSE
+    "cryptography>=42.0",
 ]
 docs = [
     "mkdocs>=1.6",
@@ -75,7 +85,7 @@ history-semantic = ["sentence-transformers>=2.2", "numpy>=1.24"]
 voice = ["whisper-cpp-python>=0.2"]
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
-# Convenience bundle: everything
+# Convenience bundle: everything EXCEPT esdb (commercial license required separately)
 all = [
     "anthropic>=0.56",
     "openai>=1.0",
@@ -84,16 +94,18 @@ all = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
+# cryptography for license verification (usable without full esdb extra)
+license-verify = ["cryptography>=42.0"]
 
 [project.scripts]
 specsmith = "specsmith.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/BitConcepts/specsmith"
+Homepage = "https://github.com/layer1labs/specsmith"
 Documentation = "https://specsmith.readthedocs.io"
-Repository = "https://github.com/BitConcepts/specsmith"
-Changelog = "https://github.com/BitConcepts/specsmith/blob/main/CHANGELOG.md"
-Issues = "https://github.com/BitConcepts/specsmith/issues"
+Repository = "https://github.com/layer1labs/specsmith"
+Changelog = "https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md"
+Issues = "https://github.com/layer1labs/specsmith/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -225,6 +237,12 @@ module = [
     "specsmith.session_store",
     # MCP server: lazy in-function imports and dynamic Any patterns
     "specsmith.mcp_server",
+    # ESDB package: conditional chronomemory stubs in except ImportError branch
+    # produce type[_Stub] vs type[ChronoRecord] assignment errors that are
+    # correct at runtime but cannot be expressed statically without TYPE_CHECKING.
+    # specsmith.esdb.* covers bridge.py and _license.py sub-modules too.
+    "specsmith.esdb",
+    "specsmith.esdb.*",
 ]
 ignore_errors = true
 

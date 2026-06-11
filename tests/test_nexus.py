@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Nexus runtime tests (TEST-065 through TEST-076).
 
 These tests cover Specsmith governance requirements REQ-065..REQ-076 for the

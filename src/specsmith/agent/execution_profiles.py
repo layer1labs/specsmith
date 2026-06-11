@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Execution Profiles — provider-constraint layer (REQ-221).
 
 A profile defines **which providers are allowed** for a session.  The model

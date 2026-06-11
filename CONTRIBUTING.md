@@ -9,7 +9,7 @@ Until then, governance files in this repo (`AGENTS.md`, `LEDGER.md`, `docs/gover
 ## Development Setup
 
 ```bash
-git clone https://github.com/BitConcepts/specsmith.git
+git clone https://github.com/layer1labs/specsmith.git
 cd specsmith
 pip install -e ".[dev]"
 ```
@@ -53,7 +53,7 @@ pre-commit install
 
 ## Code Standards
 
-- SPDX headers on all `.py` files (`MIT`, `BitConcepts, LLC.`)
+- SPDX headers on all `.py` files (`MIT`, `Layer1Labs Silicon, Inc.`)
 - Must pass `ruff check`, `ruff format --check`, `mypy --strict`
 - All features require tests
 - Windows scripts: `.cmd` only (no `.ps1`)
@@ -91,7 +91,7 @@ When adding rules for a new tool:
 
 ## Supporting the Project
 
-Star the repo, report issues, and consider [sponsoring BitConcepts](https://github.com/sponsors/BitConcepts).
+Star the repo, report issues, and consider [sponsoring Layer1Labs](https://github.com/sponsors/layer1labs).
 
 ## Importing Existing Projects
 

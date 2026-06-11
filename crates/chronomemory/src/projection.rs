@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Projection engine — gates all canonical state transitions (Invariant 1, 3, 4, 5).
 
 use crate::dependency::DepGraph;

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Compliance report generation — JSON, Markdown, and self-contained HTML.
 
 ComplianceReporter converts ComplianceResult objects into formatted reports

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Fallback-chain executor tests (REQ-146, F5).
 
 Exercises ``specsmith.agent.fallback.run_with_fallback`` end-to-end with

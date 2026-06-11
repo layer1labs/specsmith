@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Auditor — drift detection and health checks (Spec Sections 23 + 26)."""
 
 from __future__ import annotations
@@ -778,6 +778,34 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f)
         config = ProjectConfig(**raw)
+
+        # Skip when type_override == type (explicit user suppression, #196).
+        if config.type_override and config.type_override == config.type:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=(
+                        f"Project type {config.type} is explicitly overridden; "
+                        f"auto-detection skipped"
+                    ),
+                )
+            )
+            return results
+
+        # Skip for unrecognised (custom) type strings — there is no known
+        # ProjectType to compare against, so detection is meaningless.
+        if config.project_type_enum is None:
+            results.append(
+                AuditResult(
+                    name="type-mismatch",
+                    passed=True,
+                    message=(
+                        f"Project type {config.type!r} is a custom type; auto-detection skipped"
+                    ),
+                )
+            )
+            return results
 
         # Skip auto-detection for types that must be specified explicitly.
         if config.type in _EXPLICIT_ONLY_TYPES:

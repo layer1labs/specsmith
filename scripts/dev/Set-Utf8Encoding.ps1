@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 #
 # Set the current PowerShell session to UTF-8 input/output encoding so child
 # processes (Python, pytest, ruff, mypy, ...) that emit UTF-8 text don't

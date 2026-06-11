@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Tests for REQ-358 (_req_count H2 support) and REQ-359 (sync YAML-mode MD fallback)."""
 
 from __future__ import annotations

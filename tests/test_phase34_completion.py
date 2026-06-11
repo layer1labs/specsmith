@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Phase 3-4 completion tests: mcp loader and notebook commands.
 
 Covers REQ-121 (MCP), REQ-123 (notebook), and REQ-124 (perf smoke). The

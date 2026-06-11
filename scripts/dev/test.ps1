@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 #
 # Run pytest with the active PowerShell session reconfigured for UTF-8 so
 # the test reporter, ruff output, and any Unicode in test fixtures render

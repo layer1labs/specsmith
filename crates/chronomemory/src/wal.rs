@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Layer1Labs / BitConcepts, LLC.
+// Copyright (c) 2026 Layer1Labs Silicon, Inc.
 //! Append-only Write-Ahead Log with SHA-256 hash chain (Invariant 8).
 
 use crate::types::EsdbId;

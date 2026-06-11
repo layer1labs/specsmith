@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """Governance REST API logic — shared by CLI commands and HTTP server.
 
 These pure-Python functions implement the /preflight and /verify business
@@ -73,9 +73,16 @@ def run_preflight(
 
     root = _safe_resolve(project_dir)
     intent = classify_intent(utterance)
+    # Requirements live at docs/REQUIREMENTS.md, not at the project root.
+    # Falling back to root/REQUIREMENTS.md would always yield an empty list
+    # on standard projects, causing preflight to always return
+    # needs_clarification (GitHub issue #197).
+    _req_md = root / "docs" / "REQUIREMENTS.md"
+    if not _req_md.exists():
+        _req_md = root / "REQUIREMENTS.md"  # legacy fallback
     scope = infer_scope(
         utterance,
-        root / "REQUIREMENTS.md",
+        _req_md,
         repo_index_path=root / ".repo-index" / "files.json",
     )
 
