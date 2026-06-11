@@ -260,9 +260,7 @@ class SqliteStore:
     def get(self, record_id: str) -> SqliteRecord | None:
         """Return a single record by ID, or None."""
         conn = self._require_open()
-        row = conn.execute(
-            "SELECT * FROM records WHERE id=?", (record_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM records WHERE id=?", (record_id,)).fetchone()
         if row is None:
             return None
         return SqliteRecord(
@@ -282,9 +280,7 @@ class SqliteStore:
     def record_count(self) -> int:
         """Count of non-tombstone records."""
         conn = self._require_open()
-        row = conn.execute(
-            "SELECT COUNT(*) FROM records WHERE status != 'tombstone'"
-        ).fetchone()
+        row = conn.execute("SELECT COUNT(*) FROM records WHERE status != 'tombstone'").fetchone()
         return int(row[0]) if row else 0
 
     def wal_seq(self) -> int:

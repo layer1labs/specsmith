@@ -103,7 +103,9 @@ class LicenseStatus:
 
     def __repr__(self) -> str:
         if self.valid:
-            return f"LicenseStatus(valid=True, customer={self.customer!r}, expires={self.expires_at})"
+            return (
+                f"LicenseStatus(valid=True, customer={self.customer!r}, expires={self.expires_at})"
+            )
         return f"LicenseStatus(valid=False, reason={self.reason!r})"
 
 
@@ -144,9 +146,7 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
 
     # Expiry check (compare against UTC date)
     try:
-        exp = datetime.strptime(data["expires_at"], "%Y-%m-%d").replace(
-            tzinfo=timezone.utc
-        )
+        exp = datetime.strptime(data["expires_at"], "%Y-%m-%d").replace(tzinfo=timezone.utc)
         today = datetime.now(tz=timezone.utc)
         if today > exp:
             return LicenseStatus(
@@ -156,7 +156,9 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
                 expires_at=data["expires_at"],
             )
     except ValueError:
-        return LicenseStatus(False, "license has invalid expires_at date format (expected YYYY-MM-DD)")
+        return LicenseStatus(
+            False, "license has invalid expires_at date format (expected YYYY-MM-DD)"
+        )
 
     # Cryptography import check
     pub_key = _load_pub_key()

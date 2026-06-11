@@ -10065,7 +10065,11 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     if not CHRONO_AVAILABLE:
         license_info = {"chronomemory_installed": False, "active": False}
     elif lic_status is None:
-        license_info = {"chronomemory_installed": True, "active": False, "reason": "no license file found"}
+        license_info = {
+            "chronomemory_installed": True,
+            "active": False,
+            "reason": "no license file found",
+        }
     else:
         license_info = {
             "chronomemory_installed": True,
@@ -10100,7 +10104,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     console.print(f"  {chain_icon} Integrity OK")
     # License line
     if not CHRONO_AVAILABLE:
-        console.print("  [dim]chronomemory not installed — run 'pip install specsmith[esdb]' for ChronoStore[/dim]")
+        console.print(
+            "  [dim]chronomemory not installed — run 'pip install specsmith[esdb]' for ChronoStore[/dim]"
+        )
     elif lic_status and lic_status.valid:
         console.print(
             f"  [green]\u2714[/green] License: {lic_status.customer} (expires {lic_status.expires_at})"
@@ -10108,7 +10114,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     else:
         reason = lic_status.reason if lic_status else "no license file"
         console.print(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
-        console.print("  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]")
+        console.print(
+            "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]"
+        )
 
 
 @esdb_group.command(name="enable")
@@ -10139,9 +10147,7 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
             click.echo(_json.dumps({"ok": False, "error": status.reason}))
         else:
             console.print(f"[red]\u2717[/red] License invalid: {status.reason}")
-            console.print(
-                "[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]"
-            )
+            console.print("[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]")
         raise SystemExit(1)
 
     dest = Path.home() / ".specsmith" / "esdb.key"
@@ -10406,26 +10412,28 @@ def esdb_export_cmd(project_dir: str, output: str, as_json: bool) -> None:
     """Export the full ESDB to a JSON file."""
     import json as _json
 
-    from chronomemory import EsdbBridge
+    from specsmith.esdb import ESDB_BACKEND, open_default_store
 
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
-    reqs = bridge.requirements()
-    tests = bridge.testcases()
+    root = Path(project_dir).resolve()
+    with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        all_records = store.query(status=None)
+        reqs = [r.to_dict() for r in all_records if r.kind == "requirement"]
+        tests = [r.to_dict() for r in all_records if r.kind == "testcase"]
+        record_count = store.record_count()
     payload = {
         "esdb_version": 1,
-        "backend": st.backend,
-        "record_count": st.record_count,
-        "requirements": [r.to_dict() for r in reqs],
-        "testcases": [t.to_dict() for t in tests],
+        "backend": ESDB_BACKEND,
+        "record_count": record_count,
+        "requirements": reqs,
+        "testcases": tests,
     }
-    dest = output or str(Path(project_dir).resolve() / ".specsmith" / "esdb_export.json")
+    dest = output or str(root / ".specsmith" / "esdb_export.json")
     Path(dest).parent.mkdir(parents=True, exist_ok=True)
     Path(dest).write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     if as_json:
-        click.echo(_json.dumps({"ok": True, "path": dest, "records": st.record_count}, indent=2))
+        click.echo(_json.dumps({"ok": True, "path": dest, "records": record_count}, indent=2))
     else:
-        console.print(f"[green]\u2714[/green] Exported {st.record_count} records to {dest}")
+        console.print(f"[green]\u2714[/green] Exported {record_count} records to {dest}")
 
 
 @esdb_group.command(name="import")
@@ -10482,51 +10490,53 @@ def esdb_backup_cmd(project_dir: str, backup_dir: str, as_json: bool) -> None:
     import datetime
     import json as _json
 
-    from chronomemory import EsdbBridge
+    from specsmith.esdb import CHRONO_AVAILABLE, ESDB_BACKEND, open_default_store
 
     root = Path(project_dir).resolve()
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
     ts = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
-    # Prefer ChronoStore backup when WAL is available
+    # Prefer ChronoStore native backup when WAL is active and available
     chrono_backup_path: str = ""
-    wal = root / ".chronomemory" / "events.wal"
-    if wal.exists():
+    if CHRONO_AVAILABLE and ESDB_BACKEND == "chronomemory":
         try:
-            from chronomemory import ChronoStore
+            from specsmith.esdb import ChronoStore  # type: ignore[attr-defined]
 
-            with ChronoStore(root) as store:
+            with ChronoStore(root) as store:  # type: ignore[attr-defined]
                 bp = store.backup()
                 chrono_backup_path = str(bp)
         except Exception:  # noqa: BLE001
             pass
 
+    # Always write a flat JSON backup (works for both backends)
+    with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        all_records = store.query(status=None)
+        reqs = [r.to_dict() for r in all_records if r.kind == "requirement"]
+        tests = [r.to_dict() for r in all_records if r.kind == "testcase"]
+        record_count = store.record_count()
+
     dest_dir = Path(backup_dir) if backup_dir else root / ".specsmith" / "backups"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / f"esdb_backup_{ts}.json"
-    reqs = bridge.requirements()
-    tests = bridge.testcases()
     payload = {
         "esdb_version": 1,
         "timestamp": ts,
-        "backend": st.backend,
-        "record_count": st.record_count,
-        "requirements": [r.to_dict() for r in reqs],
-        "testcases": [t.to_dict() for t in tests],
+        "backend": ESDB_BACKEND,
+        "record_count": record_count,
+        "requirements": reqs,
+        "testcases": tests,
     }
     dest.write_text(_json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     result = {
         "ok": True,
         "path": str(dest),
         "timestamp": ts,
-        "records": st.record_count,
+        "records": record_count,
         "chrono_backup": chrono_backup_path,
     }
     if as_json:
         click.echo(_json.dumps(result, indent=2))
     else:
-        console.print(f"[green]\u2714[/green] Backup created: {dest}  ({st.record_count} records)")
+        console.print(f"[green]\u2714[/green] Backup created: {dest}  ({record_count} records)")
         if chrono_backup_path:
             console.print(f"  ChronoStore WAL backup: {chrono_backup_path}")
 
@@ -10596,9 +10606,10 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
         _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
-    # Invalidate the bridge cache so any subsequent bridge calls reflect the restore.
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
+    from specsmith.esdb import open_default_store
+
+    with open_default_store(Path(project_dir).resolve(), warn=False) as store:  # type: ignore[attr-defined]
+        records_after = store.record_count()
 
     result = {
         "ok": True,
@@ -10606,7 +10617,7 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
         "timestamp": data.get("timestamp", ""),
         "requirements": len(reqs),
         "testcases": len(tests),
-        "records_after": st.record_count,
+        "records_after": records_after,
     }
     if as_json:
         click.echo(_json.dumps(result, indent=2))
@@ -10663,15 +10674,15 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
             removed_tests = before - after
         path.write_text(_json.dumps(compacted, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    from chronomemory import EsdbBridge
+    from specsmith.esdb import ESDB_BACKEND, open_default_store
 
-    bridge = EsdbBridge(project_dir)
-    st = bridge.status()
+    with open_default_store(Path(project_dir).resolve(), warn=False) as store:  # type: ignore[attr-defined]
+        records_after = store.record_count()
 
     result = {
         "ok": True,
-        "backend": st.backend,
-        "records_after": st.record_count,
+        "backend": ESDB_BACKEND,
+        "records_after": records_after,
         "removed_duplicate_requirements": removed_reqs,
         "removed_duplicate_testcases": removed_tests,
     }
@@ -10680,8 +10691,8 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
     else:
         total_removed = removed_reqs + removed_tests
         console.print(
-            f"[green]\u2714[/green] Compact complete on {st.backend}  "
-            f"({st.record_count} records, {total_removed} duplicates removed)"
+            f"[green]\u2714[/green] Compact complete on {ESDB_BACKEND}  "
+            f"({records_after} records, {total_removed} duplicates removed)"
         )
 
 

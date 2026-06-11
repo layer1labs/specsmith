@@ -532,9 +532,7 @@ def _handle_governance_req_list(args: dict[str, Any]) -> dict[str, Any]:
             yaml_tests = load_yaml_tests(root)
 
             covered: set[str] = {
-                str(t.get("requirement_id", ""))
-                for t in yaml_tests
-                if t.get("requirement_id")
+                str(t.get("requirement_id", "")) for t in yaml_tests if t.get("requirement_id")
             }
 
             reqs: list[dict[str, Any]] = []

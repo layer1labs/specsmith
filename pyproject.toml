@@ -54,6 +54,7 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.0",
     "types-pyyaml>=6.0",
+    "cryptography>=42.0",   # needed for test_esdb_license.py signing helpers
 ]
 # ESDB commercial backend — requires a valid license from licensing@layer1labs.com
 # Install: pip install specsmith[esdb]

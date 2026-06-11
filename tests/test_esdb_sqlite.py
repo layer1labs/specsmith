@@ -253,9 +253,7 @@ def test_migrate_preserves_existing(tmp_path: Path, specsmith_dir: Path) -> None
 def test_migrate_skips_records_without_id(tmp_path: Path) -> None:
     state = tmp_path / ".specsmith"
     state.mkdir()
-    (state / "requirements.json").write_text(
-        json.dumps([{"title": "no id"}]), encoding="utf-8"
-    )
+    (state / "requirements.json").write_text(json.dumps([{"title": "no id"}]), encoding="utf-8")
     (state / "testcases.json").write_text("[]", encoding="utf-8")
     with SqliteStore(tmp_path) as s:
         counts = s.migrate_from_json(state)

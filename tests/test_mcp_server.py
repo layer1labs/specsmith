@@ -626,38 +626,28 @@ class TestGovernanceReqListYamlMode:
 
         # STALE JSON cache — only contains REQ-001, missing REQ-NEW
         stale_reqs = [{"id": "REQ-001", "title": "Old requirement", "status": "accepted"}]
-        (state / "requirements.json").write_text(
-            json.dumps(stale_reqs), encoding="utf-8"
-        )
+        (state / "requirements.json").write_text(json.dumps(stale_reqs), encoding="utf-8")
         (state / "testcases.json").write_text(
             json.dumps([{"id": "TEST-001", "requirement_id": "REQ-001"}]), encoding="utf-8"
         )
         return tmp_path
 
-    def test_yaml_mode_returns_new_req_despite_stale_cache(
-        self, yaml_mode_project: Path
-    ) -> None:
+    def test_yaml_mode_returns_new_req_despite_stale_cache(self, yaml_mode_project: Path) -> None:
         """REQ-364: governance_req_list in yaml_mode reads YAML, not JSON cache."""
         import specsmith.mcp_server as mcp_mod
 
-        result = mcp_mod._handle_governance_req_list(
-            {"project_dir": str(yaml_mode_project)}
-        )
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
         req_ids = {r["id"] for r in result["reqs"]}
         assert "REQ-NEW" in req_ids, (
             f"REQ-NEW should be visible from YAML source (stale cache only has REQ-001); got: {req_ids}"
         )
         assert result["total"] == 2
 
-    def test_yaml_mode_coverage_from_yaml_tests(
-        self, yaml_mode_project: Path
-    ) -> None:
+    def test_yaml_mode_coverage_from_yaml_tests(self, yaml_mode_project: Path) -> None:
         """Coverage is computed from YAML tests, not stale JSON cache."""
         import specsmith.mcp_server as mcp_mod
 
-        result = mcp_mod._handle_governance_req_list(
-            {"project_dir": str(yaml_mode_project)}
-        )
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
         reqs_by_id = {r["id"]: r for r in result["reqs"]}
         # REQ-001 has a test in YAML → covered
         assert reqs_by_id["REQ-001"]["covered"] is True
@@ -675,8 +665,6 @@ class TestGovernanceReqListYamlMode:
         (state / "requirements.json").write_text(json.dumps(reqs), encoding="utf-8")
         (state / "testcases.json").write_text("[]", encoding="utf-8")
 
-        result = mcp_mod._handle_governance_req_list(
-            {"project_dir": str(tmp_path)}
-        )
+        result = mcp_mod._handle_governance_req_list({"project_dir": str(tmp_path)})
         assert result["total"] == 1
         assert result["reqs"][0]["id"] == "REQ-001"

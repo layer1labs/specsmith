@@ -167,6 +167,7 @@ def test_resolve_license_path_default(tmp_path: Path) -> None:
     with patch("specsmith.esdb._license.Path") as MockPath:
         # Only mock Path.home(); let other Path calls through
         import specsmith.esdb._license as lic_mod
+
         original_home = Path.home
 
         def fake_home():
@@ -230,9 +231,7 @@ _CHRONO_LICENSE_PATH = (
     / "LICENSE"
 )
 _CHRONO_PYPROJECT_PATH = (
-    Path(__file__).parent.parent.parent.parent
-    / "chronomemory"
-    / "pyproject.toml"
+    Path(__file__).parent.parent.parent.parent / "chronomemory" / "pyproject.toml"
 )
 
 
