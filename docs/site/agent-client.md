@@ -7,11 +7,11 @@ epistemic governance (H13) through the hook system.
 ## Installation
 
 ```bash
-pipx install specsmith                      # base install
-pipx inject specsmith anthropic             # + Claude (claude-sonnet-4-5 etc.)
-pipx inject specsmith openai               # + GPT-4o, O-series + OpenAI-compat
-pipx inject specsmith google-generativeai  # + Gemini 2.5 Pro/Flash
-# Ollama: install locally from https://ollama.ai — no extra needed
+pipx install specsmith                   # base install
+pipx inject specsmith anthropic          # + Claude (claude-sonnet-4-5 etc.)
+pipx inject specsmith openai             # + GPT-4o, O-series + OpenAI-compat
+pipx inject specsmith google-genai       # + Gemini 2.5 Pro/Flash (google-genai SDK)
+# Ollama: install locally from https://ollama.ai — no extra package needed
 ```
 
 If you installed specsmith via `pip install -e .` for development, use

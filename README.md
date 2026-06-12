@@ -110,9 +110,10 @@ of file/command criteria, recommended commands, and a readiness percentage.
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
-pipx inject specsmith anthropic           # + Claude support
-pipx inject specsmith openai              # + GPT / O-series support
-pipx inject specsmith google-generativeai # + Gemini support
+pipx inject specsmith anthropic    # + Claude support
+pipx inject specsmith openai       # + GPT / O-series support
+pipx inject specsmith google-genai # + Gemini (google-genai SDK, GA May 2025)
+# Ollama: install locally at https://ollama.ai — no extra package needed
 ```
 
 **Library-only use (venv / conda / any Python environment):**
