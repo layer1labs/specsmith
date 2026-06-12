@@ -162,7 +162,7 @@ specsmith esdb status
 
 To obtain a chronomemory ESDB license:
 [licensing@layer1labs.com](mailto:licensing@layer1labs.com) · [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
-See the [full ESDB docs](https://specsmith.readthedocs.io/esdb) for a feature comparison and Python API reference.
+See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a feature comparison and Python API reference.
 
 **Update:**
 

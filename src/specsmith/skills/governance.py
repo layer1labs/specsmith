@@ -142,12 +142,12 @@ SKILLS: list[SkillEntry] = [
     ),
     SkillEntry(
         slug="chronomemory-esdb",
-        name="ChronoMemory ESDB — epistemic state database (v0.1.2)",
+        name="ChronoMemory ESDB — epistemic state database (v0.1.5)",
         description=(
-            "Full API reference and critical rules for chronomemory v0.1.2: "
+            "Full API reference and critical rules for chronomemory v0.1.5: "
             "ChronoStore WAL, query module, ContextPackCompiler, DepGraph, "
             "token metrics, skills system, and Rust acceleration. "
-            "Commercial license required — see specsmith.readthedocs.io/esdb."
+            "Commercial license required — see specsmith.readthedocs.io/en/stable/esdb/."
         ),
         domain=SkillDomain.GOVERNANCE,
         tags=[
@@ -167,7 +167,7 @@ SKILLS: list[SkillEntry] = [
         prerequisites=["chronomemory"],
         body=(
             """\
-# ChronoMemory ESDB Skill (v0.1.1)
+# ChronoMemory ESDB Skill (v0.1.5)
 
 EpiStemic State Database for Layer1Labs agentic projects.
 WAL at `<root>/.chronomemory/events.wal` — NDJSON, append-only, SHA-256 chained.
