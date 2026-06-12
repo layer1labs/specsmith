@@ -159,7 +159,7 @@ def test_resolve_license_path_default(tmp_path: Path) -> None:
     specsmith_dir = tmp_path / ".specsmith"
     specsmith_dir.mkdir()
     _make_license_file(specsmith_dir, filename="esdb.key")
-    import specsmith.esdb._license as lic_mod
+    from specsmith.esdb import _license as lic_mod  # noqa: PLC0415
 
     def fake_home() -> Path:
         return tmp_path

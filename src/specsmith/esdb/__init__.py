@@ -98,7 +98,9 @@ except ImportError:
         """Stub module reference so 'from specsmith.esdb import query, metrics' works."""
 
         def __getattr__(self, name: str) -> "_Stub":
-            raise ImportError(_INSTALL_HINT)
+            raise AttributeError(  # noqa: TRY301
+                f"'{name}' is unavailable: {_INSTALL_HINT}"
+            )
 
     query = _StubModule()  # type: ignore[assignment]
     metrics = _StubModule()  # type: ignore[assignment]

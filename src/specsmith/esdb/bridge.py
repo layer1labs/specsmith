@@ -44,7 +44,9 @@ except ImportError:  # pragma: no cover
 
     class _StubModule:  # noqa: F811
         def __getattr__(self, name: str) -> "_Stub":
-            raise ImportError(_INSTALL_HINT)
+            raise AttributeError(  # noqa: TRY301
+                f"'{name}' is unavailable: {_INSTALL_HINT}"
+            )
 
     EsdbBridge = EsdbRecord = EsdbStatus = ContextPackCompiler = DepGraph = _Stub  # noqa: F811
     query = _StubModule()  # noqa: F811

@@ -330,7 +330,7 @@ class SqliteStore:
                     )
                     counts["requirements"] += 1
             except (OSError, ValueError):
-                pass
+                counts["skipped"] += 1  # file unreadable or invalid JSON
 
         test_path = state_dir / "testcases.json"
         if test_path.exists():
@@ -351,7 +351,7 @@ class SqliteStore:
                     )
                     counts["testcases"] += 1
             except (OSError, ValueError):
-                pass
+                counts["skipped"] += 1  # file unreadable or invalid JSON
 
         return counts
 

@@ -252,7 +252,7 @@
 - **Description**: Extended specsmith governance hard rules from H1–H14 to H1–H22.
   H12 updated for cross-platform coverage (Windows `.cmd/.ps1`, macOS/Linux `sh/bash`).
   H15–H22 added covering anti-hallucination principles from the OEA Recursive Generative
-  Stability research (Layer1Labs Research, 2026): epistemic scope bounding (H15),
+  Stability research (BitConcepts Research, 2026): epistemic scope bounding (H15),
   anti-drift recursion guard (H16), calibration direction (H17), RAG retrieval filtering (H18),
   synthetic contamination prevention (H19), falsifiability required (H20), no undisclosed
   model assumptions (H21), cross-platform CI enforcement (H22).
@@ -309,78 +309,28 @@
 - **Epistemic status**: high
 - **Chain hash**: `13907d72d47f3708...`
 
-## 2026-05-29T22:14 — specsmith migration: 0.11.3.dev420 → 0.11.7
+## 2026-05-24T09:55 — specsmith migration: 0.11.3.dev420 → 0.11.6
 - **Author**: specsmith
 - **Type**: migration
 - **Status**: complete
-- **Chain hash**: `cf168f65d973f62b...`
+- **Chain hash**: `dfc79bb72cce492a...`
 
-## 2026-06-01T16:40 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `07bb2a0d68f4025a...`
-
-## 2026-06-02T05:52 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `c524743e645bae62...`
-
-## 2026-06-02T06:17 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `2c2f46ee6e095aa7...`
-
-## 2026-06-03T21:25 — specsmith migration: 0.11.7 → 0.12.0
+## 2026-05-24T11:08 — specsmith migration: 0.11.6 → 0.11.7
 - **Author**: specsmith
 - **Type**: migration
 - **Status**: complete
-- **Chain hash**: `a73f1db336999c91...`
+- **Chain hash**: `cb6ac2e2627ddadd...`
 
-## 2026-06-03T21:25 — KILL SWITCH ACTIVATED: emergency stop
+## 2026-06-11T20:45 — specsmith migration: 0.11.7 → 0.13.0
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `6f2d456167fa563c...`
+
+## 2026-06-11T20:45 — KILL SWITCH ACTIVATED: emergency stop
 - **Author**: specsmith-operator
 - **Type**: kill-switch
 - **REQs affected**: REG-005
 - **Status**: complete
 - **Epistemic status**: high
-- **Chain hash**: `23df42362ffb6d46...`
-
-## 2026-06-03T23:09 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `c8978a2f9a4eda4b...`
-
-## 2026-06-05T19:40 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `d8dfe50551959607...`
-
-## 2026-06-05T20:06 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `f216457cc8f7c904...`
-
-## 2026-06-11T12:23 — KILL SWITCH ACTIVATED: emergency stop
-- **Author**: specsmith-operator
-- **Type**: kill-switch
-- **REQs affected**: REG-005
-- **Status**: complete
-- **Epistemic status**: high
-- **Chain hash**: `e548e9fef9cf994d...`
+- **Chain hash**: `bafb85feabbffbaf...`

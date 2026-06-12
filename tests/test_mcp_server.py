@@ -634,8 +634,6 @@ class TestGovernanceReqListYamlMode:
 
     def test_yaml_mode_returns_new_req_despite_stale_cache(self, yaml_mode_project: Path) -> None:
         """REQ-364: governance_req_list in yaml_mode reads YAML, not JSON cache."""
-        import specsmith.mcp_server as mcp_mod
-
         result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
         req_ids = {r["id"] for r in result["reqs"]}
         assert "REQ-NEW" in req_ids, (
@@ -646,8 +644,6 @@ class TestGovernanceReqListYamlMode:
 
     def test_yaml_mode_coverage_from_yaml_tests(self, yaml_mode_project: Path) -> None:
         """Coverage is computed from YAML tests, not stale JSON cache."""
-        import specsmith.mcp_server as mcp_mod
-
         result = mcp_mod._handle_governance_req_list({"project_dir": str(yaml_mode_project)})
         reqs_by_id = {r["id"]: r for r in result["reqs"]}
         # REQ-001 has a test in YAML → covered
@@ -657,8 +653,6 @@ class TestGovernanceReqListYamlMode:
 
     def test_legacy_mode_still_uses_json_cache(self, tmp_path: Path) -> None:
         """Non-yaml-mode projects still use the JSON cache (backward compat)."""
-        import specsmith.mcp_server as mcp_mod
-
         state = tmp_path / ".specsmith"
         state.mkdir()
         # No governance-mode file → legacy mode

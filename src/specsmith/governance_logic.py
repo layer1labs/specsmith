@@ -71,7 +71,8 @@ def run_preflight(
     from specsmith import __version__
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
-    root = _safe_resolve(project_dir)
+    _safe_resolve(project_dir)  # validate: reject null bytes and traversal sequences
+    root = Path(os.path.realpath(str(project_dir)))  # CodeQL-visible sanitiser (py/path-injection)
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
     # Falling back to root/REQUIREMENTS.md would always yield an empty list

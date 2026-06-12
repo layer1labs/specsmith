@@ -4234,15 +4234,16 @@ def agent_ask_cmd(prompt: str, project_dir: str, as_json: bool) -> None:
         )
         action = "skills_hint"
     elif any(k in lower for k in ("esdb", "database", "backup", "export", "records")):
-        import specsmith.esdb as _esdb
+        from specsmith.esdb import ESDB_BACKEND as _ESDB_BACKEND  # noqa: PLC0415
+        from specsmith.esdb import open_default_store as _open_default_store  # noqa: PLC0415
 
         action = "esdb_status"
         try:
-            store = _esdb.open_default_store(project_dir, warn=False)
+            store = _open_default_store(project_dir, warn=False)
             with store:
                 count = store.record_count()
                 chain_ok = store.chain_valid()
-            reply = f"ESDB: {_esdb.ESDB_BACKEND} | {count} records | chain_valid={chain_ok}"
+            reply = f"ESDB: {_ESDB_BACKEND} | {count} records | chain_valid={chain_ok}"
         except Exception as exc:  # noqa: BLE001
             reply = f"ESDB unavailable: {exc}"
     elif any(k in lower for k in ("mcp", "server", "tool server")):
