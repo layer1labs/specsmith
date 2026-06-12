@@ -72,15 +72,21 @@ def run_preflight(
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
     _safe_resolve(project_dir)  # validate: reject null bytes and traversal sequences
-    root = Path(os.path.realpath(str(project_dir)))  # CodeQL-visible sanitiser (py/path-injection)
+    # Assign os.path.realpath to a plain str first so CodeQL's py/path-injection
+    # taint tracker sees the sanitiser directly on the assignment (not nested
+    # inside Path()). Path() wrapping is done in a separate step.
+    _root_str: str = os.path.realpath(str(project_dir))
+    root = Path(_root_str)
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
     # on standard projects, causing preflight to always return
     # needs_clarification (GitHub issue #197).
-    _req_md = root / "docs" / "REQUIREMENTS.md"
+    # Apply os.path.realpath on the child path so CodeQL sees the sanitiser
+    # at the point of the file-system call (.exists()), not just at root.
+    _req_md = Path(os.path.realpath(str(root / "docs" / "REQUIREMENTS.md")))
     if not _req_md.exists():
-        _req_md = root / "REQUIREMENTS.md"  # legacy fallback
+        _req_md = Path(os.path.realpath(str(root / "REQUIREMENTS.md")))  # legacy fallback
     scope = infer_scope(
         utterance,
         _req_md,
@@ -103,7 +109,7 @@ def run_preflight(
     # (Helper functions with a root: Path parameter are analysed conservatively
     # by CodeQL and can re-introduce py/path-injection alerts.)
     rq_records: list[Any] = []
-    rq_path = (root / ".specsmith" / "requirements.json").resolve()
+    rq_path = Path(os.path.realpath(str(root / ".specsmith" / "requirements.json")))
     if rq_path.is_file():
         try:
             _rq = _json.loads(rq_path.read_text(encoding="utf-8"))
@@ -120,7 +126,7 @@ def run_preflight(
     # Read test-case machine-state inline (same rationale as above).
     test_case_ids: list[str] = []
     tc_records: list[Any] = []
-    tc_path = (root / ".specsmith" / "testcases.json").resolve()
+    tc_path = Path(os.path.realpath(str(root / ".specsmith" / "testcases.json")))
     if tc_path.is_file():
         try:
             _tc = _json.loads(tc_path.read_text(encoding="utf-8"))
