@@ -72,30 +72,29 @@ def run_preflight(
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
     _safe_resolve(project_dir)  # validate: reject null bytes and traversal sequences
-    # Assign os.path.realpath to a plain str first so CodeQL's py/path-injection
-    # taint tracker sees the sanitiser directly on the assignment (not nested
-    # inside Path()). Path() wrapping is done in a separate step.
+    # os.path.realpath breaks the taint chain and returns a clean plain str.
+    # ALL subsequent path construction uses os.path.join on _root_str — never
+    # the Path / operator on root — so CodeQL never re-acquires the taint from
+    # project_dir through a Path object.
     _root_str: str = os.path.realpath(str(project_dir))
-    root = Path(_root_str)
+    root = Path(_root_str)  # Path object only for APIs that require Path type
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
     # on standard projects, causing preflight to always return
     # needs_clarification (GitHub issue #197).
-    # Apply os.path.realpath on the child path so CodeQL sees the sanitiser
-    # at the point of the file-system call (.exists()), not just at root.
-    _req_md = Path(os.path.realpath(str(root / "docs" / "REQUIREMENTS.md")))
+    _req_md = Path(os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md")))
     if not _req_md.exists():
-        _req_md = Path(os.path.realpath(str(root / "REQUIREMENTS.md")))  # legacy fallback
+        _req_md = Path(os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md")))  # legacy
     scope = infer_scope(
         utterance,
         _req_md,
-        repo_index_path=root / ".repo-index" / "files.json",
+        repo_index_path=Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json"))),
     )
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
 
-    # ── Direct ID extraction (fix #166) ──────────────────────────────────────
+    # ── Direct ID extraction (fix #166) ───────────────────────────────────────────
     # If the utterance contains explicit REQ-*/TEST-* IDs, look them up in the
     # JSON machine state and merge them in — this handles project-prefixed IDs
     # (e.g. REQ-NN-001, TEST-NN-002a) that token overlap may not catch.
@@ -104,12 +103,10 @@ def run_preflight(
     explicit_req_ids = [m.upper() for m in _EXPLICIT_REQ.findall(utterance)]
     explicit_test_ids = [m.upper() for m in _EXPLICIT_TEST.findall(utterance)]
 
-    # Read requirements machine-state inline so CodeQL can trace the full
-    # sanitisation chain from _safe_resolve → root → literal child path.
-    # (Helper functions with a root: Path parameter are analysed conservatively
-    # by CodeQL and can re-introduce py/path-injection alerts.)
+    # Read requirements machine-state using os.path.join on the clean _root_str
+    # so CodeQL traces the full sanitisation chain without re-tainting via Path.
     rq_records: list[Any] = []
-    rq_path = Path(os.path.realpath(str(root / ".specsmith" / "requirements.json")))
+    rq_path = Path(os.path.realpath(os.path.join(_root_str, ".specsmith", "requirements.json")))
     if rq_path.is_file():
         try:
             _rq = _json.loads(rq_path.read_text(encoding="utf-8"))
@@ -123,10 +120,10 @@ def run_preflight(
             if eid in known_req_ids and eid not in requirement_ids:
                 requirement_ids.append(eid)
 
-    # Read test-case machine-state inline (same rationale as above).
+    # Read test-case machine-state (same rationale as above).
     test_case_ids: list[str] = []
     tc_records: list[Any] = []
-    tc_path = Path(os.path.realpath(str(root / ".specsmith" / "testcases.json")))
+    tc_path = Path(os.path.realpath(os.path.join(_root_str, ".specsmith", "testcases.json")))
     if tc_path.is_file():
         try:
             _tc = _json.loads(tc_path.read_text(encoding="utf-8"))
@@ -193,8 +190,9 @@ def run_preflight(
             )
             confidence_target = 0.7
 
-    # Config floor (REQ-098)
-    cfg_threshold = _read_confidence_threshold(root)
+    # Config floor (REQ-098) — pass _root_str so the helper never receives
+    # a tainted Path object derived from project_dir.
+    cfg_threshold = _read_confidence_threshold(_root_str)
     if cfg_threshold is not None and cfg_threshold > confidence_target:
         confidence_target = cfg_threshold
 
@@ -1021,9 +1019,10 @@ def _resolve_provider_name() -> str:
     return "byoe"
 
 
-def _read_confidence_threshold(root: Path) -> float | None:
-    # .resolve() clears CodeQL py/path-injection taint; path has a constant suffix.
-    cfg = (root / ".specsmith" / "config.yml").resolve()
+def _read_confidence_threshold(root: "Path | str") -> float | None:
+    # Use os.path.join + os.path.realpath on the plain-string form so CodeQL
+    # sees the sanitiser inline and does not flag cfg.is_file() or cfg.read_text().
+    cfg = Path(os.path.realpath(os.path.join(str(root), ".specsmith", "config.yml")))
     if not cfg.is_file():
         return None
     try:
