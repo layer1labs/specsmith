@@ -5,6 +5,26 @@ specsmith ships two ESDB backends: a **free SQLite backend** (default, MIT) and 
 
 ---
 
+## Licensing at a glance
+
+| | SQLite backend | ChronoStore backend |
+|---|---|---|
+| **Package** | Built into `specsmith` | `chronomemory` — install via `specsmith[esdb]` |
+| **License** | **MIT** — free, no restrictions | **Proprietary** — commercial license required |
+| **Install** | `pip install specsmith` (automatic) | `pip install "specsmith[esdb]"` + license key |
+| **Default?** | ✅ Yes — active out of the box | ❌ No — must be explicitly installed and activated |
+| **Storage** | `.specsmith/esdb.sqlite3` | `.chronomemory/events.wal` |
+| **SHA-256 WAL chain** | — | ✅ |
+| **OEA anti-hallucination fields** | partial | ✅ full (H15–H22) |
+| **Rust acceleration** | — | ✅ |
+| **Epistemic rollback** | — | ✅ |
+
+**In short:** every `pip install specsmith` includes the SQLite backend for free.
+Install `specsmith[esdb]` and activate a license only when you need ChronoStore's
+cryptographic audit trail, full OEA fields, or Rust acceleration.
+
+---
+
 ## What is ESDB?
 
 The Epistemic State Database is how specsmith persists *governance state* across
@@ -94,53 +114,98 @@ between sessions without advanced governance features.
 
 ## Licensing
 
-The SQLite backend is MIT licensed and ships inside specsmith — no separate
-installation or license required.
+### SQLite backend — MIT, free, always included
 
-The ChronoStore backend (chronomemory) is **proprietary software**.  A commercial
-license is required to use it.  specsmith enforces this with an offline
-Ed25519-signed license file — no internet connection required once the license is
+The SQLite backend is MIT licensed and ships **inside** specsmith — no separate
+package, no license key, no configuration required.  It is active by default the
+moment you run `pip install specsmith`.
+
+### ChronoStore backend — proprietary, commercial license required
+
+`chronomemory` is a separate commercial package.  A valid Ed25519-signed license
+key issued by Layer1Labs is required to use it.  specsmith enforces this with an
+offline license check — no internet connection is needed once the license is
 activated.
 
-**To obtain a license:**
+The `chronomemory` package is available on [PyPI](https://pypi.org/project/chronomemory/).
+Installation (Step 1 below) downloads it like any other PyPI package.  The license
+key (Step 2) is the technical and legal gate.
 
-```
-Email: licensing@layer1labs.com
-Web:   https://layer1labs.com/esdb-licensing
-```
+**Obtain a license:**
+
+| Channel | Details |
+|---|---|
+| Email | [licensing@layer1labs.com](mailto:licensing@layer1labs.com) |
+| Web | [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) |
+| Legal terms | [chronomemory LICENSE](https://github.com/layer1labs/chronomemory/blob/main/LICENSE) · [COMMERCIAL-LICENSE.md](https://github.com/layer1labs/chronomemory/blob/main/COMMERCIAL-LICENSE.md) |
 
 ---
 
 ## Installation
 
-### SQLite (default — nothing to do)
+### SQLite backend — nothing to do
 
-The SQLite backend is built into specsmith.  `specsmith esdb status` confirms it
-is active.
-
-### ChronoStore (commercial)
+The SQLite backend is built into specsmith.  Confirm it is active:
 
 ```bash
-# 1. Install the ESDB extra (requires a license — see above)
-pip install specsmith[esdb]
-# or with pipx:
-pipx inject specsmith "chronomemory @ git+https://github.com/layer1labs/chronomemory.git"
-
-# 2. Activate your license
-specsmith esdb enable --key-file /path/to/your.esdb.key
-
-# 3. Confirm ChronoStore is active
 specsmith esdb status
+# ● ESDB — SQLite (free, MIT) — /your/project/.specsmith/esdb.sqlite3
+#   Records: 0
+#   ✔ Integrity OK
+#   chronomemory not installed — run 'pip install specsmith[esdb]' for ChronoStore
 ```
 
-Once activated, the license key is stored at `~/.specsmith/esdb.key`.  All
-subsequent specsmith commands automatically use ChronoStore.
+No further setup is required.
 
-To override back to SQLite without removing the license:
+### ChronoStore backend — step-by-step
+
+> **Prerequisite:** you must hold a valid chronomemory ESDB license.
+> Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain one.
+
+**Step 1 — install the `chronomemory` package**
+
+Choose the method that matches how you installed specsmith:
+
+```bash
+# If you installed specsmith via pip:
+pip install "specsmith[esdb]"
+
+# If you installed specsmith via pipx (recommended for CLI use):
+pipx inject specsmith "chronomemory>=0.1.4"
+```
+
+Verify the package is present:
+
+```bash
+python -c "import chronomemory; print(chronomemory.__version__)"
+```
+
+**Step 2 — activate your license key**
+
+```bash
+specsmith esdb enable --key-file /path/to/your-org.esdb.key
+# ✔ License key validated and installed at ~/.specsmith/esdb.key
+# ✔ License: your-org (expires YYYY-MM-DD)
+```
+
+The key is copied to `~/.specsmith/esdb.key`.  Every subsequent specsmith command
+automatically uses ChronoStore as long as the key is present and valid.
+
+**Step 3 — verify ChronoStore is active**
+
+```bash
+specsmith esdb status
+# ● ESDB — ChronoStore WAL (chronomemory commercial)
+#   Records: 0
+#   ✔ Integrity OK
+#   ✔ License: your-org (expires YYYY-MM-DD)
+```
+
+**Force SQLite without removing the license** (useful in CI environments):
 
 ```bash
 export SPECSMITH_ESDB_BACKEND=sqlite
-specsmith esdb status   # confirms SQLite is active
+specsmith esdb status   # confirms SQLite is active despite license being present
 ```
 
 ---

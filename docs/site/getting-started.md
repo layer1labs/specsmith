@@ -37,20 +37,40 @@ from specsmith.esdb import SqliteStore, open_default_store
 > `specsmith` **CLI command**.  Library imports via `pip install specsmith` work
 > in any Python 3.10+ environment with no restriction.
 
-### ESDB ChronoStore (commercial add-on)
+### ESDB backends — free SQLite (default) vs commercial ChronoStore
 
-The default ESDB backend is SQLite (free, MIT, included with specsmith). The commercial
-ChronoStore backend adds cryptographic tamper-evidence, OEA anti-hallucination fields,
-Rust acceleration, and epistemic rollback:
+Every specsmith install includes the **free SQLite ESDB backend** automatically.
+No extra packages, no license key, no configuration needed:
 
 ```bash
-pip install "specsmith[esdb]"                  # installs chronomemory from PyPI
-specsmith esdb enable --key-file your.esdb.key  # activate license
-specsmith esdb status                           # confirm ChronoStore active
+specsmith esdb status
+# ● ESDB — SQLite (free, MIT) — active by default
 ```
 
-Obtain a license: [licensing@layer1labs.com](mailto:licensing@layer1labs.com)
-Full comparison: [ESDB docs](esdb.md)
+**Upgrading to chronomemory ChronoStore (commercial):**
+
+ChronoStore adds a cryptographic SHA-256 WAL hash chain, full OEA anti-hallucination
+fields (H15–H22), Rust acceleration, and epistemic rollback.  It is a separate
+`chronomemory` package with a **proprietary commercial license**.
+
+```bash
+# Step 1 — install chronomemory
+pip install "specsmith[esdb]"                    # pip install
+pipx inject specsmith "chronomemory>=0.1.4"     # or, if using pipx
+
+# Step 2 — activate your license key
+specsmith esdb enable --key-file /path/to/your-org.esdb.key
+
+# Step 3 — confirm ChronoStore is active
+specsmith esdb status
+# ● ESDB — ChronoStore WAL (chronomemory commercial)
+#   ✔ License: your-org (expires YYYY-MM-DD)
+```
+
+Obtain a license: [licensing@layer1labs.com](mailto:licensing@layer1labs.com) ·
+[layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
+
+Full backend comparison, Python API, and CLI reference: [ESDB docs](esdb.md)
 
 ### From Source
 

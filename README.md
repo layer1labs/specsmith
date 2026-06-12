@@ -126,18 +126,43 @@ immediately importable.  The pipx isolation guard only applies to the `specsmith
 command — not to library imports.  Use this when you want the AEE belief-state machinery
 in your own application without managing a pipx environment.
 
-**ESDB ChronoStore (commercial, requires license):**
+**ESDB — Epistemic State Database**
+
+| Tier | Package | License | What you get |
+|------|---------|---------|-------------|
+| **Default** | `specsmith` (built-in) | MIT, free | SQLite backend — requirements, test cases, confidence filtering |
+| **Commercial** | `chronomemory` via `specsmith[esdb]` | Proprietary — license required | ChronoStore: tamper-evident SHA-256 WAL, OEA anti-hallucination fields, Rust acceleration, epistemic rollback |
+
+`pip install specsmith` always installs the **free SQLite backend** automatically.
+No additional packages, no license key, no configuration — it works out of the box.
 
 ```bash
-pip install "specsmith[esdb]"             # + chronomemory from PyPI (commercial — requires license key)
-specsmith esdb enable --key-file /path/to/your.esdb.key
-specsmith esdb status                     # confirms ChronoStore is active
+specsmith esdb status   # shows: SQLite (free, MIT) — active by default
 ```
 
-The default ESDB backend is SQLite (free, MIT, no license needed).  ChronoStore
-(tamper-evident WAL, OEA fields, Rust acceleration) is a commercial add-on.
-Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain a license.
-See [ESDB docs](https://specsmith.readthedocs.io/esdb) for a full feature comparison.
+**Upgrading to chronomemory ChronoStore (commercial):**
+
+If you hold a chronomemory ESDB license, activate the commercial backend:
+
+```bash
+# Step 1 — install the chronomemory package
+pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
+# or if using pipx:
+pipx inject specsmith "chronomemory>=0.1.4"  # inject into the specsmith pipx venv
+
+# Step 2 — activate your license key
+specsmith esdb enable --key-file /path/to/your.esdb.key
+# The key is copied to ~/.specsmith/esdb.key and used automatically from now on.
+
+# Step 3 — verify ChronoStore is active
+specsmith esdb status
+# ● ESDB — ChronoStore WAL (chronomemory commercial)
+#   ✔ License: your-org (expires YYYY-MM-DD)
+```
+
+To obtain a chronomemory ESDB license:
+[licensing@layer1labs.com](mailto:licensing@layer1labs.com) · [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
+See the [full ESDB docs](https://specsmith.readthedocs.io/esdb) for a feature comparison and Python API reference.
 
 **Update:**
 
