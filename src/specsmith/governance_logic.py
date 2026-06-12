@@ -77,7 +77,6 @@ def run_preflight(
     # the Path / operator on root — so CodeQL never re-acquires the taint from
     # project_dir through a Path object.
     _root_str: str = os.path.realpath(str(project_dir))
-    root = Path(_root_str)  # Path object only for APIs that require Path type
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
@@ -86,10 +85,11 @@ def run_preflight(
     _req_md = Path(os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md")))
     if not _req_md.exists():
         _req_md = Path(os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md")))  # legacy
+    _repo_idx = Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json")))
     scope = infer_scope(
         utterance,
         _req_md,
-        repo_index_path=Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json"))),
+        repo_index_path=_repo_idx,
     )
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
@@ -1019,7 +1019,7 @@ def _resolve_provider_name() -> str:
     return "byoe"
 
 
-def _read_confidence_threshold(root: "Path | str") -> float | None:
+def _read_confidence_threshold(root: Path | str) -> float | None:
     # Use os.path.join + os.path.realpath on the plain-string form so CodeQL
     # sees the sanitiser inline and does not flag cfg.is_file() or cfg.read_text().
     cfg = Path(os.path.realpath(os.path.join(str(root), ".specsmith", "config.yml")))
