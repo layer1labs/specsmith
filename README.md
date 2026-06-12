@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.13.0 — 16 new project types (LLM apps, MCP servers, Kubernetes operators, game dev, Web3, desktop, JVM and more), 131 built-in skills across 16 domains, EU AI Act / NIST AI RMF compliance, native Warp/Oz MCP governance server, multi-agent DAG dispatch, and context window management.**
+**v0.14.0 — two-tier ESDB (free SQLite built-in + commercial ChronoStore via `specsmith[esdb]`), ESDB license gate, full ESDB CLI group, 10 CodeQL security fixes, chronomemory v0.1.6 support, and comprehensive ESDB documentation.**
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -148,7 +148,7 @@ If you hold a chronomemory ESDB license, activate the commercial backend:
 # Step 1 — install the chronomemory package
 pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
 # or if using pipx:
-pipx inject specsmith "chronomemory>=0.1.4"  # inject into the specsmith pipx venv
+pipx inject specsmith "chronomemory>=0.1.6"  # inject into the specsmith pipx venv
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your.esdb.key

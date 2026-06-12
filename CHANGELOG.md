@@ -5,6 +5,88 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-06-12
+
+### Added
+
+- **Two-tier ESDB architecture (REQ-365, REQ-366):** specsmith now ships a
+  free built-in SQLite ESDB backend (MIT, no external deps, no license key)
+  alongside the commercial `chronomemory` ChronoStore backend:
+  - `specsmith.esdb.sqlite_store.SqliteStore` — default, activated automatically
+    on every `pip install specsmith`. DB at `.specsmith/esdb.sqlite3`.
+  - `specsmith[esdb]` extra — installs `chronomemory>=0.1.6` from PyPI.
+    Requires a valid Ed25519 license key from Layer1Labs to activate ChronoStore.
+  - `open_default_store()` backend selector: env override → license check →
+    SQLite fallback.
+
+- **ESDB license gate (REQ-367):** `specsmith.esdb._license` — offline
+  Ed25519 signature verification for `~/.specsmith/esdb.key`. No internet
+  connection required once activated.
+
+- **ESDB CLI command group** (`specsmith esdb …`):
+  - `status` — show active backend, license, and record counts (JSON/text)
+  - `enable --key-file` — validate and install a chronomemory license key
+  - `migrate` — import `.specsmith/*.json` into the active ESDB backend
+  - `export` — dump all records to a JSON snapshot
+  - `import` — restore from a snapshot
+  - `backup` — timestamped snapshot backup
+  - `rollback --steps N` — restore from the N-th most recent backup
+  - `compact` — deduplicate and vacuum the active store
+  - `replay` — verify the trace vault SHA-256 hash chain
+
+- **ESDB documentation** (`docs/site/esdb.md`): new comprehensive page with
+  backend comparison table, licensing at a glance, step-by-step ChronoStore
+  activation (pip and pipx variants), CLI reference, Python API, and migration
+  guide. Cross-linked from README, getting-started, and index.
+
+- **New test suite** (`tests/test_esdb_sqlite.py`, `tests/test_esdb_license.py`,
+  `tests/test_mcp_server.py`): 278 + 261 + 671 lines of new test coverage.
+
+### Fixed
+
+- **10 CodeQL security alerts resolved** (all `branch:main` open alerts cleared):
+  - `#148` `py/path-injection` — `governance_logic.py`: `os.path.realpath` now
+    called inline in `run_preflight` so CodeQL's taint tracker sees the sanitiser
+    directly (was hidden inside `_safe_resolve` across function boundary).
+  - `#170` `py/import-and-import-from` — `cli.py:4237`: `import specsmith.esdb as
+    _esdb` replaced with `from specsmith.esdb import …` to match the file's style.
+  - `#169` same rule — `tests/test_esdb_license.py:162`: `import
+    specsmith.esdb._license as lic_mod` → `from specsmith.esdb import _license as
+    lic_mod`.
+  - `#167/#166/#156` `py/module-import-repeat` — `tests/test_mcp_server.py`:
+    removed three redundant inline `import specsmith.mcp_server as mcp_mod`
+    (already imported at module level).
+  - `#171/#149` `py/non-standard-exception-in-special-method` —
+    `esdb/bridge.py` and `esdb/__init__.py`: `_StubModule.__getattr__` now
+    raises `AttributeError` instead of `ImportError`.
+  - `#152/#153` `py/empty-except` — `esdb/sqlite_store.py`: bare `except …:
+    pass` replaced with `counts["skipped"] += 1`.
+
+- **Broken Read the Docs link** — all `readthedocs.io/esdb` URLs (returning
+  404) corrected to `/en/stable/esdb/` across README, docs, and the
+  `chronomemory-esdb` governance skill.
+
+### Changed
+
+- `specsmith[esdb]` optional extra: `chronomemory>=0.1.6` (up from `>=0.1.4`).
+  chronomemory v0.1.6 is the first clean PyPI release with correct `__version__`,
+  all RTD links fixed, and the Python feature table corrected.
+- `chronomemory-esdb` governance skill updated to v0.1.6 references.
+- Version bumped from `0.13.1` to `0.14.0`.
+
+---
+
+## [0.13.1] - 2026-06-04
+
+### Fixed
+
+- `--no-edit` added to `git merge` in release next-steps output.
+- `git core.editor=true` set globally in release helper to prevent editor prompts.
+- Test: backdate `spec_version` in `test_upgrade_to_new_version` to avoid false
+  positives from version check logic.
+
+---
+
 ## [0.13.0] - 2026-06-04
 
 ### Added
