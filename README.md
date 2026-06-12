@@ -109,12 +109,24 @@ of file/command criteria, recommended commands, and a readiness percentage.
 **Recommended — via pipx (CLI + CI):**
 
 ```bash
-pipx install specsmith                    # core CLI + epistemic library
-pipx inject specsmith anthropic    # + Claude support
-pipx inject specsmith openai       # + GPT / O-series support
-pipx inject specsmith google-genai # + Gemini (google-genai SDK, GA May 2025)
-# Ollama: install locally at https://ollama.ai — no extra package needed
+pipx install specsmith
 ```
+
+That's it. `specsmith audit`, `preflight`, `sync`, `checkpoint`, `esdb`, `mcp serve`,
+and all governance commands work immediately with no additional packages.
+
+> **Want `specsmith run` with a cloud LLM?** Inject the provider SDK only if you use
+> the built-in agentic REPL with a cloud API key:
+>
+> ```bash
+> pipx inject specsmith anthropic    # if you set ANTHROPIC_API_KEY
+> pipx inject specsmith openai       # if you set OPENAI_API_KEY
+> pipx inject specsmith google-genai # if you set GOOGLE_API_KEY
+> ```
+>
+> Ollama works out of the box with no injection — specsmith uses stdlib HTTP.
+> For Warp, Claude Code, Cursor, and Copilot, the AI client provides the LLM;
+> no injection needed.
 
 **Library-only use (venv / conda / any Python environment):**
 

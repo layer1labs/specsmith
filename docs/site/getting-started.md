@@ -12,12 +12,19 @@ Use pipx when you want the full `specsmith` CLI (audit, phase, run, agent, etc.)
 pipx creates an isolated environment that prevents dependency conflicts with your project
 venvs.
 
-```bash
-# Optional extras
-pipx inject specsmith anthropic    # Claude
-pipx inject specsmith openai       # GPT / O-series
-pipx inject specsmith google-genai # Gemini
-```
+All governance commands (`audit`, `preflight`, `sync`, `checkpoint`, `esdb`, `mcp serve`,
+etc.) work immediately. No extra packages needed.
+
+!!! note "Cloud LLM providers — only for `specsmith run`"
+    If you use the built-in `specsmith run` agentic REPL with a cloud API key, inject
+    the matching SDK. Ollama works with no injection (stdlib HTTP). For Warp, Claude Code,
+    Cursor, and Copilot, the AI client brings its own LLM — no injection required.
+
+    ```bash
+    pipx inject specsmith anthropic    # if you set ANTHROPIC_API_KEY
+    pipx inject specsmith openai       # if you set OPENAI_API_KEY
+    pipx inject specsmith google-genai # if you set GOOGLE_API_KEY
+    ```
 
 ### pip — library-only use
 
