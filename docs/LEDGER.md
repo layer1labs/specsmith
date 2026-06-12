@@ -334,3 +334,9 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `bafb85feabbffbaf...`
+
+## 2026-06-11T22:22 — specsmith migration: 0.14.0 → 0.13.0
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `efee1a532b2b0e16...`
