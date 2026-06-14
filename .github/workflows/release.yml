@@ -101,11 +101,11 @@ jobs:
   pypi-publish:
     needs: [build, code-scan-gate]
     runs-on: ubuntu-latest
-    # 'release' environment requires manual approval in GitHub → Settings → Environments.
-    # Configure a required reviewer there so a human must approve before PyPI publish.
-    # The code-scan-gate job above ALSO blocks this job if any High/Critical alerts exist.
+    # 'pypi' environment matches the Trusted Publisher configured on PyPI
+    # (layer1labs/specsmith, release.yml, environment: pypi).
+    # The code-scan-gate job above ALSO blocks this if any High/Critical alerts exist.
     # Only publish from main branch tags — never from develop or feature branches.
-    environment: release
+    environment: pypi
     permissions:
       id-token: write
     if: github.event.base_ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
@@ -119,12 +119,71 @@ jobs:
         with:
           skip_existing: true
 
+  cleanup-dev-releases:
+    # After a stable release lands on PyPI, scrub all .devN pre-release builds
+    # for the same base version (e.g. 0.15.0.dev554 … 0.15.0.dev562 when
+    # v0.15.0 ships).  Also wipes the rolling latest-dev GitHub pre-release.
+    # Requires PYPI_API_TOKEN repo secret (project-scoped PyPI token with
+    # delete permission — separate from the OIDC upload token).
+    needs: [pypi-publish]
+    runs-on: ubuntu-latest
+    continue-on-error: true   # never block the release on cleanup failures
+    steps:
+      - name: Delete dev PyPI builds for this base version
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          BASE_VERSION: ${{ github.ref_name }}
+        run: |
+          pip install requests --quiet
+
+          python3 - <<'PYEOF'
+          import json, os, sys, re
+          import urllib.request
+          import requests
+
+          token = os.environ.get("PYPI_API_TOKEN", "")
+          if not token:
+              print("PYPI_API_TOKEN not set — skipping PyPI dev cleanup.")
+              sys.exit(0)
+
+          pkg = "specsmith"
+          tag = os.environ["BASE_VERSION"]          # e.g. 'v0.15.0'
+          base = tag.lstrip("v")                    # e.g. '0.15.0'
+
+          with urllib.request.urlopen(f"https://pypi.org/pypi/{pkg}/json") as r:
+              all_versions = list(json.loads(r.read())["releases"].keys())
+
+          dev_versions = [v for v in all_versions if v.startswith(f"{base}.dev")]
+          if not dev_versions:
+              print(f"No dev releases found for {base} — nothing to do.")
+              sys.exit(0)
+
+          print(f"Deleting {len(dev_versions)} dev release(s): {dev_versions}")
+          for version in dev_versions:
+              resp = requests.post(
+                  "https://upload.pypi.org/legacy/",
+                  data={":action": "remove_pkg", "name": pkg, "version": version},
+                  auth=("__token__", token),
+              )
+              result = "deleted" if resp.status_code in (200, 204) else f"status {resp.status_code}"
+              print(f"  {pkg}/{version}: {result}")
+          PYEOF
+
+      - name: Delete latest-dev GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest-dev --repo ${{ github.repository }} \
+            --yes --cleanup-tag 2>/dev/null \
+            && echo "Deleted latest-dev pre-release." \
+            || echo "latest-dev not found — skipping."
+
   rtd-publish:
     # RTD only publishes after PyPI succeeds AND the code-scan gate has passed.
-    # Uses the same 'release' environment as pypi-publish for consistent gating.
+    # RTD_TOKEN is a repository secret (not environment-scoped); consistent with
+    # dev-release.yml which accesses it without an environment declaration.
     needs: [pypi-publish, code-scan-gate]
     runs-on: ubuntu-latest
-    environment: release
     continue-on-error: true
     steps:
       - name: Trigger ReadTheDocs stable build
