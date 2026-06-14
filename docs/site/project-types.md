@@ -1,6 +1,6 @@
 # Project Types
 
-specsmith supports **63 project types** across eleven categories. Each type determines:
+specsmith supports **64 project types** across eleven categories. Each type determines:
 
 - **Directory structure** — what directories and .gitkeep files are created
 - **Verification tools** — what lint/test/security/build tools are configured in CI

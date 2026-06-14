@@ -96,6 +96,10 @@ class ProjectType(str, Enum):
     # Desktop
     DESKTOP_ELECTRON = "desktop-electron"  # Electron desktop app
     DESKTOP_TAURI = "desktop-tauri"  # Tauri desktop app (Rust + WebView)
+    # Brief lang — declarative contract-enforced logic language (github.com/Randozart/brief-lang)
+    # Version anchor: v0.14.0 @ commit 6a43c4aebcc5c6c774dbc2908445fb19486e8043 (2026-06-14)
+    # No release tags exist yet; version string + commit hash are both recorded.
+    BRIEF_LANG = "brief-lang"  # .bv/.sbv/.rbv/.ebv project using brief-compiler
 
 
 class Platform(str, Enum):
@@ -604,6 +608,8 @@ _TYPE_LABELS: dict[str, str] = {
     # Desktop
     ProjectType.DESKTOP_ELECTRON: "Desktop application (Electron)",
     ProjectType.DESKTOP_TAURI: "Desktop application (Tauri — Rust + WebView)",
+    # Brief lang
+    ProjectType.BRIEF_LANG: "Brief lang — declarative contract-enforced logic language (v0.14.0)",
 }
 
 _SECTION_REFS: dict[str, str] = {
@@ -662,4 +668,6 @@ _SECTION_REFS: dict[str, str] = {
     # Desktop
     ProjectType.DESKTOP_ELECTRON: "17.48",
     ProjectType.DESKTOP_TAURI: "17.49",
+    # Brief lang
+    ProjectType.BRIEF_LANG: "17.50",
 }

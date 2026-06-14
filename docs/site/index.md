@@ -143,7 +143,7 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [epistemic Library](epistemic-library.md) | Standalone library API reference + integration examples |
 | [Agentic Client](agent-client.md) | `specsmith run` — multi-provider REPL, skills, hooks, model routing |
 | [CLI Commands](commands.md) | Every command with all options, examples, and behavior |
-| [Project Types](project-types.md) | All 63 types with directory structures, tools, and governance rules |
+| [Project Types](project-types.md) | All 64 types with directory structures, tools, and governance rules |
 | [Work Item Lifecycle](wi-lifecycle.md) | WI state machine, `specsmith wi` CLI, promote vs close, data model |
 | [Tool Registry](tool-registry.md) | How tool-aware CI works, what tools each type uses, how to override |
 | [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |

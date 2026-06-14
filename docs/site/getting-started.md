@@ -286,4 +286,4 @@ Gets: `claims/`, `specification/`, `figures/`, `prior-art/`, `correspondence/` d
 
 A Rust CLI project gets: `src/`, `tests/`, `benches/` directories, CI with `cargo clippy`, `cargo test`, `cargo audit`, and rules about clippy warnings and doc comments.
 
-See [Project Types](project-types.md) for all 63 types.
+See [Project Types](project-types.md) for all 64 types.

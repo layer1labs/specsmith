@@ -131,6 +131,15 @@ EXT_LANG: dict[str, str] = {
     ".kicad_sch": "kicad",
     ".kicad_pro": "kicad",
     ".sch": "kicad",  # legacy KiCad schematic
+    # Brief lang (github.com/Randozart/brief-lang v0.14.0 @ 6a43c4ae)
+    # All variants map to the same language key; strictness is a compiler flag, not a language.
+    ".bv": "brief",  # Brief — declarative contract logic (normal mode)
+    ".sbv": "brief",  # Strict Brief — hard errors on incomplete contracts
+    ".rbv": "brief",  # Rendered Brief — Brief + web UI (HTML/CSS/SVG → WASM)
+    ".ebv": "brief",  # Embedded Brief — Brief + hardware triggers (FPGA/ARM)
+    ".dbv": "brief",  # Data Brief — configuration data
+    ".dbvs": "brief",  # Data Brief Schema — FFI bindings / target specs
+    ".dbvl": "brief",  # Data Brief Lines — line-based databases
     # Data science
     ".r": "r",
     ".rmd": "r",
@@ -197,6 +206,7 @@ LANG_DISPLAY: dict[str, str] = {
     "latex": "LaTeX",
     "bibtex": "BibTeX",
     "asciidoc": "AsciiDoc",
+    "brief": "Brief",
     "kicad": "KiCad",
     "r": "R",
     "julia": "Julia",
@@ -264,6 +274,7 @@ LANG_CATEGORY: dict[str, str] = {
     "latex": "Documentation",
     "bibtex": "Documentation",
     "asciidoc": "Documentation",
+    "brief": "Declarative / Formal",
     "kicad": "Hardware / EDA",
     "r": "Data Science",
     "julia": "Data Science",

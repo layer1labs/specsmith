@@ -284,6 +284,17 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
         )
     elif config.type in (ProjectType.CLI_RUST, ProjectType.LIBRARY_RUST):
         dirs.extend([target / "src", target / "tests", target / "benches"])
+    elif config.type == ProjectType.BRIEF_LANG:
+        # Brief lang project: .bv sources, library modules, contract tests
+        # brief-compiler check src/  — lint pass
+        # brief-compiler rust src/main.bv  — compile to Rust
+        dirs.extend(
+            [
+                target / "src",  # .bv source files
+                target / "lib",  # imported .bv library modules
+                target / "tests",  # contract test .bv files
+            ]
+        )
     elif config.type in (ProjectType.CLI_GO,):
         dirs.extend([target / "cmd", target / "internal", target / "pkg", target / "tests"])
     elif config.type in (ProjectType.CLI_C, ProjectType.LIBRARY_C):

@@ -1100,6 +1100,12 @@ def _infer_type(result: DetectionResult) -> ProjectType:
     lang = result.primary_language
     build = result.build_system
 
+    # Brief lang — .bv/.sbv/.rbv/.ebv files are unambiguous; check before Rust
+    # (the brief-lang compiler repo is Rust + .bv files; .bv files are the signal)
+    # Version anchor: v0.14.0 @ 6a43c4ae (github.com/Randozart/brief-lang)
+    if lang == "brief":
+        return ProjectType.BRIEF_LANG
+
     # Hardware types
     if lang in ("vhdl", "verilog", "systemverilog"):
         return ProjectType.FPGA_RTL

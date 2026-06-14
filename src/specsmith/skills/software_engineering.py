@@ -1190,6 +1190,236 @@ git remote prune origin
 - [ ] Branch deleted after merge
 """,
     ),
+    # ── Brief lang ────────────────────────────────────────────────────────────
+    SkillEntry(
+        slug="brief-lang",
+        name="Brief lang — declarative contract-enforced logic language",
+        description=(
+            "End-to-end workflow for projects using Brief (v0.14.0): file variants, "
+            "compiler commands, contract syntax (txn/rct/let/[pre][post]), "
+            "build targets (Rust/C/LLVM/WASM/VHDL/COBOL), and governance rules."
+        ),
+        domain=SkillDomain.SOFTWARE_ENGINEERING,
+        tags=[
+            "brief",
+            "brief-lang",
+            "declarative",
+            "contracts",
+            "transactions",
+            "state-machine",
+            "llvm",
+            "wasm",
+            "fpga",
+            "cobol",
+            "formal-verification",
+            "rust",
+        ],
+        project_types=["brief-lang"],
+        platforms=["windows", "linux", "macos"],
+        prerequisites=["brief-compiler", "cargo"],
+        body="""\
+# Brief lang
+
+**Version anchor: v0.14.0 — commit `6a43c4aebcc5c6c774dbc2908445fb19486e8043` (2026-06-14)**
+No release tags exist yet. Both the declared version and the commit hash are kept for
+reproducibility. Update this file when Brief ships a tagged release.
+
+Source: https://github.com/Randozart/brief-lang
+
+## What is Brief?
+
+Brief is a declarative, contract-enforced logic language for verifiable state machines.
+Programs are a set of *transactions* whose preconditions and postconditions the compiler
+proves. Execution is inferred: a reactor loop fires transactions automatically when their
+preconditions are met. Brief transpiles to many imperative backends — Rust, C, LLVM IR,
+COBOL, SystemVerilog, VHDL, and browser WASM.
+
+## File variants
+
+| Extension | Variant | Targets |
+|-----------|---------|--------|
+| `.bv` | Brief (normal) | LLVM → binary, COBOL |
+| `.sbv` | Strict Brief | Same — hard errors on incomplete contracts |
+| `.rbv` | Rendered Brief | Browser: WASM + JS + HTML + CSS + SVG |
+| `.ebv` | Embedded Brief | FPGA (VHDL/SystemVerilog), ARM bare-metal |
+| `.dbv` | Data Brief | Configuration data (all targets) |
+| `.dbvs` | Data Brief Schema | FFI bindings / target specs |
+| `.dbvl` | Data Brief Lines | Line-based databases |
+
+Prefer `.sbv` for production code — the proof engine enforces complete contracts.
+
+## Build the compiler (required — no pre-built binaries at v0.14.0)
+
+```bash
+git clone https://github.com/Randozart/brief-lang.git
+cd brief-lang
+git checkout 6a43c4aebcc5c6c774dbc2908445fb19486e8043   # pin to v0.14.0
+cargo build --release
+# Compiler is now at ./target/release/brief-compiler
+export PATH="$PWD/target/release:$PATH"
+```
+
+## Compiler commands (v0.14.0)
+
+```bash
+# Type-check only (fast — use in CI lint step)
+brief-compiler check counter.bv
+
+# Strict mode — proof engine, hard errors (use in CI typecheck step)
+brief-compiler check --strict counter.sbv
+brief-compiler check --strict counter.bv   # force strict on .bv file
+
+# Compile to backend
+brief-compiler rust  counter.bv            # → Rust source
+brief-compiler c     counter.bv            # → C source
+brief-compiler llvm  counter.bv            # → LLVM IR (.ll)
+brief-compiler compile counter.bv --target aarch64.dbvs   # → AArch64 asm
+brief-compiler compile counter.bv --target x86_64.dbvs    # → x86-64 asm
+
+# Hardware targets
+brief-compiler compile counter.ebv --target vhdl.dbvs       # → VHDL
+brief-compiler compile counter.ebv --target systemverilog.dbvs  # → SV
+
+# Web target
+brief-compiler compile app.rbv --target wasm.dbvs           # → WASM + JS glue
+
+# FFI bindings from a C header
+brief-compiler bind mylib.h                # generates mylib.dbvs
+
+# Metropolitan shared-memory service
+brief-compiler metrod connect WeatherApi   # bind to a running service
+
+# LSP server (for editor integration)
+brief-compiler lsp
+
+# Run compiler-internal tests (requires Cargo.toml)
+cargo test --lib
+```
+
+## Language syntax
+
+### Variables
+```brief
+let counter: Int = 0;
+let name: String = "Alice";
+```
+
+### Transactions — the core unit
+```brief
+txn increment() [counter < 100][counter == @counter + 1] {
+    &counter = counter + 1;   // &var = mutation
+    term;                      // required terminator
+};
+
+// @counter = "counter before this transaction"
+// [pre][post] = precondition and postcondition contracts
+```
+
+### Reactive transactions — fire automatically
+```brief
+rct txn auto_save() [dirty && !saving][!dirty] {
+    save_to_disk();
+    &dirty = false;
+    term;
+};
+// Fires whenever dirty==true and saving==false — no polling, no event handlers
+```
+
+### Guards (replaces if/else)
+```brief
+[x > 0] { &result = x * 2; };
+[x < 0] { &result = x * -1; };
+[x == 0] { escape; };   // escape = rollback this transaction
+```
+
+### Entry point
+```brief
+txn main() [true][true] {
+    increment();
+    increment();
+    term;
+};
+```
+
+### Contract patterns
+```brief
+// Withdraw with full pre+post contract
+txn withdraw(amount: Int)
+    [amount > 0 && balance >= amount]   // precondition
+    [balance == @balance - amount]       // postcondition
+{
+    &balance = balance - amount;
+    term;
+};
+
+// Partial contract — compiles with warnings (.bv)
+txn log_event(msg: String) [true][] {
+    write_log(msg);
+    term;
+};
+```
+
+### FFI (Metropolitan interface)
+```brief
+// Declare an external function via .dbvs binding
+use std::io::PrintLine;   // from std/bindings/io.dbvs
+
+txn greet(name: String) [true][true] {
+    PrintLine(name);
+    term;
+};
+```
+
+## Project layout (specsmith scaffold)
+
+```
+src/        — .bv / .sbv primary source files
+lib/        — .bv library modules (imported by src/)
+tests/      — contract test .bv files
+target/     — build output (gitignored)
+```
+
+## CI workflow (GitHub Actions)
+
+```yaml
+steps:
+  - uses: dtolnay/rust-toolchain@stable
+  - name: Build brief-compiler (v0.14.0 @ 6a43c4ae)
+    run: |
+      git clone https://github.com/Randozart/brief-lang.git brief-lang
+      cd brief-lang && git checkout 6a43c4aebcc5c6c774dbc2908445fb19486e8043
+      cargo build --release
+      echo "$PWD/brief-lang/target/release" >> $GITHUB_PATH
+
+  - name: Lint (brief-compiler check)
+    run: brief-compiler check src/
+
+  - name: Typecheck (strict mode)
+    run: brief-compiler check --strict src/
+
+  - name: Build to Rust
+    run: brief-compiler rust src/main.bv
+```
+
+## Governance rules for Brief projects
+
+- Every transaction MUST declare at least a precondition or postcondition — H13.
+- `.sbv` (strict mode) is required for all production code paths.
+- Compiler output (`target/`) is a **derived artifact** — never hand-edit generated Rust/C.
+- FFI boundaries declared via `.dbvs` files are governance artifacts: treat them like API specs.
+- `escape;` (rollback) must be documented with a comment explaining the failure condition.
+- Contract completeness = proof coverage: treat incomplete contracts as audit warnings.
+
+## Common pitfalls
+
+- `term;` is required at the end of every transaction body — missing it is a parse error.
+- `@var` refers to the variable value *before* the transaction; `var` after reassignment is the new value.
+- `.bv` files compile with warnings for incomplete contracts; `.sbv` makes them errors.
+- The Metropolitan FFI is the only way to interact with foreign code — no inline foreign calls.
+- The reactor loop infers execution order; don't assume sequential call order between transactions.
+- `brief-compiler lsp` provides editor integration — configure it in your IDE before writing Brief.
+""",
+    ),
     SkillEntry(
         slug="architecture-decision-records",
         name="Architecture Decision Records — documenting and tracking architectural decisions",

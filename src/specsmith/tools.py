@@ -12,6 +12,14 @@ if TYPE_CHECKING:
 
 from specsmith.config import ProjectType
 
+# ---------------------------------------------------------------------------
+# Brief lang version anchor — no release tags exist; both identifiers are kept.
+# Update both when a new Brief version is adopted.
+# ---------------------------------------------------------------------------
+BRIEF_LANG_VERSION: str = "v0.14.0"
+BRIEF_LANG_COMMIT: str = "6a43c4aebcc5c6c774dbc2908445fb19486e8043"
+BRIEF_LANG_COMMIT_SHORT: str = BRIEF_LANG_COMMIT[:8]  # 6a43c4ae
+
 
 @dataclass(frozen=True)
 class ToolSet:
@@ -504,6 +512,21 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         format=["prettier"],
         compliance=["specsmith trace verify"],
     ),
+    # --- Brief lang (v0.14.0 @ 6a43c4ae, github.com/Randozart/brief-lang) ---
+    # brief-compiler check      — type-checker + contract verifier (normal mode)
+    # brief-compiler check --strict — proof engine; hard errors on incomplete contracts
+    # cargo test --lib          — compiler-internal tests (Cargo.toml must exist)
+    # brief-compiler rust       — primary software build target
+    # brief-compiler llvm       — compile to LLVM IR
+    # brief-compiler lsp        — start LSP server for editor integration
+    ProjectType.BRIEF_LANG: ToolSet(
+        lint=["brief-compiler check"],
+        typecheck=["brief-compiler check --strict"],
+        test=["cargo test --lib"],
+        build=["brief-compiler rust", "brief-compiler llvm"],
+        security=[],
+        format=[],
+    ),
 }
 
 
@@ -614,6 +637,13 @@ LANG_CI_META: dict[str, dict[str, str]] = {
         "gh_setup": "",
         "docker_image": "gcc:latest",
         "install": "",
+    },
+    # Brief lang — compiler is built from source (Rust), no pre-built binary yet
+    "brief": {
+        "gh_setup": "      - uses: dtolnay/rust-toolchain@stable\n",
+        "docker_image": "rust:latest",
+        "install": "cargo build --release",
+        "brief_compiler": "./target/release/brief-compiler",
     },
     "terraform": {
         "gh_setup": "      - uses: hashicorp/setup-terraform@v3\n",
