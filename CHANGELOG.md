@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.15.0] - 2026-06-14
+
 ### Added
 
 - **WI lifecycle subsystem (`specsmith/wi_store.py`)** — `WorkItem` dataclass with
@@ -68,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`pyproject.toml` pytest config** — added `pythonpath = ["src"]` so pytest
   can discover `specsmith` without requiring `pip install -e .` in the dev
   shell (matches the CI install path).
+
+- **`cli.py` wi_promote_cmd** — removed dead `new_req` dict assignment
+  (F841: built but never read; YAML entry written directly via f-string).
+
+### Changed
+
+- Version bumped from `0.14.2` to `0.15.0`.
 
 ---
 

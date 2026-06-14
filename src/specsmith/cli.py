@@ -8384,16 +8384,6 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
 
     # ── Build REQ entry ───────────────────────────────────────────────────
     req_title = title.strip() or item.intent[:120] or f"Work item {item.id}"
-    new_req: dict[str, object] = {
-        "id": new_req_id,
-        "title": req_title,
-        "description": (
-            f"Promoted from {item.id} on {_now_ts()}. "
-            f"Original intent: {item.intent}"
-        ),
-        "source": item.id,
-        "status": "planned",
-    }
 
     # ── Append to domain YAML ─────────────────────────────────────────────
     yaml_path.parent.mkdir(parents=True, exist_ok=True)
