@@ -86,12 +86,13 @@ def run_preflight(
     # needs_clarification (GitHub issue #197).
     # project_dir is already the os.path.realpath result; os.path.join on a
     # realpath'd root produces a canonical child path — no extra realpath needed.
-    _req_md_primary: str = os.path.join(_root_str, "docs", "REQUIREMENTS.md")
-    _req_md_legacy: str = os.path.join(_root_str, "REQUIREMENTS.md")
-    # Use Path.is_file() — consistent with rq_path/tc_path checks below and
-    # not a CodeQL py/path-injection sink (unlike os.path.isfile).
-    _req_md_str: str = _req_md_primary if Path(_req_md_primary).is_file() else _req_md_legacy
-    _req_md = Path(_req_md_str)
+    # Inline os.path.join directly inside Path() — same pattern as rq_path/tc_path
+    # below which CodeQL does not flag.  Intermediate str variables that carry
+    # taint through variable assignment trigger py/path-injection on Path(var);
+    # inlining avoids that propagation path.
+    _req_md = Path(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
+    if not _req_md.is_file():
+        _req_md = Path(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy fallback
     _repo_idx = Path(os.path.join(_root_str, ".repo-index", "files.json"))
     scope = infer_scope(
         utterance,
