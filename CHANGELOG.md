@@ -43,6 +43,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   module exports. Fails CI when regulations change without a corresponding
   `regulation_versions.yml` update.
 
+- **`tests/sandbox/test_sandbox_all_types.py`** — parametrized smoke test over
+  all 63 project types: init succeeds, all 7 governance files present,
+  `specsmith audit` reports Healthy, `specsmith validate` passes, no empty
+  scaffold files. Plus `TestAITypesDomainContent`: domain-specific dir
+  assertions for all 17 new AI/modern types (llm-app, mcp-server,
+  agent-orchestration, serverless, kubernetes-operator, smart-contract,
+  desktop-tauri, data-warehouse, game-unity, game-godot, etc.).
+
+- **`tests/sandbox/test_sandbox_wi_compliance.py`** — end-to-end WI lifecycle
+  and compliance commands on real scaffolded projects:
+  `TestWILifecycleSandbox` (11 tests): preflight → WI creation, wi list/show/
+  close/archive/promote/tag/import on a real project directory.
+  `TestComplianceSandbox` (9 tests): compliance list/check/report
+  (MD/JSON/HTML/file) on a scaffolded project; evidence-confidence ordering.
+
 ### Fixed
 
 - **`governance_logic.py` — WI wiring `NameError` silently swallowed.**
