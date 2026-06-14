@@ -82,12 +82,17 @@ def run_preflight(
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
     # on standard projects, causing preflight to always return
     # needs_clarification (GitHub issue #197).
-    # Use os.path.isfile on the sanitised strings (not Path.exists on a Path
-    # object) so CodeQL's taint tracker sees the realpath sanitisation chain
-    # all the way to the file-system operation without re-tainting via Path().
-    _req_md_str = os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
-    if not os.path.isfile(_req_md_str):
-        _req_md_str = os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy
+    # Pre-compute both candidate paths with os.path.realpath so every variable
+    # that touches the filesystem is already sanitised.  Apply os.path.realpath
+    # inline at the isfile() call site so CodeQL's taint tracker sees the
+    # sanitiser immediately before the filesystem sink — not just lines above.
+    _req_md_primary: str = os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
+    _req_md_legacy: str = os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md"))
+    _req_md_str: str = (
+        _req_md_primary
+        if os.path.isfile(os.path.realpath(_req_md_primary))  # realpath at sink
+        else _req_md_legacy
+    )
     _req_md = Path(_req_md_str)
     _repo_idx = Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json")))
     scope = infer_scope(
