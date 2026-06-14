@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  security-events: read  # needed for code scanning alert API
 
 jobs:
   test:
@@ -27,8 +28,34 @@ jobs:
       - run: mypy src/specsmith --ignore-missing-imports --disable-error-code import-untyped
       - run: pytest tests/ -x -q
 
-  build:
+  code-scan-gate:
+    # Block the release if any High or Critical code scanning alerts are open.
+    # All alerts MUST be resolved before PyPI or RTD receives the release.
     needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: read
+    steps:
+      - name: Check for open High/Critical code scanning alerts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COUNT=$(gh api \
+            "repos/${{ github.repository }}/code-scanning/alerts?state=open&per_page=100" \
+            --jq '[.[] | select(
+              .rule.security_severity_level == "critical" or
+              .rule.security_severity_level == "high"
+            )] | length')
+          echo "Open High/Critical code scanning alerts: $COUNT"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Release blocked — $COUNT open High/Critical code scanning alert(s). Resolve all alerts before deploying."
+            exit 1
+          fi
+          echo "Code scanning gate passed — no High/Critical alerts open."
+
+  build:
+    needs: [test, code-scan-gate]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -72,12 +99,15 @@ jobs:
             --generate-notes || echo "Release already exists — skipping"
 
   pypi-publish:
-    needs: build
+    needs: [build, code-scan-gate]
     runs-on: ubuntu-latest
-    environment: pypi
+    # 'release' environment requires manual approval in GitHub → Settings → Environments.
+    # Configure a required reviewer there so a human must approve before PyPI publish.
+    # The code-scan-gate job above ALSO blocks this job if any High/Critical alerts exist.
+    # Only publish from main branch tags — never from develop or feature branches.
+    environment: release
     permissions:
       id-token: write
-    # Only publish from main branch tags — never from develop or feature branches
     if: github.event.base_ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/download-artifact@v8
@@ -90,8 +120,11 @@ jobs:
           skip_existing: true
 
   rtd-publish:
-    needs: pypi-publish
+    # RTD only publishes after PyPI succeeds AND the code-scan gate has passed.
+    # Uses the same 'release' environment as pypi-publish for consistent gating.
+    needs: [pypi-publish, code-scan-gate]
     runs-on: ubuntu-latest
+    environment: release
     continue-on-error: true
     steps:
       - name: Trigger ReadTheDocs stable build

@@ -103,6 +103,53 @@ Agents MUST defer to specsmith for ALL governance decisions.
 
 ---
 
+## GitHub Operations
+
+Use **`gh` CLI** (GitHub CLI) as the **first and preferred** tool for all GitHub operations —
+issues, PRs, releases, code scanning alerts, and repository data.
+
+**MCP GitHub server is last resort only** — use it only when `gh` CLI genuinely cannot do the task.
+
+```bash
+gh issue list --state open
+gh pr list --state open
+gh api repos/{owner}/{repo}/code-scanning/alerts --jq '[.[] | select(.state=="open")]'
+gh release create v1.0.0 dist/* --generate-notes
+```
+
+## Code Quality Gate
+
+Before **any** commit, both checks MUST pass with zero violations:
+
+```bash
+ruff check src/ tests/           # linting — zero violations required
+ruff format --check src/ tests/  # formatting — zero violations required
+```
+
+Never suppress a `ruff` violation with `# noqa` unless it is a documented false positive.
+When using `# noqa`, always include the rule code and a one-line explanation:
+
+```python
+except Exception:  # noqa: BLE001  # intentional: fire-and-forget cleanup
+```
+
+## CodeQL Safe Patterns
+
+Follow these patterns to keep CodeQL (security + quality scanning) alerts at zero:
+
+**Path sanitization** — always use `os.path.realpath()`, never `Path.resolve()`:
+```python
+import os
+safe_path = os.path.realpath(str(user_input))  # CORRECT — recognised sanitizer
+safe_path = Path(user_input).resolve()          # WRONG — triggers py/path-injection
+```
+
+**Import discipline** — no inline `import X` if `from X import Y` exists at module level (triggers `py/import-and-import-from`).
+
+**Empty except blocks** — always add `# noqa: BLE001` with a reason comment; bare `except: pass` triggers CodeQL alerts.
+
+---
+
 ## Codity.ai Code Review (if configured)
 
 If `codity doctor` exits 0 (Codity is configured), run

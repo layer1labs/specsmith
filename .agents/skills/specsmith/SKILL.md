@@ -90,6 +90,33 @@ Specsmith commits follow: `type: message` where type is one of:
 
 Always append `Co-Authored-By: Oz <oz-agent@warp.dev>` when committing as an AI agent.
 
+## GitHub Operations
+
+Use **`gh` CLI** (GitHub CLI) as the **first and preferred** tool for all GitHub operations:
+issues, PRs, releases, code scanning alerts, and repository data.
+
+**MCP GitHub server is last resort only** — use it only when `gh` CLI genuinely cannot do the task.
+
+```bash
+gh issue list --state open
+gh pr create --title "feat: ..." --body "..."
+gh api repos/{owner}/{repo}/code-scanning/alerts --jq '[.[] | select(.state=="open")]'
+```
+
+## Release Process
+
+Before tagging any release, **both** of these files MUST be updated in the same commit:
+
+1. **`CHANGELOG.md`** — add a dated section for the new version with a bullet-point summary of changes.
+2. **`README.md`** — update the version highlight line near the top (search for the previous version number) to reflect the new version's headline features.
+
+PyPI and RTD deploys are **blocked** until:
+- All CI passes (tests, ruff, mypy)
+- Zero open High/Critical code scanning alerts (`gh api repos/{owner}/{repo}/code-scanning/alerts`)
+- A human approves the release in the GitHub `release` environment gate
+
+Never tag a release from a branch other than `main`.
+
 ## Important rules
 
 - **Never use `git commit` directly** — use `specsmith save` or `specsmith commit`.

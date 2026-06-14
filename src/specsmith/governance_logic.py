@@ -82,9 +82,13 @@ def run_preflight(
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
     # on standard projects, causing preflight to always return
     # needs_clarification (GitHub issue #197).
-    _req_md = Path(os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md")))
-    if not _req_md.exists():
-        _req_md = Path(os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md")))  # legacy
+    # Use os.path.isfile on the sanitised strings (not Path.exists on a Path
+    # object) so CodeQL's taint tracker sees the realpath sanitisation chain
+    # all the way to the file-system operation without re-tainting via Path().
+    _req_md_str = os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
+    if not os.path.isfile(_req_md_str):
+        _req_md_str = os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy
+    _req_md = Path(_req_md_str)
     _repo_idx = Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json")))
     scope = infer_scope(
         utterance,

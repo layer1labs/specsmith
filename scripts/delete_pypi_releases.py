@@ -81,8 +81,8 @@ def delete_version(page: Page, version: str) -> bool:
         if confirm_input.is_visible(timeout=4_000):
             confirm_input.fill(version)
             time.sleep(0.3)
-    except Exception:
-        pass
+    except Exception:  # noqa: BLE001
+        pass  # confirm dialog not found or not visible; deletion may still proceed
 
     # Click the final confirmation/submit button
     try:
@@ -94,8 +94,8 @@ def delete_version(page: Page, version: str) -> bool:
             submit.click()
             page.wait_for_load_state("domcontentloaded", timeout=15_000)
             time.sleep(0.5)
-    except Exception:
-        pass
+    except Exception:  # noqa: BLE001
+        pass  # submit button not found or click failed; page state logged above
 
     print(f"  DEL   {version} ✓")
     return True

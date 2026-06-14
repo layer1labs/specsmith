@@ -11,10 +11,9 @@ Everything else (dev builds, alphas, pre-0.11.7 stable) is yanked.
 """
 
 import argparse
-import sys
+import json
 import time
 import urllib.request
-import json
 
 KEEP = {
     "0.11.7",

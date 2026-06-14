@@ -30,6 +30,12 @@ pytest tests/ -q && ruff check src/ tests/ && mypy src/
 #    - Move [Unreleased] items into new [X.Y.Z] - YYYY-MM-DD section
 #    - Update comparison links at bottom
 
+# 3b. Update README.md version highlight line (REQUIRED — do not skip!)
+#     Search for the previous version number in README.md and update the
+#     highlight line near the top to reflect the new version's headline features.
+#     Example line to update:
+#       **vX.Y.Z — headline features.**
+
 # 4. Update docs if needed
 #    - docs/site/*.md (remove any alpha/pre-release references)
 #    - README.md (install command, version references)
@@ -131,14 +137,21 @@ Before EVERY release (feature or hotfix), verify:
 
 - [ ] Version bumped in all 5 places (see above)
 - [ ] CHANGELOG.md has dated section with correct comparison links
+- [ ] **README.md version highlight line updated** to the new version + headline features
 - [ ] `pyproject.toml` classifier matches release status (not "Alpha" for stable)
 - [ ] No stale alpha/pre-release references in docs or README
 - [ ] `pip install specsmith` (not `--pre`) in all install instructions
 - [ ] `python -m pytest tests/ -q` passes
 - [ ] `ruff check src/ tests/` passes
-- [ ] `mypy src/` passes  
+- [ ] `ruff format --check src/ tests/` passes
+- [ ] `mypy src/` passes
 - [ ] `specsmith audit --project-dir .` passes
-- [ ] All open code scanning alerts resolved
+- [ ] **Zero open High/Critical code scanning alerts** — verify with:
+  ```bash
+  gh api repos/{owner}/{repo}/code-scanning/alerts \
+    --jq '[.[] | select(.state=="open" and (.rule.security_severity_level=="critical" or .rule.security_severity_level=="high"))] | length'
+  ```
+  Result must be `0` before tagging.
 
 ## Post-Release Verification
 
@@ -157,9 +170,16 @@ After pushing the tag:
 ### Stable Releases (main branch)
 When a tag matching `v*` is pushed to `main`, the release workflow automatically:
 
-1. **Builds** sdist + wheel
-2. **Publishes to PyPI** via OIDC trusted publishing (no tokens needed)
-3. **Creates GitHub Release** with auto-generated notes and artifacts
+1. **Tests** — full test suite, ruff check + format, mypy
+2. **Code scan gate** — fails the entire release if any High/Critical code scanning alert is open
+3. **Builds** sdist + wheel
+4. **GitHub Release** — draft release with artifacts
+5. **PyPI publish** — requires manual approval via the GitHub `release` environment gate
+6. **RTD publish** — triggered only after PyPI publish succeeds; also requires `release` environment approval
+
+> **Manual gate required.** PyPI and RTD will not publish until a human approves in
+> GitHub → Actions → the release workflow run → `pypi-publish` environment deployment.
+> Configure required reviewers in **GitHub → Settings → Environments → release**.
 
 Install: `pip install specsmith`
 

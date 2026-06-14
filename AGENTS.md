@@ -120,6 +120,69 @@ specsmith kill-session
 This stops `governance-serve` and any other tracked agent processes.
 Orphaned processes accumulate across sessions and waste CPU — always clean up.
 
+## GitHub Operations
+
+Use **`gh` CLI** (GitHub CLI) as the **first and preferred** tool for all GitHub operations —
+issues, PRs, releases, code scanning alerts, and repository data.
+
+**MCP GitHub server is last resort only** — use it only when `gh` CLI genuinely cannot do the task.
+
+```bash
+gh issue list --state open
+gh pr list --state open
+gh api repos/{owner}/{repo}/code-scanning/alerts --jq '[.[] | select(.state=="open")]'
+gh release create v1.0.0 dist/* --generate-notes
+```
+
+## Code Quality Gate
+
+Before **any** commit, both checks MUST pass with zero violations:
+
+```bash
+ruff check src/ tests/           # linting — zero violations required
+ruff format --check src/ tests/  # formatting — zero violations required
+```
+
+Never suppress a `ruff` violation with `# noqa` unless it is a documented false positive.
+When using `# noqa`, always include the rule code and a one-line explanation:
+
+```python
+except Exception:  # noqa: BLE001  # intentional: fire-and-forget cleanup; log is written above
+```
+
+## CodeQL Safe Patterns
+
+Follow these patterns to keep CodeQL (security + quality scanning) alerts at zero:
+
+**Path sanitization** — always use `os.path.realpath()`, never `Path.resolve()`:
+```python
+import os
+# CORRECT — CodeQL recognises os.path.realpath() as a taint sanitizer
+safe_path = os.path.realpath(str(user_input))
+
+# WRONG — CodeQL does NOT recognise Path.resolve() as a sanitizer
+safe_path = Path(user_input).resolve()  # triggers py/path-injection
+```
+
+**Import discipline** — no inline `import X` when `from X import Y` exists at module level:
+```python
+from specsmith.compliance import ComplianceChecker  # module-level ← fine
+
+def my_test():
+    import specsmith.compliance as c  # WRONG: triggers py/import-and-import-from
+```
+
+**Empty except blocks** — always add comment + `# noqa: BLE001`:
+```python
+# CORRECT
+except Exception:  # noqa: BLE001  # intentional: ...
+    pass
+
+# WRONG — bare empty except triggers CodeQL empty-except alert
+except Exception:
+    pass
+```
+
 ## For AI Agents
 
 All governance rules, session state, requirements, and epistemic constraints

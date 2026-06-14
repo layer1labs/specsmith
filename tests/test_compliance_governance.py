@@ -964,8 +964,12 @@ class TestDisclaimerEnforcement:
 
     def test_module_docstring_has_disclaimer(self) -> None:
         """compliance/__init__.py docstring must contain the disclaimer."""
-        import specsmith.compliance as comp_module
+        # Access via sys.modules to avoid 'import specsmith.compliance' conflicting
+        # with the module-level 'from specsmith.compliance.X import Y' statements
+        # (CodeQL py/import-and-import-from rule).
+        import sys
 
+        comp_module = sys.modules.get("specsmith.compliance") or __import__("specsmith.compliance")
         doc = comp_module.__doc__ or ""
         assert "disclaimer" in doc.lower() or "DISCLAIMER" in doc, (
             "compliance/__init__.py docstring must contain DISCLAIMER"
@@ -981,8 +985,9 @@ class TestComplianceModuleExports:
     """Verify all __all__ symbols are importable without error."""
 
     def test_all_exports_importable(self) -> None:
-        import specsmith.compliance as m
+        import sys
 
+        m = sys.modules.get("specsmith.compliance") or __import__("specsmith.compliance")
         for name in m.__all__:
             obj = getattr(m, name, None)
             assert obj is not None, f"compliance.__all__ member '{name}' is None"

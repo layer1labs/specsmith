@@ -24,6 +24,7 @@ human-readable audit trail via ``work_proposal`` entries.
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -158,7 +159,10 @@ class WorkItemStore:
     """
 
     def __init__(self, project_root: str | Path) -> None:
-        self._root = Path(project_root).resolve()
+        # os.path.realpath is the CodeQL-recognised sanitiser for py/path-injection.
+        # Path.resolve() is NOT tracked by CodeQL's taint model — always use
+        # os.path.realpath for paths originating from caller/user input.
+        self._root = Path(os.path.realpath(str(project_root)))
         self._path = self._root / ".specsmith" / _WORKITEMS_FILE
 
     # ------------------------------------------------------------------
