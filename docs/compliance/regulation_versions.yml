@@ -1,0 +1,213 @@
+# specsmith — AI Regulation Coverage Sentinel
+#
+# PURPOSE
+# -------
+# This file is the source of truth for which regulation versions and
+# article counts specsmith has reviewed and claims to cover.
+#
+# CI ENFORCEMENT
+# --------------
+# tests/test_compliance_governance.py::TestRegulationFreshness reads this
+# file and asserts that the article count in the code EXACTLY matches
+# `article_count` here.  If a regulation's articles change in
+# regulations.py, the test FAILS until this file is updated AND the
+# review_notes are updated to document what changed.
+#
+# HOW TO UPDATE
+# -------------
+# 1.  Edit docs/compliance/regulations.py to add/modify articles.
+# 2.  Update `article_count` and `last_reviewed` in this file.
+# 3.  Fill in `review_notes` explaining what changed.
+# 4.  Set `next_review_due` to ~6 months from `last_reviewed`.
+# 5.  Open a GitHub issue if the change requires user action.
+#
+# REVIEW SCHEDULE
+# ---------------
+# Reviews MUST be scheduled when:
+#   - effective_date approaches (within 3 months)
+#   - A significant amendment or enforcement action is published
+#   - The AI governance landscape shifts materially (e.g. new guidance)
+#   - next_review_due is reached
+#
+# DISCLAIMER
+# ----------
+# These records track specsmith's internal coverage state only and do NOT
+# constitute legal advice or a guarantee of compliance.  Regulations change
+# frequently; always verify with qualified legal counsel.
+
+regulations:
+
+  - id: eu-ai-act
+    name: EU AI Act (Regulation 2024/1689)
+    jurisdiction: EU
+    enacted: "2024-07-12"
+    primary_effective: "2025-02-02"
+    full_application: "2027-08-01"
+    url: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689
+    # Count of Article objects in _EU_AI_ACT.articles in regulations.py
+    article_count: 8
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-10-01"
+    review_notes: >-
+      Initial coverage: Arts. 5, 9, 12, 13, 14, 15, 52, 72.
+      High-risk AI provisions (Arts. 6-15) fully effective 2026-08-01 —
+      review before that date to verify specsmith controls remain current.
+    open_issues: []
+    specsmith_status: partial
+    # partial = not all articles are covered; only those listed above
+
+  - id: nist-rmf
+    name: NIST AI RMF 1.0 + AI 600-1 GenAI Profile
+    jurisdiction: US-Federal
+    enacted: "2023-01-26"
+    primary_effective: "2023-01-26"
+    url: https://airc.nist.gov/Home
+    article_count: 10
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-12-14"
+    review_notes: >-
+      Covers GOVERN-1, GOVERN-2, MAP-1, MAP-2, MEASURE-1, MEASURE-2,
+      MANAGE-1, MANAGE-2 (NIST RMF 1.0) + GV-1.1, GV-6.1 (AI 600-1).
+      NIST is working on AI RMF 1.1; watch airc.nist.gov for updates.
+    open_issues: []
+    specsmith_status: partial
+
+  - id: omb-m-24-10
+    name: OMB M-24-10 (Federal AI Governance)
+    jurisdiction: US-Federal
+    enacted: "2024-03-28"
+    primary_effective: "2024-12-01"
+    url: https://www.whitehouse.gov/wp-content/uploads/2024/03/M-24-10-Advancing-Governance-Innovation-Risk-Management.pdf
+    article_count: 2
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-12-14"
+    review_notes: >-
+      Covers Sec.3 (AI use-case inventory) and Sec.5(b) (minimum governance
+      practices).  Applies to US federal agencies only; specsmith provides
+      the audit trail infrastructure.  Watch for OMB M-24-10 successor memos.
+    open_issues: []
+    specsmith_status: partial
+
+  - id: colorado-sb24-205
+    name: Colorado AI Act (SB24-205)
+    jurisdiction: US-Colorado
+    enacted: "2024-05-17"
+    primary_effective: "2026-02-01"
+    url: https://leg.colorado.gov/bills/sb24-205
+    article_count: 4
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-10-01"
+    review_notes: >-
+      Now in effect (2026-02-01).  Covers developer risk assessment (Sec.6(1)(a)),
+      impact assessment (Sec.6(1)(b)), consumer disclosure (Sec.6(2)(a)), and
+      anti-discrimination policy (Sec.6(2)(b)).  Review enforcement guidance
+      from Colorado AG.  Possible amendment HB24-1468 may expand scope.
+    open_issues:
+      - Monitor Colorado AG enforcement guidance
+    specsmith_status: partial
+
+  - id: texas-hb1709
+    name: Texas AI Transparency Act (HB 1709)
+    jurisdiction: US-Texas
+    enacted: "2025-06-15"
+    primary_effective: "2025-09-01"
+    url: https://capitol.texas.gov/BillLookup/History.aspx?LegSess=89R&Bill=HB1709
+    article_count: 2
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-12-14"
+    review_notes: >-
+      Effective 2025-09-01.  Covers public disclosure (Sec.2252.002) and
+      annual risk assessment (Sec.2252.003).  Applies to Texas state agencies;
+      specsmith provides the audit trail.
+    open_issues: []
+    specsmith_status: partial
+
+  - id: illinois-aieta
+    name: Illinois AI Employment Transparency Act
+    jurisdiction: US-Illinois
+    enacted: "2023-01-01"
+    primary_effective: "2023-01-01"
+    url: https://www.ilga.gov/legislation/ilcs/ilcs3.asp?ActID=4015
+    article_count: 1
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-12-14"
+    review_notes: >-
+      Covers Sec.10 (disclosure of AI use in employment).  One article only.
+      Applies when specsmith-governed AI makes or assists employment decisions.
+      Watch Illinois IDOL guidance for enforcement clarifications.
+    open_issues: []
+    specsmith_status: partial
+
+  - id: california-admt
+    name: California ADMT Regulations (AB 2930 / CPPA)
+    jurisdiction: US-California
+    enacted: "2024-09-01"
+    primary_effective: "2026-01-01"
+    url: https://cppa.ca.gov/regulations/
+    article_count: 2
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-09-01"
+    review_notes: >-
+      Effective 2026-01-01.  Covers pre-use notice (Sec.7030(a)) and risk
+      assessment for high-risk ADMT (Sec.7030(b)).  CPPA finalizing enforcement
+      rules — review at next_review_due for regulatory updates.
+    open_issues:
+      - Monitor CPPA enforcement rules finalization
+    specsmith_status: partial
+
+  - id: nyc-ll144
+    name: NYC Local Law 144
+    jurisdiction: US-NYC
+    enacted: "2021-12-11"
+    primary_effective: "2023-07-05"
+    url: https://legistar.council.nyc.gov/LegislationDetail.aspx?ID=4344524
+    article_count: 2
+    last_reviewed: "2026-06-14"
+    next_review_due: "2026-12-14"
+    review_notes: >-
+      In effect since 2023-07-05.  Covers annual bias audit (Sec.20-871) and
+      candidate notice (Sec.20-872).  Requires independent third-party audit
+      for employment AEDTs; specsmith provides audit trail infrastructure.
+    open_issues: []
+    specsmith_status: partial
+
+# ---------------------------------------------------------------------------
+# Regulations on the watch list (not yet implemented in specsmith)
+# ---------------------------------------------------------------------------
+watch_list:
+
+  - id: eu-ai-liability-directive
+    name: EU AI Liability Directive
+    status: pending-eu-parliament
+    notes: >-
+      Proposed 2022; currently stalled.  Monitor EUR-Lex for progression.
+      Will require coverage of AI system traceability for civil liability claims.
+
+  - id: us-federal-ai-act
+    name: US Federal AI Act
+    status: proposed
+    notes: >-
+      Multiple draft bills in Congress (AI Foundation Model Transparency Act,
+      AI Act of 2024, etc.).  None enacted as of June 2026.
+      Monitor congress.gov and NIST for developments.
+
+  - id: canada-aida
+    name: Canada AIDA (Artificial Intelligence and Data Act)
+    status: proposed
+    notes: >-
+      Part of Bill C-27 (Digital Charter Implementation Act, 2022).
+      As of June 2026, Bill C-27 has not been enacted.
+
+  - id: uk-ai-regulation
+    name: UK AI Regulation (Pro-innovation approach)
+    status: guidance-only
+    notes: >-
+      UK government issued AI regulation guidance (Mar 2023) but no
+      binding legislation as of June 2026.  Monitor dsit.gov.uk.
+
+  - id: iso-iec-42001
+    name: ISO/IEC 42001:2023 (AI Management System)
+    status: watch
+    notes: >-
+      Published Dec 2023.  Not a regulation but an international standard.
+      Consider adding compliance mapping when enterprise users request it.

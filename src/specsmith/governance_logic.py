@@ -231,7 +231,7 @@ def run_preflight(
     if work_item_id:
         try:
             from specsmith.wi_store import WorkItemStore
-            WorkItemStore(root).create(
+            WorkItemStore(_root_str).create(
                 work_item_id,
                 intent=utterance,
                 requirement_ids=requirement_ids,
