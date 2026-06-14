@@ -227,6 +227,20 @@ def run_preflight(
             f"{escalate_threshold:.3f}. Human review required before execution."
         )
 
+    # WI persistence — best-effort; never blocks preflight (REQ-WI-3)
+    if work_item_id:
+        try:
+            from specsmith.wi_store import WorkItemStore
+            WorkItemStore(root).create(
+                work_item_id,
+                intent=utterance,
+                requirement_ids=requirement_ids,
+                test_case_ids=test_case_ids,
+                confidence_target=confidence_target,
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
     return payload
 
 
@@ -316,6 +330,15 @@ def run_verify(
     }
     if reviewer_comment:
         out["reviewer_comment"] = reviewer_comment
+
+    # WI auto-implementation — best-effort; never blocks verify (REQ-WI-4)
+    if equilibrium and work_item_id:
+        try:
+            from specsmith.wi_store import WorkItemStore
+            WorkItemStore(root).mark_implemented(work_item_id)
+        except Exception:  # noqa: BLE001
+            pass
+
     return out
 
 

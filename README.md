@@ -524,6 +524,52 @@ specsmith run
 
 ---
 
+## Work Item (WI) Lifecycle
+
+Every accepted `specsmith preflight` mints a **Work Item** — a unique ID such as
+`WI-3A9F1C02` that tracks user intent through the full governance lifecycle.
+WIs are persisted to `.specsmith/workitems.json` and evolve through defined states:
+
+| State | Meaning |
+|---|---|
+| `open` | Minted by preflight; work in progress |
+| `implemented` | `specsmith verify` reached equilibrium (auto-set) |
+| `promoted` | Elevated to a formal REQ-NNN via `specsmith wi promote` |
+| `closed` | Done; maps to an existing requirement |
+| `archived` | Deferred; may be re-opened |
+| `rejected` | Explicitly rejected |
+
+```bash
+# See all open work items
+specsmith wi list --status open
+
+# View full details of a WI
+specsmith wi show WI-3A9F1C02
+
+# Close a WI (change covered by an existing REQ)
+specsmith wi close WI-3A9F1C02 --reason "covered by REQ-042"
+
+# Promote a WI to a new requirement (new behaviour, no existing REQ)
+specsmith wi promote WI-3A9F1C02 \
+    --title "System must retry on transient HTTP 5xx failures" \
+    --domain governance
+specsmith sync   # regenerate REQUIREMENTS.md
+
+# Set kind label
+specsmith wi tag WI-3A9F1C02 --kind bug
+
+# Import historical WIs from LEDGER.md
+specsmith wi import --from-ledger
+```
+
+**When to promote vs close:** Promote (`wi promote`) when the change introduces new
+behaviour not covered by any existing REQ and the pattern is expected to recur.
+Close (`wi close`) for bug fixes, refactors, and chores that already have a matching REQ.
+
+Full documentation: [`docs/site/wi-lifecycle.md`](docs/site/wi-lifecycle.md)
+
+---
+
 ## Nexus
 
 The Nexus runtime is specsmith's local-first agentic REPL — a

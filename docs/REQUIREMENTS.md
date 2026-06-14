@@ -513,44 +513,44 @@
 - **Source:** ARCHITECTURE.md
 - **Test_Ids:** ['TEST-064']
 
-## REQ-065. Nexus Runtime Must Not Own Governance
+## REQ-065. WI Lifecycle States
 - **ID:** REQ-065
-- **Title:** Nexus Runtime Must Not Own Governance
-- **Description:** The Nexus agent runtime must defer preflight, requirement mapping, verification, retry decisions, and ledger writing to Specsmith.
+- **Title:** WI Lifecycle States
+- **Description:** Every Work Item must move through a defined set of states: open, implemented, promoted, closed, archived, rejected. The allowed transitions are enforced by WorkItemStore.
 - **Status:** implemented
-- **Source:** ARCHITECTURE.md
+- **Source:** wi_store.py
 - **Test_Ids:** ['TEST-065']
 
-## REQ-066. Nexus Must Provide Required Agent Roles
+## REQ-066. WI-to-REQ Promotion
 - **ID:** REQ-066
-- **Title:** Nexus Must Provide Required Agent Roles
-- **Description:** Nexus must instantiate PlannerAgent, ShellAgent, CodeAgent, ReviewerAgent, MemoryAgent, GitAgent, HumanProxyAgent, and an Executor node.
+- **Title:** WI-to-REQ Promotion
+- **Description:** A Work Item in the open or implemented state may be promoted to a formal requirement via specsmith wi promote, which creates a new REQ-NNN entry in the target requirements YAML and records promoted_to_req on the WI.
 - **Status:** implemented
-- **Source:** ARCHITECTURE.md
+- **Source:** wi_store.py
 - **Test_Ids:** ['TEST-066']
 
-## REQ-067. Nexus Tool Layer Must Expose Required Tools
+## REQ-067. WI Status Persistence
 - **ID:** REQ-067
-- **Title:** Nexus Tool Layer Must Expose Required Tools
-- **Description:** Nexus must expose run_shell, read_file, write_file, patch_file, list_files, grep, git_diff, git_status, run_tests, open_url, search_docs, and remember_project_fact.
+- **Title:** WI Status Persistence
+- **Description:** Work Item state is persisted to .specsmith/workitems.json using an atomic write (write-then-rename) so crashes never leave the store corrupt.
 - **Status:** implemented
-- **Source:** ARCHITECTURE.md
+- **Source:** wi_store.py
 - **Test_Ids:** ['TEST-067']
 
-## REQ-068. Nexus Safety Middleware Must Block Unsafe Commands
+## REQ-068. WI Auto-Implementation on Verify Equilibrium
 - **ID:** REQ-068
-- **Title:** Nexus Safety Middleware Must Block Unsafe Commands
-- **Description:** The safety middleware must block or require explicit approval for unsafe shell patterns including rm -rf, git push, docker compose down -v, database migrations, deploy commands, and secret reads.
+- **Title:** WI Auto-Implementation on Verify Equilibrium
+- **Description:** When specsmith verify reaches equilibrium for a given work_item_id, the WI is automatically transitioned from open to implemented. This wiring is best-effort and never blocks the verify result.
 - **Status:** implemented
-- **Source:** ARCHITECTURE.md
+- **Source:** governance_logic.py
 - **Test_Ids:** ['TEST-068']
 
-## REQ-069. Nexus Tool Arguments Must Be JSON Validated
+## REQ-069. WI Kind Classification
 - **ID:** REQ-069
-- **Title:** Nexus Tool Arguments Must Be JSON Validated
-- **Description:** All Nexus tool calls must validate that arguments are JSON-serializable before execution.
+- **Title:** WI Kind Classification
+- **Description:** Every Work Item carries a kind field (feature, bug, chore, spike, refactor, docs) settable via specsmith wi tag --kind.  Default is 'feature' at creation time.
 - **Status:** implemented
-- **Source:** ARCHITECTURE.md
+- **Source:** wi_store.py
 - **Test_Ids:** ['TEST-069']
 
 ## REQ-070. Nexus Must Normalize File Paths

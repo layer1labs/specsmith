@@ -162,16 +162,17 @@ Machine state must not replace the human-readable governance documents. Both mus
 
 ## 6. Requirement Flow
 
-Planned behavior:
+### 6.1 High-level flow
 
 1. `ARCHITECTURE.md` defines architectural intent.
 2. Specsmith derives requirements from `ARCHITECTURE.md`.
 3. Requirements are written to `REQUIREMENTS.md`.
 4. Structured requirements are written to `.specsmith/requirements.json`.
-5. Requirements are assigned stable IDs.
+5. Requirements are assigned stable IDs (REQ-NNN).
 6. Requirements are linked to test cases.
-7. Work items are created from accepted requirements or user requests.
-8. Every change is recorded in the ledger.
+7. Work Items are minted on every accepted preflight and tracked in `.specsmith/workitems.json`.
+8. Work Items either evolve into new requirements (via `wi promote`) or are closed against existing ones.
+9. Every change is recorded in the ledger.
 
 A requirement must be:
 
@@ -180,6 +181,82 @@ A requirement must be:
 - traceable to a source
 - stable across repeated ingestion
 - linked to verification evidence
+
+### 6.2 Work Item (WI) Lifecycle
+
+Every accepted `specsmith preflight` mints a Work Item with a unique ID such as
+`WI-3A9F1C02`.  WIs are persisted to `.specsmith/workitems.json` and serve as
+granular governance breadcrumbs that bridge user intent to formal requirements.
+
+#### States
+
+| State | Meaning |
+|---|---|
+| `open` | Minted by preflight; work in progress |
+| `implemented` | `specsmith verify` reached equilibrium (auto-set) |
+| `promoted` | Elevated to a formal REQ-NNN via `specsmith wi promote` |
+| `closed` | Done; satisfies an existing requirement; no new REQ created |
+| `archived` | Abandoned or deferred; may be re-opened |
+| `rejected` | Explicitly rejected |
+
+#### State machine
+
+```
+preflight accepted
+    │
+    ▼
+ [open]
+    ├── verify equilibrium ──────► [implemented]
+    │                                    ├── wi promote ──► [promoted]  promoted_to_req=REQ-NNN
+    │                                    ├── wi close  ──► [closed]
+    │                                    └── wi archive ─► [archived]
+    ├── wi archive ──────────────► [archived]
+    │                                    └── wi open (reopen) → [open]
+    └── wi reject  ──────────────► [rejected]
+```
+
+Only `archived → open` is a permitted reverse transition.
+All other transitions are forward-only.
+
+#### When does a WI become a REQ?
+
+A WI should be promoted to a REQ when ALL of the following are true:
+
+- The change introduced **new behavior** not covered by any existing requirement.
+- The pattern is **expected to recur** and needs permanent test coverage.
+- The WI's `requirement_ids` list was **empty** at preflight time (no existing REQ matched).
+
+Use `specsmith wi promote WI-XXXX --title "..." --domain <domain>` to create
+the REQ-NNN entry and link it back to the WI.
+
+#### When does a WI stay closed (no new REQ)?
+
+- Bug fix against an existing REQ — use `specsmith wi close`.
+- Refactoring or performance work within existing requirements.
+- Docs / chore work with no new functionality.
+- Config changes already covered by an existing compliance requirement.
+
+#### WI data model (`wi_store.py`)
+
+```
+WorkItem:
+  id              str        # WI-XXXXXXXX  (8-char hex UUID prefix)
+  status          str        # open | implemented | promoted | closed | archived | rejected
+  kind            str        # feature | bug | chore | spike | refactor | docs
+  intent          str        # verbatim preflight utterance
+  created_at      str        # ISO-8601 UTC
+  updated_at      str        # ISO-8601 UTC
+  requirement_ids list[str]  # REQ-NNN IDs matched at preflight time
+  test_case_ids   list[str]  # TEST-NNN IDs linked at preflight time
+  promoted_to_req str|None   # REQ-NNN created by wi promote
+  closed_at       str|None   # ISO-8601 UTC (set on close/archive/reject)
+  closed_reason   str|None   # free-text reason
+  confidence_target float    # from preflight
+  verified        bool        # True once mark_implemented() is called
+```
+
+Store: `WorkItemStore` in `src/specsmith/wi_store.py`.  Atomic save via
+write-to-tmp-then-rename (never leaves the JSON file corrupt).
 
 ## 7. Test Case Flow
 

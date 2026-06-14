@@ -591,3 +591,60 @@
   input: {}
   expected_behavior: {}
   confidence: 1.0
+- id: TEST-065
+  title: WI List Command
+  description: >-
+    specsmith wi list returns all work items; --status open filters to
+    open items only; --json emits valid JSON.
+  requirement_id: REQ-065
+  type: integration
+  verification_method: cli
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-066
+  title: WI Promote Creates REQ Entry
+  description: >-
+    specsmith wi promote WI-XXXX --title T appends a new REQ-NNN entry to
+    the target YAML, transitions the WI to promoted, and records
+    promoted_to_req on the WI record.
+  requirement_id: REQ-066
+  type: integration
+  verification_method: cli
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-067
+  title: WI Close Transitions State
+  description: >-
+    specsmith wi close WI-XXXX transitions the WI to closed and records
+    closed_at and closed_reason.  Re-closing a closed WI raises WorkItemError.
+  requirement_id: REQ-067
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-068
+  title: Verify Equilibrium Auto-Implements WI
+  description: >-
+    Calling run_verify with equilibrium-producing inputs and a valid
+    work_item_id transitions the WI from open to implemented in
+    .specsmith/workitems.json.
+  requirement_id: REQ-068
+  type: unit
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-069
+  title: WI Import From Ledger
+  description: >-
+    specsmith wi import --from-ledger reads LEDGER.md work_proposal entries
+    and creates corresponding WI records; existing WIs are not overwritten.
+  requirement_id: REQ-069
+  type: integration
+  verification_method: cli
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

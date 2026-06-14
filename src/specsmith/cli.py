@@ -8125,6 +8125,389 @@ main.add_command(notebook_group)
 
 
 # ---------------------------------------------------------------------------
+# specsmith wi — Work Item lifecycle management
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="wi")
+def wi_group() -> None:
+    """Manage the lifecycle of Work Items (WIs).
+
+    Work Items are governance breadcrumbs minted by ``specsmith preflight``.
+    Every accepted preflight produces a WI such as ``WI-3A9F1C02``.  WIs
+    evolve through the following states:
+
+    \b
+      open        created by preflight; work in progress
+      implemented verify reached equilibrium (auto-set by specsmith verify)
+      promoted    WI elevated to a formal REQ-NNN (new requirement)
+      closed      done; maps to an existing REQ; no new requirement needed
+      archived    abandoned or deferred; may be re-opened
+      rejected    explicitly rejected
+
+    State machine:
+
+    \b
+      open  → implemented → promoted
+                           → closed
+                           → archived
+           → archived
+           → rejected
+      archived → open  (un-defer)
+
+    When to promote a WI to a REQ:
+
+    \b
+      - The change introduced new behavior not covered by any existing requirement.
+      - The pattern is expected to recur and needs permanent test coverage.
+      - The WI's ``requirement_ids`` list was empty at preflight time.
+
+    When to close (not promote):
+
+    \b
+      - Bug fix against an existing REQ.
+      - Refactoring or performance work within existing requirements.
+      - Docs / chore work with no new functionality.
+    """
+
+
+@wi_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--status",
+    "filter_status",
+    default="",
+    help="Filter by status: open|implemented|promoted|closed|archived|rejected.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
+    """List work items, optionally filtered by status."""
+    import json as _json
+
+    from specsmith.wi_store import WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    items = store.list_by_status(filter_status or None)
+
+    if as_json:
+        click.echo(_json.dumps([i.to_dict() for i in items], indent=2))
+        return
+
+    if not items:
+        console.print("[dim]No work items found.[/dim]")
+        return
+
+    _STATUS_COLOR = {
+        "open": "cyan",
+        "implemented": "green",
+        "promoted": "bold green",
+        "closed": "dim",
+        "archived": "yellow",
+        "rejected": "red",
+    }
+    console.print(f"[bold]Work Items[/bold]  ({root.name})\n")
+    for item in items:
+        color = _STATUS_COLOR.get(item.status, "white")
+        req_tag = (
+            f"  [{', '.join(item.requirement_ids)}]"
+            if item.requirement_ids
+            else ""
+        )
+        promoted_tag = f"  → {item.promoted_to_req}" if item.promoted_to_req else ""
+        console.print(
+            f"  [{color}]{item.id}[/{color}]  "
+            f"[{color}]{item.status:12s}[/{color}]  "
+            f"[dim]{item.kind:9s}[/dim]  "
+            f"{item.intent[:60]}"
+            f"[dim]{req_tag}{promoted_tag}[/dim]"
+        )
+
+
+@wi_group.command(name="show")
+@click.argument("wi_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def wi_show_cmd(wi_id: str, project_dir: str, as_json: bool) -> None:
+    """Show full details for a work item."""
+    import json as _json
+
+    from specsmith.wi_store import WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    item = store.get(wi_id.upper())
+    if item is None:
+        console.print(f"[red]Work item {wi_id!r} not found.[/red]")
+        raise SystemExit(1)
+
+    if as_json:
+        click.echo(_json.dumps(item.to_dict(), indent=2))
+        return
+
+    console.print(f"\n[bold cyan]{item.id}[/bold cyan]")
+    console.print(f"  Status    : {item.status}")
+    console.print(f"  Kind      : {item.kind}")
+    console.print(f"  Intent    : {item.intent}")
+    console.print(f"  Created   : {item.created_at}")
+    console.print(f"  Updated   : {item.updated_at}")
+    console.print(f"  Verified  : {item.verified}")
+    console.print(f"  Req IDs   : {', '.join(item.requirement_ids) or '(none)'}")
+    console.print(f"  Test IDs  : {', '.join(item.test_case_ids) or '(none)'}")
+    if item.promoted_to_req:
+        console.print(f"  Promoted  : [green]{item.promoted_to_req}[/green]")
+    if item.closed_at:
+        console.print(f"  Closed    : {item.closed_at}")
+    if item.closed_reason:
+        console.print(f"  Reason    : {item.closed_reason}")
+
+
+@wi_group.command(name="close")
+@click.argument("wi_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--reason", default="", help="Reason for closing (optional).")
+def wi_close_cmd(wi_id: str, project_dir: str, reason: str) -> None:
+    """Close a work item (done; maps to an existing requirement)."""
+    from specsmith.wi_store import WorkItemError, WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    try:
+        item = store.set_status(wi_id.upper(), "closed", reason=reason)
+    except WorkItemError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    console.print(f"[green]\u2713[/green] {item.id} → closed")
+    try:
+        from specsmith.ledger import add_entry
+        add_entry(root, description=f"wi_close {item.id}: {reason or 'done'}",
+                  entry_type="wi_close", author="specsmith")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@wi_group.command(name="archive")
+@click.argument("wi_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--reason", default="", help="Reason for archiving (optional).")
+def wi_archive_cmd(wi_id: str, project_dir: str, reason: str) -> None:
+    """Archive a work item (abandoned or deferred).
+
+    Archived WIs may be re-opened with ``specsmith wi tag --kind <kind>`` or
+    by using ``specsmith preflight`` for the same intent again.
+    """
+    from specsmith.wi_store import WorkItemError, WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    try:
+        item = store.set_status(wi_id.upper(), "archived", reason=reason)
+    except WorkItemError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    console.print(f"[yellow]\u2714[/yellow] {item.id} → archived")
+    try:
+        from specsmith.ledger import add_entry
+        add_entry(root, description=f"wi_archive {item.id}: {reason or 'deferred'}",
+                  entry_type="wi_archive", author="specsmith")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@wi_group.command(name="promote")
+@click.argument("wi_id")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--title", default="", help="REQ title (defaults to WI intent).")
+@click.option(
+    "--domain",
+    default="overflow",
+    help="Requirements domain YAML to append to (default: overflow).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_json: bool) -> None:
+    """Promote a work item to a formal requirement (REQ-NNN).
+
+    Creates a new requirement entry in ``docs/requirements/<domain>.yml``,
+    writes the REQ-NNN back to the WI record, and runs ``specsmith sync``
+    to regenerate REQUIREMENTS.md.
+
+    Example:
+
+    \b
+      # WI introduced new retry logic not covered by any existing REQ
+      specsmith wi promote WI-3A9F1C02 \\
+          --title "Exporter must retry on transient HTTP failures" \\
+          --domain overflow
+    """
+    import json as _json
+
+    from specsmith.wi_store import WorkItemError, WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+
+    item = store.get(wi_id.upper())
+    if item is None:
+        console.print(f"[red]Work item {wi_id!r} not found.[/red]")
+        raise SystemExit(1)
+    if item.is_terminal() and item.status != "implemented":
+        console.print(
+            f"[red]Cannot promote {wi_id}: already in terminal state {item.status!r}.[/red]"
+        )
+        raise SystemExit(1)
+
+    # ── Find the domain YAML file ──────────────────────────────────────────
+    req_dir = root / "docs" / "requirements"
+    yaml_path = req_dir / f"{domain}.yml"
+    if not yaml_path.is_file():
+        # Fall back to overflow.yml; create if missing
+        yaml_path = req_dir / "overflow.yml"
+
+    # ── Determine next REQ-NNN ────────────────────────────────────────────
+    import re
+
+    import yaml  # type: ignore[import-untyped]
+
+    all_req_ids: list[int] = []
+    for yf in req_dir.glob("*.yml"):
+        try:
+            entries = yaml.safe_load(yf.read_text(encoding="utf-8")) or []
+            for entry in entries:
+                if isinstance(entry, dict):
+                    m = re.match(r"REQ-(\d+)", str(entry.get("id", "")))
+                    if m:
+                        all_req_ids.append(int(m.group(1)))
+        except Exception:  # noqa: BLE001
+            pass
+    next_num = (max(all_req_ids) + 1) if all_req_ids else 400
+    new_req_id = f"REQ-{next_num}"
+
+    # ── Build REQ entry ───────────────────────────────────────────────────
+    req_title = title.strip() or item.intent[:120] or f"Work item {item.id}"
+    new_req: dict[str, object] = {
+        "id": new_req_id,
+        "title": req_title,
+        "description": (
+            f"Promoted from {item.id} on {_now_ts()}. "
+            f"Original intent: {item.intent}"
+        ),
+        "source": item.id,
+        "status": "planned",
+    }
+
+    # ── Append to domain YAML ─────────────────────────────────────────────
+    yaml_path.parent.mkdir(parents=True, exist_ok=True)
+    existing_text = yaml_path.read_text(encoding="utf-8") if yaml_path.is_file() else ""
+    entry_yaml = (
+        f"- id: {new_req_id}\n"
+        f"  title: {req_title}\n"
+        f"  description: >-\n"
+        f"    Promoted from {item.id}. {item.intent}\n"
+        f"  source: {item.id}\n"
+        f"  status: planned\n"
+    )
+    yaml_path.write_text(
+        (existing_text.rstrip() + "\n" + entry_yaml) if existing_text.strip() else entry_yaml,
+        encoding="utf-8",
+    )
+
+    # ── Update WI record ──────────────────────────────────────────────────
+    try:
+        store.promote_to_req(item.id, new_req_id)
+    except WorkItemError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+
+    # ── Ledger entry ──────────────────────────────────────────────────────
+    try:
+        from specsmith.ledger import add_entry
+        add_entry(
+            root,
+            description=f"wi_promote {item.id} → {new_req_id}: {req_title}",
+            entry_type="wi_promote",
+            author="specsmith",
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+    if as_json:
+        click.echo(_json.dumps({"wi_id": item.id, "promoted_to": new_req_id,
+                                 "req_file": str(yaml_path.relative_to(root))}, indent=2))
+        return
+
+    console.print(
+        f"[green]\u2713[/green] {item.id} → [bold green]{new_req_id}[/bold green]\n"
+        f"  Title : {req_title}\n"
+        f"  File  : {yaml_path.relative_to(root)}\n"
+        f"  Next  : run [bold]specsmith sync[/bold] to regenerate REQUIREMENTS.md"
+    )
+
+
+@wi_group.command(name="tag")
+@click.argument("wi_id")
+@click.option(
+    "--kind",
+    required=True,
+    type=click.Choice(["feature", "bug", "chore", "spike", "refactor", "docs"]),
+    help="WI kind / classification label.",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def wi_tag_cmd(wi_id: str, kind: str, project_dir: str) -> None:
+    """Set the kind / classification label on a work item."""
+    from specsmith.wi_store import WorkItemError, WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    try:
+        item = store.tag(wi_id.upper(), kind)
+    except WorkItemError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1) from exc
+    console.print(f"[green]\u2713[/green] {item.id} → kind={item.kind}")
+
+
+@wi_group.command(name="import")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--from-ledger",
+    "from_ledger",
+    is_flag=True,
+    default=True,
+    help="Import WIs from LEDGER.md work_proposal entries (default: on).",
+)
+def wi_import_cmd(project_dir: str, from_ledger: bool) -> None:
+    """Import work items from LEDGER.md into .specsmith/workitems.json.
+
+    Useful for projects that already have WIs in their ledger but haven't
+    yet run the ``wi`` command group.  Existing WIs are never overwritten.
+    """
+    from specsmith.wi_store import WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    imported = 0
+    if from_ledger:
+        for cand in ["docs/LEDGER.md", "LEDGER.md"]:
+            lp = root / cand
+            if lp.is_file():
+                imported += store.import_from_ledger(lp)
+                break
+    if imported:
+        console.print(f"[green]\u2713[/green] Imported {imported} work item(s) from LEDGER.md")
+    else:
+        console.print("[dim]No new work items found to import.[/dim]")
+
+
+def _now_ts() -> str:
+    """Return current UTC timestamp as ISO-8601 string."""
+    import time
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+main.add_command(wi_group)
+
+
+# ---------------------------------------------------------------------------
 # Workflow — parameterised command snippets (Warp-style Workflows)
 # ---------------------------------------------------------------------------
 

@@ -577,49 +577,49 @@
 - **Verification Method:** evaluator
 - **Confidence:** 1.0
 
-## TEST-065. Nexus Runtime Must Not Own Governance
+## TEST-065. WI List Command
 - **ID:** TEST-065
-- **Title:** Nexus Runtime Must Not Own Governance
-- **Description:** Nexus orchestrator module documents that Specsmith owns governance and Nexus only executes.
+- **Title:** WI List Command
+- **Description:** specsmith wi list returns all work items; --status open filters to open items only; --json emits valid JSON.
 - **Requirement ID:** REQ-065
-- **Type:** unit
-- **Verification Method:** pytest
+- **Type:** integration
+- **Verification Method:** cli
 - **Confidence:** 1.0
 
-## TEST-066. Nexus Must Provide Required Agent Roles
+## TEST-066. WI Promote Creates REQ Entry
 - **ID:** TEST-066
-- **Title:** Nexus Must Provide Required Agent Roles
-- **Description:** Orchestrator instantiates Planner, Shell, Code, Reviewer, Memory, Git, HumanProxy, and Executor agents.
+- **Title:** WI Promote Creates REQ Entry
+- **Description:** specsmith wi promote WI-XXXX --title T appends a new REQ-NNN entry to the target YAML, transitions the WI to promoted, and records promoted_to_req on the WI record.
 - **Requirement ID:** REQ-066
-- **Type:** unit
-- **Verification Method:** pytest
+- **Type:** integration
+- **Verification Method:** cli
 - **Confidence:** 1.0
 
-## TEST-067. Nexus Tool Layer Must Expose Required Tools
+## TEST-067. WI Close Transitions State
 - **ID:** TEST-067
-- **Title:** Nexus Tool Layer Must Expose Required Tools
-- **Description:** specsmith.agent.tools.AVAILABLE_TOOLS contains the 12 required tools by name.
+- **Title:** WI Close Transitions State
+- **Description:** specsmith wi close WI-XXXX transitions the WI to closed and records closed_at and closed_reason.  Re-closing a closed WI raises WorkItemError.
 - **Requirement ID:** REQ-067
 - **Type:** unit
-- **Verification Method:** pytest
+- **Verification Method:** evaluator
 - **Confidence:** 1.0
 
-## TEST-068. Nexus Safety Middleware Must Block Unsafe Commands
+## TEST-068. Verify Equilibrium Auto-Implements WI
 - **ID:** TEST-068
-- **Title:** Nexus Safety Middleware Must Block Unsafe Commands
-- **Description:** is_safe_command returns False for unsafe patterns and True for safe ones.
+- **Title:** Verify Equilibrium Auto-Implements WI
+- **Description:** Calling run_verify with equilibrium-producing inputs and a valid work_item_id transitions the WI from open to implemented in .specsmith/workitems.json.
 - **Requirement ID:** REQ-068
 - **Type:** unit
-- **Verification Method:** pytest
+- **Verification Method:** evaluator
 - **Confidence:** 1.0
 
-## TEST-069. Nexus Tool Arguments Must Be JSON Validated
+## TEST-069. WI Import From Ledger
 - **ID:** TEST-069
-- **Title:** Nexus Tool Arguments Must Be JSON Validated
-- **Description:** validate_json_args raises ValueError for non-serializable arguments.
+- **Title:** WI Import From Ledger
+- **Description:** specsmith wi import --from-ledger reads LEDGER.md work_proposal entries and creates corresponding WI records; existing WIs are not overwritten.
 - **Requirement ID:** REQ-069
-- **Type:** unit
-- **Verification Method:** pytest
+- **Type:** integration
+- **Verification Method:** cli
 - **Confidence:** 1.0
 
 ## TEST-070. Nexus Must Normalize File Paths
