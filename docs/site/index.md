@@ -55,6 +55,7 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 
 - **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required) and H15–H22 (OEA anti-hallucination rules)
 - **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
+- **Work Item (WI) lifecycle** — every accepted `preflight` mints a `WI-XXXXXXXX`; 6-state machine (`open → implemented → promoted/closed/archived/rejected`); `specsmith wi` CLI with 7 commands
 - **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
 - **docs/REQUIREMENTS.md** — requirements parseable as `BeliefArtifact` instances
 - **CI config** — GitHub Actions, GitLab CI, Bitbucket Pipelines with correct tools per project type
@@ -142,7 +143,8 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [epistemic Library](epistemic-library.md) | Standalone library API reference + integration examples |
 | [Agentic Client](agent-client.md) | `specsmith run` — multi-provider REPL, skills, hooks, model routing |
 | [CLI Commands](commands.md) | Every command with all options, examples, and behavior |
-| [Project Types](project-types.md) | All 33 types with directory structures, tools, and governance rules |
+| [Project Types](project-types.md) | All 63 types with directory structures, tools, and governance rules |
+| [Work Item Lifecycle](wi-lifecycle.md) | WI state machine, `specsmith wi` CLI, promote vs close, data model |
 | [Tool Registry](tool-registry.md) | How tool-aware CI works, what tools each type uses, how to override |
 | [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
 | [Configuration](configuration.md) | Every scaffold.yml field explained with examples |

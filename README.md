@@ -837,6 +837,8 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
 
+**Work Items:** `wi list` `wi show` `wi close` `wi archive` `wi promote` `wi tag` `wi import`
+
 **Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills` `agent suggest-profiles` `agent endpoint-presets`
 
 **Dispatch:** `dispatch run` `dispatch status` `dispatch list` `dispatch retry`
@@ -861,7 +863,7 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 ---
 
-## 53 Project Types
+## 63 Project Types
 
 **Python:** `cli-python`, `library-python`, `backend-frontend`, `backend-frontend-tray`, `embedded-python-hmi`, `research-python`.
 
