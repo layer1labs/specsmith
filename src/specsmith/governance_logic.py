@@ -71,29 +71,22 @@ def run_preflight(
     from specsmith import __version__
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
-    _safe_resolve(project_dir)  # validate: reject null bytes and traversal sequences
-    # Re-assign project_dir to its os.path.realpath-canonical str value here so
-    # CodeQL's py/path-injection taint tracker sees the sanitised source for ALL
-    # downstream path operations.  By overwriting the parameter variable, the
-    # cleaned value flows into _root_str and every os.path.join call below
-    # without introducing any new taint-carrying intermediate variables.
-    project_dir = os.path.realpath(project_dir)
-    _root_str: str = project_dir
+    # _safe_resolve validates null bytes / traversal and returns
+    # Path(os.path.realpath(...)).  USE the return value so CodeQL's
+    # interprocedural analysis tracks the realpath sanitiser through
+    # _safe_resolve and sees every derived Path as clean — the same
+    # pattern run_verify uses with `root = _safe_resolve(project_dir)`.
+    _root: Path = _safe_resolve(project_dir)
+    _root_str: str = str(_root)
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
     # Falling back to root/REQUIREMENTS.md would always yield an empty list
     # on standard projects, causing preflight to always return
     # needs_clarification (GitHub issue #197).
-    # project_dir is already the os.path.realpath result; os.path.join on a
-    # realpath'd root produces a canonical child path — no extra realpath needed.
-    # Inline os.path.join directly inside Path() — same pattern as rq_path/tc_path
-    # below which CodeQL does not flag.  Intermediate str variables that carry
-    # taint through variable assignment trigger py/path-injection on Path(var);
-    # inlining avoids that propagation path.
-    _req_md = Path(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
+    _req_md = _safe_resolve(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
     if not _req_md.is_file():
-        _req_md = Path(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy fallback
-    _repo_idx = Path(os.path.join(_root_str, ".repo-index", "files.json"))
+        _req_md = _safe_resolve(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy
+    _repo_idx = _safe_resolve(os.path.join(_root_str, ".repo-index", "files.json"))
     scope = infer_scope(
         utterance,
         _req_md,
@@ -114,7 +107,7 @@ def run_preflight(
     # Read requirements machine-state using os.path.join on the clean _root_str
     # so CodeQL traces the full sanitisation chain without re-tainting via Path.
     rq_records: list[Any] = []
-    rq_path = Path(os.path.join(_root_str, ".specsmith", "requirements.json"))
+    rq_path = _safe_resolve(os.path.join(_root_str, ".specsmith", "requirements.json"))
     if rq_path.is_file():
         try:
             _rq = _json.loads(rq_path.read_text(encoding="utf-8"))
@@ -131,7 +124,7 @@ def run_preflight(
     # Read test-case machine-state (same rationale as above).
     test_case_ids: list[str] = []
     tc_records: list[Any] = []
-    tc_path = Path(os.path.join(_root_str, ".specsmith", "testcases.json"))
+    tc_path = _safe_resolve(os.path.join(_root_str, ".specsmith", "testcases.json"))
     if tc_path.is_file():
         try:
             _tc = _json.loads(tc_path.read_text(encoding="utf-8"))
