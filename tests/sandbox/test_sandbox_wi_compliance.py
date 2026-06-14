@@ -92,9 +92,7 @@ class TestWILifecycleSandbox:
         wi_id = r1["work_item_id"]
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "list", "--project-dir", str(project), "--json"]
-        )
+        result = runner.invoke(main, ["wi", "list", "--project-dir", str(project), "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert isinstance(data, list)
@@ -108,9 +106,7 @@ class TestWILifecycleSandbox:
         wi_id = r["work_item_id"]
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "show", wi_id, "--project-dir", str(project)]
-        )
+        result = runner.invoke(main, ["wi", "show", wi_id, "--project-dir", str(project)])
         assert result.exit_code == 0
         assert wi_id in result.output
 
@@ -125,9 +121,13 @@ class TestWILifecycleSandbox:
         result = runner.invoke(
             main,
             [
-                "wi", "archive", wi_id,
-                "--reason", "deferred to next sprint",
-                "--project-dir", str(project),
+                "wi",
+                "archive",
+                wi_id,
+                "--reason",
+                "deferred to next sprint",
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0
@@ -148,9 +148,7 @@ class TestWILifecycleSandbox:
 
         runner = CliRunner()
         # Attempt to close an open WI directly (should fail)
-        result = runner.invoke(
-            main, ["wi", "close", wi_id, "--project-dir", str(project)]
-        )
+        result = runner.invoke(main, ["wi", "close", wi_id, "--project-dir", str(project)])
         assert result.exit_code == 1
 
     def test_wi_close_after_verify_marks_implemented(self, tmp_path: Path) -> None:
@@ -174,9 +172,7 @@ class TestWILifecycleSandbox:
         assert wi.status == "implemented"
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "close", wi_id, "--project-dir", str(project)]
-        )
+        result = runner.invoke(main, ["wi", "close", wi_id, "--project-dir", str(project)])
         assert result.exit_code == 0
         assert "closed" in result.output.lower()
 
@@ -199,11 +195,16 @@ class TestWILifecycleSandbox:
         result = runner.invoke(
             main,
             [
-                "wi", "promote", wi_id,
-                "--title", "System must retry on transient network errors",
-                "--domain", "overflow",
+                "wi",
+                "promote",
+                wi_id,
+                "--title",
+                "System must retry on transient network errors",
+                "--domain",
+                "overflow",
                 "--json",
-                "--project-dir", str(project),
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"promote failed:\n{result.output}"
@@ -252,9 +253,13 @@ class TestWILifecycleSandbox:
         result = runner.invoke(
             main,
             [
-                "wi", "tag", wi_id,
-                "--kind", "bug",
-                "--project-dir", str(project),
+                "wi",
+                "tag",
+                wi_id,
+                "--kind",
+                "bug",
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0
@@ -313,9 +318,12 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "check",
-                "--regulation", "all",
-                "--project-dir", str(project),
+                "compliance",
+                "check",
+                "--regulation",
+                "all",
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance check failed:\n{result.output}"
@@ -331,16 +339,18 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "check",
-                "--regulation", "eu-ai-act",
-                "--project-dir", str(project),
+                "compliance",
+                "check",
+                "--regulation",
+                "eu-ai-act",
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance check eu-ai-act failed:\n{result.output}"
         # Must report some compliance status
         assert any(
-            kw in result.output.lower()
-            for kw in ("compliant", "partial", "gap", "eu-ai-act")
+            kw in result.output.lower() for kw in ("compliant", "partial", "gap", "eu-ai-act")
         ), f"compliance check output missing status info:\n{result.output}"
 
     def test_compliance_check_json_output(self, tmp_path: Path) -> None:
@@ -349,10 +359,13 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "check",
-                "--regulation", "nist-rmf",
+                "compliance",
+                "check",
+                "--regulation",
+                "nist-rmf",
                 "--json",
-                "--project-dir", str(project),
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance check --json failed:\n{result.output}"
@@ -367,9 +380,12 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--format", "md",
-                "--project-dir", str(project),
+                "compliance",
+                "report",
+                "--format",
+                "md",
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance report --format md failed:\n{result.output}"
@@ -386,19 +402,21 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--format", "json",
-                "--output", str(out_file),
-                "--project-dir", str(project),
+                "compliance",
+                "report",
+                "--format",
+                "json",
+                "--output",
+                str(out_file),
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance report --format json failed:\n{result.output}"
         assert out_file.exists(), "compliance report --output file was not created"
         data = json.loads(out_file.read_text(encoding="utf-8"))
         assert "disclaimer" in data, "JSON compliance report missing 'disclaimer' key"
-        assert "legal" in data["disclaimer"].lower(), (
-            "disclaimer must reference legal advice"
-        )
+        assert "legal" in data["disclaimer"].lower(), "disclaimer must reference legal advice"
 
     def test_compliance_report_to_file(self, tmp_path: Path) -> None:
         project = _scaffold_cli_python(tmp_path, "compliance-file")
@@ -407,10 +425,14 @@ class TestComplianceSandbox:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--format", "md",
-                "--output", str(out_file),
-                "--project-dir", str(project),
+                "compliance",
+                "report",
+                "--format",
+                "md",
+                "--output",
+                str(out_file),
+                "--project-dir",
+                str(project),
             ],
         )
         assert result.exit_code == 0, f"compliance report --output failed:\n{result.output}"
@@ -419,9 +441,7 @@ class TestComplianceSandbox:
         assert "DISCLAIMER" in content.upper()
         assert len(content) > 100, "compliance report file is suspiciously short"
 
-    def test_compliance_check_more_evidence_higher_confidence(
-        self, tmp_path: Path
-    ) -> None:
+    def test_compliance_check_more_evidence_higher_confidence(self, tmp_path: Path) -> None:
         """A scaffolded project (with governance files) should have higher or equal
         confidence than an empty directory — presence of governance docs is evidence."""
         from specsmith.compliance.checker import ComplianceChecker

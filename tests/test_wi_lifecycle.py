@@ -131,7 +131,7 @@ class TestWorkItemStorePersistence:
     def test_save_is_atomic_no_tmp_file_left(self, tmp_path: Path) -> None:
         store = _store(tmp_path)
         _wi(store, "WI-ATOMICABC")
-        tmp = (tmp_path / ".specsmith" / "workitems.json.tmp")
+        tmp = tmp_path / ".specsmith" / "workitems.json.tmp"
         assert not tmp.exists(), "tmp file must be renamed away after save"
 
     def test_corrupt_json_returns_empty(self, tmp_path: Path) -> None:
@@ -476,9 +476,7 @@ class TestCLIWiList:
     def test_list_json_output(self, tmp_path: Path) -> None:
         _store(tmp_path).create("WI-JSON0001", intent="json test")
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "list", "--project-dir", str(tmp_path), "--json"]
-        )
+        result = runner.invoke(main, ["wi", "list", "--project-dir", str(tmp_path), "--json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert isinstance(data, list)
@@ -494,18 +492,14 @@ class TestCLIWiShow:
     def test_show_found(self, tmp_path: Path) -> None:
         _store(tmp_path).create("WI-SHOW0001", intent="show details")
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "show", "WI-SHOW0001", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "show", "WI-SHOW0001", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "WI-SHOW0001" in result.output
         assert "show details" in result.output
 
     def test_show_not_found_exits_1(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "show", "WI-NOTHERE", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "show", "WI-NOTHERE", "--project-dir", str(tmp_path)])
         assert result.exit_code == 1
         assert "not found" in result.output.lower()
 
@@ -532,9 +526,7 @@ class TestCLIWiClose:
         store.create("WI-CLOS0001", intent="close me")
         store.mark_implemented("WI-CLOS0001")
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "close", "WI-CLOS0001", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "close", "WI-CLOS0001", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "closed" in result.output
         wi = store.get("WI-CLOS0001")
@@ -549,9 +541,13 @@ class TestCLIWiClose:
         runner.invoke(
             main,
             [
-                "wi", "close", "WI-CLOS0002",
-                "--reason", "covered by REQ-042",
-                "--project-dir", str(tmp_path),
+                "wi",
+                "close",
+                "WI-CLOS0002",
+                "--reason",
+                "covered by REQ-042",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         wi = store.get("WI-CLOS0002")
@@ -562,9 +558,7 @@ class TestCLIWiClose:
         """open → closed is not a valid transition (must go via implemented first)."""
         _store(tmp_path).create("WI-CLOS0003", intent="bad close")
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "close", "WI-CLOS0003", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "close", "WI-CLOS0003", "--project-dir", str(tmp_path)])
         assert result.exit_code == 1
 
 
@@ -592,9 +586,13 @@ class TestCLIWiArchive:
         runner.invoke(
             main,
             [
-                "wi", "archive", "WI-ARCH0002",
-                "--reason", "deferred to Q3",
-                "--project-dir", str(tmp_path),
+                "wi",
+                "archive",
+                "WI-ARCH0002",
+                "--reason",
+                "deferred to Q3",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         wi = _store(tmp_path).get("WI-ARCH0002")
@@ -618,10 +616,15 @@ class TestCLIWiPromote:
         result = runner.invoke(
             main,
             [
-                "wi", "promote", "WI-PROM0001",
-                "--title", "System must retry on HTTP 503",
-                "--domain", "overflow",
-                "--project-dir", str(tmp_path),
+                "wi",
+                "promote",
+                "WI-PROM0001",
+                "--title",
+                "System must retry on HTTP 503",
+                "--domain",
+                "overflow",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 0
@@ -638,9 +641,13 @@ class TestCLIWiPromote:
         runner.invoke(
             main,
             [
-                "wi", "promote", "WI-PROM0002",
-                "--title", "Feature title",
-                "--project-dir", str(tmp_path),
+                "wi",
+                "promote",
+                "WI-PROM0002",
+                "--title",
+                "Feature title",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         wi = _store(tmp_path).get("WI-PROM0002")
@@ -655,10 +662,14 @@ class TestCLIWiPromote:
         result = runner.invoke(
             main,
             [
-                "wi", "promote", "WI-PROM0003",
-                "--title", "JSON req",
+                "wi",
+                "promote",
+                "WI-PROM0003",
+                "--title",
+                "JSON req",
                 "--json",
-                "--project-dir", str(tmp_path),
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 0
@@ -688,10 +699,14 @@ class TestCLIWiPromote:
         result = runner.invoke(
             main,
             [
-                "wi", "promote", "WI-NEXTID01",
-                "--title", "Next after 199",
+                "wi",
+                "promote",
+                "WI-NEXTID01",
+                "--title",
+                "Next after 199",
                 "--json",
-                "--project-dir", str(tmp_path),
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         d = json.loads(result.output)
@@ -721,8 +736,7 @@ class TestCLIWiTag:
         runner = CliRunner()
         result = runner.invoke(
             main,
-            ["wi", "tag", "WI-TAGBAD01", "--kind", "unknown_kind",
-             "--project-dir", str(tmp_path)],
+            ["wi", "tag", "WI-TAGBAD01", "--kind", "unknown_kind", "--project-dir", str(tmp_path)],
         )
         assert result.exit_code != 0
 
@@ -736,21 +750,15 @@ class TestCLIWiImport:
     def test_import_from_ledger(self, tmp_path: Path) -> None:
         # WI IDs must be 8 valid hex chars (A-F0-9 only)
         ledger = tmp_path / "LEDGER.md"
-        ledger.write_text(
-            "work_proposal WI-ABCE1234: do something\n", encoding="utf-8"
-        )
+        ledger.write_text("work_proposal WI-ABCE1234: do something\n", encoding="utf-8")
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "import", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "import", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "Imported 1" in result.output or "1 work item" in result.output
 
     def test_import_no_ledger_shows_nothing(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["wi", "import", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["wi", "import", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "No new work items" in result.output
 

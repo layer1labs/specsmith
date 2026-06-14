@@ -87,8 +87,12 @@ def _make_result(
                 status="gap",
                 confidence=0.0,
                 findings=[
-                    Finding(article_id="Art.2", severity="gap",
-                            message="missing", recommendation="fix it")
+                    Finding(
+                        article_id="Art.2",
+                        severity="gap",
+                        message="missing",
+                        recommendation="fix it",
+                    )
                 ],
             ),
         ],
@@ -169,6 +173,7 @@ class TestRegulationCatalogIntegrity:
             OMB_M2410,
             TEXAS,
         )
+
         assert EU_AI_ACT is REGULATIONS["eu-ai-act"]
         assert NIST_RMF is REGULATIONS["nist-rmf"]
         assert OMB_M2410 is REGULATIONS["omb-m-24-10"]
@@ -235,9 +240,7 @@ class TestRegulationFreshness:
             f"  3. Re-run tests to confirm green"
         )
 
-    def test_sentinel_covers_all_expected_regulations(
-        self, sentinel: dict[str, int]
-    ) -> None:
+    def test_sentinel_covers_all_expected_regulations(self, sentinel: dict[str, int]) -> None:
         """Every regulation we claim to cover must have a sentinel entry."""
         missing = EXPECTED_REGULATION_IDS - set(sentinel)
         assert not missing, (
@@ -255,15 +258,11 @@ class TestRegulationFreshness:
     def test_sentinel_entries_have_review_dates(self) -> None:
         data = yaml.safe_load(SENTINEL_FILE.read_text(encoding="utf-8"))
         for entry in data.get("regulations", []):
-            assert "last_reviewed" in entry, (
-                f"Sentinel entry {entry['id']} missing last_reviewed"
-            )
+            assert "last_reviewed" in entry, f"Sentinel entry {entry['id']} missing last_reviewed"
             assert "next_review_due" in entry, (
                 f"Sentinel entry {entry['id']} missing next_review_due"
             )
-            assert "review_notes" in entry, (
-                f"Sentinel entry {entry['id']} missing review_notes"
-            )
+            assert "review_notes" in entry, f"Sentinel entry {entry['id']} missing review_notes"
 
     def test_watch_list_entries_have_notes(self) -> None:
         data = yaml.safe_load(SENTINEL_FILE.read_text(encoding="utf-8"))
@@ -297,8 +296,14 @@ class TestArticleControlCoverage:
     @pytest.mark.parametrize("reg_id", sorted(EXPECTED_REGULATION_IDS))
     def test_article_categories_are_valid(self, reg_id: str) -> None:
         valid_categories = {
-            "transparency", "risk_management", "human_oversight", "logging",
-            "data_governance", "security", "discrimination", "disclosure",
+            "transparency",
+            "risk_management",
+            "human_oversight",
+            "logging",
+            "data_governance",
+            "security",
+            "discrimination",
+            "disclosure",
         }
         reg = REGULATIONS[reg_id]
         for art in reg.articles:
@@ -393,10 +398,7 @@ class TestEvidenceCollector:
         ledger.write_text('{"type":"session_start"}\n', encoding="utf-8")
         collector = EvidenceCollector(tmp_path)
         items = collector.collect_all()
-        ledger_items = [
-            i for i in items
-            if "ledger.jsonl" in i.source and i.present
-        ]
+        ledger_items = [i for i in items if "ledger.jsonl" in i.source and i.present]
         assert len(ledger_items) >= 1, "Ledger JSONL evidence must be present"
 
     def test_esdb_not_available_in_empty_project(self, tmp_path: Path) -> None:
@@ -489,8 +491,7 @@ class TestComplianceCheckerUnit:
         for result in checker.check_all():
             for ar in result.article_results:
                 assert ar.status in valid, (
-                    f"{result.regulation_id}/{ar.article_id}: "
-                    f"invalid status {ar.status!r}"
+                    f"{result.regulation_id}/{ar.article_id}: invalid status {ar.status!r}"
                 )
 
     def test_check_regulation_has_checked_at_timestamp(self, tmp_path: Path) -> None:
@@ -499,6 +500,7 @@ class TestComplianceCheckerUnit:
         assert result.checked_at, "checked_at must be set"
         # ISO-8601 format: YYYY-MM-DDTHH:MM:SSZ
         import re
+
         assert re.match(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", result.checked_at), (
             f"checked_at not in expected format: {result.checked_at}"
         )
@@ -547,9 +549,16 @@ class TestComplianceResultModel:
         result = _make_result()
         d = result.to_dict()
         required = {
-            "regulation_id", "regulation_name", "jurisdiction",
-            "checked_at", "overall_status", "overall_confidence",
-            "compliant", "partial", "gaps", "article_results",
+            "regulation_id",
+            "regulation_name",
+            "jurisdiction",
+            "checked_at",
+            "overall_status",
+            "overall_confidence",
+            "compliant",
+            "partial",
+            "gaps",
+            "article_results",
         }
         for key in required:
             assert key in d, f"to_dict missing key: {key}"
@@ -614,8 +623,13 @@ class TestComplianceReporter:
     ) -> None:
         reporter = ComplianceReporter(two_results)
         parsed = json.loads(reporter.to_json())
-        for key in ("specsmith_compliance_report", "generated_at", "disclaimer",
-                    "regulations", "summary"):
+        for key in (
+            "specsmith_compliance_report",
+            "generated_at",
+            "disclaimer",
+            "regulations",
+            "summary",
+        ):
             assert key in parsed, f"JSON missing top-level key: {key}"
 
     def test_json_summary_has_correct_counts(self, two_results: list[ComplianceResult]) -> None:
@@ -657,9 +671,7 @@ class TestComplianceReporter:
         assert "</html>" in html
         assert "<title>" in html
 
-    def test_html_contains_regulation_names(
-        self, two_results: list[ComplianceResult]
-    ) -> None:
+    def test_html_contains_regulation_names(self, two_results: list[ComplianceResult]) -> None:
         reporter = ComplianceReporter(two_results)
         html = reporter.to_html()
         for result in two_results:
@@ -722,16 +734,12 @@ class TestCLIComplianceList:
 class TestCLIComplianceCheck:
     def test_check_all_exits_0(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["compliance", "check", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["compliance", "check", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0, f"compliance check failed: {result.output}"
 
     def test_check_all_shows_disclaimer(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["compliance", "check", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["compliance", "check", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         assert "DISCLAIMER" in result.output.upper() or "disclaimer" in result.output.lower()
 
@@ -762,9 +770,12 @@ class TestCLIComplianceCheck:
         result = runner.invoke(
             main,
             [
-                "compliance", "check",
-                "--regulation", reg_id,
-                "--project-dir", str(tmp_path),
+                "compliance",
+                "check",
+                "--regulation",
+                reg_id,
+                "--project-dir",
+                str(tmp_path),
                 "--json",
             ],
         )
@@ -778,24 +789,22 @@ class TestCLIComplianceCheck:
         result = runner.invoke(
             main,
             [
-                "compliance", "check",
-                "--regulation", "not-a-real-regulation",
-                "--project-dir", str(tmp_path),
+                "compliance",
+                "check",
+                "--regulation",
+                "not-a-real-regulation",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 1
 
     def test_check_shows_regulation_names(self, tmp_path: Path) -> None:
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["compliance", "check", "--project-dir", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["compliance", "check", "--project-dir", str(tmp_path)])
         assert result.exit_code == 0
         # At least one regulation name should appear
-        any_name_found = any(
-            REGULATIONS[r].name in result.output
-            for r in EXPECTED_REGULATION_IDS
-        )
+        any_name_found = any(REGULATIONS[r].name in result.output for r in EXPECTED_REGULATION_IDS)
         assert any_name_found, "No regulation name found in compliance check output"
 
 
@@ -828,10 +837,14 @@ class TestCLIComplianceReport:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--project-dir", str(tmp_path),
-                "--format", "json",
-                "--output", str(out_file),
+                "compliance",
+                "report",
+                "--project-dir",
+                str(tmp_path),
+                "--format",
+                "json",
+                "--output",
+                str(out_file),
             ],
         )
         assert result.exit_code == 0
@@ -856,10 +869,14 @@ class TestCLIComplianceReport:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--project-dir", str(tmp_path),
-                "--format", "md",
-                "--output", str(out_file),
+                "compliance",
+                "report",
+                "--project-dir",
+                str(tmp_path),
+                "--format",
+                "md",
+                "--output",
+                str(out_file),
             ],
         )
         assert result.exit_code == 0
@@ -873,11 +890,16 @@ class TestCLIComplianceReport:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--regulation", "eu-ai-act",
-                "--project-dir", str(tmp_path),
-                "--format", "json",
-                "--output", str(out_file),
+                "compliance",
+                "report",
+                "--regulation",
+                "eu-ai-act",
+                "--project-dir",
+                str(tmp_path),
+                "--format",
+                "json",
+                "--output",
+                str(out_file),
             ],
         )
         assert result.exit_code == 0
@@ -890,9 +912,12 @@ class TestCLIComplianceReport:
         result = runner.invoke(
             main,
             [
-                "compliance", "report",
-                "--regulation", "not-real",
-                "--project-dir", str(tmp_path),
+                "compliance",
+                "report",
+                "--regulation",
+                "not-real",
+                "--project-dir",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 1
@@ -940,6 +965,7 @@ class TestDisclaimerEnforcement:
     def test_module_docstring_has_disclaimer(self) -> None:
         """compliance/__init__.py docstring must contain the disclaimer."""
         import specsmith.compliance as comp_module
+
         doc = comp_module.__doc__ or ""
         assert "disclaimer" in doc.lower() or "DISCLAIMER" in doc, (
             "compliance/__init__.py docstring must contain DISCLAIMER"
@@ -956,17 +982,20 @@ class TestComplianceModuleExports:
 
     def test_all_exports_importable(self) -> None:
         import specsmith.compliance as m
+
         for name in m.__all__:
             obj = getattr(m, name, None)
             assert obj is not None, f"compliance.__all__ member '{name}' is None"
 
     def test_get_regulation_returns_correct_type(self) -> None:
         from specsmith.compliance import get_regulation
+
         reg = get_regulation("eu-ai-act")
         assert isinstance(reg, Regulation)
         assert reg.id == "eu-ai-act"
 
     def test_get_regulation_raises_for_unknown(self) -> None:
         from specsmith.compliance import get_regulation
+
         with pytest.raises(KeyError, match="Unknown regulation"):
             get_regulation("totally-fake")

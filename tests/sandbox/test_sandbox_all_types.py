@@ -70,9 +70,7 @@ def _scaffold(tmp_path: Path, project_type: str, name: str = "smoke-test") -> Pa
         main,
         ["init", "--config", str(cfg_path), "--output-dir", str(tmp_path), "--no-git"],
     )
-    assert result.exit_code == 0, (
-        f"init failed for {project_type!r}:\n{result.output}"
-    )
+    assert result.exit_code == 0, f"init failed for {project_type!r}:\n{result.output}"
     return tmp_path / name
 
 
@@ -113,9 +111,7 @@ class TestAllTypesSmoke:
         project = _scaffold(tmp_path, project_type)
         runner = CliRunner()
         result = runner.invoke(main, ["audit", "--project-dir", str(project)])
-        assert result.exit_code == 0, (
-            f"audit failed for {project_type!r}:\n{result.output}"
-        )
+        assert result.exit_code == 0, f"audit failed for {project_type!r}:\n{result.output}"
         assert "Healthy" in result.output, (
             f"audit not Healthy for {project_type!r}:\n{result.output}"
         )
@@ -125,9 +121,7 @@ class TestAllTypesSmoke:
         project = _scaffold(tmp_path, project_type)
         runner = CliRunner()
         result = runner.invoke(main, ["validate", "--project-dir", str(project)])
-        assert result.exit_code == 0, (
-            f"validate failed for {project_type!r}:\n{result.output}"
-        )
+        assert result.exit_code == 0, f"validate failed for {project_type!r}:\n{result.output}"
 
     @pytest.mark.parametrize("project_type", ALL_TYPES)
     def test_all_scaffold_files_non_empty(self, tmp_path: Path, project_type: str) -> None:
@@ -151,25 +145,25 @@ class TestAITypesDomainContent:
     @pytest.mark.parametrize(
         "project_type, expected_dirs",
         [
-            ("llm-app",            ["src", "tests"]),
+            ("llm-app", ["src", "tests"]),
             ("agent-orchestration", ["src", "examples"]),
-            ("mcp-server",         ["src", "tests"]),
-            ("rag-pipeline",       ["src", "data"]),
-            ("mlops-platform",     ["pipelines", "models", "experiments", "serving"]),
-            ("serverless",         ["functions", "infrastructure"]),
+            ("mcp-server", ["src", "tests"]),
+            ("rag-pipeline", ["src", "data"]),
+            ("mlops-platform", ["pipelines", "models", "experiments", "serving"]),
+            ("serverless", ["functions", "infrastructure"]),
             ("kubernetes-operator", ["controllers", "api", "cmd", "config"]),
             ("streaming-pipeline", ["src", "deploy"]),
-            ("data-warehouse",     ["models", "macros", "seeds", "analyses"]),
-            ("game-unity",         ["Assets", "tests"]),
-            ("game-godot",         ["scenes", "assets"]),
-            ("smart-contract",     ["contracts", "deployments"]),
-            ("desktop-electron",   ["src", "build"]),
-            ("desktop-tauri",      ["src", "src-tauri"]),
+            ("data-warehouse", ["models", "macros", "seeds", "analyses"]),
+            ("game-unity", ["Assets", "tests"]),
+            ("game-godot", ["scenes", "assets"]),
+            ("smart-contract", ["contracts", "deployments"]),
+            ("desktop-electron", ["src", "build"]),
+            ("desktop-tauri", ["src", "src-tauri"]),
             # Web frameworks from 0.13.0 — no domain-specific dirs, just governance
             # (tested via TestAllTypesSmoke; listed here to confirm they scaffold OK)
-            ("nextjs-app",         ["docs", "scripts", "tests"]),
-            ("nuxt-app",           ["docs", "scripts", "tests"]),
-            ("sveltekit-app",      ["docs", "scripts", "tests"]),
+            ("nextjs-app", ["docs", "scripts", "tests"]),
+            ("nuxt-app", ["docs", "scripts", "tests"]),
+            ("sveltekit-app", ["docs", "scripts", "tests"]),
         ],
     )
     def test_domain_dirs_present(
@@ -222,9 +216,7 @@ class TestAITypesDomainContent:
         """data-warehouse projects should have a dbt-style dir layout."""
         project = _scaffold(tmp_path, "data-warehouse", "dw-test")
         for d in ("models", "macros", "seeds", "analyses"):
-            assert (project / d).is_dir(), (
-                f"data-warehouse missing dbt dir: {d}"
-            )
+            assert (project / d).is_dir(), f"data-warehouse missing dbt dir: {d}"
 
     def test_game_unity_has_assets_dir(self, tmp_path: Path) -> None:
         project = _scaffold(tmp_path, "game-unity", "unity-test")

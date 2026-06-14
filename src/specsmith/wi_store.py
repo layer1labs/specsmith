@@ -60,12 +60,12 @@ WI_TERMINAL_STATES: frozenset[str] = frozenset({"promoted", "closed", "archived"
 
 #: Allowed transitions: {from_state: {to_state, ...}}
 WI_TRANSITIONS: dict[str, frozenset[str]] = {
-    "open":        frozenset({"implemented", "archived", "rejected"}),
+    "open": frozenset({"implemented", "archived", "rejected"}),
     "implemented": frozenset({"promoted", "closed", "archived"}),
-    "promoted":    frozenset(),
-    "closed":      frozenset(),
-    "archived":    frozenset({"open"}),   # un-defer is allowed
-    "rejected":    frozenset(),
+    "promoted": frozenset(),
+    "closed": frozenset(),
+    "archived": frozenset({"open"}),  # un-defer is allowed
+    "rejected": frozenset(),
 }
 
 
@@ -180,9 +180,7 @@ class WorkItemStore:
     def save(self, items: list[WorkItem]) -> None:
         """Write *items* to disk atomically (write-to-tmp-then-rename)."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(
-            [it.to_dict() for it in items], indent=2, ensure_ascii=False
-        )
+        payload = json.dumps([it.to_dict() for it in items], indent=2, ensure_ascii=False)
         tmp = self._path.with_suffix(".json.tmp")
         tmp.write_text(payload, encoding="utf-8")
         tmp.replace(self._path)

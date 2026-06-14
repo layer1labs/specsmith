@@ -231,6 +231,7 @@ def run_preflight(
     if work_item_id:
         try:
             from specsmith.wi_store import WorkItemStore
+
             WorkItemStore(_root_str).create(
                 work_item_id,
                 intent=utterance,
@@ -335,6 +336,7 @@ def run_verify(
     if equilibrium and work_item_id:
         try:
             from specsmith.wi_store import WorkItemStore
+
             WorkItemStore(root).mark_implemented(work_item_id)
         except Exception:  # noqa: BLE001
             pass

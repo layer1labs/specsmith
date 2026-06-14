@@ -7285,7 +7285,10 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                 if path_found:
                     try:
                         r = subprocess.run(  # noqa: S603, S607 — exe comes from a trusted hardcoded map
-                            [exe, "--version"], capture_output=True, text=True, timeout=5,
+                            [exe, "--version"],
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
                             check=False,
                         )
                         ver_out = (r.stdout + r.stderr).strip().splitlines()
@@ -8209,11 +8212,7 @@ def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
     console.print(f"[bold]Work Items[/bold]  ({root.name})\n")
     for item in items:
         color = _STATUS_COLOR.get(item.status, "white")
-        req_tag = (
-            f"  [{', '.join(item.requirement_ids)}]"
-            if item.requirement_ids
-            else ""
-        )
+        req_tag = f"  [{', '.join(item.requirement_ids)}]" if item.requirement_ids else ""
         promoted_tag = f"  → {item.promoted_to_req}" if item.promoted_to_req else ""
         console.print(
             f"  [{color}]{item.id}[/{color}]  "
@@ -8280,8 +8279,13 @@ def wi_close_cmd(wi_id: str, project_dir: str, reason: str) -> None:
     console.print(f"[green]\u2713[/green] {item.id} → closed")
     try:
         from specsmith.ledger import add_entry
-        add_entry(root, description=f"wi_close {item.id}: {reason or 'done'}",
-                  entry_type="wi_close", author="specsmith")
+
+        add_entry(
+            root,
+            description=f"wi_close {item.id}: {reason or 'done'}",
+            entry_type="wi_close",
+            author="specsmith",
+        )
     except Exception:  # noqa: BLE001
         pass
 
@@ -8308,8 +8312,13 @@ def wi_archive_cmd(wi_id: str, project_dir: str, reason: str) -> None:
     console.print(f"[yellow]\u2714[/yellow] {item.id} → archived")
     try:
         from specsmith.ledger import add_entry
-        add_entry(root, description=f"wi_archive {item.id}: {reason or 'deferred'}",
-                  entry_type="wi_archive", author="specsmith")
+
+        add_entry(
+            root,
+            description=f"wi_archive {item.id}: {reason or 'deferred'}",
+            entry_type="wi_archive",
+            author="specsmith",
+        )
     except Exception:  # noqa: BLE001
         pass
 
@@ -8411,6 +8420,7 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
     # ── Ledger entry ──────────────────────────────────────────────────────
     try:
         from specsmith.ledger import add_entry
+
         add_entry(
             root,
             description=f"wi_promote {item.id} → {new_req_id}: {req_title}",
@@ -8421,8 +8431,16 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
         pass
 
     if as_json:
-        click.echo(_json.dumps({"wi_id": item.id, "promoted_to": new_req_id,
-                                 "req_file": str(yaml_path.relative_to(root))}, indent=2))
+        click.echo(
+            _json.dumps(
+                {
+                    "wi_id": item.id,
+                    "promoted_to": new_req_id,
+                    "req_file": str(yaml_path.relative_to(root)),
+                },
+                indent=2,
+            )
+        )
         return
 
     console.print(
@@ -8491,6 +8509,7 @@ def wi_import_cmd(project_dir: str, from_ledger: bool) -> None:
 def _now_ts() -> str:
     """Return current UTC timestamp as ISO-8601 string."""
     import time
+
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
