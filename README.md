@@ -285,6 +285,14 @@ agent:
 
 ## AI Compliance & Governance
 
+> **DISCLAIMER — Best-effort only.** specsmith is designed to *help* teams build
+> auditable, explainable AI systems, but **it does not guarantee compliance** with
+> any law or regulation. Regulations change frequently; final compliance determination
+> is solely the responsibility of the end user. Layer1Labs makes no legal warranty.
+> Found outdated coverage or a missing regulation?
+> [Open a ticket](https://github.com/layer1labs/specsmith/issues) — we actively
+> maintain the regulation database and welcome compliance PRs.
+
 specsmith is designed from the ground up for **auditable, explainable, and human-overseen AI**.
 It implements concrete compliance mechanisms mapped to the two major regulatory frameworks
 that govern AI systems in production today.
@@ -423,8 +431,8 @@ specsmith export --format markdown > compliance-report.md
 specsmith export --format json > compliance-report.json
 ```
 
-This report is suitable for submission to regulators, internal audit teams, or
-SOC-2 / ISO-42001 reviewers.
+This report is suitable as a starting point for audit evidence, but is **not a legal
+certification**. Always verify with qualified counsel before regulatory submission.
 
 ### Compliance per Session and per Project
 

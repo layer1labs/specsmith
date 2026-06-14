@@ -5,6 +5,86 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.2] - 2026-06-14
+
+### Added
+
+- **`specsmith-error-reporting` skill** — structured issue triage protocol for
+  AI agents. Before suggesting any GitHub ticket, agents now: check the user’s
+  specsmith version, search open issues, search closed/fixed issues and compare
+  to installed version, guide upvoting of existing tickets, and only then walk
+  through a structured new-issue template. Covers bugs, feature gaps (missing
+  project types, languages, tools, regulations, integrations), and compliance
+  coverage requests. Includes vote automation via `gh api` reactions.
+
+- **`specsmith-mcp-configs` skill** — a large repository of tested, ready-to-use
+  MCP server configurations for `.specsmith/mcp.yml`. Covers 20+ servers:
+  - **Official** (`@modelcontextprotocol/servers`): `filesystem`, `github`,
+    `brave-search`, `postgres`, `sqlite`, `fetch`, `memory`, `puppeteer`,
+    `sequential-thinking`, `slack`, `google-drive`, `everything`
+  - **Python** (uvx/pip): `mcp-server-git`, `mcp-server-time`
+  - **specsmith** built-in governance server
+  - **Community**: `exa`, `tavily`, `linear`, `sentry`, `playwright`, `redis`,
+    `notion`
+  - Two ready-to-use multi-server starter templates (full-stack and database).
+
+- **Compliance best-effort disclaimer** added throughout: `compliance_check_cmd`
+  output, `compliance_report_cmd` JSON output, Markdown report header, HTML
+  report footer (enhanced), `compliance/__init__.py` module docstring,
+  `compliance/reporter.py` module docstring, `README.md` AI Compliance section,
+  `docs/COMPLIANCE.md`, and `docs/site/governance.md`.
+
+- **`ComplianceReporter.summary_dict()`** — public API for the compliance summary
+  dictionary. `_summary_dict()` retained as a backward-compat alias.
+
+### Fixed
+
+- **#202 — ESDB `chain_valid()` display shows ✗ for intact chain.** Both
+  `esdb status` and `checkpoint` now use `chain_valid() is not False` to
+  correctly handle non-bool returns (e.g. `None` or `0`) from some chronomemory
+  versions for an intact chain. Previously any falsy non-`True` return was
+  displayed as ✗, misleading operators and agents into treating a healthy
+  ESDB as failed.
+
+- **Emoji alignment in governance anchor box.** The `checkpoint` command no
+  longer includes the phase emoji in the fixed-width anchor box. Phase emojis
+  are multi-column glyphs whose terminal width is inconsistent across fonts and
+  environments, causing the right border to appear misaligned. The emoji is
+  still stored in `--json` output and other display contexts.
+
+### Security
+
+- **S603 / S607 — `subprocess.run` calls annotated safe.** Two `subprocess.run`
+  call sites in `cli.py` received `# noqa: S603, S607` with explanatory
+  comments and `check=False`:
+  - `verify-release` command (fixed `["gh", "release", "view", ...]` argv)
+  - `tools scan --fpga` version probe (exe from a hardcoded trusted tool map)
+
+### Quality
+
+- `compliance_audit_cmd` now calls `reporter.summary_dict()` (public) instead
+  of `reporter._summary_dict()` (private), resolving the private-method access
+  quality issue.
+
+### Skills updated
+
+- **`specsmith` SKILL.md** — major update: WI / Work Item explanation with
+  full lifecycle (preflight → WI → requirement IDs → code → ledger), compliance
+  disclaimer, updated command table (adds `preflight`, `checkpoint`, `compliance`,
+  `esdb status`), strengthened preflight-gate rule, proactive skill/feature gap
+  detection guidance, updated install list.
+
+- **`specsmith-session-governance` SKILL.md** — updated: new Rule 3 (MCP tool
+  governance — `governance_preflight` gates all MCP calls), MCP tool reference
+  table, `specsmith mcp install-warp` setup instruction, compliance disclaimer
+  section for governed sessions, error-reporting protocol stub.
+
+### Changed
+
+- Version bumped from `0.14.1` to `0.14.2`.
+
+---
+
 ## [0.14.1] - 2026-06-12
 
 ### Changed

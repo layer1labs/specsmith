@@ -2430,11 +2430,12 @@ def verify_release() -> None:
 
     # GitHub release
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603, S607 — argv is a fixed, trusted CLI invocation
             ["gh", "release", "view", f"v{__version__}", "--json", "tagName"],
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,
         )
         if result.returncode == 0:
             console.print(f"  [green]\u2713[/green] GitHub Release: v{__version__}")
@@ -3183,7 +3184,10 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         wal = root / ".chronomemory" / "events.wal"
         if wal.exists():
             with ChronoStore(root) as store:
-                esdb_ok = store.chain_valid()
+                # Issue #202: chain_valid() may return non-bool (e.g. None or 0)
+                # in some chronomemory versions for an intact chain.  Treat any
+                # value that is not the literal False as valid.
+                esdb_ok = store.chain_valid() is not False
                 esdb_records = store.record_count()
     except Exception:  # noqa: BLE001
         pass
@@ -3260,8 +3264,10 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     r2_plain = f" Project : {project_name}"
     console.print(_arow(f" Project : [bold]{project_name}[/bold]", r2_plain))
 
-    r3_plain = f" Phase   : {phase_emoji} {phase_label} ({phase_pct}%)"
-    console.print(_arow(r3_plain, r3_plain, wide=1 if phase_emoji else 0))
+    # Emoji omitted from the anchor box: full-width glyphs vary by terminal
+    # and break the fixed-width box alignment unpredictably (GH #align).
+    r3_plain = f" Phase   : {phase_label} ({phase_pct}%)"
+    console.print(_arow(r3_plain, r3_plain))
 
     r4_plain = (
         f" Health  : {health_icon} clean"
@@ -7278,8 +7284,9 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                 version = ""
                 if path_found:
                     try:
-                        r = subprocess.run(
-                            [exe, "--version"], capture_output=True, text=True, timeout=5
+                        r = subprocess.run(  # noqa: S603, S607 — exe comes from a trusted hardcoded map
+                            [exe, "--version"], capture_output=True, text=True, timeout=5,
+                            check=False,
                         )
                         ver_out = (r.stdout + r.stderr).strip().splitlines()
                         if ver_out:
@@ -10044,7 +10051,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     try:
         with store as s:  # type: ignore[attr-defined]
             record_count = s.record_count()
-            chain_ok = s.chain_valid()
+            # Issue #202: chain_valid() may return non-bool in some chronomemory
+            # versions for an intact chain.  Only treat literal False as invalid.
+            chain_ok = s.chain_valid() is not False
             if ESDB_BACKEND == "sqlite":
                 sqlite_db = root / ".specsmith" / "esdb.sqlite3"
                 backend_label = f"SQLite (free, MIT) — {sqlite_db}"
@@ -11477,6 +11486,13 @@ main.add_command(context_group)
 def compliance_group() -> None:
     """EU and North American AI regulation compliance checking and reporting.
 
+    DISCLAIMER: specsmith compliance checks are provided on a best-effort basis.
+    Results are NOT a guarantee of legal compliance. Laws and regulations change
+    frequently; the user is solely responsible for determining and maintaining
+    actual compliance. Layer1Labs makes no warranty of fitness for regulatory
+    submission. File tickets for outdated or missing regulation coverage at
+    https://github.com/layer1labs/specsmith/issues
+
     Supported regulations (May 2026):\n
       eu-ai-act       EU AI Act 2024/1689\n
       nist-rmf        NIST AI RMF 1.0 + AI 600-1 GenAI Profile\n
@@ -11538,9 +11554,19 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
         output = {
             "results": [r.to_dict() for r in results],
             "checked": len(results),
+            "disclaimer": (
+                "specsmith compliance checks are best-effort only and do NOT constitute "
+                "legal advice or guarantee of compliance. Verify with qualified counsel."
+            ),
         }
         click.echo(_json.dumps(output, indent=2))
         return
+
+    console.print(
+        "[dim]\u26a0  DISCLAIMER: Results are best-effort only. specsmith does not guarantee "
+        "compliance. Laws change \u2014 verify with qualified counsel. "
+        "File issues at https://github.com/layer1labs/specsmith/issues[/dim]\n"
+    )
 
     _STATUS_ICON = {
         "compliant": "[green]\u2714[/green]",
@@ -11644,7 +11670,7 @@ def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
     written = checker.store_results_to_esdb(results)
 
     reporter = ComplianceReporter(results)
-    summary = reporter._summary_dict()
+    summary = reporter.summary_dict()  # public API — use summary_dict, not _summary_dict
     summary["esdb_records_written"] = written
 
     if as_json:

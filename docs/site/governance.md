@@ -1,5 +1,12 @@
 # Governance Model
 
+> **Compliance Disclaimer:** specsmith provides governance tooling on a **best-effort basis**.
+> It is **not** a legal compliance guarantee. Regulations and standards change frequently;
+> the end user is solely responsible for determining and maintaining actual compliance.
+> Layer1Labs makes no warranty of fitness for regulatory submission or legal proceedings.
+> To report outdated regulation coverage or request new standards support, open a ticket at
+> [github.com/layer1labs/specsmith/issues](https://github.com/layer1labs/specsmith/issues).
+
 ## The Problem specsmith Solves
 
 AI coding agents are stateless. They don't remember what happened last session, don't know what's been tested, and don't follow consistent processes unless told to. specsmith generates the governance layer that makes AI-assisted development auditable and structured.

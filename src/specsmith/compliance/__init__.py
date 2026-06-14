@@ -2,6 +2,13 @@
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
 """specsmith compliance — EU and North American AI regulation compliance.
 
+DISCLAIMER: specsmith compliance checks are provided on a **best-effort basis** and do
+NOT constitute legal advice or a guarantee of compliance with any law or regulation.
+Regulations change frequently; the user is solely responsible for verifying and
+maintaining actual compliance.  Layer1Labs makes no warranty of fitness for regulatory
+submission.  Report outdated coverage or request new regulations at:
+https://github.com/layer1labs/specsmith/issues
+
 Provides structured regulation definitions, ESDB-backed evidence collection,
 per-regulation compliance checking, and report generation.
 
