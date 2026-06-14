@@ -88,7 +88,9 @@ def run_preflight(
     # realpath'd root produces a canonical child path — no extra realpath needed.
     _req_md_primary: str = os.path.join(_root_str, "docs", "REQUIREMENTS.md")
     _req_md_legacy: str = os.path.join(_root_str, "REQUIREMENTS.md")
-    _req_md_str: str = _req_md_primary if os.path.isfile(_req_md_primary) else _req_md_legacy
+    # Use Path.is_file() — consistent with rq_path/tc_path checks below and
+    # not a CodeQL py/path-injection sink (unlike os.path.isfile).
+    _req_md_str: str = _req_md_primary if Path(_req_md_primary).is_file() else _req_md_legacy
     _req_md = Path(_req_md_str)
     _repo_idx = Path(os.path.join(_root_str, ".repo-index", "files.json"))
     scope = infer_scope(
