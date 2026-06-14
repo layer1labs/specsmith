@@ -8,6 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.15.2] - 2026-06-14
+
+### Added
+
+- **`bare-metal-c` built-in skill** — startup code, vector tables, linker scripts,
+  C runtime initialization, standard C library constraints, syscall stubs,
+  interrupt-safe C, atomics/volatile guidance, cross-compilation, diagnostics,
+  and hardware-in-loop testing patterns.
+
+- **Expanded embedded skill coverage** — `zephyr-rtos` now explicitly covers
+  Zephyr 4.4/current through 3.x only (including 3.7 LTS), with sysbuild,
+  Kconfig/devicetree, drivers, networking, Bluetooth, security/MCUboot/TF-M,
+  Twister/ztest, and migration guidance. `freertos` now covers tasks, queues,
+  direct notifications, event groups, timers, ISR handoff, heap/static allocation,
+  SMP/MPU notes, tracing, and testing patterns.
+
+- **Skills index coverage** — documented the existing client-integration
+  governance skills (`aider-integration`, `claude-code-integration`,
+  `copilot-integration`, `cursor-integration`, `gemini-cli-integration`,
+  `windsurf-integration`) and the `brief-lang` skill in the RTD skill index.
+
+### Fixed
+
+- **PyPI README links** — converted relative README links that break on PyPI
+  (`LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`,
+  governance rules, and WI lifecycle docs) to absolute GitHub or RTD URLs.
+
+- **RTD navigation coverage** — added previously orphaned documentation pages
+  to `mkdocs.yml`: Quickstart, Multi-Agent Profiles, BYOE Endpoints,
+  Kairos Terminal, YAML Governance, and API Stability.
+
+- **Security policy version table** — updated supported versions from stale
+  `0.3.x` entries to the current `0.15.x` / `0.14.x` support window.
+
+- **Skill catalog duplicate slugs** — catalog construction now deduplicates by
+  slug so `specsmith`, `specsmith-save`, and `specsmith-audit` appear once in
+  `specsmith skill list` despite being provided by both legacy and
+  self-referential skill modules.
+
+### Changed
+
+- Built-in skill count updated from 131 to 136 unique skills.
+- Version bumped from `0.15.1` to `0.15.2`.
+
+---
 
 ## [0.15.1] - 2026-06-14
 

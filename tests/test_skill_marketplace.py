@@ -10,6 +10,7 @@ listed, and installed into a project's ``.agents/skills/`` directory.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -30,6 +31,12 @@ def test_catalog_has_expected_slugs() -> None:
 def test_search_empty_query_returns_full_catalog() -> None:
     matches = skills.search("")
     assert len(matches) == len(skills.CATALOG)
+
+
+def test_catalog_slugs_are_unique() -> None:
+    counts = Counter(entry.slug for entry in skills.CATALOG)
+    duplicates = sorted(slug for slug, count in counts.items() if count > 1)
+    assert duplicates == []
 
 
 def test_search_matches_by_tag() -> None:

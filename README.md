@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.15.1 — WI lifecycle subsystem (`specsmith wi` CLI group, 7 commands), preflight/verify WI auto-wiring, compliance + sandbox test suites (1558 total tests, 392 sandbox tests covering all 63 project types).**
+**v0.15.2 — PyPI-safe README links, RTD nav coverage, updated security policy, and expanded embedded skill catalog (Zephyr 4.4→3.x, FreeRTOS, bare-metal C).**
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -978,7 +978,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **132 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+specsmith ships **136 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
 
 ```bash
 # List all available skills
@@ -999,9 +999,9 @@ Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered
 
 | Domain | Count | Coverage |
 |--------|-------|----------|
-| `governance` | 14 | AEE workflows, verification, release, CI polling, patent prosecution |
+| `governance` | 20 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
 | `ai-agents` | 14 | LLM apps, MCP servers, agent orchestration, RAG, prompt engineering, fine-tuning, MLOps |
-| `software-engineering` | 12 | Code review, TDD, debugging, security hardening, API design, ADRs |
+| `software-engineering` | 13 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
 | `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
 | `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
 | `embedded` | 11 | Zephyr, Yocto, FreeRTOS, bare-metal C, NuttX, Buildroot, Azure RTOS |

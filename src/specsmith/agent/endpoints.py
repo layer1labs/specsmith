@@ -183,15 +183,17 @@ class Endpoint:
                     "switch the endpoint to --auth bearer-env"
                 ) from exc
             try:
-                value = keyring.get_password(self.auth.keyring_service, self.auth.keyring_user)
+                kring_token: str | None = keyring.get_password(
+                    self.auth.keyring_service, self.auth.keyring_user
+                )
             except Exception as exc:  # noqa: BLE001
                 raise EndpointError(f"keyring lookup failed: {exc}") from exc
-            if not value:
+            if not kring_token:
                 raise EndpointError(
                     f"endpoint {self.id!r} has no token stored in keyring "
                     f"({self.auth.keyring_service}/{self.auth.keyring_user})"
                 )
-            return str(value)
+            return kring_token
         raise EndpointError(f"unknown auth kind {kind!r}")
 
     # ── Health / discovery ─────────────────────────────────────────────────

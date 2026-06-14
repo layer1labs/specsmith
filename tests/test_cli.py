@@ -124,14 +124,14 @@ class TestCLIUpgrade:
             yaml.dump(data, fh, default_flow_style=False)
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.15.1"]
+            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.15.2"]
         )
         assert result.exit_code == 0
         assert "Upgraded" in result.output
         # Verify scaffold.yml spec_version was updated to the target version
         with open(target / "scaffold.yml") as fh:
             data = yaml.safe_load(fh)
-        assert data["spec_version"] == "0.15.1"
+        assert data["spec_version"] == "0.15.2"
 
 
 class TestCLICreditsLimits:

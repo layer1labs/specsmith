@@ -137,7 +137,7 @@ def _build_catalog() -> list[SkillEntry]:
         web_backend,
     )
 
-    return (
+    entries = (
         governance.SKILLS
         + embedded.SKILLS
         + hardware.SKILLS
@@ -157,6 +157,10 @@ def _build_catalog() -> list[SkillEntry]:
         + data_engineering.SKILLS
         + platform_engineering.SKILLS
     )
+    by_slug: dict[str, SkillEntry] = {}
+    for entry in entries:
+        by_slug[entry.slug] = entry
+    return list(by_slug.values())
 
 
 def _get_catalog() -> list[SkillEntry]:

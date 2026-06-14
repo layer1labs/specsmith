@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **132 built-in skills** across 16 domains.
+specsmith ships with **136 built-in skills** across 16 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -16,15 +16,20 @@ Each skill is a curated `SKILL.md` injected into the agent context with
 
 ---
 
-## Governance (14)
+## Governance (20)
 
 Skills for project governance workflows, verification, release management, ESDB, CI polling, IP prosecution, and AI code review.
 
 | Slug | Name | Key tags |
 |------|------|----------|
+| `aider-integration` | Aider — specsmith governance integration | aider, integration, governance, session, git |
 | `chronomemory-esdb` | ChronoMemory ESDB — epistemic state database (v0.1.1) | esdb, chronomemory, wal, query, context-pack |
+| `claude-code-integration` | Claude Code — specsmith governance integration | claude-code, mcp, integration, governance, session |
 | `codity-ai-review` | Codity.ai AI Review — staged-diff code review, security scan, test-gen | codity, ai-review, code-review, security, pre-commit |
+| `copilot-integration` | GitHub Copilot — specsmith governance integration | copilot, github, integration, governance, session |
+| `cursor-integration` | Cursor — specsmith governance integration | cursor, mcp, integration, governance, session |
 | `diff-reviewer` | Diff Reviewer — surface changes for approval | git, review, pr |
+| `gemini-cli-integration` | Gemini CLI — specsmith governance integration | gemini, google, integration, governance, session |
 | `gh-ci-polling` | GitHub Actions CI polling — smart wait (no sleep) | ci, gh, polling, github-actions |
 | `issue-triage` | Issue Triage — classify and prioritise GitHub issues | github, issues, labels |
 | `onboarding-coach` | Onboarding Coach — guided first session | onboarding, first-run |
@@ -36,6 +41,7 @@ Skills for project governance workflows, verification, release management, ESDB,
 | `specsmith-save` | Specsmith Save — governance-aware save workflow | specsmith, save, commit, esdb, backup |
 | `specsmith-session-governance` | Specsmith Session Governance — drift prevention, heartbeat, preflight gate | governance, session, drift, checkpoint, anchor |
 | `verifier` | Verifier — five-gate verification | audit, tests, verification |
+| `windsurf-integration` | Windsurf — specsmith governance integration | windsurf, mcp, integration, governance, session |
 
 ---
 
@@ -231,12 +237,13 @@ Skills for building and governing AI-powered systems — LLM apps, MCP servers, 
 
 ---
 
-## Software Engineering (12)
+## Software Engineering (13)
 
 Workflow skills for software engineering best practices — code review, TDD, debugging, security, and architecture.
 
 | Slug | Name | Key tags |
 |------|------|----------|
+| `brief-lang` | Brief lang — declarative contract-enforced logic language | brief, brief-lang, declarative, contracts, transactions |
 | `code-review` | Code Review — systematic pull request review workflow | code-review, pull-request, correctness, security, design |
 | `test-driven-development` | Test-Driven Development — red-green-refactor workflow | tdd, test-first, red-green-refactor, pytest, jest |
 | `debugging` | Debugging — systematic error diagnosis and recovery | debugging, error, root-cause, pdb, traceback |
