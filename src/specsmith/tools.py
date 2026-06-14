@@ -18,7 +18,6 @@ from specsmith.config import ProjectType
 # ---------------------------------------------------------------------------
 BRIEF_LANG_VERSION: str = "v0.14.0"
 BRIEF_LANG_COMMIT: str = "6a43c4aebcc5c6c774dbc2908445fb19486e8043"
-BRIEF_LANG_COMMIT_SHORT: str = BRIEF_LANG_COMMIT[:8]  # 6a43c4ae
 
 
 @dataclass(frozen=True)
