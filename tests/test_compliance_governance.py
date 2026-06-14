@@ -37,7 +37,7 @@ from click.testing import CliRunner
 from specsmith.cli import main
 from specsmith.compliance.checker import ArticleResult, ComplianceChecker, ComplianceResult, Finding
 from specsmith.compliance.evidence import EvidenceCollector, EvidenceItem
-from specsmith.compliance.regulations import REGULATIONS, Article, Regulation
+from specsmith.compliance.regulations import REGULATIONS, Regulation
 from specsmith.compliance.reporter import ComplianceReporter
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -609,7 +609,9 @@ class TestComplianceReporter:
         assert "disclaimer" in parsed
         assert "legal" in parsed["disclaimer"].lower()
 
-    def test_json_has_all_required_top_level_keys(self, two_results: list[ComplianceResult]) -> None:
+    def test_json_has_all_required_top_level_keys(
+        self, two_results: list[ComplianceResult]
+    ) -> None:
         reporter = ComplianceReporter(two_results)
         parsed = json.loads(reporter.to_json())
         for key in ("specsmith_compliance_report", "generated_at", "disclaimer",

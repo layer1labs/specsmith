@@ -48,6 +48,7 @@ nav:
   - Importing Projects: importing.md
   - Configuration: configuration.md
   - Governance Model: governance.md
+  - Work Item Lifecycle: wi-lifecycle.md
   - ESDB: esdb.md
   - Doctor: doctor.md
   - Export & Compliance: export.md

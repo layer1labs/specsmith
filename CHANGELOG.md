@@ -5,6 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **WI lifecycle subsystem (`specsmith/wi_store.py`)** — `WorkItem` dataclass with
+  6-state machine (`open → implemented → closed / archived / rejected / promoted`),
+  atomic JSON persistence, enforced transitions, and `force` override. Includes
+  `WorkItemStore` with `create`, `get`, `upsert`, `list_by_status`, `set_status`,
+  `mark_implemented`, `promote_to_req`, `tag`, and `import_from_ledger`.
+
+- **`specsmith wi` CLI group** — `list`, `show`, `close`, `archive`, `promote`,
+  `tag`, and `import` commands with `--json` output and `--project-dir` support.
+
+- **Preflight → WI wiring** — `run_preflight` now mints a `WorkItem` for every
+  accepted decision and returns `work_item_id` in the result dict.
+
+- **Verify → WI wiring** — `run_verify` auto-transitions the active WI to
+  `implemented` when equilibrium is reached (diff present + zero test failures).
+
+- **`docs/compliance/regulation_versions.yml`** — freshness sentinel tracking
+  article counts for all 8 supported regulations (EU AI Act, NIST RMF,
+  OMB M-24-10, Colorado SB24-205, Texas HB1709, Illinois AIETA,
+  California ADMT, NYC LL 144). CI fails when article counts drift.
+
+- **`docs/site/wi-lifecycle.md`** — RTD documentation page for the WI lifecycle
+  subsystem. Added to mkdocs nav under Governance Model.
+
+- **`tests/test_wi_lifecycle.py`** — 80-test suite covering `WorkItem` dataclass,
+  `WorkItemStore` CRUD/lifecycle, all CLI `wi` commands, preflight/verify wiring,
+  and constants integrity.
+
+- **`tests/test_compliance_governance.py`** — 150-test CI gate proving every
+  compliance claim: regulation catalog integrity, freshness sentinel, article
+  control coverage, evidence collection, checker logic, result model, reporter
+  (JSON/MD/HTML with mandatory disclaimer), CLI compliance commands, and
+  module exports. Fails CI when regulations change without a corresponding
+  `regulation_versions.yml` update.
+
+### Fixed
+
+- **`governance_logic.py` — WI wiring `NameError` silently swallowed.**
+  `WorkItemStore(root)` in the best-effort WI block used `root` (undefined)
+  instead of `_root_str`, causing a `NameError` that was silently caught,
+  meaning no WI was ever persisted. Fixed to `WorkItemStore(_root_str)`.
+
+- **`pyproject.toml` pytest config** — added `pythonpath = ["src"]` so pytest
+  can discover `specsmith` without requiring `pip install -e .` in the dev
+  shell (matches the CI install path).
+
+---
+
 ## [0.14.2] - 2026-06-14
 
 ### Added

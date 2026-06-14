@@ -15,7 +15,6 @@ Covers:
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 import pytest
@@ -32,7 +31,6 @@ from specsmith.wi_store import (
     WorkItemStore,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -43,7 +41,8 @@ def _store(tmp_path: Path) -> WorkItemStore:
 
 
 def _wi(store: WorkItemStore, wi_id: str = "WI-DEADBEEF", **kw: object) -> WorkItem:
-    return store.create(wi_id, intent=kw.get("intent", "test intent"), **{k: v for k, v in kw.items() if k != "intent"})  # type: ignore[arg-type]
+    intent = str(kw.pop("intent", "test intent"))  # type: ignore[misc]
+    return store.create(wi_id, intent=intent, **kw)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +122,7 @@ class TestWorkItemStorePersistence:
 
     def test_save_and_reload(self, tmp_path: Path) -> None:
         store = _store(tmp_path)
-        wi = _wi(store, "WI-PERSISTS1")
+        _wi(store, "WI-PERSISTS1")
         store2 = _store(tmp_path)
         loaded = store2.get("WI-PERSISTS1")
         assert loaded is not None
