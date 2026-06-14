@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.15.3] - 2026-06-14
+
+### Changed
+
+- Version bumped from `0.15.2` to `0.15.3`.
+- Dev Release workflow now correctly isolated to the `develop` branch only;
+  release deployments from `main` exclusively use `release.yml` triggered by a
+  version tag push.
+
+---
 ## [0.15.2] - 2026-06-14
 
 ### Added
