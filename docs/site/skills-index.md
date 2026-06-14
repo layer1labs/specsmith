@@ -1,6 +1,6 @@
 # Built-in Skills Index
 
-specsmith ships with **131 built-in skills** across 16 domains.
+specsmith ships with **132 built-in skills** across 16 domains.
 Each skill is a curated `SKILL.md` injected into the agent context with
 `specsmith skill activate <slug>` or auto-matched by project type.
 
@@ -95,22 +95,23 @@ FPGA, PCB, and embedded hardware design skills.
 
 ---
 
-## Embedded / RTOS (10)
+## Embedded / RTOS (11)
 
 RTOS and embedded Linux skills.
 
 | Slug | Name | Key tags |
 |------|------|----------|
 | `azure-rtos` | Azure RTOS — ThreadX, FileX, USBX, NetX Duo | azure-rtos, threadx, iot |
+| `bare-metal-c` | Bare-metal C — startup, linker scripts, libc/runtime, interrupts | bare-metal, c, startup, linker-script, libc |
 | `buildroot` | Buildroot — menuconfig, BR2_EXTERNAL, packages | buildroot, rootfs, board |
 | `embedded-linux` | Embedded Linux — cross-compile, rootfs, systemd | cross-compile, sysroot |
-| `freertos` | FreeRTOS — tasks, queues, heap schemes, CMake | freertos, rtos, cmake |
+| `freertos` | FreeRTOS — kernel tasks, IPC, timers, ISRs, memory, ports | freertos, rtos, tasks, queues, isr |
 | `mbed-os` | Mbed OS 6 — Mbed CLI 2, Greentea testing | mbed, arm, cortex-m |
 | `nuttx-rtos` | NuttX — menuconfig, NSH, apps | nuttx, rtos, posix |
 | `rt-thread` | RT-Thread — scons, packages, Studio IDE | rt-thread, rtos |
 | `rtems` | RTEMS — RSB toolchain, BSPs, testing | rtems, bsp |
 | `yocto-bsp` | Yocto/OpenEmbedded — kas, bitbake, layers, devtool | yocto, bitbake, recipe |
-| `zephyr-rtos` | Zephyr RTOS — west, KConfig, DTS, Twister | zephyr, west, devicetree |
+| `zephyr-rtos` | Zephyr RTOS — 4.4→3.x, west, sysbuild, Kconfig, DTS, Twister | zephyr, west, devicetree, sysbuild |
 
 ---
 

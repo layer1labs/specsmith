@@ -9,22 +9,35 @@ SKILLS: list[SkillEntry] = [
     # ── Zephyr RTOS ──────────────────────────────────────────────────────────
     SkillEntry(
         slug="zephyr-rtos",
-        name="Zephyr RTOS — west workspace, KConfig, DTS, Twister",
+        name="Zephyr RTOS — 4.4→3.x, west, sysbuild, Kconfig, DTS, Twister",
         description=(
-            "End-to-end Zephyr workflow: west init/update, board target selection, "
-            "KConfig/devicetree, build, flash, and automated Twister testing."
+            "Current Zephyr RTOS workflow for supported 4.x releases and 3.x LTS/legacy "
+            "projects: west workspaces, sysbuild, Kconfig/devicetree, drivers, networking, "
+            "Bluetooth, security, flashing/debugging, and Twister validation."
         ),
         domain=SkillDomain.EMBEDDED,
         tags=[
             "zephyr",
+            "zephyr-4.4",
+            "zephyr-4.x",
+            "zephyr-3.x",
+            "zephyr-3.7-lts",
             "rtos",
             "west",
+            "sysbuild",
             "kconfig",
             "devicetree",
             "twister",
-            "arm",
+            "ztest",
+            "mcuboot",
+            "tf-m",
+            "bluetooth",
+            "openthread",
+            "networking",
             "embedded",
-            "c",
+            "c17",
+            "arm",
+            "risc-v",
             "nordic",
             "nxp",
             "stm32",
@@ -33,81 +46,225 @@ SKILLS: list[SkillEntry] = [
         platforms=["windows", "linux", "macos"],
         prerequisites=["west", "cmake", "ninja", "python3"],
         body="""\
-# Zephyr RTOS Skill
+# Zephyr RTOS Skill (4.4 through 3.x)
 
-## Prerequisites
-```
-pip install west
-# Install Zephyr SDK: https://docs.zephyrproject.org/latest/develop/toolchains/zephyr_sdk.html
-# Windows: use Zephyr SDK installer or west SDK installer
-# Linux: download SDK bundle, run setup.sh
-# macOS: brew install arm-none-eabi-gcc or use zephyr-sdk-<ver>-macos.tar.gz
-```
+Use this skill for Zephyr RTOS work on **Zephyr 4.4/current as of June 2026,
+4.3, 4.2, 4.1, 4.0, and 3.x including LTS3 (3.7)**. Do **not** use it for
+Zephyr 2.x or 1.x projects; those lines have different APIs, USB behavior,
+Kconfig/devicetree expectations, and lifecycle status.
 
-## West workspace bootstrap
+## Version policy
+- Prefer the latest supported 4.x release for new work (`v4.4.x` as of June 2026).
+- Use `v3.7.x` for LTS3 products that need long maintenance through 2029.
+- Keep every workspace pinned in `west.yml`; never track a floating branch in product firmware.
+- Read the migration guide before crossing major/minor release lines (`3.x -> 4.x`, `4.3 -> 4.4`).
+- Zephyr 4.4 defaults to C17 and supports Zephyr SDK 1.0; verify compiler assumptions when upgrading.
+
+## Workspace bootstrap
 ```bash
-west init -m https://github.com/zephyrproject-rtos/zephyr --mr v3.6.0 myproject
-cd myproject && west update
-west zephyr-export     # register CMake package
-pip install -r zephyr/scripts/requirements.txt
+python -m pip install --user west
+west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.4.0 my-workspace
+cd my-workspace
+west update
+west zephyr-export
+python -m pip install -r zephyr/scripts/requirements.txt
 ```
 
-## Build and flash
+Example pinned manifest:
+```yaml
+manifest:
+  remotes:
+    - name: zephyrproject
+      url-base: https://github.com/zephyrproject-rtos
+  projects:
+    - name: zephyr
+      remote: zephyrproject
+      revision: v4.4.0
+      import: true
+  self:
+    path: app
+```
+
+## Application layout
+```text
+app/
+  CMakeLists.txt
+  prj.conf
+  boards/<board>.overlay
+  src/main.c
+  tests/<feature>/testcase.yaml
+  sysbuild.conf           # when building MCUboot/TF-M/multi-image apps
+```
+
+Minimal `CMakeLists.txt`:
+```cmake
+cmake_minimum_required(VERSION 3.20.0)
+find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
+project(my_app)
+target_sources(app PRIVATE src/main.c)
+```
+
+## Build, pristine rebuild, flash, debug
 ```bash
-west build -b <board> app/                      # e.g. -b nrf52840dk/nrf52840
-west build -b <board> app/ -- -DCONFIG_FOO=y    # override KConfig
-west flash                                       # uses first found runner
-west flash --runner jlink                        # explicit runner
-west flash --runner pyocd                        # PyOCD (CMSIS-DAP)
+west build -b <board> app
+west build -p always -b <board> app                 # pristine rebuild
+west build -b <board> app -- -DCONFIG_LOG=y
+west flash                                          # default runner
+west flash --runner jlink                           # explicit runner
+west debug                                          # launch GDB flow
+west debugserver                                    # GDB server only
 ```
 
-## KConfig patterns
+Use board qualifiers exactly as Zephyr reports them, for example
+`nrf52840dk/nrf52840`, `native_sim`, or SoC/core-qualified board names in 4.x.
+
+## Sysbuild and multi-image firmware
+Use sysbuild for MCUboot, TF-M, secure/non-secure images, network-core images, and other
+multi-domain builds.
+
+```bash
+west build -b <board> app --sysbuild
+west build -b <board> app --sysbuild -- -DSB_CONFIG_BOOTLOADER_MCUBOOT=y
 ```
+
+Typical files:
+```text
+sysbuild.conf                  # SB_CONFIG_* options
+child_image/mcuboot.conf       # image-specific options when needed
+boards/<board>.overlay         # app devicetree overlay
+```
+
+## Kconfig rules
+```text
 # prj.conf
 CONFIG_GPIO=y
 CONFIG_LOG=y
 CONFIG_LOG_DEFAULT_LEVEL=3
 CONFIG_MAIN_STACK_SIZE=2048
+CONFIG_ASSERT=y
+CONFIG_STACK_SENTINEL=y
 ```
 
-## Device Tree overlay (boards/<board>.overlay or app.overlay)
+Guidelines:
+- Use `menuconfig`, `guiconfig`, and `west build -t traceconfig` when symbols do not resolve.
+- Never edit generated `.config`; change `prj.conf`, board fragments, or sysbuild fragments.
+- Prefer feature symbols over ad-hoc compile definitions.
+
+## Devicetree rules
 ```dts
+/ {
+    aliases { status-led = &led0; };
+};
+
 &uart0 { status = "okay"; current-speed = <115200>; };
-&i2c0 { my_sensor: sensor@48 { compatible = "ti,tmp116"; reg = <0x48>; }; };
+&i2c0 {
+    status = "okay";
+    my_sensor: sensor@48 {
+        compatible = "ti,tmp116";
+        reg = <0x48>;
+    };
+};
 ```
 
-## Twister automated testing
+Guidelines:
+- Put board-specific wiring in `boards/<board>.overlay` or shield overlays.
+- Use `DT_ALIAS`, `DT_NODELABEL`, `DEVICE_DT_GET`, and `*_dt_spec` helpers rather than hardcoded addresses.
+- For undefined `__device_dts_ord_*` errors, check both node `status = "okay"` and the driver Kconfig.
+- In 4.3+, use dtdoctor/static-analysis support when Devicetree errors are opaque:
+  `west build -- -DZEPHYR_SCA_VARIANT=dtdoctor`.
+
+## Driver pattern
+```c
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/kernel.h>
+
+#define LED_NODE DT_ALIAS(status_led)
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED_NODE, gpios);
+
+int main(void) {
+    if (!gpio_is_ready_dt(&led)) {
+        return 0;
+    }
+    gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
+    while (true) {
+        gpio_pin_toggle_dt(&led);
+        k_sleep(K_MSEC(500));
+    }
+}
+```
+
+## Threads, workqueues, timers, and messaging
+```c
+K_THREAD_STACK_DEFINE(worker_stack, 1024);
+static struct k_thread worker;
+static struct k_msgq sensor_q;
+static char sensor_q_buf[8 * sizeof(struct sample)];
+
+k_msgq_init(&sensor_q, sensor_q_buf, sizeof(struct sample), 8);
+k_thread_create(&worker, worker_stack, K_THREAD_STACK_SIZEOF(worker_stack),
+                worker_fn, NULL, NULL, NULL, 5, 0, K_NO_WAIT);
+```
+
+Prefer `k_work`, `k_work_delayable`, `k_poll`, `k_msgq`, `k_fifo`, and `zbus` over
+busy loops. Keep ISR handlers short and hand off to workqueues.
+
+## Networking, Bluetooth, and connectivity
+- Networking: configure `CONFIG_NETWORKING`, `CONFIG_NET_IPV4/IPV6`, sockets, TLS, DNS, DHCP, LwM2M, MQTT, CoAP, or HTTP as needed.
+- Zephyr 4.4 adds Wi-Fi P2P and WireGuard support; gate these behind explicit Kconfig and board capability checks.
+- Bluetooth: configure controller vs host deliberately; test LE advertising, GATT, pairing, privacy, and ISO/BAP paths on the target controller.
+- OpenThread: pin radio/network-core firmware and validate border-router assumptions in Twister or HIL.
+
+## Security and firmware update
+- Prefer PSA Crypto / Mbed TLS paths for new cryptography; avoid removed/legacy crypto APIs.
+- Use MCUboot for signed images and rollback protection.
+- Use TF-M on supported Cortex-M secure/non-secure platforms.
+- Enable stack/heap hardening options where available (`CONFIG_ASSERT`, stack sentinel/overflow checks, heap hardening in 4.4+).
+- Track Zephyr security advisories for the active release and supported LTS branch.
+
+## Twister and ztest
 ```bash
-west twister -p native_sim -T tests/           # run on native simulator (CI-safe)
-west twister -p nrf52840dk/nrf52840 -T tests/  # on hardware (needs board attached)
-west twister --coverage -T tests/              # gcov coverage
+west twister -p native_sim -T tests/
+west twister -p <board> -T tests/ --device-testing --device-serial /dev/ttyACM0
+west twister --coverage -p native_sim -T tests/
 west twister --footprint-from-buildlog -T tests/
 ```
 
-## Debugging
-```bash
-west debug                                      # start GDB server + connect
-west debugserver                                # GDB server only (port 3333)
-# Attach VS Code: "cortex-debug" extension with launch.json
+`testcase.yaml` example:
+```yaml
+tests:
+  drivers.my_sensor:
+    platform_allow: native_sim
+    tags: drivers sensor
 ```
 
-## West modules / external libraries
+Use `ztest` suites for unit/integration tests. In 4.4+, consider the ztest benchmarking
+framework for cycle-sensitive code.
+
+## CI baseline
 ```bash
-west update                                    # pull all manifests
-# west.yml manifest entry:
-# projects:
-#   - name: my-lib
-#     url: https://github.com/org/my-lib
-#     revision: v1.2.0
-#     path: modules/my-lib
+west build -b native_sim app
+west twister -p native_sim -T tests/
+west build -b <shipping-board> app --sysbuild
 ```
+
+Cache west modules only when the manifest revision is pinned. CI should fail on Kconfig
+warnings, Devicetree warnings, and Twister failures.
+
+## Migration notes by supported line
+- 4.4: SDK 1.0 support, C17 default, OpenRISC, WireGuard, Wi-Fi P2P, heap hardening, cleanup helpers, ztest benchmarking.
+- 4.3: USB device next stack default; legacy USB device stack deprecated for removal in 4.5; CPU load/frequency scaling; instrumentation; OCPP 1.6; dtdoctor.
+- 4.2/4.1/4.0: review migration guides before adopting 4.3+ USB, PM, networking, and toolchain behavior.
+- 3.7 LTS: valid for long-lived products; do not backport 4.x-only APIs without feature guards.
+- 3.0–3.6: treat as legacy 3.x; migrate to 3.7 LTS or 4.x unless product constraints require otherwise.
 
 ## Common pitfalls
-- Missing `west update` after manifest change → stale modules.
-- `CONFIG_HEAP_MEM_POOL_SIZE` too small → malloc failures at runtime.
-- DTS overlay path must match board name exactly (case-sensitive on Linux).
-- Windows: use `west build` inside WSL2 or Git Bash; MSYS2 works with Zephyr SDK.
-- Always pin the Zephyr revision in west.yml (`revision: vX.Y.Z`).
+- Forgetting `west update` after manifest edits.
+- Mixing Zephyr tree, module, and SDK versions from different release lines.
+- Using old board names or missing board qualifiers after moving to 4.x.
+- Fixing Devicetree errors only in C instead of enabling the node and driver Kconfig.
+- Calling blocking APIs from ISRs; use `*_from_isr` or work handoff patterns where provided.
+- Shipping unpinned manifests or unreviewed generated `.config` changes.
 """,
     ),
     # ── Yocto / OpenEmbedded ─────────────────────────────────────────────────
@@ -226,10 +383,11 @@ $CC myapp.c -o myapp        # cross-compile with SDK toolchain
     # ── FreeRTOS ─────────────────────────────────────────────────────────────
     SkillEntry(
         slug="freertos",
-        name="FreeRTOS — tasks, queues, heap schemes, CMake",
+        name="FreeRTOS — kernel tasks, IPC, timers, ISRs, memory, ports",
         description=(
-            "FreeRTOS bare-metal and AWS FreeRTOS patterns: task creation, "
-            "IPC primitives, heap selection, port configuration, and testing."
+            "FreeRTOS kernel workflow for deeply embedded products: tasks, queues, "
+            "semaphores/mutexes, event groups, software timers, ISR handoff, heap/static "
+            "allocation, SMP/MPU notes, ports, tracing, and CMake integration."
         ),
         domain=SkillDomain.EMBEDDED,
         tags=[
@@ -238,11 +396,20 @@ $CC myapp.c -o myapp        # cross-compile with SDK toolchain
             "tasks",
             "queues",
             "semaphores",
+            "mutexes",
+            "event-groups",
+            "software-timers",
+            "isr",
+            "heap",
+            "static-allocation",
+            "smp",
+            "mpu",
             "embedded",
             "c",
             "arm",
             "cortex-m",
             "esp32",
+            "risc-v",
         ],
         project_types=_PT_EMBEDDED,
         platforms=["windows", "linux", "macos"],
@@ -250,83 +417,393 @@ $CC myapp.c -o myapp        # cross-compile with SDK toolchain
         body="""\
 # FreeRTOS Skill
 
-## Core task pattern
+Use this skill for FreeRTOS kernel work in MCU firmware, vendor SDK projects, and
+bare-metal applications that need deterministic scheduling and small-footprint IPC.
+
+## Version/source policy
+- Prefer the upstream `FreeRTOS-Kernel` repository or the vendor SDK's pinned kernel copy.
+- Keep `FreeRTOSConfig.h`, the selected portable layer, and heap implementation under review.
+- Do not mix kernel files from different releases or vendor SDKs.
+- Treat AWS IoT libraries separately from the kernel; only include the libraries you actually use.
+
+## Kernel task pattern
 ```c
-void vMyTask(void *pvParameters) {
+static void vSensorTask(void *pvParameters) {
+    (void)pvParameters;
     for (;;) {
-        // work
-        vTaskDelay(pdMS_TO_TICKS(100));  // yield CPU for 100 ms
+        /* Read sensor, publish message, then yield. */
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
-    vTaskDelete(NULL);  // should never reach here
 }
 
-// Create task (typically in main before vTaskStartScheduler)
-xTaskCreate(vMyTask, "MyTask",
-    configMINIMAL_STACK_SIZE * 4,  // words, not bytes on most ports
-    NULL,              // pvParameters
-    tskIDLE_PRIORITY + 1,
-    NULL);             // task handle (optional)
-vTaskStartScheduler();
+int main(void) {
+    board_init();
+    xTaskCreate(vSensorTask, "sensor", 512, NULL,
+                tskIDLE_PRIORITY + 1, NULL);
+    vTaskStartScheduler();
+    for (;;) { /* scheduler should not return */ }
+}
+```
+
+Stack depths are in `StackType_t` words on most ports, not bytes. Measure high-water marks
+instead of guessing.
+
+## Static allocation pattern
+```c
+static StaticTask_t sensor_tcb;
+static StackType_t sensor_stack[512];
+
+xTaskCreateStatic(vSensorTask, "sensor",
+                  512, NULL, tskIDLE_PRIORITY + 1,
+                  sensor_stack, &sensor_tcb);
+```
+
+Prefer static allocation for safety-critical or memory-constrained systems. Enable:
+```c
+#define configSUPPORT_STATIC_ALLOCATION 1
+#define configSUPPORT_DYNAMIC_ALLOCATION 0  /* if policy forbids malloc */
 ```
 
 ## IPC primitives
 ```c
-// Queue
-QueueHandle_t xQ = xQueueCreate(10, sizeof(MyMsg_t));
-xQueueSend(xQ, &msg, portMAX_DELAY);   // block until space
-xQueueReceive(xQ, &msg, portMAX_DELAY); // block until item
+/* Queue: structured messages between tasks. */
+QueueHandle_t q = xQueueCreate(8, sizeof(struct sample));
+xQueueSend(q, &sample, pdMS_TO_TICKS(10));
+xQueueReceive(q, &sample, portMAX_DELAY);
 
-// Binary semaphore (ISR → task signalling)
-SemaphoreHandle_t xSem = xSemaphoreCreateBinary();
-// In ISR: xSemaphoreGiveFromISR(xSem, &xHigherPriorityTaskWoken);
-// In task: xSemaphoreTake(xSem, portMAX_DELAY);
+/* Direct-to-task notification: fastest ISR/task signal. */
+vTaskNotifyGiveFromISR(sensorTaskHandle, &higherPriorityWoken);
+ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-// Mutex (mutual exclusion)
-SemaphoreHandle_t xMutex = xSemaphoreCreateMutex();
-xSemaphoreTake(xMutex, portMAX_DELAY);
-// critical section
-xSemaphoreGive(xMutex);
+/* Mutex: use for shared resources; includes priority inheritance. */
+SemaphoreHandle_t lock = xSemaphoreCreateMutex();
+xSemaphoreTake(lock, portMAX_DELAY);
+xSemaphoreGive(lock);
+
+/* Event group: wait on bit combinations. */
+EventBits_t bits = xEventGroupWaitBits(flags, BIT0 | BIT1, pdTRUE, pdTRUE, timeout);
 ```
 
-## FreeRTOSConfig.h key settings
+Guidelines:
+- Queue for data transfer.
+- Direct notification for one-to-one signaling.
+- Mutex for shared resource protection.
+- Binary semaphore for event-style signaling when direct notification does not fit.
+- Event groups for multi-condition state.
+
+## ISR rules
 ```c
-#define configUSE_PREEMPTION         1
-#define configTICK_RATE_HZ           1000UL        // 1 ms tick
-#define configMAX_PRIORITIES         5
-#define configTOTAL_HEAP_SIZE        (16 * 1024)   // 16 KB
-#define configUSE_TIMERS             1
-#define configUSE_MALLOC_FAILED_HOOK 1             // detect heap exhaustion
-#define configCHECK_FOR_STACK_OVERFLOW 2           // stack sentinel
+void DMA_IRQHandler(void) {
+    BaseType_t hpw = pdFALSE;
+    vTaskNotifyGiveFromISR(workerTask, &hpw);
+    portYIELD_FROM_ISR(hpw);
+}
+```
+
+Rules:
+- Only call `FromISR` APIs from interrupt context.
+- Never block in an ISR.
+- Keep the ISR short; defer work to a task or daemon callback.
+- Check interrupt priority rules on Cortex-M (`configMAX_SYSCALL_INTERRUPT_PRIORITY`).
+
+## Software timers
+```c
+static void timer_cb(TimerHandle_t timer) {
+    /* Runs in timer service task; do not block for long. */
+}
+
+TimerHandle_t t = xTimerCreate("heartbeat", pdMS_TO_TICKS(1000),
+                               pdTRUE, NULL, timer_cb);
+xTimerStart(t, 0);
+```
+
+Enable and size the timer service task:
+```c
+#define configUSE_TIMERS 1
+#define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)
+#define configTIMER_QUEUE_LENGTH 10
+#define configTIMER_TASK_STACK_DEPTH 512
+```
+
+## `FreeRTOSConfig.h` baseline
+```c
+#define configUSE_PREEMPTION                    1
+#define configUSE_TIME_SLICING                  1
+#define configTICK_RATE_HZ                      1000UL
+#define configMAX_PRIORITIES                    7
+#define configMINIMAL_STACK_SIZE                128
+#define configTOTAL_HEAP_SIZE                   (32U * 1024U)
+#define configUSE_MUTEXES                       1
+#define configUSE_RECURSIVE_MUTEXES             0
+#define configUSE_COUNTING_SEMAPHORES           1
+#define configUSE_TASK_NOTIFICATIONS            1
+#define configUSE_TIMERS                        1
+#define configUSE_MALLOC_FAILED_HOOK            1
+#define configCHECK_FOR_STACK_OVERFLOW          2
+#define configASSERT(x)                         if ((x) == 0) { taskDISABLE_INTERRUPTS(); for (;;) {} }
 ```
 
 ## Heap schemes
-| Scheme | Description | Use when |
-|--------|-------------|----------|
-| heap_1 | alloc only, no free | static allocation only |
-| heap_2 | free with no coalescing | equal-size blocks |
-| heap_3 | wrap malloc/free | existing libc malloc |
-| heap_4 | coalescing free | general purpose (recommended) |
-| heap_5 | multiple regions | fragmented RAM map |
+| Scheme | Behavior | Typical use |
+|--------|----------|-------------|
+| heap_1 | allocate only, no free | simple static-like startup allocation |
+| heap_2 | free without coalescing | fixed-size-ish allocations |
+| heap_3 | wraps libc malloc/free | hosted/vendor libc integration |
+| heap_4 | coalescing free | general-purpose default |
+| heap_5 | multiple memory regions | split SRAM/TCM/external RAM maps |
 
-## CMake integration (FreeRTOS-Kernel as submodule)
+Always implement `vApplicationMallocFailedHook` and monitor heap free/minimum-ever free bytes.
+
+## CMake integration
 ```cmake
-add_library(freertos STATIC)
-target_sources(freertos PRIVATE
-    FreeRTOS-Kernel/tasks.c FreeRTOS-Kernel/queue.c
-    FreeRTOS-Kernel/list.c  FreeRTOS-Kernel/timers.c
-    FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.c
-    FreeRTOS-Kernel/portable/MemMang/heap_4.c)
-target_include_directories(freertos PUBLIC
-    FreeRTOS-Kernel/include
-    FreeRTOS-Kernel/portable/GCC/ARM_CM4F
-    src/config)  # FreeRTOSConfig.h lives here
+add_library(freertos_kernel STATIC
+  FreeRTOS-Kernel/tasks.c
+  FreeRTOS-Kernel/queue.c
+  FreeRTOS-Kernel/list.c
+  FreeRTOS-Kernel/timers.c
+  FreeRTOS-Kernel/event_groups.c
+  FreeRTOS-Kernel/stream_buffer.c
+  FreeRTOS-Kernel/portable/GCC/ARM_CM4F/port.c
+  FreeRTOS-Kernel/portable/MemMang/heap_4.c)
+
+target_include_directories(freertos_kernel PUBLIC
+  FreeRTOS-Kernel/include
+  FreeRTOS-Kernel/portable/GCC/ARM_CM4F
+  src/config)  # FreeRTOSConfig.h
 ```
 
+Select exactly one portable layer and exactly one heap implementation.
+
+## SMP and MPU notes
+- SMP ports exist for selected platforms; audit critical sections and core affinity assumptions.
+- MPU ports require task memory regions and stricter stack/privilege design.
+- Vendor ports may diverge from upstream; keep port-specific files documented.
+
+## Tracing and diagnostics
+- Enable `configUSE_TRACE_FACILITY`, `configGENERATE_RUN_TIME_STATS`, and task list APIs when needed.
+- Use Percepio Tracealyzer/SystemView/vendor tracing if available.
+- Implement hooks: idle, tick, malloc failed, stack overflow, assert.
+- Watchdog integration should be task-aware; avoid one global kick hiding a wedged task.
+
+## Testing patterns
+- Unit-test pure C modules on host without FreeRTOS when possible.
+- Wrap RTOS calls behind small adapters for host tests.
+- Use QEMU/vendor simulation for scheduler-level tests where supported.
+- Hardware-in-loop tests should verify ISR priority, tick source, sleep modes, and watchdog behavior.
+
 ## Common pitfalls
-- Stack overflow: use `configCHECK_FOR_STACK_OVERFLOW=2` and `vApplicationStackOverflowHook`.
-- Priority inversion: use mutex, not binary semaphore, for resource protection.
-- ISR API: always use `FromISR` variants inside interrupts.
-- `vTaskDelay` counts are ticks not ms — use `pdMS_TO_TICKS(ms)` macro.
+- Using `vTaskDelay()` for periodic loops instead of `vTaskDelayUntil()` when cadence matters.
+- Protecting shared resources with binary semaphores instead of mutexes.
+- Calling non-`FromISR` APIs in interrupts.
+- Forgetting `portYIELD_FROM_ISR()` after waking a higher-priority task.
+- Stack overflow hidden because `configCHECK_FOR_STACK_OVERFLOW` or hooks are disabled.
+- Libc `printf`/`malloc` not being thread-safe on the chosen runtime.
+""",
+    ),
+    # ── Bare-metal C / C runtime ─────────────────────────────────────────────
+    SkillEntry(
+        slug="bare-metal-c",
+        name="Bare-metal C — startup, linker scripts, libc/runtime, interrupts",
+        description=(
+            "Bare-metal C firmware workflow for MCU and board bring-up: startup code, "
+            "linker scripts, vector tables, C runtime initialization, standard C library "
+            "constraints, interrupts, atomics/volatile, memory maps, and cross-compilation."
+        ),
+        domain=SkillDomain.EMBEDDED,
+        tags=[
+            "bare-metal",
+            "baremetal",
+            "c",
+            "crt0",
+            "startup",
+            "linker-script",
+            "vector-table",
+            "libc",
+            "newlib",
+            "picolibc",
+            "compiler-rt",
+            "interrupts",
+            "volatile",
+            "atomics",
+            "cross-compile",
+            "arm-none-eabi",
+            "risc-v",
+            "embedded",
+        ],
+        project_types=_PT_EMBEDDED,
+        platforms=["windows", "linux", "macos"],
+        prerequisites=["cmake", "arm-none-eabi-gcc"],
+        body="""\
+# Bare-metal C / Standard C Runtime Skill
+
+Use this skill for firmware without an operating system: MCU startup, linker maps,
+interrupt vectors, memory-mapped registers, cross-compilation, and minimal libc/runtime
+integration.
+
+## Bring-up mental model
+A bare-metal C image must provide, in order:
+1. Reset vector and exception/interrupt vector table.
+2. Startup code that sets stack pointer, copies `.data`, zeros `.bss`, and runs constructors if C++ is used.
+3. Clock, watchdog, and memory initialization required before `main()`.
+4. Linker script mapping flash, SRAM, TCM, external memory, heap, and stack.
+5. Runtime/syscall stubs for any libc facilities used by the program.
+
+## Minimal startup flow
+```c
+extern uint32_t _sidata, _sdata, _edata, _sbss, _ebss;
+extern int main(void);
+
+void Reset_Handler(void) {
+    uint32_t *src = &_sidata;
+    for (uint32_t *dst = &_sdata; dst < &_edata;) {
+        *dst++ = *src++;
+    }
+    for (uint32_t *dst = &_sbss; dst < &_ebss;) {
+        *dst++ = 0;
+    }
+
+    SystemInit();
+    (void)main();
+    for (;;) {}
+}
+```
+
+## Vector table pattern
+```c
+extern unsigned long _estack;
+void Reset_Handler(void);
+void Default_Handler(void);
+
+__attribute__((section(".isr_vector")))
+void (* const vector_table[])(void) = {
+    (void (*)(void))(&_estack),
+    Reset_Handler,
+    Default_Handler, /* NMI */
+    Default_Handler, /* HardFault */
+};
+```
+
+Keep vector names consistent with the vendor startup/headers when overriding weak handlers.
+
+## Linker script essentials
+```ld
+MEMORY
+{
+  FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 512K
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+}
+
+_estack = ORIGIN(RAM) + LENGTH(RAM);
+
+SECTIONS
+{
+  .isr_vector : { KEEP(*(.isr_vector)) } > FLASH
+  .text : { *(.text*) *(.rodata*) } > FLASH
+  .data : { _sdata = .; *(.data*) _edata = .; } > RAM AT > FLASH
+  _sidata = LOADADDR(.data);
+  .bss (NOLOAD) : { _sbss = .; *(.bss*) *(COMMON) _ebss = .; } > RAM
+  .heap (NOLOAD) : { _heap_start = .; . += 0x1000; _heap_end = .; } > RAM
+}
+```
+
+Always inspect the `.map` file; it is the source of truth for placement and overflow.
+
+## Cross-compilation flags
+```bash
+arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -ffunction-sections -fdata-sections   -Wall -Wextra -Werror -Os -g3 -Tlinker.ld   startup.c main.c -Wl,--gc-sections -Wl,-Map=firmware.map -o firmware.elf
+arm-none-eabi-objcopy -O binary firmware.elf firmware.bin
+arm-none-eabi-size firmware.elf
+```
+
+Prefer a CMake toolchain file for multi-file projects; keep CPU/FPU/ABI flags identical for
+compile and link.
+
+## Standard C library constraints
+- `memcpy`, `memset`, `memcmp`, `strlen`, and integer formatting are usually safe when linked correctly.
+- `printf` may pull in large formatting code and may require `_write` syscall stubs.
+- `malloc/free` require `_sbrk`, heap boundaries, locking policy, and fragmentation monitoring.
+- Time, filesystem, locale, environment, and process APIs are usually absent or stubbed.
+- Reentrancy depends on libc: newlib may require `_impure_ptr`/locks; nano specs reduce footprint.
+- Floating-point `printf` often needs explicit linker options and significant flash.
+
+Common syscall stubs:
+```c
+int _write(int fd, const void *buf, unsigned len);
+void *_sbrk(ptrdiff_t incr);
+int _close(int fd) { (void)fd; return -1; }
+int _fstat(int fd, void *st) { (void)fd; (void)st; return 0; }
+int _isatty(int fd) { (void)fd; return 1; }
+int _lseek(int fd, int ptr, int dir) { (void)fd; (void)ptr; (void)dir; return 0; }
+int _read(int fd, void *buf, unsigned len) { (void)fd; (void)buf; (void)len; return 0; }
+```
+
+## Memory-mapped register access
+```c
+#define REG32(addr) (*(volatile uint32_t *)(addr))
+#define GPIO_BASE 0x48000000u
+#define GPIO_ODR  REG32(GPIO_BASE + 0x14u)
+
+GPIO_ODR |= (1u << 5);
+```
+
+Guidelines:
+- Use `volatile` for hardware registers, not for thread synchronization.
+- Use masks and named constants; avoid magic numbers in driver logic.
+- Insert memory barriers (`__DSB`, `__ISB`, `atomic_signal_fence`, or architecture intrinsics) only when the architecture requires them.
+- Do not read-modify-write registers with write-one-to-clear bits unless the reference manual permits it.
+
+## Interrupt-safe C
+- Keep ISRs short; clear the interrupt source exactly as the reference manual specifies.
+- Mark data shared with ISRs carefully and protect multi-byte/multi-field updates with critical sections or atomics.
+- Use `sig_atomic_t` only for hosted signal handlers; embedded ISR rules are architecture/compiler-specific.
+- Avoid non-reentrant libc calls in ISRs (`printf`, `malloc`, many formatting functions).
+
+## Atomics, volatile, and critical sections
+```c
+#include <stdatomic.h>
+static atomic_uint_fast32_t events;
+
+void ISR_Handler(void) {
+    atomic_fetch_or_explicit(&events, 1u, memory_order_release);
+}
+
+void poll(void) {
+    uint32_t e = atomic_exchange_explicit(&events, 0u, memory_order_acquire);
+    if (e != 0u) { handle_event(e); }
+}
+```
+
+Use C11 atomics when the toolchain/runtime supports them. Otherwise, provide tiny critical-section
+wrappers around shared state updates and document interrupt latency.
+
+## Diagnostics and debug
+```bash
+arm-none-eabi-objdump -h -S firmware.elf > firmware.lst
+arm-none-eabi-nm --size-sort firmware.elf
+arm-none-eabi-readelf -a firmware.elf
+openocd -f interface/cmsis-dap.cfg -f target/stm32f4x.cfg
+arm-none-eabi-gdb firmware.elf
+```
+
+HardFault triage:
+- Capture stacked PC/LR/xPSR and fault status registers.
+- Check stack overflow, invalid vector address, unaligned access, and bad peripheral clocks.
+- Verify VTOR/vector table relocation when bootloaders are involved.
+
+## Testing strategy
+- Host-test pure logic with the native compiler and sanitizers.
+- Keep register access behind thin HAL functions so logic remains testable.
+- Use QEMU/Renode/vendor simulators where possible for startup and driver smoke tests.
+- Hardware-in-loop tests should validate clocks, interrupts, watchdog, flash, reset reasons, and brownout behavior.
+
+## Common pitfalls
+- Missing `KEEP(*(.isr_vector))` and losing the vector table to garbage collection.
+- `.data` load address not matching linker `AT > FLASH` placement.
+- Stack and heap colliding silently because boundaries are not exported/checked.
+- Calling libc functionality without required syscall stubs.
+- Using `volatile` as a substitute for atomicity.
+- Compiling objects with mismatched FPU ABI flags.
+- Forgetting constructors/destructors when mixing C and C++.
 """,
     ),
     # ── NuttX ────────────────────────────────────────────────────────────────

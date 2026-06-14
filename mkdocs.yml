@@ -33,6 +33,7 @@ theme:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Quickstart: quickstart.md
   - Applied Epistemic Engineering:
     - AEE Primer (Full Guide): aee-primer.md
     - epistemic Library Reference: epistemic-library.md
@@ -40,19 +41,24 @@ nav:
   - Multi-Agent Dispatch: dispatch.md
   - Agentic Client:
     - Overview: agent-client.md
+    - Multi-Agent Profiles: agents.md
     - Agent Integrations: agent-integrations.md
     - Warp Integration: warp-integration.md
+    - BYOE Endpoints: endpoints.md
+    - Kairos Terminal: kairos-terminal.md
   - Skills Index: skills-index.md
   - Project Types: project-types.md
   - Tool Registry: tool-registry.md
   - Importing Projects: importing.md
   - Configuration: configuration.md
   - Governance Model: governance.md
+  - YAML Governance: yaml-governance.md
   - Work Item Lifecycle: wi-lifecycle.md
   - ESDB: esdb.md
   - Doctor: doctor.md
   - Export & Compliance: export.md
   - Rate Limit Pacing: rate-limits.md
+  - API Stability: api-stability.md
   - Troubleshooting: troubleshooting.md
   - Releasing: releasing.md
   - Contributing: contributing.md

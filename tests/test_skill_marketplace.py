@@ -197,6 +197,12 @@ def test_catalog_has_specsmith_skills() -> None:
     assert skills.get("specsmith-audit") is not None
 
 
+def test_catalog_has_embedded_skills() -> None:
+    assert skills.get("zephyr-rtos") is not None
+    assert skills.get("freertos") is not None
+    assert skills.get("bare-metal-c") is not None
+
+
 def test_specsmith_skill_domain_is_governance() -> None:
     from specsmith.skills import SkillDomain
 

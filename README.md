@@ -5,7 +5,7 @@
 [![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/layer1labs/specsmith/blob/main/LICENSE)
 
 **Applied Epistemic Engineering toolkit for AI-assisted development.**
 
@@ -566,7 +566,7 @@ specsmith wi import --from-ledger
 behaviour not covered by any existing REQ and the pattern is expected to recur.
 Close (`wi close`) for bug fixes, refactors, and chores that already have a matching REQ.
 
-Full documentation: [`docs/site/wi-lifecycle.md`](docs/site/wi-lifecycle.md)
+Full documentation: [`docs/site/wi-lifecycle.md`](https://specsmith.readthedocs.io/en/stable/wi-lifecycle/)
 
 ---
 
@@ -783,7 +783,7 @@ specsmith is open source and built by a small team. Every bit of support helps:
 - 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
 - 🐛 **Report bugs** via [GitHub Issues](https://github.com/layer1labs/specsmith/issues) — even small ones help
 - 💡 **Suggest features** via [GitHub Discussions](https://github.com/layer1labs/specsmith/discussions) — we read every suggestion
-- 🔧 **Fix bugs and contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md); PRs welcome
+- 🔧 **Fix bugs and contribute** — see [CONTRIBUTING.md](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md); PRs welcome
 - 📝 **Write about specsmith** — blog posts, tutorials, and talks help the community grow
 - ❤️ **[Sponsor layer1labs](https://github.com/sponsors/layer1labs)** — directly funds development
 
@@ -921,7 +921,7 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 ## Governance Rules (H1–H22)
 
 22 hard rules enforced by `specsmith validate` and `specsmith audit`.
-Full rule text: [`docs/governance/RULES.md`](docs/governance/RULES.md)
+Full rule text: [`docs/governance/RULES.md`](https://github.com/layer1labs/specsmith/blob/main/docs/governance/RULES.md)
 
 **H1–H14 — Core engineering and traceability rules:**
 - **H1** — No ledger entry = work not done.
@@ -978,7 +978,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **131 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+specsmith ships **132 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
 
 ```bash
 # List all available skills
@@ -1004,7 +1004,7 @@ Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered
 | `software-engineering` | 12 | Code review, TDD, debugging, security hardening, API design, ADRs |
 | `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
 | `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
-| `embedded` | 10 | Zephyr, Yocto, FreeRTOS, NuttX, Buildroot, Azure RTOS |
+| `embedded` | 11 | Zephyr, Yocto, FreeRTOS, bare-metal C, NuttX, Buildroot, Azure RTOS |
 | `docs` | 10 | MkDocs, Sphinx, Doxygen, JSDoc, OpenAPI, mdBook |
 | `data-engineering` | 8 | ETL/ELT, dbt, Spark, data quality, feature stores, Delta Lake |
 | `hardware` | 9 | KiCad, Altium, Vivado, Quartus, GTKWave, JTAG |
@@ -1102,9 +1102,9 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
-- [Changelog](CHANGELOG.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security](SECURITY.md)
+- [Changelog](https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md)
+- [Contributing](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md)
+- [Security](https://github.com/layer1labs/specsmith/blob/main/SECURITY.md)
 
 ## License
 
