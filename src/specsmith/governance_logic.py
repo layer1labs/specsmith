@@ -77,7 +77,7 @@ def run_preflight(
     # downstream path operations.  By overwriting the parameter variable, the
     # cleaned value flows into _root_str and every os.path.join call below
     # without introducing any new taint-carrying intermediate variables.
-    project_dir = os.path.realpath(project_dir)  # type: ignore[assignment]
+    project_dir = os.path.realpath(project_dir)
     _root_str: str = project_dir
     intent = classify_intent(utterance)
     # Requirements live at docs/REQUIREMENTS.md, not at the project root.
