@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.15.0] - 2026-06-14
+## [0.15.1] - 2026-06-14
 
 ### Added
 
@@ -78,7 +78,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Version bumped from `0.14.2` to `0.15.0`.
+- Version bumped from `0.14.2` to `0.15.0` (development cycle), then to `0.15.1` for PyPI
+  publication. PyPI permanently blocks filename reuse after a prior `0.15.0` upload was
+  deleted; `0.15.1` carries identical code.
 
 ---
 

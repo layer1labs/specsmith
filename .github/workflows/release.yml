@@ -121,8 +121,8 @@ jobs:
 
   cleanup-dev-releases:
     # After a stable release lands on PyPI, scrub all .devN pre-release builds
-    # for the same base version (e.g. 0.15.0.dev554 … 0.15.0.dev562 when
-    # v0.15.0 ships).  Also wipes the rolling latest-dev GitHub pre-release.
+    # for the same base version (e.g. 0.15.1.dev554 … 0.15.1.dev562 when
+    # v0.15.1 ships).  Also wipes the rolling latest-dev GitHub pre-release.
     # Requires PYPI_API_TOKEN repo secret (project-scoped PyPI token with
     # delete permission — separate from the OIDC upload token).
     needs: [pypi-publish]
@@ -147,8 +147,8 @@ jobs:
               sys.exit(0)
 
           pkg = "specsmith"
-          tag = os.environ["BASE_VERSION"]          # e.g. 'v0.15.0'
-          base = tag.lstrip("v")                    # e.g. '0.15.0'
+          tag = os.environ["BASE_VERSION"]          # e.g. 'v0.15.1'
+          base = tag.lstrip("v")                    # e.g. '0.15.1'
 
           with urllib.request.urlopen(f"https://pypi.org/pypi/{pkg}/json") as r:
               all_versions = list(json.loads(r.read())["releases"].keys())

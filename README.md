@@ -15,7 +15,7 @@ specsmith treats belief systems like code: codable, testable, and deployable. It
 epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
 cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
 
-**v0.15.0 — WI lifecycle subsystem (`specsmith wi` CLI group, 7 commands), preflight/verify WI auto-wiring, compliance + sandbox test suites (1558 total tests, 392 sandbox tests covering all 63 project types).**
+**v0.15.1 — WI lifecycle subsystem (`specsmith wi` CLI group, 7 commands), preflight/verify WI auto-wiring, compliance + sandbox test suites (1558 total tests, 392 sandbox tests covering all 63 project types).**
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
