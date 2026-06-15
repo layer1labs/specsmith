@@ -93,6 +93,9 @@ class TestScaffoldCLIPython:
         assert ".chronomemory/backup/" in content
         assert ".specsmith/workitems.json" in content
         assert ".specsmith/esdb_migration_manifest.json" in content
+        assert "!.specsmith/esdb.sqlite3" in content
+        assert "!.chronomemory/events.wal" in content
+        assert "!.chronomemory/snapshot.json" in content
         assert "\n.specsmith/\n" not in content
         assert "\n.chronomemory/\n" not in content
 

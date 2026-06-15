@@ -289,6 +289,22 @@ class SqliteStore:
         row = conn.execute("SELECT MAX(rowid) FROM records").fetchone()
         return int(row[0]) if row and row[0] is not None else 0
 
+    def backup(self, backup_dir: str | Path | None = None) -> Path:
+        """Create a timestamped SQLite snapshot and return its path."""
+        conn = self._require_open()
+        ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        dest_dir = Path(backup_dir) if backup_dir else self._db_path.parent / "backups"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f"esdb_sqlite_backup_{ts}.sqlite3"
+
+        backup_conn = sqlite3.connect(str(dest))
+        try:
+            conn.backup(backup_conn)
+        finally:
+            backup_conn.close()
+
+        return dest
+
     def chain_valid(self) -> bool:
         """Always True — SQLite ACID guarantees integrity (no SHA-256 WAL chain)."""
         return True

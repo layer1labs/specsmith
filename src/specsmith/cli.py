@@ -2577,30 +2577,47 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
     """
     import json as _json
 
-    from specsmith.esdb.bridge import EsdbBridge
+    from specsmith import esdb as esdb_mod
+    from specsmith.sync import normalize_esdb_gitignore_policy
     from specsmith.vcs_commands import has_uncommitted_changes, run_commit, run_push
 
     root = Path(project_dir).resolve()
     steps: list[dict[str, Any]] = []
+    # 0. Normalize ESDB policy for legacy projects
+    try:
+        changed = normalize_esdb_gitignore_policy(root)
+        steps.append(
+            {
+                "step": "gitignore_policy",
+                "ok": True,
+                "note": "normalized legacy ESDB policy" if changed else "already compliant",
+            }
+        )
+    except Exception as exc:  # noqa: BLE001
+        steps.append({"step": "gitignore_policy", "ok": False, "error": str(exc)})
 
     # 1. ESDB backup
     try:
-        bridge = EsdbBridge(str(root))
-        store = bridge._get_store()  # noqa: SLF001
-        if store is not None:
-            backup_path = store.backup()
-            steps.append({"step": "esdb_backup", "ok": True, "path": str(backup_path)})
-        else:
-            steps.append(
-                {"step": "esdb_backup", "ok": True, "note": "JSON fallback (no WAL to backup)"}
-            )
-    except ImportError:
-        # chronomemory not installed — non-fatal; commit and push still proceed.
-        # Install with: pipx inject specsmith
-        #   "chronomemory @ git+https://github.com/layer1labs/chronomemory.git@v0.1.1"
-        from specsmith.esdb import _INSTALL_HINT  # noqa: PLC0415
-
-        steps.append({"step": "esdb_backup", "ok": True, "note": f"skipped — {_INSTALL_HINT}"})
+        with esdb_mod.open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+            backup_fn = getattr(store, "backup", None)
+            if callable(backup_fn):
+                backup_path = backup_fn()
+                steps.append(
+                    {
+                        "step": "esdb_backup",
+                        "ok": True,
+                        "path": str(backup_path),
+                        "backend": esdb_mod.ESDB_BACKEND,
+                    }
+                )
+            else:
+                steps.append(
+                    {
+                        "step": "esdb_backup",
+                        "ok": True,
+                        "note": f"{esdb_mod.ESDB_BACKEND} backend has no native backup method",
+                    }
+                )
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
 

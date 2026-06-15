@@ -208,6 +208,88 @@ class SyncResult:
 
 
 # ---------------------------------------------------------------------------
+# ESDB legacy policy normalization (.gitignore)
+# ---------------------------------------------------------------------------
+
+_ESDB_GITIGNORE_FORBIDDEN = frozenset(
+    {
+        ".specsmith/",
+        ".chronomemory/",
+    }
+)
+
+_ESDB_GITIGNORE_REQUIRED = (
+    "!.specsmith/config.yml",
+    "!.specsmith/requirements.json",
+    "!.specsmith/testcases.json",
+    "!.specsmith/esdb.sqlite3",
+    "!.chronomemory/events.wal",
+    "!.chronomemory/snapshot.json",
+    ".chronomemory/backup/",
+    ".specsmith/workitems.json",
+    ".specsmith/runs/",
+    ".specsmith/chat/",
+    ".specsmith/perf/",
+    ".specsmith/recovery/",
+    ".specsmith/ledger.jsonl",
+    ".specsmith/ledger-chain.txt",
+    ".specsmith/trace.jsonl",
+    ".specsmith/credit-budget.json",
+    ".specsmith/credits.json",
+    ".specsmith/model-rate-limits.json",
+    ".specsmith/pids/",
+    ".specsmith/logs/",
+    ".specsmith/sessions/",
+    ".specsmith/agent-reports/",
+    ".specsmith/dispatch/",
+    ".specsmith/esdb_migration_manifest.json",
+)
+
+
+def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> bool:
+    """Normalize ESDB gitignore policy for legacy projects.
+
+    Ensures broad ignores that hide canonical ESDB state are removed and that
+    explicit policy lines are present so SQLite/Chrono canonical artifacts are
+    always tracked while runtime files stay ignored.
+    """
+    gitignore_path = root / ".gitignore"
+    if gitignore_path.exists():
+        original_lines = gitignore_path.read_text(encoding="utf-8").splitlines()
+    else:
+        original_lines = []
+
+    normalized_lines: list[str] = []
+    removed_forbidden = False
+    for line in original_lines:
+        if line.strip() in _ESDB_GITIGNORE_FORBIDDEN:
+            removed_forbidden = True
+            continue
+        normalized_lines.append(line)
+
+    existing = {line.strip() for line in normalized_lines if line.strip()}
+    missing = [entry for entry in _ESDB_GITIGNORE_REQUIRED if entry not in existing]
+    changed = removed_forbidden or bool(missing)
+
+    if not changed:
+        return False
+
+    if normalized_lines and normalized_lines[-1].strip():
+        normalized_lines.append("")
+    if missing:
+        normalized_lines.append("# specsmith ESDB policy (auto-normalized)")
+        normalized_lines.extend(missing)
+
+    if not dry_run:
+        rendered = "\n".join(normalized_lines)
+        if rendered and not rendered.endswith("\n"):
+            rendered += "\n"
+        gitignore_path.write_text(rendered, encoding="utf-8")
+
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Core sync
 # ---------------------------------------------------------------------------
 
@@ -244,6 +326,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     tests_md_path = root / "docs" / "TESTS.md"
     reqs_json_path = state_dir / "requirements.json"
     tests_json_path = state_dir / "testcases.json"
+    if not dry_run:
+        normalize_esdb_gitignore_policy(root)
 
     if is_yaml_mode(root):
         # ── YAML-first mode ─────────────────────────────────────────────────

@@ -45,6 +45,13 @@ htmlcov/
 # - .specsmith/esdb.sqlite3
 # - .chronomemory/events.wal
 # - .chronomemory/snapshot.json
+# Always track these even if broader ignore rules are added later:
+!.specsmith/config.yml
+!.specsmith/requirements.json
+!.specsmith/testcases.json
+!.specsmith/esdb.sqlite3
+!.chronomemory/events.wal
+!.chronomemory/snapshot.json
 #
 # Ignore runtime-only / regeneratable artifacts:
 .chronomemory/backup/
