@@ -76,6 +76,18 @@ add-on that requires a valid license from Layer1Labs.
 
 **Storage:** `<project_root>/.chronomemory/events.wal` (human-readable NDJSON)
 
+## Version-control policy for ESDB artifacts
+
+For governed repositories where auditability matters, keep the canonical ESDB
+state under version control:
+
+- SQLite backend: commit `.specsmith/esdb.sqlite3`.
+- ChronoStore backend: commit `.chronomemory/events.wal` and `.chronomemory/snapshot.json`.
+
+Recommended ignore pattern:
+
+- Ignore `.chronomemory/backup/` (timestamped backup copies created by save/backup workflows).
+
 ### What ChronoStore adds over SQLite
 
 | Capability | SQLite (free) | ChronoStore (commercial) |

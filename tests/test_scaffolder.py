@@ -86,6 +86,16 @@ class TestScaffoldCLIPython:
         files = scaffold_project(cfg, tmp_target)
         assert len(files) >= 25  # baseline for cli-python type
 
+    def test_gitignore_tracks_canonical_esdb_files(self, tmp_target: Path) -> None:
+        cfg = _make_config(ProjectType.CLI_PYTHON)
+        scaffold_project(cfg, tmp_target)
+        content = (tmp_target / ".gitignore").read_text(encoding="utf-8")
+        assert ".chronomemory/backup/" in content
+        assert ".specsmith/workitems.json" in content
+        assert ".specsmith/esdb_migration_manifest.json" in content
+        assert "\n.specsmith/\n" not in content
+        assert "\n.chronomemory/\n" not in content
+
 
 class TestScaffoldFPGA:
     """Tests for FPGA/RTL project type."""
