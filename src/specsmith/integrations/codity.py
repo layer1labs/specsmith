@@ -229,6 +229,21 @@ steps:
    ```bash
    curl -fsSL https://cli.codity.ai/install.sh | sh
    ```
+   Native Windows (PowerShell) is also supported via GitHub Releases
+   (`codity-ai/codity-cli`), because the shell installer is Linux/macOS only:
+   ```powershell
+   # No official winget/scoop/choco package currently.
+   $release = Invoke-RestMethod -Uri "https://api.github.com/repos/codity-ai/codity-cli/releases/latest"
+   $version = $release.tag_name.TrimStart("v")
+   $assetName = "codity_" + $version + "_windows_amd64.zip"
+   $asset = $release.assets | Where-Object {{ $_.name -eq $assetName }} | Select-Object -First 1
+   $zip = Join-Path $env:TEMP $asset.name
+   $tmp = Join-Path $env:TEMP ("codity-install-" + [guid]::NewGuid().ToString())
+   Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
+   Expand-Archive -Path $zip -DestinationPath $tmp -Force
+   New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.local\\bin" | Out-Null
+   Copy-Item (Join-Path $tmp "codity.exe") "$env:USERPROFILE\\.local\\bin\\codity.exe" -Force
+   ```
 
 2. Authenticate:
    ```bash

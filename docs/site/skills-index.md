@@ -25,7 +25,7 @@ Skills for project governance workflows, verification, release management, ESDB,
 | `aider-integration` | Aider — specsmith governance integration | aider, integration, governance, session, git |
 | `chronomemory-esdb` | ChronoMemory ESDB — epistemic state database (v0.1.1) | esdb, chronomemory, wal, query, context-pack |
 | `claude-code-integration` | Claude Code — specsmith governance integration | claude-code, mcp, integration, governance, session |
-| `codity-ai-review` | Codity.ai AI Review — staged-diff code review, security scan, test-gen | codity, ai-review, code-review, security, pre-commit |
+| `codity-ai-review` | Codity.ai AI Review — staged-diff code review, security scan, test-gen (includes native Windows install guidance) | codity, ai-review, code-review, security, pre-commit |
 | `copilot-integration` | GitHub Copilot — specsmith governance integration | copilot, github, integration, governance, session |
 | `cursor-integration` | Cursor — specsmith governance integration | cursor, mcp, integration, governance, session |
 | `diff-reviewer` | Diff Reviewer — surface changes for approval | git, review, pr |

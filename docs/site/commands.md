@@ -583,6 +583,7 @@ Generates the Codity.ai AI code review CI workflow for the detected VCS host:
 - **Azure DevOps** (detected from scaffold.yml or `azure-pipelines.yml`): `.azure-pipelines/codity-review.yml`
 
 Also writes `docs/codity-setup.md` (setup checklist) and appends a TODO entry to LEDGER.md.
+Windows note: Codity's `install.sh` currently supports Linux/macOS only. For native PowerShell, install from the official `codity-ai/codity-cli` GitHub release zip and add `codity.exe` to PATH (for example `~/.local/bin`).
 
 See the generated `docs/codity-setup.md` file in your project and the `codity-ai-review` skill for the pre-commit workflow.
 

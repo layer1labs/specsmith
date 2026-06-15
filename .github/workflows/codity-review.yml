@@ -1,0 +1,30 @@
+# Codity.ai AI Code Review — specsmith
+# Manual setup for Codity validation in this repository.
+name: Codity AI Review
+
+on:
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  codity-review:
+    name: Codity AI Review
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Codity CLI
+        run: curl -fsSL https://cli.codity.ai/install.sh | sh
+
+      - name: Run Codity review
+        env:
+          CODITY_ACCESS_TOKEN: ${{ secrets.CODITY_ACCESS_TOKEN }}
+        run: codity review --staged

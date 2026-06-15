@@ -1127,9 +1127,24 @@ generation that runs against staged changes (`--staged`) before every commit
 that touches production code.
 
 ## Installation
+Linux/macOS:
 ```bash
 curl -fsSL https://cli.codity.ai/install.sh | sh
 ```
+Native Windows (PowerShell):
+```powershell
+# No official winget/scoop/choco package currently.
+$release = Invoke-RestMethod -Uri "https://api.github.com/repos/codity-ai/codity-cli/releases/latest"
+$version = $release.tag_name.TrimStart("v")
+$asset = $release.assets | Where-Object { $_.name -eq "codity_${version}_windows_amd64.zip" } | Select-Object -First 1
+$zip = Join-Path $env:TEMP $asset.name
+$tmp = Join-Path $env:TEMP ("codity-install-" + [guid]::NewGuid().ToString())
+Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zip
+Expand-Archive -Path $zip -DestinationPath $tmp -Force
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.local\\bin" | Out-Null
+Copy-Item (Join-Path $tmp "codity.exe") "$env:USERPROFILE\\.local\\bin\\codity.exe" -Force
+```
+Verify with `codity doctor`.
 
 ## Authentication
 ```bash

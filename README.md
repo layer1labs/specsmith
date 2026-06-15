@@ -970,6 +970,8 @@ This generates:
 - `docs/codity-setup.md` — one-time setup checklist
 - Appends a TODO checklist to `LEDGER.md`
 
+**Windows note:** Codity's `install.sh` is Linux/macOS only. For native PowerShell use, install `codity.exe` from the official `codity-ai/codity-cli` GitHub release zip and place it on PATH (for example `~/.local/bin`).
+
 **AGENTS.md rule (REQ-355):** Projects with Codity configured SHOULD run `codity review --staged` before any commit touching production code. HIGH-severity findings are blocking; MEDIUM findings require inline acknowledgement.
 
 See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-review`) for the full CLI workflow reference.
