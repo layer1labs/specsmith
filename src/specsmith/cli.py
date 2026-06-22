@@ -12344,6 +12344,12 @@ def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool
 
 
 main.add_command(migrate_group)
+try:
+    from specsmith.commands.reporting import register_reporting_commands
+
+    register_reporting_commands(main)
+except Exception:  # noqa: BLE001
+    pass
 
 
 if __name__ == "__main__":
