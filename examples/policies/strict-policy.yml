@@ -1,0 +1,14 @@
+required_preflight: true
+required_tests: true
+required_human_approval:
+  - plan
+  - implementation
+  - verification
+risk_threshold: medium
+agent_allowlist:
+  - nexus
+command_denylist:
+  - rm -rf
+evidence_requirements:
+  - transcripts
+  - approvals

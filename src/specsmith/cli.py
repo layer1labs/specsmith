@@ -12,6 +12,7 @@ import click
 import yaml
 
 from specsmith import __version__
+from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
@@ -12344,6 +12345,8 @@ def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool
 
 
 main.add_command(migrate_group)
+
+register_issue_policy_commands(main, console)
 
 
 if __name__ == "__main__":

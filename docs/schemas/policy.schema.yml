@@ -1,0 +1,42 @@
+type: object
+additionalProperties: false
+properties:
+  required_preflight:
+    type: boolean
+  required_tests:
+    type: boolean
+  required_human_approval:
+    type: array
+    items:
+      type: string
+      enum:
+        - requirement
+        - plan
+        - implementation
+        - verification
+        - release
+  risk_threshold:
+    type: string
+    enum:
+      - low
+      - medium
+      - high
+      - critical
+  file_rules:
+    type: object
+  agent_allowlist:
+    type: array
+    items:
+      type: string
+  command_allowlist:
+    type: array
+    items:
+      type: string
+  command_denylist:
+    type: array
+    items:
+      type: string
+  evidence_requirements:
+    type: array
+    items:
+      type: string
