@@ -34,6 +34,7 @@ from specsmith.cli import main
 def _no_auto_update(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
     monkeypatch.setenv("SPECSMITH_PYPI_CHECKED", "1")
+    monkeypatch.setenv("SPECSMITH_ALLOW_NON_PIPX", "1")
 
 
 # ---------------------------------------------------------------------------
