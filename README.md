@@ -32,7 +32,7 @@ flowchart LR
 - **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
 - **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
 
-**v0.2.5 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.1.9 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
+**v0.16.0 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.2.0 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -387,7 +387,7 @@ Every preflight response includes a mandatory `ai_disclosure` block:
     "governance_gated": true,
     "provider": "ollama",
     "model": "qwen2.5:14b",
-    "spec_version": "0.11.4"
+    "spec_version": "0.16.0"
   }
 }
 ```
@@ -1140,15 +1140,15 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
-- [Stability Contract](https://github.com/layer1labs/specsmith/blob/main/docs/stability.md)
-- [1.0 Release Criteria](https://github.com/layer1labs/specsmith/blob/main/docs/roadmap/1.0-criteria.md)
-- [Editions Matrix](https://github.com/layer1labs/specsmith/blob/main/docs/editions.md)
-- [Changelog](https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md)
-- [Contributing](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md)
-- [Roadmap](https://github.com/layer1labs/specsmith/blob/main/ROADMAP.md)
-- [Compatibility Matrix](https://github.com/layer1labs/specsmith/blob/main/docs/site/compatibility.md)
-- [Product Principles](https://github.com/layer1labs/specsmith/blob/main/docs/product-principles.md)
-- [Security](https://github.com/layer1labs/specsmith/blob/main/SECURITY.md)
+- [Stability Contract](https://github.com/layer1labs/specsmith/blob/develop/docs/stability.md)
+- [1.0 Release Criteria](https://github.com/layer1labs/specsmith/blob/develop/docs/roadmap/1.0-criteria.md)
+- [Editions Matrix](https://github.com/layer1labs/specsmith/blob/develop/docs/editions.md)
+- [Changelog](https://github.com/layer1labs/specsmith/blob/develop/CHANGELOG.md)
+- [Contributing](https://github.com/layer1labs/specsmith/blob/develop/CONTRIBUTING.md)
+- [Roadmap](https://github.com/layer1labs/specsmith/blob/develop/ROADMAP.md)
+- [Compatibility Matrix](https://github.com/layer1labs/specsmith/blob/develop/docs/site/compatibility.md)
+- [Product Principles](https://github.com/layer1labs/specsmith/blob/develop/docs/product-principles.md)
+- [Security](https://github.com/layer1labs/specsmith/blob/develop/SECURITY.md)
 
 ## License
 

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.16.0] - 2026-06-22
+
+Version number corrected to sit above the previous `0.15.3` stable release on PyPI.
+`0.2.5` / `0.2.6` were published with a version reset that made them semver-lower than
+`0.15.3`, breaking dev-channel discoverability (`pip install specsmith --pre`).
+`0.16.0` restores correct ordering and is functionally identical to `0.2.6`.
+
+### Changed
+
+- **Version corrected**: `0.2.6` → `0.16.0` to restore PyPI semver ordering above `0.15.3`.
+- **chronomemory ≥ 0.2.0** — pinned to the 0.2.0 milestone release.
+- **README dead links fixed** — all `blob/main/` links changed to `blob/develop/` for
+  files that only exist on the develop branch.
+
+---
 ## [0.2.6] - 2026-06-22
 
 ### Changed
