@@ -5670,7 +5670,8 @@ def phase_next(project_dir: str, force: bool) -> None:
     """Advance to the next AEE workflow phase.
 
     Performs readiness checks on the current phase first.
-    Use --force to skip checks.
+    Use --force to skip checks.  Phases listed in ``suppressed_phases`` in the
+    scaffold config (docs/SPECSMITH.yml) are automatically skipped (#254).
     """
     from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase, write_phase
 
@@ -5696,12 +5697,45 @@ def phase_next(project_dir: str, force: bool) -> None:
         )
         return
 
-    write_phase(root, phase.next_phase)
-    next_phase = PHASE_MAP[phase.next_phase]
+    # Read suppressed_phases from the scaffold config (#254).
+    suppressed: list[str] = []
+    try:
+        import yaml as _yaml
+
+        from specsmith.paths import find_scaffold
+
+        sp = find_scaffold(root)
+        if sp:
+            _raw = _yaml.safe_load(sp.read_text(encoding="utf-8")) or {}
+            suppressed = [str(p) for p in (_raw.get("suppressed_phases") or [])]
+    except Exception:  # noqa: BLE001
+        pass  # Never block phase advance on config parse errors
+
+    # Walk the phase chain until we find a non-suppressed next phase.
+    target_key: str | None = phase.next_phase
+    skipped: list[str] = []
+    while target_key and target_key in suppressed:
+        skipped.append(target_key)
+        target_phase = PHASE_MAP.get(target_key)
+        target_key = target_phase.next_phase if target_phase else None
+
+    if not target_key:
+        console.print(
+            f"[bold]{phase.emoji} {phase.label}[/bold] is the effective final phase "
+            "(all remaining phases are suppressed)."
+        )
+        if skipped:
+            console.print(f"  [dim]Suppressed: {', '.join(skipped)}[/dim]")
+        return
+
+    write_phase(root, target_key)
+    next_phase = PHASE_MAP[target_key]
     console.print(
         f"[green]\u2713[/green] Advanced from [bold]{phase.label}[/bold] "
         f"to [bold]{next_phase.emoji} {next_phase.label}[/bold]."
     )
+    if skipped:
+        console.print(f"  [dim]Skipped suppressed phase(s): {', '.join(skipped)}[/dim]")
     console.print(f"  {next_phase.description}")
     if next_phase.commands:
         console.print("\n  [bold]Next steps:[/bold]")
@@ -5710,14 +5744,14 @@ def phase_next(project_dir: str, force: bool) -> None:
 
     # G3: keep the agents routing table aligned with the active phase.
     # We pin a synthetic ``phase:active`` route so the runner can flip the
-    # whole session to the new phase’s preferred profile without the user
+    # whole session to the new phase's preferred profile without the user
     # having to run `specsmith agents route set` themselves.
     try:
         from specsmith.agent.profiles import ProfileStore
 
         agents_store = ProfileStore.load()
         if agents_store.profiles:
-            phase_key_target = f"phase:{phase.next_phase}"
+            phase_key_target = f"phase:{target_key}"
             target_id = agents_store.routes.get(phase_key_target) or (
                 agents_store.default_profile_id
             )
@@ -10571,9 +10605,15 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
             console.print("[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]")
         raise SystemExit(1)
 
+    import os
+
     dest = Path.home() / ".specsmith" / "esdb.key"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(key_file, dest)
+    # Skip the copy when source and destination are the same file (#249).
+    # On Windows, shutil.copy2(src, dst) raises PermissionError / WinError 32
+    # when src == dst (file is already at the expected location).
+    if os.path.realpath(str(key_file)) != os.path.realpath(str(dest)):
+        shutil.copy2(key_file, dest)
 
     if as_json:
         click.echo(

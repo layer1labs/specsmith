@@ -1,7 +1,7 @@
 {
-  "seq": 650,
-  "last_hash": "860a96edbae020b34d1ba3d7e18b87e2b9421ac4f6abf3faaa954831c875e24a",
-  "ts": "2026-06-15T15:20:04Z",
+  "seq": 654,
+  "last_hash": "d4f72d92da13ea2833a9299e902e237dcc0697a19db23fde34c31a4b1d1286ae",
+  "ts": "2026-06-22T11:52:36Z",
   "records": [
     {
       "id": "REQ-001",
@@ -16577,6 +16577,110 @@
         "requirement_id": "REQ-363",
         "type": "unit",
         "verification_method": "pytest tests/test_mcp_server.py — tests drive the server via subprocess with JSON-RPC messages and assert structured responses for each tool",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-365",
+      "kind": "testcase",
+      "status": "active",
+      "label": "governance_req_list MCP tool returns YAML-sourced requirements in YAML-mode without requiring specsmith sync",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "migrated from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-365",
+        "title": "governance_req_list MCP tool returns YAML-sourced requirements in YAML-mode without requiring specsmith sync",
+        "description": "",
+        "requirement_id": "REQ-364",
+        "type": "unit",
+        "verification_method": "pytest tests/test_mcp_server.py::test_governance_req_list_yaml_mode — create temp project in yaml mode, add REQ to YAML file without syncing JSON, call _handle_governance_req_list, assert new REQ appears in results",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-366",
+      "kind": "testcase",
+      "status": "active",
+      "label": "SqliteStore creates esdb.sqlite3, supports upsert/query/delete/record_count/wal_seq/chain_valid with no external deps",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "migrated from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-366",
+        "title": "SqliteStore creates esdb.sqlite3, supports upsert/query/delete/record_count/wal_seq/chain_valid with no external deps",
+        "description": "",
+        "requirement_id": "REQ-365",
+        "type": "unit",
+        "verification_method": "pytest tests/test_esdb_sqlite.py — cover open/close context manager, upsert roundtrip, query filters, delete tombstone, migrate_from_json, wal_seq monotonically increasing, chain_valid always True",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-367",
+      "kind": "testcase",
+      "status": "active",
+      "label": "specsmith.esdb activates ChronoStore only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "migrated from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-367",
+        "title": "specsmith.esdb activates ChronoStore only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise",
+        "description": "",
+        "requirement_id": "REQ-366",
+        "type": "unit",
+        "verification_method": "pytest tests/test_esdb_license.py — scenarios cover valid key (ChronoStore selected), missing key (SqliteStore), expired key (SqliteStore + warning), tampered signature (SqliteStore + warning), SPECSMITH_ESDB_BACKEND=sqlite env override (SqliteStore even with valid key)",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-368",
+      "kind": "testcase",
+      "status": "active",
+      "label": "chronomemory LICENSE file contains proprietary commercial text and pyproject.toml declares Proprietary license",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "migrated from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-368",
+        "title": "chronomemory LICENSE file contains proprietary commercial text and pyproject.toml declares Proprietary license",
+        "description": "",
+        "requirement_id": "REQ-367",
+        "type": "integration",
+        "verification_method": "pytest tests/test_esdb_license.py::test_chronomemory_license_is_proprietary — read chronomemory LICENSE file and pyproject.toml, assert MIT not present and Proprietary classifier present",
         "input": {},
         "expected_behavior": {},
         "confidence": 1.0

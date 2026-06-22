@@ -1130,7 +1130,11 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     raw = _read_scaffold_raw(root)
     declared: dict[str, Any] = raw.get("industrial_artifacts", {}) or {}
     declared_eds = declared.get("canopen_eds", []) or []
-    declared_paths = {e.get("path", "") for e in declared_eds if isinstance(e, dict)}
+    # Normalise declared paths to forward slashes and lowercase so they match
+    # on Windows where YAML uses '/' but Path.relative_to() returns '\\' (#251).
+    declared_paths = {
+        e.get("path", "").replace("\\", "/").lower() for e in declared_eds if isinstance(e, dict)
+    }
 
     # Scan for .eds and .xdd files — respect scan_exclude_dirs and
     # scan_exclude_patterns from scaffold.yml (#175).
@@ -1158,9 +1162,12 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     if not found_eds:
         return results  # No industrial artifacts found
 
-    # Use as_posix() for cross-platform comparison — avoids single-backslash
-    # mismatch on Windows where str(Path) uses '\' but declared paths use '/' (#173).
-    undeclared = [f for f in found_eds if f.relative_to(root).as_posix() not in declared_paths]
+    # Use as_posix().lower() for cross-platform comparison — avoids backslash
+    # mismatch on Windows where str(Path) uses '\' but YAML paths use '/' (#173,
+    # #251). Both sides are lowercased so Windows case-insensitive FS is handled.
+    undeclared = [
+        f for f in found_eds if f.relative_to(root).as_posix().lower() not in declared_paths
+    ]
 
     if undeclared:
         results.append(
