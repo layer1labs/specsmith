@@ -92,12 +92,14 @@ def normalize_action(raw: dict[str, Any], work_item_id: str) -> NormalizedAgentA
     success = raw.get("success")
     if success is None:
         success = action_type not in ("failure",)
+    _raw_details = raw.get("details")
+    details_val: dict[str, Any] = _raw_details if isinstance(_raw_details, dict) else {}
     return {
         "id": action_id,
         "timestamp": str(raw.get("timestamp") or _now_iso()),
         "action_type": action_type,
         "target": target,
-        "details": raw.get("details") if isinstance(raw.get("details"), dict) else {},
+        "details": details_val,
         "success": bool(success),
         "error": str(raw.get("error") or ""),
         "retry_count": retry_count,

@@ -29,7 +29,7 @@ import os
 import sqlite3
 import time
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -336,7 +336,7 @@ class SqliteStore:
     ) -> str:
         """Append a tamper-evident audit event and return its event_id."""
         conn = self._require_open()
-        ts = datetime.now(UTC).isoformat()
+        ts = datetime.now(timezone.utc).isoformat()
         payload_json = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         payload_hash = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
         prev_row = conn.execute(
