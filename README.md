@@ -1111,6 +1111,9 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 - [Documentation](https://specsmith.readthedocs.io)
 - [Changelog](https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md)
 - [Contributing](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md)
+- [Roadmap](https://github.com/layer1labs/specsmith/blob/main/ROADMAP.md)
+- [Compatibility Matrix](https://github.com/layer1labs/specsmith/blob/main/docs/site/compatibility.md)
+- [Product Principles](https://github.com/layer1labs/specsmith/blob/main/docs/product-principles.md)
 - [Security](https://github.com/layer1labs/specsmith/blob/main/SECURITY.md)
 
 ## License
