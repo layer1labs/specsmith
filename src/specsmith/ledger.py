@@ -83,7 +83,7 @@ def add_entry(
     try:
         from specsmith.esdb import ESDB_BACKEND, open_default_store
 
-        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        with open_default_store(root, warn=False) as store:
             if ESDB_BACKEND == "sqlite" and hasattr(store, "append_audit_event"):
                 store.append_audit_event(
                     payload={

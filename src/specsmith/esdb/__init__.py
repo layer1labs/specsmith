@@ -22,6 +22,7 @@
 #   specsmith esdb enable --key-file /path/to/your.esdb.key
 
 import os as _os
+from typing import Any
 
 _INSTALL_HINT = (
     "chronomemory (ESDB commercial backend) is not installed.\n"
@@ -119,7 +120,7 @@ def open_default_store(
     project_root: "str | object",
     *,
     warn: bool = True,
-) -> "SqliteStore | object":  # returns SqliteStore or ChronoStore
+) -> "SqliteStore | Any":  # SqliteStore or ChronoStore; Any satisfies context-manager protocol
     """Return the appropriate ESDB store for *project_root*.
 
     Backend selection priority:

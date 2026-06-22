@@ -556,7 +556,7 @@ def quickstart_cmd(
     )
 
     main_cmd = ctx.find_root().command
-    doctor_cmd = main_cmd.commands.get("doctor")
+    doctor_cmd = main_cmd.commands.get("doctor") if isinstance(main_cmd, click.Group) else None  # noqa: E501
     if doctor_cmd is not None and doctor_cmd.callback is not None:
         click.echo("Running doctor automatically...")
         doctor_cmd.callback(project_dir=str(root), onboarding=False, as_json=False)
