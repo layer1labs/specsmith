@@ -60,7 +60,7 @@ dev = [
 # Install: pip install specsmith[esdb]
 # Activate: specsmith esdb enable --key-file /path/to/your.esdb.key
 esdb = [
-    "chronomemory>=0.1.7",   # proprietary commercial — see chronomemory LICENSE
+    "chronomemory>=0.1.8",   # proprietary commercial — see chronomemory LICENSE
     "cryptography>=42.0",
 ]
 docs = [

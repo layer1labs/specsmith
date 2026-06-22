@@ -445,8 +445,17 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
 def audit(fix: bool, project_dir: str) -> None:
     """Run drift and health checks (Section 23 + 26)."""
     from specsmith.auditor import run_audit
+    from specsmith.sync import auto_migrate_if_needed
 
     root = Path(project_dir).resolve()
+    auto_counts = auto_migrate_if_needed(root)
+    if auto_counts:
+        console.print(
+            "  [cyan]⟳[/cyan] ESDB auto-migrate: "
+            f"{auto_counts.get('requirements', 0)} requirements + "
+            f"{auto_counts.get('testcases', 0)} testcases "
+            f"({auto_counts.get('skipped', 0)} skipped)"
+        )
     console.print(f"[bold]Auditing[/bold] {root}\n")
     report = run_audit(root)
 
@@ -1489,14 +1498,20 @@ def diff(project_dir: str, html_output: str | None) -> None:
     default=False,
     help="Run the new-user onboarding checklist (REQ-127).",
 )
-def doctor(project_dir: str, onboarding: bool) -> None:
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit machine-readable health report JSON.",
+)
+def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     """Check if verification tools are installed locally.
 
     With --onboarding, walks through a 6-step checklist for new users that
     confirms scaffold.yml, governance files, agent provider setup, optional
     Nexus broker availability, and prints next-step commands (REQ-127).
     """
-    from specsmith.doctor import run_doctor
 
     root = Path(project_dir).resolve()
 
@@ -1572,28 +1587,108 @@ def doctor(project_dir: str, onboarding: bool) -> None:
             )
         return
 
-    report = run_doctor(root)
+    import importlib.metadata
+    import json as _json
+    import shutil
+    import subprocess
+    import sys
 
-    if not report.checks:
-        console.print("[yellow]No scaffold.yml found — cannot determine tools.[/yellow]")
+    from specsmith.auditor import run_audit
+    from specsmith.esdb import ESDB_BACKEND, open_default_store
+    from specsmith.phase import read_phase
+
+    def _tool_version(cmd: str) -> tuple[bool, str]:
+        exe = shutil.which(cmd)
+        if not exe:
+            return False, "not found"
+        try:
+            proc = subprocess.run(
+                [exe, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            out = (proc.stdout or proc.stderr or "").strip().splitlines()
+            if out:
+                return True, out[0]
+            return True, "installed"
+        except (OSError, subprocess.TimeoutExpired):
+            return True, "installed"
+
+    checks: list[dict[str, str]] = []
+
+    def _add(name: str, passed: bool, detail: str, warn: bool = False) -> None:
+        status = "warn" if warn else ("pass" if passed else "fail")
+        checks.append({"name": name, "status": status, "detail": detail})
+
+    py_ok = sys.version_info >= (3, 10)
+    _add(
+        "python",
+        py_ok,
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    )
+
+    git_ok, git_detail = _tool_version("git")
+    _add("git", git_ok, git_detail)
+
+    _add("specsmith", True, __version__)
+
+    try:
+        chrono_ver = importlib.metadata.version("chronomemory")
+        _add("chronomemory", True, chrono_ver)
+    except importlib.metadata.PackageNotFoundError:
+        _add("chronomemory", False, "not installed")
+
+    esdb_open = False
+    chain_ok = False
+    record_count = 0
+    try:
+        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+            esdb_open = True
+            record_count = int(store.record_count())
+            chain_ok = store.chain_valid() is not False
+    except Exception as exc:  # noqa: BLE001
+        _add("esdb backend", False, f"open failed: {exc}")
+    if esdb_open:
+        _add("esdb backend", True, f"{ESDB_BACKEND} open")
+        _add(
+            "esdb chain",
+            chain_ok,
+            f"{'valid' if chain_ok else 'invalid'} ({record_count} records)",
+        )
+        _add("esdb record count", True, str(record_count))
+
+    audit_report = run_audit(root)
+    _add(
+        "audit",
+        audit_report.healthy,
+        "clean" if audit_report.healthy else f"{audit_report.failed} issue(s)",
+    )
+
+    phase_key = read_phase(root)
+    _add("phase", True, phase_key)
+
+    for tool in ("ruff", "pytest", "pipx"):
+        ok, detail = _tool_version(tool)
+        _add(tool, ok, detail)
+
+    overall = "pass" if all(c["status"] != "fail" for c in checks) else "fail"
+
+    if as_json:
+        click.echo(_json.dumps({"checks": checks, "overall": overall}, indent=2))
         return
 
-    console.print(f"[bold]Doctor[/bold] — checking {len(report.checks)} tools\n")
-    for check in report.checks:
-        if check.installed:
-            ver = f" ({check.version})" if check.version else ""
-            console.print(f"  [green]✓[/green] {check.category}: {check.name}{ver}")
-        else:
-            console.print(f"  [red]✗[/red] {check.category}: {check.name} — not found")
-
-    console.print()
-    if report.missing_count == 0:
-        console.print(f"[bold green]All {report.installed_count} tools available.[/bold green]")
+    icon = {"pass": "✅", "fail": "❌", "warn": "⚠️"}
+    console.print("specsmith doctor")
+    console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    for c in checks:
+        console.print(f"  {c['name']:<14} {icon[c['status']]}  {c['detail']}")
+    console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    if overall == "pass":
+        console.print("All checks passed.")
     else:
-        console.print(
-            f"[bold red]{report.missing_count} tool(s) missing.[/bold red] "
-            f"{report.installed_count} installed."
-        )
+        console.print("One or more checks failed.")
 
 
 @main.command()
@@ -6019,10 +6114,11 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
     """
     import json as _json
 
-    from specsmith.sync import run_sync
+    from specsmith.sync import auto_migrate_if_needed, run_sync
 
     root = Path(project_dir).resolve()
     result = run_sync(root, dry_run=check_only)
+    auto_counts = {} if check_only else auto_migrate_if_needed(root)
 
     if as_json:
         click.echo(
@@ -6036,6 +6132,8 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                     "tests_changed": result.tests_changed,
                     "in_sync": not result.changed,
                     "dry_run": result.dry_run,
+                    "auto_migrated": bool(auto_counts),
+                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
@@ -6049,6 +6147,13 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                 console.print(f"[green]\u2713[/green] {result.message}")
         else:
             console.print("[green]\u2713[/green] Machine state already in sync.")
+        if auto_counts:
+            console.print(
+                "  [cyan]⟳[/cyan] ESDB auto-migrate: "
+                f"{auto_counts.get('requirements', 0)} requirements + "
+                f"{auto_counts.get('testcases', 0)} testcases "
+                f"({auto_counts.get('skipped', 0)} skipped)"
+            )
 
     if check_only and result.changed:
         raise SystemExit(1)
@@ -10475,8 +10580,10 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
 
     from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
     from specsmith.esdb._license import check_license, resolve_license_path
+    from specsmith.sync import auto_migrate_if_needed
 
     root = Path(project_dir).resolve()
+    auto_counts = auto_migrate_if_needed(root)
 
     # Determine license status without side-effect warnings
     lic_path = resolve_license_path()
@@ -10542,6 +10649,8 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                     "chain_valid": chain_ok,
                     "counts": counts,
                     "license": license_info,
+                    "auto_migrated": bool(auto_counts),
+                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
@@ -10571,6 +10680,13 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         console.print(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
         console.print(
             "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]"
+        )
+    if auto_counts:
+        console.print(
+            "  [cyan]⟳[/cyan] Auto-migrated from legacy JSON: "
+            f"{auto_counts.get('requirements', 0)} requirements + "
+            f"{auto_counts.get('testcases', 0)} testcases "
+            f"({auto_counts.get('skipped', 0)} skipped)"
         )
 
 
