@@ -6,3 +6,6 @@ contact_links:
   - name: Documentation
     url: https://specsmith.readthedocs.io
     about: Check the docs before filing an issue
+  - name: Security Report
+    url: https://github.com/layer1labs/specsmith/blob/main/SECURITY.md
+    about: Report a security vulnerability (private disclosure)
