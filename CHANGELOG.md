@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
-## [0.2.4] - 2026-06-22
+## [0.2.5] - 2026-06-22
 
 Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests passing across Python 3.10–3.13 × Ubuntu + Windows.
 
@@ -50,8 +50,8 @@ Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests p
 ### Changed
 
 - **chronomemory ≥ 0.1.9** — all development phases complete: Rust WAL migrated to NDJSON (cross-compatible with Python), PyO3 bindings available via maturin, Python vs Rust table in chronomemory README corrected.
-- Version bumped from `0.15.3` to `0.2.4` (v0.2.0–0.2.3 were reserved by prior
-  main-branch tags but never published to PyPI).
+- Version bumped from `0.15.3` to `0.2.5` (v0.2.0–0.2.4 were reserved by prior
+  tags but never published to PyPI).
 
 ---
 ## [0.15.3] - 2026-06-14

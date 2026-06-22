@@ -32,7 +32,7 @@ flowchart LR
 - **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
 - **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
 
-**v0.2.4 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.1.9 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
+**v0.2.5 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.1.9 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
