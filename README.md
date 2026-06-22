@@ -7,13 +7,30 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/layer1labs/specsmith/blob/main/LICENSE)
 
-**Applied Epistemic Engineering toolkit for AI-assisted development.**
+SpecSmith is the governance layer for AI-assisted development: it sits between agents and your repo, enforces preflight decisions, and records requirement/test traceability with auditable evidence. It is **not** an IDE, autonomous coding agent, CI runner, or legal-compliance certifier. Use SpecSmith when changes need repeatable controls, work-item lineage, and review-ready artifacts; do not use it for throwaway prototyping where governance overhead is unnecessary. Compared with GitHub Spec Kit, OpenSpec, and BMAD, SpecSmith adds execution-time policy gates and trace chains. Compared with Aider, Claude Code, and Cursor, SpecSmith governs those clients instead of replacing them. Compared with LangGraph and AutoGen, SpecSmith prioritizes software-governance outcomes and evidence quality over general-purpose multi-agent orchestration.
 
-> Intelligence proposes. Constraints decide. The ledger remembers.
+## Architecture at a glance
 
-specsmith treats belief systems like code: codable, testable, and deployable. It scaffolds
-epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
-cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
+```mermaid
+flowchart LR
+    A[AI Agents / IDE Clients] --> B[SpecSmith Governance Layer]
+    B --> C[Repository Files]
+    B --> D[Requirements and Tests]
+    B --> E[ESDB / Audit Ledger]
+    E --> F[CI and MCP Integrations]
+    D --> F
+```
+
+## When to use / when not to use
+
+- Use when you need governed AI development, auditable decision trails, and requirement-to-test linkage.
+- Avoid when rapid local prototyping is the only goal and formal governance is unnecessary.
+
+## Comparison summary
+
+- **GitHub Spec Kit / OpenSpec / BMAD:** strong specification practices; SpecSmith adds execution-time governance, work-item lifecycle control, and trace-chain evidence.
+- **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
+- **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
 
 **v0.15.2 — PyPI-safe README links, RTD nav coverage, updated security policy, and expanded embedded skill catalog (Zephyr 4.4→3.x, FreeRTOS, bare-metal C).**
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
@@ -102,6 +119,18 @@ specsmith phase list     # list all phases
 The current phase is persisted in `scaffold.yml` as `aee_phase`. Each phase has a checklist
 of file/command criteria, recommended commands, and a readiness percentage.
 
+## 1.0 release criteria status
+
+| Criterion | Status | Source |
+|---|---|---|
+| Stable CLI core contract documented | In progress | `docs/stability.md` |
+| Stable generated file schemas documented | In progress | `docs/stability.md` |
+| Stable MCP tool schemas documented | In progress | `docs/stability.md` |
+| Migration tests linked (#218) | In progress | `docs/roadmap/1.0-criteria.md` |
+| Security threat model documented | In progress | `docs/security-threat-model.md` |
+| Docs/tutorial/glossary baseline complete | In progress | `docs/roadmap/1.0-criteria.md` |
+| Upgrade path and changelog criteria defined | In progress | `docs/roadmap/1.0-criteria.md` |
+
 ---
 
 ## Install
@@ -145,6 +174,8 @@ in your own application without managing a pipx environment.
 |------|---------|---------|-------------|
 | **Default** | `specsmith` (built-in) | MIT, free | SQLite backend — requirements, test cases, confidence filtering |
 | **Commercial** | `chronomemory` via `specsmith[esdb]` | Proprietary — license required | ChronoStore: tamper-evident SHA-256 WAL, OEA anti-hallucination fields, Rust acceleration, epistemic rollback |
+
+See `docs/editions.md` for the full OSS vs commercial feature matrix.
 
 `pip install specsmith` always installs the **free SQLite backend** automatically.
 No additional packages, no license key, no configuration — it works out of the box.
@@ -1109,6 +1140,9 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
+- [Stability Contract](https://github.com/layer1labs/specsmith/blob/main/docs/stability.md)
+- [1.0 Release Criteria](https://github.com/layer1labs/specsmith/blob/main/docs/roadmap/1.0-criteria.md)
+- [Editions Matrix](https://github.com/layer1labs/specsmith/blob/main/docs/editions.md)
 - [Changelog](https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md)
 - [Contributing](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md)
 - [Roadmap](https://github.com/layer1labs/specsmith/blob/main/ROADMAP.md)
