@@ -12,6 +12,7 @@ import click
 import yaml
 
 from specsmith import __version__
+from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
@@ -12350,6 +12351,8 @@ try:
     register_reporting_commands(main)
 except Exception:  # noqa: BLE001
     pass
+
+register_issue_policy_commands(main, console)
 
 
 if __name__ == "__main__":

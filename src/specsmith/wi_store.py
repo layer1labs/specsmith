@@ -121,6 +121,22 @@ class WorkItem:
     #: True once ``specsmith verify`` has reached equilibrium for this WI.
     verified: bool = False
 
+    #: Optional list of files touched by the implementation.
+    files_touched: list[str] = field(default_factory=list)
+
+    #: Optional blast-radius hint: local | service | subsystem | global.
+    blast_radius_estimate: str = ""
+
+    #: Optional agent confidence signal (0.0 - 1.0).
+    agent_confidence: float = 0.0
+
+    #: Human review status marker.
+    human_review_status: str = "pending"
+
+    #: Optional manual risk override.
+    risk_override_level: str = ""
+    risk_override_reason: str = ""
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
