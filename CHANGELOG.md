@@ -8,6 +8,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.2.0] - 2026-06-22
+
+Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests passing across Python 3.10–3.13 × Ubuntu + Windows.
+
+### Added
+
+- **New CLI commands (20+):**
+  - `specsmith quickstart` — interactive governance mode + project-type wizard, auto-runs `doctor`
+  - `specsmith expand --to team|regulated` — upgrade governance tier without re-initialising
+  - `specsmith verify-integrations` — checks Claude, Cursor, Copilot, agent-skill, and MCP integrations
+  - `specsmith import spec-kit|openspec|bmad` — structured import from common spec formats
+  - `specsmith export markdown|json|github-issues|evidence-pack` — multi-format export
+  - `specsmith github issue-plan|issue-create` — generate + post issue plans via `gh` CLI
+  - `specsmith transcript import` — import agent action logs into ESDB
+  - `specsmith approve` — human approval gate with ESDB-backed audit record
+  - `specsmith policy validate|simulate` — validate and dry-run governance policies
+  - `specsmith plugin list|validate` — plugin registry management
+  - `specsmith recover` — guided recovery from governance drift or failed agent sessions
+  - `specsmith dashboard build` — generate governance dashboard HTML
+  - `specsmith audit verify-chain` — cryptographic audit hash-chain verification
+  - `specsmith migrate --check` — preflight migration without writing
+  - `specsmith governed-pr check` — PR governance gate (branch, CI, sign-off checks)
+  - `specsmith drift-check` — detect requirement/test/code drift in a diff
+  - `specsmith trace score` — score a decision or assumption against the trace vault
+
+- **New modules:** `transcripts.py` (agent action normalisation), `risk.py` (risk scoring), `approvals.py` (human approval gate), `policy.py` (governance policy engine), `governed_pr.py` (PR governance), `recover.py` (drift recovery), `dashboard.py` (HTML dashboard builder), `plugins.py` (plugin registry).
+
+- **New test files:** `test_esdb_sqlite.py`, `test_esdb_enforcement.py`, `test_esdb_verify_chain_cli.py`, `test_architecture.py`, `test_golden_path.py`, `test_init_modes.py`, `test_schema_migrations.py`, `test_typing_guardrails.py` — expanding coverage across ESDB backends and governance golden paths.
+
+- **New docs pages:** `docs/ROADMAP.md`, `docs/SECURITY.md`, `docs/stability.md`, `docs/editions.md`, `docs/security-threat-model.md`, `docs/compliance/evidence-pack.md`, multiple tutorials, `docs/concepts/plain-english-glossary.md`, skills and comparison docs.
+
+### Fixed
+
+- **Python 3.10 compatibility** — `esdb/sqlite_store.py` used `from datetime import UTC` (Python 3.11+ only); replaced with `datetime.now(timezone.utc)` for all Python ≥ 3.10.
+- **mypy strict compliance** — resolved `typeddict-item` narrowing in `transcripts.py` (walrus operator → pre-assign), unused `# type: ignore` comments in `reporting.py` and `ledger.py`, and `open_default_store` return type (`object` → `Any`) to satisfy context-manager protocol.
+- **Sync check drift** — YAML-mode `requirements.json` / `testcases.json` / `docs/REQUIREMENTS.md` regenerated from YAML sources added during development.
+- **API surface fixture** — `tests/fixtures/api_surface.json` regenerated to reflect all new CLI commands.
+- **`.gitignore` ESDB policy** — explicit `!` include entries for `.specsmith/esdb.sqlite3`, `.specsmith/requirements.json`, `.specsmith/testcases.json`, and `.chronomemory/` canonical files.
+
+### Changed
+
+- **chronomemory ≥ 0.1.9** — all development phases complete: Rust WAL migrated to NDJSON (cross-compatible with Python), PyO3 bindings available via maturin, Python vs Rust table in chronomemory README corrected.
+- Version bumped from `0.15.3` to `0.2.0`.
+
+---
 ## [0.15.3] - 2026-06-14
 
 ### Changed

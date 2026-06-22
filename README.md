@@ -32,7 +32,7 @@ flowchart LR
 - **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
 - **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
 
-**v0.15.2 — PyPI-safe README links, RTD nav coverage, updated security policy, and expanded embedded skill catalog (Zephyr 4.4→3.x, FreeRTOS, bare-metal C).**
+**v0.2.0 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.1.9 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
 every AI-generated output is disclosed, context windows are GPU-aware and protected against
@@ -197,7 +197,7 @@ If you hold a chronomemory ESDB license, activate the commercial backend:
 # Step 1 — install the chronomemory package
 pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
 # or if using pipx:
-pipx inject specsmith "chronomemory>=0.1.7"  # inject into the specsmith pipx venv
+pipx inject specsmith "chronomemory>=0.1.9"  # inject into the specsmith pipx venv
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your.esdb.key

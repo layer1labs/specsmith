@@ -183,7 +183,7 @@ Choose the method that matches how you installed specsmith:
 pip install "specsmith[esdb]"
 
 # If you installed specsmith via pipx (recommended for CLI use):
-pipx inject specsmith "chronomemory>=0.1.7"
+pipx inject specsmith "chronomemory>=0.1.9"
 ```
 
 Verify the package is present:
