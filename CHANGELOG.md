@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ---
+## [0.2.6] - 2026-06-22
+
+### Changed
+
+- **chronomemory ≥ 0.2.0** — pinned to the new 0.2.0 milestone release; all version references updated across `pyproject.toml`, `README.md`, `docs/site/esdb.md`, and `docs/site/getting-started.md`.
+
+---
 ## [0.2.5] - 2026-06-22
 
 Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests passing across Python 3.10–3.13 × Ubuntu + Windows.

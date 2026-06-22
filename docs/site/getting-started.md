@@ -63,7 +63,7 @@ fields (H15–H22), Rust acceleration, and epistemic rollback.  It is a separate
 ```bash
 # Step 1 — install chronomemory
 pip install "specsmith[esdb]"                    # pip install
-pipx inject specsmith "chronomemory>=0.1.9"     # or, if using pipx
+pipx inject specsmith "chronomemory>=0.2.0"     # or, if using pipx
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your-org.esdb.key

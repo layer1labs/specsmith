@@ -183,7 +183,7 @@ Choose the method that matches how you installed specsmith:
 pip install "specsmith[esdb]"
 
 # If you installed specsmith via pipx (recommended for CLI use):
-pipx inject specsmith "chronomemory>=0.1.9"
+pipx inject specsmith "chronomemory>=0.2.0"
 ```
 
 Verify the package is present:
@@ -361,7 +361,7 @@ chronomemory v0.1.2+ is available on [PyPI](https://pypi.org/project/chronomemor
 
 ```bash
 pip install "specsmith[esdb]"
-# resolves chronomemory>=0.1.2 from PyPI — no git required
+# resolves chronomemory>=0.2.0 from PyPI — no git required
 ```
 
 The package carries a proprietary commercial license.  PyPI does not restrict
