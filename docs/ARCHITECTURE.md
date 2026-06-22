@@ -788,6 +788,53 @@ As of v0.12, specsmith operates in **YAML-first governance mode** when `.specsmi
 3. Write `.specsmith/requirements.json` + `testcases.json` (JSON cache)
 4. Regenerate `docs/REQUIREMENTS.md` + `docs/TESTS.md` (Markdown artifacts, never hand-edit)
 
+## 32. Domain ownership and boundary canary
+
+Core domains used for ownership and boundary checks:
+
+- governance: `specsmith.governance_logic`, `specsmith.governance_yaml`, `specsmith.ledger`, `specsmith.auditor`, `specsmith.sync`
+- requirements: `specsmith.requirements`, `specsmith.requirements_parser`
+- work items: `specsmith.wi_store`, `specsmith.approvals`, `specsmith.risk`
+- verification: `specsmith.validator` and verify flows in `specsmith.cli`
+- ESDB: `specsmith.esdb.*`, `specsmith.trace`, `specsmith.recover`
+- MCP: `specsmith.mcp_server`, `specsmith.agent.mcp`
+- agent integrations: `specsmith.integrations.*`, `specsmith.agent.*`
+- scaffolding: `specsmith.scaffolder`, `specsmith.importer`, `specsmith.upgrader`
+- compliance: `specsmith.compliance.*`, `specsmith.policy`
+- CLI: `specsmith.cli`, `specsmith.commands.*`
+
+Allowed dependency direction:
+
+- CLI may depend on any domain module.
+- Domain modules should not import CLI entrypoint modules.
+- Governance/requirements/work-items/verification may depend on ESDB abstractions, not GUI internals.
+- Integrations and MCP may depend on governance and requirements, but governance must not depend on integrations.
+
+Modules marked internal (unstable API surface):
+
+- `specsmith.scaffolder`
+- `specsmith.migrations`
+- `specsmith.gui`
+- `specsmith.agent.dispatch`
+
+The canary test in `tests/test_architecture.py` enforces internal-import restrictions pragmatically using `ast` import scanning.
+
+```mermaid
+flowchart LR
+    CLI[CLI] --> GOV[Governance]
+    CLI --> REQ[Requirements]
+    CLI --> WI[Work Items]
+    CLI --> VER[Verification]
+    CLI --> ESDB[ESDB]
+    CLI --> MCP[MCP]
+    CLI --> INT[Integrations]
+    CLI --> SCAF[Scaffolding]
+    CLI --> COMP[Compliance]
+    INT --> GOV
+    MCP --> GOV
+    GOV --> ESDB
+```
+
 `specsmith sync --check` exits 1 if the JSON cache is out of sync with YAML — used as a CI gate.
 
 **Strict schema validation** (`specsmith validate --strict`):

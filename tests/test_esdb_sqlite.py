@@ -258,6 +258,43 @@ def test_migrate_skips_records_without_id(tmp_path: Path) -> None:
     assert counts["skipped"] == 1
 
 
+def test_audit_chain_verify_ok(tmp_path: Path) -> None:
+    with SqliteStore(tmp_path) as s:
+        s.append_audit_event(
+            payload={"action": "init"},
+            command_source="test",
+            work_item_id="WI-1",
+        )
+        s.append_audit_event(
+            payload={"action": "audit"},
+            command_source="test",
+            work_item_id="WI-1",
+        )
+        report = s.verify_audit_chain()
+    assert report["ok"] is True
+    assert report["event_count"] == 2
+    assert report["errors"] == []
+
+
+def test_audit_chain_detects_tamper(tmp_path: Path) -> None:
+    with SqliteStore(tmp_path) as s:
+        s.append_audit_event(
+            payload={"action": "init"},
+            command_source="test",
+            work_item_id="WI-1",
+        )
+    db_path = tmp_path / ".specsmith" / "esdb.sqlite3"
+    import sqlite3
+
+    with sqlite3.connect(str(db_path)) as conn:
+        conn.execute("UPDATE audit_events SET payload_hash='tampered' WHERE rowid=1")
+        conn.commit()
+    with SqliteStore(tmp_path) as s:
+        report = s.verify_audit_chain()
+    assert report["ok"] is False
+    assert report["errors"]
+
+
 # ---------------------------------------------------------------------------
 # passes_rag_filter
 # ---------------------------------------------------------------------------

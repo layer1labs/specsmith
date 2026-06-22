@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import cast
 
 # Flexible patterns that handle both two-part (REQ-001) and three-part
 # (REQ-CLI-001, REG-012) identifiers used across projects.
@@ -187,7 +188,7 @@ def trace_reqs(root: Path) -> list[dict[str, object]]:
 
 def get_gaps(root: Path) -> list[str]:
     """Return REQ IDs that have no test coverage."""
-    return [t["req"] for t in trace_reqs(root) if not t["covered"]]  # type: ignore[misc]
+    return [cast(str, t["req"]) for t in trace_reqs(root) if not t["covered"]]
 
 
 def get_orphan_tests(root: Path) -> list[str]:
