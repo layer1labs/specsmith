@@ -78,8 +78,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model", "-m",
-        default="claude-sonnet-4-5",
-        help="Agent model to use for task runs (default: claude-sonnet-4-5)",
+        default="gpt-4o-mini",
+    help="Agent model to use for task runs (default: gpt-4o-mini)",
     )
     parser.add_argument(
         "--dry-run",
@@ -130,30 +130,54 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
     import random
     rng = random.Random(f"{task_id}:{condition_id}:{rep}")
 
-    # Governance conditions use more tokens but pass more often
+    # Token overhead and pass-rate priors per condition.
+    # Real-world tool styles (G-L) are positioned between CONTEXT_ONLY and
+    # BMAD_STYLE/SPECSMITH based on their level of guidance.
     governance_overhead = {
-        "UNGOVERNED": 0,
-        "CONTEXT_ONLY": 200,
-        "BMAD_STYLE": 500,
-        "OPENSPEC_STYLE": 400,
-        "SPECSMITH_LIGHT": 800,
-        "SPECSMITH_FULL": 1500,
+        # Original six
+        "UNGOVERNED":        0,
+        "CONTEXT_ONLY":      200,
+        "BMAD_STYLE":        500,
+        "OPENSPEC_STYLE":    400,
+        "SPECSMITH_LIGHT":   800,
+        "SPECSMITH_FULL":    1500,
+        # Real-world tool styles
+        "CURSOR_RULES":      250,    # file-specific rules, slightly more context
+        "COPILOT_INSTRUCTIONS": 220, # similar to CLAUDE.md but GitHub-flavoured
+        "CODEX_AGENTS_MD":   300,    # explicit verification steps = more turns
+        "CLINE_RULES":       230,    # defensive read-before-modify overhead
+        "AGILE_TDD":         600,    # test-first adds a full RED phase turn
+        "AIDER_CONVENTIONS": 280,    # conventions doc + architecture context
     }
     base_pass_rates = {
-        "UNGOVERNED": 0.44,
-        "CONTEXT_ONLY": 0.55,
-        "BMAD_STYLE": 0.65,
-        "OPENSPEC_STYLE": 0.70,
-        "SPECSMITH_LIGHT": 0.80,
-        "SPECSMITH_FULL": 0.95,
+        # Original six (research-calibrated)
+        "UNGOVERNED":        0.44,
+        "CONTEXT_ONLY":      0.55,
+        "BMAD_STYLE":        0.65,
+        "OPENSPEC_STYLE":    0.70,
+        "SPECSMITH_LIGHT":   0.80,
+        "SPECSMITH_FULL":    0.95,
+        # Real-world tools (calibrated to tool maturity + guidance quality)
+        "CURSOR_RULES":      0.60,   # file-scoped rules help but no gating
+        "COPILOT_INSTRUCTIONS": 0.58, # nearly same as CONTEXT_ONLY
+        "CODEX_AGENTS_MD":   0.72,   # verification steps materially help
+        "CLINE_RULES":       0.63,   # defensive rules reduce scope drift
+        "AGILE_TDD":         0.75,   # test-first catches regressions early
+        "AIDER_CONVENTIONS": 0.67,   # conventions reduce style errors
     }
     base_quality = {
-        "UNGOVERNED": 0.55,
-        "CONTEXT_ONLY": 0.65,
-        "BMAD_STYLE": 0.72,
-        "OPENSPEC_STYLE": 0.75,
-        "SPECSMITH_LIGHT": 0.82,
-        "SPECSMITH_FULL": 0.91,
+        "UNGOVERNED":        0.55,
+        "CONTEXT_ONLY":      0.65,
+        "BMAD_STYLE":        0.72,
+        "OPENSPEC_STYLE":    0.75,
+        "SPECSMITH_LIGHT":   0.82,
+        "SPECSMITH_FULL":    0.91,
+        "CURSOR_RULES":      0.68,
+        "COPILOT_INSTRUCTIONS": 0.66,
+        "CODEX_AGENTS_MD":   0.74,
+        "CLINE_RULES":       0.69,
+        "AGILE_TDD":         0.78,
+        "AIDER_CONVENTIONS": 0.71,
     }
 
     overhead = governance_overhead.get(condition_id, 0)
@@ -284,24 +308,43 @@ def main() -> int:
     write_report(report, conditions, tasks, output_path, model=args.model, reps=args.reps)
 
     # Print summary
-    print("\n=== SUMMARY ===")
+    print("\n=== SUMMARY (sorted by cost-of-pass) ===")
     summary = report.condition_summary()
-    print(f"{'Condition':<30} {'Pass%':>6} {'Tokens':>8} {'Cost':>10} {'Quality':>8} {'CoP':>12}")
-    print("-" * 80)
-    def _sort_by_pass(item: tuple) -> float:
-        return -item[1]["mean_pass_rate"]
+    header = (
+        f"{'Condition':<26} {'Pass%':>5} "
+        f"{'In-tok':>7} {'Out-tok':>7} "
+        f"{'In-$':>8} {'Out-$':>8} {'Total-$':>9} "
+        f"{'Quality':>7} {'CoP':>10} {'vs-Base':>8} {'$/mo@20':>9}"
+    )
+    print(header)
+    print("-" * len(header))
 
-    for cid, s in sorted(summary.items(), key=_sort_by_pass):
+    def _sort_by_cop(item: tuple) -> float:
+        cop = item[1]["mean_cost_of_pass"]
+        return cop if cop < float("inf") else 1e9
+
+    for cid, s in sorted(summary.items(), key=_sort_by_cop):
         cop = s["mean_cost_of_pass"]
-        cop_str = f"${cop:.4f}" if cop < float("inf") else "∞"
+        cop_str = f"${cop:.5f}" if cop < float("inf") else "inf"
+        delta = s.get("cost_delta_vs_ungoverned")
+        delta_str = f"{delta:.2f}x" if delta is not None else "base"
+        monthly = s.get("monthly_cost_20tasks", 0.0)
         print(
-            f"{cid:<30} "
-            f"{s['mean_pass_rate']*100:>5.0f}% "
-            f"{s['mean_total_tokens']:>8.0f} "
-            f"${s['mean_api_cost_usd']:>9.4f} "
-            f"{s['mean_quality_score']:>8.2f} "
-            f"{cop_str:>12}"
+            f"{cid:<26} "
+            f"{s['mean_pass_rate']*100:>4.0f}% "
+            f"{s['mean_input_tokens']:>7.0f} "
+            f"{s['mean_output_tokens']:>7.0f} "
+            f"${s['mean_input_cost_usd']:>7.5f} "
+            f"${s['mean_output_cost_usd']:>7.5f} "
+            f"${s['mean_api_cost_usd']:>8.5f} "
+            f"{s['mean_quality_score']:>7.2f} "
+            f"{cop_str:>10} "
+            f"{delta_str:>8} "
+            f"${monthly:>8.2f}"
         )
+    print()
+    print("CoP = cost-of-pass (USD to get one correct answer) | vs-Base = ratio vs UNGOVERNED")
+    print("$/mo@20 = estimated monthly spend at 20 tasks/day, 22 working days")
 
     return 0
 
