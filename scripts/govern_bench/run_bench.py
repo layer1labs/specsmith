@@ -238,15 +238,19 @@ def main() -> int:
                 if args.dry_run:
                     result = _make_dummy_run(task.id, condition.id, rep, args.model)
                 else:
-                    # TODO: integrate with real agent runner
-                    # from govern_bench.harness import run_task
-                    # result = run_task(task, condition, rep, model=args.model)
-                    print(
-                        "\n  [WARN] Real agent runner not yet implemented. "
-                        "Use --dry-run for now.",
-                        file=sys.stderr,
-                    )
-                    result = _make_dummy_run(task.id, condition.id, rep, args.model)
+                    from govern_bench.harness import run_task  # noqa: E402, PLC0415
+                    try:
+                        result = run_task(task, condition, rep=rep, model=args.model)
+                    except RuntimeError as exc:
+                        print(f"\n  [ERROR] {exc}", file=sys.stderr)
+                        return 1
+                    except Exception as exc:  # noqa: BLE001
+                        print(f"\n  [RUN ERROR] {exc}", file=sys.stderr)
+                        from govern_bench.metrics import RunResult
+                        result = RunResult(
+                            task_id=task.id, condition_id=condition.id, rep=rep,
+                            model=args.model, error=str(exc), skipped=True,
+                        )
 
                 status = "PASS" if result.passed else "FAIL"
                 cost_str = f"${result.api_cost_usd:.4f}"

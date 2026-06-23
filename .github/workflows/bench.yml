@@ -1,0 +1,202 @@
+name: Governance Efficiency Benchmark
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "scripts/govern_bench/**"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "scripts/govern_bench/**"
+  workflow_dispatch:
+    inputs:
+      tasks:
+        description: "Task IDs to run (comma-separated, e.g. T1,T2,T6,T7). Leave blank for all."
+        required: false
+        default: "T1,T2,T6,T7"
+      conditions:
+        description: "Condition IDs to run (comma-separated). Leave blank for all 6."
+        required: false
+        default: ""
+      reps:
+        description: "Repetitions per cell (default 2 for cost; use 5 for publication)"
+        required: false
+        default: "2"
+      model:
+        description: "OpenAI model to use"
+        required: false
+        default: "gpt-4o-mini"
+      dry_run:
+        description: "Use dry-run mode (no real API calls, deterministic dummy data)"
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+env:
+  SPECSMITH_NO_AUTO_UPDATE: "1"
+  SPECSMITH_PYPI_CHECKED: "1"
+  SPECSMITH_ALLOW_NON_PIPX: "1"
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # smoke — always runs on push/PR in dry-run mode
+  # Validates harness structure loads and --list works.
+  # ──────────────────────────────────────────────────────────────────────────
+  smoke:
+    name: Benchmark smoke test (dry-run)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install pyyaml
+
+      - name: Verify task registry loads
+        run: python scripts/govern_bench/run_bench.py --list
+
+      - name: Dry-run benchmark (T6 + T7, 2 reps)
+        env:
+          BENCH_DRY_RUN: "1"
+        run: |
+          python scripts/govern_bench/run_bench.py \
+            --task T6 --task T7 \
+            --reps 2 \
+            --output /tmp/bench-smoke.md \
+            --json-output /tmp/bench-smoke.json
+
+      - name: Upload smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-smoke-report
+          path: |
+            /tmp/bench-smoke.md
+            /tmp/bench-smoke.json
+          retention-days: 7
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # real — triggered manually via workflow_dispatch
+  # Runs real OpenAI agent calls when OPENAI_API_KEY secret is available.
+  # Falls back to dry-run if secret is missing or dry_run input is true.
+  # ──────────────────────────────────────────────────────────────────────────
+  real:
+    name: Real benchmark (${{ github.event.inputs.model || 'gpt-4o-mini' }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install pyyaml fastapi uvicorn httpx starlette click openai
+
+      - name: Build task and condition arguments
+        id: build-args
+        run: |
+          TASK_ARGS=""
+          IFS=',' read -ra TASKS <<< "${{ github.event.inputs.tasks }}"
+          for t in "${TASKS[@]}"; do
+            t=$(echo "$t" | xargs)
+            [ -n "$t" ] && TASK_ARGS="$TASK_ARGS --task $t"
+          done
+          echo "task_args=$TASK_ARGS" >> "$GITHUB_OUTPUT"
+
+          COND_ARGS=""
+          IFS=',' read -ra CONDS <<< "${{ github.event.inputs.conditions }}"
+          for c in "${CONDS[@]}"; do
+            c=$(echo "$c" | xargs)
+            [ -n "$c" ] && COND_ARGS="$COND_ARGS --condition $c"
+          done
+          echo "cond_args=$COND_ARGS" >> "$GITHUB_OUTPUT"
+
+      - name: Run benchmark
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BENCH_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+          BENCH_MAX_TURNS: "12"
+          # Optional: enable LLM judge for quality scoring
+          # BENCH_JUDGE_MODEL: claude-haiku-4-5
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DRY_FLAG=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_FLAG="--dry-run"
+
+          python scripts/govern_bench/run_bench.py \
+            ${{ steps.build-args.outputs.task_args }} \
+            ${{ steps.build-args.outputs.cond_args }} \
+            --reps ${{ github.event.inputs.reps || '2' }} \
+            --model ${{ github.event.inputs.model || 'gpt-4o-mini' }} \
+            --output docs/site/efficiency-benchmark.md \
+            --json-output bench-results.json \
+            $DRY_FLAG
+
+      - name: Upload benchmark report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-report-${{ github.run_id }}
+          path: |
+            docs/site/efficiency-benchmark.md
+            bench-results.json
+          retention-days: 30
+
+      - name: Post summary to job
+        if: always()
+        run: |
+          echo "## Benchmark Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Model:** ${{ github.event.inputs.model || 'gpt-4o-mini' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Tasks:** ${{ github.event.inputs.tasks || 'T1,T2,T6,T7' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Reps:** ${{ github.event.inputs.reps || '2' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dry-run:** ${{ github.event.inputs.dry_run }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f bench-results.json ]; then
+            python - <<'PYEOF'
+          import json, sys
+          from pathlib import Path
+
+          data = json.loads(Path("bench-results.json").read_text())
+          if not data:
+              print("No results.")
+              sys.exit(0)
+
+          # Roll up by condition
+          from collections import defaultdict
+          by_cond = defaultdict(list)
+          for r in data:
+              by_cond[r["condition"]].append(r)
+
+          print("| Condition | Pass% | Avg Tokens | Avg Cost | Quality |")
+          print("|-----------|-------|------------|----------|---------|")
+          for cid in ["UNGOVERNED","CONTEXT_ONLY","BMAD_STYLE","OPENSPEC_STYLE","SPECSMITH_LIGHT","SPECSMITH_FULL"]:
+              rows = by_cond.get(cid, [])
+              if not rows:
+                  continue
+              pass_rate = sum(1 for r in rows if r["passed"]) / len(rows)
+              avg_tok = sum(r["tokens"] for r in rows) / len(rows)
+              avg_cost = sum(r["cost_usd"] for r in rows) / len(rows)
+              avg_q = sum(r["quality"] for r in rows) / len(rows)
+              print(f"| {cid} | {pass_rate*100:.0f}% | {avg_tok:.0f} | ${avg_cost:.4f} | {avg_q:.2f} |")
+          PYEOF
+          fi >> "$GITHUB_STEP_SUMMARY"
