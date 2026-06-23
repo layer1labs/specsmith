@@ -79,6 +79,28 @@ def add_entry(
 
     # Persist hash to chain index
     chain.append(entry_hash)
+    # Best-effort SQLite audit event for tamper-evident ESDB trail (SS-006).
+    try:
+        from specsmith.esdb import ESDB_BACKEND, open_default_store
+
+        with open_default_store(root, warn=False) as store:
+            if ESDB_BACKEND == "sqlite" and hasattr(store, "append_audit_event"):
+                store.append_audit_event(
+                    payload={
+                        "description": description,
+                        "entry_type": entry_type,
+                        "author": author,
+                        "reqs": reqs,
+                        "status": status,
+                        "epistemic_status": epistemic_status,
+                        "belief_artifacts": belief_artifacts,
+                    },
+                    command_source="ledger.add_entry",
+                    work_item_id="",
+                    actor=author,
+                )
+    except Exception:  # noqa: BLE001
+        pass
     return entry.strip()
 
 

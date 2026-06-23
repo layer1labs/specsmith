@@ -1,39 +1,17 @@
 # Security Policy
 
-## Supported Versions
+SpecSmith security assumptions, threat inventory, controls, and hardening guidance are documented in:
 
-| Version | Supported |
-|---------|-----------|
-| 0.15.x  | ✅ Current |
-| 0.14.x  | ⚠ Security fixes only |
-| < 0.14.0 | ❌ No longer supported |
+- `docs/security-threat-model.md`
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
-If you discover a security vulnerability in specsmith, please report it responsibly:
+- Do not open a public issue for suspected vulnerabilities.
+- Preferred private report channels:
+  - GitHub Security Advisory: https://github.com/layer1labs/specsmith/security/advisories/new
+  - Email: info@layer1labs.com
+- Include affected version, impact, reproduction details, and suggested mitigations if available.
 
-1. **Do NOT open a public issue.**
-2. Email: **info@layer1labs.com**
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
+## Supported versions
 
-We will acknowledge receipt within **48 hours** and aim to provide a fix or mitigation within **7 days** for critical issues.
-
-You may also use [GitHub's private security advisory](https://github.com/layer1labs/specsmith/security/advisories/new) workflow.
-
-## Scope
-
-This policy covers:
-- The `specsmith` CLI tool and its dependencies
-- Generated scaffold files and templates
-- CI/CD workflows and configuration files
-
-## Security Practices
-
-- Dependencies are monitored by Dependabot (GitHub) and Renovate (GitLab/Bitbucket)
-- CI runs `pip-audit` on every push to detect known vulnerabilities
-- All agent-invoked commands enforce timeouts to prevent hung processes
-- No secrets are stored in generated scaffold files
+Security fixes are prioritized for the current release line. Older unsupported versions may not receive patches.

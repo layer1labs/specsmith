@@ -26,7 +26,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, cast
 
 # ---------------------------------------------------------------------------
 # Markdown parsers
@@ -101,6 +101,7 @@ def parse_requirements_md(text: str) -> list[dict[str, Any]]:
     return [
         {
             "id": r["id"],
+            "version": 1,
             "title": r.get("title", r["id"]),
             "description": r.get("description", ""),
             "source": r.get("source", "docs/REQUIREMENTS.md"),
@@ -160,6 +161,7 @@ def parse_tests_md(text: str) -> list[dict[str, Any]]:
     return [
         {
             "id": r["id"],
+            "version": 1,
             "title": r.get("title", r["id"]),
             "description": r.get("description", ""),
             "requirement_id": r.get("requirement id", r.get("requirement_id", "")),
@@ -359,6 +361,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_reqs = [
             {
                 "id": r["id"],
+                "version": int(r.get("version", 1) or 1),
                 "title": r.get("title", r["id"]),
                 "description": str(r.get("description", "")),
                 "source": r.get("source", "docs/requirements/"),
@@ -376,6 +379,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         new_tests = [
             {
                 "id": t["id"],
+                "version": int(t.get("version", 1) or 1),
                 "title": t.get("title", t["id"]),
                 "description": str(t.get("description", "")),
                 "requirement_id": str(t.get("requirement_id", "")),
@@ -551,6 +555,71 @@ def _sync_esdb(root: Path, state_dir: Path) -> None:
         store.close()
     except Exception:  # noqa: BLE001 — ESDB sync is always best-effort
         pass
+
+
+def _json_file_has_content(path: Path) -> bool:
+    """Return True when *path* exists and contains a non-empty JSON list.
+
+    Falls back to a small size heuristic for malformed JSON so we still treat
+    legacy state files with obvious content as migratable.
+    """
+    if not path.is_file():
+        return False
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        return isinstance(payload, list) and len(payload) > 0
+    except (OSError, ValueError):
+        with contextlib.suppress(OSError):
+            return path.stat().st_size > 2
+        return False
+
+
+def _should_auto_migrate(store: Any, specsmith_dir: Path) -> bool:
+    """Return True when ESDB is empty and legacy JSON sources have content.
+
+    This is used by CLI surfaces (`sync`, `audit`, `esdb status`) to
+    opportunistically bootstrap ESDB from `.specsmith/*.json` exactly once.
+    """
+    if store.record_count() > 0:
+        return False
+    candidates = (
+        specsmith_dir / "requirements.json",
+        specsmith_dir / "testcases.json",
+    )
+    return any(_json_file_has_content(path) for path in candidates)
+
+
+def auto_migrate_if_needed(root: Path) -> dict[str, int]:
+    """Best-effort ESDB bootstrap from legacy JSON when the store is empty.
+
+    Returns migration counts on success, or an empty dict when no migration was
+    needed or if any backend error occurred.
+    """
+    from specsmith.esdb import open_default_store
+
+    specsmith_dir = root / ".specsmith"
+    if not specsmith_dir.exists():
+        return {}
+
+    class _MigratableStore(Protocol):
+        def record_count(self) -> int: ...
+        def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any: ...
+
+    try:
+        with open_default_store(root, warn=False) as store:
+            typed_store = cast(_MigratableStore, store)
+            if not _should_auto_migrate(typed_store, specsmith_dir):
+                return {}
+            counts = typed_store.migrate_from_json(specsmith_dir)
+            if isinstance(counts, dict):
+                return {
+                    "requirements": int(counts.get("requirements", 0)),
+                    "testcases": int(counts.get("testcases", 0)),
+                    "skipped": int(counts.get("skipped", 0)),
+                }
+            return {}
+    except Exception:  # noqa: BLE001 - never block caller commands
+        return {}
 
 
 def check_sync(root: Path) -> SyncResult:

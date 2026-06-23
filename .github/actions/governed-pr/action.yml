@@ -1,0 +1,40 @@
+name: "Governed PR"
+description: "Run specsmith governance checks and post a PR governance status comment."
+inputs:
+  project-dir:
+    description: "Project directory"
+    required: false
+    default: "."
+  work-item-id:
+    description: "Optional work item ID to evaluate"
+    required: false
+    default: ""
+  required-check:
+    description: "Fail the action when governance gaps are detected"
+    required: false
+    default: "false"
+runs:
+  using: "composite"
+  steps:
+    - name: Run audit
+      shell: bash
+      run: |
+        specsmith audit --project-dir "${{ inputs.project-dir }}" > "${RUNNER_TEMP}/specsmith_audit.txt" || true
+    - name: Build governed PR status
+      shell: bash
+      run: |
+        EXTRA=""
+        if [ "${{ inputs.required-check }}" = "true" ]; then
+          EXTRA="--required-check"
+        fi
+        specsmith governed-pr check \
+          --project-dir "${{ inputs.project-dir }}" \
+          --work-item "${{ inputs.work-item-id }}" \
+          --comment-output "${RUNNER_TEMP}/governance_comment.md" \
+          --json \
+          ${EXTRA} > "${RUNNER_TEMP}/governance_status.json"
+    - name: Post PR governance comment
+      shell: bash
+      if: github.event_name == 'pull_request'
+      run: |
+        gh pr comment "${{ github.event.pull_request.number }}" --body-file "${RUNNER_TEMP}/governance_comment.md"

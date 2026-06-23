@@ -7,51 +7,78 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/layer1labs/specsmith/blob/main/LICENSE)
 
-**Applied Epistemic Engineering toolkit for AI-assisted development.**
+SpecSmith is the governance layer for AI-assisted development: it sits between agents and your repo, enforces preflight decisions, and records requirement/test traceability with auditable evidence. It is **not** an IDE, autonomous coding agent, CI runner, or legal-compliance certifier. Use SpecSmith when changes need repeatable controls, work-item lineage, and review-ready artifacts; do not use it for throwaway prototyping where governance overhead is unnecessary. Compared with GitHub Spec Kit, OpenSpec, and BMAD, SpecSmith adds execution-time policy gates and trace chains. Compared with Aider, Claude Code, and Cursor, SpecSmith governs those clients instead of replacing them. Compared with LangGraph and AutoGen, SpecSmith prioritizes software-governance outcomes and evidence quality over general-purpose multi-agent orchestration.
 
-> Intelligence proposes. Constraints decide. The ledger remembers.
+## Architecture at a glance
 
-specsmith treats belief systems like code: codable, testable, and deployable. It scaffolds
-epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
-cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
+```
+AI Agents / IDE Clients
+        |
+        v
+  SpecSmith Governance Layer
+  ├── Repository Files
+  ├── Requirements and Tests ──> CI and MCP Integrations
+  └── ESDB / Audit Ledger  ──> CI and MCP Integrations
+```
 
-**v0.15.2 — PyPI-safe README links, RTD nav coverage, updated security policy, and expanded embedded skill catalog (Zephyr 4.4→3.x, FreeRTOS, bare-metal C).**
-specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
-and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
-every AI-generated output is disclosed, context windows are GPU-aware and protected against
-overflow, and compliance settings are configurable per-session and per-project.
+## When to use / when not to use
+
+- Use when you need governed AI development, auditable decision trails, and requirement-to-test linkage.
+- Avoid when rapid local prototyping is the only goal and formal governance is unnecessary.
+
+## Comparison summary
+
+- **GitHub Spec Kit / OpenSpec / BMAD:** strong specification practices; SpecSmith adds execution-time governance, work-item lifecycle control, and trace-chain evidence.
+- **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
+- **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
+
+### Governance efficiency benchmark
+
+We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) comparing specsmith governance against 11 alternatives (ungoverned, BMAD, Cursor rules, Copilot, Aider, Cline, Codex CLI, OpenSpec, Agile BDD/TDD, and context injection) across real coding tasks with gpt-4o-mini and gpt-5.5.
+
+| Condition | Pass Rate | Mean Tokens | Cost/run | Cost-of-Pass |
+|---|---|---|---|---|
+| Ungoverned (raw agent) | 0% on T1 | 44.6k | $0.0079 | ∞ |
+| Context injection (CLAUDE.md) | 100% | 43.7k | $0.0084 | $0.0084 |
+| BMAD-style structured prompting | 50% | 139.1k | $0.0262 | $0.0523 |
+| **specsmith LIGHT (preflight)** | **100%** | **21.1k** | **$0.0032** | **$0.0032** |
+| **specsmith FULL (governed)** | **100%** | **17.1k** | **$0.0026** | **$0.0026** |
+
+**Key findings:** specsmith FULL is the only condition to achieve 100% pass rate on the feature-addition task (T1). It uses 2.6× fewer tokens than ungoverned and produces a cost-of-pass 3.2× lower than the next-best alternative. With gpt-5.5, governance reduces cost-of-pass by **6.3×** ($0.028 vs $0.179).
+
+See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+
+**v0.16.1** — governance efficiency benchmark suite (12 conditions, 3 tasks, gpt-4o-mini + gpt-5.5 comparison); cross-model comparison report; real OpenAI agent harness; CI matrix job. Also includes the v0.16.0 stabilisation milestone: 20+ CLI commands, ESDB SQLite backend, chronomemory 0.2.0, Python 3.10–3.13 × Ubuntu + Windows green, 1 607 tests passing.
+
+specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689) and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed, every AI-generated output is disclosed, context windows are GPU-aware, and compliance settings are configurable per-session and per-project.
+
+### Selected v0.16 CLI highlights
 
 ```bash
 specsmith governance-serve --port 7700     # governance REST API
-specsmith sync                              # sync YAML → JSON → MD (YAML-first mode)
-specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md from YAML
-specsmith validate --strict                 # YAML schema checks: dup IDs, orphans, coverage
-specsmith agent permissions-check git_push # check tool permission (REQ-012)
+specsmith sync                              # YAML → JSON → MD (YAML-first mode)
+specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md
+specsmith validate --strict                 # dup IDs, orphans, coverage gaps
+specsmith agent permissions-check git_push  # tool permission gate (REQ-012)
 specsmith ollama gpu                        # detect GPU VRAM, recommend context size
 specsmith export                            # generate full compliance report
 
-# Update channel management (REQ-248)
+# Update channels
 specsmith channel set stable               # pin to stable releases
-specsmith channel set dev                  # opt in to dev/pre-release builds
-specsmith channel get --json               # show current channel + source
+specsmith channel set dev                  # opt in to pre-release builds
 
-# ESDB extended lifecycle (REQ-249..253)
-specsmith esdb export --json               # dump all records to JSON snapshot
-specsmith esdb import backup.json          # validate + stage an import
+# ESDB lifecycle
+specsmith esdb export --json               # dump records to JSON snapshot
 specsmith esdb backup                      # create timestamped snapshot
-specsmith esdb rollback --steps 2          # report WAL rollback (stub)
-specsmith esdb compact                     # request WAL compaction
+specsmith esdb compact                     # WAL compaction
 
-# Skills lifecycle (REQ-254..255)
-specsmith skills deactivate <skill-id>     # set active=false in skill.json
-specsmith skills delete <skill-id> --yes   # permanently remove skill
+# Skills
+specsmith skills deactivate <skill-id>     # set active=false
+specsmith skills delete <skill-id> --yes   # permanently remove
 
-# MCP config generation (REQ-256)
-specsmith mcp generate "Search USPTO patents" --json  # JSON config stub
-
-# Agent ask dispatcher — no LLM required (REQ-257)
+# MCP + agent dispatch
+specsmith mcp generate "Search USPTO patents" --json
 specsmith agent ask "show esdb status" --json-output
-specsmith agent ask "build skill for summarizing"
 ```
 
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
@@ -102,6 +129,18 @@ specsmith phase list     # list all phases
 The current phase is persisted in `scaffold.yml` as `aee_phase`. Each phase has a checklist
 of file/command criteria, recommended commands, and a readiness percentage.
 
+## 1.0 release criteria status
+
+| Criterion | Status | Source |
+|---|---|---|
+| Stable CLI core contract documented | In progress | `docs/stability.md` |
+| Stable generated file schemas documented | In progress | `docs/stability.md` |
+| Stable MCP tool schemas documented | In progress | `docs/stability.md` |
+| Migration tests linked (#218) | In progress | `docs/roadmap/1.0-criteria.md` |
+| Security threat model documented | In progress | `docs/security-threat-model.md` |
+| Docs/tutorial/glossary baseline complete | In progress | `docs/roadmap/1.0-criteria.md` |
+| Upgrade path and changelog criteria defined | In progress | `docs/roadmap/1.0-criteria.md` |
+
 ---
 
 ## Install
@@ -146,6 +185,8 @@ in your own application without managing a pipx environment.
 | **Default** | `specsmith` (built-in) | MIT, free | SQLite backend — requirements, test cases, confidence filtering |
 | **Commercial** | `chronomemory` via `specsmith[esdb]` | Proprietary — license required | ChronoStore: tamper-evident SHA-256 WAL, OEA anti-hallucination fields, Rust acceleration, epistemic rollback |
 
+See `docs/editions.md` for the full OSS vs commercial feature matrix.
+
 `pip install specsmith` always installs the **free SQLite backend** automatically.
 No additional packages, no license key, no configuration — it works out of the box.
 
@@ -166,7 +207,7 @@ If you hold a chronomemory ESDB license, activate the commercial backend:
 # Step 1 — install the chronomemory package
 pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
 # or if using pipx:
-pipx inject specsmith "chronomemory>=0.1.7"  # inject into the specsmith pipx venv
+pipx inject specsmith "chronomemory>=0.2.0"  # inject into the specsmith pipx venv
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your.esdb.key
@@ -182,11 +223,11 @@ To obtain a chronomemory ESDB license:
 [licensing@layer1labs.com](mailto:licensing@layer1labs.com) · [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
 See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a feature comparison and Python API reference.
 
-**Update:**
+**Upgrading specsmith:**
 
 ```bash
-pipx upgrade specsmith
-specsmith self-update
+pipx upgrade specsmith   # preferred — upgrades the pipx-isolated CLI
+specsmith self-update    # alternative: self-update from within specsmith
 ```
 
 ---
@@ -194,35 +235,35 @@ specsmith self-update
 ## Quick Start
 
 ```bash
-# New project (interactive)
-specsmith init
+# 1. Install
+pipx install specsmith
 
-# Adopt an existing project
-specsmith import --project-dir ./my-project
+# 2. Start a new project (or import an existing one)
+specsmith init                           # interactive scaffold wizard
+specsmith import --project-dir ./my-project  # adopt an existing repo
 
-# Check governance health
-specsmith audit --project-dir ./my-project
+# 3. Bootstrap every session (run once at the start of each work session)
+specsmith migrate run                    # apply any pending schema migrations
+specsmith audit                          # verify governance health
+specsmith sync                           # YAML → JSON → MD sync
+specsmith checkpoint                     # emit GOVERNANCE ANCHOR
 
-# Run AEE stress-test on requirements
-specsmith stress-test --project-dir ./my-project
+# 4. Before every code change: preflight
+specsmith preflight "add paginated GET /todos endpoint"  # gate the intent
+# → decision: accepted | needs_clarification  +  work_item_id: WI-XXXXXXXX
 
-# Full epistemic audit (certainty + logic knots + recovery proposals)
-specsmith epistemic-audit --project-dir ./my-project
+# 5. After making changes: verify + save
+specsmith verify                         # check equilibrium
+specsmith save                           # commit governance state + push
 
-# Start the agentic REPL
-specsmith run --project-dir ./my-project
-
-# AG2 agent shell — Planner/Builder/Verifier over Ollama
-specsmith agent status                    # check agent config + Ollama
-specsmith agent plan "add logging"        # plan only (no execution)
-specsmith agent run "fix lint errors"     # full Plan → Build → Verify
-specsmith agent improve "add tests"       # self-improvement with reports
-specsmith agent verify                    # run Verifier on current state
-specsmith agent reports                   # list improvement reports
-
-# Check current AEE workflow phase
-specsmith phase --project-dir ./my-project
+# 6. Check AEE workflow phase and health
+specsmith phase                          # current phase + readiness %
+specsmith audit                          # full governance health check
 ```
+
+> **Agentic REPL:** run `specsmith run` to start the Nexus governance-gated LLM REPL.
+> Every utterance is preflighted automatically. Use `/why` to see the governance trace.
+> For the multi-agent DAG dispatcher, see `specsmith dispatch run "<task>"`.
 
 ---
 
@@ -268,7 +309,7 @@ be overwritten by the next sync.
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
 Idempotent — safe to re-run.
 
-## Least-Privilege Agent Permissions (REG-012)
+## Least-Privilege Agent Permissions (REQ-012)
 
 ```bash
 specsmith agent permissions                      # show active permission profile
@@ -322,7 +363,7 @@ across the AI lifecycle. specsmith addresses all four core functions:
 
 | NIST AI RMF Function | specsmith Mechanism |
 |---|---|
-| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
+|| **GOVERN** — Policies & accountability | Governance rules, permissions profile, `scaffold.yml` policy |
 | **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
 | **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
 | **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
@@ -356,7 +397,7 @@ Every preflight response includes a mandatory `ai_disclosure` block:
     "governance_gated": true,
     "provider": "ollama",
     "model": "qwen2.5:14b",
-    "spec_version": "0.11.4"
+    "spec_version": "0.16.1"
   }
 }
 ```
@@ -896,8 +937,6 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Business / Legal / AEE:** `business-plan`, `legal-compliance`, `monorepo`, `browser-extension`, `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
 
-**Declarative / Formal:** `brief-lang` (Brief v0.14.0 — contract-enforced logic language, `.bv`/`.sbv`/`.ebv`/`.rbv`).
-
 ---
 
 ## epistemic Library
@@ -923,42 +962,15 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 
 ---
 
-## Governance Rules (H1–H22)
+## Governance Rules
 
-22 hard rules enforced by `specsmith validate` and `specsmith audit`.
-Full rule text: [`docs/governance/RULES.md`](https://github.com/layer1labs/specsmith/blob/main/docs/governance/RULES.md)
+22 hard rules enforced by `specsmith validate` and `specsmith audit`. Rules 1–14 cover
+core engineering and traceability (ledger required, proposals required, platform-awareness,
+documentation currency, etc.). Rules 15–22 address anti-hallucination and epistemic
+stability, derived from the OEA (Ontological Epistemic Anchoring) research framework
+(Layer1Labs, 2026).
 
-**H1–H14 — Core engineering and traceability rules:**
-- **H1** — No ledger entry = work not done.
-- **H2** — No proposal = no execution.
-- **H3** — All work must consider every target platform.
-- **H4** — No system-dependent assumptions; virtual environments required.
-- **H5** — No hidden service logic.
-- **H6** — If the task grows beyond the proposal, stop and re-propose.
-- **H7** — Every state change must be traceable and recorded.
-- **H8** — Architecture changes MUST update docs in the same work cycle.
-- **H9** — Every agent command must have a timeout.
-- **H10** — No hardcoded version strings outside `pyproject.toml`.
-- **H11** — Every loop must have a deadline; no unbounded blocking I/O.
-- **H12** — Platform-aware automation: sh/bash on Unix, `.cmd`/`.ps1` on Windows.
-- **H13** — Every proposal must declare its epistemic boundaries and assumptions.
-- **H14** — Documentation must be updated in the same work cycle as code changes.
-
-**H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
-
-Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
-Generative Stability"* study (Layer1Labs Research, 2026), which empirically validated
-the primary control mechanisms for preventing hallucination and semantic drift in
-production LLM systems:
-
-- **H15** — Epistemic scope bounding: no claims outside verified knowledge; say "unknown" rather than fabricate.
-- **H16** — Anti-drift recursion guard: max 5 autonomous generation steps before a human checkpoint.
-- **H17** — Calibration direction: express uncertainty, not false confidence.
-- **H18** — RAG retrieval filtering: validate context relevance (similarity ≥ 0.6) before injection.
-- **H19** — Synthetic contamination prevention: never mix synthetic and real data silently.
-- **H20** — Falsifiability required: cite sources or flag claims as `[HYPOTHESIS]`.
-- **H21** — Disclose all model-specific assumptions (context window, format, temperature).
-- **H22** — Cross-platform CI: green on one OS ≠ cross-platform coverage.
+Full rule reference: [`docs/governance/RULES.md`](https://github.com/layer1labs/specsmith/blob/develop/docs/governance/RULES.md)
 
 ---
 
@@ -1109,9 +1121,15 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
-- [Changelog](https://github.com/layer1labs/specsmith/blob/main/CHANGELOG.md)
-- [Contributing](https://github.com/layer1labs/specsmith/blob/main/CONTRIBUTING.md)
-- [Security](https://github.com/layer1labs/specsmith/blob/main/SECURITY.md)
+- [Stability Contract](https://github.com/layer1labs/specsmith/blob/develop/docs/stability.md)
+- [1.0 Release Criteria](https://github.com/layer1labs/specsmith/blob/develop/docs/roadmap/1.0-criteria.md)
+- [Editions Matrix](https://github.com/layer1labs/specsmith/blob/develop/docs/editions.md)
+- [Changelog](https://github.com/layer1labs/specsmith/blob/develop/CHANGELOG.md)
+- [Contributing](https://github.com/layer1labs/specsmith/blob/develop/CONTRIBUTING.md)
+- [Roadmap](https://github.com/layer1labs/specsmith/blob/develop/ROADMAP.md)
+- [Compatibility Matrix](https://github.com/layer1labs/specsmith/blob/develop/docs/site/compatibility.md)
+- [Product Principles](https://github.com/layer1labs/specsmith/blob/develop/docs/product-principles.md)
+- [Security](https://github.com/layer1labs/specsmith/blob/develop/SECURITY.md)
 
 ## License
 

@@ -1,0 +1,71 @@
+# T3 — Add Input Validation
+# Category: Validation/hardening
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Easy
+#
+# Why this task:
+#   Input validation is often skipped by agents focused on the "happy path".
+#   This task tests whether governance conditions produce better security
+#   posture and completeness. An ungoverned agent may add validation but
+#   miss edge cases (empty string, whitespace-only, XSS-like content).
+#
+# The gap:
+#   POST /todos currently accepts TodoCreate with title: str — no length
+#   limit, no empty-string check. A 2-char title and a 10,000-char title
+#   both succeed. This creates a denial-of-service vector and bad UX.
+
+id: T3
+title: "Add input validation to POST /todos"
+category: validation_hardening
+difficulty: easy
+project: agentic-todo-api
+estimated_tokens_ungoverned: 2200
+estimated_tokens_specsmith_full: 3800
+
+task_prompt: |
+  The POST /todos endpoint accepts any string as the todo title.
+  Add proper validation:
+
+  - title must be 1–200 characters (after stripping leading/trailing whitespace)
+  - title cannot be empty or whitespace-only
+  - description (optional field) must be ≤ 1000 characters if provided
+  - Return HTTP 422 with a meaningful error message for violations
+
+  Use Pydantic validators (not manual if/raise). The existing tests must
+  still pass. Add tests for each validation rule.
+
+acceptance_criteria: |
+  - [ ] title with 0 chars (empty string) → HTTP 422
+  - [ ] title with only whitespace → HTTP 422
+  - [ ] title with 201+ chars → HTTP 422
+  - [ ] title with 1–200 non-whitespace chars → HTTP 201 (created)
+  - [ ] description with 1001+ chars → HTTP 422
+  - [ ] description=null or omitted → HTTP 201 (created, description is optional)
+  - [ ] Validation uses Pydantic field_validator or Annotated constraints, not manual if/raise
+  - [ ] At least 5 new tests covering the above cases
+  - [ ] Error response body contains a human-readable message (not just "value error")
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/models.py   # or app/schemas.py depending on project layout
+  - tests/test_main.py
+
+regression_risk: low
+
+known_failure_modes:
+  - "Agent adds validation in main.py with manual if/raise instead of Pydantic validators"
+  - "Agent strips whitespace for the length check but stores the unstripped title"
+  - "Agent uses @validator (deprecated) instead of @field_validator (Pydantic v2)"
+  - "Agent adds validation but the 422 response body is Pydantic's raw JSON, not a custom message"
+  - "Agent forgets to test the description field limits"
+  - "Agent changes the model import path and breaks the existing test fixtures"
+
+governance_signals:
+  preflight_expected_req_match: false  # This is a new requirement → new WI expected
+  # The governance value here: preflight surfaces that this is a NEW requirement,
+  # not a bug fix, which changes how the agent scopes its implementation.
+  # An ungoverned agent might treat this as 'add a couple of if statements'.
+  verify_expected_to_catch:
+    - "manual if/raise instead of Pydantic validator"
+    - "missing description validation test"

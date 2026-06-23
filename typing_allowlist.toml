@@ -1,0 +1,32 @@
+[meta]
+version = 1
+source_issue = "https://github.com/layer1labs/specsmith/issues/205"
+description = "Documented type-ignore carveouts pending incremental typing hardening."
+
+[[exceptions]]
+path = "src/specsmith/cli.py"
+reason = "Click dynamic command registration and optional backends still require dynamic attribute access in selected call sites."
+issue = "https://github.com/layer1labs/specsmith/issues/205"
+owner = "core-cli"
+expires = "v0.17"
+
+[[exceptions]]
+path = "src/specsmith/esdb/__init__.py"
+reason = "Commercial chronomemory optional dependency provides runtime-only symbols with fallback stubs."
+issue = "https://github.com/layer1labs/specsmith/issues/205"
+owner = "esdb"
+expires = "v0.17"
+
+[[exceptions]]
+path = "src/specsmith/agent/*"
+reason = "Agent orchestration integrates dynamic provider/plugin surfaces where strict typing wrappers are not complete."
+issue = "https://github.com/layer1labs/specsmith/issues/205"
+owner = "agent-runtime"
+expires = "v0.18"
+
+[[exceptions]]
+path = "src/specsmith/gui/*"
+reason = "Qt/PySide signal-slot typing boundaries and optional runtime UI imports remain partially typed."
+issue = "https://github.com/layer1labs/specsmith/issues/205"
+owner = "gui"
+expires = "v0.18"

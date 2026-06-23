@@ -23,9 +23,13 @@ Differences from ChronoStore (by design):
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import sqlite3
 import time
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +45,18 @@ CREATE TABLE IF NOT EXISTS records (
     data        TEXT NOT NULL DEFAULT '{}',
     source_ids  TEXT NOT NULL DEFAULT '[]',
     created_at  REAL NOT NULL
+)
+"""
+_CREATE_AUDIT_TABLE = """
+CREATE TABLE IF NOT EXISTS audit_events (
+    event_id         TEXT PRIMARY KEY,
+    timestamp        TEXT NOT NULL,
+    prev_hash        TEXT NOT NULL,
+    current_hash     TEXT NOT NULL,
+    actor            TEXT NOT NULL,
+    command_source   TEXT NOT NULL,
+    work_item_id     TEXT NOT NULL,
+    payload_hash     TEXT NOT NULL
 )
 """
 
@@ -150,6 +166,7 @@ class SqliteStore:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute(_CREATE_TABLE)
+        self._conn.execute(_CREATE_AUDIT_TABLE)
         self._conn.commit()
         self._open = True
         return self
@@ -306,8 +323,82 @@ class SqliteStore:
         return dest
 
     def chain_valid(self) -> bool:
-        """Always True — SQLite ACID guarantees integrity (no SHA-256 WAL chain)."""
-        return True
+        """Return True when the SQLite audit event hash chain verifies."""
+        return self.verify_audit_chain()["ok"]
+
+    def append_audit_event(
+        self,
+        *,
+        payload: dict[str, Any],
+        command_source: str = "specsmith",
+        work_item_id: str = "",
+        actor: str = "",
+    ) -> str:
+        """Append a tamper-evident audit event and return its event_id."""
+        conn = self._require_open()
+        ts = datetime.now(timezone.utc).isoformat()
+        payload_json = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        payload_hash = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
+        prev_row = conn.execute(
+            "SELECT current_hash FROM audit_events ORDER BY rowid DESC LIMIT 1"
+        ).fetchone()
+        prev_hash = str(prev_row["current_hash"]) if prev_row else "0" * 64
+        event_id = f"EVT-{uuid.uuid4().hex[:16].upper()}"
+        resolved_actor = actor or _default_actor()
+        material = (
+            f"{event_id}|{ts}|{prev_hash}|{resolved_actor}|{command_source}|"
+            f"{work_item_id}|{payload_hash}"
+        )
+        current_hash = hashlib.sha256(material.encode("utf-8")).hexdigest()
+        conn.execute(
+            """
+            INSERT INTO audit_events (
+                event_id, timestamp, prev_hash, current_hash,
+                actor, command_source, work_item_id, payload_hash
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_id,
+                ts,
+                prev_hash,
+                current_hash,
+                resolved_actor,
+                command_source,
+                work_item_id,
+                payload_hash,
+            ),
+        )
+        conn.commit()
+        return event_id
+
+    def verify_audit_chain(self) -> dict[str, Any]:
+        """Verify audit hash chain integrity and return an audit report."""
+        conn = self._require_open()
+        rows = conn.execute("SELECT * FROM audit_events ORDER BY rowid").fetchall()
+        expected_prev = "0" * 64
+        errors: list[str] = []
+        for row in rows:
+            event_id = str(row["event_id"])
+            prev_hash = str(row["prev_hash"])
+            if prev_hash != expected_prev:
+                errors.append(
+                    f"{event_id}: prev_hash mismatch "
+                    f"(expected {expected_prev[:12]}..., got {prev_hash[:12]}...)"
+                )
+            material = (
+                f"{event_id}|{row['timestamp']}|{row['prev_hash']}|{row['actor']}|"
+                f"{row['command_source']}|{row['work_item_id']}|{row['payload_hash']}"
+            )
+            calc_hash = hashlib.sha256(str(material).encode("utf-8")).hexdigest()
+            current_hash = str(row["current_hash"])
+            if current_hash != calc_hash:
+                errors.append(
+                    f"{event_id}: current_hash mismatch "
+                    f"(expected {calc_hash[:12]}..., got {current_hash[:12]}...)"
+                )
+            expected_prev = current_hash
+        return {"ok": len(errors) == 0, "errors": errors, "event_count": len(rows)}
 
     def compact(self) -> None:
         """Run VACUUM to reclaim space (no-op equivalent to ChronoStore.compact)."""
@@ -374,3 +465,17 @@ class SqliteStore:
     def __repr__(self) -> str:
         state = "open" if self._open else "closed"
         return f"SqliteStore({self._db_path}, {state})"
+
+
+def _default_actor() -> str:
+    """Resolve actor from environment or git config."""
+    actor = os.environ.get("SPECSMITH_ACTOR", "").strip()
+    if actor:
+        return actor
+    git_name = (
+        os.environ.get("GIT_AUTHOR_NAME", "").strip()
+        or os.environ.get("GIT_COMMITTER_NAME", "").strip()
+    )
+    if git_name:
+        return git_name
+    return os.environ.get("USERNAME", "").strip() or os.environ.get("USER", "").strip() or "unknown"

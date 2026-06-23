@@ -12,7 +12,7 @@ from click.testing import CliRunner
 
 from specsmith.cli import main
 from specsmith.esdb.sqlite_store import SqliteRecord, SqliteStore
-from specsmith.sync import run_sync
+from specsmith.sync import _should_auto_migrate, auto_migrate_if_needed, run_sync
 
 
 def _run(args: list[str]):  # type: ignore[return]  # noqa: ANN201
@@ -79,3 +79,52 @@ def test_save_uses_sqlite_store_backup(tmp_path: Path, monkeypatch: pytest.Monke
     backup_path = Path(backup_step["path"])
     assert backup_path.is_file()
     assert backup_path.suffix == ".sqlite3"
+
+
+def test_should_auto_migrate_true_when_store_empty(tmp_path: Path) -> None:
+    state = tmp_path / ".specsmith"
+    state.mkdir()
+    (state / "requirements.json").write_text(
+        json.dumps([{"id": "REQ-001", "title": "R"}]), encoding="utf-8"
+    )
+    (state / "testcases.json").write_text("[]", encoding="utf-8")
+
+    with SqliteStore(tmp_path) as store:
+        assert _should_auto_migrate(store, state) is True
+
+
+def test_should_auto_migrate_false_when_store_non_empty(tmp_path: Path) -> None:
+    state = tmp_path / ".specsmith"
+    state.mkdir()
+    (state / "requirements.json").write_text(
+        json.dumps([{"id": "REQ-001", "title": "R"}]), encoding="utf-8"
+    )
+    (state / "testcases.json").write_text("[]", encoding="utf-8")
+
+    with SqliteStore(tmp_path) as store:
+        store.upsert(SqliteRecord(id="REQ-000", kind="requirement", label="already-there"))
+        assert _should_auto_migrate(store, state) is False
+
+
+def test_auto_migrate_if_needed_populates_sqlite_from_legacy_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("SPECSMITH_ESDB_BACKEND", "sqlite")
+    state = tmp_path / ".specsmith"
+    state.mkdir()
+    (state / "requirements.json").write_text(
+        json.dumps([{"id": "REQ-101", "title": "Auto migrated req"}]), encoding="utf-8"
+    )
+    (state / "testcases.json").write_text(
+        json.dumps(
+            [{"id": "TEST-101", "title": "Auto migrated test", "requirement_id": "REQ-101"}]
+        ),
+        encoding="utf-8",
+    )
+
+    counts = auto_migrate_if_needed(tmp_path)
+    assert counts.get("requirements") == 1
+    assert counts.get("testcases") == 1
+
+    with SqliteStore(tmp_path) as store:
+        assert store.record_count() >= 2

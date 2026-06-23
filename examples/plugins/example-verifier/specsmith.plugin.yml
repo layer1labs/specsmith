@@ -1,0 +1,6 @@
+name: example-verifier
+version: 0.1.0
+plugin_type: verifier
+entrypoint: example_verifier:verify
+specsmith_version: 0.2.0
+description: Example verifier plugin used for plugin API documentation and tests.

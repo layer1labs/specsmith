@@ -1,0 +1,77 @@
+# T5 — Add CLI Command
+# Category: Feature addition (CLI)
+# Project: agentic-cli-tool (Click CLI)
+# Difficulty: Easy–Medium
+#
+# Why this task:
+#   Tests a different project type (CLI vs API) and a different failure mode:
+#   CLI agents often produce commands that don't handle stdin/stdout correctly,
+#   exit codes are wrong, or the help text is poorly written.
+#
+# The project:
+#   agentic-cli-tool is a Click-based file-processing CLI with commands:
+#     process — reads files, applies transforms, writes output
+#     validate — checks files against a schema
+#   Missing: an `export` command that converts processed output to CSV.
+
+id: T5
+title: "Add 'export' command to CLI tool"
+category: feature_addition
+difficulty: easy_medium
+project: agentic-cli-tool
+estimated_tokens_ungoverned: 3200
+estimated_tokens_specsmith_full: 4800
+
+task_prompt: |
+  The file processor CLI is missing an `export` command.
+
+  Add a Click command `export` that:
+  - Reads a JSON file produced by the `process` command
+  - Converts it to CSV format
+  - Writes to a specified output file (--output / -o flag)
+  - Prints to stdout if --output is not specified
+  - Supports --delimiter flag (default: comma, also accept 'tab' as shorthand for \t)
+  - Exits with code 1 and a meaningful error message if the input file doesn't exist
+  - Exits with code 1 if the JSON is malformed
+
+  Usage example:
+    cli export processed.json --output report.csv
+    cli export processed.json --delimiter tab
+
+acceptance_criteria: |
+  - [ ] `cli export --help` shows the command with all flags documented
+  - [ ] `cli export processed.json -o out.csv` produces a valid CSV file
+  - [ ] `cli export processed.json` prints CSV to stdout
+  - [ ] `cli export --delimiter tab processed.json` uses tab as delimiter
+  - [ ] `cli export missing.json` exits with code 1 and error message containing "not found"
+  - [ ] `cli export malformed.json` exits with code 1 and error message containing "JSON"
+  - [ ] At least 4 tests: happy path to file, stdout, bad delimiter, missing file
+  - [ ] The command is registered in the main Click group (shows in `cli --help`)
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - cli/commands/export.py     # new file
+  - cli/main.py                # register the new command
+  - tests/test_export.py       # new test file
+
+regression_risk: low  # New file, existing commands unchanged
+
+known_failure_modes:
+  - "Agent creates the export.py file but forgets to register it in main.py"
+  - "Agent uses sys.exit() instead of Click's ctx.exit() or raise SystemExit — breaks testing"
+  - "Agent writes to the output file before validating the input — creates empty/partial files on error"
+  - "Agent uses csv.writer but doesn't handle the BOM for Excel compatibility (minor but noted)"
+  - "Agent's test uses a real temp file but doesn't clean it up — test ordering issues"
+  - "Agent makes --output a required argument instead of optional"
+
+governance_signals:
+  preflight_expected_req_match: false  # new feature → new WI
+  verify_expected_to_catch:
+    - "command not registered in main Click group"
+    - "no test for error exit code"
+
+# CLI exit code discipline is a known weak spot for ungoverned agents.
+# SPECSMITH_FULL and OPENSPEC_STYLE should produce better exit code handling
+# because the acceptance criteria are made explicit before implementation starts.
+exit_code_discipline_metric: true

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from specsmith.auditor import run_audit
+from specsmith.auditor import check_industrial_artifacts, run_audit
 
 
 @pytest.fixture
@@ -87,6 +87,23 @@ class TestAuditDetectsIssues:
         assert len(coverage) == 1
         assert not coverage[0].passed
         assert "REQ-CLI-002" in coverage[0].message
+
+
+def test_industrial_artifacts_normalizes_windows_declared_paths(tmp_path: Path) -> None:
+    (tmp_path / "scaffold.yml").write_text(
+        "name: test\n"
+        "type: cli-python\n"
+        "industrial_artifacts:\n"
+        "  canopen_eds:\n"
+        "    - path: hardware\\device.eds\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "hardware").mkdir()
+    (tmp_path / "hardware" / "device.eds").write_text("EDS CONTENT", encoding="utf-8")
+
+    results = check_industrial_artifacts(tmp_path)
+    assert results
+    assert any(r.name == "industrial-artifacts" and r.passed for r in results)
 
 
 # ---------------------------------------------------------------------------

@@ -1,124 +1,48 @@
 # Contributing to specsmith
 
-## Bootstrap Notice
+Thanks for helping improve specsmith. This guide covers local setup, quality gates, and pull request expectations for contributors.
 
-specsmith is **bootstrapping its own governance process**. The tool generates the Agentic AI Development Workflow for other projects, but specsmith itself is iteratively adopting that same workflow. Future versions will be developed using an older stable version of itself — the process will converge.
-
-Until then, governance files in this repo (`AGENTS.md`, `LEDGER.md`, `docs/governance/`) represent the target state we are working toward, not a fully enforced process yet.
-
-## Development Setup
-
+## Local setup
 ```bash
 git clone https://github.com/layer1labs/specsmith.git
 cd specsmith
-pip install -e ".[dev]"
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -e .[esdb]
 ```
 
-!!! warning "Scope `PYTHONPATH` to this workspace only"
-    `pip install -e .` creates `src/specsmith.egg-info` which `importlib.metadata`
-    finds via `PYTHONPATH=.../src`. If this is set **globally** in your shell it
-    leaks into every Python process — including pipx venvs — and causes version
-    mismatches across tools.
-
-    Use the provided `.vscode/settings.json` which scopes `PYTHONPATH` to the
-    VS Code integrated terminal for **this workspace only**. Never export
-    `PYTHONPATH` in your shell profile for this purpose.
-
-## Branching Strategy (gitflow)
-
-- `main` — production-ready releases
-- `develop` — integration branch for next release
-- `feature/*` — branch from `develop`, merge back to `develop`
-- `release/*` — branch from `develop`, merge to `main` + `develop`
-- `hotfix/*` — branch from `main`, merge to `main` + `develop`
+## Test and quality commands
+Run these before opening a PR:
 
 ```bash
-git checkout develop
-git checkout -b feature/my-feature
-# work, commit, push
-gh pr create --base develop
+python -m pytest tests/ -q
+ruff check src/ tests/
+ruff format src/ tests/
+ruff format --check src/ tests/
 ```
 
-## Running Checks
+## Architecture overview
+specsmith is a Python CLI governance toolkit built around an AEE-inspired lifecycle. The core flow gates change-oriented work through preflight decisions, tracks intent as work items, verifies outcomes, and audits evidence in a traceable chain. Governance artifacts and machine state are synchronized through project metadata in `.specsmith/` and docs-generated requirement/test files. Integrations with agents and MCP clients layer on top of this governance core rather than bypassing it.
 
-```bash
-ruff check src/ tests/ && ruff format --check src/ tests/ && mypy src/specsmith/ && pytest tests/ -v
-```
+See also:
+- `docs/product-principles.md`
+- `docs/site/architecture-diagrams.md`
+- `docs/site/compatibility.md`
 
-## Pre-commit
+## Good first issues
+- Start with docs, tests, or small CLI UX improvements.
+- Look for issues labeled `good first issue` or `documentation`.
+- Prefer scoped changes that touch one subsystem at a time.
 
-```bash
-pre-commit install
-```
+## Pull request checklist
+- Branch from `develop` (or the branch requested by maintainers).
+- Keep changes scoped and describe user-facing impact clearly.
+- Run lint and tests locally.
+- Update docs when behavior, commands, or workflows change.
+- Link related issues in the PR description.
 
-## Code Standards
-
-- SPDX headers on all `.py` files (`MIT`, `Layer1Labs Silicon, Inc.`)
-- Must pass `ruff check`, `ruff format --check`, `mypy --strict`
-- All features require tests
-- Windows scripts: `.cmd` only (no `.ps1`)
-- Line length: 100
-
-## Tool Registry
-
-When adding a new project type:
-1. Add the enum to `config.py` (`ProjectType`)
-2. Add type label and section ref to `config.py` (`_TYPE_LABELS`, `_SECTION_REFS`)
-3. Add directory structure to `scaffolder.py` (`_get_empty_dirs`)
-4. Add tool entries to `tools.py` (`_TOOL_REGISTRY`)
-5. Add CI metadata to `tools.py` (`LANG_CI_META`) if the language is new
-6. Add type-specific rules to `templates/agents.md.j2`
-7. Add type→tool-key mapping in `toolrules.py` (`_TYPE_TOOL_KEYS`)
-8. Add install commands in `tool_installer.py` (`KNOWN_TOOLS`) for any new tools
-9. Add tests for the new type
-
-## Execution Profiles
-
-The four built-in profiles (`safe`, `standard`, `open`, `admin`) live in `profiles.py`.
-To change what commands are allowed by default in the `standard` profile, edit
-`_STANDARD_ALLOWED_COMMANDS` / `_STANDARD_BLOCKED_COMMANDS` / `_STANDARD_BLOCKED_PATTERNS`.
-New profiles can be added to the `PROFILES` dict — they will be available via `scaffold.yml`
-`execution_profile` and in the VS Code Settings panel.
-
-## Tool Rules
-
-Curated AI context rules live in `toolrules.py` (`TOOL_RULES` dict).
-Each entry is a markdown bullet-list injected into the agent system prompt.
-When adding rules for a new tool:
-1. Add an entry to `TOOL_RULES` keyed by the tool executable name.
-2. Add the key to `_FPGA_CHIP_TO_KEY` if it's an FPGA chip name (as used in `fpga_tools:`).
-3. Update `_TYPE_TOOL_KEYS` to include it for relevant project types.
-
-## Supporting the Project
-
-Star the repo, report issues, and consider [sponsoring Layer1Labs](https://github.com/sponsors/layer1labs).
-
-## Importing Existing Projects
-
-`specsmith import` generates governance overlay for existing projects. The detection engine in `importer.py` handles:
-- Language detection by file extension
-- Build system detection (pyproject.toml, Cargo.toml, CMakeLists.txt, etc.)
-- Test framework detection
-- CI and VCS platform detection
-- Module and entry point discovery
-
-## Pull Requests
-
-- Branch from `develop` (features) or `main` (hotfixes)
-- All CI must pass (lint, typecheck, test × 9 matrix, security)
-- Update `CHANGELOG.md` and docs if applicable
-- One approval required
-
-## Configurable Governance
-
-Key tuning knobs in `scaffold.yml` for enterprise teams:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `branching_strategy` | gitflow | gitflow, trunk-based, github-flow |
-| `require_pr_reviews` | true | Require reviews before merge |
-| `required_approvals` | 1 | Number of required approvals |
-| `require_ci_pass` | true | CI must pass before merge |
-| `allow_force_push` | false | Allow force push to protected branches |
-| `use_remote_rules` | false | Accept existing remote branch rules |
-| `vcs_platform` | github | github, gitlab, bitbucket |
+## Maintainer review expectations
+- Reviews evaluate correctness, governance fit, docs quality, and test coverage.
+- Contributors should address requested changes or ask clarifying questions.
+- Security, compliance, and cross-platform concerns may require deeper review.
+- PRs that change workflows should include concrete examples and migration notes where relevant.

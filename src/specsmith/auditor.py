@@ -1130,7 +1130,11 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     raw = _read_scaffold_raw(root)
     declared: dict[str, Any] = raw.get("industrial_artifacts", {}) or {}
     declared_eds = declared.get("canopen_eds", []) or []
-    declared_paths = {e.get("path", "") for e in declared_eds if isinstance(e, dict)}
+    # Normalise declared paths to forward slashes and lowercase so they match
+    # on Windows where YAML uses '/' but Path.relative_to() returns '\\' (#251).
+    declared_paths = {
+        e.get("path", "").replace("\\", "/").lower() for e in declared_eds if isinstance(e, dict)
+    }
 
     # Scan for .eds and .xdd files — respect scan_exclude_dirs and
     # scan_exclude_patterns from scaffold.yml (#175).
@@ -1158,9 +1162,12 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     if not found_eds:
         return results  # No industrial artifacts found
 
-    # Use as_posix() for cross-platform comparison — avoids single-backslash
-    # mismatch on Windows where str(Path) uses '\' but declared paths use '/' (#173).
-    undeclared = [f for f in found_eds if f.relative_to(root).as_posix() not in declared_paths]
+    # Use as_posix().lower() for cross-platform comparison — avoids backslash
+    # mismatch on Windows where str(Path) uses '\' but YAML paths use '/' (#173,
+    # #251). Both sides are lowercased so Windows case-insensitive FS is handled.
+    undeclared = [
+        f for f in found_eds if f.relative_to(root).as_posix().lower() not in declared_paths
+    ]
 
     if undeclared:
         results.append(
@@ -1274,6 +1281,79 @@ def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
     return results
 
 
+def check_policy_validation(root: Path) -> list[AuditResult]:
+    results: list[AuditResult] = []
+    from specsmith.policy import load_policy
+
+    policy, errors = load_policy(root)
+    if errors:
+        for err in errors:
+            results.append(
+                AuditResult(
+                    name="policy-validation",
+                    passed=False,
+                    message=f"policy.yml invalid: {err}",
+                )
+            )
+        return results
+    if (root / ".specsmith" / "policy.yml").is_file():
+        results.append(
+            AuditResult(
+                name="policy-validation",
+                passed=True,
+                message=f"policy.yml valid (risk_threshold={policy.risk_threshold})",
+            )
+        )
+    return results
+
+
+def check_work_item_risk_gates(root: Path) -> list[AuditResult]:
+    results: list[AuditResult] = []
+    from specsmith.approvals import approvals_by_work_item
+    from specsmith.risk import assess_all_work_items
+    from specsmith.wi_store import WorkItemStore
+
+    store = WorkItemStore(root)
+    items = {item.id: item for item in store.load()}
+    if not items:
+        return results
+    for wi_id, risk in assess_all_work_items(root):
+        item = items.get(wi_id)
+        if item is None:
+            continue
+        approvals = {a.approval_type for a in approvals_by_work_item(root, wi_id)}
+        missing_gates: list[str] = []
+        if (
+            "human_approval:implementation" in risk.required_gates
+            and "implementation" not in approvals
+        ):
+            missing_gates.append("implementation approval")
+        if "human_approval:verification" in risk.required_gates and "verification" not in approvals:
+            missing_gates.append("verification approval")
+        if "tests_required" in risk.required_gates and not item.test_case_ids:
+            missing_gates.append("linked tests")
+        if missing_gates:
+            results.append(
+                AuditResult(
+                    name=f"risk-gates:{wi_id}",
+                    passed=False,
+                    message=(
+                        f"{wi_id} risk={risk.level} missing gates: {', '.join(missing_gates)}"
+                        + (f" (override: {risk.override_reason})" if risk.overridden else "")
+                    ),
+                )
+            )
+        else:
+            results.append(
+                AuditResult(
+                    name=f"risk-gates:{wi_id}",
+                    passed=True,
+                    message=f"{wi_id} risk={risk.level} gates satisfied",
+                )
+            )
+    return results
+
+
 def run_audit(root: Path) -> AuditReport:
     """Run all audit checks and return a report."""
     report = AuditReport()
@@ -1291,6 +1371,8 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_industrial_artifacts(root))
     report.results.extend(check_derived_artifacts(root))
     report.results.extend(check_cross_repo_dependencies(root))
+    report.results.extend(check_policy_validation(root))
+    report.results.extend(check_work_item_risk_gates(root))
 
     # Apply accepted_warnings / audit_suppressions from scaffold.yml (REQ-357)
     raw = _read_scaffold_raw(root)

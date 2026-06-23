@@ -12,6 +12,7 @@ import click
 import yaml
 
 from specsmith import __version__
+from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
@@ -302,8 +303,34 @@ def main() -> None:
 )
 @click.option("--no-git", is_flag=True, default=False, help="Skip git repository initialization.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture definition.")
-def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -> None:
+@click.option(
+    "--mode",
+    "init_mode",
+    type=click.Choice(["lite", "team", "regulated"]),
+    default="team",
+    show_default=True,
+    help="Scaffold mode.",
+)
+@click.option("--dry-run", is_flag=True, default=False, help="List files without creating them.")
+@click.option("--explain", is_flag=True, default=False, help="Explain generated artifacts.")
+@click.option("--quiet", is_flag=True, default=False, help="Minimal output.")
+@click.option("--verbose", is_flag=True, default=False, help="Verbose output.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit JSON output.")
+def init(
+    config_path: str | None,
+    output_dir: str,
+    no_git: bool,
+    guided: bool,
+    init_mode: str,
+    dry_run: bool,
+    explain: bool,
+    quiet: bool,
+    verbose: bool,
+    as_json: bool,
+) -> None:
     """Scaffold a new governed project."""
+    import json as _json
+
     if config_path:
         raw = _load_config_with_inheritance(config_path)
         cfg = ProjectConfig(**raw)  # type: ignore[arg-type]
@@ -314,28 +341,60 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
 
     target = Path(output_dir) / cfg.name
     if target.exists() and any(target.iterdir()):
-        console.print(f"[red]Error:[/red] Directory {target} already exists and is not empty.")
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {"ok": False, "error": f"Directory {target} already exists and is not empty."},
+                    indent=2,
+                )
+            )
+        else:
+            console.print(f"[red]Error:[/red] Directory {target} already exists and is not empty.")
         raise SystemExit(1)
+    if dry_run:
+        planned = _planned_init_outputs(cfg, target, init_mode, guided)
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {
+                        "ok": True,
+                        "mode": init_mode,
+                        "target": str(target),
+                        "dry_run": True,
+                        "planned_files": planned,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            console.print(f"[bold]init dry-run[/bold] mode={init_mode} target={target}\n")
+            for rel in planned:
+                console.print(f"  [cyan]~[/cyan] {rel}")
+            if explain:
+                _print_init_explainer(init_mode)
+        return
 
-    console.print(f"\n[bold]Scaffolding [cyan]{cfg.name}[/cyan] ({cfg.type_label})...[/bold]\n")
+    if not quiet and not as_json:
+        console.print(f"\n[bold]Scaffolding [cyan]{cfg.name}[/cyan] ({cfg.type_label})...[/bold]\n")
     created_files = scaffold_project(cfg, target)
-
-    for created in created_files:
-        rel = created.relative_to(target)
-        console.print(f"  [green]\u2713[/green] {rel}")
+    created_files = _apply_init_mode(target, created_files, init_mode)
+    if verbose and not quiet and not as_json:
+        for created in created_files:
+            rel = created.relative_to(target)
+            console.print(f"  [green]\u2713[/green] {rel}")
 
     # Guided architecture definition
     if guided:
         guided_files = _run_guided_architecture(cfg, target)
-        for path in guided_files:
-            rel = path.relative_to(target)
-            console.print(f"  [green]\u2713[/green] {rel} (guided)")
+        if verbose and not quiet and not as_json:
+            for path in guided_files:
+                rel = path.relative_to(target)
+                console.print(f"  [green]\u2713[/green] {rel} (guided)")
         created_files.extend(guided_files)
-
-    console.print(
-        f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
-    )
-    console.print("Project scaffolded. Review generated files.")
+    if not quiet and not as_json:
+        console.print(
+            f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
+        )
 
     # Save config as docs/SPECSMITH.yml (canonical location — uppercase like peer governance files)
     from specsmith.paths import scaffold_path as _scaffold_path
@@ -343,7 +402,9 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     config_out = _scaffold_path(target)
     config_out.parent.mkdir(parents=True, exist_ok=True)
     with open(config_out, "w") as fh:
-        yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
+        cfg_payload = cfg.model_dump(mode="json")
+        cfg_payload["schema_version"] = 1
+        yaml.dump(cfg_payload, fh, default_flow_style=False, sort_keys=False)
 
     # Ensure AEE phase is set (write_phase appends to scaffold.yml)
     from specsmith.phase import write_phase
@@ -354,11 +415,142 @@ def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -
     with contextlib.suppress(Exception):
         from specsmith.mcp_server import register_project
 
-        if register_project(str(target)):
+        if register_project(str(target)) and not quiet and not as_json:
             console.print(
                 "  [dim]\u2713 Registered with MCP server "
                 "([bold]specsmith mcp projects[/bold] to view)[/dim]"
             )
+    important = _important_init_files(target)
+    next_commands = [
+        f"specsmith audit --project-dir {target}",
+        f'specsmith req add --project-dir {target} --title "Describe the first requirement"',
+        f'specsmith test add --project-dir {target} --req REQ-001 --title "Add first test"',
+    ]
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "ok": True,
+                    "mode": init_mode,
+                    "target": str(target),
+                    "created_count": len(created_files),
+                    "important_files": important,
+                    "next_commands": next_commands,
+                },
+                indent=2,
+            )
+        )
+        return
+    if not quiet:
+        console.print("\n[bold]Key files[/bold]")
+        for rel in important:
+            console.print(f"  [green]\u2713[/green] {rel}")
+        if explain:
+            _print_init_explainer(init_mode)
+        console.print("\n[bold]Next (run these 3 commands):[/bold]")
+        for cmd in next_commands:
+            console.print(f"  [cyan]{cmd}[/cyan]")
+        console.print("\n[dim]WI = Work Item (a tracked unit of change).[/dim]")
+        console.print("[dim]Requirement = expected behavior; Test = proof of that behavior.[/dim]")
+        console.print("[dim]Audit checks governance health and drift before you continue.[/dim]")
+
+
+def _important_init_files(target: Path) -> list[str]:
+    picks = [
+        target / "AGENTS.md",
+        target / "docs" / "REQUIREMENTS.md",
+        target / "docs" / "TESTS.md",
+        target / ".specsmith" / "credit-budget.json",
+    ]
+    out: list[str] = []
+    for p in picks:
+        if p.exists():
+            out.append(str(p.relative_to(target)))
+    return out
+
+
+def _planned_init_outputs(
+    cfg: ProjectConfig,
+    target: Path,
+    init_mode: str,
+    guided: bool,
+) -> list[str]:
+    from specsmith.scaffolder import _build_file_map, _get_empty_dirs
+
+    planned = {rel for _, rel in _build_file_map(cfg)}
+    planned.update(str((d / ".gitkeep").relative_to(target)) for d in _get_empty_dirs(cfg, target))
+    planned.add(".specsmith/credit-budget.json")
+    if init_mode == "regulated":
+        planned.update(
+            {
+                "docs/compliance/COMPLIANCE.md",
+                "docs/compliance/EVIDENCE-PACK.md",
+                "docs/governance/REVIEW-CHECKPOINTS.md",
+                ".specsmith/gate-config.yml",
+                ".specsmith/esdb.enabled",
+            }
+        )
+    if init_mode == "lite":
+        keep_prefixes = ("AGENTS.md", "docs/REQUIREMENTS.md", "docs/TESTS.md", ".specsmith/")
+        planned = {p for p in planned if p.startswith(keep_prefixes)}
+    if guided:
+        planned.add("docs/ARCHITECTURE.md")
+    return sorted(planned)
+
+
+def _apply_init_mode(target: Path, created_files: list[Path], init_mode: str) -> list[Path]:
+    filtered = list(created_files)
+    if init_mode == "lite":
+        keep_prefixes = ("AGENTS.md", "docs/REQUIREMENTS.md", "docs/TESTS.md", ".specsmith/")
+        kept: list[Path] = []
+        for path in filtered:
+            rel = str(path.relative_to(target)).replace("\\", "/")
+            if rel.startswith(keep_prefixes):
+                kept.append(path)
+                continue
+            if path.is_file():
+                path.unlink(missing_ok=True)
+        for p in sorted(target.rglob("*"), reverse=True):
+            if p.is_dir():
+                with contextlib.suppress(OSError):
+                    if not any(p.iterdir()):
+                        p.rmdir()
+        return kept
+    if init_mode == "regulated":
+        extras: dict[str, str] = {
+            "docs/compliance/COMPLIANCE.md": "# Compliance Baseline\nRegulated mode enabled.\n",
+            "docs/compliance/EVIDENCE-PACK.md": (
+                "# Evidence Pack\nCollect audit artifacts and approvals here.\n"
+            ),
+            "docs/governance/REVIEW-CHECKPOINTS.md": (
+                "# Review Checkpoints\n"
+                "- Architecture review\n"
+                "- Verification review\n"
+                "- Release review\n"
+            ),
+            ".specsmith/gate-config.yml": "strict_gates: true\nreview_checkpoints: true\n",
+            ".specsmith/esdb.enabled": "true\n",
+        }
+        for rel, content in extras.items():
+            p = target / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+            filtered.append(p)
+    return filtered
+
+
+def _print_init_explainer(init_mode: str) -> None:
+    explainers = {
+        "lite": (
+            "lite: minimal governance bootstrap "
+            "(AGENTS, requirements/tests docs, and machine state)."
+        ),
+        "team": "team: standard collaborative setup with CI and governance workflow files.",
+        "regulated": (
+            "regulated: team baseline plus compliance/evidence and stricter review checkpoints."
+        ),
+    }
+    console.print(f"\n[dim]{explainers.get(init_mode, '')}[/dim]")
 
 
 def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
@@ -445,10 +637,29 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
 def audit(fix: bool, project_dir: str) -> None:
     """Run drift and health checks (Section 23 + 26)."""
     from specsmith.auditor import run_audit
+    from specsmith.sync import auto_migrate_if_needed
 
     root = Path(project_dir).resolve()
+    auto_counts = auto_migrate_if_needed(root)
+    if auto_counts:
+        console.print(
+            "  [cyan]⟳[/cyan] ESDB auto-migrate: "
+            f"{auto_counts.get('requirements', 0)} requirements + "
+            f"{auto_counts.get('testcases', 0)} testcases "
+            f"({auto_counts.get('skipped', 0)} skipped)"
+        )
     console.print(f"[bold]Auditing[/bold] {root}\n")
     report = run_audit(root)
+    chain_broken = False
+    with contextlib.suppress(Exception):
+        from specsmith.esdb import open_default_store
+
+        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+            if hasattr(store, "verify_audit_chain"):
+                chain_report = store.verify_audit_chain()
+                chain_broken = bool(
+                    isinstance(chain_report, dict) and not chain_report.get("ok", True)
+                )
 
     for r in report.results:
         if r.suppressed:
@@ -459,6 +670,8 @@ def audit(fix: bool, project_dir: str) -> None:
             icon = "[red]✗[/red]"
         msg = r.message + " [dim](accepted)[/dim]" if r.suppressed else r.message
         console.print(f"  {icon} {msg}")
+    if chain_broken:
+        console.print("  [yellow]⚠[/yellow] SQLite audit hash chain appears broken.")
 
     console.print()
     if report.healthy:
@@ -1489,14 +1702,20 @@ def diff(project_dir: str, html_output: str | None) -> None:
     default=False,
     help="Run the new-user onboarding checklist (REQ-127).",
 )
-def doctor(project_dir: str, onboarding: bool) -> None:
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit machine-readable health report JSON.",
+)
+def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     """Check if verification tools are installed locally.
 
     With --onboarding, walks through a 6-step checklist for new users that
     confirms scaffold.yml, governance files, agent provider setup, optional
     Nexus broker availability, and prints next-step commands (REQ-127).
     """
-    from specsmith.doctor import run_doctor
 
     root = Path(project_dir).resolve()
 
@@ -1572,28 +1791,108 @@ def doctor(project_dir: str, onboarding: bool) -> None:
             )
         return
 
-    report = run_doctor(root)
+    import importlib.metadata
+    import json as _json
+    import shutil
+    import subprocess
+    import sys
 
-    if not report.checks:
-        console.print("[yellow]No scaffold.yml found — cannot determine tools.[/yellow]")
+    from specsmith.auditor import run_audit
+    from specsmith.esdb import ESDB_BACKEND, open_default_store
+    from specsmith.phase import read_phase
+
+    def _tool_version(cmd: str) -> tuple[bool, str]:
+        exe = shutil.which(cmd)
+        if not exe:
+            return False, "not found"
+        try:
+            proc = subprocess.run(
+                [exe, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            out = (proc.stdout or proc.stderr or "").strip().splitlines()
+            if out:
+                return True, out[0]
+            return True, "installed"
+        except (OSError, subprocess.TimeoutExpired):
+            return True, "installed"
+
+    checks: list[dict[str, str]] = []
+
+    def _add(name: str, passed: bool, detail: str, warn: bool = False) -> None:
+        status = "warn" if warn else ("pass" if passed else "fail")
+        checks.append({"name": name, "status": status, "detail": detail})
+
+    py_ok = sys.version_info >= (3, 10)
+    _add(
+        "python",
+        py_ok,
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+    )
+
+    git_ok, git_detail = _tool_version("git")
+    _add("git", git_ok, git_detail)
+
+    _add("specsmith", True, __version__)
+
+    try:
+        chrono_ver = importlib.metadata.version("chronomemory")
+        _add("chronomemory", True, chrono_ver)
+    except importlib.metadata.PackageNotFoundError:
+        _add("chronomemory", False, "not installed")
+
+    esdb_open = False
+    chain_ok = False
+    record_count = 0
+    try:
+        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+            esdb_open = True
+            record_count = int(store.record_count())
+            chain_ok = store.chain_valid() is not False
+    except Exception as exc:  # noqa: BLE001
+        _add("esdb backend", False, f"open failed: {exc}")
+    if esdb_open:
+        _add("esdb backend", True, f"{ESDB_BACKEND} open")
+        _add(
+            "esdb chain",
+            chain_ok,
+            f"{'valid' if chain_ok else 'invalid'} ({record_count} records)",
+        )
+        _add("esdb record count", True, str(record_count))
+
+    audit_report = run_audit(root)
+    _add(
+        "audit",
+        audit_report.healthy,
+        "clean" if audit_report.healthy else f"{audit_report.failed} issue(s)",
+    )
+
+    phase_key = read_phase(root)
+    _add("phase", True, phase_key)
+
+    for tool in ("ruff", "pytest", "pipx"):
+        ok, detail = _tool_version(tool)
+        _add(tool, ok, detail)
+
+    overall = "pass" if all(c["status"] != "fail" for c in checks) else "fail"
+
+    if as_json:
+        click.echo(_json.dumps({"checks": checks, "overall": overall}, indent=2))
         return
 
-    console.print(f"[bold]Doctor[/bold] — checking {len(report.checks)} tools\n")
-    for check in report.checks:
-        if check.installed:
-            ver = f" ({check.version})" if check.version else ""
-            console.print(f"  [green]✓[/green] {check.category}: {check.name}{ver}")
-        else:
-            console.print(f"  [red]✗[/red] {check.category}: {check.name} — not found")
-
-    console.print()
-    if report.missing_count == 0:
-        console.print(f"[bold green]All {report.installed_count} tools available.[/bold green]")
+    icon = {"pass": "✅", "fail": "❌", "warn": "⚠️"}
+    console.print("specsmith doctor")
+    console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    for c in checks:
+        console.print(f"  {c['name']:<14} {icon[c['status']]}  {c['detail']}")
+    console.print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    if overall == "pass":
+        console.print("All checks passed.")
     else:
-        console.print(
-            f"[bold red]{report.missing_count} tool(s) missing.[/bold red] "
-            f"{report.installed_count} installed."
-        )
+        console.print("One or more checks failed.")
 
 
 @main.command()
@@ -5670,7 +5969,8 @@ def phase_next(project_dir: str, force: bool) -> None:
     """Advance to the next AEE workflow phase.
 
     Performs readiness checks on the current phase first.
-    Use --force to skip checks.
+    Use --force to skip checks.  Phases listed in ``suppressed_phases`` in the
+    scaffold config (docs/SPECSMITH.yml) are automatically skipped (#254).
     """
     from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase, write_phase
 
@@ -5696,12 +5996,45 @@ def phase_next(project_dir: str, force: bool) -> None:
         )
         return
 
-    write_phase(root, phase.next_phase)
-    next_phase = PHASE_MAP[phase.next_phase]
+    # Read suppressed_phases from the scaffold config (#254).
+    suppressed: list[str] = []
+    try:
+        import yaml as _yaml
+
+        from specsmith.paths import find_scaffold
+
+        sp = find_scaffold(root)
+        if sp:
+            _raw = _yaml.safe_load(sp.read_text(encoding="utf-8")) or {}
+            suppressed = [str(p) for p in (_raw.get("suppressed_phases") or [])]
+    except Exception:  # noqa: BLE001
+        pass  # Never block phase advance on config parse errors
+
+    # Walk the phase chain until we find a non-suppressed next phase.
+    target_key: str | None = phase.next_phase
+    skipped: list[str] = []
+    while target_key and target_key in suppressed:
+        skipped.append(target_key)
+        target_phase = PHASE_MAP.get(target_key)
+        target_key = target_phase.next_phase if target_phase else None
+
+    if not target_key:
+        console.print(
+            f"[bold]{phase.emoji} {phase.label}[/bold] is the effective final phase "
+            "(all remaining phases are suppressed)."
+        )
+        if skipped:
+            console.print(f"  [dim]Suppressed: {', '.join(skipped)}[/dim]")
+        return
+
+    write_phase(root, target_key)
+    next_phase = PHASE_MAP[target_key]
     console.print(
         f"[green]\u2713[/green] Advanced from [bold]{phase.label}[/bold] "
         f"to [bold]{next_phase.emoji} {next_phase.label}[/bold]."
     )
+    if skipped:
+        console.print(f"  [dim]Skipped suppressed phase(s): {', '.join(skipped)}[/dim]")
     console.print(f"  {next_phase.description}")
     if next_phase.commands:
         console.print("\n  [bold]Next steps:[/bold]")
@@ -5710,14 +6043,14 @@ def phase_next(project_dir: str, force: bool) -> None:
 
     # G3: keep the agents routing table aligned with the active phase.
     # We pin a synthetic ``phase:active`` route so the runner can flip the
-    # whole session to the new phase’s preferred profile without the user
+    # whole session to the new phase's preferred profile without the user
     # having to run `specsmith agents route set` themselves.
     try:
         from specsmith.agent.profiles import ProfileStore
 
         agents_store = ProfileStore.load()
         if agents_store.profiles:
-            phase_key_target = f"phase:{phase.next_phase}"
+            phase_key_target = f"phase:{target_key}"
             target_id = agents_store.routes.get(phase_key_target) or (
                 agents_store.default_profile_id
             )
@@ -5985,10 +6318,11 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
     """
     import json as _json
 
-    from specsmith.sync import run_sync
+    from specsmith.sync import auto_migrate_if_needed, run_sync
 
     root = Path(project_dir).resolve()
     result = run_sync(root, dry_run=check_only)
+    auto_counts = {} if check_only else auto_migrate_if_needed(root)
 
     if as_json:
         click.echo(
@@ -6002,6 +6336,8 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                     "tests_changed": result.tests_changed,
                     "in_sync": not result.changed,
                     "dry_run": result.dry_run,
+                    "auto_migrated": bool(auto_counts),
+                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
@@ -6015,6 +6351,13 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                 console.print(f"[green]\u2713[/green] {result.message}")
         else:
             console.print("[green]\u2713[/green] Machine state already in sync.")
+        if auto_counts:
+            console.print(
+                "  [cyan]⟳[/cyan] ESDB auto-migrate: "
+                f"{auto_counts.get('requirements', 0)} requirements + "
+                f"{auto_counts.get('testcases', 0)} testcases "
+                f"({auto_counts.get('skipped', 0)} skipped)"
+            )
 
     if check_only and result.changed:
         raise SystemExit(1)
@@ -10441,8 +10784,10 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
 
     from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
     from specsmith.esdb._license import check_license, resolve_license_path
+    from specsmith.sync import auto_migrate_if_needed
 
     root = Path(project_dir).resolve()
+    auto_counts = auto_migrate_if_needed(root)
 
     # Determine license status without side-effect warnings
     lic_path = resolve_license_path()
@@ -10508,6 +10853,8 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                     "chain_valid": chain_ok,
                     "counts": counts,
                     "license": license_info,
+                    "auto_migrated": bool(auto_counts),
+                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
@@ -10538,6 +10885,52 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         console.print(
             "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]"
         )
+    if auto_counts:
+        console.print(
+            "  [cyan]⟳[/cyan] Auto-migrated from legacy JSON: "
+            f"{auto_counts.get('requirements', 0)} requirements + "
+            f"{auto_counts.get('testcases', 0)} testcases "
+            f"({auto_counts.get('skipped', 0)} skipped)"
+        )
+
+
+@esdb_group.command(name="verify-chain")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_verify_chain_subcmd(project_dir: str, as_json: bool) -> None:
+    """Verify the SQLite audit hash chain for tamper evidence."""
+    import json as _json
+
+    from specsmith.esdb import open_default_store
+    from specsmith.esdb.sqlite_store import SqliteStore
+
+    root = Path(project_dir).resolve()
+    sqlite_db = root / ".specsmith" / "esdb.sqlite3"
+    if sqlite_db.exists():
+        with SqliteStore(root) as sqlite_store:
+            payload = sqlite_store.verify_audit_chain()
+    else:
+        with open_default_store(root, warn=False) as store:
+            if not hasattr(store, "verify_audit_chain"):
+                payload = {
+                    "ok": True,
+                    "message": "No SQLite audit chain found for this project.",
+                }
+            else:
+                payload = store.verify_audit_chain()
+    if as_json:
+        click.echo(_json.dumps(payload, indent=2))
+        return
+    if payload.get("ok", False):
+        console.print(
+            "[bold green]Audit chain OK.[/bold green] "
+            f"{payload.get('event_count', 0)} event(s) verified."
+        )
+        return
+    console.print("[bold red]Audit chain FAILED.[/bold red]")
+    for err in payload.get("errors", [])[:10]:
+        console.print(f"  [red]✗[/red] {err}")
+    raise SystemExit(1)
 
 
 @esdb_group.command(name="enable")
@@ -10571,9 +10964,15 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
             console.print("[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]")
         raise SystemExit(1)
 
+    import os
+
     dest = Path.home() / ".specsmith" / "esdb.key"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(key_file, dest)
+    # Skip the copy when source and destination are the same file (#249).
+    # On Windows, shutil.copy2(src, dst) raises PermissionError / WinError 32
+    # when src == dst (file is already at the expected location).
+    if os.path.realpath(str(key_file)) != os.path.realpath(str(dest)):
+        shutil.copy2(key_file, dest)
 
     if as_json:
         click.echo(
@@ -12154,17 +12553,62 @@ def migrate_list_cmd(project_dir: str) -> None:
 @migrate_group.command(name="run")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--version", type=int, default=0, help="Run a specific migration version only.")
+@click.option("--check", "check_only", is_flag=True, default=False)
 @click.option("--dry-run", is_flag=True, default=False)
 @click.option("--json", "as_json", is_flag=True, default=False)
-def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool) -> None:
+def migrate_run_cmd(
+    project_dir: str,
+    version: int,
+    check_only: bool,
+    dry_run: bool,
+    as_json: bool,
+) -> None:
     """Run pending migrations (or a specific version)."""
     import json as _json  # noqa: PLC0415
+    import shutil
+    import time
     from pathlib import Path
 
+    from specsmith.migrations import MigrationRegistry
     from specsmith.migrations.runner import MigrationRunner
 
     root = Path(project_dir).resolve()
     runner = MigrationRunner(root)
+    pending_versions = [
+        m.version for m in MigrationRegistry.all() if m.version not in runner.applied_versions()
+    ]
+    if check_only:
+        payload = {"needs_migration": bool(pending_versions), "pending_versions": pending_versions}
+        if as_json:
+            click.echo(_json.dumps(payload, indent=2))
+        else:
+            if pending_versions:
+                console.print(
+                    "[yellow]Migration needed:[/yellow] "
+                    + ", ".join(f"v{v:03d}" for v in pending_versions)
+                )
+            else:
+                console.print("[green]No migration needed.[/green]")
+        if pending_versions:
+            raise SystemExit(1)
+        return
+    if not dry_run:
+        backup_root = root / ".specsmith" / "migration-backups"
+        backup_root.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+        backup_dir = backup_root / stamp
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        for rel in (
+            "docs/SPECSMITH.yml",
+            "scaffold.yml",
+            ".specsmith/requirements.json",
+            ".specsmith/testcases.json",
+        ):
+            src = root / rel
+            if src.exists():
+                dest = backup_dir / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
 
     if version:
         results = [runner.run_one(version, dry_run=dry_run)]
@@ -12188,6 +12632,14 @@ def migrate_run_cmd(project_dir: str, version: int, dry_run: bool, as_json: bool
 
 
 main.add_command(migrate_group)
+try:
+    from specsmith.commands.reporting import register_reporting_commands
+
+    register_reporting_commands(main)
+except Exception:  # noqa: BLE001
+    pass
+
+register_issue_policy_commands(main, console)
 
 
 if __name__ == "__main__":

@@ -83,3 +83,10 @@ _diag_*.py
 crates/chronomemory/target/
 app/target/
 
+# specsmith ESDB policy (auto-normalized)
+!.specsmith/config.yml
+!.specsmith/requirements.json
+!.specsmith/testcases.json
+!.specsmith/esdb.sqlite3
+!.chronomemory/events.wal
+!.chronomemory/snapshot.json
