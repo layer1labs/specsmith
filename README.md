@@ -11,14 +11,14 @@ SpecSmith is the governance layer for AI-assisted development: it sits between a
 
 ## Architecture at a glance
 
-```mermaid
-flowchart LR
-    A[AI Agents / IDE Clients] --> B[SpecSmith Governance Layer]
-    B --> C[Repository Files]
-    B --> D[Requirements and Tests]
-    B --> E[ESDB / Audit Ledger]
-    E --> F[CI and MCP Integrations]
-    D --> F
+```
+AI Agents / IDE Clients
+        |
+        v
+  SpecSmith Governance Layer
+  ├── Repository Files
+  ├── Requirements and Tests ──> CI and MCP Integrations
+  └── ESDB / Audit Ledger  ──> CI and MCP Integrations
 ```
 
 ## When to use / when not to use
