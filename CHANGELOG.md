@@ -12,6 +12,37 @@ consolidated into the next published release.
 
 ---
 
+## [0.16.2] - 2026-06-23
+
+### Fixed
+
+- **Issue #257 — `audit industrial_artifacts` false positive on Windows** —
+  `check_industrial_artifacts` now handles both plain-string entries
+  (`- path/to/file.eds`) and dict entries (`- path: ..., device: ...`) in
+  `canopen_eds`. Previously only dict entries were matched, so string-format
+  declarations always appeared undeclared regardless of OS.
+- **6 CodeQL alerts resolved (all alerts → 0)**:
+  - `src/specsmith/sync.py` — `...` replaced with `pass` in `_MigratableStore`
+    Protocol stub methods (`py/ineffectual-statement` #192 #193).
+  - `scripts/govern_bench/harness.py` — removed dead variable initializations
+    before an if/elif/else block that always assigns all four variables
+    (`py/multiple-definition` #196).
+  - `scripts/govern_bench/projects/` — excluded from CodeQL via
+    `.github/codeql/codeql-config.yml`; this directory contains intentional
+    benchmark bugs (mutable default argument = the T2 task agents must fix)
+    (`py/modification-of-default-value` #195, `py/unused-global-variable` #197,
+    `py/import-and-import-from` #194).
+- **Pre-existing broken test fixed** — `test_industrial_artifacts_normalizes_
+  windows_declared_paths` was writing double-backslash to YAML which normalised
+  to `//` and never matched the found path; corrected to a single backslash.
+
+### Added
+
+- Two regression tests for #257: plain-string-only entries and mixed
+  string+dict entries in `canopen_eds`.
+
+---
+
 ## [0.16.1] - 2026-06-23
 
 ### Added
@@ -441,7 +472,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/layer1labs/specsmith/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/layer1labs/specsmith/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/layer1labs/specsmith/compare/v0.15.3...v0.16.0
 [0.15.3]: https://github.com/layer1labs/specsmith/compare/v0.15.2...v0.15.3
