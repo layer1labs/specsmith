@@ -1132,9 +1132,19 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
     declared_eds = declared.get("canopen_eds", []) or []
     # Normalise declared paths to forward slashes and lowercase so they match
     # on Windows where YAML uses '/' but Path.relative_to() returns '\\' (#251).
-    declared_paths = {
-        e.get("path", "").replace("\\", "/").lower() for e in declared_eds if isinstance(e, dict)
-    }
+    # canopen_eds entries may be plain strings ("path/to/file.eds") or dicts
+    # ({path: "path/to/file.eds", device: "..."}). Handle both to avoid false
+    # positives when users use the simpler string form (#257).
+    declared_paths: set[str] = set()
+    for e in declared_eds:
+        if isinstance(e, dict):
+            _p = e.get("path", "")
+        elif isinstance(e, str):
+            _p = e
+        else:
+            _p = str(e)
+        if _p:
+            declared_paths.add(_p.replace("\\", "/").lower())
 
     # Scan for .eds and .xdd files — respect scan_exclude_dirs and
     # scan_exclude_patterns from scaffold.yml (#175).

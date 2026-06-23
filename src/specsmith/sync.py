@@ -602,8 +602,11 @@ def auto_migrate_if_needed(root: Path) -> dict[str, int]:
         return {}
 
     class _MigratableStore(Protocol):
-        def record_count(self) -> int: ...
-        def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any: ...
+        def record_count(self) -> int:
+            pass  # noqa: E704
+
+        def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
+            pass  # noqa: E704
 
     try:
         with open_default_store(root, warn=False) as store:
