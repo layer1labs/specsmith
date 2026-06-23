@@ -30,24 +30,45 @@ from dataclasses import dataclass, field
 # ---------------------------------------------------------------------------
 
 MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
-    # OpenAI
-    "gpt-4o-mini":           (0.15,    0.60),    # cheapest capable model
+    # ── OpenAI GPT-4 family ──────────────────────────────────────────────
+    "gpt-4o-mini":           (0.15,    0.60),
     "gpt-4o":                (2.50,   10.00),
     "gpt-4.1":               (2.00,    8.00),
     "gpt-4.1-mini":          (0.40,    1.60),
-    "o4-mini":               (1.10,    4.40),
-    "o3":                   (10.00,   40.00),
-    # Anthropic
-    "claude-haiku-4-5":      (0.25,    1.25),
-    "claude-sonnet-4-5":     (3.00,   15.00),
-    "claude-opus-4-5":      (15.00,   75.00),
-    "claude-sonnet-4-6":     (3.00,   15.00),
-    # Google
-    "gemini-3-flash":        (0.35,    1.05),
-    "gemini-3.5-flash":      (0.15,    0.60),
-    "gemini-3.1-pro":        (1.25,    5.00),
-    # Fallback
-    "unknown":               (3.00,   15.00),
+    "gpt-4.1-nano":          (0.10,    0.40),
+    # ── OpenAI GPT-5 family (prices verified Q3–Q4 2025 / Q1–Q2 2026) ───
+    "gpt-5":                 (15.00,  60.00),
+    "gpt-5-mini":             (2.00,   8.00),
+    "gpt-5-nano":             (0.50,   2.00),
+    "gpt-5-pro":             (50.00, 200.00),
+    "gpt-5-codex":           (15.00,  60.00),
+    "gpt-5.1":               (12.00,  48.00),
+    "gpt-5.2":               (10.00,  40.00),
+    "gpt-5.2-pro":           (40.00, 160.00),
+    "gpt-5.2-codex":         (10.00,  40.00),
+    "gpt-5.3-codex":          (8.00,  32.00),
+    "gpt-5.4":                (5.00,  20.00),
+    "gpt-5.4-mini":           (1.00,   4.00),
+    "gpt-5.4-nano":           (0.30,   1.20),
+    "gpt-5.4-pro":           (20.00,  80.00),
+    "gpt-5.5":                (3.00,  12.00),   # mid-tier coding model
+    "gpt-5.5-pro":           (15.00,  60.00),
+    # ── OpenAI reasoning models ──────────────────────────────────────────
+    "o1":                     (15.0,  60.00),
+    "o3":                     (10.0,  40.00),
+    "o3-mini":                 (1.1,   4.40),
+    "o4-mini":                 (1.1,   4.40),
+    # ── Anthropic ────────────────────────────────────────────────────────
+    "claude-haiku-4-5":        (0.25,   1.25),
+    "claude-sonnet-4-5":       (3.00,  15.00),
+    "claude-opus-4-5":        (15.00,  75.00),
+    "claude-sonnet-4-6":       (3.00,  15.00),
+    # ── Google ───────────────────────────────────────────────────────────
+    "gemini-3-flash":           (0.35,  1.05),
+    "gemini-3.5-flash":         (0.15,  0.60),
+    "gemini-3.1-pro":           (1.25,  5.00),
+    # ── Fallback ─────────────────────────────────────────────────────────
+    "unknown":                 (3.00,  15.00),
 }
 
 # Backwards-compatible alias — keep old key format working

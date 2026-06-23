@@ -69,6 +69,13 @@ def _get_project_dir(project_id: str) -> Path:
     return p
 
 
+def _completion_token_param(model: str) -> dict[str, int]:
+    """Return the correct completion-token limit parameter for an OpenAI model."""
+    if model.startswith(("gpt-5", "o1", "o3", "o4")):
+        return {"max_completion_tokens": 4096}
+    return {"max_tokens": 4096}
+
+
 # ---------------------------------------------------------------------------
 # Tool definitions
 # ---------------------------------------------------------------------------
@@ -521,8 +528,8 @@ def _run_agent_loop(
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
-                max_tokens=4096,
                 temperature=1.0,
+                **_completion_token_param(model),
             )
         except Exception as exc:  # noqa: BLE001  # surface as run error
             return RunResult(
