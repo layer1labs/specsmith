@@ -57,7 +57,7 @@ specsmith esdb status
 **Upgrading to chronomemory ChronoStore (commercial):**
 
 ChronoStore adds a cryptographic SHA-256 WAL hash chain, full OEA anti-hallucination
-fields (H15–H22), Rust acceleration, and epistemic rollback.  It is a separate
+fields, Rust acceleration, and epistemic rollback.  It is a separate
 `chronomemory` package with a **proprietary commercial license**.
 
 ```bash
@@ -137,7 +137,7 @@ my-tool/
 ├── .gitignore / .gitattributes
 ├── docs/
 │   ├── governance/
-│   │   ├── RULES.md                   # Hard rules H1-H9
+│   │   ├── RULES.md                   # Hard governance rules
 │   │   ├── WORKFLOW.md                # Session lifecycle
 │   │   ├── ROLES.md                   # Agent boundaries
 │   │   ├── CONTEXT-BUDGET.md          # Token optimization

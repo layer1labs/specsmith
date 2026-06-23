@@ -353,7 +353,7 @@ across the AI lifecycle. specsmith addresses all four core functions:
 
 | NIST AI RMF Function | specsmith Mechanism |
 |---|---|
-| **GOVERN** — Policies & accountability | Governance rules (H1–H22), permissions profile, `scaffold.yml` policy |
+|| **GOVERN** — Policies & accountability | Governance rules, permissions profile, `scaffold.yml` policy |
 | **MAP** — Risk identification | AEE stress-test, belief graph, contradictions and uncertainty metrics |
 | **MEASURE** — Risk analysis | Confidence scoring, epistemic equilibrium, `specsmith epistemic-audit` |
 | **MANAGE** — Risk treatment | Kill-switch, escalation, bounded retry, safe-write backup, permissions deny-list |
@@ -954,42 +954,15 @@ Use cases: linguistics research, compliance pipelines, AI alignment, patent pros
 
 ---
 
-## Governance Rules (H1–H22)
+## Governance Rules
 
-22 hard rules enforced by `specsmith validate` and `specsmith audit`.
-Full rule text: [`docs/governance/RULES.md`](https://github.com/layer1labs/specsmith/blob/main/docs/governance/RULES.md)
+22 hard rules enforced by `specsmith validate` and `specsmith audit`. Rules 1–14 cover
+core engineering and traceability (ledger required, proposals required, platform-awareness,
+documentation currency, etc.). Rules 15–22 address anti-hallucination and epistemic
+stability, derived from the OEA (Ontological Epistemic Anchoring) research framework
+(Layer1Labs, 2026).
 
-**H1–H14 — Core engineering and traceability rules:**
-- **H1** — No ledger entry = work not done.
-- **H2** — No proposal = no execution.
-- **H3** — All work must consider every target platform.
-- **H4** — No system-dependent assumptions; virtual environments required.
-- **H5** — No hidden service logic.
-- **H6** — If the task grows beyond the proposal, stop and re-propose.
-- **H7** — Every state change must be traceable and recorded.
-- **H8** — Architecture changes MUST update docs in the same work cycle.
-- **H9** — Every agent command must have a timeout.
-- **H10** — No hardcoded version strings outside `pyproject.toml`.
-- **H11** — Every loop must have a deadline; no unbounded blocking I/O.
-- **H12** — Platform-aware automation: sh/bash on Unix, `.cmd`/`.ps1` on Windows.
-- **H13** — Every proposal must declare its epistemic boundaries and assumptions.
-- **H14** — Documentation must be updated in the same work cycle as code changes.
-
-**H15–H22 — Anti-hallucination and epistemic stability (OEA framework):**
-
-Rules H15–H22 are derived from the *"Ontology-Epistemic-Agentic (OEA) Recursive
-Generative Stability"* study (Layer1Labs Research, 2026), which empirically validated
-the primary control mechanisms for preventing hallucination and semantic drift in
-production LLM systems:
-
-- **H15** — Epistemic scope bounding: no claims outside verified knowledge; say "unknown" rather than fabricate.
-- **H16** — Anti-drift recursion guard: max 5 autonomous generation steps before a human checkpoint.
-- **H17** — Calibration direction: express uncertainty, not false confidence.
-- **H18** — RAG retrieval filtering: validate context relevance (similarity ≥ 0.6) before injection.
-- **H19** — Synthetic contamination prevention: never mix synthetic and real data silently.
-- **H20** — Falsifiability required: cite sources or flag claims as `[HYPOTHESIS]`.
-- **H21** — Disclose all model-specific assumptions (context window, format, temperature).
-- **H22** — Cross-platform CI: green on one OS ≠ cross-platform coverage.
+Full rule reference: [`docs/governance/RULES.md`](https://github.com/layer1labs/specsmith/blob/develop/docs/governance/RULES.md)
 
 ---
 

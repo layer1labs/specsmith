@@ -15,7 +15,7 @@ specsmith ships two ESDB backends: a **free SQLite backend** (default, MIT) and 
 | **Default?** | ✅ Yes — active out of the box | ❌ No — must be explicitly installed and activated |
 | **Storage** | `.specsmith/esdb.sqlite3` | `.chronomemory/events.wal` |
 | **SHA-256 WAL chain** | — | ✅ |
-| **OEA anti-hallucination fields** | partial | ✅ full (H15–H22) |
+|| **OEA anti-hallucination fields** | partial | ✅ full |
 | **Rust acceleration** | — | ✅ |
 | **Epistemic rollback** | — | ✅ |
 
@@ -38,7 +38,7 @@ metadata that answers questions regular databases cannot:
 - **Has anyone tampered with past records?**  (hash chain)
 
 These fields — derived from the OEA (Ontological Epistemic Anchoring) framework
-implemented in specsmith's anti-hallucination rules H15–H22 — make ESDB records
+and specsmith's anti-hallucination rules — make ESDB records
 safe for RAG injection: only records with `confidence >= 0.6` and `status = active`
 pass the RAG filter.
 
@@ -57,7 +57,7 @@ No installation or license needed.  specsmith uses this automatically.
 
 **Limitations vs ChronoStore:**
 - No SHA-256 WAL hash chain — integrity relies on SQLite ACID, not cryptographic proof
-- No per-record OEA fields (H15–H22) — confidence is stored but without the full epistemic envelope
+- No per-record OEA fields — confidence is stored but without the full epistemic envelope
 - No Rust acceleration, dependency graph, context-pack compiler, or epistemic rollback
 - SQLite file is not human-readable without a SQLite viewer (WAL is NDJSON in ChronoStore)
 
@@ -93,10 +93,10 @@ Recommended ignore pattern:
 | Capability | SQLite (free) | ChronoStore (commercial) |
 |---|---|---|
 | Stores requirements & test cases | ✓ | ✓ |
-| Confidence filtering (RAG H18) | ✓ | ✓ |
+|| Confidence filtering (RAG, ≥ 0.6) | ✓ | ✓ |
 | ACID integrity | ✓ | ✓ |
 | SHA-256 WAL hash chain | — | ✓ tamper-evident |
-| OEA anti-hallucination fields (H15–H22) | partial | ✓ full |
+|| OEA anti-hallucination fields | partial | ✓ full |
 | Rust-accelerated backend | — | ✓ optional |
 | Context-pack compiler | — | ✓ |
 | Dependency graph (DepGraph) | — | ✓ |
@@ -105,8 +105,8 @@ Recommended ignore pattern:
 | Human-readable WAL (NDJSON, grep-able) | — | ✓ |
 | Tamper detection (`chain_valid()`) | — | ✓ |
 | Record provenance (`source_type`) | — | ✓ |
-| Model assumption tracking (H21) | — | ✓ |
-| Recursion depth guard (H16) | — | ✓ |
+|| Model assumption tracking | — | ✓ |
+|| Recursion depth guard | — | ✓ |
 
 ### When to use ChronoStore
 
@@ -330,7 +330,7 @@ with ChronoStore("/path/to/project") as store:
         evidence=["REQUIREMENTS.md §2"],
         epistemic_boundary=["platform:linux", "version:1.0"],
     ))
-    context = store.query(rag_filter=True)   # H18: confidence >= 0.6 only
+    context = store.query(rag_filter=True)   # confidence >= 0.6 only
     assert store.chain_valid()               # tamper detection
 ```
 
