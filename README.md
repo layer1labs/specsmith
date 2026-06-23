@@ -937,8 +937,6 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Business / Legal / AEE:** `business-plan`, `legal-compliance`, `monorepo`, `browser-extension`, `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
 
-**Declarative / Formal:** `brief-lang` (Brief v0.14.0 — contract-enforced logic language, `.bv`/`.sbv`/`.ebv`/`.rbv`).
-
 ---
 
 ## epistemic Library
