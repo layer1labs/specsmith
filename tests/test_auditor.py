@@ -90,6 +90,10 @@ class TestAuditDetectsIssues:
 
 
 def test_industrial_artifacts_normalizes_windows_declared_paths(tmp_path: Path) -> None:
+    # Simulate a Windows user who put a single backslash path in scaffold.yml.
+    # YAML plain scalars treat backslash as literal, so the parsed value is
+    # "hardware\device.eds" (one backslash) which must normalise to the posix
+    # found path "hardware/device.eds".
     (tmp_path / "scaffold.yml").write_text(
         "name: test\n"
         "type: cli-python\n"
@@ -103,6 +107,51 @@ def test_industrial_artifacts_normalizes_windows_declared_paths(tmp_path: Path) 
 
     results = check_industrial_artifacts(tmp_path)
     assert results
+    assert any(r.name == "industrial-artifacts" and r.passed for r in results)
+
+
+def test_industrial_artifacts_plain_string_entries_no_false_positive(tmp_path: Path) -> None:
+    """Regression test for #257: plain string canopen_eds entries must not be
+    treated as undeclared even though they pass isinstance(e, dict) == False."""
+    (tmp_path / "scaffold.yml").write_text(
+        "name: test\n"
+        "type: cli-python\n"
+        "industrial_artifacts:\n"
+        "  canopen_eds:\n"
+        "    - application/canopen/device.eds\n"
+        "    - application/canopen/device.xdd\n",
+        encoding="utf-8",
+    )
+    can_dir = tmp_path / "application" / "canopen"
+    can_dir.mkdir(parents=True)
+    (can_dir / "device.eds").write_text("EDS", encoding="utf-8")
+    (can_dir / "device.xdd").write_text("XDD", encoding="utf-8")
+
+    results = check_industrial_artifacts(tmp_path)
+    assert results
+    assert any(r.name == "industrial-artifacts" and r.passed for r in results), (
+        f"Expected pass but got: {[r.message for r in results]}"
+    )
+
+
+def test_industrial_artifacts_mixed_string_and_dict_entries(tmp_path: Path) -> None:
+    """Mixed plain-string and dict entries should both be recognised (#257)."""
+    (tmp_path / "scaffold.yml").write_text(
+        "name: test\n"
+        "type: cli-python\n"
+        "industrial_artifacts:\n"
+        "  canopen_eds:\n"
+        "    - application/canopen/a.eds\n"
+        "    - path: application/canopen/b.eds\n"
+        "      device: MyDevice\n",
+        encoding="utf-8",
+    )
+    can_dir = tmp_path / "application" / "canopen"
+    can_dir.mkdir(parents=True)
+    (can_dir / "a.eds").write_text("EDS", encoding="utf-8")
+    (can_dir / "b.eds").write_text("EDS", encoding="utf-8")
+
+    results = check_industrial_artifacts(tmp_path)
     assert any(r.name == "industrial-artifacts" and r.passed for r in results)
 
 

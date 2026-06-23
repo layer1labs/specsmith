@@ -1,0 +1,9 @@
+# CodeQL analysis configuration
+#
+# scripts/govern_bench/projects/ contains intentional bugs baked into a
+# benchmark demo project (mutable default args, etc.) that are part of the
+# scored tasks agents must fix.  Excluding that directory from CodeQL prevents
+# false-positive alerts on deliberate benchmark code.
+
+paths-ignore:
+  - scripts/govern_bench/projects

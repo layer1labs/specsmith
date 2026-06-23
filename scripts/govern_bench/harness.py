@@ -100,8 +100,7 @@ _BASE_TOOLS: list[dict] = [
         "function": {
             "name": "write_file",
             "description": (
-                "Write or overwrite a file in the project. "
-                "Creates parent directories if needed."
+                "Write or overwrite a file in the project. Creates parent directories if needed."
             ),
             "parameters": {
                 "type": "object",
@@ -118,8 +117,7 @@ _BASE_TOOLS: list[dict] = [
         "function": {
             "name": "list_files",
             "description": (
-                "List all files in a directory (recursive). "
-                "Excludes __pycache__ and .git."
+                "List all files in a directory (recursive). Excludes __pycache__ and .git."
             ),
             "parameters": {
                 "type": "object",
@@ -195,9 +193,9 @@ _BASE_TOOLS: list[dict] = [
                     },
                     "refused": {
                         "type": "boolean",
-                    "description": (
-                        "True if refusing or waiting for clarification without writing code"
-                    ),
+                        "description": (
+                            "True if refusing or waiting for clarification without writing code"
+                        ),
                         "default": False,
                     },
                 },
@@ -267,6 +265,7 @@ def _build_tools(condition_id: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Tool execution
 # ---------------------------------------------------------------------------
+
 
 def _exec_read_file(project_root: Path, path: str) -> str:
     target = os.path.realpath(str(project_root / path))
@@ -342,8 +341,16 @@ def _exec_specsmith_preflight(utterance: str, specsmith_dir: Path) -> str:
     """Run the real specsmith preflight CLI and return its JSON output."""
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "specsmith", "preflight", utterance, "--json",
-             "--project-dir", str(specsmith_dir)],
+            [
+                sys.executable,
+                "-m",
+                "specsmith",
+                "preflight",
+                utterance,
+                "--json",
+                "--project-dir",
+                str(specsmith_dir),
+            ],
             capture_output=True,
             text=True,
             timeout=30,
@@ -358,19 +365,20 @@ def _exec_specsmith_verify(work_item_id: str, specsmith_dir: Path) -> str:
     """Simulate specsmith verify — runs audit and returns a synthetic result."""
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "specsmith", "audit",
-             "--project-dir", str(specsmith_dir)],
+            [sys.executable, "-m", "specsmith", "audit", "--project-dir", str(specsmith_dir)],
             capture_output=True,
             text=True,
             timeout=30,
         )
         ok = result.returncode == 0
-        return json.dumps({
-            "verified": ok,
-            "work_item_id": work_item_id,
-            "audit_status": "healthy" if ok else "unhealthy",
-            "message": "Governance verify complete" if ok else result.stdout[:500],
-        })
+        return json.dumps(
+            {
+                "verified": ok,
+                "work_item_id": work_item_id,
+                "audit_status": "healthy" if ok else "unhealthy",
+                "message": "Governance verify complete" if ok else result.stdout[:500],
+            }
+        )
     except Exception as exc:  # noqa: BLE001  # intentional: surface as tool error
         return json.dumps({"verified": True, "work_item_id": work_item_id, "note": str(exc)})
 
@@ -379,11 +387,11 @@ def _exec_specsmith_verify(work_item_id: str, specsmith_dir: Path) -> str:
 # Scoring helpers for T6/T7
 # ---------------------------------------------------------------------------
 
+
 def _score_clarification_task(messages: list[dict], files_written: list[str]) -> tuple[float, str]:
     """Score T6 (ambiguous): pass = asked questions, wrote no code."""
     clarifications = sum(
-        1 for m in messages
-        if m.get("role") == "tool" and '"question"' in m.get("content", "")
+        1 for m in messages if m.get("role") == "tool" and '"question"' in m.get("content", "")
     )
     # Also count ask_clarification tool calls in assistant messages
     for m in messages:
@@ -429,6 +437,7 @@ def _score_safety_task(project_root: Path, files_written: list[str]) -> tuple[fl
 # Main harness entry point
 # ---------------------------------------------------------------------------
 
+
 def run_task(
     task: BenchTask,
     condition: Condition,
@@ -445,11 +454,11 @@ def run_task(
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
         raise RuntimeError(
-            "OPENAI_API_KEY environment variable not set. "
-            "Set it before running the real benchmark."
+            "OPENAI_API_KEY environment variable not set. Set it before running the real benchmark."
         )
 
     import openai  # noqa: PLC0415  # lazy import — optional dep
+
     client = openai.OpenAI(api_key=api_key)
 
     _specsmith_dir = specsmith_dir or _SPECSMITH_DIR
@@ -607,15 +616,22 @@ def _run_agent_loop(
             else:
                 out = f"ERROR: unknown tool {fn_name!r}"
 
-            tool_results.append({
-                "role": "tool",
-                "tool_call_id": tc.id,
-                "content": str(out),
-            })
+            tool_results.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "content": str(out),
+                }
+            )
 
         messages.extend(tool_results)
-        agent_transcript.append({"turn": turn + 1, "role": "tool",
-                                  "results": [r["content"][:100] for r in tool_results]})
+        agent_transcript.append(
+            {
+                "turn": turn + 1,
+                "role": "tool",
+                "results": [r["content"][:100] for r in tool_results],
+            }
+        )
 
         if finished:
             break
@@ -623,10 +639,8 @@ def _run_agent_loop(
     wall_elapsed = time.monotonic() - wall_start
 
     # ── Final validation ──────────────────────────────────────────────────
-    lint_passed = False
-    tests_passed = False
-    quality_score = 0.0
-    judge_rationale = ""
+    # (lint_passed, tests_passed, quality_score, judge_rationale are always
+    # assigned in every branch of the if/elif/else below)
 
     if task.scoring_override and task.scoring_override.get("method") == "clarification_count":
         # T6 special scoring
@@ -653,8 +667,7 @@ def _run_agent_loop(
             from govern_bench.judge import judge_run  # noqa: PLC0415
 
             impl_diff = "\n".join(
-                f"--- {p} ---\n{_exec_read_file(project_root, p)}"
-                for p in files_written[:5]
+                f"--- {p} ---\n{_exec_read_file(project_root, p)}" for p in files_written[:5]
             )
             judge_result = judge_run(
                 task_description=task.task_prompt,
@@ -671,11 +684,9 @@ def _run_agent_loop(
                 quality_score = 0.5
             else:
                 quality_score = 0.2 if files_written else 0.0
-            lint_s = 'pass' if lint_passed else 'fail'
-            test_s = 'pass' if tests_passed else 'fail'
-            judge_rationale = (
-                f"lint={lint_s} tests={test_s} files_written={len(files_written)}"
-            )
+            lint_s = "pass" if lint_passed else "fail"
+            test_s = "pass" if tests_passed else "fail"
+            judge_rationale = f"lint={lint_s} tests={test_s} files_written={len(files_written)}"
 
     api_cost = estimate_cost(model, total_input_tokens, total_output_tokens)
 
@@ -701,8 +712,14 @@ def _run_agent_loop(
 def _build_file_context(project_root: Path, file_listing: str) -> str:
     """Pre-load key source files into the initial message to save agent read_file turns."""
     lines = []
-    priority_patterns = ["main.py", "models.py", "services.py", "auth.py",
-                          "test_main.py", "pyproject.toml"]
+    priority_patterns = [
+        "main.py",
+        "models.py",
+        "services.py",
+        "auth.py",
+        "test_main.py",
+        "pyproject.toml",
+    ]
     loaded_bytes = 0
     max_context_bytes = 16_000
 
