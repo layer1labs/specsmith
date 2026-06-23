@@ -325,7 +325,7 @@ def _gh_open_issue_titles(repo: str) -> set[str]:
             timeout=20,
             check=False,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return set()
     if result.returncode != 0:
         return set()
@@ -802,7 +802,8 @@ def github_issue_plan_cmd(source: str, output_path: str, project_dir: str) -> No
 @click.option("--repo", default="layer1labs/specsmith")
 def github_issue_create_cmd(source_path: str, dry_run: bool, repo: str) -> None:
     titles = _parse_issue_plan(Path(source_path))
-    open_titles = _gh_open_issue_titles(repo)
+    # Skip the gh network call in dry-run mode — dedup is only needed when actually creating
+    open_titles = set() if dry_run else _gh_open_issue_titles(repo)
     created = 0
     skipped = 0
     for title in titles:
