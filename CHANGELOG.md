@@ -5,130 +5,131 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Only versions published to PyPI are listed. Intermediate development versions are
+consolidated into the next published release.
+
 ## [Unreleased]
 
 ---
+
+## [0.16.1] - 2026-06-23
+
+### Added
+
+- **Governance efficiency benchmark suite** — 12-condition benchmark comparing specsmith
+  against ungoverned, BMAD, Cursor rules, Copilot, Aider, Cline, Codex CLI, OpenSpec,
+  Agile BDD/TDD, and context injection across real coding tasks with `gpt-4o-mini`
+  and `gpt-5.5`. Key result: specsmith FULL achieves 100% pass rate with 2.6x fewer
+  tokens; governance is 6.3x cheaper per correct answer on gpt-5.5.
+- **Real OpenAI agent harness** (`scripts/govern_bench/harness.py`) — multi-turn tool
+  loop with specsmith preflight gating, cost tracking, and per-condition scoring.
+- **Cross-model comparison report** (`scripts/govern_bench/compare_runs.py`) — per-task
+  and summary tables with cost-of-pass, pass rates, and monthly projections side-by-side.
+- **CI matrix** (`.github/workflows/bench.yml`) — parallel bench jobs for both models
+  with auto-generated comparison report posted to GitHub job summary.
+- **Benchmark documentation** — `docs/site/efficiency-benchmark.md`,
+  `docs/site/model-comparison.md`; Benchmarks nav section in `mkdocs.yml`.
+- Benchmark callout table and headline findings in README and `docs/site/index.md`.
+
+### Fixed
+
+- **CI: `test_github_issue_plan_and_create_dry_run`** — `github issue-create --dry-run`
+  no longer calls `gh issue list` against the live GitHub API (timed out in CI without
+  auth token). `_gh_open_issue_titles` also catches `subprocess.TimeoutExpired`.
+
+### Changed
+
+- README Quick Start rewritten as a clear 6-step day-1 flow.
+- Mermaid architecture flowchart replaced with plain ASCII for PyPI compatibility.
+- `brief-lang` removed from project types showcase and GitHub repo About description.
+- Orphaned git tags and GitHub releases for non-PyPI versions removed.
+
+---
+
 ## [0.16.0] - 2026-06-22
 
-Version number corrected to sit above the previous `0.15.3` stable release on PyPI.
-`0.2.5` / `0.2.6` were published with a version reset that made them semver-lower than
-`0.15.3`, breaking dev-channel discoverability (`pip install specsmith --pre`).
-`0.16.0` restores correct ordering and is functionally identical to `0.2.6`.
-
-### Changed
-
-- **Version corrected**: `0.2.6` → `0.16.0` to restore PyPI semver ordering above `0.15.3`.
-- **chronomemory ≥ 0.2.0** — pinned to the 0.2.0 milestone release.
-- **README dead links fixed** — all `blob/main/` links changed to `blob/develop/` for
-  files that only exist on the develop branch.
-
----
-## [0.2.6] - 2026-06-22
-
-### Changed
-
-- **chronomemory ≥ 0.2.0** — pinned to the new 0.2.0 milestone release; all version references updated across `pyproject.toml`, `README.md`, `docs/site/esdb.md`, and `docs/site/getting-started.md`.
-
----
-## [0.2.5] - 2026-06-22
-
-Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests passing across Python 3.10–3.13 × Ubuntu + Windows.
+Stabilisation milestone consolidating the full 0.15.x development cycle into a single
+release. Version set to `0.16.0` to restore correct PyPI semver ordering above `0.15.3`
+(previous `0.2.5`/`0.2.6` tags were semver-lower than `0.15.3`).
+1 607 tests passing across Python 3.10-3.13 x Ubuntu + Windows.
 
 ### Added
 
 - **New CLI commands (20+):**
-  - `specsmith quickstart` — interactive governance mode + project-type wizard, auto-runs `doctor`
-  - `specsmith expand --to team|regulated` — upgrade governance tier without re-initialising
-  - `specsmith verify-integrations` — checks Claude, Cursor, Copilot, agent-skill, and MCP integrations
-  - `specsmith import spec-kit|openspec|bmad` — structured import from common spec formats
+  - `specsmith quickstart` — interactive governance mode and project-type wizard
+  - `specsmith expand --to team|regulated` — upgrade governance tier in-place
+  - `specsmith verify-integrations` — checks Claude, Cursor, Copilot, agent-skill, MCP
+  - `specsmith import spec-kit|openspec|bmad` — import from common spec formats
   - `specsmith export markdown|json|github-issues|evidence-pack` — multi-format export
-  - `specsmith github issue-plan|issue-create` — generate + post issue plans via `gh` CLI
+  - `specsmith github issue-plan|issue-create` — generate and post issue plans via gh CLI
   - `specsmith transcript import` — import agent action logs into ESDB
   - `specsmith approve` — human approval gate with ESDB-backed audit record
   - `specsmith policy validate|simulate` — validate and dry-run governance policies
   - `specsmith plugin list|validate` — plugin registry management
-  - `specsmith recover` — guided recovery from governance drift or failed agent sessions
+  - `specsmith recover` — guided recovery from governance drift
   - `specsmith dashboard build` — generate governance dashboard HTML
   - `specsmith audit verify-chain` — cryptographic audit hash-chain verification
   - `specsmith migrate --check` — preflight migration without writing
-  - `specsmith governed-pr check` — PR governance gate (branch, CI, sign-off checks)
+  - `specsmith governed-pr check` — PR governance gate (branch, CI, sign-off)
   - `specsmith drift-check` — detect requirement/test/code drift in a diff
-  - `specsmith trace score` — score a decision or assumption against the trace vault
-
-- **New modules:** `transcripts.py` (agent action normalisation), `risk.py` (risk scoring), `approvals.py` (human approval gate), `policy.py` (governance policy engine), `governed_pr.py` (PR governance), `recover.py` (drift recovery), `dashboard.py` (HTML dashboard builder), `plugins.py` (plugin registry).
-
-- **New test files:** `test_esdb_sqlite.py`, `test_esdb_enforcement.py`, `test_esdb_verify_chain_cli.py`, `test_architecture.py`, `test_golden_path.py`, `test_init_modes.py`, `test_schema_migrations.py`, `test_typing_guardrails.py` — expanding coverage across ESDB backends and governance golden paths.
-
-- **New docs pages:** `docs/ROADMAP.md`, `docs/SECURITY.md`, `docs/stability.md`, `docs/editions.md`, `docs/security-threat-model.md`, `docs/compliance/evidence-pack.md`, multiple tutorials, `docs/concepts/plain-english-glossary.md`, skills and comparison docs.
+  - `specsmith trace score` — score a decision against the trace vault
+- **New modules:** `transcripts.py`, `risk.py`, `approvals.py`, `policy.py`,
+  `governed_pr.py`, `recover.py`, `dashboard.py`, `plugins.py`.
+- **New test files:** `test_esdb_sqlite.py`, `test_esdb_enforcement.py`,
+  `test_esdb_verify_chain_cli.py`, `test_architecture.py`, `test_golden_path.py`,
+  `test_init_modes.py`, `test_schema_migrations.py`, `test_typing_guardrails.py`.
+- **New docs:** `docs/ROADMAP.md`, `docs/SECURITY.md`, `docs/stability.md`,
+  `docs/editions.md`, `docs/security-threat-model.md`, plain-English glossary,
+  skills and comparison docs.
 
 ### Fixed
 
-- **Python 3.10 compatibility** — `esdb/sqlite_store.py` used `from datetime import UTC` (Python 3.11+ only); replaced with `datetime.now(timezone.utc)` for all Python ≥ 3.10.
-- **mypy strict compliance** — resolved `typeddict-item` narrowing in `transcripts.py` (walrus operator → pre-assign), unused `# type: ignore` comments in `reporting.py` and `ledger.py`, and `open_default_store` return type (`object` → `Any`) to satisfy context-manager protocol.
-- **Sync check drift** — YAML-mode `requirements.json` / `testcases.json` / `docs/REQUIREMENTS.md` regenerated from YAML sources added during development.
-- **API surface fixture** — `tests/fixtures/api_surface.json` regenerated to reflect all new CLI commands.
-- **`.gitignore` ESDB policy** — explicit `!` include entries for `.specsmith/esdb.sqlite3`, `.specsmith/requirements.json`, `.specsmith/testcases.json`, and `.chronomemory/` canonical files.
+- **Python 3.10 compatibility** — `from datetime import UTC` replaced with
+  `datetime.now(timezone.utc)` throughout `esdb/sqlite_store.py`.
+- **mypy strict compliance** — resolved `typeddict-item` narrowing in `transcripts.py`,
+  unused `# type: ignore` comments, and `open_default_store` return type.
+- **Sync check drift** — YAML requirements/testcases/docs regenerated from sources.
+- **`.gitignore` ESDB policy** — explicit `!` include entries for `.specsmith/esdb.sqlite3`,
+  `.specsmith/requirements.json`, `.specsmith/testcases.json`, and `.chronomemory/`.
 
 ### Changed
 
-- **chronomemory ≥ 0.1.9** — all development phases complete: Rust WAL migrated to NDJSON (cross-compatible with Python), PyO3 bindings available via maturin, Python vs Rust table in chronomemory README corrected.
-- Version bumped from `0.15.3` to `0.2.5` (v0.2.0–0.2.4 were reserved by prior
-  tags but never published to PyPI).
+- **chronomemory >= 0.2.0** — pinned to the 0.2.0 milestone release (Rust WAL migrated
+  to NDJSON, PyO3 bindings via maturin, cross-compatible with Python).
 
 ---
+
 ## [0.15.3] - 2026-06-14
 
 ### Changed
 
-- Version bumped from `0.15.2` to `0.15.3`.
-- Dev Release workflow now correctly isolated to the `develop` branch only;
-  release deployments from `main` exclusively use `release.yml` triggered by a
-  version tag push.
+- Dev Release workflow isolated to the `develop` branch only; release deployments from
+  `main` exclusively use `release.yml` triggered by a version tag push.
 
 ---
+
 ## [0.15.2] - 2026-06-14
 
 ### Added
 
 - **`bare-metal-c` built-in skill** — startup code, vector tables, linker scripts,
-  C runtime initialization, standard C library constraints, syscall stubs,
-  interrupt-safe C, atomics/volatile guidance, cross-compilation, diagnostics,
-  and hardware-in-loop testing patterns.
-
-- **Expanded embedded skill coverage** — `zephyr-rtos` now explicitly covers
-  Zephyr 4.4/current through 3.x only (including 3.7 LTS), with sysbuild,
-  Kconfig/devicetree, drivers, networking, Bluetooth, security/MCUboot/TF-M,
-  Twister/ztest, and migration guidance. `freertos` now covers tasks, queues,
-  direct notifications, event groups, timers, ISR handoff, heap/static allocation,
-  SMP/MPU notes, tracing, and testing patterns.
-
-- **Skills index coverage** — documented the existing client-integration
-  governance skills (`aider-integration`, `claude-code-integration`,
-  `copilot-integration`, `cursor-integration`, `gemini-cli-integration`,
-  `windsurf-integration`) and the `brief-lang` skill in the RTD skill index.
+  C runtime initialization, interrupt-safe C, atomics/volatile guidance, cross-compilation,
+  diagnostics, and hardware-in-loop testing patterns.
+- **Expanded embedded skills** — `zephyr-rtos` updated for Zephyr 4.4/3.x (sysbuild,
+  Kconfig/devicetree, MCUboot/TF-M, Twister/ztest); `freertos` updated with tasks,
+  queues, direct notifications, event groups, SMP/MPU notes, tracing.
+- **Skills index** — 136 unique built-in skills documented in RTD
+  (`docs/site/skills-index.md`).
 
 ### Fixed
 
-- **PyPI README links** — converted relative README links that break on PyPI
-  (`LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-  governance rules, and WI lifecycle docs) to absolute GitHub or RTD URLs.
-
-- **RTD navigation coverage** — added previously orphaned documentation pages
-  to `mkdocs.yml`: Quickstart, Multi-Agent Profiles, BYOE Endpoints,
-  Kairos Terminal, YAML Governance, and API Stability.
-
-- **Security policy version table** — updated supported versions from stale
-  `0.3.x` entries to the current `0.15.x` / `0.14.x` support window.
-
-- **Skill catalog duplicate slugs** — catalog construction now deduplicates by
-  slug so `specsmith`, `specsmith-save`, and `specsmith-audit` appear once in
-  `specsmith skill list` despite being provided by both legacy and
-  self-referential skill modules.
-
-### Changed
-
-- Built-in skill count updated from 131 to 136 unique skills.
-- Version bumped from `0.15.1` to `0.15.2`.
+- **PyPI README links** — relative links that break on PyPI converted to absolute
+  GitHub or RTD URLs.
+- **RTD navigation** — previously orphaned pages added to `mkdocs.yml`: Quickstart,
+  Multi-Agent Profiles, BYOE Endpoints, Kairos Terminal, YAML Governance, API Stability.
+- **Skill catalog duplicate slugs** — `specsmith skill list` now deduplicates
+  `specsmith`, `specsmith-save`, and `specsmith-audit`.
+- **Security policy version table** — updated supported versions to `0.15.x` / `0.14.x`.
 
 ---
 
@@ -136,246 +137,97 @@ Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests p
 
 ### Added
 
-- **WI lifecycle subsystem (`specsmith/wi_store.py`)** — `WorkItem` dataclass with
-  6-state machine (`open → implemented → closed / archived / rejected / promoted`),
-  atomic JSON persistence, enforced transitions, and `force` override. Includes
-  `WorkItemStore` with `create`, `get`, `upsert`, `list_by_status`, `set_status`,
-  `mark_implemented`, `promote_to_req`, `tag`, and `import_from_ledger`.
-
-- **`specsmith wi` CLI group** — `list`, `show`, `close`, `archive`, `promote`,
-  `tag`, and `import` commands with `--json` output and `--project-dir` support.
-
-- **Preflight → WI wiring** — `run_preflight` now mints a `WorkItem` for every
-  accepted decision and returns `work_item_id` in the result dict.
-
-- **Verify → WI wiring** — `run_verify` auto-transitions the active WI to
-  `implemented` when equilibrium is reached (diff present + zero test failures).
-
-- **`docs/compliance/regulation_versions.yml`** — freshness sentinel tracking
-  article counts for all 8 supported regulations (EU AI Act, NIST RMF,
-  OMB M-24-10, Colorado SB24-205, Texas HB1709, Illinois AIETA,
-  California ADMT, NYC LL 144). CI fails when article counts drift.
-
-- **`docs/site/wi-lifecycle.md`** — RTD documentation page for the WI lifecycle
-  subsystem. Added to mkdocs nav under Governance Model.
-
-- **`tests/test_wi_lifecycle.py`** — 80-test suite covering `WorkItem` dataclass,
-  `WorkItemStore` CRUD/lifecycle, all CLI `wi` commands, preflight/verify wiring,
-  and constants integrity.
-
-- **`tests/test_compliance_governance.py`** — 150-test CI gate proving every
-  compliance claim: regulation catalog integrity, freshness sentinel, article
-  control coverage, evidence collection, checker logic, result model, reporter
-  (JSON/MD/HTML with mandatory disclaimer), CLI compliance commands, and
-  module exports. Fails CI when regulations change without a corresponding
-  `regulation_versions.yml` update.
-
-- **`tests/sandbox/test_sandbox_all_types.py`** — parametrized smoke test over
-  all 63 project types: init succeeds, all 7 governance files present,
-  `specsmith audit` reports Healthy, `specsmith validate` passes, no empty
-  scaffold files. Plus `TestAITypesDomainContent`: domain-specific dir
-  assertions for all 17 new AI/modern types (llm-app, mcp-server,
-  agent-orchestration, serverless, kubernetes-operator, smart-contract,
-  desktop-tauri, data-warehouse, game-unity, game-godot, etc.).
-
-- **`tests/sandbox/test_sandbox_wi_compliance.py`** — end-to-end WI lifecycle
-  and compliance commands on real scaffolded projects:
-  `TestWILifecycleSandbox` (11 tests): preflight → WI creation, wi list/show/
-  close/archive/promote/tag/import on a real project directory.
-  `TestComplianceSandbox` (9 tests): compliance list/check/report
-  (MD/JSON/HTML/file) on a scaffolded project; evidence-confidence ordering.
+- **WI lifecycle subsystem** (`specsmith/wi_store.py`) — `WorkItem` dataclass with
+  6-state machine (`open -> implemented -> closed / archived / rejected / promoted`),
+  atomic JSON persistence, enforced transitions, and `force` override.
+- **`specsmith wi` CLI group** — `list`, `show`, `close`, `archive`, `promote`, `tag`,
+  `import` with `--json` output and `--project-dir` support.
+- **Preflight -> WI wiring** — every accepted `preflight` mints a `WI-XXXXXXXX` and
+  returns `work_item_id` in the result.
+- **Verify -> WI wiring** — `run_verify` auto-transitions the active WI to `implemented`
+  on equilibrium (diff present + zero test failures).
+- **`docs/compliance/regulation_versions.yml`** — freshness sentinel tracking article
+  counts for EU AI Act, NIST RMF, OMB M-24-10, Colorado SB24-205, Texas HB1709,
+  Illinois AIETA, California ADMT, NYC LL 144. CI fails when counts drift.
+- **`docs/site/wi-lifecycle.md`** — RTD documentation for the WI lifecycle subsystem.
+- **80-test suite** (`tests/test_wi_lifecycle.py`) covering the full WI lifecycle.
+- **150-test compliance CI gate** (`tests/test_compliance_governance.py`).
+- **Sandbox smoke tests** — parametrized over all 63 project types.
+- **`specsmith-error-reporting` skill** — structured issue triage protocol for AI agents.
+- **`specsmith-mcp-configs` skill** — 20+ tested MCP server configurations
+  (filesystem, github, brave-search, postgres, sqlite, exa, tavily, linear, etc.).
+- **Compliance best-effort disclaimer** added throughout CLI output, JSON/HTML reports,
+  module docstrings, and compliance docs.
+- **`ComplianceReporter.summary_dict()`** — public API replacing private `_summary_dict`.
 
 ### Fixed
 
-- **`governance_logic.py` — WI wiring `NameError` silently swallowed.**
-  `WorkItemStore(root)` in the best-effort WI block used `root` (undefined)
-  instead of `_root_str`, causing a `NameError` that was silently caught,
-  meaning no WI was ever persisted. Fixed to `WorkItemStore(_root_str)`.
-
-- **`pyproject.toml` pytest config** — added `pythonpath = ["src"]` so pytest
-  can discover `specsmith` without requiring `pip install -e .` in the dev
-  shell (matches the CI install path).
-
-- **`cli.py` wi_promote_cmd** — removed dead `new_req` dict assignment
-  (F841: built but never read; YAML entry written directly via f-string).
-
-### Changed
-
-- Version bumped from `0.14.2` to `0.15.0` (development cycle), then to `0.15.1` for PyPI
-  publication. PyPI permanently blocks filename reuse after a prior `0.15.0` upload was
-  deleted; `0.15.1` carries identical code.
-
----
-
-## [0.14.2] - 2026-06-14
-
-### Added
-
-- **`specsmith-error-reporting` skill** — structured issue triage protocol for
-  AI agents. Before suggesting any GitHub ticket, agents now: check the user’s
-  specsmith version, search open issues, search closed/fixed issues and compare
-  to installed version, guide upvoting of existing tickets, and only then walk
-  through a structured new-issue template. Covers bugs, feature gaps (missing
-  project types, languages, tools, regulations, integrations), and compliance
-  coverage requests. Includes vote automation via `gh api` reactions.
-
-- **`specsmith-mcp-configs` skill** — a large repository of tested, ready-to-use
-  MCP server configurations for `.specsmith/mcp.yml`. Covers 20+ servers:
-  - **Official** (`@modelcontextprotocol/servers`): `filesystem`, `github`,
-    `brave-search`, `postgres`, `sqlite`, `fetch`, `memory`, `puppeteer`,
-    `sequential-thinking`, `slack`, `google-drive`, `everything`
-  - **Python** (uvx/pip): `mcp-server-git`, `mcp-server-time`
-  - **specsmith** built-in governance server
-  - **Community**: `exa`, `tavily`, `linear`, `sentry`, `playwright`, `redis`,
-    `notion`
-  - Two ready-to-use multi-server starter templates (full-stack and database).
-
-- **Compliance best-effort disclaimer** added throughout: `compliance_check_cmd`
-  output, `compliance_report_cmd` JSON output, Markdown report header, HTML
-  report footer (enhanced), `compliance/__init__.py` module docstring,
-  `compliance/reporter.py` module docstring, `README.md` AI Compliance section,
-  `docs/COMPLIANCE.md`, and `docs/site/governance.md`.
-
-- **`ComplianceReporter.summary_dict()`** — public API for the compliance summary
-  dictionary. `_summary_dict()` retained as a backward-compat alias.
-
-### Fixed
-
-- **#202 — ESDB `chain_valid()` display shows ✗ for intact chain.** Both
-  `esdb status` and `checkpoint` now use `chain_valid() is not False` to
-  correctly handle non-bool returns (e.g. `None` or `0`) from some chronomemory
-  versions for an intact chain. Previously any falsy non-`True` return was
-  displayed as ✗, misleading operators and agents into treating a healthy
-  ESDB as failed.
-
-- **Emoji alignment in governance anchor box.** The `checkpoint` command no
-  longer includes the phase emoji in the fixed-width anchor box. Phase emojis
-  are multi-column glyphs whose terminal width is inconsistent across fonts and
-  environments, causing the right border to appear misaligned. The emoji is
-  still stored in `--json` output and other display contexts.
-
-### Security
-
-- **S603 / S607 — `subprocess.run` calls annotated safe.** Two `subprocess.run`
-  call sites in `cli.py` received `# noqa: S603, S607` with explanatory
-  comments and `check=False`:
-  - `verify-release` command (fixed `["gh", "release", "view", ...]` argv)
-  - `tools scan --fpga` version probe (exe from a hardcoded trusted tool map)
-
-### Quality
-
-- `compliance_audit_cmd` now calls `reporter.summary_dict()` (public) instead
-  of `reporter._summary_dict()` (private), resolving the private-method access
-  quality issue.
-
-### Skills updated
-
-- **`specsmith` SKILL.md** — major update: WI / Work Item explanation with
-  full lifecycle (preflight → WI → requirement IDs → code → ledger), compliance
-  disclaimer, updated command table (adds `preflight`, `checkpoint`, `compliance`,
-  `esdb status`), strengthened preflight-gate rule, proactive skill/feature gap
-  detection guidance, updated install list.
-
-- **`specsmith-session-governance` SKILL.md** — updated: new Rule 3 (MCP tool
-  governance — `governance_preflight` gates all MCP calls), MCP tool reference
-  table, `specsmith mcp install-warp` setup instruction, compliance disclaimer
-  section for governed sessions, error-reporting protocol stub.
+- **`governance_logic.py` WI NameError** — `WorkItemStore(root)` used undefined `root`;
+  fixed to `WorkItemStore(_root_str)` so WIs are now persisted correctly.
+- **`pyproject.toml` pytest config** — added `pythonpath = ["src"]` so pytest discovers
+  `specsmith` without requiring `pip install -e .`.
+- **ESDB `chain_valid()` display** — `esdb status` and `checkpoint` now use
+  `chain_valid() is not False` to handle non-bool returns from chronomemory.
+- **Governance anchor emoji alignment** — phase emoji removed from the fixed-width
+  anchor box (multi-column glyphs caused border misalignment).
+- **`cli.py` wi_promote_cmd** — removed dead `new_req` dict assignment (F841).
+- **S603/S607 subprocess calls** — two `subprocess.run` sites annotated safe with
+  explanatory `# noqa`.
 
 ### Changed
 
-- Version bumped from `0.14.1` to `0.14.2`.
+- `specsmith` and `specsmith-session-governance` SKILL.md files updated: full WI
+  lifecycle explanation, compliance disclaimer, MCP tool governance rule, updated
+  command tables.
 
 ---
 
 ## [0.14.1] - 2026-06-12
 
-### Changed
-- `specsmith[esdb]` optional extra: `chronomemory>=0.1.7` (wheel-only release;
-  no source distribution on PyPI from v0.1.7 onwards).
-- Old chronomemory versions (0.1.2–0.1.6) yanked from PyPI.
-- Version bumped from `0.14.0` to `0.14.1`.
-
----
-
-## [0.14.0] - 2026-06-12
-
 ### Added
 
-- **Two-tier ESDB architecture (REQ-365, REQ-366):** specsmith now ships a
-  free built-in SQLite ESDB backend (MIT, no external deps, no license key)
-  alongside the commercial `chronomemory` ChronoStore backend:
-  - `specsmith.esdb.sqlite_store.SqliteStore` — default, activated automatically
-    on every `pip install specsmith`. DB at `.specsmith/esdb.sqlite3`.
-  - `specsmith[esdb]` extra — installs `chronomemory>=0.1.6` from PyPI.
-    Requires a valid Ed25519 license key from Layer1Labs to activate ChronoStore.
-  - `open_default_store()` backend selector: env override → license check →
-    SQLite fallback.
-
-- **ESDB license gate (REQ-367):** `specsmith.esdb._license` — offline
-  Ed25519 signature verification for `~/.specsmith/esdb.key`. No internet
-  connection required once activated.
-
-- **ESDB CLI command group** (`specsmith esdb …`):
-  - `status` — show active backend, license, and record counts (JSON/text)
-  - `enable --key-file` — validate and install a chronomemory license key
-  - `migrate` — import `.specsmith/*.json` into the active ESDB backend
-  - `export` — dump all records to a JSON snapshot
-  - `import` — restore from a snapshot
-  - `backup` — timestamped snapshot backup
-  - `rollback --steps N` — restore from the N-th most recent backup
-  - `compact` — deduplicate and vacuum the active store
-  - `replay` — verify the trace vault SHA-256 hash chain
-
-- **ESDB documentation** (`docs/site/esdb.md`): new comprehensive page with
-  backend comparison table, licensing at a glance, step-by-step ChronoStore
-  activation (pip and pipx variants), CLI reference, Python API, and migration
-  guide. Cross-linked from README, getting-started, and index.
-
-- **New test suite** (`tests/test_esdb_sqlite.py`, `tests/test_esdb_license.py`,
-  `tests/test_mcp_server.py`): 278 + 261 + 671 lines of new test coverage.
+- **Two-tier ESDB architecture** (REQ-365, REQ-366) — free built-in SQLite backend
+  (MIT, no license key) plus commercial `chronomemory` ChronoStore:
+  - `specsmith.esdb.sqlite_store.SqliteStore` — activated automatically on every
+    `pip install specsmith`. DB at `.specsmith/esdb.sqlite3`.
+  - `specsmith[esdb]` extra — installs `chronomemory` from PyPI; requires a valid
+    Ed25519 license key from Layer1Labs to activate ChronoStore.
+  - `open_default_store()` backend selector: env override -> license check -> SQLite.
+- **ESDB license gate** (REQ-367) — offline Ed25519 signature verification via
+  `~/.specsmith/esdb.key`; no internet connection required once activated.
+- **ESDB CLI command group** (`specsmith esdb ...`):
+  `status`, `enable --key-file`, `migrate`, `export`, `import`, `backup`,
+  `rollback --steps N`, `compact`, `replay`.
+- **ESDB documentation** (`docs/site/esdb.md`) — backend comparison, licensing,
+  ChronoStore activation (pip and pipx), CLI reference, Python API, migration guide.
+- **Native MCP governance server** (`specsmith mcp serve`, REQ-363) — zero-dependency
+  stdio MCP server (JSON-RPC 2.0, MCP 2024-11-05) exposing six tools:
+  `governance_audit`, `governance_checkpoint`, `governance_preflight`,
+  `governance_phase`, `governance_req_list`, `governance_trace_seal`.
+- **`specsmith mcp install-warp`** — prints the Warp MCP config JSON snippet for
+  one-paste setup in Settings -> Agents -> MCP servers.
+- **Warp repository workflows** (`.warp/workflows/`) — seven `Ctrl+Shift+R`-searchable
+  workflow YAML files: Session Start, Audit, Checkpoint, Preflight, Save, Phase Status,
+  Session End.
+- **`specsmith-session-governance` skill** — drift prevention, heartbeat, preflight gate.
+- **`release-pilot` skill** — gitflow release-cut workflow for the Release phase.
+- **New test coverage** — `tests/test_esdb_sqlite.py` (278 lines),
+  `tests/test_esdb_license.py` (261 lines), `tests/test_mcp_server.py` (671 lines).
 
 ### Fixed
 
-- **10 CodeQL security alerts resolved** (all `branch:main` open alerts cleared):
-  - `#148` `py/path-injection` — `governance_logic.py`: `os.path.realpath` now
-    called inline in `run_preflight` so CodeQL's taint tracker sees the sanitiser
-    directly (was hidden inside `_safe_resolve` across function boundary).
-  - `#170` `py/import-and-import-from` — `cli.py:4237`: `import specsmith.esdb as
-    _esdb` replaced with `from specsmith.esdb import …` to match the file's style.
-  - `#169` same rule — `tests/test_esdb_license.py:162`: `import
-    specsmith.esdb._license as lic_mod` → `from specsmith.esdb import _license as
-    lic_mod`.
-  - `#167/#166/#156` `py/module-import-repeat` — `tests/test_mcp_server.py`:
-    removed three redundant inline `import specsmith.mcp_server as mcp_mod`
-    (already imported at module level).
-  - `#171/#149` `py/non-standard-exception-in-special-method` —
-    `esdb/bridge.py` and `esdb/__init__.py`: `_StubModule.__getattr__` now
-    raises `AttributeError` instead of `ImportError`.
-  - `#152/#153` `py/empty-except` — `esdb/sqlite_store.py`: bare `except …:
-    pass` replaced with `counts["skipped"] += 1`.
-
-- **Broken Read the Docs link** — all `readthedocs.io/esdb` URLs (returning
-  404) corrected to `/en/stable/esdb/` across README, docs, and the
-  `chronomemory-esdb` governance skill.
+- **10 CodeQL security alerts resolved** — `py/path-injection` (sanitiser now inline in
+  `run_preflight`), `py/import-and-import-from` (4 sites), `py/module-import-repeat`
+  (3 sites in `test_mcp_server.py`), `py/non-standard-exception-in-special-method`
+  (raises `AttributeError` not `ImportError`), `py/empty-except` (bare `pass` replaced).
+- **Broken RTD links** — `readthedocs.io/esdb` URLs corrected to `/en/stable/esdb/`.
+- Release helper: `--no-edit` added to `git merge`; `git core.editor=true` set to
+  prevent editor prompts.
 
 ### Changed
 
-- `specsmith[esdb]` optional extra: `chronomemory>=0.1.6` (up from `>=0.1.4`).
-  chronomemory v0.1.6 is the first clean PyPI release with correct `__version__`,
-  all RTD links fixed, and the Python feature table corrected.
-- `chronomemory-esdb` governance skill updated to v0.1.6 references.
-- Version bumped from `0.13.1` to `0.14.0`.
-
----
-
-## [0.13.1] - 2026-06-04
-
-### Fixed
-
-- `--no-edit` added to `git merge` in release next-steps output.
-- `git core.editor=true` set globally in release helper to prevent editor prompts.
-- Test: backdate `spec_version` in `test_upgrade_to_new_version` to avoid false
-  positives from version check logic.
+- `specsmith[esdb]` extra: `chronomemory>=0.1.7` (wheel-only; no sdist from v0.1.7).
+  Old chronomemory versions 0.1.2-0.1.6 yanked from PyPI.
 
 ---
 
@@ -383,903 +235,218 @@ Stabilisation milestone. All 0.15.x incremental work consolidated; 1 607 tests p
 
 ### Added
 
-- **16 new project types** expanding coverage from 47 to 53 types:
-  - **AI / LLM / Agents**: `llm-app`, `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform` — with auto-detection from dependency signals (crewai/langgraph → `agent-orchestration`, chromadb/faiss → `rag-pipeline`, mlflow/bentoml → `mlops-platform`, mcp package → `mcp-server`)
-  - **JVM**: `java-spring` (Spring Boot detection via `pom.xml`/`build.gradle`), `java-library`
-  - **Infrastructure / Cloud**: `serverless` (Lambda/GCP Functions/Cloudflare Workers), `kubernetes-operator` (Go + controllers/ detection), `streaming-pipeline` (Kafka/Flink/Beam), `data-warehouse` (dbt/Snowflake/BigQuery, detected via `dbt_project.yml`)
-  - **Game development**: `game-unity`, `game-godot` (detected via `project.godot`/`Assets/`)
-  - **Web3**: `smart-contract` (Solidity/EVM, detected via `.sol` language or `hardhat`/`ethers` in package.json)
-  - **Desktop**: `desktop-electron` (detected via `electron` in package.json), `desktop-tauri` (detected via `src-tauri/`)
-  - All 16 new types have full `ToolSet` entries, scaffold directory structures, and `_EXPLICIT_ONLY_TYPES` membership where auto-detection would produce false positives
-
-- **55 new built-in skills across 5 new domains** — catalog grows from 76 to 131 skills (16 domains):
-  - **`ai-agents` (14)**: `llm-app-development`, `mcp-server-development`, `agent-orchestration`, `prompt-engineering`, `rag-development`, `context-engineering`, `ai-safety-review`, `langchain-development`, `langgraph-development`, `vector-database`, `model-evaluation`, `fine-tuning-workflow`, `computer-vision-pipeline`, `mlops-workflow`
-  - **`software-engineering` (12)**: `code-review`, `test-driven-development`, `debugging`, `refactoring`, `security-hardening`, `performance-optimization`, `api-design`, `database-design`, `dependency-management`, `git-workflow`, `pr-workflow`, `architecture-decision-records`
-  - **`web-backend` (11)**: `frontend-ui-engineering`, `web-performance`, `accessibility`, `testing-e2e`, `nextjs-development`, `rest-api-development`, `graphql-development`, `database-postgresql`, `caching-redis`, `message-queue`, `websocket-realtime`
-  - **`data-engineering` (8)**: `data-pipeline-etl`, `dbt-development`, `data-quality`, `stream-processing`, `ml-experiment-tracking`, `feature-engineering`, `data-lakehouse`, `spark-pipeline`
-  - **`platform-engineering` (10)**: `helm-chart`, `monitoring-observability`, `incident-response`, `secret-management`, `gitops`, `serverless-functions`, `oauth2-auth`, `api-gateway`, `chaos-engineering`, `service-mesh`
-
-- **`_EXPLICIT_ONLY_TYPES` extended** — `kubernetes-operator`, `streaming-pipeline`, `serverless`, `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform`, `game-unity`, `game-godot`, `data-warehouse` added. These types use explicit configuration and bypass auto-detection to prevent false-positive type mismatches from auxiliary language files.
-
-### Fixed
-
-- **#195 — LEDGER open-TODO counter false positive**: `check_ledger_health` counted any line containing `- [ ]` as an open TODO, causing false positives when prose narrative fields (e.g., `Checks run:`) referenced checklist syntax. Fixed to `line.lstrip().startswith("- [ ]")` — only lines where the checklist marker starts the trimmed line are counted.
-
-- **#194 — `check_type_mismatch` false positive for FPGA projects with auxiliary Python**: `check_type_mismatch` called `detect_project()` even when `scaffold.yml` had an explicit hardware/vendor type set. Python tooling files in FPGA projects dominated the file-extension count, making `detect_project()` infer `library-python` instead of `fpga-rtl-amd`. Fixed by introducing `_EXPLICIT_ONLY_TYPES` — when `config.type` is in this frozenset, auto-detection is skipped entirely. Regression tests added.
-
-- **ruff format drift in `cli.py` and `mcp_server.py`**: two source files had diverged from the `ruff format` output, failing the CI lint step. Applied `ruff format` to restore compliance.
-
-### Changed
-
-- **Documentation comprehensively updated**: README.md, `docs/site/project-types.md`, `docs/site/skills-index.md`, `docs/site/configuration.md` all reflect the new 53 project types and 131 skills. GitHub repository description and topics updated.
-- Version bumped from `0.12.0` to `0.13.0`.
-
-## [0.12.0] - 2026-06-01
-
-### Added
-
-- **Native MCP governance server** (`specsmith mcp serve`, REQ-363): a zero-dependency stdio MCP server implementing JSON-RPC 2.0 (MCP 2024-11-05). Exposes six structured tools to any MCP client — Warp/Oz, Cursor, Claude Code, or any IDE that supports the Model Context Protocol:
-  - `governance_audit` — run the full governance audit, returns structured health JSON
-  - `governance_checkpoint` — emit the GOVERNANCE ANCHOR JSON (phase, health, REQ/TEST counts, ESDB chain)
-  - `governance_preflight` — preflight a change intent, returns decision + work_item_id
-  - `governance_phase` — current AEE phase, readiness %, and failing checks
-  - `governance_req_list` — list all requirements with coverage status, filterable by status
-  - `governance_trace_seal` — seal a milestone or decision in the cryptographic trace vault
-- **`specsmith mcp install-warp`**: prints the Warp MCP config JSON snippet for one-paste setup. Add to **Settings → Agents → MCP servers** or pass inline to `oz agent run --mcp`.
-- **Warp repository workflows** (`.warp/workflows/`, REQ-362): seven `Ctrl+Shift+R`-searchable workflow YAML files for Warp terminal — Session Start, Audit, Checkpoint, Preflight, Save, Phase Status, Session End.
-- **`specsmith-session-governance` skill**: drift prevention, heartbeat, and preflight gate for Oz/AI sessions. Auto-discovered from `.agents/skills/`.
-- **`release-pilot` skill**: gitflow release-cut workflow for the Release phase.
-- **REQ-362** (Warp terminal integration) and **REQ-363** (MCP governance server) with corresponding test cases TEST-363 and TEST-364.
-- `tests/test_mcp_server.py`: 20 new pytest cases covering the MCP protocol handshake, all six tool handlers, error paths, and CLI subprocess smoke tests.
-
-### Changed
-
-- Version bumped from `0.11.8` to `0.12.0` (significant new capability: native MCP server).
-
-## [0.11.8] - 2026-05-30
-
-### Added
-
-- **`specsmith-*` self-referential skills** (#190): three built-in skills (`specsmith`, `specsmith-save`, `specsmith-audit`) added to the governance skills catalog and installable via `specsmith skill install <slug>`. `install()` now writes `<slug>/SKILL.md` (subdirectory format) for Warp/Claude Code/Codex auto-discovery. `installed_skills()` detects both flat and subdirectory formats.
-- **`accepted_warnings` audit suppression** (#188): `scaffold.yml` now supports `accepted_warnings: [alias, ...]` to suppress specific audit checks. Suppressed checks render as `~ <check> (accepted)` and are excluded from the failure count and exit code. Supported aliases: `scaffold_type_mismatch`, `ledger_line_threshold`, `open_todo_count`.
-- **`SPECSMITH_ALLOW_NON_PIPX=1` autouse in conftest** — test suite no longer requires pipx to run CLI tests under editable installs.
+- **16 new project types** (47 -> 63 total):
+  - AI / LLM / Agents: `llm-app`, `agent-orchestration`, `mcp-server`, `rag-pipeline`,
+    `mlops-platform` — with auto-detection from dependency signals.
+  - JVM: `java-spring`, `java-library`.
+  - Infrastructure: `serverless`, `kubernetes-operator`, `streaming-pipeline`,
+    `data-warehouse`.
+  - Game: `game-unity`, `game-godot`.
+  - Web3: `smart-contract`.
+  - Desktop: `desktop-electron`, `desktop-tauri`.
+- **55 new built-in skills** (76 -> 131 skills across 16 domains):
+  - `ai-agents` (14): LLM app dev, MCP server dev, agent orchestration, prompt
+    engineering, RAG, context engineering, AI safety, LangChain, LangGraph, vector DB,
+    model evaluation, fine-tuning, computer vision, MLOps.
+  - `software-engineering` (12): code review, TDD, debugging, refactoring, security
+    hardening, performance, API design, database design, dependency management, git
+    workflow, PR workflow, ADRs.
+  - `web-backend` (11), `data-engineering` (8), `platform-engineering` (10).
+- **`_EXPLICIT_ONLY_TYPES`** — `kubernetes-operator`, `streaming-pipeline`, `serverless`,
+  `agent-orchestration`, `mcp-server`, `rag-pipeline`, `mlops-platform`, `game-unity`,
+  `game-godot`, `data-warehouse` use explicit configuration to prevent auto-detection
+  false positives.
+- **`specsmith-*` self-referential skills** — `specsmith`, `specsmith-save`,
+  `specsmith-audit` added to the governance catalog; installable via
+  `specsmith skill install <slug>`; written to `<slug>/SKILL.md` subdirectory for
+  Warp/Claude Code/Codex auto-discovery.
+- **`accepted_warnings` audit suppression** — `scaffold.yml` now supports
+  `accepted_warnings: [alias, ...]` to suppress specific audit checks.
+  Suppressed checks show as `~ <check> (accepted)` and are excluded from the failure
+  count and exit code. Supported: `scaffold_type_mismatch`, `ledger_line_threshold`,
+  `open_todo_count`.
+- **`SPECSMITH_ALLOW_NON_PIPX=1` autouse fixture** — test suite no longer requires pipx
+  under editable installs.
 
 ### Fixed
 
-- **Phase check H2 REQ heading support** (#189): `_req_count` in `phase.py` now counts both `##` and `###` REQ headings, fixing false phase-readiness failures for projects using `## REQ-DOMAIN-NNN` format.
-- **Sync Markdown fallback in YAML mode** (#189): `specsmith sync` now falls back to Markdown parsing when YAML mode is active but no YAML requirement files exist, preventing silent loss of Markdown-authored requirements.
+- **LEDGER open-TODO false positive** (`#195`) — `check_ledger_health` now uses
+  `line.lstrip().startswith("- [ ]")` to avoid counting prose references to
+  checklist syntax.
+- **`check_type_mismatch` FPGA false positive** (`#194`) — auto-detection is now skipped
+  entirely when `config.type` is in `_EXPLICIT_ONLY_TYPES`.
+- **Sync Markdown fallback in YAML mode** — `specsmith sync` falls back to Markdown
+  parsing when YAML mode is active but no YAML requirement files exist.
+- **Phase check H2 REQ headings** — `_req_count` now counts both `##` and `###` REQ
+  headings, fixing false phase-readiness failures for projects using the `## REQ-` format.
+- ruff format drift in `cli.py` and `mcp_server.py` resolved.
+
+### Changed
+
+- Documentation comprehensively updated: README, `docs/site/project-types.md`,
+  `docs/site/skills-index.md`, `docs/site/configuration.md`.
+
+---
 
 ## [0.11.7] - 2026-05-24
 
-### Added
+This release consolidates the full 0.11.x development cycle (0.11.0-0.11.6),
+multi-agent dispatch, BYOE, and the foundational Applied Epistemic Engineering layer.
+See git history for per-commit details on intermediate versions.
 
-- **Pipx-only enforcement** — `specsmith` now rejects invocations from any
-  non-pipx Python environment at startup. Running via `pip install`, an editable
-  dev install, or inside a project venv raises a clear error with install
-  instructions. Override for CI with `SPECSMITH_ALLOW_NON_PIPX=1`.
-- **Persistent 24-hour update check** — `_maybe_notify_pypi_update()` now
-  persists the last-check timestamp to `~/.specsmith/last-update-check` and
-  contacts PyPI at most once per `SPECSMITH_UPDATE_INTERVAL_HOURS` hours
-  (default 24). Previously fired a network call on every shell session; now
-  zero-latency within the window. Disable with `SPECSMITH_NO_UPDATE_CHECK=1`.
-- **Hardened `is_pipx_install()`** — correctly detects Windows pipx venvs at
-  `~/pipx/venvs/` without requiring `PIPX_HOME` env var, plus Linux/macOS
-  `~/.local/pipx/venvs/` paths.
+### Added — Pipx and update check
 
-### Fixed
+- **Pipx-only enforcement** — `specsmith` rejects invocations from non-pipx Python
+  environments at startup with a clear error and install instructions.
+  Override for CI: `SPECSMITH_ALLOW_NON_PIPX=1`.
+- **Persistent 24-hour update check** — PyPI contacted at most once per
+  `SPECSMITH_UPDATE_INTERVAL_HOURS` hours (default 24). Timestamp persisted to
+  `~/.specsmith/last-update-check`. Disable: `SPECSMITH_NO_UPDATE_CHECK=1`.
+- **Hardened `is_pipx_install()`** — detects Windows pipx venvs at `~/pipx/venvs/`
+  without requiring `PIPX_HOME`.
 
-- Removed competing pip-editable `__editable__.specsmith-0.11.3.pth` and
-  `__editable__.specsmith-0.11.5.pth` from the system Python site-packages
-  that caused `import specsmith` to resolve to stale dev copies.
+### Added — Agentic REPL improvements
 
-## [0.11.6] - 2026-05-21
+- **`specsmith run` silent no-response fix** — resolved three compounding bugs: wrong
+  default Ollama model (404 swallowed silently), `_handle_command` returning `None`,
+  and `EventEmitter.token()` emitting raw JSONL in interactive mode.
+- **`PlainTextEmitter`** — new `EventEmitter` subclass; `token()` writes raw text,
+  `emit()` is a no-op. Eliminates JSONL blobs in the interactive REPL.
+- **`specsmith run --check`** — validates all LLM provider configurations, exits 0/1
+  without starting the REPL.
+- **`specsmith run` startup banner** — full provider status table (Ollama/Anthropic/
+  OpenAI/Gemini) with resolved models and hints before the first prompt.
+- **`_pick_ollama_model()`** — queries Ollama `/api/tags` and selects the first
+  installed model from a preference list.
+- **H23 governance rule** — "No bare sleep delays in scripts"; added to `RULES.md`
+  and `specsmith validate` checker (`_check_bare_sleep()`).
+- **`req trace` fix** — `_TEST_ID_PATTERN` extended to `\d+[a-z]*` to handle
+  letter-suffix TEST IDs like `TEST-NN-002a`.
 
-### Fixed
+### Added — Codity.ai integration
 
-- **`specsmith run` silent no-response** — three compounding bugs caused all user input to be silently discarded:
-  - Wrong default Ollama model (`qwen2.5:7b`) not installed; HTTP 404 swallowed silently.
-  - `_handle_command` returned `None` with zero output when no provider responded.
-  - `EventEmitter.token()` emitted raw JSONL even in interactive terminal mode.
-- **`req trace` wrong test IDs for letter-suffix TEST IDs** — `_TEST_ID_PATTERN` used `\d+\b`; the `\b` word boundary cannot match between a digit and a letter (`TEST-NN-002a`), causing the previous test ID to persist as `current_test`. Fixed by extending patterns to `\d+[a-z]*`. `trace_reqs()` now prefers `.specsmith/testcases.json` in YAML mode (exact IDs, no regex). Same fix applied to `sync.py`'s `_FLEX_TEST_ID`. (Closes #183)
-- **`specsmith watch` unhelpful fallback message** — replaced bare "pip install watchdog" hint with an actionable message showing the polling interval and the `pyproject.toml [project.optional-dependencies].dev` form.
+- **`specsmith integrate codity`** — scaffolds AI code review CI workflows; supports
+  GitHub (default), GitLab, and Azure DevOps; VCS auto-detected from `scaffold.yml`.
+- **`codity-ai-review` governance skill** — full CLI workflow reference including
+  install, auth, `codity review --staged`, VCS-specific PAT setup.
+- **AGENTS.md template Codity section** — HIGH-severity findings block commits,
+  MEDIUM requires inline acknowledgement (REQ-354/355/356).
 
-### Added
+### Added — Multi-Agent DAG Dispatcher
 
-- **`specsmith run --check`** — validates all LLM provider configurations and exits 0/1 without starting the REPL. Shows provider name, resolved model, and install count.
-- **`specsmith run` startup banner** — displays a full provider status table (Ollama/Anthropic/OpenAI/Gemini) with ✓/✗, resolved model name, and actionable hints before the first prompt.
-- **`_pick_ollama_model()`** — queries Ollama `/api/tags` and selects the first installed model from a preference list; `SPECSMITH_OLLAMA_MODEL` env var wins unconditionally.
-- **`PlainTextEmitter`** — new `EventEmitter` subclass for interactive terminal mode; `token()` writes raw text, `emit()` is a no-op. Eliminates JSONL blobs in the interactive REPL.
-- **`check_providers()`** — probes all four providers and returns `ProviderStatus` dataclass (name, available, model, note, model_count).
-- **H23 governance rule** — "No bare sleep delays in scripts"; added to `RULES.md`, scaffold template, and `specsmith validate` checker (`_check_bare_sleep()`). (Closes #184)
-- **`watchdog>=4.0`** in `pyproject.toml.j2` scaffold template dev extras. (Closes #182)
-- **19 new regression tests** (`test_agent_run_feedback.py`) covering model selection, `PlainTextEmitter`, `check_providers()`, `AgentRunner` feedback, and `--check` CLI.
+- **`specsmith dispatch` command group** (REQ-321..334) backed by
+  `src/specsmith/agent/dispatch/`:
+  - `TaskDAG`, `TaskDAGBuilder` — Kahn topological sort + cycle detection.
+  - `AgentPool` — lazy per-role `ConversableAgent` pool with idle worker reuse.
+  - `AgentDispatcher` — `ThreadPoolExecutor` scheduler with fail-forward BLOCKED
+    propagation; writes ESDB `dispatch_result` records; injects predecessor context
+    into successors.
+  - `EventEmitter` — atomic JSONL event persistence to
+    `.specsmith/dispatch/<dag_id>/events.jsonl` with SSE fan-out.
+  - `specsmith dispatch run/status/list/retry` CLI subcommands.
+- **Cooperative abort during LLM invocation** — `abort_node()` fires mid-call via
+  daemon sub-thread; `_run_node` raises `_NodeAbortedError` immediately.
+- **Compiler / tool support** — `run_gcc`, `run_arm_gcc`, `run_aarch64_gcc`,
+  `run_iar_compiler`, `run_intel_compiler`, `run_clang_format`, `run_clang_tidy`,
+  `run_vsg`; all 8 registered in `AVAILABLE_TOOLS` and `ROLE_TOOLS`.
 
-## [0.11.5] - 2026-05-20
+### Added — ESDB extended lifecycle and channels
 
-### Fixed
+- **`specsmith channel` group** — `channel set {stable|dev}`, `channel get [--json]`,
+  `channel clear`; persisted to `~/.specsmith/channel`.
+- **ESDB extended lifecycle** (REQ-249..253) — `esdb export`, `esdb import`,
+  `esdb backup`, `esdb rollback --steps N` (real restore from backup), `esdb compact`
+  (real deduplication by ID).
+- **Skills lifecycle** — `skills deactivate <skill-id>`, `skills delete <skill-id>`.
+- **`specsmith mcp generate <description>`** — deterministic MCP server config stub
+  from natural-language description.
+- **`specsmith agent ask <prompt>`** — keyword dispatcher routes compliance/audit/
+  skills/ESDB/MCP queries without an LLM.
+- **60 new pytest tests** covering REQ-248..257.
+- **12 CodeQL security fixes** — `py/path-injection` (10 via `_safe_resolve` /
+  `_safe_file_read`), `py/http-response-splitting` (1), `py/incomplete-url-substring-
+  sanitization` (1).
+- **`specsmith issue` group** (REQ-303/304) — `check`, `file`, `search` with Jaccard
+  similarity dedup against open GitHub issues.
+- **`specsmith req add` / `specsmith test add`** (REQ-302) — YAML-first CLI commands
+  that append directly to canonical YAML sources.
 
-- **Security:** CodeQL `py/path-injection` false positives in `governance_logic.py` — dismissed 6
-  alerts with documented justification. The only variable path component is the validated project
-  root (`_safe_resolve`: null-byte check, traversal rejection, `os.path.realpath`); all file names
-  appended (`.specsmith/requirements.json`, `.specsmith/testcases.json`) are hardcoded literals.
-- **CI — ruff format:** stray blank line in `governance_logic.py` after `_safe_resolve` caused
-  `ruff format --check` to fail on the release workflow.
-- **CI — MkDocs strict:** four broken relative links in `docs/site/agents.md` (→ `../REQUIREMENTS.md`,
-  `../../src/…`) and `docs/site/commands.md` (→ `../docs/codity-setup.md`) rejected by
-  `mkdocs build --strict`; links replaced with plain-text references.
-- **release.yml:** add `rtd-publish` job that triggers ReadTheDocs `stable` + `latest` builds
-  after every PyPI publish; previously only `dev-release.yml` triggered RTD.
+### Added — Governance structure overhaul
 
-### Changed
+- **All governance files moved to `docs/`** — `REQUIREMENTS.md`, `TESTS.md`,
+  `LEDGER.md`, `SPECSMITH.yml` (uppercase); `AGENTS.md` remains the only root-level
+  governance file. Backward-compat via `find_scaffold()` / `find_ledger()` helpers.
+- **`src/specsmith/paths.py`** — canonical path constants and lookup helpers with
+  backward-compat root fallback.
+- **`src/specsmith/safe_write.py`** — append-only + backup-protected governance writes.
+  `append_file()` never truncates; `safe_overwrite()` creates a timestamped `.bak`.
+  Satisfies EU AI Act Art. 12.
+- **AI regulation compliance** (REG-001..REG-015) — EU AI Act, NIST AI RMF, OMB
+  M-24-10, Colorado SB24-205, FTC, California ADMT. Key implementations:
+  - `log_agent_action()` — SHA-256 chained tamper-evident agent action log.
+  - `ToolSpec` + `build_tool_registry()` — explicit capability declarations.
+  - `--escalate-threshold` — surfaces `escalation_required` when confidence < threshold.
+  - `specsmith kill-session` — emergency kill-switch (EU AI Act Art. 14 s4).
+  - `ai_disclosure` metadata in every preflight response (EU AI Act Art. 13/53).
+  - `specsmith export` AI System Inventory (NIST AI RMF MANAGE).
 
-- GitHub repository topics updated to 20 current capability-focused tags.
-- GitHub repository About description updated to reflect AEE toolkit scope.
+### Added — Multi-agent, BYOE, voice, drive
 
-## [0.11.4] - 2026-05-19
+- **`AgentRunner` + profiles** (`agent/runner.py`, `agent/profiles.py`,
+  `agent/fallback.py`) — `specsmith agents` CLI group with `list/add/remove/test/route`.
+- **Bring-Your-Own-Endpoint (BYOE)** — endpoints registry + openai-compat provider;
+  `specsmith endpoints add/list/test/default/remove`.
+- **Real token cost tracking** — per-provider `_UsageDelta`; costs flow into
+  `AgentState.credit()` by profile bucket.
+- **`specsmith voice transcribe`** — wraps optional `whisper-cpp-python`.
+- **Specsmith Drive** — `push()`, `pull()`, `listing()`; mirrors rules/workflows/
+  notebooks under `~/.specsmith/drive/<project>/`.
+- **`specsmith api-surface`** — frozen 1.0 public surface JSON for CI diffing.
+- **Real MCP JSON-RPC client** — `MCPSession` runs full MCP handshake
+  (`initialize -> notifications/initialized -> tools/list`) against any server.
+- Cloud Runs feature retired; `specsmith cloud spawn` and `cloud-serve` removed.
 
-### Added
+### Added — Applied Epistemic Engineering
 
-- **Codity.ai integration** (#179): \CodityAdapter\ scaffolds AI code review CI workflows via \specsmith integrate codity\; supports GitHub (default), GitLab, Azure DevOps; VCS auto-detected from \scaffold.yml\ and directory heuristics
-- **\codity-ai-review\ governance skill** (70th built-in skill): full CLI workflow reference including install, magic-link auth, \codity review --staged\, \codity scan --staged\, \codity test-gen --staged\, VCS-specific PAT setup
-- **AGENTS.md template Codity section**: pre-commit rule — HIGH-severity findings block commits, MEDIUM requires acknowledgement
-- **ARCH §39** with architecture invariant I15
-- **REQ-354/355/356** and **TEST-354/355/356/357** (318 tests total, 28/28 audit clean)
-
-## [Unreleased]
-
-## [0.11.3-post3] — 2026-05-17
-### Added
-- **Cooperative abort during LLM invocation** — `_invoke_worker_monitored()` wraps the
-  AG2 `initiate_chat` call in a daemon sub-thread and polls `abort_flag.is_set()` every
-  0.5 s. If `abort_node()` fires mid-LLM-call, `_run_node` raises `_NodeAbortedError`
-  immediately; the sub-thread finishes naturally in the background.
-- **CLI `dispatch run` uses PlannerAgent** when AG2 is installed (Path A): constructs an
-  `Orchestrator` and calls `run_dispatch()` which invokes `_call_planner()` for
-  automatic multi-node DAG decomposition. Falls back to single-node `TaskDAGBuilder`
-  (Path B) when AG2 is not available.
-- **Kairos topological DAG layout** — `depends_on` is now included in the
-  `node_started` event payload; `NodeInfo` in Rust stores it; `compute_levels()`
-  assigns topological levels; `render_dag()` positions nodes left→right by level and
-  draws cubic bezier edges with arrowheads.
-- **REQ-313..320 (compliance plan 5939f743)** — 8 multi-agent governance traceability
-  requirements implemented: dispatch run audit in LEDGER.md, worker identity in
-  events, session traceability, governance block in error, context injection audit,
-  checkpoint completeness, ESDB DAG lineage, abort labelling. 9 new pytest cases.
-  `_write_dispatch_ledger()` writes EU AI Act Art. 12 audit entries after every run.
-### Changed
-- **`specsmith-vscode` removed** — all references to the deprecated VS Code extension
-  replaced with Kairos across 25 files. `docs/site/vscode-extension.md` deleted.
-  `mkdocs.yml` nav updated to `Kairos Client: dispatch.md`.
-### Validation
-- `pytest`: **789 passed, 0 failed**
-- `specsmith validate --strict`: **0 errors, 0 warnings**
-- `specsmith audit`: **28/28 checks, 292 REQs with test coverage**
-
-## [0.11.3-post2]
-### Added
-- **Multi-Agent DAG Dispatcher (REQ-321..334)** — `specsmith dispatch` command group and
-  `src/specsmith/agent/dispatch/` package:
-  - `TaskDAG`, `TaskDAGBuilder`, `DAGValidationError` — Kahn topological sort + cycle detection
-  - `AgentPool` — lazy per-role `ConversableAgent` pool with idle worker reuse and `max_workers` ceiling
-  - `AgentDispatcher` — `ThreadPoolExecutor` scheduler with fail-forward BLOCKED propagation; writes
-    ESDB `dispatch_result` records and injects predecessor context into successors
-  - `EventEmitter` — atomic JSONL event persistence to `.specsmith/dispatch/<dag_id>/events.jsonl`
-    with SSE fan-out queue; static `replay()` for DAG resume
-  - `Orchestrator.run_task(use_dag=False)` / `run_dispatch()` — backward-compatible DAG entry point
-  - `SubAgentSpawner.spawn_worker(role, llm_config)` — live `ConversableAgent` with role-restricted tools
-  - `specsmith dispatch run/status/list/retry` CLI subcommands
-- **serve.py dispatch HTTP/SSE surface** — `POST /api/dispatch/run`, `GET /api/dispatch/events?dag_id=`
-  (replay + live SSE), `GET /api/dispatch/status?dag_id=`, `GET /api/dispatch/list`,
-  `POST /api/dispatch/retry`, `POST /api/dispatch/abort`
-- **Kairos dispatch panel** (`app/` — Rust, egui/eframe):
-  - `dispatch_panel/mod.rs` — `DispatchApp` SSE subscriber; DAG graph with status-coloured nodes
-  - `dispatch_panel/gantt.rs` — `GanttStrip` Gantt timeline strip showing parallelism
-  - `dispatch_panel/controls.rs` — Retry (FAILED/BLOCKED) and Abort (RUNNING) action buttons
-  - `app/README.md` — build and usage documentation
-- **Compiler / tool support**:
-  - `run_gcc`, `run_arm_gcc` (ARM bare-metal), `run_aarch64_gcc` (AArch64 Linux) — configurable GCC variants
-  - `run_iar_compiler` — IAR Embedded Workbench (`IarBuild` CLI)
-  - `run_intel_compiler` — Intel oneAPI `icx`/`icpx` and classic `icc`/`icpc`
-  - `run_clang_format` — clang-format with in-place support
-  - `run_clang_tidy` — clang-tidy with checks filter and `--fix` support
-  - `run_vsg` — VSG VHDL Style Guide with JUnit output and `--fix` support
-  - All 8 tools registered in `AVAILABLE_TOOLS`, `build_tool_registry()`, and `ROLE_TOOLS`
-  - New `embedded-coder` agent role with all compiler tools
-- **Governance / docs**:
-  - `docs/requirements/dispatch.yml` and `docs/tests/dispatch.yml` — YAML canonical source for REQ-321..334
-  - `docs/ARCHITECTURE.md` §Phase 2 — full implemented design with invariants and domain table
-  - `docs/requirements/overflow.yml` — reservation note for REQ-313..320
-  - `ARCHITECTURE.md` section numbering corrected (previously duplicate §15 and §16)
-  - `README.md` — new Multi-Agent DAG Dispatcher and Compiler Tool Support sections
-  - `docs/site/commands.md` — `specsmith dispatch` command group documented
-  - `docs/site/tool-registry.md` — agent compiler tools section added
-- **Tests**: `tests/test_dispatch.py` — 44 new pytest cases covering REQ-321..334
-- `.gitignore` — `.specsmith/dispatch/` event logs and `app/target/` excluded
-### Validation
-- `pytest`: **777 passed, 2 skipped, 5 xfailed** (zero failures)
-- `specsmith validate --strict`: **0 errors, 0 warnings**
-- `specsmith audit`: **28/28 checks passed, 284 REQs with test coverage**
-
-## [0.11.3-post1]
-### Added
-- **`specsmith issue` group (REQ-303, REQ-304)** — duplicate-guarded GitHub issue filing with three subcommands:
-  - `specsmith issue check <title> --repo kairos|specsmith` — Jaccard similarity search against open GitHub issues; prints duplicates (≥ 0.60) and similar (≥ 0.30) with URLs.
-  - `specsmith issue file <title> --body TEXT --repo REPO [--ai] [--force]` — checks for duplicates then files via `gh` CLI; `--force` bypasses the check; `--ai` improves the body using the configured LLM.
-  - `specsmith issue search <query> --repo REPO` — raw GitHub issue search, no threshold applied.
-- **`src/specsmith/issue_reporter.py`** — core module (`search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report`). Uses `gh` CLI for auth-backed calls; falls back to unauthenticated GitHub REST for public repos. Temporary payload files written via `tempfile` to comply with H12 (no inline shell quoting on Windows).
-- **32 new pytest tests** (`tests/test_issue_reporter.py`) covering similarity helpers, duplicate thresholds, `--force` bypass, `--ai` fallback, error capture.
-
-## [0.11.3]
-### Added
-- **`specsmith req add` + `specsmith test add` (REQ-302)** — YAML-first CLI commands that append a new requirement or test case directly to the canonical `docs/requirements/*.yml` / `docs/tests/*.yml` groups when the project is in YAML-mode governance. Requires `.specsmith/governance-mode == yaml`. Prints the assigned ID on success. Wired to `governance_yaml.add_requirement` / `governance_yaml.add_test`.
-### Changed
-- **`esdb migrate` / `esdb replay` real implementations** — both commands now execute against the live ChronoMemory ESDB backend instead of returning stub responses. Stubs fully removed.
-### Fixed
-- ruff E501 violations in `esdb migrate` command output strings.
-- ruff format drift in `cli.py`.
-
-## [0.11.2] — 2026-05-11
-### Added
-- **esdb rollback real restore (REQ-252)** — now finds the N-th most recent backup in .specsmith/backups/ and restores 
-equirements.json + 	estcases.json from it. Exits non-zero when no backups exist.
-- **esdb compact real deduplication (REQ-253)** — reads .specsmith/requirements.json and .specsmith/testcases.json, deduplicates by ID (last-write-wins), drops ID-less entries, writes compacted lists back to disk.
-- **12 CodeQL security fixes** — py/path-injection (10): _safe_resolve() + _safe_file_read() helpers reject null bytes and .. traversal before file reads; py/http-response-splitting (1): strip CR/LF from HTTP response headers; py/incomplete-url-substring-sanitization (1): urlparse() hostname comparison in test.
-### Changed
-- esdb import now writes directly to .specsmith/requirements.json and .specsmith/testcases.json (real persistence, not staging).
-- esdb rollback --steps N selects the Nth most recent backup (1 = latest).
-- Test suite updated to match new esdb rollback/compact contracts. 670 passing.
-### Validation
-- pytest: **670 passed, 2 skipped, 5 xfailed**.
-- 
-uff check + 
-uff format --check: clean.
-## [0.11.1] â€” 2026-05-11
-### Added
-- **`specsmith channel` group (REQ-248)** â€” `channel set {stable|dev}`, `channel get [--json]`, `channel clear`. Persists preferred update channel to `~/.specsmith/channel`; `self-update` and project-update checks honour the resolved channel.
-- **ESDB extended lifecycle (REQ-249..253)** â€” five new `esdb` subcommands with `--json` flag:
-  - `esdb export [--output PATH]` â€” JSON snapshot of all records.
-  - `esdb import <source>` â€” validate + stage a JSON export.
-  - `esdb backup [--dir DIR]` â€” timestamped snapshot (ISO UTC filename).
-  - `esdb rollback [--steps N]` â€” WAL rollback report (stub mode).
-  - `esdb compact` â€” WAL compaction request (stub mode).
-- **Skills lifecycle (REQ-254..255)** â€” two new `skills` subcommands:
-  - `skills deactivate <skill-id>` â€” set `active: false` in `skill.json`.
-  - `skills delete <skill-id> [--yes]` â€” permanently remove skill directory.
-- **`specsmith mcp generate <description> [--json]` (REQ-256)** â€” deterministic MCP server config stub from natural-language description.
-- **`specsmith agent ask <prompt> [--json-output]` (REQ-257)** â€” keyword dispatcher routes compliance/audit/skills/esdb/mcp/session queries without an LLM.
-- **Kairos settings integration (REQ-258..262)** â€” Specsmith umbrella in sidebar (ESDB, Skills, Eval pages), AI Providers table with column clipping, MCP AI Builder card.
-- **60 new pytest tests** (`tests/test_req_248_262.py`) â€” regression coverage for REQ-248..257; Kairos UI tests registered as xfail.
-- **docs/REQUIREMENTS.md** â€” REQ-248..REQ-262 defined and linked to architecture.
-- **docs/TESTS.md** â€” TEST-248..TEST-262 with pytest cross-references.
-- **ARCHITECTURE.md** â€” new sections: Update Channel, AI Skills Builder Phase A, ESDB Extended, MCP Generator, Agent Ask Dispatcher, Kairos Settings Extensions.
-- **docs/site/commands.md** â€” documented `channel`, extended `esdb`, extended `skills`, `mcp generate`, `agent ask`.
-### Changed
-- CI badge and sponsor links updated from `layer1labs` â†’ `layer1labs`.
-- Kairos repo migrated to `layer1labs/kairos`; specsmith repo to `layer1labs/specsmith`.
-- `specsmith-vscode` extension deprecated; Kairos is the flagship client.
-### Validation
-- `pytest`: **669 passed, 2 skipped, 5 xfailed**.
-- `ruff check` + `ruff format --check`: clean.
-- `api-surface` snapshot: updated.
-
-## [0.11.0] â€” 2026-05-07
-### Added
-- **Governance structure overhaul** â€” all governance files (REQUIREMENTS.md, TESTS.md, LEDGER.md, scaffold config) moved to `docs/`; `AGENTS.md` remains the only root-level governance file. Backward compatibility preserved via `find_scaffold()` / `find_ledger()` helpers.
-- **`docs/SPECSMITH.yml`** â€” scaffold config renamed to uppercase (`SPECSMITH.yml`) for consistency with all other uppercase governance files. `paths.py` constant `SCAFFOLD_FILE = "SPECSMITH.yml"`.
-- **`src/specsmith/paths.py`** â€” canonical path constants (`DOCS_DIR`, `SCAFFOLD_FILE`, `SCAFFOLD_REL`, etc.) and lookup helpers (`find_scaffold`, `find_ledger`, `find_requirements`, `find_tests`) with backward-compat root fallback.
-- **`src/specsmith/safe_write.py`** â€” append-only + backup-protected governance file writes. `append_file()` never truncates; `safe_overwrite()` creates a timestamped `.bak` before any overwrite; `json_append()`, `compute_diff()`, SHA-256 integrity helper, and atomic temp+rename writes throughout. Satisfies REG-007/REG-008.
-- **AI regulation compliance (REG-001..REG-015)** â€” 15 requirements from BTWS 2027 Agentic AI Governance Report (EU AI Act, NIST AI RMF, OMB M-24-10, Colorado SB24-205, FTC, California ADMT, Utah SB149). Key implementations:
-  - REG-001: `log_agent_action()` in `tools.py` â€” SHA-256 chained tamper-evident agent action log at `.specsmith/agent-actions.jsonl`.
-  - REG-002: `ToolSpec` + `build_tool_registry()` â€” explicit capability declaration for all 12 agent tools.
-  - REG-004: `specsmith preflight --escalate-threshold <float>` â€” surfaces `escalation_required` when confidence < threshold.
-  - REG-005: `specsmith kill-session [--reason]` â€” emergency kill-switch; terminates all tracked sessions and records a kill-switch ledger event.
-  - REG-007: `upgrader.py` uses `safe_overwrite()` for governance template regeneration.
-  - REG-009: `specsmith preflight` output includes `ai_disclosure` metadata (governed_by, provider, model, spec_version).
-  - REG-010: `specsmith export` includes **AI System Inventory** section (agent capabilities, EU AI Act risk tier, human oversight controls).
-  - REG-012: Least-privilege agent permissions â€” `ToolSpec` epistemic contracts declare filesystem-mutating tools.
-- **Phase checks updated** â€” all phase checks now use canonical `docs/` paths (`docs/REQUIREMENTS.md`, `docs/SPECSMITH.yml`, `docs/LEDGER.md`).
-- **76 planned architecture requirements migrated** (REQ-130..REQ-205): OPS, CMD, MAS, ORC, FLG, LRN, EDD, MEM, HRK, SRV, RTR, MCP, SEC, IDE domains.
-- **15 AI regulation requirements added** (REQ-206..REQ-220).
-- **docs/COMPLIANCE.md** â€” machine-generated compliance export with AI System Inventory, REQâ†”TEST coverage, audit summary, and governance file inventory.
-- **`specsmith audit`** â€” duplicate-file enforcement: warns when root copy AND `docs/` canonical copy both exist.
-- **kairos** â€” sister repository (`layer1labs/kairos`) bootstrapped: Rust governance client (`src/governance/client.rs`, `server.rs`, `mod.rs`) with `GovernanceClient` (health/preflight/verify), `GovernanceServer` (managed child process), `GovernanceConfig` with I2 invariant enforcement.
-### Changed
-- `ledger.py`: `add_entry()` / `list_entries()` use `find_ledger()` (docs/LEDGER.md canonical).
-- `compressor.py`: uses `find_ledger()` + `safe_overwrite()`.
-- `auditor.py`: `_get_thresholds()` and `check_phase_readiness()` use `find_scaffold()`.
-- `phase.py`: all phase checks updated for canonical docs/ paths.
-- `cli.py`: `init` writes to `docs/SPECSMITH.yml`; `_maybe_prompt_project_update` uses `find_scaffold()`.
-- `upgrader.py`: `run_upgrade()` uses `find_scaffold()`; governance templates use `safe_overwrite()`.
-- `exporter.py`: `run_export()` uses `find_scaffold()`; adds AI System Inventory.
-### Validation
-- `pytest`: **448 passed, 1 skipped**.
-- `ruff`: clean.
-- `api-surface` snapshot: regenerated with `kill-session` command.
-
-## [0.10.1] â€” 2026-05-04
-### Added â€” Multi-Agent + BYOE (rolled into the 0.10.x line)
-- **`AgentRunner` + ready event (REQ-145).** New `agent/runner.py` with `_print_banner()` emitting a JSONL `ready` event, slash-command dispatch (`/agent`, `/profile`, `/status`), `AgentState` metrics, and `_hard_stop` cleanup. `agent/core.py` adds the `ModelTier` enum.
-- **Agent profiles + activity routing (REQ-146).** `agent/profiles.py` (`Profile`, `ProfileStore`, `RoutingTable`), `agent/fallback.py` (transient-aware fallback chain with `FallbackAttempt` / `FallbackResult` dataclasses), `templates/agent-profiles.default.json` presets (default / local-only / frontier-only / cost-conscious), and a full `specsmith agents` CLI group (`list`, `add`, `remove`, `default`, `test`, `route`, `preset`). `--agent <id>` flag accepted on `chat`, `run`, and `serve`.
-- **Bring-Your-Own-Endpoint (REQ-142, BYOE 0.8.0).** Endpoints registry + openai-compat provider; `specsmith endpoints add/list/test/default/remove`.
-- **CLI JSON surfaces.** `specsmith phase show --json`, `specsmith mcp list/test/start/stop --json`, `specsmith rules list --json`, `specsmith notebook new <slug> [--from-run]` + `templates/notebook.md.j2`.
-- **`api-surface` CI guard.** New CI job diffs live `specsmith api-surface` output against `tests/fixtures/api_surface.json`.
-- **Diversity guard.** `ProfileStore.diversity_warnings` + `PROVIDER_FAMILIES` table warns when the reviewer/architect shares a provider family with the coder. CLI prints yellow warnings (non-fatal); `--json` output includes `diversity_warnings`.
-- **Capability filter.** `ProfileStore.filter_by_capability` + `specsmith agents list --capability <cap>` flag.
-- **Phase auto-routing.** `specsmith phase next` now auto-pins `phase:active` to the new phase's preferred profile and seeds `phase:<key>` if absent.
-- **TraceVault seal on `/agent`.** `runner._seal_profile_pin()` writes a `decision` seal into `.specsmith/trace.jsonl` whenever the in-chat `/agent <id>` command pins a profile.
-- **Real token cost threading.** Each provider driver now returns `(text, _UsageDelta)` with real token counts (Ollama `prompt_eval_count`+`eval_count`, Anthropic `final_message.usage`, OpenAI `stream_options.include_usage`, Gemini `usage_metadata`); 4-chars/token fallback. Counts flow into `ChatRunResult.tokens_in/out/cost_usd` and `AgentState.credit()`'s `by_profile` bucket.
-- **`tests/test_fallback_chain.py`** â€” 33 new tests covering parse_target, transient HTTPError 408/429/5xx + network errors, non-transient 4xx + RuntimeError, blank-target skip, on_attempt callback resilience.
-- **Docs.** `docs/site/agents.md` (preset â†’ route â†’ per-session â†’ BYOE walkthrough), `docs/site/quickstart.md` reproduction script, README "0.10.0 â€” Multi-Agent + BYOE" elevator pitch.
-- **`.pre-commit-config.yaml`** with ruff + ruff-format + pre-commit-hooks.
-### Removed
-- **Cloud Runs feature retired.** `specsmith cloud spawn`, `specsmith cloud-serve`, `src/specsmith/cloud_serve.py`, `docs/site/cloud-agents.md`, the `.specsmith/cloud/` storage convention, and all related tests/fixtures have been removed. The deferred REQ-126/REQ-136 cloud-agent surface is no longer part of the 1.0 contract.
-### Changed
-- `pyproject.toml` version bumped from 0.7.0 to 0.10.1; `src/specsmith/__init__.py` fallback `__version__` updated to match.
-### Validation
-- `pytest`: **448 passed, 1 skipped**.
-- `ruff`: clean.
-- `api-surface` snapshot: matches fixture.
-## [0.7.0] â€” 2026-04-30
-### Added
-- **`specsmith serve --auth-token` (REQ-137).** Optional bearer-token gate on every `/api/*` endpoint. `/api/health` stays open so liveness probes still work behind a load balancer that strips `Authorization`. New `make_server()` factory in `src/specsmith/serve.py` exposes a fully wired server for tests; `run_server()` adds the banner + `serve_forever` loop. `_Handler._authorize()` enforces `Authorization: Bearer <token>` on `do_GET`, `do_POST`, and `do_DELETE`.
-- **`specsmith voice transcribe <wav>` (REQ-141).** New `src/specsmith/agent/voice.py` wraps the optional `whisper-cpp-python` extra. Three resolution modes: real (library + model file under `~/.specsmith/voice/` or `SPECSMITH_VOICE_MODEL`), stub (`SPECSMITH_VOICE_STUB=<text>` for tests/CI), or unavailable (raises `VoiceUnavailableError` with an actionable install hint). CLI exposes `voice transcribe --json` and `voice status`.
-- **`tests/test_warp_parity_followup.py`** â€” covers serve auth-gate (open `/api/health`, 401 on missing/wrong token, 200 on correct token), voice (stub mode, missing-file error, unavailable-when-no-library + no-stub, status output), and the api-surface stability snapshot (matches fixture, required commands present, exit codes + event types frozen).
-- **`docs/site/api-stability.md`** â€” documents the `api-surface` snapshot mechanism: payload shape, regeneration command, the required-command spot check, and what is *not* covered by the snapshot.
-- **Specsmith Drive (REQ-133).** New `src/specsmith/drive.py` module exposes `push()`, `pull()`, `listing()`; mirrors project rules / workflows / notebooks under `~/.specsmith/drive/<project>/<kind>/`. Round-trip safe; default backend is filesystem-only so the user can `git push` themselves.
-- **Per-block share / export (REQ-134).** New `src/specsmith/block_export.py` plus `specsmith chat-export-block --session-id <id> --block-id <id> [--format md|json|html]` slices a single block out of `.specsmith/sessions/<id>/events.jsonl` (fallback `turns.jsonl`) and emits a self-contained markdown / JSON / HTML snippet. Raises `FileNotFoundError` for missing sessions and `KeyError` for missing blocks; the CLI exits non-zero in either case.
-- **AI-searchable history (REQ-135).** New `src/specsmith/history_search.py` adds a deterministic keyword `search()` over every `.specsmith/sessions/<id>/turns.jsonl` plus an optional `semantic=True` mode that uses `sentence-transformers` when available and silently falls back to keyword matching otherwise. New `[history-semantic]` extra in `pyproject.toml`.
-- **`specsmith api-surface` (REQ-140).** Top-level command emits the frozen 1.0 public surface (`cli_commands`, `exit_codes`, `event_types`) as JSON; `--snapshot <path>` writes the same payload to disk for CI diffing.
-- **`[voice]` optional extra (REQ-141).** Pyproject extra carrying `whisper-cpp-python` for the upcoming agent voice-input integration (not yet wired into the CLI).
-- **`tests/test_warp_parity.py`** -- pytest cases covering the new drive / block-export / history-search modules, the API-surface contract, and the CLI wiring.
-
-- **Real MCP JSON-RPC client (REQ-130).** `agent.mcp` now ships a full stdio client (`MCPSession`) that runs the official MCP handshake (`initialize` -> `notifications/initialized` -> `tools/list`) against any configured server, exposes each discovered tool as an `MCPTool` whose `invoke_with_safety()` runs every call through the supplied safety check. Protocol pinned at `2024-11-05`. The chat session header now reports tools-per-server counts.
-- **`tests/fixtures/mcp_fake_server.py`** -- pure-Python stdio MCP server fixture for hermetic tests.
-- **`tests/test_mcp_client.py`** -- 8 new pytest cases (handshake, protocol pin, idempotent close, text/error/unknown-tool, safety integration, crash recovery, loader silent-skip).
-
-- **MCP server announcement in chat sessions (REQ-121).** When `.specsmith/mcp.yml` is present, `specsmith chat` now loads the configured servers via `agent.mcp.load_mcp_tools` and emits a `[mcp servers: <names>]` token at the top of the message block so consumers (and the user) see which external tool surfaces are in play. The Specsmith safety middleware still gates every call.
-- **`specsmith notebook record --session-id <id>`** now reads `.specsmith/sessions/<id>/turns.jsonl` and embeds each turn as a `### <role>` section in the generated `docs/notebooks/<slug>.md`, alongside any `--work-item-id` artifacts. Both flags may be combined; either may be omitted (with a friendlier placeholder when neither is supplied). Closes the gap between TESTS.md TEST-123 and the existing implementation.
-- **`tests/test_phase34_completion.py`** â€” pytest cases covering: MCP loader (config-missing, single entry, malformed entries dropped, unparseable yaml, MCPServerSpec round-trip), notebook record (session-turns capture, helpful placeholder), notebook replay (success + missing slug exit-code), and a stubbed `scripts/perf_smoke.py` smoke test that asserts the baseline.json schema without spawning real subprocesses.
-
-### Changed
-- `specsmith chat` imports `load_mcp_tools` and emits the MCP-servers token after the rules-loaded notice.
-- `notebook_record` gained `--session-id` and merges `.specsmith/runs/<WI>/` artifacts and `.specsmith/sessions/<id>/turns.jsonl` content into a single notebook.
-
-### Validation
-- `pytest`: **316 passed, 1 skipped** (was 304; +12 in test_phase34_completion.py).
-- `ruff check` + `ruff format --check`: clean.
-- `mypy src/specsmith/`: same status as develop (no regressions; pre-existing `chat_runner.py` errors only surface when optional `anthropic`/`openai` SDKs are locally installed; CI installs only `[dev]` so `ignore_missing_imports` keeps it green there).
-
-## [0.6.0] â€” 2026-04-28
-
-### Added
-- **Skill marketplace** â€” new `specsmith skill` subcommand group (`search`, `list`, `install`) backed by a small built-in catalog (`verifier`, `planner`, `diff-reviewer`, `onboarding-coach`, `release-pilot`). `specsmith skill install <slug>` writes the SKILL.md into the project's `.agents/skills/` directory so the local Nexus runtime picks it up. New module `src/specsmith/skills.py` exposes `SkillEntry`, `CATALOG`, `search()`, `get()`, `install()`, `installed_skills()`.
-- **`specsmith chat --interactive` stdin decision protocol** â€” when launched with `--interactive`, the chat command reads JSONL decision events from stdin so an IDE consumer (e.g. the VS Code extension) can drive the safe-mode approval flow and the inline diff review. The new `--decision-timeout <seconds>` flag bounds the wait. Approved tool calls fall through to the standard tool_call/plan_step/task_complete flow; denied calls emit `task_complete success=False`. The first non-accept `diff_decision` comment is folded into the persisted turn's `reviewer_comment` field so the next harness retry can consume it.
-- **Real chat orchestrator** â€” new `src/specsmith/agent/chat_runner.py` powers `specsmith chat` with a streaming LLM turn. Provider preference is local-first: Ollama (default `http://127.0.0.1:11434`, model `qwen2.5:7b`), then the `anthropic`, `openai`, and `google-genai` SDKs gated on the corresponding API-key env vars. Tokens are streamed to the existing `EventEmitter` as `token` events, and the model's `Plan: / Files changed: / Test results:` sections feed `specsmith.agent.verifier.score()` so `task_complete.confidence` and the `success` flag now reflect a real verdict. Any provider error or missing SDK transparently falls back to the deterministic stub; set `SPECSMITH_DISABLE_REAL_CHAT=1` to force the stub explicitly (used by the test suite).
-- **Diff-decision tests** â€” `tests/test_chat_diff_decision.py` adds three end-to-end tests for the inline diff review path (accept, reject-with-comment threaded into the final summary, timeout becomes `status="timeout"`).
-- **Hermetic test fixture** â€” a new autouse fixture in `tests/conftest.py` sets `SPECSMITH_NO_AUTO_UPDATE=1` and `SPECSMITH_PYPI_CHECKED=1` so the project-update prompt and the PyPI version check do not consume stdin or hit the network during tests. This made the existing `test_chat_stdin_protocol.py` tests pass deterministically when run individually, not just as part of the full suite.
-- **Documentation** â€” `docs/site/commands.md` now documents `specsmith chat` (block protocol, stdin decision protocol, real-LLM provider order, fallback behaviour) and `specsmith skill` (`list`, `search`, `install`).
-- **Tests** â€” `tests/test_skill_marketplace.py` (18 tests), `tests/test_chat_stdin_protocol.py` (3 tests), and `tests/test_chat_diff_decision.py` (3 tests) cover the new surfaces.
-
-### Changed
-- **`pyproject.toml`** version bumped from `0.5.0` to `0.6.0`. `Development Status :: 4 - Beta` classifier preserved (1.0.0 stays deferred per the pre-1.0 stance).
-
-### Fixed
-- **`specsmith chat` diff block kwarg** â€” the inline diff review path called `EventEmitter.diff(path=..., diff=...)` but the helper takes `body=`. The kwarg mismatch was latent because no existing test created a `REQUIREMENTS.md` that triggered scope-matched diff blocks. Fixed in `src/specsmith/cli.py` and exercised by `tests/test_chat_diff_decision.py`.
-
-## [0.5.0] â€” 2026-04-28
-
-### Changed
-- **Agent skill adapter renamed** â€” the integration adapter that previously generated `.warp/skills/SKILL.md` is now named `agent-skill` and writes to `.agents/skills/SKILL.md`. Existing `scaffold.yml` files that still list `warp` continue to work via a backward-compat alias resolved in `specsmith.integrations.get_adapter`. The legacy `.warp/skills/SKILL.md` path is still patched on `specsmith upgrade` for projects that have not yet rebuilt.
-- **Customer-facing docs** â€” Read the Docs pages (`agent-integrations.md`, `getting-started.md`, `configuration.md`, `commands.md`, `agent-client.md`) and `TESTS.md` no longer reference any specific terminal-AI vendor by name. The `agent-skill` adapter is described as a generic SKILL.md integration for terminal-native AI agents.
-- **REQ-079 / ARCHITECTURE.md cleanup boundary text** â€” protected-paths description generalised to â€œthird-party agent integration directories (e.g. `.agents/`)â€. Defensive code in `agent/cleanup.py` continues to protect both `.agents/` and `.warp/` for users who already have either directory in their project.
-- **`pyproject.toml`** version bumped to `0.5.0`. `Development Status :: 4 - Beta` classifier preserved (1.0.0 stays deferred per the pre-1.0 stance).
-- **`scaffold.yml`** integration list switched to the new `agent-skill` adapter name in this repo's own scaffold.
-
-### Internal
-- New module `src/specsmith/integrations/agent_skill.py` (`AgentSkillAdapter`) replaces `src/specsmith/integrations/warp.py` (file removed). `LEGACY_ALIASES = {"warp": "agent-skill"}` in `src/specsmith/integrations/__init__.py` keeps existing configs working without manual migration.
-- `tests/test_integrations.py` covers the new canonical name, the legacy alias, and the new `.agents/skills/` output path.
-## [0.4.0] â€” 2026-04-28
-### Added
-- **Nexus broker, preflight, verify** â€” `specsmith preflight <utterance> --json` and `specsmith verify [--stdin|--diff|--tests|--logs|--changed]` are first-class CLI subcommands. The natural-language broker (`specsmith.agent.broker`) classifies intent, infers scope from `REQUIREMENTS.md` / `.repo-index`, calls the CLI, and renders plain-language plans (REQ-084..REQ-100).
-- **Bounded-retry harness with canonical retry strategies** â€” `execute_with_governance` honors `DEFAULT_RETRY_BUDGET` and surfaces `narrow_scope` / `expand_scope` / `fix_tests` / `rollback` / `stop` on stop-and-align (REQ-014, REQ-028, REQ-063, REQ-096).
-- **`/why` post-run governance block** in the Nexus REPL (REQ-094) and decision-specific exit codes for `preflight` (0 / 2 / 3, REQ-092).
-- **`work_proposal` ledger event** distinct from the `preflight` event for brand-new work-item ids (REQ-044, REQ-085, REQ-099).
-- **`--stress` bridge** â€” preflight optionally runs the AEE `StressTester` over matched requirements and surfaces critical failures as `stress_warnings` (REQ-100).
-- **`.specsmith/config.yml` confidence threshold** â€” `epistemic.confidence_threshold` is honored as the floor for `confidence_target` in both `preflight` and `verify` (REQ-058, REQ-098).
-- **CI baseline contract** â€” ruff lint + format clean, mypy strict-clean over 69 source files, and `pip-audit --ignore-vuln CVE-2026-3219` (REQ-101..REQ-103).
-- **VS Code extension commands** â€” `specsmith.runPreflight`, `specsmith.runVerify`, `specsmith.toggleWhy` (REQ-106). *The `specsmith-vscode` extension has since been deprecated; Kairos is the flagship client.*
-- **`scripts/sync_workitems.py`** keeps `.specsmith/workitems.json` mirrored to the implemented REQ/TEST set (REQ-104).
-- **103 REQs / 103 TESTs / 259 passing tests + 1 skipped** â€” governance state synced.
-- **Read the Docs Nexus surface** â€” `docs/site/commands.md` documents `preflight`, `verify`, the Nexus REPL, the bounded-retry harness, and `/why` (REQ-090).
-- **ARCHITECTURE.md "Current State" section** describing the system as built (REQ-107).
-### Changed
-- **Type checking** â€” the dynamic Nexus agent surface (`broker`, `cleanup`, `indexer`, `orchestrator`, `repl`, `safety`, `tools`, `console_utils`, `serve`) is enumerated in the `[[tool.mypy.overrides]] ignore_errors=true` carveout in `pyproject.toml`. Strict-mypy is preserved everywhere else.
-- **CI workflow** â€” every job upgrades pip first; security job tolerates the upstream-unfixed pip CVE-2026-3219 advisory.
-- **TaskResult dataclass** returned by `orchestrator.run_task`; the broker harness consumes structured fields directly instead of synthesizing equilibrium from `bool(summary)` (REQ-091).
-### Fixed
-- **REPL closure bug** â€” `B023` in `repl._executor` was capturing the loop variable `user_input`; now bound via default arg.
-- **134 ruff findings â†’ 0** across `src/specsmith/agent/*`, `src/specsmith/cli.py`, `src/specsmith/requirements_parser.py`, `src/specsmith/agent/broker.py`, and `tests/test_nexus.py`.
-- **`tests/test_data_definition_001.py`** removed (corrupt single-line scaffolded fixture).
-- **TEST-096 imports** moved to top of `tests/test_nexus.py` (E402).
-## [Unreleased â€” pre-0.4.0 working notes]
-### Added
-- **Nexus governance documentation** â€” Read the Docs `commands.md` and `index.md` now describe `specsmith preflight`, `specsmith verify`, the natural-language broker, the bounded-retry harness, the `/why` toggle, and the `--stress` flag (REQ-090, REQ-101..REQ-103).
-- **REQ-101 / TEST-101** â€” lint baseline contract; `ruff check` and `ruff format --check` must both exit zero on develop.
-- **REQ-102 / TEST-102** â€” typecheck baseline contract; `mypy src/specsmith/` must exit zero on develop. Dynamic agent modules are explicitly enumerated under `[[tool.mypy.overrides]] ignore_errors=true`.
-- **REQ-103 / TEST-103** â€” security baseline contract; CI security job upgrades pip and runs `pip-audit --ignore-vuln CVE-2026-3219` until the upstream pip fix lands.
-### Changed
-- **CI workflow** â€” every job now upgrades pip first; security job tolerates the currently-unfixed pip advisory via `--ignore-vuln`.
-- **Type checking** â€” added `specsmith.agent.broker`, `specsmith.agent.cleanup`, `specsmith.agent.indexer`, `specsmith.agent.orchestrator`, `specsmith.agent.repl`, `specsmith.agent.safety`, `specsmith.agent.tools`, `specsmith.console_utils`, `specsmith.serve` to the mypy `ignore_errors` carveout in `pyproject.toml`.
-### Fixed
-- **Lint** â€” fixed 134 ruff findings to zero across the agent module, cli, requirements_parser, broker, and tests (E501 long lines, B023 closure-binding bug in REPL, B904 raise-from in safety, SIM110 / SIM105 simplifications, F401/I001 import hygiene).
-- **Format** â€” applied `ruff format` to 12 files; CI now enforces format clean.
-- **Tests** â€” `tests/test_data_definition_001.py` (a corrupt single-line scaffolded fixture) removed. TEST-096 imports moved to the top of `tests/test_nexus.py` (E402).
-## [0.3.13] \u2014 2026-04-23
-
-### Added
-- **`specsmith serve`** \u2014 persistent HTTP server for agent sessions. Zero-dependency
-  stdlib server with SSE events, POST /api/send, GET /api/status. Eliminates
-  Python startup + Ollama cold-load overhead between turns.
-- **EXEC-001 rule** \u2014 agent system prompt forbids `python -c` for non-trivial code.
-  Agents must write to file then execute.
-- **Supplementary rules audit** \u2014 `check_supplementary_rules()` scans for `*_RULES.md`
-  files not referenced in AGENTS.md auto-load registry.
-
-### Changed
-- **Minimal startup protocol** \u2014 `start` quick command no longer runs git, reads
-  AGENTS.md, or reads LEDGER.md. Just a brief greeting. VCS state and governance
-  checks run separately in the extension (instant, no LLM calls).
-- **Version bumped to 0.3.13** for pre-release channel (dev builds as 0.3.13.devN).
-
-### Fixed
-- CI: ruff lint (unused imports, import sorting, line length), ruff format,
-  mypy type errors (dict return type, Any return, autogen stubs).
-- `conftest.py`: SIM105 contextlib.suppress.
+- **`epistemic` standalone library** — zero-dep Python library; `from epistemic import
+  AEESession` works in any Python 3.10+ project. Modules: `BeliefArtifact`,
+  `StressTester` (8 challenge categories), `FailureModeGraph`, `CertaintyEngine`
+  (CERTUS-inspired confidence scoring), `RecoveryOperator`, `TraceVault` (SHA-256 chain).
+- **AEE CLI**: `specsmith stress-test`, `specsmith epistemic-audit`,
+  `specsmith belief-graph`, `specsmith trace seal/verify/log`.
+- **`specsmith run`** — AEE-integrated agentic REPL (Anthropic, OpenAI, Gemini, Ollama).
+- **`specsmith serve`** — persistent HTTP server for agent sessions with SSE events,
+  POST /api/send, GET /api/status.
+- **7-phase AEE workflow tracker** (`specsmith phase`) —
+  inception -> architecture -> requirements -> test-spec -> implementation ->
+  verification -> release; per-phase readiness checklist and progress percentage.
+- **`specsmith ollama` group** — `list`, `available [--task]`, `gpu`, `pull`,
+  `suggest`; GPU-aware context sizing (4K/8K/16K/32K based on VRAM).
+- **Skill marketplace** — `specsmith skill search/list/install`; built-in catalog.
+- **Process tracking** — `specsmith exec`, `specsmith ps`, `specsmith abort`.
+- **AI credit tracking** — `specsmith credits` (record, summary, report, analyze, budget).
+- **H11/H12 governance rules** — deadline enforcement in agent scripts; Windows `.cmd`
+  file requirement. `specsmith validate` scans scripts for infinite-loop patterns.
+- **Proactive rate-limit pacing** — built-in RPM/TPM profiles for OpenAI, Anthropic,
+  Gemini; `credits limits status/defaults` CLI.
+- **FPGA project types** — `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`,
+  `mixed-fpga-embedded`, `mixed-fpga-firmware`; full tool registry and CI templates.
+- **30+ initial project types** — Python, Rust, Go, C, .NET, web, mobile, embedded,
+  document, business, legal, and AEE research types.
+- **`specsmith init`** / **`specsmith import`** — interactive scaffold wizard and
+  project adoption.
+- **`specsmith audit`** / **`specsmith validate`** — governance health and YAML schema.
+- **`specsmith preflight`** / **`specsmith verify`** — change intent gating and
+  post-execution equilibrium checks.
 
 ---
 
-## [0.3.11] \u2014 2026-04-22
-
-### Added
-- **AG2 agent shell** (`src/specsmith/agents/`) â€” Planner/Builder/Verifier agents over Ollama.
-  New CLI commands: `specsmith agent run/plan/status/verify/improve/reports`.
-  Uses AG2 v0.12.0 with native Ollama tool calling. Configurable per-project via `scaffold.yml`.
-- **Self-improvement workflow** (`agents/workflows/improve.py`) â€” `specsmith agent improve <task>`
-  runs Planâ†’Buildâ†’Verify, produces structured ChangeReport at `.specsmith/agent-reports/`.
-- **AG2 tool surface** â€” 12 typed tools: filesystem (pathlib, no subprocess), shell, git, tests.
-  Replaces the old `operations.py` concept.
-- **Phase 0â€“3 documentation** â€” `docs/baseline-audit.md`, `docs/system-proof.md`.
-- **23 new agent tests** (`tests/test_agent.py`) â€” tool registry, tool handlers, system prompt,
-  AgentRunner init, SessionState, meta-commands, Ollama integration (live).
-- **tests/conftest.py** â€” WinError 448 pytest cleanup fix for Windows.
-
-### Changed
-- **Ollama timeout** â€” 120s â†’ 600s for completion, 300s for streaming. Fixes frequent
-  `[Provider error] timed out` in VS Code sessions.
-- **AgentConfig** â€” `effective_utility_model` (defaults to primary), `effective_max_iterations`
-  (0 = unlimited, maps to 999).
-- **AGENTS.md** â€” AG2 four-layer architecture, 12 project rules, updated file registry.
-- **pyproject.toml** â€” `ag2[ollama]` optional dependency added.
-
----
-
-## [0.3.10] â€” 2026-04-10
-
-### Fixed
-- No-placeholder-requirements rule added to system prompt (#69).
-
----
-
-## [0.3.6] â€” 2026-04-09
-
-### Added
-- **VCS state in agent system prompt** â€” `build_system_prompt()` runs `git status --short` and
-  `git log --oneline -5` at session start and embeds the snapshot so the agent immediately knows
-  which files are modified, staged, or untracked without waiting for the first tool call.
-- **Enhanced `start` quick command** â€” now explicitly runs git status, git log, reads AGENTS.md
-  and LEDGER.md, and summarizes findings in 3â€“4 sentences before proposing the next action.
-  Provides a full project orientation on every new session.
-- **CONTINUITY RULE in system prompt** â€” prevents the agent from responding with â€œIâ€™m not sure
-  what youâ€™re referring toâ€ when the user sends a follow-up like â€œfix itâ€ or â€œfix the issueâ€
-  after the agent just described a finding. Instructs the agent to look back at the conversation
-  history and act immediately.
-
-### Changed
-- **Ollama `keep_alive=-1`** on all `/api/chat` calls (complete, complete-with-tools, stream).
-  Without this, Ollama unloads the model after 5 minutes of inactivity. When it reloads for the
-  next turn it must re-prefill the full context, which under memory pressure causes apparent
-  context loss between slow turns.
-- **Deferred `llm_chunk` emission in json_events mode** (`runner.py`) â€” the `llm_chunk` event
-  is now held back until after the non-English language check. Previously the Thai/Chinese
-  response was sent to the VS Code extension and rendered before the correction turn could
-  fire. Now the UI only ever sees the English reply.
-- **Non-English correction on any iteration** â€” removed the `_iteration == 0` guard so the
-  language check and correction turn fire on every agent response, not just the first.
-- **Tool partial-text language filter** â€” non-English planning blurbs that precede tool calls
-  are silently dropped rather than displayed.
-
-### Fixed
-- **Windows subprocess encoding** â€” `subprocess.run` calls in `tools.py` now force
-  `encoding='utf-8'` and `errors='replace'`, fixing `UnicodeDecodeError` on Windows when
-  tool output contained non-ASCII characters (cp1252 locale mismatch).
-
----
-
-## [0.3.5] â€” 2026-04-07
-
-### Added
-- **`src/specsmith/profiles.py`** â€” `ExecutionProfile` dataclass with 4 built-in profiles: `safe` (read-only), `standard` (default), `open`, `admin`. Enforcement helpers `check_tool_allowed()`, `check_command_allowed()`, `check_write_allowed()`. Active profile loaded from `scaffold.yml` at session start.
-- **`src/specsmith/toolrules.py`** â€” Curated AI context rulesets for 20+ tools (ghdl, vsg, verilator, iverilog, vivado, quartus, yosys, SymbiYosys, ruff, mypy, pytest, clang-tidy, cppcheck, cargo, go, golangci-lint, Terraform, oelint-adv, BitBake, git, Docker, Vale, markdownlint, Spectral). Rules auto-injected into the agent system prompt based on `scaffold.yml` project type and `fpga_tools`.
-- **`src/specsmith/tool_installer.py`** â€” Platform-aware install commands for 25+ tools. Detects preferred package manager (winget/choco/scoop on Windows, brew on macOS, apt/dnf on Linux). `get_install_command(tool)` returns the best command for the current platform.
-- **`specsmith tools install <tool>`** â€” Show or run the install command for a tool. Options: `--dry-run`, `--yes`, `--list`, `--category`.
-- **`specsmith tools rules`** â€” Show AI context rules for the project or a specific tool. Options: `--tool <key>`, `--list`.
-- **New FPGA project types**: `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`, `mixed-fpga-embedded`, `mixed-fpga-firmware` â€” with full tool registry, CI, and template support.
-- **`specsmith import --yes/-y`** â€” Non-interactive mode flag for the import command (replaces `input='y\n'` in automation).
-- **Language noise filter** â€” `importer.py` now excludes `toml`, `yaml`, `json`, `html` etc. from `primary_language` detection so Rust projects no longer report `toml` as the primary language.
-- **`ProjectConfig`** gains `execution_profile`, `custom_allowed_commands`, `custom_blocked_commands`, `custom_blocked_tools` fields.
-
-### Changed
-- **AMD rebrand**: `fpga-rtl-xilinx` â†’ `fpga-rtl-amd` throughout (type labels, tool registry, CI templates, VS Code panel). Legacy `fpga-rtl-xilinx` id still accepted for backward compatibility.
-- **Agent system prompt**: Strengthened English-only instruction (names Qwen/DeepSeek explicitly). `start` quick command prefixed with `[RESPOND IN ENGLISH ONLY]`.
-- **`run_sync`**: Uses `ORIG_HEAD..HEAD` instead of `HEAD~1..HEAD` â€” more robust on first-ever pulls.
-- **Ollama provider**: Added `_complete_native_with_fallback()` â€” if both tool-call path AND native path return HTTP 400 (e.g. `think` param unsupported on older Ollama), disable `think` and retry. Prevents cascading unhandled errors.
-- All Jinja2 templates: `project.type.value` â†’ `project.type` (config.type is now `str`, not `ProjectType` enum).
-- **pyproject.toml**: Added `keyring` to mypy `ignore_missing_imports` overrides. Added `profiles`, `toolrules`, `tool_installer` to `ignore_errors` overrides.
-
-### Fixed
-- `tools scan` FPGA tool entries missing for new AMD/Intel/Lattice types.
-- Sandbox import tests: replaced fragile `input='y\n'` with `--yes` flag.
-- CI: removed unused `format_install_table` import (F401), fixed f-string without placeholders (F541), split long string literals (E501).
-
----
-
-## [0.3.4] â€” 2026-04-07
-
-### Changed
-- **Ollama provider**: Rewrote to use the native `/api/chat` endpoint for all completions including tool calling. Previous implementation used `/v1/chat/completions` (OpenAI-compat endpoint) which returned HTTP 400 for many local models. Native endpoint is the correct path for Ollama v0.3+.
-- **Gemini provider**: Dual SDK support â€” prefers `google-genai` (GA May 2025) with fallback to legacy `google-generativeai`. Correct `system_instruction` parameter, token count extraction, default model updated to `gemini-2.5-flash`.
-- **OpenAI provider**: Added `developer` role for o-series (o1, o3, o4) models, `max_completion_tokens` field.
-- **Ollama model catalog**: Updated with Qwen3 7B/14B/32B, Gemma3 4B/27B, Llama3.3 70B entries.
-- **VS Code ModelRegistry.ts**: Updated static fallbacks for April 2026 provider APIs.
-
----
-
-## [0.3.3] â€” 2026-04-07
-
-### Added
-- **`specsmith phase`** â€” 7-phase AEE workflow tracker (`inception â†’ architecture â†’ requirements â†’ test_spec â†’ implementation â†’ verification â†’ release`). Each phase has a readiness checklist, recommended commands, and a progress percentage. Phase stored as `aee_phase` in `scaffold.yml`.
-- **`specsmith phase show/set/next/list/status`** â€” full phase management CLI. `phase next` checks prerequisites before advancing; `--force` skips checks.
-- **`src/specsmith/phase.py`** â€” standalone module with `Phase`, `PhaseCheck`, `evaluate_phase`, `read_phase`, `write_phase`, `phase_progress_pct`.
-- **Governance Panel v3 AEE phase indicator** (VS Code extension) â€” live phase pill with readiness %, Next Phase button, and phase select dropdown between the topbar and tab bar.
-
-### Changed
-- `scaffold.yml` gains optional `aee_phase` field. All existing projects are backward-compatible (`inception` is the default).
-- VS Code Governance Panel: phase selector in header updates `scaffold.yml` in real time.
-
-## [0.3.2] â€” 2026-04-07
-
-### Added
-- **`src/specsmith/ollama_cmds.py`** â€” curated 9-model catalog, `get_installed_models()`, `get_vram_gb()` (nvidia-smi + Windows WMI), `recommend_models(vram_gb, task)`, `pull_model()` streaming progress.
-- **`specsmith ollama`** group â€” 5 subcommands: `list`, `available [--task]`, `gpu`, `pull`, `suggest <task>`.
-- **`OllamaProvider._resolve_model()`** â€” auto-resolves short model tags to exact installed names on 404, preventing quantization-suffix mismatches.
-
-### Fixed
-- Ollama 404 error when model installed under quantization tag (e.g. `qwen2.5:14b-instruct-q4_K_M`) but session saved short tag (`qwen2.5:14b`). Now auto-retries with resolved name.
-
-## [0.3.1] â€” 2026-04-07
-
-### Added
-- **`specsmith run --json-events`** â€” JSONL event stream over stdout for IDE integration (VS Code extension bridge).
-- **VS Code extension link** in README and readthedocs.
-- Documentation for agentic client and VS Code extension.
-
-### Fixed
-- Duplicate `ollama` CLI group removed (auto-merge artifact from developâ†’main).
-- Import sort and lint fixes for `ruff` compliance across all modules.
-
-## [0.3.0] â€” 2026-04-06
-
-### Added â€” Applied Epistemic Engineering layer
-- **`epistemic` standalone library** â€” zero-dep Python library. `from epistemic import AEESession` works anywhere.
-- `BeliefArtifact`, `StressTester` (8 challenge categories), `FailureModeGraph`, `CertaintyEngine` (CERTUS-inspired), `RecoveryOperator`, `TraceVault` (SHA-256 chain).
-- **`specsmith stress-test`**, **`epistemic-audit`**, **`belief-graph`**, **`trace seal/verify/log`**, **`integrate`**.
-- **`specsmith run`** â€” AEE-integrated agentic REPL (Anthropic, OpenAI, Gemini, Ollama). `--task`, `--provider`, `--model`, `--tier`, `--json-events`, `--optimize`.
-- **`specsmith agent providers/tools/skills`** â€” agentic client introspection.
-- Skills system: SKILL.md loader, built-in profiles (epistemic-auditor, verifier, planner).
-- Hook system: H13 enforcement, ledger hints, context budget alerts.
-- 3 new project types: `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
-- New governance templates: `epistemic-axioms.md.j2`, `belief-registry.md.j2`, `failure-modes.md.j2`, `uncertainty-map.md.j2`. H13 added to `rules.md.j2`.
-- `docs/site/aee-primer.md` â€” 10-part comprehensive AEE guide.
-- `docs/site/epistemic-library.md` â€” full `epistemic` library API reference.
-
-### Changed
-- Version scheme: `X.Y.Z` (removed `.devN` suffix for stable releases).
-- README: AEE-first framing, complete command reference.
-
-## [Unreleased â€” pre-0.3.0]
-
-### Added â€” Applied Epistemic Engineering
-
-- **`epistemic` standalone library** (`src/epistemic/`): zero-dep Python library co-installed with specsmith. `from epistemic import AEESession` works in any Python 3.10+ project. Seven modules: `belief.py`, `stress_tester.py`, `failure_graph.py`, `recovery.py`, `certainty.py`, `session.py`, `trace.py`.
-- **`AEESession`**: high-level facade bundling the full AEE pipeline (add_belief, accept, add_evidence, run, save, load, seal, verify_trace). Primary entry point for non-specsmith projects including glossa-lab, cpac, and compliance pipelines.
-- **`BeliefArtifact`**: fundamental AEE primitive. Requirements, decisions, and hypotheses are all BeliefArtifacts with propositions, epistemic boundaries, confidence levels, and failure modes.
-- **`StressTester`**: 8-category adversarial challenge engine (vagueness, falsifiability, observability, irreducibility, compound claim, no propositions, P1 confidence, logic knots).
-- **`FailureModeGraph`**: directed graph of stress-testâ†’breakpoint relations with `equilibrium_check()` and `logic_knot_detect()`. Mermaid diagram rendering.
-- **`CertaintyEngine`**: CERTUS-inspired confidence scoring. C = base Ã— coverage Ã— freshness. Weakest-link propagation through inferential links.
-- **`RecoveryOperator`**: generates bounded `RecoveryProposal` objects for all failure modes. Never auto-applies. Ranked by severity.
-- **`TraceVault`** (`src/epistemic/trace.py`): STP-inspired cryptographic decision sealing. SHA-256 chain, append-only `.specsmith/trace.jsonl`.
-- **`CryptoAuditChain`** in `ledger.py`: SHA-256 chained hashes for all ledger entries. Tamper-evident history.
-- **`specsmith.epistemic`**: backward-compatible shim that re-exports everything from `epistemic`.
-
-### Added â€” New CLI Commands
-
-- **`specsmith stress-test`**: AEE adversarial stress-tests on `docs/REQUIREMENTS.md`. Text and Mermaid output.
-- **`specsmith epistemic-audit`**: full AEE pipeline â€” stress-test + failure graph + certainty scoring + recovery proposals. `--threshold` and `--mermaid` options.
-- **`specsmith belief-graph`**: render belief artifact dependency graph by component. Text and Mermaid.
-- **`specsmith trace seal/verify/log`**: cryptographic trace vault management.
-- **`specsmith integrate <tool>`**: epistemic impact analysis before tool adapter scaffolding.
-- **`specsmith run`**: AEE-integrated agentic REPL. Auto-detects provider. `--task`, `--provider`, `--model`, `--tier` options.
-- **`specsmith agent providers/tools/skills`**: configure and inspect the agentic client.
-
-### Added â€” Agentic Client
-
-- **`src/specsmith/agent/`**: minimal, cross-platform Python agentic client.
-  - `core.py`: `Message`, `Tool`, `CompletionResponse`, `ModelTier`, `BaseProvider` protocol
-  - `providers/`: Anthropic, OpenAI (incl. Ollama via compat endpoint), Gemini, Ollama (stdlib-only)
-  - `tools.py`: 20 specsmith commands as native agent tools with epistemic contracts
-  - `hooks.py`: `HookRegistry` with Pre/PostTool, SessionStart, SessionEnd hooks. Built-in H13 enforcement.
-  - `skills.py`: SKILL.md loader with domain prioritization (epistemic > governance > verification > testing > vcs)
-  - `runner.py`: REPL loop with tool execution, model routing, session state, streaming support
-  - Built-in profiles: `planner.md`, `verifier.md`, `epistemic-auditor.md`
-- All LLM providers are optional extras: `pip install specsmith[anthropic]`, `specsmith[openai]`, `specsmith[gemini]`
-- Ollama support via stdlib `urllib` only (zero deps)
-- Model routing: `--tier fast/balanced/powerful` maps to appropriate models per provider
-
-### Added â€” Project Types and Config
-
-- **3 new project types**: `epistemic-pipeline` (ARE 8-phase), `knowledge-engineering`, `aee-research`
-- **`ProjectConfig.enable_epistemic`**: opt-in AEE governance layer
-- **`ProjectConfig.epistemic_threshold`**: configurable certainty threshold (default 0.7)
-- **`ProjectConfig.enable_trace_vault`**: opt-in cryptographic trace vault
-
-### Added â€” Governance Templates
-
-- **`epistemic-axioms.md.j2`**: 5 AEE axioms applied to the project
-- **`belief-registry.md.j2`**: catalog of BeliefArtifacts (decisions, assumptions, dependencies)
-- **`failure-modes.md.j2`**: Failure-Mode Graph document
-- **`uncertainty-map.md.j2`**: known unknowns and accepted uncertainties
-- **H13** added to `rules.md.j2`: Epistemic Boundaries Required â€” proposals must state assumptions
-- 3 new stop conditions in `rules.md.j2`: Logic Knot, P1 confidence, trace chain integrity
-
-### Added â€” Documentation
-
-- **`docs/site/aee-primer.md`**: 10-part comprehensive guide from zero AEE knowledge to full productivity. Covers theory, formal machinery, 4-step method, belief artifacts, logic knots, certainty engine, trace vault, practical workflow, domain examples, and references.
-- **`docs/site/epistemic-library.md`**: full API reference for the standalone `epistemic` library with integration examples for glossa-lab, compliance, and FastAPI.
-- RTD nav updated with "Applied Epistemic Engineering" section and "Agentic Client" section.
-- ECC reference cloned locally: `C:\Users\trist\Development\layer1labs\everything-claude-code`
-
-### Changed
-
-- **Version scheme**: switched to `X.Y.Z.devN` (no alpha/beta suffixes). `pyproject.toml` targets `0.3.0`; dev builds auto-publish as `0.3.0.devN`.
-- **Package description**: AEE-first framing
-- **pyproject.toml**: `epistemic` package in `package-data`, optional LLM extras (`[anthropic]`, `[openai]`, `[gemini]`, `[agent]`, `[all]`)
-- **AGENTS.md**: updated identity, spec version 0.3.0, new commands, ECC reference
-- **README.md**: leads with AEE identity, explains the paradigm shift, shows epistemic library usage
-- **mkdocs.yml**: AEE and Agentic Client nav sections, navigation.tabs feature
-
-## [0.2.3] - 2026-04-03
-
-### Fixed
-- **Governance RTD table rendering** (#55): rows 2â€“6 of the Modular Governance table in `docs/site/governance.md` started with `||` instead of `|`, breaking layout. Introduced during the uppercase filename migration.
-
-### Added
-- **RTD commands page complete** (#56): `docs/site/commands.md` now documents all 40+ commands â€” previously 13 of 40+ were documented. Added sections for `exec`/`ps`/`abort`, `commit`/`push`/`sync`/`branch`/`pr`, `session-end`, `update`, `apply`, `migrate-project`, `release`, `verify-release`, `ledger add/list/stats`, `req list/add/trace/gaps/orphans`, `plugin`, `serve`, and `credits limits`.
-- **H11/H12 governance rules and blocking-loop enforcement** (#58): two new hard rules added to the `RULES.md` governance template. H11 requires every loop or blocking wait in agent-written scripts to have a deadline, fallback exit, and diagnostic message. H12 requires Windows multi-step automation to use `.cmd` files. `specsmith validate` now scans `.sh`/`.cmd`/`.ps1`/`.bash` files under `scripts/` and the project root and flags infinite-loop patterns without a recognised deadline/timeout guard.
-- **Proactive per-model rate-limit pacing** (#59): `BUILTIN_PROFILES` constant ships conservative RPM/TPM defaults for OpenAI (gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1, o1-mini, o3-mini, gpt-5.4, wildcard), Anthropic (claude-opus-4, claude-sonnet-4, claude-haiku-3-5, claude-3-5-sonnet, wildcard), and Google (gemini-1.5-pro, gemini-1.5-flash, gemini-2.0-flash, gemini-2.5-pro, wildcard). Two new `credits limits` subcommands: `status` (rolling-window RPM/TPM/concurrency snapshot) and `defaults` (list or `--install` built-in profiles). Local overrides always take precedence over built-ins.
-- **Rate Limit Pacing RTD page**: new `docs/site/rate-limits.md` documents the scheduler model, built-in profiles table, CLI commands, persistent state, and the Python API.
-- **README updated**: new sections for Governance Rules (H11/H12) and Proactive Rate Limit Pacing with RTD links. Commands table expanded to all major command groups.
-- **Dev release CI fixed**: workflow now uses `pyproject.toml` version directly (no patch bump) so dev builds publish as `0.2.3.devN` â€” PEP 440 compliant pre-releases of the upcoming stable version.
-
-## [0.2.2] - 2026-04-02
-
-### Fixed
-- **Upgrade auto-fixes AGENTS.md references**: when `upgrade` renames governance files (lowercaseâ†’uppercase), it now rewrites path references in AGENTS.md, CLAUDE.md, GEMINI.md, SKILL.md, and all agent config files automatically.
-- **Alternate path detection**: auditor and upgrader now find LEDGER.md at `docs/LEDGER.md` and architecture docs in subdirectories (e.g. `docs/architecture/`). No more false "missing" reports or duplicate stub creation.
-- **Case-insensitive architecture check**: `docs/ARCHITECTURE.md` recommended check now works regardless of filename casing.
-- **CI-gated dev releases**: dev-release workflow now runs full test suite (ruff check+format, mypy, pytest) before PyPI publish.
-
-## [0.2.1] - 2026-04-02
-
-### Added
-- **Process execution with PID tracking**: `specsmith exec`, `specsmith ps`, `specsmith abort` â€” cross-platform (Windows taskkill / POSIX SIGTERM+SIGKILL) process tracking and abort. PID files in `.specsmith/pids/`.
-- **`specsmith upgrade --full`**: full sync of infrastructure files â€” regenerates exec shims, CI configs, agent integrations. Creates missing community/config files. Safe: never overwrites user docs.
-- **Language-specific scaffold templates** (#41): Rust (Cargo.toml, main.rs), Go (go.mod, main.go), JS/TS (package.json for web-frontend, fullstack-js).
-- **ReadTheDocs templates** (#38): `.readthedocs.yaml` and `mkdocs.yml` for Python/doc projects.
-- **Release workflow templates** (#44): `.github/workflows/release.yml` with test gate, language-aware build, GitHub Release, PyPI OIDC publish.
-- **PyPI integration** (#36): OIDC-based trusted publishing via release workflow template.
-
-### Changed
-- **Template directory restructured** (#45): `pyproject.toml.j2` moved to `python/`. Templates organized into `python/`, `rust/`, `go/`, `js/`, `community/`, `governance/`, `docs/`, `scripts/`, `workflows/`.
-- **CI-gated releases**: both dev-release and stable release workflows now run full test suite (ruff check+format, mypy, pytest) before PyPI publish.
-- Exec shims (`exec.cmd`, `exec.sh`) now write PID files for `specsmith ps`/`specsmith abort`.
-
-## [0.2.0] - 2026-04-02
-
-### Added
-- **Community templates** (#42): `CONTRIBUTING.md`, `LICENSE` (MIT/Apache-2.0), `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/PULL_REQUEST_TEMPLATE.md`, `.github/ISSUE_TEMPLATE/` (bug report + feature request). Config fields: `license` (default MIT), `community_files` list.
-- **AI credit tracking** (#50): `specsmith credits` subcommand group â€” record, summary, report, analyze, budget. Tracks tokens/cost per session, model, provider, and task. JSON storage at `.specsmith/credits.json`.
-- **Credit spend analysis** (#51): `specsmith credits analyze` detects model inefficiency, token waste, governance bloat, cost trends. Generates optimization recommendations with estimated savings.
-- **Credit budget/watermarks**: `specsmith credits budget --cap 50 --watermarks 5,10,25,50`. Monthly caps, alert thresholds, watermark notifications.
-- **Auto-init credit tracking**: `init`, `import`, and `upgrade` all create `.specsmith/credit-budget.json` with unlimited default budget. `.specsmith/` gitignored.
-- **`specsmith architect`** (#49): interactive architecture generation â€” scans project, interviews user about components/data flow/deployment, generates rich `docs/ARCHITECTURE.md`.
-- **`specsmith self-update`**: auto-detects channel (stable/dev), supports `--channel` override and `--version` pinning.
-- **Multi-language detection**: importer detects and reports all significant languages (primary + secondary).
-- **Dynamic versioning**: `__version__` reads from `importlib.metadata`. Docs use `{{ version }}` hook. Tests are version-agnostic.
-- **Dev-release workflow for managed projects** (#35): gitflow + GitHub + Python generates `.github/workflows/dev-release.yml`.
-- **Type-specific templates**: .gitattributes (#39) for 15 language types, .gitignore (#40) expanded for all 30 types, .editorconfig (#43) with per-language indent settings.
-- **Yocto/bitbake/devicetree/markdown**: `.bbclass`, `.inc`, `.dts`, `.dtsi` in language detection; `kas.yml` build system; enhanced CI metadata.
-- **No-hardcoded-versions rule** (H10): governance template and WARP rule.
-- **Agent credit instructions**: Warp and Claude adapters include credit recording commands.
-- **Session-end credit summary**: `session-end` shows total spend and budget alerts.
-- **VCS commands**: `specsmith commit`, `push`, `sync`, `branch`, `pr`, `session-end` for governed git workflows.
-- **Structured ledger CLI**: `specsmith ledger add/list/stats` for append-only change tracking.
-- **Requirements CLI**: `specsmith req list/add/trace/coverage` for requirements management.
-- **Test gap analysis**: `specsmith test gaps/orphans/summary` for REQâ†”TEST coverage.
-- **Plugin system scaffold**: `specsmith plugin list`, entry-point-based extensibility.
-
-### Fixed
-- **Import with large AGENTS.md** (#46): broader keyword extraction, diff marker stripping, paragraph dedup, existing doc detection.
-- **UnboundLocalError on import** with existing docs: scoping fix for REQUIREMENTS/TEST_SPEC/architecture skip logic.
-- **Audit false positive**: architecture docs found in subdirectories (e.g., `docs/architecture/DESIGN.md`).
-- **`audit --fix`** now generates missing recommended files (ARCHITECTURE.md from scan, REQUIREMENTS.md, TESTS.md stubs).
-- **Topic-aware section classification** (#47): body content keywords route sections to correct governance files.
-- **Type-specific audit thresholds** (#48): FPGA/embedded get higher limits (rules=1000, verification=600).
-
-### Changed
-- **Uppercase governance filenames**: all scaffolded markdown files use uppercase stems (RULES.md, WORKFLOW.md, ROLES.md, CONTEXT-BUDGET.md, VERIFICATION.md, DRIFT-METRICS.md, ARCHITECTURE.md). Upgrader auto-migrates legacy lowercase filenames on both case-sensitive and case-insensitive filesystems.
-- Auditor now recommends `CONTRIBUTING.md` and `LICENSE`.
-- RTD default version set to `stable`, default branch set to `develop`.
-- Docs version references use dynamic `{{ version }}` instead of hardcoded strings.
-- `init.py.j2` template for managed projects uses `importlib.metadata` pattern.
-- Governance file size thresholds raised globally (rules=800, verification=400).
-- Yocto toolset: added `testimage`, `yocto-check-layer` compliance.
-- Release workflow now runs full test suite before building.
-
-## [0.1.3] - 2026-04-01
-
-### Fixed
-- **PyPI sidebar links**: added Documentation (specsmith.readthedocs.io) and Issues (GitHub) to project URLs.
-- **PyPI badge**: switched to cache-busting shields.io URL.
-
-## [0.1.2] - 2026-04-01
-
-### Fixed
-- **PyPI classifier**: updated from "Development Status :: 3 - Alpha" to "Production/Stable".
-- **Stale alpha references**: removed `--pre` flag text and alpha-period notes from getting-started.md and troubleshooting.md.
-
-### Added
-- **Release workflow guide** (`docs/site/releasing.md`): complete gitflow release process with pre-release checklist, post-release verification, version locations (5 places), and lessons learned.
-- **WARP rule**: added release checks (classifier, stale versions, install commands) to `.warp/rules/documentation-updates.md`.
-
-## [0.1.1] - 2026-04-01
-
-### Security
-- **Fix incomplete URL substring sanitization** (CodeQL alert #1): VCS platform detection in the importer now uses proper URL host parsing (`urllib.parse.urlparse` for HTTPS, explicit host extraction for SSH remotes) instead of substring matching. Prevents potential misidentification from spoofed hostnames.
-
-## [0.1.0] - 2026-04-01
-
-### Added
-- **11 CLI commands**: `init`, `import`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`, `export`, `doctor`.
-- **30 project types** across 6 categories: software (Python, Rust, Go, C/C++, .NET, JS/TS, mobile, monorepo, microservices, DevOps, data/ML, browser extension), hardware (FPGA, Yocto, PCB, embedded), documents (spec, manual, paper, API spec, requirements mgmt), business/legal (business plan, patent, legal/compliance).
-- **Verification tool registry**: maps each type to lint/typecheck/test/security/build/format/compliance tools with CI metadata for 16 languages.
-- **Tool-aware CI generation**: GitHub Actions, GitLab CI, Bitbucket Pipelines with correct tools per project type. Mixed-language support (Python+JS auto-detects Node.js).
-- **Project importer**: `specsmith import` detects language, build system, test framework, CI, governance, modules, and entry points. Merge mode preserves existing files.
-- **`specsmith export`**: compliance reports with REQâ†”TEST coverage matrix, audit summary, git activity, tool status, governance inventory.
-- **`specsmith doctor`**: checks if verification tools are installed on PATH.
-- **`specsmith init --guided`**: interactive architecture definition with REQ/TEST stub generation.
-- **Auditor**: 6 health checks (files, REQâ†”TEST, ledger, governance size, tool config, consistency). `--fix` auto-repairs missing files and CI configs.
-- **Domain-specific templates**: patent claims/spec/figures, legal contracts/regulatory, business exec-summary/financials, research citations/methodology, API endpoints/auth.
-- **7 agent integrations**: AGENTS.md, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
-- **3 VCS platforms**: GitHub (`gh`), GitLab (`glab`), Bitbucket (`bb`) with CI/CD, dependency management (Dependabot/Renovate per ecosystem), and status checks.
-- **Config inheritance**: `extends` field in scaffold.yml for org-level defaults.
-- **Type-specific .gitignore**: Rust, Go, Node, Kotlin, .NET, KiCad, FPGA, Zephyr, LaTeX, Terraform patterns.
-- **Type-specific governance rules**: 20+ project types have tailored AGENTS.md rules.
-- **Read the Docs**: 13-page user manual at specsmith.readthedocs.io.
-- **PyPI publishing**: automated via trusted publishing (OIDC).
-- **GitHub infrastructure**: issue templates (bug, feature, new type), PR template, Discussions, 12 labels.
-- **Self-governance**: 74 requirements, 113 tests, 100% REQâ†”TEST coverage, audit healthy (9/9).
-- **`python -m specsmith`** supported via `__main__.py`.
-
-## [0.1.0-alpha.2] - 2026-04-01
-
-### Added
-- **specsmith CLI tool** with 9 commands: `init`, `import`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`.
-- **`specsmith import`**: walk an existing project, detect language/build/tests/CI, generate governance overlay (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TESTS.md, architecture.md). Supports `--force` to overwrite existing files.
-- **`specsmith init --guided`**: interactive architecture definition session that auto-generates REQ/TEST stubs and architecture.md from user-defined components.
-- **Verification tool registry** (`tools.py`): maps all 20 project types to lint, typecheck, test, security, build, format, and compliance tools. Supports user overrides via `verification_tools` config field.
-- **Tool-aware CI generation**: GitHub Actions, GitLab CI, and Bitbucket Pipelines generate correct tool commands per project type (not just Python). CI metadata for 13 languages including setup actions, Docker images, and cache keys.
-- **20 project types** (up from 8): added web-frontend, fullstack-js, cli-rust, cli-go, cli-c, library-rust, library-c, dotnet-app, mobile-app, devops-iac, data-ml, microservices.
-- **Project detection engine** (`importer.py`): detects language, build system, test framework, CI, governance files, modules, entry points, and VCS state from an existing project directory.
-- **Auditor tool verification**: `specsmith audit` now checks that CI configs reference the expected verification tools for the project type.
-- **Type-specific governance templates**: AGENTS.md and verification.md now include type-specific rules for Rust, Go, C/C++, web frontend, .NET, DevOps/IaC, data/ML, and microservices projects.
-- **Mixed-language CI support**: projects with both Python and JS tools (e.g., backend-frontend) automatically get both runtime setups in CI.
-- **Language-specific Dependabot ecosystems**: pip, cargo, gomod, npm, nuget, pub detected from project language.
-- **Interactive prompts** for VCS platform, branching strategy, and agent integrations during `specsmith init`.
-- **`specsmith status`**: pull CI status, dependency alerts, and open PRs from VCS platform CLI (gh/glab/bb).
-- **`specsmith diff`**: compare governance files against what spec templates would generate.
-- **`audit --fix`**: auto-repair missing governance files and compress oversized ledgers.
-- **Config inheritance**: `extends` field in scaffold.yml to inherit org-level defaults.
-- **7 agent integration adapters**: Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
-- **3 VCS platform integrations**: GitHub (`gh`), GitLab (`glab`), Bitbucket (`bb`) with CI/CD, dependency, and security config generation.
-- **Domain-specific scaffold directories**: FPGA, Yocto, PCB, Embedded, Web, Rust, Go, C/C++, .NET, Mobile, DevOps, Data/ML, Microservices.
-- **Branching strategy config**: gitflow, trunk-based, github-flow with tuning knobs.
-- **98 tests** across 12 test files covering CLI, scaffolder, auditor, validator, compressor, integrations, VCS platforms, tool registry, and importer.
-- **GitHub Actions CI**: lint (ruff), typecheck (mypy --strict), test (pytest, 3 OS Ã— 3 Python), security audit (pip-audit).
-- **Release workflow**: tag-triggered build (sdist + wheel) â†’ GitHub Release artifacts.
-- Dependabot, pre-commit, Docker local CI.
-- SECURITY.md, MAINTAINERS.md, .github/CODEOWNERS.
-- SPDX-License-Identifier: MIT headers on all source files.
-- Self-hosted governance: AGENTS.md, LEDGER.md, CONTRIBUTING.md for specsmith itself.
-
-### Changed
-- **Windows scripts**: replaced all `.ps1` templates with `.cmd` for environment compatibility.
-- **GitHub Actions**: bumped to `checkout@v6` + `setup-python@v6`.
-- **Branch protection**: `main` branch protected via GitHub rulesets (no deletion, no force push).
-- Gitflow branching with `develop` branch created and synced.
-
-## [0.1.0-alpha.1] - 2026-03-31
-
-### Added
-- **Modular AGENTS.md architecture** (Section 24): focused hub (~100-150 lines) plus 6 delegated governance docs under `docs/governance/` (rules.md, workflow.md, roles.md, context-budget.md, verification.md, drift-metrics.md). Lazy-loaded per task type to minimize credit use.
-- **Credit and token optimization** (Section 25): `Estimated cost:` field in proposals, `Token estimate:` field in ledger entries, lazy loading protocol, response economy rules, efficient verification ordering, credit-waste anti-patterns.
-- **Drift detection and feedback loops** (Section 26): 5 health signals (consistency, ledger health, documentation currency, governance size, rule compliance), drift response protocol, ledger compression to `docs/ledger-archive.md`, `audit` command.
-- **Execution safety and timeout protection** (Section 27): mandatory timeouts on all agent-invoked commands, non-interactive execution mandate, timeout handling protocol (kill â†’ record â†’ retry once â†’ escalate), `scripts/exec.ps1` and `scripts/exec.sh` shim/wrapper layer, known hung-process patterns catalog.
-- **Multi-agent coordination** (Section 28): agent identity in ledger entries, scope isolation, conflict detection, test separation principle.
-- **FPGA / RTL project type** (Section 17.6): directory structure, constraint files as governance artifacts, synthesis â†’ P&R â†’ timing closure verification vocabulary, batch-only tool invocation mandate.
-- **Yocto / embedded Linux BSP project type** (Section 17.7): meta-layer structure, KAS YAML as governance artifacts, build-time awareness in proposals, sstate/download cache management.
-- **PCB / hardware design project type** (Section 17.8): schematic-review gate, BOM as governance artifact, ERC â†’ DRC â†’ fab verification pipeline, ECAD-MCAD sync documentation requirement.
-- 15 new requirement component codes for FPGA (RTL, SIM, SYN, IMPL), embedded Linux (BSP, IMG, PKG, DTS, KRN), and PCB (SCH, PCB, BOM, FAB, MCAD) domains.
-- Hard rule **H9 â€” Execution timeout required**: all agent commands must have timeouts.
-- Anti-patterns #11 (hung processes) and #12 (credit waste).
-- `audit` command in quick command reference (Section 22).
-- Drift and health metrics added to compliance checklist (Section 23).
-- `scripts/exec.ps1` and `scripts/exec.sh` added to recommended scripts (Section 13.2).
-
-### Changed
-- **Version** set to 0.1.0-alpha.1 (SemVer pre-release; will not reach 1.0.0 until production-ready).
-- **Purpose statement** (Section 1) expanded: now covers software, firmware, FPGA/RTL, embedded Linux, and hardware projects.
-- **AGENTS.md definition** (Section 2.1) restructured: must be kept small (~100-150 lines), serves as a hub referencing modular governance docs.
-- **Authority hierarchy** (Section 3) updated: `docs/governance/*` files inherit AGENTS.md's authority via explicit delegation.
-- **Proposal format** (Section 5) gained `Estimated cost:` field.
-- **Ledger entry format** (Section 6) gained `Token estimate:` field.
-- **Bootstrap procedure** (Section 18 Step 3) now creates `docs/governance/` directory with all 6 modular governance files.
-- **Section 17 intro** updated to reference project types 17.5-17.8 covering hardware domains.
-
-### Fixed
-- **G1**: Bootstrap procedure now explicitly exempt from proposal requirement (H2) â€” was ambiguous in original.
-- **G2**: Authority hierarchy no longer mislabels LEDGER.md as "lowest" when workflow.md and services.md are below it.
-- **G3**: Added "Derivation vs. conflict resolution" paragraph clarifying requirements-vs-architecture precedence.
-- **G4**: Library/SDK project type (17.4) now includes required `scripts/` directory.
-- **G5**: Embedded/hardware project type (17.5) now explicitly references Section 2 and Section 13.2 instead of vague "same core structure."
-- **G6**: Bootstrap ledger template TODOs now annotated "(adapt to selected project type)."
-- **G7**: AGENTS.md adaptation guidance in bootstrap now specifies what "adapt" means concretely.
-- **G8**: Added CLI and CMD component codes to requirements schema; noted list is extensible.
-- **G9**: Session start file list now marks services.md as conditional ("if it exists").
-- **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
-
-[0.6.0]: https://github.com/layer1labs/specsmith/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/layer1labs/specsmith/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/layer1labs/specsmith/compare/v0.3.13...v0.4.0
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/layer1labs/specsmith/compare/v0.6.0...v0.7.0
-[0.2.3]: https://github.com/layer1labs/specsmith/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/layer1labs/specsmith/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/layer1labs/specsmith/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/layer1labs/specsmith/compare/v0.1.3...v0.2.0
-[0.1.3]: https://github.com/layer1labs/specsmith/compare/v0.1.2...v0.1.3
-[0.1.2]: https://github.com/layer1labs/specsmith/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/layer1labs/specsmith/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/layer1labs/specsmith/compare/v0.1.0-alpha.2...v0.1.0
-[0.1.0-alpha.2]: https://github.com/layer1labs/specsmith/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
-[0.1.0-alpha.1]: https://github.com/layer1labs/specsmith/releases/tag/v0.1.0-alpha.1
-
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/layer1labs/specsmith/compare/v0.16.0...v0.16.1
+[0.16.0]: https://github.com/layer1labs/specsmith/compare/v0.15.3...v0.16.0
+[0.15.3]: https://github.com/layer1labs/specsmith/compare/v0.15.2...v0.15.3
+[0.15.2]: https://github.com/layer1labs/specsmith/compare/v0.15.1...v0.15.2
+[0.15.1]: https://github.com/layer1labs/specsmith/compare/v0.14.1...v0.15.1
+[0.14.1]: https://github.com/layer1labs/specsmith/compare/v0.13.0...v0.14.1
+[0.13.0]: https://github.com/layer1labs/specsmith/compare/v0.11.7...v0.13.0
+[0.11.7]: https://github.com/layer1labs/specsmith/releases/tag/v0.11.7
