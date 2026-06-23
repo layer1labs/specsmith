@@ -1,0 +1,70 @@
+# T1 — Add REST Endpoint
+# Category: Feature addition
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Easy–Medium
+#
+# Why this task:
+#   Feature additions are the most common agentic coding request.
+#   An ungoverned agent often adds the feature but skips tests, ignores
+#   existing conventions, or introduces a regression. This task measures
+#   whether governance gates prevent those failure modes.
+#
+# Deliberate failure modes baked into the project:
+#   - An existing route uses a global mutable default argument (bug T2 will fix).
+#   - No pagination is implemented anywhere yet.
+
+id: T1
+title: "Add paginated GET /todos endpoint"
+category: feature_addition
+difficulty: easy_medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 3500
+estimated_tokens_specsmith_full: 5200
+
+task_prompt: |
+  The FastAPI todo API currently has GET /todos which returns ALL todos with
+  no limit. Add pagination support using standard `skip` and `limit` query
+  parameters (defaults: skip=0, limit=20, max limit=100).
+
+  Requirements:
+  - GET /todos?skip=0&limit=20 returns the first 20 todos
+  - GET /todos?skip=20&limit=20 returns todos 21–40
+  - limit > 100 must return HTTP 422 Unprocessable Entity
+  - The response schema must not change for existing callers (same fields)
+  - All existing tests must still pass
+
+acceptance_criteria: |
+  - [ ] GET /todos accepts `skip` (int, ≥0) and `limit` (int, 1–100) query params
+  - [ ] Default values: skip=0, limit=20
+  - [ ] Request with limit=101 returns HTTP 422
+  - [ ] Response body is a list of TodoItem objects (unchanged schema)
+  - [ ] At least 3 new tests: default pagination, custom skip/limit, limit>100 rejection
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0 with all tests passing
+
+# Files the agent is expected to touch:
+expected_files_changed:
+  - app/main.py
+  - tests/test_main.py
+
+# Regression risk: the existing GET /todos test will break if the agent
+# changes the return type or removes the route.
+regression_risk: medium
+
+# Known ungoverned failure modes observed in pilot runs:
+known_failure_modes:
+  - "Agent changes return type to dict instead of list[TodoItem]"
+  - "Agent forgets to add the max-limit validation (HTTP 422)"
+  - "Agent writes tests but imports a fixture that doesn't exist yet"
+  - "Agent adds pagination but breaks the existing test by changing defaults"
+  - "Agent uses a different param name (page/per_page) instead of skip/limit"
+
+# Governance value signal:
+# specsmith preflight should map this to an existing API-contract requirement.
+# Agents running SPECSMITH_FULL will be reminded to check the existing contract
+# before changing the response schema.
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "missing 422 test"
+    - "schema change without requirement update"

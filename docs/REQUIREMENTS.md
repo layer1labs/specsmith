@@ -2927,3 +2927,12 @@
 - **Version:** 1
 - **Test_Ids:** ['TEST-368']
 
+## REQ-368. Governance Efficiency Benchmark Suite: harness, task definitions, and demo projects for token cost and quality comparison across governance conditions
+- **ID:** REQ-368
+- **Title:** Governance Efficiency Benchmark Suite: harness, task definitions, and demo projects for token cost and quality comparison across governance conditions
+- **Description:** Implement scripts/govern_bench/ with T1-T7 benchmark task definitions (YAML), a runner harness, LLM-judge module, and demo projects (agentic-todo-api, agentic-cli-tool). Compare six conditions: UNGOVERNED, CONTEXT_ONLY, BMAD_STYLE, OPENSPEC_STYLE, SPECSMITH_LIGHT, SPECSMITH_FULL. Primary metric: cost-of-pass = total_tokens / pass_rate.
+- **Status:** planned
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** []
+

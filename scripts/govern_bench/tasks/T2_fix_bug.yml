@@ -1,0 +1,82 @@
+# T2 — Fix Deliberate Bug
+# Category: Bug fix
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium
+#
+# Why this task:
+#   Bug fixes require the agent to (a) understand the root cause and
+#   (b) not introduce new bugs while fixing the old one. Ungoverned agents
+#   frequently "fix" the symptom (add a reset) without fixing the root cause
+#   (mutable default argument). This is a classic Python gotcha.
+#
+# The bug:
+#   In app/main.py, the in-memory todo store is initialised as:
+#       def create_todo(todo: TodoCreate, db: list = []):
+#   This uses a mutable default argument. The list persists across requests
+#   in testing, causing test isolation failures when tests run in sequence.
+#   The correct fix is to use a module-level store and inject it, or use
+#   a proper default_factory pattern.
+#
+# The failing test is: test_create_todo_isolation
+
+id: T2
+title: "Fix mutable default argument bug causing test isolation failures"
+category: bug_fix
+difficulty: medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 2800
+estimated_tokens_specsmith_full: 4100
+
+task_prompt: |
+  pytest is failing with the following error when tests are run in sequence:
+
+      FAILED tests/test_main.py::test_create_todo_isolation - AssertionError:
+      Expected 1 todo, got 3
+
+  The test `test_create_todo_isolation` creates a single todo and then
+  asserts there is exactly one todo in the store. It fails because a
+  previous test's data is leaking into this test.
+
+  Find the root cause and fix it. Do NOT just add a teardown that clears
+  the list — fix the underlying architectural issue.
+
+  All tests must pass after your fix.
+
+acceptance_criteria: |
+  - [ ] test_create_todo_isolation passes
+  - [ ] The fix addresses the root cause (mutable default argument), not just the symptom
+  - [ ] No test adds or modifies a teardown/clear to work around the issue
+  - [ ] All other existing tests still pass
+  - [ ] The fix does not change the public API (same routes, same response shapes)
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0 with all tests passing
+  - [ ] A regression test is added: test that two independent requests do not share state
+
+expected_files_changed:
+  - app/main.py
+  - tests/test_main.py
+
+regression_risk: high  # Changing the store initialisation can break many things
+
+known_failure_modes:
+  - "Agent adds `db.clear()` in a fixture — fixes symptom, not root cause"
+  - "Agent introduces a new mutable global that has the same problem"
+  - "Agent rewrites the entire storage layer unnecessarily (scope creep)"
+  - "Agent introduces a dependency injection framework that's out of scope"
+  - "Agent changes the API shape (returns 201 instead of 200 for existing tests)"
+
+governance_signals:
+  preflight_expected_req_match: true
+  # Governance should surface the constraint: 'fix root cause, not symptom'
+  # which is in the project's REQUIREMENTS.md under testing requirements.
+  verify_expected_to_catch:
+    - "teardown workaround instead of root-cause fix"
+    - "API shape change without requirement update"
+
+# Measurement note:
+# The key governance signal here is whether the agent stays scoped.
+# Ungoverned agents frequently over-engineer: rewriting storage as a proper
+# database, adding SQLAlchemy, or restructuring the app — all outside scope.
+# specsmith preflight reminds the agent that the change scope is a bug fix
+# against an existing requirement, not a new architecture decision.
+scope_discipline_metric: true

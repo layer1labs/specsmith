@@ -612,14 +612,14 @@
   title: MCP governance_req_list must read YAML source directly in YAML-mode
   status: accepted
   description: When .specsmith/governance-mode equals yaml, the governance_req_list
-    MCP tool must read requirements from docs/requirements/*.yml directly instead of
-    the .specsmith/requirements.json JSON cache. This eliminates false-positive orphaned-tests
-    audit failures caused by stale cache state after YAML edits without an intervening
-    specsmith sync.
-  source: GitHub issue #201
+    MCP tool must read requirements from docs/requirements/*.yml directly instead
+    of the .specsmith/requirements.json JSON cache. This eliminates false-positive
+    orphaned-tests audit failures caused by stale cache state after YAML edits without
+    an intervening specsmith sync.
+  source: GitHub issue
 - id: REQ-365
-  title: specsmith ESDB must provide a SQLite-backed free default backend with no external
-    dependencies
+  title: specsmith ESDB must provide a SQLite-backed free default backend with no
+    external dependencies
   status: accepted
   description: specsmith ships a SqliteStore class (stdlib sqlite3 only, MIT licensed)
     as the default ESDB backend. It stores records in .specsmith/esdb.sqlite3, exposes
@@ -631,11 +631,11 @@
   title: Activating the chronomemory ChronoStore ESDB backend requires a valid commercial
     license key
   status: accepted
-  description: When chronomemory is installed, specsmith must verify the presence and
-    cryptographic validity of an Ed25519-signed license file before activating ChronoStore.
-    The license file location is resolved from SPECSMITH_ESDB_KEY environment variable
-    or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently
-    falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite
+  description: When chronomemory is installed, specsmith must verify the presence
+    and cryptographic validity of an Ed25519-signed license file before activating
+    ChronoStore. The license file location is resolved from SPECSMITH_ESDB_KEY environment
+    variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend
+    silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite
     environment variable force-selects SQLite regardless of key presence.
   source: commercial licensing model
 - id: REQ-367
@@ -649,3 +649,12 @@
     authorisation. specsmith (MIT) remains free; chronomemory ESDB is the commercial
     add-on tier.
   source: commercial licensing model
+- id: REQ-368
+  title: 'Governance Efficiency Benchmark Suite: harness, task definitions, and demo
+    projects for token cost and quality comparison across governance conditions'
+  status: planned
+  description: 'Implement scripts/govern_bench/ with T1-T7 benchmark task definitions
+    (YAML), a runner harness, LLM-judge module, and demo projects (agentic-todo-api,
+    agentic-cli-tool). Compare six conditions: UNGOVERNED, CONTEXT_ONLY, BMAD_STYLE,
+    OPENSPEC_STYLE, SPECSMITH_LIGHT, SPECSMITH_FULL. Primary metric: cost-of-pass
+    = total_tokens / pass_rate.'

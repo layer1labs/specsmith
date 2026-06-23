@@ -1,0 +1,84 @@
+# T4 — Refactor Large Function
+# Category: Refactoring
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium
+#
+# Why this task:
+#   Refactoring is one of the highest-risk agentic tasks because:
+#   (a) the agent must not change observable behaviour
+#   (b) agents often introduce subtle regressions while restructuring
+#   (c) agents sometimes over-refactor, rewriting more than asked
+#
+# The target:
+#   app/services.py contains a 120-line `process_todo_batch()` function that:
+#   - validates each item
+#   - deduplicates titles
+#   - assigns IDs
+#   - filters completed items
+#   - sorts by priority
+#   All five steps are interleaved in one function with no comments.
+#   Cyclomatic complexity: ~14 (ruff C901 would flag this at threshold 10).
+#
+# The task: extract each logical step into a named helper function.
+
+id: T4
+title: "Refactor process_todo_batch() into composable helper functions"
+category: refactoring
+difficulty: medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 4500
+estimated_tokens_specsmith_full: 6200
+
+task_prompt: |
+  The function `process_todo_batch()` in app/services.py is 120 lines long
+  and has a cyclomatic complexity of 14. Refactor it into composable helper
+  functions — one per logical step:
+
+  1. validate_batch_items(items)  — validates each item
+  2. deduplicate_titles(items)    — removes items with duplicate titles
+  3. assign_batch_ids(items)      — assigns sequential IDs
+  4. filter_completed(items)      — removes already-completed items
+  5. sort_by_priority(items)      — sorts by priority field
+
+  process_todo_batch() should call these in order and remain the public API.
+  Do NOT change the function signature or return type of process_todo_batch().
+  All existing tests must still pass with zero code changes to test files.
+
+acceptance_criteria: |
+  - [ ] process_todo_batch() is ≤ 20 lines after refactor
+  - [ ] Each helper function exists as a module-level function in app/services.py
+  - [ ] Each helper is individually testable (takes items, returns items)
+  - [ ] process_todo_batch() public signature unchanged: (items: list[TodoCreate]) → list[TodoItem]
+  - [ ] All existing tests pass with NO changes to test files
+  - [ ] ruff C901 no longer flags process_todo_batch (complexity < 10)
+  - [ ] Each helper function has a docstring
+  - [ ] At least one new test exercises each helper in isolation
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/services.py
+  - tests/test_services.py  # new helper-level tests added here
+
+regression_risk: high  # Behavioural equivalence is the entire success criterion
+
+known_failure_modes:
+  - "Agent changes the return type of process_todo_batch() to a generator or tuple"
+  - "Agent moves helpers to a separate file and breaks the import in main.py"
+  - "Agent rewrites the logic while 'refactoring', changing sort order or dedup behaviour"
+  - "Agent adds type annotations that are incorrect (e.g. list[dict] instead of list[TodoItem])"
+  - "Agent modifies the test file to match the new behaviour instead of keeping tests green"
+  - "Agent 'simplifies' deduplication in a way that changes which duplicate is kept"
+
+governance_signals:
+  preflight_expected_req_match: true  # maps to existing code-quality requirement
+  # Critical governance signal: preflight should detect CHANGE intent (refactoring)
+  # and surface the 'no behaviour change' constraint explicitly.
+  # Without this, agents often treat refactoring as an opportunity to improve logic.
+  verify_expected_to_catch:
+    - "test file modified to accommodate behaviour change"
+    - "public API signature changed"
+
+# This task is particularly important for measuring 'scope discipline':
+# how well each condition keeps the agent from over-engineering.
+scope_discipline_metric: true
