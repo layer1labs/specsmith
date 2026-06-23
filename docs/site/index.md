@@ -28,6 +28,25 @@ AEE treats requirements, decisions, and hypotheses like code:
 
 The 4-step AEE core method: **Frame → Disassemble → Stress-Test → Reconstruct**
 
+## Governance Efficiency Benchmark
+
+!!! success "Measured: governance cuts cost-per-correct-answer by 3–6×"
+    We benchmarked specsmith against 11 alternatives (ungoverned, BMAD, Cursor rules, Copilot, Aider,
+    Cline, Codex CLI, OpenSpec, Agile BDD/TDD, and context injection) across real coding tasks with
+    `gpt-4o-mini` and `gpt-5.5`.
+
+    | Condition | Pass Rate (T1) | Tokens | Cost-of-Pass |
+    |---|---|---|---|
+    | Ungoverned | 0% | 44.6k | ∞ |
+    | Context injection | 100% | 43.7k | $0.0084 |
+    | BMAD-style | 50% | 139.1k | $0.0523 |
+    | **specsmith LIGHT** | **100%** | **21.1k** | **$0.0032** |
+    | **specsmith FULL** | **100%** | **17.1k** | **$0.0026** |
+
+    With `gpt-5.5`: governance is **6.3× cheaper** per correct answer ($0.028 vs $0.179).
+
+    [Full benchmark report →](efficiency-benchmark.md) · [Model comparison (4o-mini vs 5.5) →](model-comparison.md)
+
 ## Why specsmith?
 
 AI agents produce knowledge claims constantly — requirements, architecture decisions, test results — but have no mechanism to assess their epistemic quality. Without AEE governance:

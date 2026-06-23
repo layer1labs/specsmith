@@ -62,6 +62,9 @@ nav:
   - Troubleshooting: troubleshooting.md
   - Releasing: releasing.md
   - Contributing: contributing.md
+  - Benchmarks:
+    - Governance Efficiency: efficiency-benchmark.md
+    - Model Comparison: model-comparison.md
 
 markdown_extensions:
   - tables

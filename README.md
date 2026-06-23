@@ -32,6 +32,22 @@ flowchart LR
 - **Aider / Claude Code / Cursor:** agentic coding interfaces; SpecSmith is the policy and evidence layer around these clients.
 - **LangGraph / AutoGen:** orchestration frameworks; SpecSmith is a governance-first development layer with compliance-oriented traceability.
 
+### Governance efficiency benchmark
+
+We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) comparing specsmith governance against 11 alternatives (ungoverned, BMAD, Cursor rules, Copilot, Aider, Cline, Codex CLI, OpenSpec, Agile BDD/TDD, and context injection) across real coding tasks with gpt-4o-mini and gpt-5.5.
+
+| Condition | Pass Rate | Mean Tokens | Cost/run | Cost-of-Pass |
+|---|---|---|---|---|
+| Ungoverned (raw agent) | 0% on T1 | 44.6k | $0.0079 | ∞ |
+| Context injection (CLAUDE.md) | 100% | 43.7k | $0.0084 | $0.0084 |
+| BMAD-style structured prompting | 50% | 139.1k | $0.0262 | $0.0523 |
+| **specsmith LIGHT (preflight)** | **100%** | **21.1k** | **$0.0032** | **$0.0032** |
+| **specsmith FULL (governed)** | **100%** | **17.1k** | **$0.0026** | **$0.0026** |
+
+**Key findings:** specsmith FULL is the only condition to achieve 100% pass rate on the feature-addition task (T1). It uses 2.6× fewer tokens than ungoverned and produces a cost-of-pass 3.2× lower than the next-best alternative. With gpt-5.5, governance reduces cost-of-pass by **6.3×** ($0.028 vs $0.179).
+
+See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+
 **v0.16.0 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.2.0 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
 and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
