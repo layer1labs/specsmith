@@ -48,43 +48,37 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.16.0 — stabilisation milestone:** 20+ new CLI commands (quickstart, expand, verify-integrations, governed-pr, transcript import, policy, recover, dashboard, drift-check, trace score, export/import, approve); new governance modules; ESDB SQLite backend with full test coverage; chronomemory 0.2.0 with all phases complete; Python 3.10–3.13 × Ubuntu + Windows all green; 1 607 tests passing.
-specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689)
-and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed,
-every AI-generated output is disclosed, context windows are GPU-aware and protected against
-overflow, and compliance settings are configurable per-session and per-project.
+**v0.16.1** — governance efficiency benchmark suite (12 conditions, 3 tasks, gpt-4o-mini + gpt-5.5 comparison); cross-model comparison report; real OpenAI agent harness; CI matrix job. Also includes the v0.16.0 stabilisation milestone: 20+ CLI commands, ESDB SQLite backend, chronomemory 0.2.0, Python 3.10–3.13 × Ubuntu + Windows green, 1 607 tests passing.
+
+specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689) and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed, every AI-generated output is disclosed, context windows are GPU-aware, and compliance settings are configurable per-session and per-project.
+
+### Selected v0.16 CLI highlights
 
 ```bash
 specsmith governance-serve --port 7700     # governance REST API
-specsmith sync                              # sync YAML → JSON → MD (YAML-first mode)
-specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md from YAML
-specsmith validate --strict                 # YAML schema checks: dup IDs, orphans, coverage
-specsmith agent permissions-check git_push # check tool permission (REQ-012)
+specsmith sync                              # YAML → JSON → MD (YAML-first mode)
+specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS.md
+specsmith validate --strict                 # dup IDs, orphans, coverage gaps
+specsmith agent permissions-check git_push  # tool permission gate (REQ-012)
 specsmith ollama gpu                        # detect GPU VRAM, recommend context size
 specsmith export                            # generate full compliance report
 
-# Update channel management (REQ-248)
+# Update channels
 specsmith channel set stable               # pin to stable releases
-specsmith channel set dev                  # opt in to dev/pre-release builds
-specsmith channel get --json               # show current channel + source
+specsmith channel set dev                  # opt in to pre-release builds
 
-# ESDB extended lifecycle (REQ-249..253)
-specsmith esdb export --json               # dump all records to JSON snapshot
-specsmith esdb import backup.json          # validate + stage an import
+# ESDB lifecycle
+specsmith esdb export --json               # dump records to JSON snapshot
 specsmith esdb backup                      # create timestamped snapshot
-specsmith esdb rollback --steps 2          # report WAL rollback (stub)
-specsmith esdb compact                     # request WAL compaction
+specsmith esdb compact                     # WAL compaction
 
-# Skills lifecycle (REQ-254..255)
-specsmith skills deactivate <skill-id>     # set active=false in skill.json
-specsmith skills delete <skill-id> --yes   # permanently remove skill
+# Skills
+specsmith skills deactivate <skill-id>     # set active=false
+specsmith skills delete <skill-id> --yes   # permanently remove
 
-# MCP config generation (REQ-256)
-specsmith mcp generate "Search USPTO patents" --json  # JSON config stub
-
-# Agent ask dispatcher — no LLM required (REQ-257)
+# MCP + agent dispatch
+specsmith mcp generate "Search USPTO patents" --json
 specsmith agent ask "show esdb status" --json-output
-specsmith agent ask "build skill for summarizing"
 ```
 
 It also co-installs the standalone `epistemic` Python library for direct use in any project:
@@ -229,11 +223,11 @@ To obtain a chronomemory ESDB license:
 [licensing@layer1labs.com](mailto:licensing@layer1labs.com) · [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
 See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a feature comparison and Python API reference.
 
-**Update:**
+**Upgrading specsmith:**
 
 ```bash
-pipx upgrade specsmith
-specsmith self-update
+pipx upgrade specsmith   # preferred — upgrades the pipx-isolated CLI
+specsmith self-update    # alternative: self-update from within specsmith
 ```
 
 ---
@@ -241,35 +235,35 @@ specsmith self-update
 ## Quick Start
 
 ```bash
-# New project (interactive)
-specsmith init
+# 1. Install
+pipx install specsmith
 
-# Adopt an existing project
-specsmith import --project-dir ./my-project
+# 2. Start a new project (or import an existing one)
+specsmith init                           # interactive scaffold wizard
+specsmith import --project-dir ./my-project  # adopt an existing repo
 
-# Check governance health
-specsmith audit --project-dir ./my-project
+# 3. Bootstrap every session (run once at the start of each work session)
+specsmith migrate run                    # apply any pending schema migrations
+specsmith audit                          # verify governance health
+specsmith sync                           # YAML → JSON → MD sync
+specsmith checkpoint                     # emit GOVERNANCE ANCHOR
 
-# Run AEE stress-test on requirements
-specsmith stress-test --project-dir ./my-project
+# 4. Before every code change: preflight
+specsmith preflight "add paginated GET /todos endpoint"  # gate the intent
+# → decision: accepted | needs_clarification  +  work_item_id: WI-XXXXXXXX
 
-# Full epistemic audit (certainty + logic knots + recovery proposals)
-specsmith epistemic-audit --project-dir ./my-project
+# 5. After making changes: verify + save
+specsmith verify                         # check equilibrium
+specsmith save                           # commit governance state + push
 
-# Start the agentic REPL
-specsmith run --project-dir ./my-project
-
-# AG2 agent shell — Planner/Builder/Verifier over Ollama
-specsmith agent status                    # check agent config + Ollama
-specsmith agent plan "add logging"        # plan only (no execution)
-specsmith agent run "fix lint errors"     # full Plan → Build → Verify
-specsmith agent improve "add tests"       # self-improvement with reports
-specsmith agent verify                    # run Verifier on current state
-specsmith agent reports                   # list improvement reports
-
-# Check current AEE workflow phase
-specsmith phase --project-dir ./my-project
+# 6. Check AEE workflow phase and health
+specsmith phase                          # current phase + readiness %
+specsmith audit                          # full governance health check
 ```
+
+> **Agentic REPL:** run `specsmith run` to start the Nexus governance-gated LLM REPL.
+> Every utterance is preflighted automatically. Use `/why` to see the governance trace.
+> For the multi-agent DAG dispatcher, see `specsmith dispatch run "<task>"`.
 
 ---
 
@@ -315,7 +309,7 @@ be overwritten by the next sync.
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
 Idempotent — safe to re-run.
 
-## Least-Privilege Agent Permissions (REG-012)
+## Least-Privilege Agent Permissions (REQ-012)
 
 ```bash
 specsmith agent permissions                      # show active permission profile
@@ -403,7 +397,7 @@ Every preflight response includes a mandatory `ai_disclosure` block:
     "governance_gated": true,
     "provider": "ollama",
     "model": "qwen2.5:14b",
-    "spec_version": "0.16.0"
+    "spec_version": "0.16.1"
   }
 }
 ```
