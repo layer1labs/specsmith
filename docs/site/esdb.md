@@ -147,9 +147,7 @@ key (Step 2) is the technical and legal gate.
 
 | Channel | Details |
 |---|---|
-| Email | [licensing@layer1labs.com](mailto:licensing@layer1labs.com) |
-| Web | [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) |
-| Legal terms | See [Licensing](#licensing) section on this page |
+| Email | [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) |
 
 ---
 
@@ -172,7 +170,7 @@ No further setup is required.
 ### ChronoStore backend — step-by-step
 
 > **Prerequisite:** you must hold a valid chronomemory ESDB license.
-> Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain one.
+> Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) to obtain one.
 
 **Step 1 — install the `chronomemory` package**
 
@@ -366,8 +364,7 @@ pip install "specsmith[esdb]"
 
 The package carries a proprietary commercial license.  PyPI does not restrict
 non-open-source packages — the license key gate in specsmith (`specsmith esdb enable`)
-is the technical enforcement.  Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com)
-or visit [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) for legal terms.
+is the technical enforcement.  Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) for licensing and legal terms.
 
 ### Using the `epistemic` library without pipx
 

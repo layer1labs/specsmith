@@ -12,6 +12,22 @@ consolidated into the next published release.
 
 ---
 
+## [0.16.3] - 2026-06-24
+
+### Changed
+
+- **Docs navigation tab ergonomics** — `mkdocs.yml` now keeps Material
+  `navigation.tabs` enabled while grouping pages under fewer top-level
+  categories (`Getting Started`, `Foundations`, `Agentic Runtime`,
+  `Reference`, `ESDB`, `Benchmarks`) to reduce tab overflow.
+- **MkDocs defaults and guidance aligned** — the scaffold docs template
+  (`src/specsmith/templates/docs/mkdocs.yml.j2`) now enables
+  `navigation.expand`, `search.suggest`, and `navigation.tabs`; the MkDocs
+  skill example (`src/specsmith/skills/docs.py`) now demonstrates grouped
+  top-level navigation.
+
+---
+
 ## [0.16.2] - 2026-06-23
 
 ### Fixed

@@ -141,7 +141,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.15.3", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.16.3", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options

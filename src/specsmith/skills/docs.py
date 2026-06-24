@@ -99,9 +99,11 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - API Reference: api.md
-  - Contributing: contributing.md
+  - Getting Started:
+    - Quickstart: getting-started.md
+  - Reference:
+    - API Reference: api.md
+    - Contributing: contributing.md
 
 markdown_extensions:
   - tables
@@ -834,7 +836,7 @@ info:
   version: "0.1.0"
   description: Short description of the API.
   contact:
-    name: Layer1Labs\n    url: https://layer1labs.com
+    name: Layer1Labs\n    url: https://layer1labs.ai
 
 servers:
   - url: http://localhost:8421

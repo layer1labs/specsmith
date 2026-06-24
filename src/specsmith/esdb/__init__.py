@@ -9,7 +9,7 @@
 #   ChronoStore backend  (commercial — requires chronomemory[esdb] + valid license)
 #       chronomemory.ChronoStore via specsmith.esdb namespace
 #       Requires: pip install specsmith[esdb]  AND  a valid Ed25519 license file
-#       Contact: licensing@layer1labs.com
+#       Contact: licensing@layer1labs.ai
 #
 # Backend selection (open_default_store / ESDB_BACKEND):
 #   1. SPECSMITH_ESDB_BACKEND=sqlite env var  → force SQLite
@@ -27,7 +27,7 @@ from typing import Any
 _INSTALL_HINT = (
     "chronomemory (ESDB commercial backend) is not installed.\n"
     "Install: pip install specsmith[esdb]\n"
-    "License: contact licensing@layer1labs.com to obtain a license key.\n"
+    "License: contact licensing@layer1labs.ai to obtain a license key.\n"
     "specsmith[esdb] requires a valid Ed25519 license — see 'specsmith esdb enable --help'.\n"
     "The free SQLite backend is used by default without any license."
 )

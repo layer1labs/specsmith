@@ -10948,7 +10948,7 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
     it to ~/.specsmith/esdb.key so that subsequent commands automatically
     activate the ChronoStore backend.
 
-    Obtain a license: licensing@layer1labs.com
+    Obtain a license: licensing@layer1labs.ai
     """
     import json as _json
     import shutil
@@ -10961,7 +10961,7 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
             click.echo(_json.dumps({"ok": False, "error": status.reason}))
         else:
             console.print(f"[red]\u2717[/red] License invalid: {status.reason}")
-            console.print("[dim]Contact licensing@layer1labs.com to obtain a valid license.[/dim]")
+            console.print("[dim]Contact licensing@layer1labs.ai to obtain a valid license.[/dim]")
         raise SystemExit(1)
 
     import os
