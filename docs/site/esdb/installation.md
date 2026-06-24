@@ -3,8 +3,7 @@
 ## License
 
 The chronomemory ESDB engine is **proprietary software** — a commercial license is required.
-Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) or visit
-[layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing).
+Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai).
 
 If you use specsmith, the simplest path is `pip install "specsmith[esdb]"`.
 See the [ESDB overview](../esdb.md#licensing) for the full two-tier licensing summary.
