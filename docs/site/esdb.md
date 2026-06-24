@@ -147,7 +147,13 @@ key (Step 2) is the technical and legal gate.
 
 | Channel | Details |
 |---|---|
+<<<<<<< HEAD
 | Email | [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) |
+=======
+| Email | [licensing@layer1labs.com](mailto:licensing@layer1labs.com) |
+| Web | [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) |
+| Legal terms | See [Licensing](#licensing) section on this page |
+>>>>>>> origin/main
 
 ---
 
@@ -364,7 +370,12 @@ pip install "specsmith[esdb]"
 
 The package carries a proprietary commercial license.  PyPI does not restrict
 non-open-source packages — the license key gate in specsmith (`specsmith esdb enable`)
+<<<<<<< HEAD
 is the technical enforcement.  Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) for licensing and legal terms.
+=======
+is the technical enforcement.  Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com)
+or visit [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) for legal terms.
+>>>>>>> origin/main
 
 ### Using the `epistemic` library without pipx
 
