@@ -54,7 +54,18 @@ nav:
   - Governance Model: governance.md
   - YAML Governance: yaml-governance.md
   - Work Item Lifecycle: wi-lifecycle.md
-  - ESDB: esdb.md
+  - ESDB:
+    - Overview & Licensing: esdb.md
+    - Installation: esdb/installation.md
+    - Quick Start: esdb/quickstart.md
+    - Concepts:
+      - OEA Anti-Hallucination Fields: esdb/oea-fields.md
+      - WAL & Hash Chain: esdb/wal-hash-chain.md
+    - API Reference:
+      - ChronoStore: esdb/api-store.md
+      - ChronoRecord: esdb/api-record.md
+      - EsdbBridge: esdb/api-bridge.md
+    - Changelog: esdb/changelog.md
   - Doctor: doctor.md
   - Export & Compliance: export.md
   - Rate Limit Pacing: rate-limits.md
