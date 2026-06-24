@@ -15,7 +15,7 @@ specsmith ships two ESDB backends: a **free SQLite backend** (default, MIT) and 
 | **Default?** | ✅ Yes — active out of the box | ❌ No — must be explicitly installed and activated |
 | **Storage** | `.specsmith/esdb.sqlite3` | `.chronomemory/events.wal` |
 | **SHA-256 WAL chain** | — | ✅ |
-|| **OEA anti-hallucination fields** | partial | ✅ full |
+| **OEA anti-hallucination fields** | partial | ✅ full |
 | **Rust acceleration** | — | ✅ |
 | **Epistemic rollback** | — | ✅ |
 
@@ -93,10 +93,10 @@ Recommended ignore pattern:
 | Capability | SQLite (free) | ChronoStore (commercial) |
 |---|---|---|
 | Stores requirements & test cases | ✓ | ✓ |
-|| Confidence filtering (RAG, ≥ 0.6) | ✓ | ✓ |
+| Confidence filtering (RAG, ≥ 0.6) | ✓ | ✓ |
 | ACID integrity | ✓ | ✓ |
 | SHA-256 WAL hash chain | — | ✓ tamper-evident |
-|| OEA anti-hallucination fields | partial | ✓ full |
+| OEA anti-hallucination fields | partial | ✓ full |
 | Rust-accelerated backend | — | ✓ optional |
 | Context-pack compiler | — | ✓ |
 | Dependency graph (DepGraph) | — | ✓ |
@@ -105,8 +105,8 @@ Recommended ignore pattern:
 | Human-readable WAL (NDJSON, grep-able) | — | ✓ |
 | Tamper detection (`chain_valid()`) | — | ✓ |
 | Record provenance (`source_type`) | — | ✓ |
-|| Model assumption tracking | — | ✓ |
-|| Recursion depth guard | — | ✓ |
+| Model assumption tracking | — | ✓ |
+| Recursion depth guard | — | ✓ |
 
 ### When to use ChronoStore
 
