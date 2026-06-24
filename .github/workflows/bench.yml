@@ -230,14 +230,5 @@ jobs:
           echo "- **Models:** gpt-4o-mini vs gpt-5.5" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/site/model-comparison.md ]; then
-            # Extract just the headline findings section
-            python -c "
-import re
-from pathlib import Path
-content = Path('docs/site/model-comparison.md').read_text()
-# Extract from '## Headline findings' to end
-m = re.search(r'## Headline findings.*', content, re.DOTALL)
-if m:
-    print(m.group()[:2000])
-" >> "$GITHUB_STEP_SUMMARY"
+            python -c "import re,pathlib; c=pathlib.Path('docs/site/model-comparison.md').read_text(); m=re.search(r'## Headline findings.*',c,re.DOTALL); print(m.group()[:2000]) if m else None" >> "$GITHUB_STEP_SUMMARY"
           fi
