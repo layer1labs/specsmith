@@ -48,7 +48,7 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.16.2** — bugfix release: resolved all 6 open CodeQL alerts (Protocol stub `py/ineffectual-statement`, dead-init `py/multiple-definition`; benchmark demo project excluded from scan); fixed `audit industrial_artifacts` false positive on Windows when `canopen_eds` entries are plain strings instead of dicts (closes #257).
+**v0.16.3** — docs navigation patch release: keeps Material tabs enabled while regrouping top-level docs navigation to reduce overflow, and aligns MkDocs scaffold defaults plus the MkDocs skill example with the grouped-tab layout.
 
 **v0.16.1** — governance efficiency benchmark suite (12 conditions, 3 tasks, gpt-4o-mini + gpt-5.5 comparison); cross-model comparison report; real OpenAI agent harness; CI matrix job. Also includes the v0.16.0 stabilisation milestone: 20+ CLI commands, ESDB SQLite backend, chronomemory 0.2.0, Python 3.10–3.13 × Ubuntu + Windows green, 1 607 tests passing.
 

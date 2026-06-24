@@ -99,9 +99,11 @@ theme:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - API Reference: api.md
-  - Contributing: contributing.md
+  - Getting Started:
+    - Quickstart: getting-started.md
+  - Reference:
+    - API Reference: api.md
+    - Contributing: contributing.md
 
 markdown_extensions:
   - tables
