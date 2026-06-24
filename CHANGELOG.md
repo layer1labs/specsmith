@@ -12,6 +12,19 @@ consolidated into the next published release.
 
 ---
 
+## [0.16.4] - 2026-06-24
+
+### Changed
+
+- **Codity AI Review removed from specsmith's default CI** —
+  `.github/workflows/codity-review.yml` deleted from the specsmith repository.
+  The check was failing on every pull request because `CODITY_ACCESS_TOKEN`
+  is not a required repo secret. Codity remains a fully supported opt-in
+  integration: run `specsmith integrate codity` to scaffold the workflow into
+  your own project.
+
+---
+
 ## [0.16.3] - 2026-06-24
 
 ### Changed
@@ -488,7 +501,9 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.2...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.4...HEAD
+[0.16.4]: https://github.com/layer1labs/specsmith/compare/v0.16.3...v0.16.4
+[0.16.3]: https://github.com/layer1labs/specsmith/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/layer1labs/specsmith/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/layer1labs/specsmith/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/layer1labs/specsmith/compare/v0.15.3...v0.16.0
