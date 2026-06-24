@@ -71,7 +71,7 @@ specsmith esdb status
 ## ChronoStore backend (commercial, requires license)
 
 ChronoStore is the full Epistemic State Database engine from
-[chronomemory](https://github.com/layer1labs/chronomemory).  It is a commercial
+[chronomemory](https://pypi.org/project/chronomemory/) (available on PyPI).  It is a commercial
 add-on that requires a valid license from Layer1Labs.
 
 **Storage:** `<project_root>/.chronomemory/events.wal` (human-readable NDJSON)
@@ -149,7 +149,7 @@ key (Step 2) is the technical and legal gate.
 |---|---|
 | Email | [licensing@layer1labs.com](mailto:licensing@layer1labs.com) |
 | Web | [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) |
-| Legal terms | [chronomemory LICENSE](https://github.com/layer1labs/chronomemory/blob/main/LICENSE) · [COMMERCIAL-LICENSE.md](https://github.com/layer1labs/chronomemory/blob/main/COMMERCIAL-LICENSE.md) |
+| Legal terms | See [Licensing](#licensing) section on this page |
 
 ---
 
@@ -183,7 +183,7 @@ Choose the method that matches how you installed specsmith:
 pip install "specsmith[esdb]"
 
 # If you installed specsmith via pipx (recommended for CLI use):
-pipx inject specsmith "chronomemory>=0.2.0"
+pipx inject specsmith "chronomemory>=0.2.4"
 ```
 
 Verify the package is present:
@@ -366,9 +366,8 @@ pip install "specsmith[esdb]"
 
 The package carries a proprietary commercial license.  PyPI does not restrict
 non-open-source packages — the license key gate in specsmith (`specsmith esdb enable`)
-is the technical enforcement; the [chronomemory LICENSE](https://github.com/layer1labs/chronomemory/blob/main/LICENSE)
-and [COMMERCIAL-LICENSE.md](https://github.com/layer1labs/chronomemory/blob/main/COMMERCIAL-LICENSE.md)
-govern the legal terms.
+is the technical enforcement.  Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com)
+or visit [layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing) for legal terms.
 
 ### Using the `epistemic` library without pipx
 
