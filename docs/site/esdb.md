@@ -170,7 +170,7 @@ No further setup is required.
 ### ChronoStore backend — step-by-step
 
 > **Prerequisite:** you must hold a valid chronomemory ESDB license.
-> Contact [licensing@layer1labs.com](mailto:licensing@layer1labs.com) to obtain one.
+> Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) to obtain one.
 
 **Step 1 — install the `chronomemory` package**
 

@@ -834,7 +834,7 @@ info:
   version: "0.1.0"
   description: Short description of the API.
   contact:
-    name: Layer1Labs\n    url: https://layer1labs.com
+    name: Layer1Labs\n    url: https://layer1labs.ai
 
 servers:
   - url: http://localhost:8421

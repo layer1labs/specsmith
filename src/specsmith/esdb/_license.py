@@ -18,7 +18,7 @@ License file format (JSON):
 Canonical payload that is signed:
     "<customer>|<product>|<issued_at>|<expires_at>"  (UTF-8, no trailing newline)
 
-To obtain a license contact: licensing@layer1labs.com
+To obtain a license contact: licensing@layer1labs.ai
 """
 
 from __future__ import annotations

@@ -17,7 +17,7 @@ When chronomemory is not installed, all exported names are stubs that raise
 _INSTALL_HINT = (
     "chronomemory (ESDB commercial backend) is not installed.\n"
     "Install: pip install specsmith[esdb]\n"
-    "License: contact licensing@layer1labs.com to obtain a license key."
+    "License: contact licensing@layer1labs.ai to obtain a license key."
 )
 
 try:

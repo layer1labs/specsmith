@@ -93,7 +93,7 @@ This document defines SpecSmith security assumptions, primary threats, and harde
 
 - Report vulnerabilities privately through:
   - GitHub Security Advisories: https://github.com/layer1labs/specsmith/security/advisories/new
-  - Email: info@layer1labs.com
+  - Email: info@layer1labs.ai
 - Include impact, affected versions, reproduction steps, and mitigation ideas.
 - Do not disclose publicly until maintainers confirm remediation guidance.
 

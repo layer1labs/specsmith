@@ -74,8 +74,8 @@ specsmith esdb status
 #   ✔ License: your-org (expires YYYY-MM-DD)
 ```
 
-Obtain a license: [licensing@layer1labs.com](mailto:licensing@layer1labs.com) ·
-[layer1labs.com/esdb-licensing](https://layer1labs.com/esdb-licensing)
+Obtain a license: [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) ·
+[ESDB licensing docs](https://specsmith.readthedocs.io/en/stable/esdb/#licensing)
 
 Full backend comparison, Python API, and CLI reference: [ESDB docs](esdb.md)
 
