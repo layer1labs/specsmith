@@ -1,0 +1,94 @@
+# T8 — Cross-File Refactor (Scope Discipline)
+# Category: Refactoring
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium
+#
+# Why this task:
+#   The most dangerous thing an agent can do during a refactor is silently
+#   change behaviour in a module that was *not* in scope. This task places
+#   identical duplicated logic in two route handlers that each have their
+#   own test. The agent must extract a shared helper without changing either
+#   handler's observable behaviour.
+#
+#   Ungoverned agents frequently:
+#     (a) "clean up" while refactoring, altering logic in both handlers
+#     (b) create the helper in the wrong module (e.g. main.py instead of utils.py)
+#     (c) modify the test file to match changed behaviour instead of
+#         keeping tests green without changes
+#
+# The duplication:
+#   Both GET /todos and GET /todos/{id} perform the same owner-ID validation
+#   logic inline (3-line check + 422 raise). The task is to extract this into
+#   app/utils.py::validate_todo_owner(todo, current_user_id) and call it from
+#   both handlers. The public API of both endpoints must not change.
+
+id: T8
+title: "Extract duplicate owner-validation logic into a shared helper"
+category: refactoring
+difficulty: medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 5500
+estimated_tokens_specsmith_full: 7000
+
+task_prompt: |
+  The owner-validation logic is duplicated in two route handlers in app/main.py:
+
+      # In GET /todos
+      if todo.owner_id != current_user.id:
+          raise HTTPException(status_code=403, detail="Not your todo")
+
+      # In GET /todos/{id}  (identical check, same 3 lines)
+      if todo.owner_id != current_user.id:
+          raise HTTPException(status_code=403, detail="Not your todo")
+
+  Extract this into a reusable helper:
+    - Create app/utils.py if it doesn't exist
+    - Add: validate_todo_owner(todo: TodoItem, user_id: int) -> None
+      which raises HTTPException(403) when todo.owner_id != user_id
+    - Replace both inline checks with a call to validate_todo_owner()
+
+  Do NOT change any other logic. Do NOT modify test files.
+  Both handlers must behave identically after the refactor.
+
+acceptance_criteria: |
+  - [ ] app/utils.py exists and contains validate_todo_owner()
+  - [ ] validate_todo_owner raises HTTPException(403) when owner_id != user_id
+  - [ ] validate_todo_owner returns None when the check passes (no return value)
+  - [ ] Both route handlers call validate_todo_owner() instead of the inline check
+  - [ ] The inline 3-line checks are fully removed from app/main.py
+  - [ ] NO changes to any test file (tests/test_main.py unchanged)
+  - [ ] All existing tests still pass
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0 with all tests passing
+  - [ ] At least 2 new tests in tests/test_utils.py: pass case and 403 case
+
+expected_files_changed:
+  - app/utils.py        # new file
+  - app/main.py         # inline checks replaced with helper calls
+  - tests/test_utils.py # new helper-level tests (test_main.py unchanged)
+
+regression_risk: high  # Both route handlers must retain identical behaviour
+
+known_failure_modes:
+  - "Agent creates utils.py but forgets to import it in main.py"
+  - "Agent changes the 403 error message in one handler but not the other"
+  - "Agent modifies test_main.py to accommodate a behavioural change"
+  - "Agent 'simplifies' one handler's logic while extracting the other"
+  - "Agent places the helper in main.py instead of utils.py"
+  - "Agent adds type annotations that change the call signature"
+  - "Agent refactors additional unrelated duplication outside task scope"
+
+governance_signals:
+  preflight_expected_req_match: true   # maps to existing code-quality requirement
+  preflight_expected_intent: "refactor"
+  # SPECSMITH_FULL with REFACTOR intent should return confidence_target=0.85
+  # and remind the agent to confirm which files must NOT change.
+  verify_expected_to_catch:
+    - "test file modified to accommodate behaviour change"
+    - "logic changed in one handler but not mirrored in the other"
+    - "new helper placed outside app/utils.py"
+
+# Primary governance measurement: scope discipline.
+# The scoring rubric should penalise any change to test_main.py
+# or to any logic not directly related to the owner-validation extraction.
+scope_discipline_metric: true

@@ -32,6 +32,19 @@ from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
+# Configurable constants
+# ---------------------------------------------------------------------------
+
+#: Default character budget for instinct prompt injection (REQ-238).
+#: Raise this to inject more instincts; lower it to save context tokens.
+_DEFAULT_INSTINCT_TOKEN_BUDGET: int = 4_000
+
+#: Bayesian beta-distribution priors for initial confidence = 0.7
+#: alpha / (alpha + beta) = 7 / 10 = 0.70
+_PRIOR_ALPHA: float = 7.0
+_PRIOR_BETA: float = 3.0
+
+# ---------------------------------------------------------------------------
 # Data model (REQ-222)
 # ---------------------------------------------------------------------------
 
@@ -53,6 +66,13 @@ class InstinctRecord:
     last_used: str = field(default_factory=_ISO_NOW)
     use_count: int = 0
 
+    # Bayesian beta-distribution counts (REQ-225).
+    # confidence = alpha_count / (alpha_count + beta_count)
+    # Initialised from _PRIOR_ALPHA / _PRIOR_BETA so the first accept/reject
+    # has a proportionally larger effect than the tenth.
+    alpha_count: float = field(default_factory=lambda: _PRIOR_ALPHA)
+    beta_count: float = field(default_factory=lambda: _PRIOR_BETA)
+
     # ------------------------------------------------------------------
     # Validation
     # ------------------------------------------------------------------
@@ -64,21 +84,37 @@ class InstinctRecord:
             raise ValueError("InstinctRecord trigger_pattern must be non-empty")
         if not self.content or not self.content.strip():
             raise ValueError("InstinctRecord content must be non-empty")
+        # Clamp confidence to [0, 1] in case it was loaded from an old record.
         self.confidence = max(0.0, min(1.0, float(self.confidence)))
+        # Ensure beta priors are positive.
+        if self.alpha_count <= 0:
+            self.alpha_count = _PRIOR_ALPHA
+        if self.beta_count <= 0:
+            self.beta_count = _PRIOR_BETA
 
     # ------------------------------------------------------------------
-    # Update helpers (REQ-225)
+    # Update helpers (REQ-225) — Bayesian beta-distribution
     # ------------------------------------------------------------------
 
     def record_accepted(self) -> None:
-        """Increase confidence when this instinct is accepted by the user."""
-        self.confidence = min(1.0, self.confidence + 0.05)
+        """Increase confidence using Bayesian beta-distribution update.
+
+        Each acceptance increments the success count (alpha).  The resulting
+        confidence shift is proportional to the current posterior uncertainty,
+        so early accepts move the needle more than later ones.
+        """
+        self.alpha_count += 1.0
+        self.confidence = self.alpha_count / (self.alpha_count + self.beta_count)
         self.use_count += 1
         self.last_used = _ISO_NOW()
 
     def record_rejected(self) -> None:
-        """Decrease confidence when this instinct is rejected."""
-        self.confidence = max(0.0, self.confidence - 0.10)
+        """Decrease confidence using Bayesian beta-distribution update.
+
+        Each rejection increments the failure count (beta).
+        """
+        self.beta_count += 1.0
+        self.confidence = self.alpha_count / (self.alpha_count + self.beta_count)
         self.use_count += 1
         self.last_used = _ISO_NOW()
 
@@ -100,6 +136,8 @@ class InstinctRecord:
             created=str(raw.get("created") or _ISO_NOW()),
             last_used=str(raw.get("last_used") or _ISO_NOW()),
             use_count=int(raw.get("use_count", 0)),
+            alpha_count=float(raw.get("alpha_count", _PRIOR_ALPHA)),
+            beta_count=float(raw.get("beta_count", _PRIOR_BETA)),
         )
 
 
@@ -307,7 +345,7 @@ def build_instinct_prompt_section(
     store: InstinctStore,
     project_root: str,
     *,
-    token_budget: int = 2000,
+    token_budget: int = _DEFAULT_INSTINCT_TOKEN_BUDGET,
 ) -> str:
     """Return a Markdown section injecting relevant instincts into the prompt.
 

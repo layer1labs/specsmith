@@ -2946,6 +2946,15 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
             note = step.get("message") or step.get("note") or step.get("error") or ""
             console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
 
+    # Auto-record a minimal metrics row for lifetime tracking
+    try:
+        from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+        _store = MetricsStore(root)
+        _store.append(MetricsRecord.new(command="save", passed=ok))
+    except Exception:  # noqa: BLE001  # intentional: metrics are best-effort; never block save
+        pass
+
     if not ok:
         raise SystemExit(1)
 
@@ -12640,6 +12649,217 @@ except Exception:  # noqa: BLE001
     pass
 
 register_issue_policy_commands(main, console)
+
+
+# ---------------------------------------------------------------------------
+# specsmith metrics  (add / report / reset)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="metrics")
+def metrics_group() -> None:
+    """Manage lifetime project governance metrics.
+
+    Records are stored at .specsmith/session_metrics.jsonl and accumulate
+    over the full life of the project.  ``specsmith save`` auto-records a
+    minimal entry on each call; use ``specsmith metrics add`` for manual entries
+    with richer data (cost, quality, rework).
+    """
+
+
+@metrics_group.command(name="add")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--input-tokens", "input_tokens", type=int, default=0)
+@click.option("--output-tokens", "output_tokens", type=int, default=0)
+@click.option("--cost-usd", "cost_usd", type=float, default=0.0)
+@click.option(
+    "--quality-score", "quality_score", type=float, default=0.0, help="0.0–1.0 judge score."
+)
+@click.option("--passed/--failed", default=False, help="Whether the session work item passed.")
+@click.option("--rework-turns", "rework_turns", type=int, default=1)
+@click.option("--work-item-id", "work_item_id", default="")
+@click.option("--model", default="")
+@click.option("--notes", default="")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def metrics_add_cmd(
+    project_dir: str,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float,
+    quality_score: float,
+    passed: bool,
+    rework_turns: int,
+    work_item_id: str,
+    model: str,
+    notes: str,
+    as_json: bool,
+) -> None:
+    """Record a manual governance metrics entry."""
+    import json as _json
+
+    from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+    root = Path(project_dir).resolve()
+    rec = MetricsRecord.new(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=cost_usd,
+        quality_score=quality_score,
+        passed=passed,
+        rework_turns=rework_turns,
+        work_item_id=work_item_id,
+        model=model,
+        command="manual",
+        notes=notes,
+    )
+    MetricsStore(root).append(rec)
+    if as_json:
+        click.echo(_json.dumps(rec.to_dict(), indent=2))
+    else:
+        console.print(f"[green]\u2713[/green] Recorded {rec.session_id} at {rec.timestamp}")
+
+
+@metrics_group.command(name="report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--since", default=None, help="ISO-8601 date, e.g. 2026-01-01")
+@click.option("--until", default=None, help="ISO-8601 date, e.g. 2026-12-31")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def metrics_report_cmd(
+    project_dir: str,
+    since: str | None,
+    until: str | None,
+    as_json: bool,
+) -> None:
+    """Report lifetime (or period) project governance metrics."""
+    import json as _json
+
+    from specsmith.project_metrics import MetricsStore
+
+    root = Path(project_dir).resolve()
+    store = MetricsStore(root)
+    data = store.report(since=since, until=until)
+
+    if as_json:
+        click.echo(_json.dumps(data, indent=2))
+        return
+
+    n = data.get("n_sessions", 0)
+    if n == 0:
+        console.print(
+            "[dim]No metrics recorded yet. Use `specsmith save` or `specsmith metrics add`.[/dim]"
+        )
+        return
+
+    label_width = 22
+    console.print("[bold]Governance Metrics Report[/bold]")
+    if since or until:
+        console.print(f"  Period: {since or 'start'} \u2013 {until or 'now'}")
+    console.print()
+
+    def _row(label: str, value: Any, suffix: str = "") -> None:
+        v = "N/A" if value is None else f"{value}{suffix}"
+        console.print(f"  {label:<{label_width}} {v}")
+
+    _row("Sessions", n)
+    pr = data.get("pass_rate")
+    _row("Pass rate", f"{pr:.0%}" if pr is not None else None)
+    _row("Mean tokens", data.get("mean_tokens"))
+    mc = data.get("mean_cost_usd")
+    _row("Mean cost", f"${mc:.6f}" if mc is not None else None)
+    tc = data.get("total_cost_usd", 0.0)
+    console.print(f"  {'Total cost':<{label_width}} ${tc:.6f}")
+    cop = data.get("cost_of_pass")
+    _row("Cost-of-pass", f"${cop:.6f}" if cop is not None else None)
+    mq = data.get("mean_quality")
+    _row("Mean quality", f"{mq:.4f}" if mq is not None else None)
+    q7 = data.get("quality_7d")
+    _row("Quality (7-day)", f"{q7:.4f}" if q7 is not None else None)
+    mr = data.get("mean_rework")
+    _row("Mean rework turns", f"{mr:.2f}" if mr is not None else None)
+
+    top = data.get("top_rework_sessions") or []
+    if top:
+        console.print()
+        console.print("[bold]Top rework sessions:[/bold]")
+        for r in top:
+            console.print(
+                f"  {r['session_id']}  {r.get('work_item_id') or '—':30s}  "
+                f"rework={r['rework_turns']}  {r['timestamp'][:10]}"
+            )
+
+
+@metrics_group.command(name="reset")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--yes", is_flag=True, default=False, help="Skip confirmation prompt.")
+def metrics_reset_cmd(project_dir: str, yes: bool) -> None:
+    """Erase all project metrics (destructive — cannot be undone)."""
+    from specsmith.project_metrics import MetricsStore
+
+    root = Path(project_dir).resolve()
+    if not yes:
+        click.confirm(
+            "This will permanently delete all metrics data. Continue?",
+            abort=True,
+        )
+    MetricsStore(root).reset()
+    console.print("[yellow]\u26a0[/yellow] Metrics data erased.")
+
+
+# ---------------------------------------------------------------------------
+# specsmith quality-report
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="quality-report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--since", default=None, help="ISO-8601 date filter start, e.g. 2026-01-01")
+@click.option("--until", default=None, help="ISO-8601 date filter end, e.g. 2026-12-31")
+@click.option(
+    "--create-issue",
+    "create_issue",
+    is_flag=True,
+    default=False,
+    help="Post report as a GitHub issue labelled 'quality_improvement' and print the URL.",
+)
+@click.option("--repo", default="", help="GitHub repo (owner/name). Defaults to current repo.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def quality_report_cmd(
+    project_dir: str,
+    since: str | None,
+    until: str | None,
+    create_issue: bool,
+    repo: str,
+    as_json: bool,
+) -> None:
+    """Generate a quality improvement report and optionally post it as a GitHub issue.
+
+    Gathers audit health, phase readiness, lifetime metrics, bottleneck sessions,
+    and open GitHub issues, then renders a structured Markdown report.  Use
+    ``--create-issue`` to post the report to GitHub automatically.
+    """
+    import json as _json
+    from dataclasses import asdict
+
+    from specsmith.quality_report import build_quality_report, create_github_issue, render_markdown
+
+    root = Path(project_dir).resolve()
+    console.print("[dim]Gathering project data\u2026[/dim]")
+    data = build_quality_report(root, since=since, until=until)
+
+    if as_json:
+        click.echo(_json.dumps(asdict(data), indent=2, default=str))
+        return
+
+    md = render_markdown(data)
+    click.echo(md)
+
+    if create_issue:
+        try:
+            url = create_github_issue(data, repo=repo, project_root=root)
+            console.print(f"\n[green]\u2713[/green] Issue created: {url}")
+        except RuntimeError as exc:
+            console.print(f"[red]\u2717[/red] {exc}")
+            raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

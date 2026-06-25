@@ -71,6 +71,7 @@ class Intent(str, Enum):
 
     READ_ONLY_ASK = "read_only_ask"
     CHANGE = "change"
+    REFACTOR = "refactor"  # structural change with no behaviour change — highest scope-creep risk
     RELEASE = "release"
     DESTRUCTIVE = "destructive"
 
@@ -95,10 +96,19 @@ _RELEASE_PATTERNS = (
     re.compile(r"\bbump\s+(the\s+)?version\b", re.IGNORECASE),
 )
 
+_REFACTOR_PATTERNS = (
+    re.compile(r"\b(refactor|rewrite|extract|reorganise|reorganize|restructure)\b", re.IGNORECASE),
+    re.compile(r"\brename\s+\w", re.IGNORECASE),  # rename <identifier>
+    re.compile(r"\bmove\s+.+?\bto\b", re.IGNORECASE),  # move X to Y
+    re.compile(r"\bsplit\s+.+?\binto\b", re.IGNORECASE),  # split X into Y
+    re.compile(r"\bconsolidate\b", re.IGNORECASE),
+    re.compile(r"\binline\s+the\b", re.IGNORECASE),
+)
+
 _CHANGE_PATTERNS = (
     re.compile(r"\b(fix|repair|patch)\b", re.IGNORECASE),
     re.compile(r"\b(add|implement|create|introduce|build)\b", re.IGNORECASE),
-    re.compile(r"\b(refactor|rewrite|rename|extract)\b", re.IGNORECASE),
+    re.compile(r"\b(rename)\b", re.IGNORECASE),
     re.compile(r"\b(update|migrate|upgrade)\b", re.IGNORECASE),
     re.compile(r"\b(remove|delete)\s+(the\s+)?(unused|stale|legacy)\b", re.IGNORECASE),
 )
@@ -113,8 +123,10 @@ _READ_ONLY_PATTERNS = (
 def classify_intent(utterance: str) -> Intent:
     """Classify the user's natural-language utterance.
 
-    Order: DESTRUCTIVE > RELEASE > CHANGE > READ_ONLY_ASK > READ_ONLY_ASK
-    (default).
+    Order: DESTRUCTIVE > RELEASE > REFACTOR > CHANGE > READ_ONLY_ASK.
+    REFACTOR is checked before CHANGE so that structural-change verbs
+    (refactor, extract, reorganise ...) get the tighter scope-discipline
+    governance rather than the generic change governance.
     """
     if not utterance or not utterance.strip():
         return Intent.READ_ONLY_ASK
@@ -125,6 +137,9 @@ def classify_intent(utterance: str) -> Intent:
     for p in _RELEASE_PATTERNS:
         if p.search(text):
             return Intent.RELEASE
+    for p in _REFACTOR_PATTERNS:
+        if p.search(text):
+            return Intent.REFACTOR
     for p in _CHANGE_PATTERNS:
         if p.search(text):
             return Intent.CHANGE

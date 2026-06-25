@@ -9,7 +9,7 @@ SpecSmith security assumptions, threat inventory, controls, and hardening guidan
 - Do not open a public issue for suspected vulnerabilities.
 - Preferred private report channels:
   - GitHub Security Advisory: https://github.com/layer1labs/specsmith/security/advisories/new
-  - Email: info@layer1labs.ai
+  - Email: security@layer1labs.ai
 - Include affected version, impact, reproduction details, and suggested mitigations if available.
 
 ## Supported versions
