@@ -124,7 +124,7 @@ def _add_deprecation_header(path: Path, header: str) -> None:
     path.write_text(header + text, encoding="utf-8")
 
 
-def _write_req_yaml(path: Path, reqs: list[dict]) -> None:
+def _write_req_yaml(path: Path, reqs: list[dict[str, object]]) -> None:
     header = (
         "# specsmith requirements — migrated from REQUIREMENTS.md by m007\n"
         "# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md\n"
@@ -136,7 +136,7 @@ def _write_req_yaml(path: Path, reqs: list[dict]) -> None:
     path.write_text(header + body, encoding="utf-8")
 
 
-def _write_test_yaml(path: Path, tests: list[dict]) -> None:
+def _write_test_yaml(path: Path, tests: list[dict[str, object]]) -> None:
     header = (
         "# specsmith test cases — migrated from TESTS.md by m007\n"
         "# CANONICAL SOURCE: edit this file, not docs/TESTS.md\n"

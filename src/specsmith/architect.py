@@ -898,5 +898,5 @@ def run_arch_update(root: Path, *, non_interactive: bool = False) -> dict[str, o
 
     # Run gap analysis
     gap_result = run_gap_analysis(root)
-    result["gap"] = gap_result  # type: ignore[assignment]
+    result["gap"] = gap_result
     return result
