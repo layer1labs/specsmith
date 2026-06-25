@@ -534,7 +534,7 @@ class ProjectConfig(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def _normalize_scaffold_raw(raw: dict) -> dict:
+def _normalize_scaffold_raw(raw: dict[str, Any]) -> dict[str, Any]:
     """Normalise legacy scaffold YAML keys to the current schema.
 
     Call this before ``ProjectConfig(**raw)`` whenever raw YAML is loaded from
