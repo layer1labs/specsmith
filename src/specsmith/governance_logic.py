@@ -91,9 +91,12 @@ def run_preflight(
     # docs/REQUIREMENTS.md is deprecated (REQ-373) but still used as a fallback
     # for keyword matching in infer_scope() when it exists. Explicit REQ-NNN IDs
     # in the utterance are always resolved from requirements.json regardless.
-    _req_md = Path(os.path.realpath(os.path.join(_safe_root, "docs", "REQUIREMENTS.md")))
-    if not _req_md.is_file():
-        _req_md = Path(os.path.realpath(os.path.join(_safe_root, "REQUIREMENTS.md")))  # legacy
+    # Use os.path.* string functions so CodeQL can follow os.path.realpath as an
+    # inline sanitiser without a Path() object potentially re-tainting the flow.
+    _req_md_s = os.path.realpath(os.path.join(_raw, "docs", "REQUIREMENTS.md"))
+    if not os.path.isfile(_req_md_s):
+        _req_md_s = os.path.realpath(os.path.join(_raw, "REQUIREMENTS.md"))  # legacy fallback
+    _req_md = Path(_req_md_s)  # convert to Path for infer_scope (read-only use)
     # infer_scope handles a non-existent path gracefully (returns empty scope)
     _repo_idx = Path(os.path.realpath(os.path.join(_safe_root, ".repo-index", "files.json")))
     scope = infer_scope(
