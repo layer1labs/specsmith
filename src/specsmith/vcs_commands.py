@@ -145,8 +145,10 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
         return GitResult(success=False, message="Not on any branch")
 
     # Safety: check branching strategy
-    scaffold_path = root / "scaffold.yml"
-    if scaffold_path.exists() and not force:
+    from specsmith.paths import find_scaffold
+
+    scaffold_path = find_scaffold(root)
+    if scaffold_path and scaffold_path.exists() and not force:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
         strategy = raw.get("branching_strategy", "gitflow")
@@ -215,7 +217,7 @@ def run_sync(root: Path) -> GitResult:
 
     # Check if governance files were in the pull.
     # Use ORIG_HEAD (set by git pull) rather than HEAD~1 — works even on first pull.
-    gov_files = ["AGENTS.md", "LEDGER.md", "scaffold.yml", "docs/governance/"]
+    gov_files = ["AGENTS.md", "LEDGER.md", "scaffold.yml", "docs/SPECSMITH.yml", "docs/governance/"]
     warnings: list[str] = []
     diff_result = _run_git(root, ["diff", "--name-only", "ORIG_HEAD..HEAD"])
     if diff_result.success:
@@ -310,11 +312,13 @@ def create_pr(
     """Create a PR via platform CLI with governance context."""
     import yaml
 
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.paths import find_scaffold
+
+    scaffold_path = find_scaffold(root)
     platform = "github"
     base_branch = "develop"
 
-    if scaffold_path.exists():
+    if scaffold_path and scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
         platform = raw.get("vcs_platform", "github")

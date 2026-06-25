@@ -118,7 +118,10 @@ def run_doctor(root: Path) -> DoctorReport:
     2. File-based heuristics for embedded/hardware/mobile/cloud projects.
     3. Always-available base tools (git, python3) surfaced for every project.
     """
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.config import ProjectConfig, _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
+
+    scaffold_path = find_scaffold(root)
     report = DoctorReport()
 
     # Always check the absolute basics
@@ -126,15 +129,15 @@ def run_doctor(root: Path) -> DoctorReport:
         report.checks.append(_check_tool(exe, category, root=root))
 
     # Scaffold-driven checks
-    if scaffold_path.exists():
+    if scaffold_path and scaffold_path.exists():
         import yaml
 
-        from specsmith.config import ProjectConfig
         from specsmith.tools import get_tools
 
         try:
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f)
+            raw = _normalize_scaffold_raw(raw or {})
             config = ProjectConfig(**raw)
         except Exception:  # noqa: BLE001
             config = None

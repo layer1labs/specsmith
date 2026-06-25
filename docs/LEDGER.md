@@ -180,3 +180,11 @@
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `a5fba06634f05138...`
+
+## 2026-06-25T14:58 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `dc451c3e0c2ef776...`

@@ -2935,16 +2935,20 @@ main.add_command(test)
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def migrate(new_type: str, project_dir: str) -> None:
     """Change the project type and regenerate type-dependent files."""
-    root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.config import _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
 
-    if not scaffold_path.exists():
-        console.print("[red]No scaffold.yml found.[/red]")
+    root = Path(project_dir).resolve()
+    scaffold_path = find_scaffold(root)
+
+    if not scaffold_path or not scaffold_path.exists():
+        console.print("[red]No scaffold config found (docs/SPECSMITH.yml or scaffold.yml).[/red]")
         raise SystemExit(1)
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     old_type = raw.get("type", "unknown")
     raw["type"] = new_type
 
@@ -3103,17 +3107,21 @@ def verify_release() -> None:
     help="Project root directory.",
 )
 def apply(project_dir: str) -> None:
-    """Regenerate CI and agent files from current scaffold.yml."""
-    root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    """Regenerate CI and agent files from current scaffold config."""
+    from specsmith.config import _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
 
-    if not scaffold_path.exists():
-        console.print("[red]No scaffold.yml found.[/red]")
+    root = Path(project_dir).resolve()
+    scaffold_path = find_scaffold(root)
+
+    if not scaffold_path or not scaffold_path.exists():
+        console.print("[red]No scaffold config found (docs/SPECSMITH.yml or scaffold.yml).[/red]")
         raise SystemExit(1)
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     config = ProjectConfig(**raw)
     created: list[Path] = []
 
@@ -8032,19 +8040,21 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
 
     import yaml
 
-    from specsmith.config import ProjectConfig
+    from specsmith.config import ProjectConfig, _normalize_scaffold_raw
     from specsmith.doctor import _check_tool
+    from specsmith.paths import find_scaffold
 
     root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    scaffold_path = find_scaffold(root)
 
     checks: list[dict] = []
 
     # Standard project tools via doctor
-    if scaffold_path.exists():
+    if scaffold_path and scaffold_path.exists():
         try:
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f) or {}
+            raw = _normalize_scaffold_raw(raw)
             config = ProjectConfig(**raw)
             from specsmith.tools import get_tools
 
@@ -8075,10 +8085,10 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                     )
         except Exception as e:  # noqa: BLE001
             if not as_json:
-                console.print(f"[yellow]Could not read scaffold.yml: {e}[/yellow]")
+                console.print(f"[yellow]Could not read scaffold config: {e}[/yellow]")
 
     # FPGA/HDL tools from scaffold.yml fpga_tools list
-    if fpga and scaffold_path.exists():
+    if fpga and scaffold_path and scaffold_path.exists():
         try:
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f) or {}
@@ -8143,7 +8153,9 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
         return
 
     if not checks:
-        console.print("[yellow]No tools found. Does scaffold.yml exist?[/yellow]")
+        console.print(
+            "[yellow]No tools found. Does docs/SPECSMITH.yml (or scaffold.yml) exist?[/yellow]"
+        )
         return
 
     installed_count = sum(1 for c in checks if c["installed"])

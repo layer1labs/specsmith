@@ -306,8 +306,10 @@ def load_from_scaffold(project_dir: str) -> ExecutionProfile:
     except ImportError:
         return PROFILES[DEFAULT_PROFILE_NAME]
 
-    scaffold = Path(project_dir) / "scaffold.yml"
-    if not scaffold.exists():
+    from specsmith.paths import find_scaffold
+
+    scaffold = find_scaffold(Path(project_dir))
+    if not scaffold or not scaffold.exists():
         return PROFILES[DEFAULT_PROFILE_NAME]
 
     try:

@@ -84,20 +84,24 @@ _SLEEP_LOOP_CONTEXT = (
 
 
 def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
-    """Check that scaffold.yml exists and is valid YAML."""
-    results: list[ValidationResult] = []
-    scaffold_path = root / "scaffold.yml"
+    """Check that the scaffold config exists and is valid YAML."""
+    from specsmith.config import _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
 
-    if not scaffold_path.exists():
+    results: list[ValidationResult] = []
+    scaffold_path = find_scaffold(root)
+
+    if not scaffold_path or not scaffold_path.exists():
         results.append(
             ValidationResult(
                 name="scaffold-yml",
                 passed=True,
-                message="No scaffold.yml found (project may not have been created by specsmith)",
+                message="No scaffold config found (project may not have been created by specsmith)",
             )
         )
         return results
 
+    cfg_name = scaffold_path.name
     try:
         import yaml
 
@@ -108,31 +112,33 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                 ValidationResult(
                     name="scaffold-yml",
                     passed=False,
-                    message="scaffold.yml is not a valid YAML mapping",
-                )
-            )
-        elif "name" not in data or "type" not in data:
-            results.append(
-                ValidationResult(
-                    name="scaffold-yml",
-                    passed=False,
-                    message="scaffold.yml missing required fields: name, type",
+                    message=f"{cfg_name} is not a valid YAML mapping",
                 )
             )
         else:
-            results.append(
-                ValidationResult(
-                    name="scaffold-yml",
-                    passed=True,
-                    message=f"scaffold.yml valid: project={data['name']}, type={data['type']}",
+            data = _normalize_scaffold_raw(data)
+            if "name" not in data or "type" not in data:
+                results.append(
+                    ValidationResult(
+                        name="scaffold-yml",
+                        passed=False,
+                        message=f"{cfg_name} missing required fields: name, type",
+                    )
                 )
-            )
+            else:
+                results.append(
+                    ValidationResult(
+                        name="scaffold-yml",
+                        passed=True,
+                        message=f"{cfg_name} valid: project={data['name']}, type={data['type']}",
+                    )
+                )
     except Exception as e:
         results.append(
             ValidationResult(
                 name="scaffold-yml",
                 passed=False,
-                message=f"scaffold.yml parse error: {e}",
+                message=f"{cfg_name} parse error: {e}",
             )
         )
 

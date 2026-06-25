@@ -529,6 +529,27 @@ class ProjectConfig(BaseModel):
             return None
 
 
+# ---------------------------------------------------------------------------
+# Legacy key normalisation helper
+# ---------------------------------------------------------------------------
+
+
+def _normalize_scaffold_raw(raw: dict) -> dict:
+    """Normalise legacy scaffold YAML keys to the current schema.
+
+    Call this before ``ProjectConfig(**raw)`` whenever raw YAML is loaded from
+    disk so that projects created by older specsmith versions continue to parse
+    correctly after a key rename.
+
+    Migrations handled:
+    - ``project`` → ``name``  (renamed in specsmith ≤ 0.9)
+    """
+    if raw and "project" in raw and "name" not in raw:
+        raw = dict(raw)
+        raw["name"] = raw.pop("project")
+    return raw
+
+
 # Keys are str (ProjectType enum values) for compatibility now that config.type is str
 _TYPE_LABELS: dict[str, str] = {
     ProjectType.BACKEND_FRONTEND: "Python backend + web frontend",
