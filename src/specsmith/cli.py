@@ -1845,8 +1845,9 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     import subprocess
     import sys
 
+    # Single import style (no from-import) avoids CodeQL py/import-and-import-from.
+    import specsmith.esdb as _esdb_mod_dr
     from specsmith.auditor import run_audit
-    from specsmith.esdb import open_default_store
     from specsmith.phase import read_phase
 
     def _tool_version(cmd: str) -> tuple[bool, str]:
@@ -1896,7 +1897,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     chain_ok = False
     record_count = 0
     try:
-        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        with _esdb_mod_dr.open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
             esdb_open = True
             record_count = int(store.record_count())
             chain_ok = store.chain_valid() is not False
@@ -1904,12 +1905,9 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         _add("esdb backend", False, f"open failed: {exc}")
     if esdb_open:
         # Re-read the module-level ESDB_BACKEND — open_default_store() updates
-        # the global in-place, so the locally-imported name is stale. (#263)
-        # Use sys.modules to avoid a second `import specsmith.esdb` statement
-        # that would trigger CodeQL py/import-and-import-from alongside the
-        # `from specsmith.esdb import open_default_store` above.
-        _esdb_backend_str = sys.modules["specsmith.esdb"].ESDB_BACKEND  # type: ignore[attr-defined]
-        _add("esdb backend", True, f"{_esdb_backend_str} open")
+        # the global in-place so we read it via the module object, not a
+        # locally-imported name that would be stale. (#263)
+        _add("esdb backend", True, f"{_esdb_mod_dr.ESDB_BACKEND} open")
         _add(
             "esdb chain",
             chain_ok,
