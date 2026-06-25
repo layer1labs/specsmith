@@ -1,6 +1,7 @@
-# ESDB API — ChronoStore
+# ESDB API — ChronoStore (ChronoMemory backend)
 
 Per-project WAL-based Epistemic State Database.
+Terminology note: ChronoStore is the backend engine/class provided by the ChronoMemory package.
 
 ```python
 from chronomemory import ChronoStore

@@ -83,10 +83,16 @@ Specsmith is a fully implemented AEE toolkit as of v0.11.3. This section documen
   - `reporter.py` — Markdown/JSON/HTML compliance report generation
   - `evidence.py` — Evidence collection from project governance files
 
-### ESDB / ChronoStore (v0.11)
+### ESDB naming model (canonical)
+- **ESDB** = specification/data model family
+- **SQLite backend** = free/default ESDB backend bundled in `specsmith`
+- **ChronoMemory** = commercial package
+- **ChronoStore** = backend engine/class implemented by the ChronoMemory package
+
+### ESDB / ChronoMemory backend (v0.11)
 - `src/specsmith/esdb/` — Epistemic State Database:
-  - `store.py` — `ChronoStore`: WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
-  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore when WAL exists, falls back to flat JSON read-only mode otherwise
+  - `store.py` — `ChronoStore` (ChronoMemory backend class): WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
+  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore (ChronoMemory backend) when WAL exists, falls back to flat JSON read-only mode otherwise
 - Every `ChronoRecord` carries OEA anti-hallucination fields: `source_type`, `confidence`, `evidence`, `epistemic_boundary`, `is_hypothesis`, `model_assumptions`, `recursion_depth`
 
 ### Session Persistence (v0.11)
@@ -890,7 +896,7 @@ Source: `src/specsmith/cli.py` §`save`, `load`; `src/specsmith/ci_manager.py`
 Two top-level CLI commands provide a complete governance checkpoint cycle:
 
 **`specsmith save`** (REQ-336):
-1. Create a timestamped ESDB backup via `ChronoStore.backup()` (written to `.chronomemory/backup/<timestamp>/`)
+1. Create a timestamped ESDB backup via `ChronoStore.backup()` (ChronoMemory backend class; written to `.chronomemory/backup/<timestamp>/`)
 2. `git add` all governance files and `git commit` with an auto-generated message
 3. `git push` the current branch to origin
 - `--json` emits `{backup_path, commit_hash, push_ok}`
@@ -966,7 +972,7 @@ Implementation:
 
 **Architecture invariant (I11):** The `/specsmith` handler MUST precede the broker branch in the REPL dispatch loop so governance commands bypass the LLM preflight path entirely.
 
-## 36. specsmith.esdb Namespace — chronomemory v0.1.1 Full API Surface
+## 36. specsmith.esdb Namespace — chronomemory (ChronoStore backend) v0.1.1 Full API Surface
 Source: `src/specsmith/esdb/__init__.py`; `src/specsmith/esdb/bridge.py`
 
 `specsmith.esdb` is the canonical import namespace for the chronomemory ESDB within specsmith code. It re-exports the full chronomemory v0.1.1 public surface so internal modules never import chronomemory directly in more than one place (REQ-344).

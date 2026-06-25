@@ -2396,10 +2396,10 @@
 - **Expected Behavior:** second run produces no changes; governance-mode=yaml; sync --check exits 0
 - **Confidence:** 1.0
 
-## TEST-305. ChronoStore WAL-Based ESDB Write Layer
+## TEST-305. ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
 - **ID:** TEST-305
-- **Title:** ChronoStore WAL-Based ESDB Write Layer
-- **Description:** ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.
+- **Title:** ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
+- **Description:** ChronoStore (ChronoMemory backend class) MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.
 - **Requirement ID:** REQ-305
 - **Type:** integration
 - **Verification Method:** pytest
@@ -3066,9 +3066,9 @@
 - **Verification Method:** pytest tests/test_esdb_sqlite.py — cover open/close context manager, upsert roundtrip, query filters, delete tombstone, migrate_from_json, wal_seq monotonically increasing, chain_valid always True
 - **Confidence:** 1.0
 
-## TEST-367. specsmith.esdb activates ChronoStore only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise
+## TEST-367. specsmith.esdb activates ChronoStore (ChronoMemory backend) only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise
 - **ID:** TEST-367
-- **Title:** specsmith.esdb activates ChronoStore only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise
+- **Title:** specsmith.esdb activates ChronoStore (ChronoMemory backend) only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise
 - **Requirement ID:** REQ-366
 - **Type:** unit
 - **Verification Method:** pytest tests/test_esdb_license.py — scenarios cover valid key (ChronoStore selected), missing key (SqliteStore), expired key (SqliteStore + warning), tampered signature (SqliteStore + warning), SPECSMITH_ESDB_BACKEND=sqlite env override (SqliteStore even with valid key)
@@ -3106,17 +3106,17 @@
 - **Verification Method:** pytest tests/test_migration_direction.py — four sub-tests cover run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version older exit 1, and auto-prompt downgrade hard error
 - **Confidence:** 1.0
 
-## TEST-372. esdb status --json reports active ChronoStore backend and emits structured output-write errors
+## TEST-372. esdb status --json reports active ChronoStore (ChronoMemory backend) and emits structured output-write errors
 - **ID:** TEST-372
-- **Title:** esdb status --json reports active ChronoStore backend and emits structured output-write errors
+- **Title:** esdb status --json reports active ChronoStore (ChronoMemory backend) and emits structured output-write errors
 - **Requirement ID:** REQ-366
 - **Type:** unit
 - **Verification Method:** pytest tests/test_esdb_license.py::test_esdb_status_json_uses_active_backend and ::test_esdb_status_json_stdout_failure_has_structured_error — patch backend selection to ChronoStore, assert JSON backend=chronomemory, and simulate stdout write failure to assert a structured JSON error is emitted rather than bare Aborted
 - **Confidence:** 0.95
 
-## TEST-373. open_default_store prompts to migrate SQLite records into ChronoStore when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
+## TEST-373. open_default_store prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
 - **ID:** TEST-373
-- **Title:** open_default_store prompts to migrate SQLite records into ChronoStore when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
+- **Title:** open_default_store prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
 - **Requirement ID:** REQ-371
 - **Type:** unit
 - **Verification Method:** pytest tests/test_esdb_backend_switch.py::test_auto_promotion_prompts_with_y_default and ::test_auto_promotion_accepts_in_agent_mode — patch SqliteStore with 5 records and empty ChronoStore, assert prompt shown with Y default; set SPECSMITH_AGENT=1 and assert auto-accepted without stdin
@@ -3253,4 +3253,49 @@
 - **Type:** integration
 - **Verification Method:** pytest
 - **Confidence:** 1.0
+
+## TEST-395. detect_local_models returns per-role models; config round-trips to YAML
+- **ID:** TEST-395
+- **Title:** detect_local_models returns per-role models; config round-trips to YAML
+- **Description:** Mocked NVIDIA 16 GB -> coding=qwen2.5-coder:14b, general=qwen2.5:14b, reasoning=deepseek-r1:14b. save_local_models_config then load_local_models_config round-trips correctly. CPU-only returns empty dict.
+- **Requirement ID:** REQ-387
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 0.95
+
+## TEST-396. classify_intent and ModelRouter route to correct role
+- **ID:** TEST-396
+- **Title:** classify_intent and ModelRouter route to correct role
+- **Description:** classify_intent('write a function') == coding; classify_intent('analyze architecture') == reasoning; classify_intent('what is the status') == general. ModelRouter.route() returns (model, switched=True) on first call and switched=False on repeat same role. table() returns non-empty string.
+- **Requirement ID:** REQ-388
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 0.95
+
+## TEST-397. AgentRunner with ModelRouter sets SPECSMITH_OLLAMA_MODEL per turn
+- **ID:** TEST-397
+- **Title:** AgentRunner with ModelRouter sets SPECSMITH_OLLAMA_MODEL per turn
+- **Description:** AgentRunner with mocked local-models.yml containing three roles; mock run_chat records SPECSMITH_OLLAMA_MODEL at call time. Coding utterance sets coding model; reasoning utterance sets reasoning model; env var restored after turn.
+- **Requirement ID:** REQ-389
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 0.9
+
+## TEST-398. specsmith run prints Ollama guidance when no provider available
+- **ID:** TEST-398
+- **Title:** specsmith run prints Ollama guidance when no provider available
+- **Description:** With no API keys and Ollama not running, specsmith run (no flags) exits 0 and stdout contains 'ollama.ai'. With Ollama installed but not running, output contains 'ollama serve'.
+- **Requirement ID:** REQ-390
+- **Type:** cli
+- **Verification Method:** pytest
+- **Confidence:** 0.9
+
+## TEST-399. specsmith run auto-saves local-models.yml after first detection
+- **ID:** TEST-399
+- **Title:** specsmith run auto-saves local-models.yml after first detection
+- **Description:** AgentRunner with mocked detect_local_models returning non-empty dict; after init, .specsmith/local-models.yml is written with correct role->model mapping and detected_at.
+- **Requirement ID:** REQ-391
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 0.9
 

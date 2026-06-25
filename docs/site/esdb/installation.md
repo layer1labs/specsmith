@@ -1,4 +1,8 @@
 # ESDB — Installation
+Terminology:
+- **ESDB** = specification/data model family.
+- **ChronoMemory** = commercial package.
+- **ChronoStore** = backend engine/class implemented by ChronoMemory.
 
 ## License
 
@@ -32,7 +36,7 @@ Activate your license key:
 
 ```bash
 specsmith esdb enable --key-file /path/to/your.esdb.key
-specsmith esdb status   # confirms ChronoStore is active
+specsmith esdb status   # confirms ChronoMemory / ChronoStore backend is active
 ```
 
 ## Install standalone (without specsmith)

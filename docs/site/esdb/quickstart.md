@@ -2,6 +2,9 @@
 
 This guide walks through the core chronomemory workflow: writing beliefs, querying
 them, verifying integrity, and migrating from legacy JSON.
+In this context, **ChronoMemory** is the package and **ChronoStore** is the backend class
+it provides; together they form the commercial ESDB backend option alongside specsmith's
+free SQLite backend.
 
 ## 1. Open a store
 

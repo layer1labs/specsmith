@@ -45,6 +45,11 @@ from specsmith.esdb import SqliteStore, open_default_store
 > in any Python 3.10+ environment with no restriction.
 
 ### ESDB backends — free SQLite (default) vs commercial ChronoStore
+Terminology used in docs:
+- **ESDB** = specification/data model category.
+- **SQLite backend** = free/default implementation in `specsmith`.
+- **ChronoMemory** = commercial package.
+- **ChronoStore** = backend engine/class provided by ChronoMemory.
 
 Every specsmith install includes the **free SQLite ESDB backend** automatically.
 No extra packages, no license key, no configuration needed:
@@ -54,7 +59,7 @@ specsmith esdb status
 # ● ESDB — SQLite (free, MIT) — active by default
 ```
 
-**Upgrading to chronomemory ChronoStore (commercial):**
+**Upgrading to ChronoMemory (ChronoStore backend, commercial):**
 
 ChronoStore adds a cryptographic SHA-256 WAL hash chain, full OEA anti-hallucination
 fields, Rust acceleration, and epistemic rollback.  It is a separate

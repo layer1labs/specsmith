@@ -1,11 +1,11 @@
 # OSS vs Commercial Feature Matrix
 
-SpecSmith ships with a free, MIT-licensed SQLite backend and optional commercial ChronoStore+ capabilities.
+SpecSmith ships with a free, MIT-licensed SQLite backend and an optional commercial ChronoMemory package (ChronoStore backend).
 
-| Capability | Free (SQLite) | Commercial (ChronoStore+) |
+| Capability | Free (SQLite backend) | Commercial (ChronoMemory / ChronoStore backend) |
 |---|---|---|
 | SQLite ESDB | ✅ Included | ✅ Included |
-| ChronoStore | ❌ | ✅ |
+| ChronoMemory package (ChronoStore engine) | ❌ | ✅ |
 | MCP server | ✅ | ✅ |
 | Compliance reports | ✅ | ✅ (extended enterprise workflows) |
 | Audit chain | ✅ | ✅ |
@@ -15,6 +15,7 @@ SpecSmith ships with a free, MIT-licensed SQLite backend and optional commercial
 | Tamper detection | ✅ | ✅ (extended verification tooling) |
 | OEA fields | Limited/default fields | ✅ Extended OEA metadata |
 | Rust acceleration | ❌ | ✅ |
+| Terminology model | ESDB spec + SQLite backend | ESDB spec + ChronoMemory package + ChronoStore backend |
 
 ## Notes
 

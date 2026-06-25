@@ -313,7 +313,7 @@ def test_esdb_status_json_stdout_failure_has_structured_error(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """REQ-366/#263: stdout write failures must not collapse into bare Aborted."""
+    """REQ-366/REQ-392/#263: stdout write failures exit 1 with structured stderr error."""
     import sys
 
     from specsmith import esdb as esdb_mod
@@ -337,9 +337,13 @@ def test_esdb_status_json_stdout_failure_has_structured_error(
             esdb_mod.ESDB_BACKEND = "chronomemory"
             bridge_cls.return_value.record_counts.return_value = {}
             monkeypatch.setattr(sys, "stdout", BadStdout())
-            esdb_status_cmd.callback(str(tmp_path), True)
+            with pytest.raises(SystemExit) as exc_info:
+                esdb_status_cmd.callback(str(tmp_path), True)
     finally:
         esdb_mod.ESDB_BACKEND = old_backend
+
+    # Must exit 1 — not 0, not an Abort (REQ-392)
+    assert exc_info.value.code == 1
 
     err = capsys.readouterr().err
     payload = json.loads(err)

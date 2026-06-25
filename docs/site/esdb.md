@@ -2,12 +2,17 @@
 
 specsmith ships two ESDB backends: a **free SQLite backend** (default, MIT) and the
 **commercial ChronoStore backend** (chronomemory, requires a license).
+Terminology is canonical:
+- **ESDB** = the specification/data model family.
+- **SQLite backend** = free/default ESDB backend in `specsmith`.
+- **ChronoMemory** = commercial package.
+- **ChronoStore** = backend engine/class implemented by ChronoMemory.
 
 ---
 
 ## Licensing at a glance
 
-| | SQLite backend | ChronoStore backend |
+| | SQLite backend | ChronoMemory package (ChronoStore backend) |
 |---|---|---|
 | **Package** | Built into `specsmith` | `chronomemory` — install via `specsmith[esdb]` |
 | **License** | **MIT** — free, no restrictions | **Proprietary** — commercial license required |
@@ -20,7 +25,7 @@ specsmith ships two ESDB backends: a **free SQLite backend** (default, MIT) and 
 | **Epistemic rollback** | — | ✅ |
 
 **In short:** every `pip install specsmith` includes the SQLite backend for free.
-Install `specsmith[esdb]` and activate a license only when you need ChronoStore's
+Install `specsmith[esdb]` and activate a license only when you need the ChronoMemory ChronoStore backend's
 cryptographic audit trail, full OEA fields, or Rust acceleration.
 
 ---
@@ -55,7 +60,7 @@ No installation or license needed.  specsmith uses this automatically.
 - Record ID, kind, status, label, confidence, and raw data blob
 - Tombstones for deleted records (never physically deleted)
 
-**Limitations vs ChronoStore:**
+**Limitations vs ChronoMemory / ChronoStore backend:**
 - No SHA-256 WAL hash chain — integrity relies on SQLite ACID, not cryptographic proof
 - No per-record OEA fields — confidence is stored but without the full epistemic envelope
 - No Rust acceleration, dependency graph, context-pack compiler, or epistemic rollback
@@ -68,7 +73,7 @@ specsmith esdb status
 
 ---
 
-## ChronoStore backend (commercial, requires license)
+## ChronoMemory package (ChronoStore backend, commercial, requires license)
 
 ChronoStore is the full Epistemic State Database engine from
 [chronomemory](https://pypi.org/project/chronomemory/) (available on PyPI).  It is a commercial
@@ -88,7 +93,7 @@ Recommended ignore pattern:
 
 - Ignore `.chronomemory/backup/` (timestamped backup copies created by save/backup workflows).
 
-### What ChronoStore adds over SQLite
+### What the ChronoMemory (ChronoStore) backend adds over SQLite
 
 | Capability | SQLite (free) | ChronoStore (commercial) |
 |---|---|---|
@@ -108,9 +113,9 @@ Recommended ignore pattern:
 | Model assumption tracking | — | ✓ |
 | Recursion depth guard | — | ✓ |
 
-### When to use ChronoStore
+### When to use ChronoMemory (ChronoStore backend)
 
-ChronoStore is the right choice when:
+ChronoMemory (ChronoStore backend) is the right choice when:
 
 - You need **cryptographic proof** that past governance records were not altered (compliance, audit trails)
 - You are building **multi-agent pipelines** where agent outputs need provenance tracking
@@ -132,7 +137,7 @@ The SQLite backend is MIT licensed and ships **inside** specsmith — no separat
 package, no license key, no configuration required.  It is active by default the
 moment you run `pip install specsmith`.
 
-### ChronoStore backend — proprietary, commercial license required
+### ChronoMemory package / ChronoStore backend — proprietary, commercial license required
 
 `chronomemory` is a separate commercial package.  A valid Ed25519-signed license
 key issued by Layer1Labs is required to use it.  specsmith enforces this with an
@@ -168,7 +173,7 @@ specsmith esdb status
 
 No further setup is required.
 
-### ChronoStore backend — step-by-step
+### ChronoMemory / ChronoStore backend — step-by-step
 
 > **Prerequisite:** you must hold a valid chronomemory ESDB license.
 > Contact [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) to obtain one.
@@ -382,7 +387,7 @@ The pipx-only guard applies only to the `specsmith` CLI command, not to library 
 This makes it straightforward to embed the AEE belief-state machinery in any application
 or data pipeline without managing a dedicated pipx environment.
 
-To use ChronoStore in your own application (library-only, no CLI):
+To use the ChronoMemory ChronoStore backend in your own application (library-only, no CLI):
 
 ```python
 from specsmith.esdb import open_default_store, ESDB_BACKEND

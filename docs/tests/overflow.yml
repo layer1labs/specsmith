@@ -72,9 +72,10 @@
     exits 0
   confidence: 1.0
 - id: TEST-305
-  title: ChronoStore WAL-Based ESDB Write Layer
-  description: ChronoStore MUST append events as NDJSON with SHA-256 hash chaining
-    to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True
+  title: ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
+  description: ChronoStore (the ChronoMemory backend class) MUST append events as
+    NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status()
+    returns chain_valid=True
     after appending records.
   requirement_id: REQ-305
   type: integration

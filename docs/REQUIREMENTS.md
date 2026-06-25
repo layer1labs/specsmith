@@ -2359,10 +2359,10 @@
 - **Version:** 1
 - **Test_Ids:** ['TEST-304']
 
-## REQ-305. ChronoStore WAL-Based ESDB Write Layer
+## REQ-305. ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
 - **ID:** REQ-305
-- **Title:** ChronoStore WAL-Based ESDB Write Layer
-- **Description:** specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore class providing a WAL-based per-project epistemic state database. The WAL MUST be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining. A materialized snapshot MUST be written every 50 events at snapshot.json. WAL append MUST be crash-safe via write-to-temp-then-rename.
+- **Title:** ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
+- **Description:** specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore class (from the ChronoMemory backend package) providing a WAL-based per-project epistemic state database. The WAL MUST be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining. A materialized snapshot MUST be written every 50 events at snapshot.json. WAL append MUST be crash-safe via write-to-temp-then-rename.
 - **Status:** implemented
 - **Source:** ARCHITECTURE.md §ESDB / ChronoStore
 - **Version:** 1
@@ -2371,7 +2371,7 @@
 ## REQ-306. ESDB Must Be Per-Project
 - **ID:** REQ-306
 - **Title:** ESDB Must Be Per-Project
-- **Description:** Each governed project MUST have its own ESDB at <project_root>/.chronomemory/. Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to ChronoStore when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
+- **Description:** Each governed project MUST have its own ESDB at <project_root>/.chronomemory/. Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to ChronoStore (the ChronoMemory backend engine) when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
 - **Status:** implemented
 - **Source:** ARCHITECTURE.md §ESDB / ChronoStore
 - **Version:** 1
@@ -2912,7 +2912,7 @@
 ## REQ-366. Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
 - **ID:** REQ-366
 - **Title:** Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
-- **Description:** When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore. The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.
+- **Description:** When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore (ChronoMemory backend engine). The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.
 - **Status:** accepted
 - **Source:** commercial licensing model
 - **Version:** 1
@@ -2954,18 +2954,18 @@
 - **Version:** 1
 - **Test_Ids:** ['TEST-371']
 
-## REQ-371. ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when license becomes available
+## REQ-371. ESDB auto-promotion prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license becomes available
 - **ID:** REQ-371
-- **Title:** ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when license becomes available
+- **Title:** ESDB auto-promotion prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license becomes available
 - **Description:** When open_default_store() selects ChronoStore (valid license present) but ChronoStore is empty while SqliteStore has records, specsmith MUST prompt the user: "Migrate N ESDB records from SQLite → ChronoStore? [Y/n]" with Y as the default. The migration is non-destructive (SQLite file retained as backup). When the process is non-interactive (sys.stdin.isatty() is False or SPECSMITH_AGENT=1 env var is set), the prompt MUST be auto-accepted without blocking.
 - **Status:** implemented
 - **Source:** user requirement
 - **Version:** 1
 - **Test_Ids:** ['TEST-373']
 
-## REQ-372. specsmith esdb switch-backend command migrates between SQLite and ChronoStore with explicit data-loss warning
+## REQ-372. specsmith esdb switch-backend command migrates between SQLite and ChronoStore (ChronoMemory backend) with explicit data-loss warning
 - **ID:** REQ-372
-- **Title:** specsmith esdb switch-backend command migrates between SQLite and ChronoStore with explicit data-loss warning
+- **Title:** specsmith esdb switch-backend command migrates between SQLite and ChronoStore (ChronoMemory backend) with explicit data-loss warning
 - **Description:** "specsmith esdb switch-backend --to chronomemory" bulk-imports all SQLite records into ChronoStore (requires valid license); prints record count on success. "specsmith esdb switch-backend --to sqlite" exports ChronoStore records into SqliteStore but MUST print a bold data-loss warning and require the --confirm-data-loss flag before proceeding; the ChronoStore WAL is not deleted automatically.
 - **Status:** implemented
 - **Source:** user requirement
@@ -3097,4 +3097,49 @@
 - **Source:** docs/requirements/
 - **Version:** 1
 - **Test_Ids:** ['TEST-394']
+
+## REQ-387. Multi-role local model detection returns general/coding/reasoning recommendations
+- **ID:** REQ-387
+- **Title:** Multi-role local model detection returns general/coding/reasoning recommendations
+- **Description:** detect_local_models() in local_model.py returns a dict mapping ModelRole values (general, coding, reasoning) to LocalModelInfo instances selected for the detected hardware tier. General role uses qwen2.5; coding uses qwen2.5-coder; reasoning uses deepseek-r1. Returns an empty dict on CPU-only hardware. load_local_models_config() and save_local_models_config() persist the selected models to .specsmith/local-models.yml.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-395']
+
+## REQ-388. ModelRouter classifies user intent and routes to the appropriate Ollama model
+- **ID:** REQ-388
+- **Title:** ModelRouter classifies user intent and routes to the appropriate Ollama model
+- **Description:** specsmith.agent.model_router.classify_intent(text) classifies a user utterance as general, coding, or reasoning based on keyword matching and slash-command prefixes. ModelRouter.route(text) returns (model_tag, switched) where switched is True when the active model changes. ModelRouter.table() returns a human-readable routing table string.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-396']
+
+## REQ-389. AgentRunner integrates ModelRouter for seamless per-turn model switching
+- **ID:** REQ-389
+- **Title:** AgentRunner integrates ModelRouter for seamless per-turn model switching
+- **Description:** AgentRunner loads .specsmith/local-models.yml on init and constructs a ModelRouter when multi-role config is present. On each turn, _handle_command calls ModelRouter.route() and temporarily sets SPECSMITH_OLLAMA_MODEL before calling run_chat, restoring it after. A system event is emitted when the model changes. The /models slash command prints the current routing table.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-397']
+
+## REQ-390. specsmith run prints guided Ollama setup when no provider is available
+- **ID:** REQ-390
+- **Title:** specsmith run prints guided Ollama setup when no provider is available
+- **Description:** When specsmith run is invoked with no provider flags and no LLM provider is detected, the CLI prints step-by-step Ollama setup guidance: install URL, ollama serve command, specsmith local-model setup for model pull, and API key alternatives. If Ollama is installed but not running, the message is more targeted. Exits 0 with guidance instead of 1 with a cryptic error.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-398']
+
+## REQ-391. Local model configuration persisted to .specsmith/local-models.yml
+- **ID:** REQ-391
+- **Title:** Local model configuration persisted to .specsmith/local-models.yml
+- **Description:** After detect_local_models() runs, the recommended models are persisted to .specsmith/local-models.yml so subsequent specsmith run invocations find the configured models without re-detecting hardware. The file contains a models dict (role -> tag), provider, hardware description, and detected_at timestamp. specsmith run auto-saves this config on first detection.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-399']
 

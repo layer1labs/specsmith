@@ -3182,8 +3182,8 @@
   {
     "id": "TEST-305",
     "version": 1,
-    "title": "ChronoStore WAL-Based ESDB Write Layer",
-    "description": "ChronoStore MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.",
+    "title": "ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer",
+    "description": "ChronoStore (ChronoMemory backend class) MUST append events as NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status() returns chain_valid=True after appending records.",
     "requirement_id": "REQ-305",
     "type": "integration",
     "verification_method": "pytest",
@@ -3926,7 +3926,7 @@
   {
     "id": "TEST-367",
     "version": 1,
-    "title": "specsmith.esdb activates ChronoStore only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise",
+    "title": "specsmith.esdb activates ChronoStore (ChronoMemory backend) only when a valid Ed25519 license key is present; falls back to SqliteStore otherwise",
     "description": "",
     "requirement_id": "REQ-366",
     "type": "unit",
@@ -3986,7 +3986,7 @@
   {
     "id": "TEST-372",
     "version": 1,
-    "title": "esdb status --json reports active ChronoStore backend and emits structured output-write errors",
+    "title": "esdb status --json reports active ChronoStore (ChronoMemory backend) and emits structured output-write errors",
     "description": "",
     "requirement_id": "REQ-366",
     "type": "unit",
@@ -3998,7 +3998,7 @@
   {
     "id": "TEST-373",
     "version": 1,
-    "title": "open_default_store prompts to migrate SQLite records into ChronoStore when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode",
+    "title": "open_default_store prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode",
     "description": "",
     "requirement_id": "REQ-371",
     "type": "unit",
@@ -4186,5 +4186,89 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-395",
+    "version": 1,
+    "title": "detect_local_models returns per-role models; config round-trips to YAML",
+    "description": "Mocked NVIDIA 16 GB -> coding=qwen2.5-coder:14b, general=qwen2.5:14b, reasoning=deepseek-r1:14b. save_local_models_config then load_local_models_config round-trips correctly. CPU-only returns empty dict.",
+    "requirement_id": "REQ-387",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-396",
+    "version": 1,
+    "title": "classify_intent and ModelRouter route to correct role",
+    "description": "classify_intent('write a function') == coding; classify_intent('analyze architecture') == reasoning; classify_intent('what is the status') == general. ModelRouter.route() returns (model, switched=True) on first call and switched=False on repeat same role. table() returns non-empty string.",
+    "requirement_id": "REQ-388",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-397",
+    "version": 1,
+    "title": "AgentRunner with ModelRouter sets SPECSMITH_OLLAMA_MODEL per turn",
+    "description": "AgentRunner with mocked local-models.yml containing three roles; mock run_chat records SPECSMITH_OLLAMA_MODEL at call time. Coding utterance sets coding model; reasoning utterance sets reasoning model; env var restored after turn.",
+    "requirement_id": "REQ-389",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-398",
+    "version": 1,
+    "title": "specsmith run prints Ollama guidance when no provider available",
+    "description": "With no API keys and Ollama not running, specsmith run (no flags) exits 0 and stdout contains 'ollama.ai'. With Ollama installed but not running, output contains 'ollama serve'.",
+    "requirement_id": "REQ-390",
+    "type": "cli",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-399",
+    "version": 1,
+    "title": "specsmith run auto-saves local-models.yml after first detection",
+    "description": "AgentRunner with mocked detect_local_models returning non-empty dict; after init, .specsmith/local-models.yml is written with correct role->model mapping and detected_at.",
+    "requirement_id": "REQ-391",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-400",
+    "version": 1,
+    "title": "esdb status --json uses sys.stdout.write and exits 1 on write failure",
+    "description": "With mocked sys.stdout.write that raises OSError, the command must write a structured error JSON to sys.stderr and exit with code 1. Normal path uses sys.stdout.write (not click.echo) for the JSON payload.",
+    "requirement_id": "REQ-392",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-401",
+    "version": 1,
+    "title": "specsmith save appends dirty-tree warning step when files remain uncommitted",
+    "description": "After mocked run_commit that succeeds, if has_uncommitted_changes returns True again (files still dirty), a warning step with ok=True and dirty_files list is appended. The overall ok flag remains True. CLI output contains the warning text.",
+    "requirement_id": "REQ-393",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 0.9
   }
 ]

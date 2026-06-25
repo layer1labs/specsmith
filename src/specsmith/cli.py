@@ -3265,14 +3265,53 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
         push_result = run_push(root, force=force)
         steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
 
+    # Issue #264 (REQ-393): After commit, check for remaining dirty files and
+    # warn the user.  ok stays True so the overall save is not marked failed
+    # (the commit may have been partial, not a save failure).
+    commit_step_ok = any(s["step"] == "commit" and s["ok"] for s in steps)
+    if commit_step_ok:
+        remaining = _get_dirty_files(root)
+        if remaining:
+            steps.append(
+                {
+                    "step": "dirty_tree_warning",
+                    "ok": True,  # informational — does not block overall ok
+                    "note": (
+                        f"{len(remaining)} file(s) still uncommitted after save. "
+                        "Run: git status"
+                    ),
+                    "dirty_files": remaining,
+                }
+            )
+
     ok = all(s["ok"] for s in steps)
     result = {"ok": ok, "steps": steps}
 
     if as_json:
-        click.echo(_json.dumps(result, indent=2))
+        import sys as _sys
+
+        _payload = _json.dumps(result, indent=2)
+        try:
+            _sys.stdout.write(_payload + "\n")
+            _sys.stdout.flush()
+        except Exception as _out_exc:  # noqa: BLE001
+            try:
+                _sys.stderr.write(_json.dumps({"ok": False, "error": str(_out_exc)}) + "\n")
+                _sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
+            raise SystemExit(1) from None
     else:
         for step in steps:
             icon = "\u2713" if step["ok"] else "\u2717"
+            if step["step"] == "dirty_tree_warning":
+                files_str = ", ".join(step.get("dirty_files", [])[:5])
+                extra = " ..." if len(step.get("dirty_files", [])) > 5 else ""
+                console.print(
+                    f"  [yellow]\u26a0[/yellow]  {step['note']}  "
+                    f"[dim]({files_str}{extra})[/dim]"
+                )
+                continue
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
             note = step.get("message") or step.get("note") or step.get("error") or ""
             console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
@@ -4447,6 +4486,80 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _get_dirty_files(root: Path) -> list[str]:
+    """Return list of uncommitted file paths (REQ-393)."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            return [
+                line[3:].strip()
+                for line in result.stdout.splitlines()
+                if line.strip()
+            ]
+    except Exception:  # noqa: BLE001
+        pass
+    return []
+
+
+def _print_ollama_setup_guidance(console_obj: object) -> None:
+    """Print step-by-step Ollama setup when no provider is available (REQ-390)."""
+    import shutil
+
+    ollama_installed = bool(shutil.which("ollama"))
+
+    console_obj.print("\n[bold yellow]No LLM provider detected.[/bold yellow]\n")
+
+    if ollama_installed:
+        # Ollama binary exists but the daemon is not running.
+        console_obj.print(
+            "[bold]Ollama is installed but not running.[/bold]\n\n"
+            "  1. Start the Ollama daemon:\n"
+            "       ollama serve\n\n"
+            "  2. Pull recommended models (auto-detected for your hardware):\n"
+            "       specsmith local-model setup\n\n"
+            "  3. Run specsmith again:\n"
+            "       specsmith run\n"
+        )
+    else:
+        # Ollama is not installed at all.
+        console_obj.print(
+            "[bold]Option A — Local AI (free, private, no API key needed):[/bold]\n\n"
+            "  1. Install Ollama from https://ollama.ai\n"
+            "     (macOS/Linux: curl -fsSL https://ollama.ai/install.sh | sh)\n\n"
+            "  2. Start the daemon:\n"
+            "       ollama serve\n\n"
+            "  3. Pull recommended models (auto-detected for your hardware):\n"
+            "       specsmith local-model setup\n\n"
+            "  4. Run specsmith again:\n"
+            "       specsmith run\n"
+        )
+        console_obj.print(
+            "[bold]Option B — Cloud AI (requires an API key):[/bold]\n\n"
+            "  ANTHROPIC_API_KEY=sk-ant-...   then   specsmith run   # Claude\n"
+            "  OPENAI_API_KEY=sk-...          then   specsmith run   # GPT\n"
+            "  GOOGLE_API_KEY=...             then   specsmith run   # Gemini\n"
+        )
+
+
+def _auto_detect_and_save_local_models(project_dir: str) -> None:
+    """Detect hardware and persist local-models.yml if GPU is found (REQ-391)."""
+    try:
+        from specsmith.local_model import detect_local_models, save_local_models_config
+
+        roles = detect_local_models()
+        if roles:
+            save_local_models_config(project_dir, roles)
+    except Exception:  # noqa: BLE001 — best-effort; never crash run_cmd
+        pass
+
+
 @main.command(name="run")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option(
@@ -4567,7 +4680,19 @@ def run_cmd(
         return
 
     from specsmith.agent.core import ModelTier
-    from specsmith.agent.runner import AgentRunner
+    from specsmith.agent.runner import AgentRunner, check_providers
+
+    # ── Auto-detect + guided Ollama setup (REQ-390) ──────────────────────────
+    # When no flags were supplied and no provider is reachable, print
+    # step-by-step Ollama setup guidance and exit 0 instead of crashing.
+    if not json_events and not provider_name and not model and not task:
+        statuses = check_providers()
+        if not any(s.available for s in statuses):
+            _print_ollama_setup_guidance(console)
+            # Auto-save detected model config for next run (REQ-391)
+            _auto_detect_and_save_local_models(project_dir)
+            raise SystemExit(0)
+    # ──────────────────────────────────────────────────────────────────
 
     try:
         runner = AgentRunner(
@@ -11203,15 +11328,17 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
             },
             indent=2,
         )
-        # Issue #263: click.echo() can raise click.exceptions.Abort on Windows
-        # when the console encoding lookup triggers a KeyboardInterrupt.  Write
-        # directly to sys.stdout to bypass Click’s Windows console stream
-        # detection, and fall back to stderr with a diagnostic if that also
-        # fails — so automation always gets a parseable payload.
+        # Issue #263 (REQ-392): click.echo() can raise click.exceptions.Abort
+        # on Windows when console encoding lookup triggers a KeyboardInterrupt.
+        # Write directly to sys.stdout to bypass Click's _winconsole stream
+        # detection.  On failure, write a structured error payload to stderr
+        # and exit 1 so automation can distinguish write failures from success.
+        _write_failed = False
         try:
             sys.stdout.write(payload + "\n")
             sys.stdout.flush()
         except Exception as out_exc:  # noqa: BLE001
+            _write_failed = True
             error_payload = _json.dumps(
                 {
                     "ok": False,
@@ -11227,6 +11354,8 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                 sys.stderr.flush()
             except Exception:  # noqa: BLE001
                 pass
+        if _write_failed:
+            raise SystemExit(1)
         return
 
     icon = "[green]\u25cf[/green]"
