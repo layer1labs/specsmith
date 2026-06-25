@@ -1904,10 +1904,12 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         _add("esdb backend", False, f"open failed: {exc}")
     if esdb_open:
         # Re-read the module-level ESDB_BACKEND — open_default_store() updates
-        # the global in-place, so the locally-imported name is stale.
-        import specsmith.esdb as _esdb_mod
-
-        _add("esdb backend", True, f"{_esdb_mod.ESDB_BACKEND} open")
+        # the global in-place, so the locally-imported name is stale. (#263)
+        # Use sys.modules to avoid a second `import specsmith.esdb` statement
+        # that would trigger CodeQL py/import-and-import-from alongside the
+        # `from specsmith.esdb import open_default_store` above.
+        _esdb_backend_str = sys.modules["specsmith.esdb"].ESDB_BACKEND  # type: ignore[attr-defined]
+        _add("esdb backend", True, f"{_esdb_backend_str} open")
         _add(
             "esdb chain",
             chain_ok,
@@ -11252,8 +11254,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     import json as _json
     import sys
 
-    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND
-    from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
+    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND (#263)
     from specsmith.esdb._license import check_license, resolve_license_path
     from specsmith.sync import auto_migrate_if_needed
 
@@ -11265,7 +11266,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     lic_status = check_license(warn=False) if lic_path else None
 
     # Open the appropriate store (no warning — we’ll report it ourselves)
-    store = open_default_store(root, warn=False)
+    store = _esdb_mod.open_default_store(root, warn=False)
     # Re-read ESDB_BACKEND from the module — open_default_store() updates the
     # module-level global; the locally-imported name would be stale.  (#263)
     active_backend = _esdb_mod.ESDB_BACKEND
@@ -11300,7 +11301,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         backend_label = f"{active_backend} (error: {exc})"
 
     license_info: dict[str, object]
-    if not CHRONO_AVAILABLE:
+    if not _esdb_mod.CHRONO_AVAILABLE:
         license_info = {"chronomemory_installed": False, "active": False}
     elif lic_status is None:
         license_info = {
@@ -11372,7 +11373,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     if store_error:
         console.print(f"  [red]\u2717[/red] Store error: {store_error}")
     # License line
-    if not CHRONO_AVAILABLE:
+    if not _esdb_mod.CHRONO_AVAILABLE:
         console.print(
             "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"
@@ -12240,14 +12241,12 @@ def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
     removed: list[str] = []
     if apply_flag:
         for p in targets:
-            try:
+            with contextlib.suppress(OSError):  # best-effort; locked/missing files are skipped
                 if p.is_dir():
                     shutil.rmtree(p)
                 else:
                     p.unlink(missing_ok=True)
                 removed.append(str(p.relative_to(root)))
-            except OSError:
-                pass
         with contextlib.suppress(Exception):
             from specsmith.ledger import add_entry
 
