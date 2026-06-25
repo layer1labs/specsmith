@@ -141,16 +141,27 @@ class _AutoUpdateGroup(click.Group):
 
 
 def _maybe_prompt_project_update() -> None:
-    """Check if the project's scaffold config is behind the installed version.
+    """Check if the project's scaffold config differs from the installed version.
+
+    Forward migration (installed > project): auto-runs migration immediately
+    without any Y/n prompt — REQ-369.  Backward migration (installed < project)
+    is a hard error that exits with code 1 — REQ-370.
 
     Checks docs/SPECSMITH.yml (canonical) then scaffold.yml (legacy).
-    If so, prints a one-line prompt and offers Y/n to migrate.
     Runs in under 5ms for projects that are up to date (no network call).
     """
     import os
+    import re
+    import sys
     from pathlib import Path
 
     from specsmith.paths import find_scaffold
+
+    def _ver(v: str) -> tuple[int, ...]:
+        m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+        if not m:
+            return (0,)
+        return tuple(int(x) for x in m.groups() if x is not None)
 
     # Look for scaffold config in CWD (canonical: docs/specsmith.yml)
     scaffold_path = find_scaffold(Path("."))
@@ -166,36 +177,41 @@ def _maybe_prompt_project_update() -> None:
         if not project_ver or project_ver == __version__:
             return  # Up to date or no version recorded
 
-        # Only prompt once per shell session (track via env var)
+        # Only act once per shell session (track via env var)
         session_key = f"SPECSMITH_CHECKED_{project_ver}_{__version__}"
         if os.environ.get(session_key):
             return
         os.environ[session_key] = "1"
 
-        console.print(
-            f"\n[yellow]⚠[/yellow] Project spec [bold]{project_ver}[/bold] → "
-            f"specsmith [bold]{__version__}[/bold] installed. "
-            rf"Migrate now? [bold]\[Y/n][/bold] ",
-            end="",
-        )
-        try:
-            answer = input().strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            console.print()
-            return
+        installed = _ver(__version__)
+        project = _ver(project_ver)
 
-        if answer in ("", "y", "yes"):
-            from specsmith.updater import run_migration
-
-            console.print("[cyan]Migrating project...[/cyan]")
-            actions = run_migration(Path("."))
-            for a in actions:
-                console.print(f"  [green]✓[/green] {a}")
-        else:
-            console.print(
-                "  [dim]Skipped. Run [bold]specsmith migrate-project[/bold] when ready. "
-                "Set SPECSMITH_NO_AUTO_UPDATE=1 to suppress this prompt.[/dim]"
+        if installed < project:
+            # Backward migration (downgrade) — hard error, REQ-370.
+            click.echo(
+                f"\nERROR: specsmith downgrade detected.\n"
+                f"  Project spec_version : {project_ver}\n"
+                f"  Installed specsmith  : {__version__} (older)\n"
+                "\n"
+                "  Backward migration is not supported.\n"
+                "  Upgrade specsmith first: pipx upgrade specsmith\n"
+                "  Then re-run this command.",
+                err=True,
             )
+            sys.exit(1)
+
+        # Forward migration — auto-accept, no prompt, REQ-369.
+        from specsmith.updater import run_migration
+
+        console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {__version__}...[/cyan]")
+        actions = run_migration(Path("."))
+        for a in actions:
+            if a.startswith("ERROR:"):
+                console.print(f"  [red]\u2717[/red] {a}", err=True)
+            else:
+                console.print(f"  [green]\u2713[/green] {a}")
+    except SystemExit:
+        raise  # Never swallow the hard-error exit
     except Exception:  # noqa: BLE001
         pass  # Never break the actual command on version check errors
 
@@ -1589,11 +1605,43 @@ def upgrade(spec_version: str | None, project_dir: str, full: bool) -> None:
     With --full: also regenerates exec shims (PID tracking), CI configs,
     agent integrations, and creates missing community files. Safe: never
     overwrites AGENTS.md, LEDGER.md, or user documentation.
+
+    Backward migration (downgrade) is rejected with exit code 1 — REQ-370.
     """
+    import re
+
     from specsmith.upgrader import run_upgrade
 
     root = Path(project_dir).resolve()
+
+    # Pre-flight downgrade check when --spec-version is explicit — REQ-370.
+    if spec_version:
+        from specsmith.updater import check_project_version
+
+        def _ver(v: str) -> tuple[int, ...]:
+            m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+            if not m:
+                return (0,)
+            return tuple(int(x) for x in m.groups() if x is not None)
+
+        current_project_ver, _ = check_project_version(root)
+        if current_project_ver and _ver(spec_version) < _ver(current_project_ver):
+            click.echo(
+                f"ERROR: Backward migration is not supported.\n"
+                f"  Project spec_version  : {current_project_ver}\n"
+                f"  Requested target      : {spec_version} (older)\n"
+                "\n"
+                "  Upgrade specsmith first: pipx upgrade specsmith",
+                err=True,
+            )
+            raise SystemExit(1)
+
     result = run_upgrade(root, target_version=spec_version, full=full)
+
+    if result.downgrade_error:
+        click.echo(result.message, err=True)
+        raise SystemExit(1)
+
     console.print(result.message)
 
     if result.updated_files:
@@ -1798,7 +1846,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     import sys
 
     from specsmith.auditor import run_audit
-    from specsmith.esdb import ESDB_BACKEND, open_default_store
+    from specsmith.esdb import open_default_store
     from specsmith.phase import read_phase
 
     def _tool_version(cmd: str) -> tuple[bool, str]:
@@ -1855,7 +1903,11 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     except Exception as exc:  # noqa: BLE001
         _add("esdb backend", False, f"open failed: {exc}")
     if esdb_open:
-        _add("esdb backend", True, f"{ESDB_BACKEND} open")
+        # Re-read the module-level ESDB_BACKEND — open_default_store() updates
+        # the global in-place, so the locally-imported name is stale.
+        import specsmith.esdb as _esdb_mod
+
+        _add("esdb backend", True, f"{_esdb_mod.ESDB_BACKEND} open")
         _add(
             "esdb chain",
             chain_ok,
@@ -2139,15 +2191,24 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     return created
 
 
-@main.command()
+@main.group(name="architect", invoke_without_command=True)
+@click.pass_context
 @click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
 @click.option("--non-interactive", is_flag=True, default=False, help="Skip prompts, auto-generate.")
-def architect(project_dir: str, non_interactive: bool) -> None:
+def architect_group(ctx: click.Context, project_dir: str, non_interactive: bool) -> None:
     """Generate or enrich architecture documentation.
 
     Scans the project for modules, languages, dependencies, git history,
     then optionally interviews you about components and data flow.
+
+    Subcommands:
+      interview  Epistemic BA interview (builds ARCHITECTURE.md from scratch).
+      gap        Diff current architecture vs snapshot; produce gap REQs/tests.
+      update     Re-engage interview for a project with existing ARCHITECTURE.md.
     """
+    if ctx.invoked_subcommand is not None:
+        return  # Delegate to subcommand
+
     from specsmith.architect import generate_architecture, scan_project_structure
 
     root = Path(project_dir).resolve()
@@ -2197,6 +2258,161 @@ def architect(project_dir: str, non_interactive: bool) -> None:
             "are referenced but not merged. Review manually."
         )
     console.print('  [dim]Run "specsmith audit --project-dir ." to verify governance health.[/dim]')
+
+
+# ---------------------------------------------------------------------------
+# specsmith architect interview / gap / update (REQ-375–REQ-377)
+# ---------------------------------------------------------------------------
+
+
+@architect_group.command(name="interview")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--non-interactive",
+    is_flag=True,
+    default=False,
+    help="Auto-generate answers from project scan (CI-safe).",
+)
+def architect_interview_cmd(project_dir: str, non_interactive: bool) -> None:
+    """Epistemic BA interview: build ARCHITECTURE.md from scratch.
+
+    Asks 9 targeted questions about the system (problem domain, users,
+    integrations, constraints, deployment, scale, data model, security,
+    failure modes). Each dimension is tracked with a confidence score;
+    the interview ends when all dimensions reach \u226575% confidence.
+
+    Outputs:
+      docs/ARCHITECTURE.md     (with per-section confidence annotations)
+      docs/requirements/proposed.yml  (draft REQs inferred from interview)
+      .specsmith/arch-interview.json  (crash-safe session state)
+    """
+    from specsmith.architect import run_interview
+
+    root = Path(project_dir).resolve()
+    console.print("[bold]Epistemic BA Interview[/bold]\n")
+    console.print(
+        "This interview helps specsmith build an ARCHITECTURE.md grounded in "
+        "your actual requirements.\n"
+        "Type [bold]done[/bold] at any prompt to finish early.\n"
+    )
+
+    result = run_interview(root, non_interactive=non_interactive)
+    dims = result["dimensions"]
+    arch_path = result["arch_path"]
+    proposed_path = result["proposed_reqs_path"]
+    all_confident = result["all_confident"]
+
+    console.print("\n[bold]Interview complete.[/bold]")
+    for dim in dims:  # type: ignore[union-attr]
+        bar = "\u2588" * int(dim.confidence * 10) + "\u2591" * (10 - int(dim.confidence * 10))
+        status = "[green]\u2714[/green]" if dim.confidence >= 0.75 else "[yellow]~[/yellow]"
+        console.print(f"  {status} {dim.key:<25} {bar} {dim.confidence:.0%}")
+
+    rel_arch = arch_path.relative_to(root)  # type: ignore[union-attr]
+    rel_reqs = proposed_path.relative_to(root)  # type: ignore[union-attr]
+    console.print(f"\n[green]\u2713[/green] {rel_arch}")
+    console.print(f"[green]\u2713[/green] {rel_reqs}")
+    if not all_confident:
+        console.print(
+            "\n[yellow]Some dimensions below 75%.[/yellow] "
+            "Re-run [bold]specsmith architect interview[/bold] to continue."
+        )
+    else:
+        console.print("\n[green]All dimensions confident! \u2714[/green]")
+
+
+@architect_group.command(name="gap")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--save",
+    is_flag=True,
+    default=False,
+    help="Save current ARCHITECTURE.md as snapshot and exit.",
+)
+def architect_gap_cmd(project_dir: str, save: bool) -> None:
+    """Diff current ARCHITECTURE.md vs snapshot; propose gap REQs/tests.
+
+    On first call, saves a snapshot of ARCHITECTURE.md. Subsequent calls
+    produce arch-gap.yml files with:
+      - Proposed REQs for new architecture sections
+      - REQs flagged for review when sections were removed/changed
+      - Proposed test stubs for new REQs
+    """
+    from specsmith.architect import _ARCH_SNAPSHOT_FILE, run_gap_analysis
+
+    root = Path(project_dir).resolve()
+
+    if save:
+        arch_path = root / "docs" / "ARCHITECTURE.md"
+        if not arch_path.exists():
+            console.print("[red]\u2717[/red] No ARCHITECTURE.md found.")
+            raise SystemExit(1)
+        snapshot_path = root / _ARCH_SNAPSHOT_FILE
+        snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        snapshot_path.write_text(arch_path.read_text(encoding="utf-8"), encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Snapshot saved to {_ARCH_SNAPSHOT_FILE}")
+        return
+
+    result = run_gap_analysis(root)
+    console.print(f"[bold]Gap analysis[/bold]: {result.get('message', '')}")
+
+    new_reqs = result.get("new_reqs", [])
+    stale_reqs = result.get("stale_reqs", [])
+    proposed_tests = result.get("proposed_tests", [])
+
+    if new_reqs:
+        console.print(f"\n[green]\u2713[/green] {len(new_reqs)} new REQ(s) proposed:")
+        for req in new_reqs:  # type: ignore[union-attr]
+            console.print(f"  [cyan]{req['id']}[/cyan] {req['title']}")
+    if stale_reqs:
+        console.print(f"\n[yellow]~[/yellow] {len(stale_reqs)} REQ(s) may be stale:")
+        for req in stale_reqs:  # type: ignore[union-attr]
+            console.print(f"  [yellow]{req['id']}[/yellow] {req['reason']}")
+    if proposed_tests:
+        console.print(f"\n[green]\u2713[/green] {len(proposed_tests)} test stub(s) proposed")
+
+    gap_reqs = result.get("gap_reqs_path")
+    gap_tests = result.get("gap_tests_path")
+    if gap_reqs:
+        console.print(f"[green]\u2713[/green] {Path(gap_reqs).relative_to(root)}")
+    if gap_tests:
+        console.print(f"[green]\u2713[/green] {Path(gap_tests).relative_to(root)}")
+    if not new_reqs and not stale_reqs:
+        console.print("[green]No gaps detected.[/green]")
+
+
+@architect_group.command(name="update")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--non-interactive",
+    is_flag=True,
+    default=False,
+    help="Auto-generate answers (CI-safe).",
+)
+def architect_update_cmd(project_dir: str, non_interactive: bool) -> None:
+    """Re-engage BA interview for a project with existing ARCHITECTURE.md.
+
+    1. Saves current ARCHITECTURE.md as .specsmith/arch-snapshot.md.
+    2. Restores confidence levels from inline annotations.
+    3. Asks questions only about dimensions below 75% confidence.
+    4. Runs gap analysis to surface stale REQs and propose new ones.
+    """
+    from specsmith.architect import run_arch_update
+
+    root = Path(project_dir).resolve()
+    console.print("[bold]Updating architecture[/bold]...\n")
+
+    result = run_arch_update(root, non_interactive=non_interactive)
+    arch_path = result["arch_path"]
+    gap = result.get("gap", {})
+
+    rel_arch = arch_path.relative_to(root)  # type: ignore[union-attr]
+    console.print(f"[green]\u2713[/green] Updated {rel_arch}")
+
+    if gap:
+        msg = gap.get("message", "")
+        if msg:
+            console.print(f"Gap: {msg}")
 
 
 @main.command(name="parse-reqs")
@@ -10790,7 +11006,9 @@ def esdb_group() -> None:
 def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     """Show ESDB backend, license status, and record counts."""
     import json as _json
+    import sys
 
+    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND
     from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
     from specsmith.esdb._license import check_license, resolve_license_path
     from specsmith.sync import auto_migrate_if_needed
@@ -10802,14 +11020,17 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     lic_path = resolve_license_path()
     lic_status = check_license(warn=False) if lic_path else None
 
-    # Open the appropriate store (no warning — we'll report it ourselves)
+    # Open the appropriate store (no warning — we’ll report it ourselves)
     store = open_default_store(root, warn=False)
-    from specsmith.esdb import ESDB_BACKEND
+    # Re-read ESDB_BACKEND from the module — open_default_store() updates the
+    # module-level global; the locally-imported name would be stale.  (#263)
+    active_backend = _esdb_mod.ESDB_BACKEND
 
     backend_label: str
     chain_ok: bool = True
     record_count: int = 0
     counts: dict[str, int] = {}
+    store_error: str = ""
 
     try:
         with store as s:  # type: ignore[attr-defined]
@@ -10817,10 +11038,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
             # Issue #202: chain_valid() may return non-bool in some chronomemory
             # versions for an intact chain.  Only treat literal False as invalid.
             chain_ok = s.chain_valid() is not False
-            if ESDB_BACKEND == "sqlite":
+            if active_backend == "sqlite":
                 sqlite_db = root / ".specsmith" / "esdb.sqlite3"
-                backend_label = f"SQLite (free, MIT) — {sqlite_db}"
-                # count by kind for sqlite
+                backend_label = f"SQLite (free, MIT) \u2014 {sqlite_db}"
                 for k in ("requirement", "testcase", "fact", "hypothesis", "decision"):
                     n = len(s.query(kind=k))
                     if n:
@@ -10832,7 +11052,8 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                 bridge = EsdbBridge(str(root))
                 counts = bridge.record_counts()
     except Exception as exc:  # noqa: BLE001
-        backend_label = f"{ESDB_BACKEND} (error: {exc})"
+        store_error = str(exc)
+        backend_label = f"{active_backend} (error: {exc})"
 
     license_info: dict[str, object]
     if not CHRONO_AVAILABLE:
@@ -10853,34 +11074,59 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         }
 
     if as_json:
-        click.echo(
-            _json.dumps(
+        payload = _json.dumps(
+            {
+                "backend": active_backend,
+                "backend_label": backend_label,
+                "record_count": record_count,
+                "chain_valid": chain_ok,
+                "counts": counts,
+                "license": license_info,
+                "auto_migrated": bool(auto_counts),
+                "auto_migrate_counts": auto_counts,
+                "store_error": store_error or None,
+            },
+            indent=2,
+        )
+        # Issue #263: click.echo() can raise click.exceptions.Abort on Windows
+        # when the console encoding lookup triggers a KeyboardInterrupt.  Write
+        # directly to sys.stdout to bypass Click’s Windows console stream
+        # detection, and fall back to stderr with a diagnostic if that also
+        # fails — so automation always gets a parseable payload.
+        try:
+            sys.stdout.write(payload + "\n")
+            sys.stdout.flush()
+        except Exception as out_exc:  # noqa: BLE001
+            error_payload = _json.dumps(
                 {
-                    "backend": ESDB_BACKEND,
-                    "backend_label": backend_label,
+                    "ok": False,
+                    "error": "esdb status: stdout write failed",
+                    "reason": str(out_exc),
+                    "backend": active_backend,
                     "record_count": record_count,
-                    "chain_valid": chain_ok,
-                    "counts": counts,
-                    "license": license_info,
-                    "auto_migrated": bool(auto_counts),
-                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
-        )
+            try:
+                sys.stderr.write(error_payload + "\n")
+                sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
         return
 
     icon = "[green]\u25cf[/green]"
-    console.print(f"{icon} ESDB — {backend_label}")
+    console.print(f"{icon} ESDB \u2014 {backend_label}")
     console.print(f"  Records: {record_count}")
     for kind, count in counts.items():
         console.print(f"    {kind}: {count}")
     chain_icon = "[green]\u2714[/green]" if chain_ok else "[red]\u2717[/red]"
     console.print(f"  {chain_icon} Integrity OK")
+    if store_error:
+        console.print(f"  [red]\u2717[/red] Store error: {store_error}")
     # License line
     if not CHRONO_AVAILABLE:
         console.print(
-            "  [dim]chronomemory not installed — run "
+            "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"
         )
     elif lic_status and lic_status.valid:
@@ -10896,7 +11142,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         )
     if auto_counts:
         console.print(
-            "  [cyan]⟳[/cyan] Auto-migrated from legacy JSON: "
+            "  [cyan]\u27f3[/cyan] Auto-migrated from legacy JSON: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
             f"({auto_counts.get('skipped', 0)} skipped)"
@@ -11537,7 +11783,270 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
         )
 
 
+@esdb_group.command(name="switch-backend")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--to",
+    "target_backend",
+    required=True,
+    type=click.Choice(["chronomemory", "sqlite"]),
+    help="Target backend to migrate to.",
+)
+@click.option(
+    "--confirm-data-loss",
+    is_flag=True,
+    default=False,
+    help="Required when migrating to sqlite: acknowledges WAL history loss.",
+)
+def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_loss: bool) -> None:
+    """Migrate ESDB records between SQLite and ChronoStore backends (REQ-372).
+
+    \b
+    --to chronomemory  Bulk-imports SQLite records into ChronoStore. Requires a
+                       valid license (specsmith esdb enable --key-file ...).
+    --to sqlite        Exports ChronoStore records into SqliteStore.
+                       WARNING: ChronoStore WAL history and epistemic chain
+                       integrity are NOT preserved in SQLite. Requires
+                       --confirm-data-loss.
+    """
+    import json as _json
+
+    from specsmith.esdb import CHRONO_AVAILABLE, SqliteStore, open_default_store
+    from specsmith.esdb._license import check_license
+
+    root = Path(project_dir).resolve()
+
+    if target_backend == "chronomemory":
+        if not CHRONO_AVAILABLE:
+            console.print(
+                "[red]\u2717[/red] chronomemory is not installed. Run: pip install specsmith[esdb]"
+            )
+            raise SystemExit(1)
+        lic = check_license(warn=False)
+        if not lic.valid:
+            console.print(
+                f"[red]\u2717[/red] No valid ESDB license: {lic.reason}\n"
+                "  Run: specsmith esdb enable --key-file /path/to/your.esdb.key"
+            )
+            raise SystemExit(1)
+        # Count SQLite records
+        sqlite_store = SqliteStore(root)
+        with sqlite_store as s:
+            sqlite_count = s.record_count()
+        if sqlite_count == 0:
+            console.print("[yellow]No SQLite records to migrate.[/yellow]")
+            return
+        # Migrate SQLite → ChronoStore
+        sqlite2 = SqliteStore(root)
+        with sqlite2 as s:
+            counts = s.migrate_from_json(root / ".specsmith")
+        migrated = sum(counts.values()) if isinstance(counts, dict) else 0
+        console.print(
+            f"[green]\u2714[/green] Migrated [bold]{migrated}[/bold] records "
+            "from SQLite \u2192 ChronoStore."
+        )
+        return
+
+    # target_backend == "sqlite"
+    if not confirm_data_loss:
+        console.print(
+            "[bold red]WARNING:[/bold red] Migrating to SQLite loses ChronoStore WAL "
+            "history and epistemic chain integrity.\n"
+            "  The ChronoStore WAL is NOT deleted automatically.\n"
+            "  Re-run with [bold]--confirm-data-loss[/bold] to proceed."
+        )
+        raise SystemExit(1)
+
+    # Export ChronoStore → SQLite via requirements.json / testcases.json
+    with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        all_records = store.query(status=None)  # type: ignore[attr-defined]
+    reqs = [r.to_dict() for r in all_records if r.kind == "requirement"]
+    tests = [r.to_dict() for r in all_records if r.kind == "testcase"]
+    specsmith_dir = root / ".specsmith"
+    specsmith_dir.mkdir(parents=True, exist_ok=True)
+    (specsmith_dir / "requirements.json").write_text(
+        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    (specsmith_dir / "testcases.json").write_text(
+        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    sqlite_store2 = SqliteStore(root)
+    with sqlite_store2 as s:
+        s.migrate_from_json(specsmith_dir)
+        final_count = s.record_count()
+    console.print(
+        f"[green]\u2714[/green] Exported [bold]{final_count}[/bold] records to SQLite. "
+        "ChronoStore WAL preserved (not deleted)."
+    )
+
+
 main.add_command(esdb_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith cleanup — remove specsmith runtime cache files (REQ-374)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="cleanup")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--apply",
+    "apply_flag",
+    is_flag=True,
+    default=False,
+    help="Actually delete (default is dry-run).",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit report as JSON.",
+)
+def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
+    """Remove specsmith runtime cache files (REQ-374). Dry-run by default.
+
+    Removes: .specsmith/migration-backups/, .specsmith/runs/, .specsmith/sessions/,
+    .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/, .specsmith/logs/,
+    .specsmith/dispatch/, .specsmith/pids/, .specsmith/agent-reports/,
+    .chronomemory/backup/, Python caches (__pycache__/, .ruff_cache/, .mypy_cache/,
+    .pytest_cache/, *.pyc).
+
+    PROTECTED (never removed): .specsmith/config.yml, requirements.json, testcases.json,
+    esdb.sqlite3, migration-state.json, governance-mode, .chronomemory/events.wal,
+    .chronomemory/snapshot.json, docs/requirements/, docs/tests/, docs/governance/.
+    """
+    import json as _json
+    import shutil
+
+    root = Path(project_dir).resolve()
+
+    _SPECSMITH_CACHE_DIRS = [
+        ".specsmith/migration-backups",
+        ".specsmith/runs",
+        ".specsmith/sessions",
+        ".specsmith/chat",
+        ".specsmith/perf",
+        ".specsmith/recovery",
+        ".specsmith/logs",
+        ".specsmith/dispatch",
+        ".specsmith/pids",
+        ".specsmith/agent-reports",
+        ".chronomemory/backup",
+    ]
+    _PYTHON_CACHE_NAMES = {
+        "__pycache__",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".pytest_cache",
+    }
+    _PROTECTED_DIRS = {
+        str(root / "docs" / "requirements"),
+        str(root / "docs" / "tests"),
+        str(root / "docs" / "governance"),
+    }
+
+    targets: list[Path] = []
+    total_bytes = 0
+
+    def _dir_size(p: Path) -> int:
+        s = 0
+        for f in p.rglob("*"):
+            if f.is_file():
+                with contextlib.suppress(OSError):
+                    s += f.stat().st_size
+        return s
+
+    # Specsmith cache dirs
+    for rel in _SPECSMITH_CACHE_DIRS:
+        p = root / rel
+        if p.is_dir():
+            targets.append(p)
+            total_bytes += _dir_size(p)
+
+    # Python caches (walk tree, skip protected)
+    for dirpath, dirnames, filenames in root.walk() if hasattr(root, "walk") else _os_walk(root):
+        dirpath = Path(dirpath)
+        if str(dirpath) in _PROTECTED_DIRS:
+            dirnames[:] = []
+            continue
+        to_remove = [d for d in dirnames if d in _PYTHON_CACHE_NAMES]
+        for d in to_remove:
+            p = dirpath / d
+            targets.append(p)
+            total_bytes += _dir_size(p)
+            dirnames.remove(d)
+        for f in filenames:
+            if f.endswith(".pyc"):
+                fp = dirpath / f
+                with contextlib.suppress(OSError):
+                    total_bytes += fp.stat().st_size
+                targets.append(fp)
+
+    removed: list[str] = []
+    if apply_flag:
+        for p in targets:
+            try:
+                if p.is_dir():
+                    shutil.rmtree(p)
+                else:
+                    p.unlink(missing_ok=True)
+                removed.append(str(p.relative_to(root)))
+            except OSError:
+                pass
+        with contextlib.suppress(Exception):
+            from specsmith.ledger import add_entry
+
+            add_entry(
+                root,
+                description=(
+                    f"specsmith cleanup --apply removed {len(removed)} target(s), "
+                    f"{total_bytes} bytes reclaimed."
+                ),
+                entry_type="cleanup",
+                author="specsmith",
+                reqs="REQ-374",
+            )
+
+    mb = total_bytes / (1_048_576)
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "apply": apply_flag,
+                    "removed" if apply_flag else "would_remove": [
+                        str(p.relative_to(root)) for p in targets
+                    ],
+                    "bytes_reclaimed": total_bytes,
+                },
+                indent=2,
+            )
+        )
+    else:
+        mode = "APPLY" if apply_flag else "DRY-RUN"
+        console.print(f"[bold]specsmith cleanup[/bold] ({mode}) \u2014 {root}\n")
+        for p in targets:
+            icon = "[red]\u2717[/red]" if apply_flag else "[yellow]~[/yellow]"
+            console.print(f"  {icon} {p.relative_to(root)}")
+        verb = "reclaimed" if apply_flag else "would reclaim"
+        console.print(
+            f"\n[bold green]\u2713[/bold green] {len(targets)} target(s); {verb} {mb:.2f} MB."
+        )
+        if not apply_flag:
+            console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
+
+
+def _os_walk(root: Path):
+    """Compatibility shim: os.walk on Python < 3.12 (Path.walk added in 3.12)."""
+    import os
+
+    return os.walk(str(root))
 
 
 # ---------------------------------------------------------------------------

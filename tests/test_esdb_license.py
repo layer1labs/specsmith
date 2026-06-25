@@ -259,3 +259,90 @@ def test_chronomemory_pyproject_proprietary_classifier() -> None:
         "chronomemory [project] section must not declare MIT license"
     )
     assert "Proprietary" in text
+
+
+# ---------------------------------------------------------------------------
+# TEST-372 / issue #263: esdb status JSON output diagnostics
+# ---------------------------------------------------------------------------
+
+
+class _FakeStore:
+    def __enter__(self) -> _FakeStore:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        return None
+
+    def record_count(self) -> int:
+        return 7
+
+    def chain_valid(self) -> bool:
+        return True
+
+
+def test_esdb_status_json_uses_active_backend(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """REQ-366/#263: status JSON must report the backend after open_default_store."""
+    from specsmith import esdb as esdb_mod
+    from specsmith.cli import esdb_status_cmd
+
+    old_backend = esdb_mod.ESDB_BACKEND
+    try:
+        with (
+            patch("specsmith.sync.auto_migrate_if_needed", return_value={}),
+            patch("specsmith.esdb.open_default_store", return_value=_FakeStore()),
+            patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+            patch("chronomemory.EsdbBridge") as bridge_cls,
+        ):
+            esdb_mod.ESDB_BACKEND = "chronomemory"
+            bridge_cls.return_value.record_counts.return_value = {"requirement": 3}
+            esdb_status_cmd.callback(str(tmp_path), True)
+    finally:
+        esdb_mod.ESDB_BACKEND = old_backend
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["backend"] == "chronomemory"
+    assert payload["backend_label"] == "ChronoStore WAL (chronomemory commercial)"
+    assert payload["record_count"] == 7
+
+
+def test_esdb_status_json_stdout_failure_has_structured_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """REQ-366/#263: stdout write failures must not collapse into bare Aborted."""
+    import sys
+
+    from specsmith import esdb as esdb_mod
+    from specsmith.cli import esdb_status_cmd
+
+    class BadStdout:
+        def write(self, _: str) -> int:
+            raise OSError("simulated stdout failure")
+
+        def flush(self) -> None:
+            raise OSError("simulated stdout flush failure")
+
+    old_backend = esdb_mod.ESDB_BACKEND
+    try:
+        with (
+            patch("specsmith.sync.auto_migrate_if_needed", return_value={}),
+            patch("specsmith.esdb.open_default_store", return_value=_FakeStore()),
+            patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+            patch("chronomemory.EsdbBridge") as bridge_cls,
+        ):
+            esdb_mod.ESDB_BACKEND = "chronomemory"
+            bridge_cls.return_value.record_counts.return_value = {}
+            monkeypatch.setattr(sys, "stdout", BadStdout())
+            esdb_status_cmd.callback(str(tmp_path), True)
+    finally:
+        esdb_mod.ESDB_BACKEND = old_backend
+
+    err = capsys.readouterr().err
+    payload = json.loads(err)
+    assert payload["ok"] is False
+    assert payload["error"] == "esdb status: stdout write failed"
+    assert "simulated stdout failure" in payload["reason"]

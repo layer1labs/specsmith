@@ -79,13 +79,14 @@ def run_preflight(
     _root: Path = _safe_resolve(project_dir)
     _root_str: str = str(_root)
     intent = classify_intent(utterance)
-    # Requirements live at docs/REQUIREMENTS.md, not at the project root.
-    # Falling back to root/REQUIREMENTS.md would always yield an empty list
-    # on standard projects, causing preflight to always return
-    # needs_clarification (GitHub issue #197).
+    # Requirements are now sourced from .specsmith/requirements.json (YAML-first mode).
+    # docs/REQUIREMENTS.md is deprecated (REQ-373) but still used as a fallback
+    # for keyword matching in infer_scope() when it exists. Explicit REQ-NNN IDs
+    # in the utterance are always resolved from requirements.json regardless.
     _req_md = _safe_resolve(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
     if not _req_md.is_file():
         _req_md = _safe_resolve(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy
+    # infer_scope handles a non-existent path gracefully (returns empty scope)
     _repo_idx = _safe_resolve(os.path.join(_root_str, ".repo-index", "files.json"))
     scope = infer_scope(
         utterance,

@@ -3082,3 +3082,67 @@
 - **Verification Method:** pytest tests/test_esdb_license.py::test_chronomemory_license_is_proprietary — read chronomemory LICENSE file and pyproject.toml, assert MIT not present and Proprietary classifier present
 - **Confidence:** 1.0
 
+## TEST-369. Governance Efficiency Benchmark scripts/govern_bench/ directory contains task YAML files and a runner module
+- **ID:** TEST-369
+- **Title:** Governance Efficiency Benchmark scripts/govern_bench/ directory contains task YAML files and a runner module
+- **Requirement ID:** REQ-368
+- **Type:** integration
+- **Verification Method:** pytest tests/test_migration_direction.py::test_govern_bench_structure — assert scripts/govern_bench/ exists and contains at least one task YAML file and a runner entry-point
+- **Confidence:** 0.8
+
+## TEST-370. Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt and without pip install
+- **ID:** TEST-370
+- **Title:** Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt and without pip install
+- **Requirement ID:** REQ-369
+- **Type:** unit
+- **Verification Method:** pytest tests/test_migration_direction.py::test_agents_template_no_pip_install and ::test_agents_template_uses_migrate_run — read src/specsmith/templates/agents.md.j2, assert 'pip install' not present, assert 'specsmith migrate run' present, assert '[Y/n]' not present in migration context
+- **Confidence:** 1.0
+
+## TEST-371. Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt, and upgrade command
+- **ID:** TEST-371
+- **Title:** Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt, and upgrade command
+- **Requirement ID:** REQ-370
+- **Type:** unit
+- **Verification Method:** pytest tests/test_migration_direction.py — four sub-tests cover run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version older exit 1, and auto-prompt downgrade hard error
+- **Confidence:** 1.0
+
+## TEST-372. esdb status --json reports active ChronoStore backend and emits structured output-write errors
+- **ID:** TEST-372
+- **Title:** esdb status --json reports active ChronoStore backend and emits structured output-write errors
+- **Requirement ID:** REQ-366
+- **Type:** unit
+- **Verification Method:** pytest tests/test_esdb_license.py::test_esdb_status_json_uses_active_backend and ::test_esdb_status_json_stdout_failure_has_structured_error — patch backend selection to ChronoStore, assert JSON backend=chronomemory, and simulate stdout write failure to assert a structured JSON error is emitted rather than bare Aborted
+- **Confidence:** 0.95
+
+## TEST-373. open_default_store prompts to migrate SQLite records into ChronoStore when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
+- **ID:** TEST-373
+- **Title:** open_default_store prompts to migrate SQLite records into ChronoStore when license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
+- **Requirement ID:** REQ-371
+- **Type:** unit
+- **Verification Method:** pytest tests/test_esdb_backend_switch.py::test_auto_promotion_prompts_with_y_default and ::test_auto_promotion_accepts_in_agent_mode — patch SqliteStore with 5 records and empty ChronoStore, assert prompt shown with Y default; set SPECSMITH_AGENT=1 and assert auto-accepted without stdin
+- **Confidence:** 1.0
+
+## TEST-374. specsmith esdb switch-backend migrates between backends with data-loss guard on SQLite downgrade
+- **ID:** TEST-374
+- **Title:** specsmith esdb switch-backend migrates between backends with data-loss guard on SQLite downgrade
+- **Requirement ID:** REQ-372
+- **Type:** unit
+- **Verification Method:** pytest tests/test_esdb_backend_switch.py::test_switch_to_chronomemory_imports_records and ::test_switch_to_sqlite_requires_confirm_data_loss — invoke CLI with CliRunner, assert chronomemory path prints record count; assert sqlite path exits 1 without --confirm-data-loss flag
+- **Confidence:** 1.0
+
+## TEST-375. m007 migration converts markdown REQUIREMENTS.md and TESTS.md to YAML files, deletes them, and sets governance-mode=yaml; run_sync auto-triggers m007 for markdown-mode projects
+- **ID:** TEST-375
+- **Title:** m007 migration converts markdown REQUIREMENTS.md and TESTS.md to YAML files, deletes them, and sets governance-mode=yaml; run_sync auto-triggers m007 for markdown-mode projects
+- **Requirement ID:** REQ-373
+- **Type:** unit
+- **Verification Method:** pytest tests/test_markdown_deprecation.py — create tmp project with REQUIREMENTS.md and TESTS.md but no YAML dirs, run m007, assert YAML files created, governance-mode=yaml written, MD files deleted; assert run_sync on markdown project triggers m007 automatically
+- **Confidence:** 1.0
+
+## TEST-376. specsmith cleanup dry-run lists cache directories; --apply deletes them without touching protected files
+- **ID:** TEST-376
+- **Title:** specsmith cleanup dry-run lists cache directories; --apply deletes them without touching protected files
+- **Requirement ID:** REQ-374
+- **Type:** unit
+- **Verification Method:** pytest tests/test_cleanup_cmd.py — create tmp project with .specsmith/migration-backups/ and __pycache__/, invoke cleanup (dry-run), assert listed but not deleted; invoke with --apply, assert deleted; assert requirements.json and esdb.sqlite3 untouched
+- **Confidence:** 1.0
+

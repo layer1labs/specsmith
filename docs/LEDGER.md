@@ -424,3 +424,65 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `303499039d2651b9...`
+
+## 2026-06-24T22:10 — specsmith migration: 0.16.2 → 0.16.5
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `4cd715ea85f416ce...`
+
+## 2026-06-24T22:12 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `80b7af3000e19013...`
+
+## 2026-06-24T22:36 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `ed801f6f42ba86ed...`
+
+## 2026-06-25T04:00 — WI-BEAADF17: YAML-first governance, ESDB auto-promotion, BA Interview, cleanup (REQ-371–REQ-379)
+- **Author**: oz-agent
+- **Type**: feature
+- **REQs affected**: REQ-371,REQ-372,REQ-373,REQ-374,REQ-375,REQ-376,REQ-377,REQ-378,REQ-379
+- **Status**: complete
+- **Chain hash**: auto
+- **Description**: Major YAML-first governance and epistemic architecture sprint:
+
+  **YAML-first mode (REQ-373, REQ-378)**: `scaffold_project()` now writes `.specsmith/governance-mode=yaml`
+  and creates `docs/requirements/core.yml` + `docs/tests/core.yml` starter files so all new projects
+  are in YAML-first mode from day one. Markdown mode remains supported but emits a `DeprecationWarning`
+  and auto-triggers m007 migration.
+
+  **m007 migration**: `src/specsmith/migrations/m007_yaml_first.py` converts REQUIREMENTS.md/TESTS.md
+  to YAML source files. Idempotent and non-destructive (MD files not deleted).
+
+  **ESDB auto-promotion (REQ-371)**: `esdb/__init__.py` adds `_maybe_promote_sqlite_to_chrono()` that
+  prompts to migrate SQLite records into ChronoStore when ChronoStore is empty. Auto-accepts in
+  non-interactive/agent mode.
+
+  **`specsmith esdb switch-backend` (REQ-372)**: New `esdb` subcommand migrates records between
+  SQLite and ChronoStore. `--to sqlite` requires `--confirm-data-loss`.
+
+  **`specsmith cleanup` (REQ-374)**: New top-level command removes runtime cache dirs (runs, sessions,
+  chat, perf, recovery, logs, dispatch, pids, agent-reports, migration-backups, chronomemory/backup,
+  Python caches). Dry-run by default, `--apply` to delete, `--json` for machine output. Protected
+  files (requirements.json, testcases.json, governance-mode, docs/) never removed.
+
+  **Epistemic BA Interview (REQ-375–377)**: `src/specsmith/architect.py` gains `run_interview()`,
+  `run_gap_analysis()`, `run_arch_update()`. Tracks 9 architectural dimensions with confidence scoring.
+  CLI: `specsmith architect interview/gap/update`. SKILL.md created at
+  `.agents/skills/specsmith-architect/SKILL.md`.
+
+  **Auditor mode-aware (REQ-379)**: yaml-requirements-dir/yaml-tests-dir checks now only fail for
+  projects in YAML mode; legacy markdown-mode projects get an informational pass.
+
+  **Test coverage**: 4 new test files: test_markdown_deprecation.py, test_esdb_backend_switch.py,
+  test_cleanup_cmd.py, test_architect_interview.py (116 new tests). All 1347 tests pass.
+  ruff: zero violations. specsmith audit: Healthy.

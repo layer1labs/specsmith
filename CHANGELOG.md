@@ -10,6 +10,64 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Added
+
+- **`specsmith architect interview`** — Epistemic BA interview system that asks 9 targeted
+  questions (problem domain, users, integrations, constraints, deployment, scale, data model,
+  security, failure modes), tracks per-dimension confidence, and produces `docs/ARCHITECTURE.md`
+  with confidence annotations and `docs/requirements/proposed.yml` with draft REQs.
+  Session state is crash-safe (persisted to `.specsmith/arch-interview.json`).
+  Non-interactive/CI mode auto-generates synthetic answers.
+
+- **`specsmith architect gap`** — Diffs current `ARCHITECTURE.md` against a stored snapshot;
+  proposes new REQs for added sections and flags potentially-stale REQs for removed sections.
+  Outputs `docs/requirements/arch-gap.yml` and `docs/tests/arch-gap.yml`.
+
+- **`specsmith architect update`** — Re-engages the BA interview for a project with existing
+  `ARCHITECTURE.md`, restoring confidence from inline annotations and running gap analysis.
+
+- **`specsmith cleanup`** — Removes runtime cache files (runs, sessions, chat, perf, recovery,
+  logs, dispatch, pids, agent-reports, migration-backups, chronomemory/backup, Python caches).
+  Dry-run by default; `--apply` to delete; `--json` for structured output.
+  Protected files (requirements.json, testcases.json, governance-mode, YAML source dirs) are
+  never removed.
+
+- **`specsmith esdb switch-backend`** — Migrates ESDB records between SQLite and ChronoStore.
+  `--to chronomemory` requires a valid ESDB license. `--to sqlite` requires `--confirm-data-loss`.
+
+- **ESDB auto-promotion** — When ChronoStore is selected but SQLite has existing records and
+  ChronoStore is empty, specsmith prompts to migrate records automatically. Auto-accepts in
+  non-interactive/agent mode (`SPECSMITH_AGENT=1`).
+
+- **YAML-first governance for new projects** — `specsmith init` now writes
+  `.specsmith/governance-mode=yaml` and creates `docs/requirements/core.yml` +
+  `docs/tests/core.yml` starter files. New projects are in YAML-first mode from day one.
+
+- **m007 migration** — `specsmith migrate run` now includes m007 which converts
+  `docs/REQUIREMENTS.md` and `docs/TESTS.md` to YAML source files under `docs/requirements/`
+  and `docs/tests/`. Idempotent and non-destructive (MD files are not deleted).
+
+- **BA Interview SKILL.md** — `.agents/skills/specsmith-architect/SKILL.md` documents the
+  epistemic BA interview protocol for AI agent use.
+
+### Changed
+
+- **Markdown governance mode deprecated** — Running `specsmith sync` in markdown mode now
+  emits a `DeprecationWarning` and auto-triggers m007 migration. Markdown mode will be
+  removed in a future release. Run `specsmith migrate run` to upgrade.
+
+- **Auditor YAML dir checks are mode-aware** — The `yaml-requirements-dir` and
+  `yaml-tests-dir` audit checks now only fail for projects in YAML-first mode. Legacy
+  markdown-mode projects get an informational pass.
+
+- **`specsmith architect` is now a group command** — `specsmith architect` (without a
+  subcommand) retains its original behavior (scan + generate architecture docs). New
+  subcommands `interview`, `gap`, and `update` are added.
+
+- **Req-test coverage check uses testcases.json** — In YAML-first mode, the auditor
+  now also uses `requirement_id` from `testcases.json` and `test_ids` from
+  `requirements.json` to determine test coverage, rather than only TESTS.md.
+
 ---
 
 ## [0.16.5] - 2026-06-25

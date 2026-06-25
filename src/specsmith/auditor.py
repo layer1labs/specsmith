@@ -102,8 +102,7 @@ GOVERNANCE_FILES = [
 ]
 
 RECOMMENDED_FILES = [
-    "docs/REQUIREMENTS.md",
-    "docs/TESTS.md",
+    # docs/REQUIREMENTS.md and docs/TESTS.md removed — replaced by YAML dirs (REQ-373)
     "docs/ARCHITECTURE.md",
     "docs/SPECSMITH.yml",  # canonical scaffold config (uppercase, like peer governance files)
     "CONTRIBUTING.md",
@@ -251,6 +250,69 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 )
             )
 
+    # ── YAML governance source dirs (replaces deprecated REQUIREMENTS.md/TESTS.md) ──
+    # These checks are only enforced for projects in YAML-first mode.
+    # Legacy markdown-mode projects are not penalised — they should migrate when ready.
+    req_yaml_dir = root / "docs" / "requirements"
+    test_yaml_dir = root / "docs" / "tests"
+    req_yaml_ok = req_yaml_dir.is_dir() and any(req_yaml_dir.glob("*.yml"))
+    test_yaml_ok = test_yaml_dir.is_dir() and any(test_yaml_dir.glob("*.yml"))
+
+    # Check if this project uses YAML-first governance
+    from specsmith.governance_yaml import is_yaml_mode as _is_yaml_mode
+
+    _in_yaml_mode = _is_yaml_mode(root)
+
+    if _in_yaml_mode:
+        results.append(
+            AuditResult(
+                name="yaml-requirements-dir",
+                passed=req_yaml_ok,
+                message=(
+                    "docs/requirements/*.yml exists"
+                    if req_yaml_ok
+                    else "docs/requirements/ missing or empty — run: specsmith migrate run"
+                ),
+                fixable=not req_yaml_ok,
+            )
+        )
+        results.append(
+            AuditResult(
+                name="yaml-tests-dir",
+                passed=test_yaml_ok,
+                message=(
+                    "docs/tests/*.yml exists"
+                    if test_yaml_ok
+                    else "docs/tests/ missing or empty — run: specsmith migrate run"
+                ),
+                fixable=not test_yaml_ok,
+            )
+        )
+    else:
+        # Legacy markdown-mode: pass both checks (migration is optional)
+        results.append(
+            AuditResult(
+                name="yaml-requirements-dir",
+                passed=True,
+                message=(
+                    "docs/requirements/*.yml exists"
+                    if req_yaml_ok
+                    else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
+                ),
+            )
+        )
+        results.append(
+            AuditResult(
+                name="yaml-tests-dir",
+                passed=True,
+                message=(
+                    "docs/tests/*.yml exists"
+                    if test_yaml_ok
+                    else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
+                ),
+            )
+        )
+
     return results
 
 
@@ -340,6 +402,26 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
     for match in _TEST_COVERS_PATTERN.finditer(test_text):
         for req_id in _REQ_PATTERN.findall(match.group(0)):
             covered_reqs.add(req_id)
+
+    # In YAML-first mode, also collect coverage from testcases.json requirement_id fields
+    # and from the test_ids list embedded in requirements.json records (#REQ-379 followup).
+    _tests_json = root / ".specsmith" / "testcases.json"
+    if _tests_json.is_file():
+        with _contextlib.suppress(OSError, ValueError):
+            _test_records = _json_local.loads(_tests_json.read_text(encoding="utf-8"))
+            for _tr in _test_records:
+                _rid = str(_tr.get("requirement_id", "")).strip()
+                if _rid and _REQ_PATTERN.match(_rid):
+                    covered_reqs.add(_rid)
+
+    # Also: test_ids in requirements.json directly asserts coverage (populated by sync)
+    if _reqs_json.is_file():
+        with _contextlib.suppress(OSError, ValueError):
+            _req_records = _json_local.loads(_reqs_json.read_text(encoding="utf-8"))
+            for _rr in _req_records:
+                _req_id = str(_rr.get("id", ""))
+                if _req_id and _rr.get("test_ids"):
+                    covered_reqs.add(_req_id)
 
     uncovered = req_ids - covered_reqs
     if uncovered:

@@ -15,6 +15,20 @@ from specsmith import __version__
 from specsmith.config import ProjectConfig
 
 
+def _version_tuple(v: str) -> tuple[int, ...]:
+    """Parse a semantic version string to a comparable tuple.
+
+    Strips pre-release and build metadata so only the numeric MAJOR.MINOR.PATCH
+    components are compared.  Returns (0,) for unparseable input.
+    """
+    import re
+
+    m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+    if not m:
+        return (0,)
+    return tuple(int(x) for x in m.groups() if x is not None)
+
+
 @dataclass
 class UpgradeResult:
     """Result of an upgrade operation."""
@@ -22,6 +36,7 @@ class UpgradeResult:
     updated_files: list[str] = field(default_factory=list)
     skipped_files: list[str] = field(default_factory=list)
     message: str = ""
+    downgrade_error: bool = False
 
 
 # Governance templates that get regenerated on upgrade
@@ -117,6 +132,15 @@ def run_upgrade(
 
     new_version = target_version or __version__
     old_version = config.spec_version
+
+    # Reject backward migration (downgrade) unconditionally — REQ-370 / I16.
+    if old_version and _version_tuple(new_version) < _version_tuple(old_version):
+        msg = (
+            f"ERROR: Backward migration is not supported. "
+            f"Project spec_version is {old_version!r} but target version {new_version!r} "
+            f"is older. Upgrade specsmith first: pipx upgrade specsmith"
+        )
+        return UpgradeResult(message=msg, downgrade_error=True)
 
     # For --full, allow syncing even when version matches
     if old_version == new_version and not full:

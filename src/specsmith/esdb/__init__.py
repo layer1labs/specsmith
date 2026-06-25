@@ -150,12 +150,79 @@ def open_default_store(
         lic = check_license(warn=warn)
         if lic.valid:
             ESDB_BACKEND = "chronomemory"
-            return ChronoStore(root)  # type: ignore[return-value]
+            chrono = ChronoStore(root)  # type: ignore[return-value]
+            # REQ-371: auto-promote SQLite records into ChronoStore when it is empty
+            _maybe_promote_sqlite_to_chrono(root, chrono)
+            return chrono
         # Invalid/absent license — fall through to SQLite
 
     # Priority 4: SQLite default
     ESDB_BACKEND = "sqlite"
     return SqliteStore(root)
+
+
+def _maybe_promote_sqlite_to_chrono(root: "object", chrono: "object") -> None:
+    """Prompt to migrate SQLite records into ChronoStore when ChronoStore is empty.
+
+    Non-destructive: SQLite file is never deleted. Auto-accepts in non-interactive
+    mode (sys.stdin.isatty() == False or SPECSMITH_AGENT=1 env var).
+    """
+    import os
+    import sys
+    from pathlib import Path as _Path
+
+    try:
+        sqlite_path = _Path(str(root)) / ".specsmith" / "esdb.sqlite3"
+        if not sqlite_path.exists():
+            return
+
+        sqlite = SqliteStore(_Path(str(root)))
+        with sqlite:
+            sqlite_count = sqlite.record_count()
+        if sqlite_count == 0:
+            return
+
+        # Check if ChronoStore is empty
+        with chrono:  # type: ignore[attr-defined]
+            chrono_count = chrono.record_count()  # type: ignore[attr-defined]
+        if chrono_count > 0:
+            return  # Already has records — nothing to promote
+
+        # Determine if non-interactive (agent mode)
+        non_interactive = not sys.stdin.isatty() or os.environ.get("SPECSMITH_AGENT", "") == "1"
+
+        if non_interactive:
+            _do_promote = True
+            print(  # noqa: T201
+                f"specsmith ESDB: auto-migrating {sqlite_count} records "
+                "from SQLite \u2192 ChronoStore (non-interactive mode)",
+                file=sys.stderr,
+            )
+        else:
+            try:
+                answer = (
+                    input(
+                        f"specsmith ESDB: Migrate {sqlite_count} records "
+                        "from SQLite \u2192 ChronoStore? [Y/n] "
+                    )
+                    .strip()
+                    .lower()
+                )
+            except EOFError:
+                answer = ""
+            _do_promote = answer in ("", "y", "yes")
+
+        if _do_promote:
+            sqlite2 = SqliteStore(_Path(str(root)))
+            with sqlite2 as _s:
+                counts = _s.migrate_from_json(_Path(str(root)) / ".specsmith")
+            promoted = sum(counts.values()) if isinstance(counts, dict) else 0
+            print(  # noqa: T201
+                f"specsmith ESDB: Migrated {promoted} records to ChronoStore.",
+                file=sys.stderr,
+            )
+    except Exception:  # noqa: BLE001 — promotion is always best-effort
+        pass
 
 
 __all__ = [

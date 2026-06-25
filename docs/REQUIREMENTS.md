@@ -2916,7 +2916,7 @@
 - **Status:** accepted
 - **Source:** commercial licensing model
 - **Version:** 1
-- **Test_Ids:** ['TEST-367']
+- **Test_Ids:** ['TEST-367', 'TEST-372']
 
 ## REQ-367. chronomemory must carry a proprietary commercial license separate from specsmith MIT
 - **ID:** REQ-367
@@ -2934,5 +2934,59 @@
 - **Status:** planned
 - **Source:** docs/requirements/
 - **Version:** 1
-- **Test_Ids:** []
+- **Test_Ids:** ['TEST-369']
+
+## REQ-369. Scaffolded AGENTS.md bootstrap must auto-accept specsmith forward migration without prompting
+- **ID:** REQ-369
+- **Title:** Scaffolded AGENTS.md bootstrap must auto-accept specsmith forward migration without prompting
+- **Description:** The scaffolded `AGENTS.md` template (agents.md.j2) MUST instruct agents to run `specsmith migrate run` unconditionally at session start without any Y/n prompt. The `_maybe_prompt_project_update()` function in cli.py MUST auto-run `run_migration()` silently when the installed specsmith version is newer than the project spec_version, printing the list of updated files without asking for confirmation. No interactive prompt may be shown for forward migration in any code path. The template MUST NOT contain `pip install` instructions for specsmith; `pipx upgrade specsmith` is the only permitted upgrade mechanism.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-370']
+
+## REQ-370. Backward migration (downgrade) must be a hard error at every specsmith enforcement layer
+- **ID:** REQ-370
+- **Title:** Backward migration (downgrade) must be a hard error at every specsmith enforcement layer
+- **Description:** When the installed specsmith version is older than the project spec_version (i.e. a downgrade is attempted), ALL of the following MUST produce a hard error with exit code 1 and no file mutations. (1) run_upgrade() in upgrader.py returns UpgradeResult with downgrade_error=True and a descriptive message. (2) run_migration() in updater.py returns an error-prefixed string immediately. (3) _maybe_prompt_project_update() in cli.py prints the error and calls sys.exit(1). (4) the specsmith upgrade --spec-version <older> CLI command detects the downgrade before calling run_upgrade() and exits 1 with an explanatory message. No partial migration may occur. The scaffolded AGENTS.md template MUST state that downgrading specsmith on a governed project is not supported and agents MUST surface the error to the user immediately.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-371']
+
+## REQ-371. ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when license becomes available
+- **ID:** REQ-371
+- **Title:** ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when license becomes available
+- **Description:** When open_default_store() selects ChronoStore (valid license present) but ChronoStore is empty while SqliteStore has records, specsmith MUST prompt the user: "Migrate N ESDB records from SQLite → ChronoStore? [Y/n]" with Y as the default. The migration is non-destructive (SQLite file retained as backup). When the process is non-interactive (sys.stdin.isatty() is False or SPECSMITH_AGENT=1 env var is set), the prompt MUST be auto-accepted without blocking.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-373']
+
+## REQ-372. specsmith esdb switch-backend command migrates between SQLite and ChronoStore with explicit data-loss warning
+- **ID:** REQ-372
+- **Title:** specsmith esdb switch-backend command migrates between SQLite and ChronoStore with explicit data-loss warning
+- **Description:** "specsmith esdb switch-backend --to chronomemory" bulk-imports all SQLite records into ChronoStore (requires valid license); prints record count on success. "specsmith esdb switch-backend --to sqlite" exports ChronoStore records into SqliteStore but MUST print a bold data-loss warning and require the --confirm-data-loss flag before proceeding; the ChronoStore WAL is not deleted automatically.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-374']
+
+## REQ-373. docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON cache are the only governance sources
+- **ID:** REQ-373
+- **Title:** docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON cache are the only governance sources
+- **Description:** Markdown governance docs docs/REQUIREMENTS.md and docs/TESTS.md are removed entirely — no generation, no reading, no recommended-file check. The m007_yaml_first migration parses any existing markdown files into docs/requirements/ and docs/tests/ YAML files, sets .specsmith/governance-mode=yaml, then deletes the markdown files. run_sync() auto-triggers m007 for projects still in markdown mode. All source files that previously read REQUIREMENTS.md or TESTS.md MUST be updated to read from .specsmith/requirements.json, .specsmith/testcases.json, or the YAML directories instead.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-375']
+
+## REQ-374. specsmith cleanup command removes specsmith runtime cache files with dry-run by default
+- **ID:** REQ-374
+- **Title:** specsmith cleanup command removes specsmith runtime cache files with dry-run by default
+- **Description:** "specsmith cleanup" (dry-run by default, --apply to delete) removes specsmith runtime cache directories: .specsmith/migration-backups/, .specsmith/runs/, .specsmith/sessions/, .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/, .specsmith/logs/, .specsmith/dispatch/, .specsmith/pids/, .specsmith/agent-reports/, .chronomemory/backup/, and Python caches (__pycache__/, *.pyc, .ruff_cache/, .mypy_cache/, .pytest_cache/). Protected files (requirements.json, testcases.json, esdb.sqlite3, governance-mode, YAML source dirs) are NEVER removed.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-376']
 
