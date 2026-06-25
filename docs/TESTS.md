@@ -3146,3 +3146,111 @@
 - **Verification Method:** pytest tests/test_cleanup_cmd.py — create tmp project with .specsmith/migration-backups/ and __pycache__/, invoke cleanup (dry-run), assert listed but not deleted; invoke with --apply, assert deleted; assert requirements.json and esdb.sqlite3 untouched
 - **Confidence:** 1.0
 
+## TEST-377. specsmith architect interview non-interactive produces ARCHITECTURE.md and proposed.yml
+- **ID:** TEST-377
+- **Title:** specsmith architect interview non-interactive produces ARCHITECTURE.md and proposed.yml
+- **Description:** Run run_interview(root, non_interactive=True). Assert docs/ARCHITECTURE.md exists and contains confidence annotations. Assert docs/requirements/proposed.yml exists and contains REQ IDs.
+- **Requirement ID:** REQ-375
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Confidence:** 1.0
+
+## TEST-378. Interview state is persisted to arch-interview.json after each answer
+- **ID:** TEST-378
+- **Title:** Interview state is persisted to arch-interview.json after each answer
+- **Description:** After run_interview(non_interactive=True), .specsmith/arch-interview.json MUST exist, be valid JSON, and contain 9 entries with key, confidence, and answer fields.
+- **Requirement ID:** REQ-376
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Confidence:** 1.0
+
+## TEST-379. architect gap detects new sections and proposes REQs
+- **ID:** TEST-379
+- **Title:** architect gap detects new sections and proposes REQs
+- **Description:** Create ARCHITECTURE.md, run run_gap_analysis (saves snapshot), add a new section, run again. Assert new_reqs contains at least 1 entry for the added section.
+- **Requirement ID:** REQ-377
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Confidence:** 1.0
+
+## TEST-380. scaffold_project writes governance-mode=yaml and creates YAML governance dirs
+- **ID:** TEST-380
+- **Title:** scaffold_project writes governance-mode=yaml and creates YAML governance dirs
+- **Description:** Call scaffold_project(cfg, target). Assert target/.specsmith/governance-mode == "yaml". Assert target/docs/requirements/core.yml and target/docs/tests/core.yml exist.
+- **Requirement ID:** REQ-378
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Confidence:** 1.0
+
+## TEST-381. Auditor yaml-requirements-dir passes for markdown-mode projects
+- **ID:** TEST-381
+- **Title:** Auditor yaml-requirements-dir passes for markdown-mode projects
+- **Description:** Create a minimal project without .specsmith/governance-mode (legacy mode). Run run_audit(). Assert yaml-requirements-dir result.passed == True and message mentions legacy markdown mode.
+- **Requirement ID:** REQ-379
+- **Type:** unit
+- **Verification Method:** evaluator
+- **Confidence:** 1.0
+
+## TEST-388. session_init reads requirements.json in YAML-first mode
+- **ID:** TEST-388
+- **Title:** session_init reads requirements.json in YAML-first mode
+- **Description:** In YAML-first mode, _count_requirements returns count from requirements.json
+- **Requirement ID:** REQ-380
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-389. BA interview project_type dimension is first and has auto-detected hint
+- **ID:** TEST-389
+- **Title:** BA interview project_type dimension is first and has auto-detected hint
+- **Description:** ARCH_DIMENSIONS[0].key == project_type; _make_dimensions(type) populates hint
+- **Requirement ID:** REQ-381
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-390. SPECSMITH_FEATURE_CATALOG returns FeatureGap list for known project types
+- **ID:** TEST-390
+- **Title:** SPECSMITH_FEATURE_CATALOG returns FeatureGap list for known project types
+- **Description:** Catalog returns non-empty list for embedded-hardware, yocto-bsp, llm-app etc
+- **Requirement ID:** REQ-382
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-391. specsmith architect issues CLI renders gap table and --create calls gh
+- **ID:** TEST-391
+- **Title:** specsmith architect issues CLI renders gap table and --create calls gh
+- **Description:** CLI prints gaps; with --create mocked gh is invoked per gap
+- **Requirement ID:** REQ-383
+- **Type:** integration
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-392. specsmith resume CLI is registered and pulls then starts runner
+- **ID:** TEST-392
+- **Title:** specsmith resume CLI is registered and pulls then starts runner
+- **Description:** Command exists in CLI; pull and runner.run_interactive are called (mocked)
+- **Requirement ID:** REQ-384
+- **Type:** integration
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-393. detect_local_model returns correct model for mocked hardware profiles
+- **ID:** TEST-393
+- **Title:** detect_local_model returns correct model for mocked hardware profiles
+- **Description:** Mocked Apple Silicon 24GB -> 14b; NVIDIA 8GB -> 7b; CPU-only -> None
+- **Requirement ID:** REQ-385
+- **Type:** unit
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+
+## TEST-394. specsmith local-model detect CLI prints hardware and model recommendation
+- **ID:** TEST-394
+- **Title:** specsmith local-model detect CLI prints hardware and model recommendation
+- **Description:** CLI output contains model name and hardware tier; --json returns parseable JSON
+- **Requirement ID:** REQ-386
+- **Type:** integration
+- **Verification Method:** pytest
+- **Confidence:** 1.0
+

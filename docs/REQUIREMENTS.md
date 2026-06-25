@@ -2958,7 +2958,7 @@
 - **ID:** REQ-371
 - **Title:** ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when license becomes available
 - **Description:** When open_default_store() selects ChronoStore (valid license present) but ChronoStore is empty while SqliteStore has records, specsmith MUST prompt the user: "Migrate N ESDB records from SQLite → ChronoStore? [Y/n]" with Y as the default. The migration is non-destructive (SQLite file retained as backup). When the process is non-interactive (sys.stdin.isatty() is False or SPECSMITH_AGENT=1 env var is set), the prompt MUST be auto-accepted without blocking.
-- **Status:** accepted
+- **Status:** implemented
 - **Source:** user requirement
 - **Version:** 1
 - **Test_Ids:** ['TEST-373']
@@ -2967,7 +2967,7 @@
 - **ID:** REQ-372
 - **Title:** specsmith esdb switch-backend command migrates between SQLite and ChronoStore with explicit data-loss warning
 - **Description:** "specsmith esdb switch-backend --to chronomemory" bulk-imports all SQLite records into ChronoStore (requires valid license); prints record count on success. "specsmith esdb switch-backend --to sqlite" exports ChronoStore records into SqliteStore but MUST print a bold data-loss warning and require the --confirm-data-loss flag before proceeding; the ChronoStore WAL is not deleted automatically.
-- **Status:** accepted
+- **Status:** implemented
 - **Source:** user requirement
 - **Version:** 1
 - **Test_Ids:** ['TEST-374']
@@ -2976,7 +2976,7 @@
 - **ID:** REQ-373
 - **Title:** docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON cache are the only governance sources
 - **Description:** Markdown governance docs docs/REQUIREMENTS.md and docs/TESTS.md are removed entirely — no generation, no reading, no recommended-file check. The m007_yaml_first migration parses any existing markdown files into docs/requirements/ and docs/tests/ YAML files, sets .specsmith/governance-mode=yaml, then deletes the markdown files. run_sync() auto-triggers m007 for projects still in markdown mode. All source files that previously read REQUIREMENTS.md or TESTS.md MUST be updated to read from .specsmith/requirements.json, .specsmith/testcases.json, or the YAML directories instead.
-- **Status:** accepted
+- **Status:** implemented
 - **Source:** user requirement
 - **Version:** 1
 - **Test_Ids:** ['TEST-375']
@@ -2985,8 +2985,116 @@
 - **ID:** REQ-374
 - **Title:** specsmith cleanup command removes specsmith runtime cache files with dry-run by default
 - **Description:** "specsmith cleanup" (dry-run by default, --apply to delete) removes specsmith runtime cache directories: .specsmith/migration-backups/, .specsmith/runs/, .specsmith/sessions/, .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/, .specsmith/logs/, .specsmith/dispatch/, .specsmith/pids/, .specsmith/agent-reports/, .chronomemory/backup/, and Python caches (__pycache__/, *.pyc, .ruff_cache/, .mypy_cache/, .pytest_cache/). Protected files (requirements.json, testcases.json, esdb.sqlite3, governance-mode, YAML source dirs) are NEVER removed.
-- **Status:** accepted
+- **Status:** implemented
 - **Source:** user requirement
 - **Version:** 1
 - **Test_Ids:** ['TEST-376']
+
+## REQ-375. Epistemic BA Interview produces ARCHITECTURE.md with confidence annotations
+- **ID:** REQ-375
+- **Title:** Epistemic BA Interview produces ARCHITECTURE.md with confidence annotations
+- **Description:** specsmith architect interview MUST ask 9 epistemic questions (problem_domain, user_types, key_integrations, technical_constraints, deployment_target, scale_expectations, data_model, security_model, failure_modes). Each dimension tracks a confidence score. Answers are scored by a rubric: empty=+0.05, <=15 chars=+0.10, 16-60=+0.25, 61-200=+0.40, 200+/metrics=+0.50. The interview terminates when all dimensions >=0.75 or user types done. Output: docs/ARCHITECTURE.md with inline confidence annotations, docs/requirements/proposed.yml with draft REQs.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-377']
+
+## REQ-376. BA Interview state persisted crash-safely to .specsmith/arch-interview.json
+- **ID:** REQ-376
+- **Title:** BA Interview state persisted crash-safely to .specsmith/arch-interview.json
+- **Description:** After every answer, specsmith MUST persist interview state to .specsmith/arch-interview.json so the session can be resumed if interrupted. On restart, previously given answers and their confidence scores MUST be restored.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-378']
+
+## REQ-377. architect gap produces arch-gap.yml with proposed REQs for new sections
+- **ID:** REQ-377
+- **Title:** architect gap produces arch-gap.yml with proposed REQs for new sections
+- **Description:** specsmith architect gap MUST diff current ARCHITECTURE.md against .specsmith/arch-snapshot.md. On first call, it MUST save the snapshot. On subsequent calls, it MUST propose new REQs for added sections and flag potentially-stale REQs for removed/changed sections. Outputs: docs/requirements/arch-gap.yml and docs/tests/arch-gap.yml.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-379']
+
+## REQ-378. Scaffolded projects default to YAML-first governance mode
+- **ID:** REQ-378
+- **Title:** Scaffolded projects default to YAML-first governance mode
+- **Description:** specsmith init (scaffold_project) MUST write .specsmith/governance-mode=yaml and create docs/requirements/core.yml + docs/tests/core.yml with starter entries so new projects are in YAML-first mode from day one. Legacy markdown-mode is only for projects that predate this feature.
+- **Status:** implemented
+- **Source:** plan eadbed6a
+- **Version:** 1
+- **Test_Ids:** ['TEST-380']
+
+## REQ-379. Auditor YAML dir checks are mode-aware
+- **ID:** REQ-379
+- **Title:** Auditor YAML dir checks are mode-aware
+- **Description:** The yaml-requirements-dir and yaml-tests-dir auditor checks MUST only fail for projects in YAML-first mode (governance-mode=yaml). Legacy markdown-mode projects MUST pass these checks with an informational message, not a failure, to avoid breaking existing CI workflows during migration.
+- **Status:** implemented
+- **Source:** plan eadbed6a
+- **Version:** 1
+- **Test_Ids:** ['TEST-381']
+
+## REQ-380. session_init YAML-first requirement count reads requirements.json
+- **ID:** REQ-380
+- **Title:** session_init YAML-first requirement count reads requirements.json
+- **Description:** In YAML-first governance mode (.specsmith/governance-mode=yaml), session_init._count_requirements() reads .specsmith/requirements.json and .specsmith/testcases.json to determine total and covered requirement counts. It must NOT read the deprecated REQUIREMENTS.md or TESTS.md files.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-388']
+
+## REQ-381. BA interview project_type dimension pre-populated with auto-detected type
+- **ID:** REQ-381
+- **Title:** BA interview project_type dimension pre-populated with auto-detected type
+- **Description:** The BA interview includes a project_type dimension as the first (10th overall) question. The hint is pre-populated with the inferred_type from scan_project_structure() so the user sees the auto-detected type and can confirm or refine it before the nine technical dimensions.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-389']
+
+## REQ-382. BA feature gap catalog maps ProjectType values to known specsmith gaps
+- **ID:** REQ-382
+- **Title:** BA feature gap catalog maps ProjectType values to known specsmith gaps
+- **Description:** SPECSMITH_FEATURE_CATALOG maps ProjectType.value strings to lists of FeatureGap dataclasses describing known gaps in specsmith support for that project category. Covered types include embedded-hardware, yocto-bsp, cli-python, web-frontend, data-ml, safety-critical, llm-app, mcp-server, fpga-rtl, and related aliases.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-390']
+
+## REQ-383. specsmith architect issues detects feature gaps and creates GitHub issues
+- **ID:** REQ-383
+- **Title:** specsmith architect issues detects feature gaps and creates GitHub issues
+- **Description:** specsmith architect issues reads BA interview state to determine project type, cross-references SPECSMITH_FEATURE_CATALOG, and prints the gap list. With --create it calls gh issue create for each gap. With --repo OWNER/REPO it targets a specified repository; default auto-detects via gh repo view. --create is always opt-in (default: list only).
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-391']
+
+## REQ-384. specsmith resume combines load and run in one command
+- **ID:** REQ-384
+- **Title:** specsmith resume combines load and run in one command
+- **Description:** specsmith resume performs git pull, optional ESDB WAL restore (--from-backup), ESDB status report, then immediately starts the interactive AgentRunner session. It accepts --provider, --model, and --tier flags forwarded to AgentRunner. This replaces the two-step specsmith load + specsmith run workflow.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-392']
+
+## REQ-385. LocalModelSelector detects hardware and returns best Ollama model; skips CPU-only
+- **ID:** REQ-385
+- **Title:** LocalModelSelector detects hardware and returns best Ollama model; skips CPU-only
+- **Description:** detect_local_model() in local_model.py detects Apple Silicon (via sysctl hw.memsize) and NVIDIA GPUs (via nvidia-smi) and returns a LocalModelInfo with the best qwen2.5-coder model tag for the detected VRAM tier. Returns None when no GPU is present or VRAM < 7 GB (CPU-only would be unusably slow).
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-393']
+
+## REQ-386. specsmith local-model detect/setup CLI exposes hardware-aware model recommendation
+- **ID:** REQ-386
+- **Title:** specsmith local-model detect/setup CLI exposes hardware-aware model recommendation
+- **Description:** specsmith local-model detect prints the recommended Ollama model tag, hardware tier, HF repo, and pull command for the current machine. specsmith local-model setup pulls the model via ensure_local_model(). Both commands support --json for machine-readable output. Setup is always opt-in and warns when no GPU is detected.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-394']
 

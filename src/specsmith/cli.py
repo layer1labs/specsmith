@@ -2456,13 +2456,16 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
         return
 
     if not gaps:
-        console.print("[green]\u2714 No specsmith feature gaps detected for this project type.[/green]")
+        console.print(
+            "[green]\u2714 No specsmith feature gaps detected for this project type.[/green]"
+        )
         return
 
     console.print(f"[bold]specsmith feature gaps[/bold] ({len(gaps)} found):\n")
     for gap in gaps:
         console.print(f"  [cyan]\u25ba[/cyan] [bold]{gap.title}[/bold]")
-        console.print(f"    {gap.description[:120]}..." if len(gap.description) > 120 else f"    {gap.description}")
+        desc = gap.description[:120] + "..." if len(gap.description) > 120 else gap.description
+        console.print(f"    {desc}")
         console.print(f"    Labels: {', '.join(gap.labels) or 'none'}\n")
 
     if not do_create:
@@ -2521,7 +2524,10 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
         except Exception as exc:  # noqa: BLE001
             console.print(f"  [red]\u2717[/red] {gap.title}: {exc}")
 
-    console.print(f"\n[bold green]\u2714[/bold green] {created}/{len(gaps)} issue(s) created on {target_repo}.")
+    console.print(
+        f"\n[bold green]\u2714[/bold green] {created}/{len(gaps)} issue(s) "
+        f"created on {target_repo}."
+    )
 
 
 @main.command(name="parse-reqs")
@@ -13556,9 +13562,10 @@ def resume_cmd(
     with contextlib.suppress(Exception):
         bridge = EsdbBridge(str(root))
         status = bridge.status()
+        chain_icon = "\u2713" if status.chain_valid else "\u2717"
         console.print(
             f"  [green]\u2713[/green] ESDB: {status.backend} "
-            f"({status.record_count} records, chain {'\u2713' if status.chain_valid else '\u2717'})"
+            f"({status.record_count} records, chain {chain_icon})"
         )
 
     # --- Step 4: start interactive agent session ---
@@ -13611,7 +13618,9 @@ def local_model_detect_cmd(as_json: bool) -> None:
 
     if as_json:
         if info is None:
-            click.echo(_json.dumps({"recommended": None, "reason": "cpu-only or insufficient VRAM"}))
+            click.echo(
+                _json.dumps({"recommended": None, "reason": "cpu-only or insufficient VRAM"})
+            )
         else:
             click.echo(
                 _json.dumps(
