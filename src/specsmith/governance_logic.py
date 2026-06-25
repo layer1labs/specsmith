@@ -88,15 +88,11 @@ def run_preflight(
     _root_str = _safe_root  # alias used by helpers later in this function
     intent = classify_intent(utterance)
     # Requirements are now sourced from .specsmith/requirements.json (YAML-first mode).
-    # docs/REQUIREMENTS.md is deprecated (REQ-373) but still used as a fallback
-    # for keyword matching in infer_scope() when it exists. Explicit REQ-NNN IDs
-    # in the utterance are always resolved from requirements.json regardless.
-    # Use os.path.* string functions so CodeQL can follow os.path.realpath as an
-    # inline sanitiser without a Path() object potentially re-tainting the flow.
-    _req_md_s = os.path.realpath(os.path.join(_raw, "docs", "REQUIREMENTS.md"))
-    if not os.path.isfile(_req_md_s):
-        _req_md_s = os.path.realpath(os.path.join(_raw, "REQUIREMENTS.md"))  # legacy fallback
-    _req_md = Path(_req_md_s)  # convert to Path for infer_scope (read-only use)
+    # docs/REQUIREMENTS.md is deprecated (REQ-373) but used as a fallback for keyword
+    # matching in infer_scope() when it exists.  parse_requirements() already handles
+    # non-existent paths gracefully (returns []), so no is_file() guard is needed here.
+    # Using a single assignment from _safe_root keeps CodeQL's taint flow clean.
+    _req_md = Path(os.path.realpath(os.path.join(_safe_root, "docs", "REQUIREMENTS.md")))
     # infer_scope handles a non-existent path gracefully (returns empty scope)
     _repo_idx = Path(os.path.realpath(os.path.join(_safe_root, ".repo-index", "files.json")))
     scope = infer_scope(
