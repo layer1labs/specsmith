@@ -68,6 +68,27 @@ Use `--tier` to select models by capability:
 
 From ECC's guidance: use `fast` for routine tasks (ledger entries, doc updates), `balanced` for most coding, `powerful` for architecture decisions and Logic Knot resolution.
 
+## Multi-Model Routing (Ollama)
+
+When using Ollama as the provider, `specsmith run` automatically routes each turn to
+the best local model for the task:
+
+| Intent detected | Model role used |
+|---|---|
+| Coding tasks (implement, refactor, fix, test…) | `coding` model (e.g. Qwen2.5-Coder) |
+| Reasoning tasks (analyse, design, compare, explain…) | `reasoning` model (e.g. DeepSeek-R1) |
+| General conversation / governance | `general` model (e.g. Llama3) |
+
+Detection is keyword-based and runs on every turn with zero latency — no LLM call needed.
+Model switches are announced inline: `[→ qwen2.5-coder:14b (coding)]`.
+
+On first run, specsmith detects your available Ollama models and hardware tier
+(CPU-only caps at 7B; GPU ≥ 8 GB goes up to 32B) and saves the routing config to
+`.specsmith/local-models.yml`. Re-run detection any time with `specsmith run --detect-models`.
+
+If no Ollama models are found, `specsmith run` prints step-by-step setup instructions
+with the exact `ollama pull` commands for your hardware tier.
+
 ## REPL Commands
 
 Once in the REPL, use these slash commands:
@@ -78,6 +99,7 @@ Once in the REPL, use these slash commands:
 /skills         — list loaded skills
 /skill <name>   — inject a skill into context
 /model <name>   — switch model mid-session
+/models         — show multi-model routing table (Ollama only)
 /status         — session tokens, cost, elapsed time
 /hooks          — list active hooks
 /clear          — clear conversation history (keeps system prompt)

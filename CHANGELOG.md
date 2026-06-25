@@ -10,6 +10,10 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+---
+
+## [0.17.0] - 2026-06-25
+
 ### Added
 
 - **`specsmith architect interview`** — Epistemic BA interview system that asks 9 targeted
@@ -50,6 +54,32 @@ consolidated into the next published release.
 - **BA Interview SKILL.md** — `.agents/skills/specsmith-architect/SKILL.md` documents the
   epistemic BA interview protocol for AI agent use.
 
+- **BA project-type detection** — `specsmith import` now detects BA (Business Analyst)
+  project types and enriches scaffold metadata with domain classification, stakeholder
+  roles, and integration surface signals extracted from the project structure.
+
+- **Feature gap catalog + `specsmith github issues`** — Scans governance YAML and open
+  GitHub issues to identify feature gaps; generates a gap catalog and can bulk-create
+  GitHub issues via `gh` CLI (`specsmith github issue-plan|issue-create`).
+
+- **`specsmith resume` / `specsmith load`** — Resume a previous agent session from the
+  last LEDGER.md entry; `load` restores full session context without starting the REPL.
+
+- **Multi-model routing for `specsmith run`** — `AgentRunner` now auto-detects the
+  intent of each user turn (general / coding / reasoning) and routes to the best local
+  Ollama model for that role using `ModelRouter`. Hardware-tier–aware detection via
+  `detect_local_models()`. New `/models` slash command shows the current routing table.
+  Model switches are announced inline so users always know which model is active.
+
+- **Local model hardware selector** — `detect_local_models()` queries available Ollama
+  models and categorises them by role (general / coding / reasoning) using heuristics
+  based on model name and hardware tier (CPU-only → 7B cap; GPU ≥ 8 GB → up to 32B).
+  Config is saved to `.specsmith/local-models.yml` and reloaded across sessions.
+
+- **Guided Ollama setup** — When `specsmith run` is invoked with no configured provider,
+  the CLI now detects whether Ollama is installed and prints step-by-step setup instructions
+  with the recommended `ollama pull` commands for each hardware tier.
+
 ### Changed
 
 - **Markdown governance mode deprecated** — Running `specsmith sync` in markdown mode now
@@ -67,6 +97,26 @@ consolidated into the next published release.
 - **Req-test coverage check uses testcases.json** — In YAML-first mode, the auditor
   now also uses `requirement_id` from `testcases.json` and `test_ids` from
   `requirements.json` to determine test coverage, rather than only TESTS.md.
+
+- **ChronoMemory bumped to `>=0.2.7`** — The `specsmith[esdb]` extra now requires
+  chronomemory 0.2.7 or newer (available on PyPI). The git-URL dependency is fully
+  replaced; `pip install specsmith[esdb]` works without any extra index.
+
+### Fixed
+
+- **Issue #263 — `esdb status --json` emitted bare "Aborted!"** on Windows when Click's
+  `_winconsole` stream detection raised a `KeyboardInterrupt`. Now uses `sys.stdout.write`
+  directly; on write failure writes a structured JSON error payload to stderr and exits 1.
+
+- **Issue #264 — `specsmith save` false positive dirty-tree warning** — Post-commit
+  `_get_dirty_files()` check now correctly ignores untracked files so a clean commit
+  no longer triggers a spurious warning.
+
+- **CI matrix: Python 3.10–3.13 fully green** — `_read_project_name` in `quality_report.py`
+  now uses `tomllib` → `tomli` → regex fallback chain so `pyproject.toml` is parsed
+  correctly on Python 3.10 (where `tomllib` is not in stdlib). Chronomemory-dependent
+  ESDB status tests now use `patch.dict(sys.modules)` to inject a `MagicMock`, removing
+  the need for chronomemory to be installed in the test environment.
 
 ---
 
