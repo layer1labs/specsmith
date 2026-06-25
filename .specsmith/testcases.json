@@ -4102,5 +4102,89 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-388",
+    "version": 1,
+    "title": "session_init reads requirements.json in YAML-first mode",
+    "description": "In YAML-first mode, _count_requirements returns count from requirements.json",
+    "requirement_id": "REQ-380",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-389",
+    "version": 1,
+    "title": "BA interview project_type dimension is first and has auto-detected hint",
+    "description": "ARCH_DIMENSIONS[0].key == project_type; _make_dimensions(type) populates hint",
+    "requirement_id": "REQ-381",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-390",
+    "version": 1,
+    "title": "SPECSMITH_FEATURE_CATALOG returns FeatureGap list for known project types",
+    "description": "Catalog returns non-empty list for embedded-hardware, yocto-bsp, llm-app etc",
+    "requirement_id": "REQ-382",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-391",
+    "version": 1,
+    "title": "specsmith architect issues CLI renders gap table and --create calls gh",
+    "description": "CLI prints gaps; with --create mocked gh is invoked per gap",
+    "requirement_id": "REQ-383",
+    "type": "integration",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-392",
+    "version": 1,
+    "title": "specsmith resume CLI is registered and pulls then starts runner",
+    "description": "Command exists in CLI; pull and runner.run_interactive are called (mocked)",
+    "requirement_id": "REQ-384",
+    "type": "integration",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-393",
+    "version": 1,
+    "title": "detect_local_model returns correct model for mocked hardware profiles",
+    "description": "Mocked Apple Silicon 24GB -> 14b; NVIDIA 8GB -> 7b; CPU-only -> None",
+    "requirement_id": "REQ-385",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-394",
+    "version": 1,
+    "title": "specsmith local-model detect CLI prints hardware and model recommendation",
+    "description": "CLI output contains model name and hardware tier; --json returns parseable JSON",
+    "requirement_id": "REQ-386",
+    "type": "integration",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

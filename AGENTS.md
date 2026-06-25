@@ -164,38 +164,7 @@ except Exception:
 
 ## YAML-First Governance (Current Mode)
 
-This project uses **YAML-first governance** (`.specsmith/governance-mode=yaml`).
-
-- Requirements live in `docs/requirements/*.yml` — **not** in `docs/REQUIREMENTS.md`
-- Tests live in `docs/tests/*.yml` — **not** in `docs/TESTS.md`
-- `docs/REQUIREMENTS.md` and `docs/TESTS.md` are **deprecated derived artifacts**
-- Edit YAML files, run `specsmith sync`, and commit both YAML + JSON
-
-To migrate a project still using markdown mode:
-```bash
-specsmith migrate run   # triggers m007, converts MD → YAML
-specsmith sync
-specsmith audit         # must report Healthy
-```
-
-## New Commands Reference
-
-```bash
-# BA Interview — build ARCHITECTURE.md from 9 epistemic questions
-specsmith architect interview [--non-interactive]
-
-# Gap analysis — diff ARCHITECTURE.md vs snapshot
-specsmith architect gap [--save]
-
-# Update existing architecture with targeted re-interview
-specsmith architect update [--non-interactive]
-
-# Remove runtime cache files (dry-run by default)
-specsmith cleanup [--apply] [--json]
-
-# Migrate ESDB backend
-specsmith esdb switch-backend --to [chronomemory|sqlite] [--confirm-data-loss]
-```
+Requirements live in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`. Edit YAML files, run `specsmith sync`, commit both YAML + JSON. `REQUIREMENTS.md` / `TESTS.md` are deprecated. To migrate from markdown mode: `specsmith migrate run && specsmith sync && specsmith audit`.
 
 ## For AI Agents
 

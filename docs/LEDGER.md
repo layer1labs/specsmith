@@ -486,3 +486,11 @@
   **Test coverage**: 4 new test files: test_markdown_deprecation.py, test_esdb_backend_switch.py,
   test_cleanup_cmd.py, test_architect_interview.py (116 new tests). All 1347 tests pass.
   ruff: zero violations. specsmith audit: Healthy.
+
+## 2026-06-25T07:39 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `6e3248c993d07e12...`

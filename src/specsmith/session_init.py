@@ -100,8 +100,42 @@ def _find_scaffold(root: Path) -> Path | None:
     return None
 
 
+def _is_yaml_first_mode(root: Path) -> bool:
+    """Return True when the project is in YAML-first governance mode (REQ-380)."""
+    marker = root / ".specsmith" / "governance-mode"
+    if marker.is_file():
+        return marker.read_text(encoding="utf-8").strip() == "yaml"
+    return False
+
+
 def _count_requirements(root: Path) -> tuple[int, int]:
-    """Count total requirements and covered (with tests) requirements."""
+    """Count total requirements and covered (with tests) requirements.
+
+    In YAML-first mode (REQ-380): reads from .specsmith/requirements.json and
+    .specsmith/testcases.json so the session context is accurate even when the
+    deprecated REQUIREMENTS.md / TESTS.md files no longer exist.
+    Falls back to markdown files for projects still in markdown mode.
+    """
+    if _is_yaml_first_mode(root):
+        import contextlib
+        import json
+
+        req_json = root / ".specsmith" / "requirements.json"
+        test_json = root / ".specsmith" / "testcases.json"
+        if not req_json.is_file():
+            return 0, 0
+        with contextlib.suppress(Exception):
+            reqs = json.loads(req_json.read_text(encoding="utf-8"))
+            req_ids = {r["id"] for r in reqs if "id" in r}
+            covered: set[str] = set()
+            if test_json.is_file():
+                tests = json.loads(test_json.read_text(encoding="utf-8"))
+                linked_req_ids = {t.get("requirement_id", "") for t in tests}
+                covered = req_ids & linked_req_ids
+            return len(req_ids), len(covered)
+        return 0, 0
+
+    # Markdown-mode fallback
     req_path = root / "docs" / "REQUIREMENTS.md"
     if not req_path.is_file():
         req_path = root / "REQUIREMENTS.md"
@@ -116,19 +150,34 @@ def _count_requirements(root: Path) -> tuple[int, int]:
     test_path = root / "docs" / "TESTS.md"
     if not test_path.is_file():
         test_path = root / "TESTS.md"
-    covered = set()
+    covered_md: set[str] = set()
     if test_path.is_file():
         test_text = test_path.read_text(encoding="utf-8", errors="replace")
-        # A requirement is "covered" if its ID appears in TESTS.md
         for req_id in req_ids:
             if req_id in test_text:
-                covered.add(req_id)
+                covered_md.add(req_id)
 
-    return len(req_ids), len(covered)
+    return len(req_ids), len(covered_md)
 
 
 def _count_tests(root: Path) -> int:
-    """Count total test specifications."""
+    """Count total test specifications.
+
+    In YAML-first mode: reads testcases.json. Falls back to TESTS.md.
+    """
+    if _is_yaml_first_mode(root):
+        import contextlib
+        import json
+
+        test_json = root / ".specsmith" / "testcases.json"
+        if not test_json.is_file():
+            return 0
+        with contextlib.suppress(Exception):
+            tests = json.loads(test_json.read_text(encoding="utf-8"))
+            return len(tests)
+        return 0
+
+    # Markdown-mode fallback
     import re
 
     test_path = root / "docs" / "TESTS.md"

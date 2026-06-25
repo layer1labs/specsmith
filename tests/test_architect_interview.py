@@ -85,13 +85,19 @@ class TestScoreAnswer:
 
 
 class TestArchDimensions:
-    """ARCH_DIMENSIONS must have exactly 9 well-formed dimensions."""
+    """ARCH_DIMENSIONS must have exactly 10 well-formed dimensions (project_type + 9 technical)."""
 
-    def test_exactly_nine_dimensions(self) -> None:
-        assert len(ARCH_DIMENSIONS) == 9, f"Expected 9 dimensions, got {len(ARCH_DIMENSIONS)}"
+    def test_exactly_ten_dimensions(self) -> None:
+        # REQ-381: project_type added as first dimension; 9 technical + 1 type = 10
+        assert len(ARCH_DIMENSIONS) == 10, f"Expected 10 dimensions, got {len(ARCH_DIMENSIONS)}"
+
+    def test_first_dimension_is_project_type(self) -> None:
+        # REQ-381: project_type is first so users confirm the auto-detected type immediately
+        assert ARCH_DIMENSIONS[0].key == "project_type"
 
     def test_all_dimensions_have_required_fields(self) -> None:
         required_keys = {
+            "project_type",
             "problem_domain",
             "user_types",
             "key_integrations",
@@ -159,7 +165,7 @@ class TestRunInterviewNonInteractive:
         state_file = tmp_path / _INTERVIEW_STATE_FILE
         data = json.loads(state_file.read_text(encoding="utf-8"))
         assert isinstance(data, list)
-        assert len(data) == 9  # One entry per dimension
+        assert len(data) == 10  # One entry per dimension (project_type + 9 technical)
 
     def test_dimensions_have_non_zero_confidence(self, tmp_path: Path) -> None:
         result = run_interview(tmp_path, non_interactive=True)

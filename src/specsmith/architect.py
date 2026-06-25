@@ -159,6 +159,7 @@ def generate_architecture(
 # ---------------------------------------------------------------------------
 
 from dataclasses import dataclass  # noqa: E402 — kept near usage
+from dataclasses import field as _field  # noqa: E402 — kept near usage
 
 
 @dataclass
@@ -172,8 +173,233 @@ class ArchitecturalDimension:
     answer: str = ""
 
 
-#: The nine epistemic dimensions tracked during BA interview (REQ-375)
-ARCH_DIMENSIONS: list[ArchitecturalDimension] = [
+# ---------------------------------------------------------------------------
+# specsmith feature gap catalog (REQ-382)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FeatureGap:
+    """A detected gap between project needs and specsmith's current feature set."""
+
+    title: str
+    description: str
+    project_type: str
+    severity: str = "enhancement"  # "enhancement" | "bug" | "question"
+    labels: list[str] = _field(default_factory=list)
+
+
+#: Maps ProjectType.value → list[FeatureGap] for known project categories.
+SPECSMITH_FEATURE_CATALOG: dict[str, list[FeatureGap]] = {
+    "embedded-hardware": [
+        FeatureGap(
+            title="CAN bus governance templates for embedded projects",
+            description=(
+                "specsmith has no built-in governance templates for CAN bus interface "
+                "definitions, CANopen object dictionary validation, or SocketCAN integration "
+                "tests. Embedded projects using CAN (e.g. dart-mx8m-plus, automotive ECUs) need "
+                "pre-built requirement patterns for message IDs, timing SLAs, and bus-off recovery."
+            ),
+            project_type="embedded-hardware",
+            severity="enhancement",
+            labels=["embedded", "can-bus", "governance-template"],
+        ),
+        FeatureGap(
+            title="MISRA-C / CERT-C compliance checker integration",
+            description=(
+                "specsmith has no built-in MISRA-C or CERT-C rule checking. Safety-critical "
+                "embedded projects need compliance scan results surfaced as governance events."
+            ),
+            project_type="embedded-hardware",
+            severity="enhancement",
+            labels=["embedded", "safety-critical", "compliance"],
+        ),
+        FeatureGap(
+            title="Hardware-in-loop (HIL) test integration",
+            description=(
+                "specsmith verify does not integrate with HIL test rigs (renode, QEMU boards, "
+                "dSPACE). Embedded projects need HIL pass/fail results to record ledger events "
+                "and drive REQ coverage."
+            ),
+            project_type="embedded-hardware",
+            severity="enhancement",
+            labels=["embedded", "testing", "hil"],
+        ),
+    ],
+    "yocto-bsp": [
+        FeatureGap(
+            title="Yocto layer governance templates",
+            description=(
+                "specsmith has no requirement templates for Yocto layers, recipes, or MACHINE "
+                "configurations. BSP projects need governance patterns for layer compatibility "
+                "matrices, recipe license audits, and image manifests."
+            ),
+            project_type="yocto-bsp",
+            severity="enhancement",
+            labels=["yocto", "embedded", "governance-template"],
+        ),
+        FeatureGap(
+            title="OTA firmware update governance",
+            description=(
+                "specsmith has no support for OTA update governance (signing keys, rollback "
+                "requirements, A/B partition requirements). Yocto BSP projects deploying "
+                "mender, swupdate, or RAUC need these tracked as REQs."
+            ),
+            project_type="yocto-bsp",
+            severity="enhancement",
+            labels=["yocto", "ota", "firmware"],
+        ),
+    ],
+    "cli-python": [
+        FeatureGap(
+            title="PyPI release governance workflow",
+            description=(
+                "specsmith save does not integrate with PyPI publishing. CLI Python projects need "
+                "a governed release workflow that records the PyPI upload as a ledger event "
+                "and links it to a work item."
+            ),
+            project_type="cli-python",
+            severity="enhancement",
+            labels=["python", "release", "pypi"],
+        ),
+    ],
+    "web-frontend": [
+        FeatureGap(
+            title="Accessibility (WCAG) compliance tracking",
+            description=(
+                "specsmith has no WCAG requirement templates or axe/Lighthouse integration. "
+                "Web frontend projects need accessibility REQs tracked alongside functional "
+                "requirements."
+            ),
+            project_type="web-frontend",
+            severity="enhancement",
+            labels=["web", "accessibility", "compliance"],
+        ),
+    ],
+    "data-ml": [
+        FeatureGap(
+            title="ML model card governance",
+            description=(
+                "specsmith has no support for ML model cards (accuracy, bias, data lineage). "
+                "Data/ML projects need model performance metrics tracked as REQs and recorded "
+                "in the ESDB ledger at training time."
+            ),
+            project_type="data-ml",
+            severity="enhancement",
+            labels=["ml", "model-card", "data-governance"],
+        ),
+    ],
+    "safety-critical": [
+        FeatureGap(
+            title="IEC 61508 / ISO 26262 safety lifecycle integration",
+            description=(
+                "specsmith has no support for functional safety standards (IEC 61508, ISO 26262, "
+                "IEC 62443). Safety-critical projects need SIL/ASIL classification on requirements "
+                "and hazard analysis traces."
+            ),
+            project_type="safety-critical",
+            severity="enhancement",
+            labels=["safety-critical", "iec61508", "iso26262"],
+        ),
+    ],
+    "llm-app": [
+        FeatureGap(
+            title="LLM evaluation governance (evals)",
+            description=(
+                "specsmith has no support for LLM evaluation harnesses (promptfoo, inspect, "
+                "evals). LLM app projects need eval run results tracked as governance events "
+                "and linked to prompt requirement REQs."
+            ),
+            project_type="llm-app",
+            severity="enhancement",
+            labels=["llm", "evals", "ai-governance"],
+        ),
+    ],
+    "mcp-server": [
+        FeatureGap(
+            title="MCP tool compliance checking",
+            description=(
+                "specsmith has an MCP governance_req_list tool but no MCP compliance checker "
+                "that validates tool schemas against requirements. MCP server projects need "
+                "automated MCP tool contract testing."
+            ),
+            project_type="mcp-server",
+            severity="enhancement",
+            labels=["mcp", "compliance", "testing"],
+        ),
+    ],
+    "fpga-rtl": [
+        FeatureGap(
+            title="RTL simulation result governance integration",
+            description=(
+                "specsmith has no integration with RTL simulators (Verilator, GHDL, ModelSim). "
+                "FPGA/RTL projects need simulation pass/fail results captured as ledger events "
+                "and linked to requirement coverage."
+            ),
+            project_type="fpga-rtl",
+            severity="enhancement",
+            labels=["fpga", "rtl", "simulation"],
+        ),
+    ],
+}
+
+# Aliases — map related project types to the closest gap list
+for _alias, _src in [
+    ("embedded-python-hmi", "embedded-hardware"),
+    ("fpga-rtl-amd", "fpga-rtl"),
+    ("fpga-rtl-intel", "fpga-rtl"),
+    ("fpga-rtl-lattice", "fpga-rtl"),
+    ("mixed-fpga-embedded", "fpga-rtl"),
+    ("mixed-fpga-firmware", "embedded-hardware"),
+    ("agent-orchestration", "llm-app"),
+    ("rag-pipeline", "llm-app"),
+    ("mlops-platform", "data-ml"),
+]:
+    SPECSMITH_FEATURE_CATALOG[_alias] = SPECSMITH_FEATURE_CATALOG[_src]
+
+
+# ---------------------------------------------------------------------------
+# Feature gap analysis (REQ-382, REQ-383)
+# ---------------------------------------------------------------------------
+
+
+def run_feature_gap_analysis(
+    root: Path,
+    dims: list[ArchitecturalDimension] | None = None,
+) -> list[FeatureGap]:
+    """Cross-reference interview answers against the feature catalog (REQ-382).
+
+    Returns a list of :class:`FeatureGap` objects for the detected project type.
+    If no project_type dimension answer is available, falls back to the
+    inferred_type from ``scan_project_structure``.
+    """
+    project_type = ""
+
+    # 1. Try interview state
+    if dims is None:
+        dims = _load_interview_state(root)
+    for d in dims:
+        if d.key == "project_type" and d.answer:
+            project_type = d.answer.strip().lower().replace(" ", "-")
+            break
+
+    # 2. Fall back to scan
+    if not project_type:
+        try:
+            scan = scan_project_structure(root)
+            project_type = str(scan.get("inferred_type", ""))
+        except Exception:  # noqa: BLE001
+            pass
+
+    return list(SPECSMITH_FEATURE_CATALOG.get(project_type, []))
+
+
+# ---------------------------------------------------------------------------
+# Dimension list (REQ-375, REQ-381)
+# ---------------------------------------------------------------------------
+
+#: The nine base dimensions (no project_type prepended yet)
+_ARCH_DIMENSIONS_BASE: list[ArchitecturalDimension] = [
     ArchitecturalDimension(
         key="problem_domain",
         question="What problem does this system solve?",
@@ -221,6 +447,28 @@ ARCH_DIMENSIONS: list[ArchitecturalDimension] = [
     ),
 ]
 
+
+def _make_dimensions(inferred_type: str = "") -> list[ArchitecturalDimension]:
+    """Build the full 10-dimension list, prepending project_type (REQ-381)."""
+    import copy
+
+    hint = "Describe the kind of project (e.g. CLI tool, web app, embedded firmware, ML pipeline)."
+    if inferred_type and inferred_type != "unknown":
+        hint = (
+            f"Auto-detected: '{inferred_type}'. Confirm or describe more specifically. "
+            "E.g. 'Yocto BSP for i.MX8M Plus with Wayland kiosk' or 'FastAPI microservice'."
+        )
+    project_type_dim = ArchitecturalDimension(
+        key="project_type",
+        question="What type of project is this?",
+        hint=hint,
+    )
+    return [project_type_dim] + copy.deepcopy(_ARCH_DIMENSIONS_BASE)
+
+
+#: Public alias — 10 dimensions (project_type first, then the original 9)
+ARCH_DIMENSIONS: list[ArchitecturalDimension] = _make_dimensions()
+
 _INTERVIEW_STATE_FILE = ".specsmith/arch-interview.json"
 _ARCH_SNAPSHOT_FILE = ".specsmith/arch-snapshot.md"
 _CONFIDENCE_THRESHOLD = 0.75
@@ -260,15 +508,24 @@ def score_answer(answer: str) -> float:
 
 
 def _load_interview_state(root: Path) -> list[ArchitecturalDimension]:
-    """Load a previously-saved interview state from JSON, or return fresh dimensions."""
-    import copy
+    """Load a previously-saved interview state from JSON, or return fresh dimensions.
+
+    In YAML-first mode the project_type hint is pre-populated from
+    ``scan_project_structure`` so the user sees the auto-detected type
+    immediately (REQ-381).
+    """
+    import contextlib
     import json
 
-    state_path = root / _INTERVIEW_STATE_FILE
-    dims = copy.deepcopy(ARCH_DIMENSIONS)
-    if state_path.exists():
-        import contextlib
+    # Auto-detect project type for the hint
+    inferred = ""
+    with contextlib.suppress(Exception):
+        scan = scan_project_structure(root)
+        inferred = str(scan.get("inferred_type", ""))
 
+    state_path = root / _INTERVIEW_STATE_FILE
+    dims = _make_dimensions(inferred)
+    if state_path.exists():
         with contextlib.suppress(Exception):
             data = json.loads(state_path.read_text(encoding="utf-8"))
             by_key = {d.key: d for d in dims}
@@ -392,9 +649,6 @@ def run_interview(
 
 def _run_non_interactive_interview(root: Path) -> dict[str, object]:
     """Auto-generate synthetic answers from project scan (for CI/non-interactive mode)."""
-    import copy
-
-    dims = copy.deepcopy(ARCH_DIMENSIONS)
     try:
         scan = scan_project_structure(root)
     except Exception:  # noqa: BLE001
@@ -404,8 +658,11 @@ def _run_non_interactive_interview(root: Path) -> dict[str, object]:
     primary_lang = str(scan.get("primary_language", "unknown"))
     inferred_type = str(scan.get("inferred_type", "unknown"))
 
+    dims = _make_dimensions(inferred_type)
+
     # Assign synthetic answers so every dimension has some content
     synthetic = {
+        "project_type": inferred_type,
         "problem_domain": f"A {inferred_type} system developed in {primary_lang}.",
         "user_types": "Developers and end-users of the system.",
         "key_integrations": "File system, standard library, and project dependencies.",

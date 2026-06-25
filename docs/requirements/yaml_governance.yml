@@ -696,7 +696,7 @@
 - id: REQ-371
   title: ESDB auto-promotion prompts to migrate SQLite records into ChronoStore when
     license becomes available
-  status: accepted
+  status: implemented
   description: 'When open_default_store() selects ChronoStore (valid license present)
     but ChronoStore is empty while SqliteStore has records, specsmith MUST prompt
     the user: "Migrate N ESDB records from SQLite → ChronoStore? [Y/n]" with Y as
@@ -709,7 +709,7 @@
 - id: REQ-372
   title: specsmith esdb switch-backend command migrates between SQLite and ChronoStore
     with explicit data-loss warning
-  status: accepted
+  status: implemented
   description: '"specsmith esdb switch-backend --to chronomemory" bulk-imports all
     SQLite records into ChronoStore (requires valid license); prints record count
     on success. "specsmith esdb switch-backend --to sqlite" exports ChronoStore
@@ -722,7 +722,7 @@
 - id: REQ-373
   title: docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON
     cache are the only governance sources
-  status: accepted
+  status: implemented
   description: 'Markdown governance docs docs/REQUIREMENTS.md and docs/TESTS.md are
     removed entirely — no generation, no reading, no recommended-file check. The
     m007_yaml_first migration parses any existing markdown files into docs/requirements/
@@ -737,7 +737,7 @@
 - id: REQ-374
   title: specsmith cleanup command removes specsmith runtime cache files with dry-run
     by default
-  status: accepted
+  status: implemented
   description: '"specsmith cleanup" (dry-run by default, --apply to delete) removes
     specsmith runtime cache directories: .specsmith/migration-backups/, .specsmith/runs/,
     .specsmith/sessions/, .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/,
@@ -801,3 +801,71 @@
   source: plan eadbed6a
   test_ids:
   - TEST-381
+
+- id: REQ-380
+  title: session_init YAML-first requirement count reads requirements.json
+  description: >-
+    In YAML-first governance mode (.specsmith/governance-mode=yaml), session_init._count_requirements()
+    reads .specsmith/requirements.json and .specsmith/testcases.json to determine total and covered
+    requirement counts. It must NOT read the deprecated REQUIREMENTS.md or TESTS.md files.
+  status: implemented
+  test_ids: [TEST-388]
+
+- id: REQ-381
+  title: BA interview project_type dimension pre-populated with auto-detected type
+  description: >-
+    The BA interview includes a project_type dimension as the first (10th overall) question.
+    The hint is pre-populated with the inferred_type from scan_project_structure() so the user
+    sees the auto-detected type and can confirm or refine it before the nine technical dimensions.
+  status: implemented
+  test_ids: [TEST-389]
+
+- id: REQ-382
+  title: BA feature gap catalog maps ProjectType values to known specsmith gaps
+  description: >-
+    SPECSMITH_FEATURE_CATALOG maps ProjectType.value strings to lists of FeatureGap dataclasses
+    describing known gaps in specsmith support for that project category. Covered types include
+    embedded-hardware, yocto-bsp, cli-python, web-frontend, data-ml, safety-critical, llm-app,
+    mcp-server, fpga-rtl, and related aliases.
+  status: implemented
+  test_ids: [TEST-390]
+
+- id: REQ-383
+  title: specsmith architect issues detects feature gaps and creates GitHub issues
+  description: >-
+    specsmith architect issues reads BA interview state to determine project type, cross-references
+    SPECSMITH_FEATURE_CATALOG, and prints the gap list. With --create it calls gh issue create for
+    each gap. With --repo OWNER/REPO it targets a specified repository; default auto-detects via
+    gh repo view. --create is always opt-in (default: list only).
+  status: implemented
+  test_ids: [TEST-391]
+
+- id: REQ-384
+  title: specsmith resume combines load and run in one command
+  description: >-
+    specsmith resume performs git pull, optional ESDB WAL restore (--from-backup), ESDB status
+    report, then immediately starts the interactive AgentRunner session. It accepts --provider,
+    --model, and --tier flags forwarded to AgentRunner. This replaces the two-step
+    specsmith load + specsmith run workflow.
+  status: implemented
+  test_ids: [TEST-392]
+
+- id: REQ-385
+  title: LocalModelSelector detects hardware and returns best Ollama model; skips CPU-only
+  description: >-
+    detect_local_model() in local_model.py detects Apple Silicon (via sysctl hw.memsize) and NVIDIA
+    GPUs (via nvidia-smi) and returns a LocalModelInfo with the best qwen2.5-coder model tag for
+    the detected VRAM tier. Returns None when no GPU is present or VRAM < 7 GB (CPU-only would
+    be unusably slow).
+  status: implemented
+  test_ids: [TEST-393]
+
+- id: REQ-386
+  title: specsmith local-model detect/setup CLI exposes hardware-aware model recommendation
+  description: >-
+    specsmith local-model detect prints the recommended Ollama model tag, hardware tier, HF repo,
+    and pull command for the current machine. specsmith local-model setup pulls the model via
+    ensure_local_model(). Both commands support --json for machine-readable output. Setup is
+    always opt-in and warns when no GPU is detected.
+  status: implemented
+  test_ids: [TEST-394]
