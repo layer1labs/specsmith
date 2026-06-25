@@ -339,18 +339,47 @@ def _read_project_name(root: Path) -> str:
     except Exception:  # noqa: BLE001
         pass
 
-    try:
-        import tomllib  # Python 3.11+
+    # Try TOML-based pyproject.toml (tomllib is stdlib in 3.11+; fall back to regex
+    # on older interpreters so CI stays green across all supported Python versions).
+    pyp = root / "pyproject.toml"
+    if pyp.is_file():
+        try:
+            try:
+                import tomllib  # Python 3.11+
+            except ImportError:
+                import tomli as tomllib  # type: ignore[no-redef]
 
-        pyp = root / "pyproject.toml"
-        if pyp.is_file():
             data = tomllib.loads(pyp.read_text(encoding="utf-8"))
             poetry_name = data.get("tool", {}).get("poetry", {}).get("name") or ""
             name = data.get("project", {}).get("name") or poetry_name
             if name:
                 return str(name)
-    except Exception:  # noqa: BLE001
-        pass
+        except Exception:  # noqa: BLE001
+            pass
+
+        # Last-resort regex fallback: handles Python 3.10 without tomli installed.
+        try:
+            import re
+
+            text = pyp.read_text(encoding="utf-8")
+            # Match [project] section name field
+            m = re.search(
+                r'^\[project\].*?^name\s*=\s*["\']([^"\'\']+)["\']',
+                text,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m:
+                return m.group(1).strip()
+            # Match [tool.poetry] name field
+            m2 = re.search(
+                r'^\[tool\.poetry\].*?^name\s*=\s*["\']([^"\'\']+)["\']',
+                text,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m2:
+                return m2.group(1).strip()
+        except Exception:  # noqa: BLE001
+            pass
 
     return root.name
 

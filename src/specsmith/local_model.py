@@ -42,8 +42,8 @@ if TYPE_CHECKING:
 class ModelRole(str, Enum):
     """Semantic role that determines which local model is invoked."""
 
-    general = "general"    # project management, Q&A, chat
-    coding = "coding"      # code generation, editing, debugging
+    general = "general"  # project management, Q&A, chat
+    coding = "coding"  # code generation, editing, debugging
     reasoning = "reasoning"  # deep analysis, architecture, multi-step reasoning
 
 
@@ -313,7 +313,7 @@ def load_local_models_config(project_dir: str | Path) -> dict[str, str]:
                 continue
             if in_models:
                 if stripped.startswith("  ") or line.startswith(" "):
-                    m = _re.match(r'^\s+(\w+):\s+(.+)$', line)
+                    m = _re.match(r"^\s+(\w+):\s+(.+)$", line)
                     if m:
                         models_block[m.group(1)] = m.group(2).strip()
                 elif stripped and not stripped.startswith(" "):

@@ -2484,7 +2484,9 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
         try:
             result = _sub.run(  # noqa: S603, S607
                 ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             target_repo = result.stdout.strip()
         except Exception:  # noqa: BLE001
@@ -2508,12 +2510,20 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
         try:
             proc = _sub.run(  # noqa: S603, S607
                 [
-                    "gh", "issue", "create",
-                    "--repo", target_repo,
-                    "--title", gap.title,
-                    "--body", body,
-                ] + label_args,
-                capture_output=True, text=True, timeout=30,
+                    "gh",
+                    "issue",
+                    "create",
+                    "--repo",
+                    target_repo,
+                    "--title",
+                    gap.title,
+                    "--body",
+                    body,
+                ]
+                + label_args,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             if proc.returncode == 0:
                 url = proc.stdout.strip()
@@ -3277,8 +3287,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                     "step": "dirty_tree_warning",
                     "ok": True,  # informational — does not block overall ok
                     "note": (
-                        f"{len(remaining)} file(s) still uncommitted after save. "
-                        "Run: git status"
+                        f"{len(remaining)} file(s) still uncommitted after save. Run: git status"
                     ),
                     "dirty_files": remaining,
                 }
@@ -3308,8 +3317,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                 files_str = ", ".join(step.get("dirty_files", [])[:5])
                 extra = " ..." if len(step.get("dirty_files", [])) > 5 else ""
                 console.print(
-                    f"  [yellow]\u26a0[/yellow]  {step['note']}  "
-                    f"[dim]({files_str}{extra})[/dim]"
+                    f"  [yellow]\u26a0[/yellow]  {step['note']}  [dim]({files_str}{extra})[/dim]"
                 )
                 continue
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
@@ -4498,11 +4506,7 @@ def _get_dirty_files(root: Path) -> list[str]:
             timeout=10,
         )
         if result.returncode == 0:
-            return [
-                line[3:].strip()
-                for line in result.stdout.splitlines()
-                if line.strip()
-            ]
+            return [line[3:].strip() for line in result.stdout.splitlines() if line.strip()]
     except Exception:  # noqa: BLE001
         pass
     return []

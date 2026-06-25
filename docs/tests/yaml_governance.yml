@@ -75,8 +75,7 @@
   title: ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
   description: ChronoStore (ChronoMemory backend class) MUST append events as NDJSON
     with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status()
-    returns chain_valid=True
-    after appending records.
+    returns chain_valid=True after appending records.
   requirement_id: REQ-305
   type: integration
   verification_method: pytest
@@ -838,9 +837,8 @@
     manager, upsert roundtrip, query filters, delete tombstone, migrate_from_json,
     wal_seq monotonically increasing, chain_valid always True
 - id: TEST-367
-  title: specsmith.esdb activates ChronoStore (ChronoMemory backend) only when a
-    valid Ed25519 license key
-    is present; falls back to SqliteStore otherwise
+  title: specsmith.esdb activates ChronoStore (ChronoMemory backend) only when a valid
+    Ed25519 license key is present; falls back to SqliteStore otherwise
   requirement_id: REQ-366
   type: unit
   verification_method: pytest tests/test_esdb_license.py — scenarios cover valid key
@@ -879,14 +877,13 @@
     and upgrade command
   requirement_id: REQ-370
   type: unit
-  verification_method: pytest tests/test_migration_direction.py — four sub-tests
-    cover run_upgrade downgrade_error=True, run_migration ERROR string, upgrade
-    --spec-version older exit 1, and auto-prompt downgrade hard error
+  verification_method: pytest tests/test_migration_direction.py — four sub-tests cover
+    run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version
+    older exit 1, and auto-prompt downgrade hard error
   confidence: 1.0
 - id: TEST-372
   title: esdb status --json reports active ChronoStore (ChronoMemory backend) and
-    emits structured
-    output-write errors
+    emits structured output-write errors
   requirement_id: REQ-366
   type: unit
   verification_method: pytest tests/test_esdb_license.py::test_esdb_status_json_uses_active_backend
@@ -896,8 +893,8 @@
   confidence: 0.95
 - id: TEST-373
   title: open_default_store prompts to migrate SQLite records into ChronoStore (ChronoMemory
-    backend) when
-    license is valid but ChronoStore is empty; auto-accepts in non-interactive mode
+    backend) when license is valid but ChronoStore is empty; auto-accepts in non-interactive
+    mode
   requirement_id: REQ-371
   type: unit
   verification_method: pytest tests/test_esdb_backend_switch.py::test_auto_promotion_prompts_with_y_default
@@ -917,8 +914,8 @@
   confidence: 1.0
 - id: TEST-375
   title: m007 migration converts markdown REQUIREMENTS.md and TESTS.md to YAML files,
-    deletes them, and sets governance-mode=yaml; run_sync auto-triggers m007 for
-    markdown-mode projects
+    deletes them, and sets governance-mode=yaml; run_sync auto-triggers m007 for markdown-mode
+    projects
   requirement_id: REQ-373
   type: unit
   verification_method: pytest tests/test_markdown_deprecation.py — create tmp project
@@ -937,159 +934,167 @@
     and esdb.sqlite3 untouched
   confidence: 1.0
 - id: TEST-377
-  title: specsmith architect interview non-interactive produces ARCHITECTURE.md and proposed.yml
+  title: specsmith architect interview non-interactive produces ARCHITECTURE.md and
+    proposed.yml
   requirement_id: REQ-375
   type: unit
-  description: 'Run run_interview(root, non_interactive=True). Assert docs/ARCHITECTURE.md
+  description: Run run_interview(root, non_interactive=True). Assert docs/ARCHITECTURE.md
     exists and contains confidence annotations. Assert docs/requirements/proposed.yml
-    exists and contains REQ IDs.'
+    exists and contains REQ IDs.
 - id: TEST-378
   title: Interview state is persisted to arch-interview.json after each answer
   requirement_id: REQ-376
   type: unit
-  description: 'After run_interview(non_interactive=True), .specsmith/arch-interview.json
-    MUST exist, be valid JSON, and contain 9 entries with key, confidence, and answer fields.'
+  description: After run_interview(non_interactive=True), .specsmith/arch-interview.json
+    MUST exist, be valid JSON, and contain 9 entries with key, confidence, and answer
+    fields.
 - id: TEST-379
   title: architect gap detects new sections and proposes REQs
   requirement_id: REQ-377
   type: unit
-  description: 'Create ARCHITECTURE.md, run run_gap_analysis (saves snapshot), add
-    a new section, run again. Assert new_reqs contains at least 1 entry for the added section.'
+  description: Create ARCHITECTURE.md, run run_gap_analysis (saves snapshot), add
+    a new section, run again. Assert new_reqs contains at least 1 entry for the added
+    section.
 - id: TEST-380
-  title: scaffold_project writes governance-mode=yaml and creates YAML governance dirs
+  title: scaffold_project writes governance-mode=yaml and creates YAML governance
+    dirs
   requirement_id: REQ-378
   type: unit
-  description: 'Call scaffold_project(cfg, target). Assert target/.specsmith/governance-mode
-    == "yaml". Assert target/docs/requirements/core.yml and target/docs/tests/core.yml exist.'
+  description: Call scaffold_project(cfg, target). Assert target/.specsmith/governance-mode
+    == "yaml". Assert target/docs/requirements/core.yml and target/docs/tests/core.yml
+    exist.
 - id: TEST-381
   title: Auditor yaml-requirements-dir passes for markdown-mode projects
   requirement_id: REQ-379
   type: unit
-  description: 'Create a minimal project without .specsmith/governance-mode (legacy
+  description: Create a minimal project without .specsmith/governance-mode (legacy
     mode). Run run_audit(). Assert yaml-requirements-dir result.passed == True and
-    message mentions legacy markdown mode.'
-
+    message mentions legacy markdown mode.
 - id: TEST-388
   title: session_init reads requirements.json in YAML-first mode
   description: In YAML-first mode, _count_requirements returns count from requirements.json
   requirement_id: REQ-380
   type: unit
   verification_method: pytest
-
 - id: TEST-389
   title: BA interview project_type dimension is first and has auto-detected hint
-  description: ARCH_DIMENSIONS[0].key == project_type; _make_dimensions(type) populates hint
+  description: ARCH_DIMENSIONS[0].key == project_type; _make_dimensions(type) populates
+    hint
   requirement_id: REQ-381
   type: unit
   verification_method: pytest
-
 - id: TEST-390
   title: SPECSMITH_FEATURE_CATALOG returns FeatureGap list for known project types
-  description: Catalog returns non-empty list for embedded-hardware, yocto-bsp, llm-app etc
+  description: Catalog returns non-empty list for embedded-hardware, yocto-bsp, llm-app
+    etc
   requirement_id: REQ-382
   type: unit
   verification_method: pytest
-
 - id: TEST-391
   title: specsmith architect issues CLI renders gap table and --create calls gh
   description: CLI prints gaps; with --create mocked gh is invoked per gap
   requirement_id: REQ-383
   type: integration
   verification_method: pytest
-
 - id: TEST-392
   title: specsmith resume CLI is registered and pulls then starts runner
   description: Command exists in CLI; pull and runner.run_interactive are called (mocked)
   requirement_id: REQ-384
   type: integration
   verification_method: pytest
-
 - id: TEST-393
   title: detect_local_model returns correct model for mocked hardware profiles
   description: Mocked Apple Silicon 24GB -> 14b; NVIDIA 8GB -> 7b; CPU-only -> None
   requirement_id: REQ-385
   type: unit
   verification_method: pytest
-
 - id: TEST-394
   title: specsmith local-model detect CLI prints hardware and model recommendation
-  description: CLI output contains model name and hardware tier; --json returns parseable JSON
+  description: CLI output contains model name and hardware tier; --json returns parseable
+    JSON
   requirement_id: REQ-386
   type: integration
   verification_method: pytest
-
 - id: TEST-395
   title: detect_local_models returns per-role models; config round-trips to YAML
-  description: >-
-    Mocked NVIDIA 16 GB -> coding=qwen2.5-coder:14b, general=qwen2.5:14b, reasoning=deepseek-r1:14b.
-    save_local_models_config then load_local_models_config round-trips correctly.
-    CPU-only returns empty dict.
+  description: Mocked NVIDIA 16 GB -> coding=qwen2.5-coder:14b, general=qwen2.5:14b,
+    reasoning=deepseek-r1:14b. save_local_models_config then load_local_models_config
+    round-trips correctly. CPU-only returns empty dict.
   requirement_id: REQ-387
   type: unit
   verification_method: pytest
   confidence: 0.95
-
 - id: TEST-396
   title: classify_intent and ModelRouter route to correct role
-  description: >-
-    classify_intent('write a function') == coding; classify_intent('analyze architecture')
-    == reasoning; classify_intent('what is the status') == general. ModelRouter.route()
-    returns (model, switched=True) on first call and switched=False on repeat same role.
-    table() returns non-empty string.
+  description: classify_intent('write a function') == coding; classify_intent('analyze
+    architecture') == reasoning; classify_intent('what is the status') == general.
+    ModelRouter.route() returns (model, switched=True) on first call and switched=False
+    on repeat same role. table() returns non-empty string.
   requirement_id: REQ-388
   type: unit
   verification_method: pytest
   confidence: 0.95
-
 - id: TEST-397
   title: AgentRunner with ModelRouter sets SPECSMITH_OLLAMA_MODEL per turn
-  description: >-
-    AgentRunner with mocked local-models.yml containing three roles; mock run_chat records
-    SPECSMITH_OLLAMA_MODEL at call time. Coding utterance sets coding model; reasoning
-    utterance sets reasoning model; env var restored after turn.
+  description: AgentRunner with mocked local-models.yml containing three roles; mock
+    run_chat records SPECSMITH_OLLAMA_MODEL at call time. Coding utterance sets coding
+    model; reasoning utterance sets reasoning model; env var restored after turn.
   requirement_id: REQ-389
   type: unit
   verification_method: pytest
   confidence: 0.9
-
 - id: TEST-398
   title: specsmith run prints Ollama guidance when no provider available
-  description: >-
-    With no API keys and Ollama not running, specsmith run (no flags) exits 0 and stdout
-    contains 'ollama.ai'. With Ollama installed but not running, output contains 'ollama serve'.
+  description: With no API keys and Ollama not running, specsmith run (no flags) exits
+    0 and stdout contains 'ollama.ai'. With Ollama installed but not running, output
+    contains 'ollama serve'.
   requirement_id: REQ-390
   type: cli
   verification_method: pytest
   confidence: 0.9
-
 - id: TEST-399
   title: specsmith run auto-saves local-models.yml after first detection
-  description: >-
-    AgentRunner with mocked detect_local_models returning non-empty dict; after init,
-    .specsmith/local-models.yml is written with correct role->model mapping and detected_at.
+  description: AgentRunner with mocked detect_local_models returning non-empty dict;
+    after init, .specsmith/local-models.yml is written with correct role->model mapping
+    and detected_at.
   requirement_id: REQ-391
   type: unit
   verification_method: pytest
   confidence: 0.9
-
 - id: TEST-400
   title: esdb status --json uses sys.stdout.write and exits 1 on write failure
-  description: >-
-    With mocked sys.stdout.write that raises OSError, the command must write a structured
-    error JSON to sys.stderr and exit with code 1. Normal path uses sys.stdout.write
-    (not click.echo) for the JSON payload.
+  description: With mocked sys.stdout.write that raises OSError, the command must
+    write a structured error JSON to sys.stderr and exit with code 1. Normal path
+    uses sys.stdout.write (not click.echo) for the JSON payload.
   requirement_id: REQ-392
   type: unit
   verification_method: pytest
   confidence: 0.9
-
 - id: TEST-401
   title: specsmith save appends dirty-tree warning step when files remain uncommitted
-  description: >-
-    After mocked run_commit that succeeds, if has_uncommitted_changes returns True again
-    (files still dirty), a warning step with ok=True and dirty_files list is appended.
-    The overall ok flag remains True. CLI output contains the warning text.
+  description: After mocked run_commit that succeeds, if has_uncommitted_changes returns
+    True again (files still dirty), a warning step with ok=True and dirty_files list
+    is appended. The overall ok flag remains True. CLI output contains the warning
+    text.
   requirement_id: REQ-393
   type: unit
   verification_method: pytest
   confidence: 0.9
+- id: TEST-402
+  title: 'CI matrix: chronomemory tests pass without chronomemory installed (sys.modules
+    mock)'
+  requirement_id: REQ-394
+  type: integration
+  verification_method: pytest
+  description: test_esdb_status_json_uses_active_backend and test_esdb_status_json_stdout_failure_has_structured_error
+    must pass on Python 3.10-3.13 without chronomemory installed by using patch.dict(sys.modules)
+    to inject a MagicMock.
+- id: TEST-403
+  title: 'CI matrix: quality_report project name reads pyproject.toml on Python 3.10
+    (regex fallback)'
+  requirement_id: REQ-394
+  type: integration
+  verification_method: pytest
+  description: test_project_name_from_pyproject must pass on Python 3.10 where tomllib
+    is not in stdlib. quality_report._read_project_name falls back to tomli if available,
+    then regex matching, rather than failing.

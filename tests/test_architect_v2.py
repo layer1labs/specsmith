@@ -261,10 +261,13 @@ class TestArchitectIssuesCLI:
             result = runner.invoke(
                 main,
                 [
-                    "architect", "issues",
-                    "--project-dir", str(tmp_path),
+                    "architect",
+                    "issues",
+                    "--project-dir",
+                    str(tmp_path),
                     "--create",
-                    "--repo", "owner/repo",
+                    "--repo",
+                    "owner/repo",
                 ],
             )
         assert result.exit_code == 0

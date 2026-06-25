@@ -401,8 +401,7 @@ class AgentRunner:
                     lines.append(self._model_router.table())
                     lines.append("")
                 lines.append(
-                    "  Type plain English, or use "
-                    "/plan /ask /fix /test /commit /pr /models /exit"
+                    "  Type plain English, or use /plan /ask /fix /test /commit /pr /models /exit"
                 )
             print("\n".join(lines), flush=True)
 
@@ -463,8 +462,7 @@ class AgentRunner:
             msg = (
                 self._model_router.table()
                 if self._model_router is not None
-                else "  (multi-model routing not configured — "
-                "run: specsmith local-model setup)"
+                else "  (multi-model routing not configured — run: specsmith local-model setup)"
             )
             self._emit_event(type="system", message=msg)
             return None
@@ -596,9 +594,7 @@ class AgentRunner:
         # instead of staying pinned at zero.
         tokens_in = int(getattr(result, "tokens_in", 0) or 0) if result is not None else 0
         tokens_out = int(getattr(result, "tokens_out", 0) or 0) if result is not None else 0
-        cost_usd = (
-            float(getattr(result, "cost_usd", 0.0) or 0.0) if result is not None else 0.0
-        )
+        cost_usd = float(getattr(result, "cost_usd", 0.0) or 0.0) if result is not None else 0.0
         self._state.credit(
             profile_id=(profile.id if profile is not None else self.profile_id or ""),
             tokens_in=tokens_in,

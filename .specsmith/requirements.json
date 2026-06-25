@@ -3864,5 +3864,17 @@
     "test_ids": [
       "TEST-401"
     ]
+  },
+  {
+    "id": "REQ-394",
+    "version": 1,
+    "title": "specsmith test suite must pass on all supported Python versions (3.10-3.13)",
+    "description": "CI matrix covers Python 3.10, 3.11, 3.12, 3.13. All tests must pass on every version, including tests that use optional packages (chronomemory, tomllib). Tests requiring unavailable optional packages must use sys.modules mocking or stdlib fallbacks rather than skip decorators.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-402",
+      "TEST-403"
+    ]
   }
 ]

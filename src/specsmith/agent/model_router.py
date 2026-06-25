@@ -30,37 +30,100 @@ __all__ = ["ModelRouter", "classify_intent"]
 # ---------------------------------------------------------------------------
 
 # Slash commands that strongly signal coding work.
-_CODING_SLASH: frozenset[str] = frozenset(
-    {"/code", "/fix", "/refactor", "/test", "/commit", "/pr"}
-)
+_CODING_SLASH: frozenset[str] = frozenset({"/code", "/fix", "/refactor", "/test", "/commit", "/pr"})
 
 # Slash commands that signal analytical / planning work.
-_REASONING_SLASH: frozenset[str] = frozenset(
-    {"/architect", "/plan", "/audit", "/review", "/why"}
-)
+_REASONING_SLASH: frozenset[str] = frozenset({"/architect", "/plan", "/audit", "/review", "/why"})
 
 # Keywords that indicate the user wants code written or bugs fixed.
 _CODING_KEYWORDS: frozenset[str] = frozenset(
     {
-        "write", "implement", "function", "method", "class", "bug", "error",
-        "fix", "patch", "test", "debug", "refactor", "import", "syntax",
-        "compile", "code", "script", "module", "api", "endpoint", "snippet",
-        "variable", "loop", "array", "dict", "parse", "format", "regex",
-        "unittest", "pytest", "mock", "stub", "boilerplate", "scaffold",
-        "decorator", "lambda", "iterator", "generator", "async", "await",
-        "coroutine", "type", "hint", "annotation", "dataclass",
+        "write",
+        "implement",
+        "function",
+        "method",
+        "class",
+        "bug",
+        "error",
+        "fix",
+        "patch",
+        "test",
+        "debug",
+        "refactor",
+        "import",
+        "syntax",
+        "compile",
+        "code",
+        "script",
+        "module",
+        "api",
+        "endpoint",
+        "snippet",
+        "variable",
+        "loop",
+        "array",
+        "dict",
+        "parse",
+        "format",
+        "regex",
+        "unittest",
+        "pytest",
+        "mock",
+        "stub",
+        "boilerplate",
+        "scaffold",
+        "decorator",
+        "lambda",
+        "iterator",
+        "generator",
+        "async",
+        "await",
+        "coroutine",
+        "type",
+        "hint",
+        "annotation",
+        "dataclass",
     }
 )
 
 # Keywords that indicate the user wants analysis, architecture, or deep reasoning.
 _REASONING_KEYWORDS: frozenset[str] = frozenset(
     {
-        "analyze", "analyse", "explain", "reason", "strategy", "architecture",
-        "design", "evaluate", "compare", "tradeoff", "trade-off", "review",
-        "audit", "assess", "consider", "approach", "decision", "structure",
-        "plan", "requirements", "spec", "diagram", "model", "rationale",
-        "justify", "pros", "cons", "recommend", "alternative", "consequence",
-        "impact", "risk", "bottleneck", "complexity", "scalability",
+        "analyze",
+        "analyse",
+        "explain",
+        "reason",
+        "strategy",
+        "architecture",
+        "design",
+        "evaluate",
+        "compare",
+        "tradeoff",
+        "trade-off",
+        "review",
+        "audit",
+        "assess",
+        "consider",
+        "approach",
+        "decision",
+        "structure",
+        "plan",
+        "requirements",
+        "spec",
+        "diagram",
+        "model",
+        "rationale",
+        "justify",
+        "pros",
+        "cons",
+        "recommend",
+        "alternative",
+        "consequence",
+        "impact",
+        "risk",
+        "bottleneck",
+        "complexity",
+        "scalability",
     }
 )
 
@@ -139,9 +202,7 @@ class ModelRouter:
 
         # Resolve: prefer exact role match, fallback to general, then any.
         model = (
-            self._roles.get(role)
-            or self._roles.get("general")
-            or next(iter(self._roles.values()))
+            self._roles.get(role) or self._roles.get("general") or next(iter(self._roles.values()))
         )
 
         if model == self._current_model:

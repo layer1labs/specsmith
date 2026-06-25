@@ -29,8 +29,7 @@ class TestEsdbStatusJsonNoAbort:
         runner = CliRunner()
         return runner.invoke(
             main,
-            ["esdb", "status", "--project-dir", project_dir, "--json"]
-            + (extra_args or []),
+            ["esdb", "status", "--project-dir", project_dir, "--json"] + (extra_args or []),
         )
 
     def test_json_output_is_parseable(self, tmp_path: Path) -> None:
@@ -60,9 +59,7 @@ class TestEsdbStatusJsonNoAbort:
                 pass
 
         exit_code = 0
-        ctx = esdb_status_cmd.make_context(
-            "test", ["--project-dir", str(tmp_path), "--json"]
-        )
+        ctx = esdb_status_cmd.make_context("test", ["--project-dir", str(tmp_path), "--json"])
         with patch.object(sys, "stdout", _FailingStdout()):
             try:
                 ctx.invoke(
@@ -125,9 +122,7 @@ class TestSaveDirtyTreeWarning:
             check=True,
         )
         (tmp_path / "README.md").write_text("# test", encoding="utf-8")
-        subprocess.run(
-            ["git", "-C", str(tmp_path), "add", "-A"], capture_output=True, check=True
-        )
+        subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], capture_output=True, check=True)
         subprocess.run(
             ["git", "-C", str(tmp_path), "commit", "-m", "init"],
             capture_output=True,
