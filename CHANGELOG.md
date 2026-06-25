@@ -12,6 +12,22 @@ consolidated into the next published release.
 
 ---
 
+## [0.16.5] - 2026-06-25
+
+### Added
+
+- **Published `COMMERCIAL-LICENSE.md` in specsmith** as the canonical public
+  terms document for the **ChronoMemory commercial ESDB backend**.
+
+### Changed
+
+- ESDB docs and install guidance now link directly to
+  `COMMERCIAL-LICENSE.md` and explicitly distinguish:
+  - ChronoMemory commercial backend licensing scope, and
+  - SQLite default backend (`specsmith`) remaining MIT/free.
+
+---
+
 ## [0.16.4] - 2026-06-24
 
 ### Changed

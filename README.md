@@ -48,7 +48,7 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.16.4** — Codity AI Review removed from specsmith's own CI; it is now strictly opt-in via `specsmith integrate codity`.
+**v0.16.5** — published `COMMERCIAL-LICENSE.md` (ChronoMemory commercial ESDB terms only) and clarified ESDB licensing links/scope; Codity AI Review remains opt-in via `specsmith integrate codity`.
 
 **v0.16.3** — docs navigation patch release: keeps Material tabs enabled while regrouping top-level docs navigation to reduce overflow, and aligns MkDocs scaffold defaults plus the MkDocs skill example with the grouped-tab layout.
 
@@ -187,7 +187,7 @@ in your own application without managing a pipx environment.
 | Tier | Package | License | What you get |
 |------|---------|---------|-------------|
 | **Default** | `specsmith` (built-in) | MIT, free | SQLite backend — requirements, test cases, confidence filtering |
-| **Commercial** | `chronomemory` via `specsmith[esdb]` | Proprietary — license required | ChronoStore: tamper-evident SHA-256 WAL, OEA anti-hallucination fields, Rust acceleration, epistemic rollback |
+| **Commercial** | `chronomemory` via `specsmith[esdb]` | Proprietary — license required (see [COMMERCIAL-LICENSE.md](https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md)) | ChronoStore: tamper-evident SHA-256 WAL, OEA anti-hallucination fields, Rust acceleration, epistemic rollback |
 
 See `docs/editions.md` for the full OSS vs commercial feature matrix.
 
@@ -225,6 +225,7 @@ specsmith esdb status
 
 To obtain a chronomemory ESDB license:
 [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) · [ESDB licensing docs](https://specsmith.readthedocs.io/en/stable/esdb/#licensing)
+· [ChronoMemory commercial terms](https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md)
 See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a feature comparison and Python API reference.
 
 **Upgrading specsmith:**

@@ -148,6 +148,7 @@ key (Step 2) is the technical and legal gate.
 | Channel | Details |
 |---|---|
 | Email | [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) |
+| Terms | [COMMERCIAL-LICENSE.md (ChronoMemory only)](https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md) |
 
 ---
 
