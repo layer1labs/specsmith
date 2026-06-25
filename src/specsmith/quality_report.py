@@ -345,9 +345,9 @@ def _read_project_name(root: Path) -> str:
     if pyp.is_file():
         try:
             try:
-                import tomllib  # type: ignore[import-not-found]  # Python 3.11+
+                import tomllib  # Python 3.11+
             except ImportError:
-                import tomli as tomllib  # type: ignore[import-not-found]
+                import tomli as tomllib
 
             data = tomllib.loads(pyp.read_text(encoding="utf-8"))
             poetry_name = data.get("tool", {}).get("poetry", {}).get("name") or ""

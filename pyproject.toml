@@ -182,6 +182,8 @@ module = [
     "whisper_cpp_python.*",
     "chronomemory",   # git dep — no published stubs yet
     "chronomemory.*",
+    "tomllib",         # stdlib in 3.11+; not available when checking against python_version=3.10
+    "tomli",           # optional 3.10 backport; not installed in the dev environment
 ]
 ignore_missing_imports = true
 
