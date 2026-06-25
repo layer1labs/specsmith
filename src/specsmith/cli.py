@@ -1845,9 +1845,12 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     import subprocess
     import sys
 
-    # Single import style (no from-import) avoids CodeQL py/import-and-import-from.
-    import specsmith.esdb as _esdb_mod_dr
     from specsmith.auditor import run_audit
+
+    # Use from-import to stay consistent with the rest of the file (#208).
+    # Re-read ESDB_BACKEND via sys.modules after open_default_store() updates
+    # the module-level global in-place so the locally-imported name is fresh.
+    from specsmith.esdb import open_default_store as _open_esdb_dr  # noqa: PLC0415
     from specsmith.phase import read_phase
 
     def _tool_version(cmd: str) -> tuple[bool, str]:
@@ -1897,7 +1900,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     chain_ok = False
     record_count = 0
     try:
-        with _esdb_mod_dr.open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        with _open_esdb_dr(root, warn=False) as store:  # type: ignore[attr-defined]
             esdb_open = True
             record_count = int(store.record_count())
             chain_ok = store.chain_valid() is not False
@@ -1907,7 +1910,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         # Re-read the module-level ESDB_BACKEND — open_default_store() updates
         # the global in-place so we read it via the module object, not a
         # locally-imported name that would be stale. (#263)
-        _add("esdb backend", True, f"{_esdb_mod_dr.ESDB_BACKEND} open")
+        _add("esdb backend", True, f"{sys.modules['specsmith.esdb'].ESDB_BACKEND} open")
         _add(
             "esdb chain",
             chain_ok,
@@ -11264,8 +11267,11 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     import json as _json
     import sys
 
-    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND (#263)
-    from specsmith.esdb._license import check_license, resolve_license_path
+    # Use from-import + sys.modules to avoid py/import-and-import-from (#207).
+    # open_default_store() updates the module-level ESDB_BACKEND global in-place;
+    # we re-read it via sys.modules after the open so the name is always current.
+    from specsmith.esdb import open_default_store as _esdb_open_status  # noqa: PLC0415
+    from specsmith.esdb._license import check_license, resolve_license_path  # noqa: PLC0415
     from specsmith.sync import auto_migrate_if_needed
 
     root = Path(project_dir).resolve()
@@ -11276,10 +11282,10 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     lic_status = check_license(warn=False) if lic_path else None
 
     # Open the appropriate store (no warning — we’ll report it ourselves)
-    store = _esdb_mod.open_default_store(root, warn=False)
-    # Re-read ESDB_BACKEND from the module — open_default_store() updates the
-    # module-level global; the locally-imported name would be stale.  (#263)
-    active_backend = _esdb_mod.ESDB_BACKEND
+    store = _esdb_open_status(root, warn=False)
+    # Re-read ESDB_BACKEND from the module via sys.modules — open_default_store()
+    # updates the module-level global in-place; a locally-imported name is stale.
+    active_backend = sys.modules["specsmith.esdb"].ESDB_BACKEND
 
     backend_label: str
     chain_ok: bool = True
@@ -11311,7 +11317,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         backend_label = f"{active_backend} (error: {exc})"
 
     license_info: dict[str, object]
-    if not _esdb_mod.CHRONO_AVAILABLE:
+    if not sys.modules["specsmith.esdb"].CHRONO_AVAILABLE:
         license_info = {"chronomemory_installed": False, "active": False}
     elif lic_status is None:
         license_info = {
@@ -11383,7 +11389,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     if store_error:
         console.print(f"  [red]\u2717[/red] Store error: {store_error}")
     # License line
-    if not _esdb_mod.CHRONO_AVAILABLE:
+    if not sys.modules["specsmith.esdb"].CHRONO_AVAILABLE:
         console.print(
             "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"

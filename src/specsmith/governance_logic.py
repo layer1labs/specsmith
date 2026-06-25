@@ -71,26 +71,30 @@ def run_preflight(
     from specsmith import __version__
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
-    # _safe_resolve validates null bytes / traversal and returns
-    # Path(os.path.realpath(...)).  USE the return value so CodeQL's
-    # interprocedural analysis tracks the realpath sanitiser through
-    # _safe_resolve and sees every derived Path as clean — the same
-    # pattern run_verify uses with `root = _safe_resolve(project_dir)`.
-    _root: Path = _safe_resolve(project_dir)
-    _root_str: str = str(_root)
+    # Inline validation + sanitisation so CodeQL's taint analysis can follow
+    # the os.path.realpath sanitiser without crossing a user-defined function
+    # boundary (interprocedural tracking is unreliable for py/path-injection).
+    _raw = str(project_dir)
+    if "\x00" in _raw:
+        raise ValueError(f"Path contains null byte: {_raw!r}")
+    for _p in Path(_raw).parts:
+        if _p in ("..", "..."):
+            raise ValueError(f"Path traversal rejected: {_raw!r}")
+    # os.path.realpath is a CodeQL-recognised py/path-injection sanitiser.
+    # Assign once at root level; all derived paths inherit the sanitisation.
+    _safe_root = os.path.realpath(_raw)
+    _root = Path(_safe_root)
+    _root_str = _safe_root  # alias used by helpers later in this function
     intent = classify_intent(utterance)
     # Requirements are now sourced from .specsmith/requirements.json (YAML-first mode).
     # docs/REQUIREMENTS.md is deprecated (REQ-373) but still used as a fallback
     # for keyword matching in infer_scope() when it exists. Explicit REQ-NNN IDs
     # in the utterance are always resolved from requirements.json regardless.
-    # Use os.path.realpath directly (not through _safe_resolve) so CodeQL's
-    # interprocedural taint analysis can confirm the sanitiser inline without
-    # having to track through a user-defined wrapper function.
-    _req_md = Path(os.path.realpath(os.path.join(_root_str, "docs", "REQUIREMENTS.md")))
+    _req_md = Path(os.path.join(_safe_root, "docs", "REQUIREMENTS.md"))
     if not _req_md.is_file():
-        _req_md = Path(os.path.realpath(os.path.join(_root_str, "REQUIREMENTS.md")))  # legacy
+        _req_md = Path(os.path.join(_safe_root, "REQUIREMENTS.md"))  # legacy
     # infer_scope handles a non-existent path gracefully (returns empty scope)
-    _repo_idx = Path(os.path.realpath(os.path.join(_root_str, ".repo-index", "files.json")))
+    _repo_idx = Path(os.path.join(_safe_root, ".repo-index", "files.json"))
     scope = infer_scope(
         utterance,
         _req_md,
@@ -111,7 +115,7 @@ def run_preflight(
     # Read requirements machine-state using os.path.join on the clean _root_str
     # so CodeQL traces the full sanitisation chain without re-tainting via Path.
     rq_records: list[Any] = []
-    rq_path = _safe_resolve(os.path.join(_root_str, ".specsmith", "requirements.json"))
+    rq_path = Path(os.path.join(_safe_root, ".specsmith", "requirements.json"))
     if rq_path.is_file():
         try:
             _rq = _json.loads(rq_path.read_text(encoding="utf-8"))
@@ -128,7 +132,7 @@ def run_preflight(
     # Read test-case machine-state (same rationale as above).
     test_case_ids: list[str] = []
     tc_records: list[Any] = []
-    tc_path = _safe_resolve(os.path.join(_root_str, ".specsmith", "testcases.json"))
+    tc_path = Path(os.path.join(_safe_root, ".specsmith", "testcases.json"))
     if tc_path.is_file():
         try:
             _tc = _json.loads(tc_path.read_text(encoding="utf-8"))
