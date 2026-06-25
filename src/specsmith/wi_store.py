@@ -241,6 +241,18 @@ class WorkItemStore:
         items.append(item)
         self.save(items)
 
+    def _sync_to_esdb(self, item: WorkItem) -> None:
+        """Best-effort ESDB sync after any WI mutation (REQ-398).
+
+        Never raises — ESDB is not on the critical path for WI operations.
+        """
+        try:
+            from specsmith.esdb_writer import write_work_item_record
+
+            write_work_item_record(self._root, item)
+        except Exception:  # noqa: BLE001
+            pass
+
     def create(
         self,
         wi_id: str,
@@ -268,6 +280,7 @@ class WorkItemStore:
             confidence_target=confidence_target,
         )
         self.upsert(item)
+        self._sync_to_esdb(item)
         return item
 
     def set_status(
@@ -301,6 +314,7 @@ class WorkItemStore:
             if reason:
                 item.closed_reason = reason
         self.upsert(item)
+        self._sync_to_esdb(item)
         return item
 
     def mark_implemented(self, wi_id: str) -> WorkItem | None:
@@ -314,6 +328,7 @@ class WorkItemStore:
         item.verified = True
         item.updated_at = _now_iso()
         self.upsert(item)
+        self._sync_to_esdb(item)
         return item
 
     def promote_to_req(self, wi_id: str, req_id: str) -> WorkItem:
@@ -336,6 +351,7 @@ class WorkItemStore:
         item.closed_at = ts
         item.updated_at = ts
         self.upsert(item)
+        self._sync_to_esdb(item)
         return item
 
     def tag(self, wi_id: str, kind: str) -> WorkItem:

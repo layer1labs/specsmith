@@ -188,3 +188,9 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `dc451c3e0c2ef776...`
+
+## 2026-06-25T19:57 — ESDB Full Coverage: docs/ARCHITECTURE.md §19 record kinds table + §41 appended; chronomemory-esdb skill updated with write-path table, record kinds, M008 note; all ruff violations fixed; 15/15 tests pass
+- **Author**: agent
+- **Type**: task
+- **Status**: complete
+- **Chain hash**: `1e9d9f99eb4f4088...`

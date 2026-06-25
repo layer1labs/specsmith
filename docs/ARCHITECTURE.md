@@ -593,6 +593,20 @@ REST endpoints: `GET /api/esdb/status`, `GET /api/esdb/counts`.
 
 10 system invariants enforced: anti-hallucination, no-forgetfulness, no-stale-override, no-duplicate-work, stop-on-violation, replay-visible tombstones, dependency-linked actions, replayable state, context-pack freshness, action-linked governance.
 
+### specsmith ESDB Record Kinds
+Specsmith writes the following record kinds into ESDB via `src/specsmith/esdb_writer.py` (see §41):
+
+| Kind | Writer | id scheme | Active when | Tombstone when |
+|---|---|---|---|---|
+| `preflight_decision` | `write_preflight_record()` | work_item_id | decision accepted | verify equilibrium reached |
+| `verify_result` | `write_verify_record()` | `VERIFY-{wi_id}` | equilibrium reached (conf≥0.85) | verify failed (conf<0.5) |
+| `work_item` | `_sync_to_esdb()` in wi_store | wi.id | status = open / implemented | status = promoted / closed / archived / rejected |
+| `ledger_event` | M008 backfill only | `LEDGER-{event_id}` | always active | never (audit trail) |
+| `compliance_evidence` | compliance checker | `COMPLIANCE-{hash}` | evidence recorded | superseded by newer evidence |
+| `dispatch_result` | AgentDispatcher on node completion | `DISPATCH-{node_id}` | always active | never (execution record) |
+
+**Eviction exemptions** (`context_orchestrator.py`): `requirement`, `testcase`, `edge`, `rollback_event`, `token_metric`, and `skill_run` kinds are never tombstoned by the context eviction tier. All six specsmith-written kinds above are eligible for Tier 3 eviction except `ledger_event` and `dispatch_result` (audit-trail kinds).
+
 ## 20. AI Skills Builder
 
 Source: `src/specsmith/skills_builder.py`
@@ -1051,3 +1065,38 @@ specsmith projects carry a `spec_version` field in `docs/SPECSMITH.yml` (or lega
 The scaffolded `AGENTS.md` template (REQ-369) makes this contract explicit: it lists `specsmith migrate run` as a required session-start step with no prompt, and declares that downgrading specsmith on a project is not supported — agents encountering a downgrade situation MUST surface it to the user immediately and halt.
 
 **Architecture invariant (I16):** specsmith migration is **strictly forward-only**. No code path may silently accept a `target_version < current spec_version`. Backward migration is a hard error at every enforcement layer: `run_upgrade`, `run_migration`, the CLI auto-prompt, and the upgrade command itself.
+
+## 41. ESDB Full Coverage (REQ-395..402)
+Source: `src/specsmith/esdb_writer.py`, `src/specsmith/wi_store.py`, `src/specsmith/governance_logic.py`, `src/specsmith/context_orchestrator.py`, `src/specsmith/agent/context_seed.py`, `src/specsmith/migrations/m008_esdb_full_coverage.py`
+
+Specsmith v0.17+ writes all governance state transitions directly to ESDB so that an agent session can be resumed with complete, epistemically filtered context — keeping high-confidence decisions and discarding low-confidence or invalidated records.
+
+### Write path
+`esdb_writer.py` centralises all ESDB writes. Every function is best-effort (`try/except` — never blocks the caller). It resolves the active store with `open_default_store(root)` and works identically with the SQLite backend and ChronoStore:
+
+- `write_preflight_record(root, payload)` — called by `governance_logic.run_preflight()` after work item is persisted. Stores `preflight_decision` with confidence from the payload's `confidence_target` and source_ids = matched requirement IDs.
+- `write_verify_record(root, result)` — called by `governance_logic.run_verify()` after `mark_implemented()`. Confidence 0.85 on equilibrium, 0.40 on failure. Tombstones the corresponding `preflight_decision` on equilibrium.
+- `write_work_item_record(root, wi)` — called by `wi_store._sync_to_esdb()` on every WI mutation (`create`, `set_status`, `mark_implemented`, `promote_to_req`). Maps WI status to ESDB status: open/implemented → active; terminal states → tombstone.
+
+### Context seed (H18 compliant)
+`agent/context_seed.py` replaces the old insertion-order last-5 ESDB query with per-kind relevance queries:
+- `preflight_decision` — last 10 by sequence, `rag_filter=True`, confidence ≥ 0.6
+- `verify_result` — last 5 by sequence
+- `work_item` — last 5 active
+
+Total ESDB budget raised from 8 000 to 12 000 tokens. Build function signature: `build_context_seed(root, max_preflight=10, max_verify=5, max_wi=5)`.
+
+### Eviction (context_orchestrator.py — Tier 2/3)
+`_evict_low_confidence_records()` now writes tombstones back to the store (SqliteStore: `store.delete(rec.id)`; ChronoStore: `store.delete(rec.id)`). Returns the actual eviction count. Governance record kinds (`requirement`, `testcase`, `edge`, `rollback_event`, `token_metric`, `skill_run`) are never tombstoned.
+
+### M008 migration
+`migrations/m008_esdb_full_coverage.py` is an idempotent one-time backfill (marker: `.specsmith/esdb-full-coverage`). It:
+1. Backfills all entries from `.specsmith/workitems.json` as `work_item` ESDB records.
+2. Backfills all entries from `.specsmith/audit_events` (SQLite backend) as `ledger_event` ESDB records.
+3. Prints a summary of records written.
+
+**Architecture invariants:**
+- ESDB writes MUST be best-effort and MUST NOT block or raise from callers (REQ-395).
+- Context seed MUST query by kind with `rag_filter=True` — never insertion-order (REQ-399, H18).
+- Eviction MUST write tombstones back to the store — in-memory-only eviction is a bug (REQ-400).
+- M008 MUST be idempotent — re-running MUST NOT create duplicate records (REQ-402).

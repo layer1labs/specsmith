@@ -220,28 +220,69 @@ class ContextOrchestrator:
         min_confidence: float = 0.5,
         source_type_exclude: list[str] | None = None,
     ) -> int:
-        """Mark low-confidence records as 'evicted-from-context' in memory only.
+        """Tombstone low-confidence records in the ESDB store (REQ-400).
 
-        NOTE: This does NOT delete from the WAL — it only removes from the
-        in-context representation returned by the current query.
+        Writes back to the store (tombstone via store.delete()) so the eviction
+        persists across sessions.  Data is never physically removed — tombstone
+        only.  Infrastructure records (edge, rollback_event, token_metric,
+        skill_run) and governance records (requirement, testcase) are exempt.
 
-        Returns the count of records that would be evicted.
+        Returns the count of records actually tombstoned.
         """
+        _EXEMPT_KINDS = frozenset(
+            {
+                "requirement",
+                "testcase",
+                "edge",
+                "rollback_event",
+                "token_metric",
+                "skill_run",
+            }
+        )
 
+        # --- Try ChronoStore first (commercial backend) ----------------------
         wal = self.root / ".chronomemory" / "events.wal"
-        if not wal.exists():
-            return 0
-        try:
-            from chronomemory import ChronoStore
+        if wal.exists():
+            try:
+                from chronomemory import ChronoStore
 
-            with ChronoStore(self.root) as store:
-                records = store.query()
+                with ChronoStore(self.root) as store:
+                    records = store.query()
+                    count = 0
+                    for rec in records:
+                        if getattr(rec, "kind", "") in _EXEMPT_KINDS:
+                            continue
+                        evict = rec.confidence < min_confidence
+                        if (
+                            source_type_exclude
+                            and getattr(rec, "source_type", "") in source_type_exclude
+                        ):
+                            evict = True
+                        if evict:
+                            store.delete(rec.id)  # tombstone — never physically removed
+                            count += 1
+                    return count
+            except Exception:  # noqa: BLE001
+                pass  # fall through to SqliteStore
+
+        # --- Fall back to SqliteStore (free default backend) -----------------
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return 0
+            with SqliteStore(self.root) as store:
+                records = store.query(status="active")
                 count = 0
                 for rec in records:
+                    if rec.kind in _EXEMPT_KINDS:
+                        continue
                     evict = rec.confidence < min_confidence
-                    if source_type_exclude and rec.source_type in source_type_exclude:
+                    if source_type_exclude and rec.kind in source_type_exclude:
                         evict = True
                     if evict:
+                        store.delete(rec.id)  # tombstone
                         count += 1
                 return count
         except Exception:  # noqa: BLE001

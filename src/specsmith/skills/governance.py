@@ -291,6 +291,39 @@ from chronomemory import RUST_BACKEND
 # When True, RustChronoStore and RustRecord are available.
 print("Rust backend:", RUST_BACKEND)
 ```
+
+## specsmith ESDB write path (v0.17+)
+All specsmith governance mutations are written to ESDB via `src/specsmith/esdb_writer.py`.
+Every write is best-effort (try/except BLE001 — never blocks the caller).
+
+| Kind | Writer function | Caller | id scheme |
+|---|---|---|---|
+| `preflight_decision` | `write_preflight_record(root, payload)` | `governance_logic.run_preflight()` | work_item_id |
+| `verify_result` | `write_verify_record(root, result)` | `governance_logic.run_verify()` | `VERIFY-{wi_id}` |
+| `work_item` | `write_work_item_record(root, wi)` | `wi_store._sync_to_esdb()` | wi.id |
+| `ledger_event` | M008 backfill | one-time migration | `LEDGER-{event_id}` |
+
+Status mapping for `work_item`: open/implemented → active; promoted/closed/archived/rejected → tombstone.
+
+```python
+# Direct use example (prefer via governance_logic / wi_store)
+from specsmith.esdb_writer import write_preflight_record, write_verify_record, write_work_item_record
+write_preflight_record(root, preflight_payload)   # best-effort, never raises
+write_verify_record(root, verify_output)
+write_work_item_record(root, work_item_obj)
+```
+
+## Context seed — per-kind relevance query (v0.17+)
+`agent/context_seed.py` uses `build_context_seed(root, max_preflight=10, max_verify=5, max_wi=5)`.
+Queries ESDB by kind (H18 RAG filtering) — never insertion-order:
+- `preflight_decision` — last 10, conf ≥ 0.6, `rag_filter=True`
+- `verify_result` — last 5
+- `work_item` — last 5 active
+
+## M008 migration — backfill existing governance data
+Run automatically via `specsmith migrate run`. Idempotent (marker: `.specsmith/esdb-full-coverage`).
+Backfills `workitems.json` → `work_item` records and `audit_events` → `ledger_event` records.
+Re-running after backfill is safe — skips silently.
 """
         ),
     ),

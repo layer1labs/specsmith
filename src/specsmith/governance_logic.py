@@ -271,6 +271,16 @@ def run_preflight(
         except Exception:  # noqa: BLE001
             pass
 
+    # ESDB write — persist preflight decision for session resume and RAG (REQ-396).
+    # Best-effort: esdb_writer swallows all errors so ESDB is never on the
+    # critical path for preflight.
+    try:
+        from specsmith.esdb_writer import write_preflight_record
+
+        write_preflight_record(_root_str, payload)
+    except Exception:  # noqa: BLE001
+        pass
+
     return payload
 
 
@@ -369,6 +379,15 @@ def run_verify(
             WorkItemStore(root).mark_implemented(work_item_id)
         except Exception:  # noqa: BLE001
             pass
+
+    # ESDB write — persist verify result for session resume and audit (REQ-397).
+    # Also tombstones the preflight_decision record on equilibrium.
+    try:
+        from specsmith.esdb_writer import write_verify_record
+
+        write_verify_record(root, out)
+    except Exception:  # noqa: BLE001
+        pass
 
     return out
 
