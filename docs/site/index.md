@@ -168,7 +168,7 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
 | [Configuration](configuration.md) | Every scaffold.yml field explained with examples |
 | [Governance Model](governance.md) | The closed-loop workflow, file hierarchy, modular governance |
-| [ESDB](esdb.md) | SQLite vs ChronoStore, licensing, CLI reference, Python API |
+| [ESDB](esdb.md) | SQLite vs ChronoMemory (ChronoStore backend), licensing, CLI reference, Python API |
 | [YAML Governance](yaml-governance.md) | YAML-first governance: domain files, sync pipeline, strict validation, migration |
 | [Agent Integrations](agent-integrations.md) | Skills for Warp, Cursor, Claude Code, Copilot, Windsurf, Aider |
 | [Export & Compliance](export.md) | Generating coverage reports, understanding the output |

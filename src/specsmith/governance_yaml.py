@@ -247,7 +247,23 @@ _MD_TEST_HEADER = _MD_GENERATED_HEADER + "# Test Specification\n\n"
 
 
 def generate_requirements_md(reqs: list[dict[str, Any]]) -> str:
-    """Render a REQUIREMENTS.md string from the canonical YAML records."""
+    """Render a REQUIREMENTS.md string from the canonical YAML records.
+
+    .. deprecated::
+        docs/REQUIREMENTS.md is no longer generated or used. This function
+        is kept for backward compatibility with markdown-mode projects only.
+        It will be removed once all projects have migrated to YAML-first mode.
+        See REQ-373.
+    """
+    import warnings
+
+    warnings.warn(
+        "generate_requirements_md() is deprecated (REQ-373). "
+        "docs/REQUIREMENTS.md is no longer the governance source. "
+        "Use docs/requirements/*.yml and specsmith sync instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     lines: list[str] = [_MD_REQ_HEADER]
     for r in reqs:
         rid = r.get("id", "")
@@ -271,7 +287,23 @@ def generate_requirements_md(reqs: list[dict[str, Any]]) -> str:
 
 
 def generate_tests_md(tests: list[dict[str, Any]]) -> str:
-    """Render a TESTS.md string from the canonical YAML records."""
+    """Render a TESTS.md string from the canonical YAML records.
+
+    .. deprecated::
+        docs/TESTS.md is no longer generated or used. This function
+        is kept for backward compatibility with markdown-mode projects only.
+        It will be removed once all projects have migrated to YAML-first mode.
+        See REQ-373.
+    """
+    import warnings
+
+    warnings.warn(
+        "generate_tests_md() is deprecated (REQ-373). "
+        "docs/TESTS.md is no longer the governance source. "
+        "Use docs/tests/*.yml and specsmith sync instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     lines: list[str] = [_MD_TEST_HEADER]
     for t in tests:
         tid = t.get("id", "")

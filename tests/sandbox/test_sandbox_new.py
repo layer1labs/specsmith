@@ -159,21 +159,17 @@ class TestSandboxNew:
         assert compress_result.exit_code == 0
         assert "No compression needed" in compress_result.output
 
-        # ---- Step 13: Upgrade to a future version ----
-        # Use a version ahead of the current default so the upgrader actually runs.
-        # (If target == current spec_version, upgrader skips — that's correct behavior.)
+        # ---- Step 13: Downgrade attempt must be a hard error (REQ-370) ----
+        # 0.4.0 is older than the current spec_version — the guard must reject it.
         upgrade_result = runner.invoke(
             main, ["upgrade", "--project-dir", str(project), "--spec-version", "0.4.0"]
         )
-        assert upgrade_result.exit_code == 0, f"Upgrade failed: {upgrade_result.output}"
-        assert "Upgraded" in upgrade_result.output
-        # Upgrader reads the scaffold from find_scaffold() — check the new location
-        upgraded_saved = project / "docs" / "SPECSMITH.yml"
-        if not upgraded_saved.exists():
-            upgraded_saved = project / "scaffold.yml"  # fallback for legacy-style upgrade
-        with open(upgraded_saved) as f:
-            upgraded_cfg = yaml.safe_load(f)
-        assert upgraded_cfg["spec_version"] == "0.4.0"
+        assert upgrade_result.exit_code == 1, (
+            f"Expected downgrade to fail but got exit 0: {upgrade_result.output}"
+        )
+        assert "Backward migration" in upgrade_result.output or (
+            "downgrade" in upgrade_result.output.lower()
+        )
 
         # ---- Step 14: Diff (may show differences after upgrade) ----
         diff_result = runner.invoke(main, ["diff", "--project-dir", str(project)])

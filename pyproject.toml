@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.16.4"
+version = "0.17.0"
 description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, and Aider."
 readme = "README.md"
 license = "MIT"
@@ -59,8 +59,9 @@ dev = [
 # ESDB commercial backend — requires a valid license from licensing@layer1labs.ai
 # Install: pip install specsmith[esdb]
 # Activate: specsmith esdb enable --key-file /path/to/your.esdb.key
+# Terms: https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md
 esdb = [
-    "chronomemory>=0.2.0",   # proprietary commercial — see chronomemory LICENSE
+    "chronomemory>=0.2.7",   # proprietary commercial — ChronoMemory terms only (not SQLite free tier)
     "cryptography>=42.0",
 ]
 docs = [
@@ -181,6 +182,8 @@ module = [
     "whisper_cpp_python.*",
     "chronomemory",   # git dep — no published stubs yet
     "chronomemory.*",
+    "tomllib",         # stdlib in 3.11+; not available when checking against python_version=3.10
+    "tomli",           # optional 3.10 backport; not installed in the dev environment
 ]
 ignore_missing_imports = true
 

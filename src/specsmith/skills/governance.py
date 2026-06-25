@@ -1220,6 +1220,96 @@ codity doctor
 """,
     ),
     SkillEntry(
+        slug="preflight-gate",
+        name="Preflight Gate — specsmith governance gate before every code change",
+        description=(
+            "Mandatory pre-coding gate: run `specsmith preflight` before any change, "
+            "interpret the JSON decision (accepted / needs_clarification), and never "
+            "write code without an accepted preflight. Concise agent-facing reference."
+        ),
+        domain=SkillDomain.GOVERNANCE,
+        tags=[
+            "preflight",
+            "governance",
+            "gate",
+            "specsmith",
+            "decision",
+            "accepted",
+            "needs-clarification",
+            "work-item",
+            "session",
+        ],
+        prerequisites=["specsmith"],
+        body="""\
+# Preflight Gate Skill
+
+The preflight gate is the single governance control that prevents ungoverned
+code changes. Run it before every proposed change, no exceptions.
+
+## Command
+```bash
+specsmith preflight "<describe what you intend to change>" --json
+```
+
+## Decision outcomes
+
+### `accepted` → proceed
+```json
+{"decision": "accepted", "work_item_id": "WI-abc123",
+ "requirement_ids": ["REQ-042"], "confidence_target": 0.8,
+ "instruction": "Change request matched existing governance scope..."}
+```
+- Note the `work_item_id` — reference it in your commit message
+- Note the `confidence_target` — do not commit until you meet it
+- Proceed with implementation
+
+### `needs_clarification` → stop and surface instruction
+```json
+{"decision": "needs_clarification",
+ "instruction": "Destructive operation detected. Confirm which paths should be removed.",
+ "confidence_target": 0.9}
+```
+- **Do NOT write any code** until the instruction is resolved
+- Surface the `instruction` verbatim to the user
+- Wait for explicit clarification before re-running preflight
+
+## Intent classification
+Specsmith classifies your utterance automatically:
+
+| Intent | Example utterance | Default outcome |
+|---|---|---|
+| READ_ONLY_ASK | "what does X do?" | accepted (no governance overhead) |
+| CHANGE | "add pagination to GET /todos" | accepted if req matched, else needs_clarification |
+| REFACTOR | "extract the validation logic into a helper" | accepted at confidence_target=0.85 with scope reminder |
+| DESTRUCTIVE | "delete the auth middleware" | needs_clarification always |
+| RELEASE | "bump version to 1.2.3" | needs_clarification always |
+
+## Rules (non-negotiable)
+1. **Never write code without an accepted preflight** — not even a one-line fix.
+2. **Never re-run preflight hoping for a different result** without addressing the instruction.
+3. **If utterance is ambiguous**, the instruction tells you exactly what to clarify.
+4. **The work_item_id from the accepted preflight** belongs in your commit message.
+
+## Quick reference
+```bash
+# Standard workflow
+specsmith preflight "fix the mutable default argument bug in create_todo" --json
+# → {"decision": "accepted", "work_item_id": "WI-...", ...}
+
+# Refactor workflow (gets scope-confirmation message)
+specsmith preflight "extract validate_todo_owner into app/utils.py" --json
+# → {"decision": "accepted", "confidence_target": 0.85,
+#    "instruction": "Refactoring detected — confirm scope: which files/functions
+#                   should change and which must not."}
+
+# Destructive request (always blocked)
+specsmith preflight "delete the authentication module" --json
+# → {"decision": "needs_clarification",
+#    "instruction": "Destructive operation detected. Confirm explicitly..."}
+```
+""",
+    ),
+    SkillEntry(
         slug="issue-triage",
         name="Issue Triage — classify and prioritise GitHub issues",
         description=(

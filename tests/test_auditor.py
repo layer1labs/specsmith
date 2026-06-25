@@ -41,6 +41,23 @@ def governed_project(tmp_path: Path) -> Path:
         "name: test-project\ntype: cli-python\nspec_version: 0.10.1\nvcs_platform: github\n",
         encoding="utf-8",
     )
+    # YAML-first governance dirs (REQ-373 — new projects default to YAML mode)
+    # The fixture writes governance-mode=yaml so the auditor enforces YAML dir checks.
+    state_dir = tmp_path / ".specsmith"
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / "governance-mode").write_text("yaml", encoding="utf-8")
+    req_yaml_dir = docs / "requirements"
+    test_yaml_dir = docs / "tests"
+    req_yaml_dir.mkdir(parents=True, exist_ok=True)
+    test_yaml_dir.mkdir(parents=True, exist_ok=True)
+    (req_yaml_dir / "core.yml").write_text(
+        "- id: REQ-001\n  title: Test requirement\n  status: defined\n",
+        encoding="utf-8",
+    )
+    (test_yaml_dir / "core.yml").write_text(
+        "- id: TEST-001\n  title: Test case\n  requirement_id: REQ-001\n  type: unit\n",
+        encoding="utf-8",
+    )
 
     return tmp_path
 

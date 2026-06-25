@@ -1421,6 +1421,180 @@ steps:
 """,
     ),
     SkillEntry(
+        slug="type-checking",
+        name="Type Checking — mypy, pyright, and ruff type annotation enforcement",
+        description=(
+            "Enforce static types in Python projects using mypy or pyright in strict mode. "
+            "Covers py.typed markers, TYPE_CHECKING imports, gradual typing, and CI integration. "
+            "Use when adding type annotations to a codebase, fixing type errors, or setting up "
+            "a type-checking gate in CI."
+        ),
+        domain=SkillDomain.SOFTWARE_ENGINEERING,
+        tags=[
+            "type-checking",
+            "mypy",
+            "pyright",
+            "ruff",
+            "typing",
+            "annotations",
+            "py.typed",
+            "static-analysis",
+            "python",
+            "strict",
+        ],
+        body="""\
+# Type Checking
+
+Static typing catches bugs before tests run and serves as machine-checked
+documentation. This skill covers the full Python type-checking workflow.
+
+## When to use
+- Adding type annotations to an untyped codebase
+- Fixing `mypy` or `pyright` errors in CI
+- Setting up a type-checking gate for a new project
+- Making a library PEP 561-compliant (py.typed)
+
+## Tool selection
+
+| Use | When |
+|---|---|
+| mypy | Most projects; best third-party stub ecosystem |
+| pyright | VSCode / Pylance; strict mode is excellent; faster |
+| ruff (type rules) | Enforce annotation style rules alongside linting |
+
+Both mypy and pyright can coexist — run mypy in CI, pyright in the editor.
+
+## mypy setup
+
+```toml
+# pyproject.toml
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+# Allow untyped third-party stubs to not block the build
+[[tool.mypy.overrides]]
+module = ["requests.*", "yaml.*"]
+ignore_missing_imports = true
+```
+
+```bash
+mypy src/                     # check all source
+mypy src/mymodule.py          # check one file
+mypy --strict src/            # strict mode (recommended for new code)
+```
+
+## pyright setup
+
+```json
+// pyrightconfig.json
+{
+  "include": ["src"],
+  "typeCheckingMode": "strict",
+  "pythonVersion": "3.12",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false
+}
+```
+
+```bash
+pyright src/
+npx pyright@latest src/   # no global install needed
+```
+
+## ruff type annotation rules
+
+```toml
+# pyproject.toml
+[tool.ruff.lint]
+select = [
+    "ANN",   # flake8-annotations: enforce function annotations
+    "UP",    # pyupgrade: modernise annotation syntax (list[X] not List[X])
+]
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true   # require -> None on __init__
+```
+
+## TYPE_CHECKING pattern (avoid circular imports)
+
+```python
+from __future__ import annotations  # postponed evaluation (PEP 563)
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mypackage.heavy_module import HeavyClass  # only imported during type checks
+
+def process(obj: HeavyClass) -> None: ...
+```
+
+## Making a library PEP 561-compliant
+
+```bash
+# Add empty marker file so downstream tools know stubs are bundled
+touch src/mypackage/py.typed
+```
+
+```toml
+# pyproject.toml
+[tool.setuptools.package-data]
+mypackage = ["py.typed"]
+```
+
+## Gradual typing strategy
+
+Never try to type the entire codebase at once:
+1. Enable mypy with `ignore_errors = true` on all existing files
+2. Add `--strict` to new files only: `[[tool.mypy.overrides]] module = ["mypackage.newmodule"]`
+3. Incrementally fix one module at a time, removing ignore entries as you go
+4. Ratchet: set `strict = true` once a module is fully typed
+
+## Common type errors and fixes
+
+```python
+# error: Returning Any from function declared to return str
+def get_name(data: dict[str, object]) -> str:
+    return data["name"]  # dict value is object, not str
+# fix:
+    name = data["name"]
+    if not isinstance(name, str):
+        raise TypeError(f"name must be str, got {type(name)!r}")
+    return name
+
+# error: List item 0 has incompatible type "None"; expected "str"
+items: list[str] = [None, "foo"]  # noqa: wrong
+items: list[str | None] = [None, "foo"]  # correct if None is valid
+
+# error: Cannot assign to a method
+class Foo:
+    def bar(self) -> None: ...
+Foo.bar = lambda self: None  # wrong
+# mypy needs Protocol or overload to handle this pattern
+```
+
+## CI integration
+
+```yaml
+# .github/workflows/typecheck.yml
+- name: Type check
+  run: mypy src/ --strict
+```
+
+Alternatively, add to the pre-commit hook or specsmith verifier gate.
+
+## Verification checklist
+- [ ] mypy or pyright configured in pyproject.toml / pyrightconfig.json
+- [ ] `strict = true` (mypy) or `typeCheckingMode: strict` (pyright) for new code
+- [ ] `py.typed` marker present if this is a library
+- [ ] `from __future__ import annotations` at top of every module
+- [ ] No bare `# type: ignore` without a rule code and explanation
+- [ ] CI runs type checker and fails on new errors
+""",
+    ),
+    SkillEntry(
         slug="architecture-decision-records",
         name="Architecture Decision Records — documenting and tracking architectural decisions",
         description=(

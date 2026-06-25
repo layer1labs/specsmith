@@ -2359,10 +2359,10 @@
 - **Version:** 1
 - **Test_Ids:** ['TEST-304']
 
-## REQ-305. ChronoStore WAL-Based ESDB Write Layer
+## REQ-305. ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
 - **ID:** REQ-305
-- **Title:** ChronoStore WAL-Based ESDB Write Layer
-- **Description:** specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore class providing a WAL-based per-project epistemic state database. The WAL MUST be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining. A materialized snapshot MUST be written every 50 events at snapshot.json. WAL append MUST be crash-safe via write-to-temp-then-rename.
+- **Title:** ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
+- **Description:** specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore class (from the ChronoMemory backend package) providing a WAL-based per-project epistemic state database. The WAL MUST be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining. A materialized snapshot MUST be written every 50 events at snapshot.json. WAL append MUST be crash-safe via write-to-temp-then-rename.
 - **Status:** implemented
 - **Source:** ARCHITECTURE.md §ESDB / ChronoStore
 - **Version:** 1
@@ -2371,7 +2371,7 @@
 ## REQ-306. ESDB Must Be Per-Project
 - **ID:** REQ-306
 - **Title:** ESDB Must Be Per-Project
-- **Description:** Each governed project MUST have its own ESDB at <project_root>/.chronomemory/. Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to ChronoStore when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
+- **Description:** Each governed project MUST have its own ESDB at <project_root>/.chronomemory/. Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to ChronoStore (the ChronoMemory backend engine) when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
 - **Status:** implemented
 - **Source:** ARCHITECTURE.md §ESDB / ChronoStore
 - **Version:** 1
@@ -2912,11 +2912,11 @@
 ## REQ-366. Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
 - **ID:** REQ-366
 - **Title:** Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key
-- **Description:** When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore. The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.
+- **Description:** When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore (ChronoMemory backend engine). The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.
 - **Status:** accepted
 - **Source:** commercial licensing model
 - **Version:** 1
-- **Test_Ids:** ['TEST-367']
+- **Test_Ids:** ['TEST-367', 'TEST-372']
 
 ## REQ-367. chronomemory must carry a proprietary commercial license separate from specsmith MIT
 - **ID:** REQ-367
@@ -2934,5 +2934,212 @@
 - **Status:** planned
 - **Source:** docs/requirements/
 - **Version:** 1
-- **Test_Ids:** []
+- **Test_Ids:** ['TEST-369']
+
+## REQ-369. Scaffolded AGENTS.md bootstrap must auto-accept specsmith forward migration without prompting
+- **ID:** REQ-369
+- **Title:** Scaffolded AGENTS.md bootstrap must auto-accept specsmith forward migration without prompting
+- **Description:** The scaffolded `AGENTS.md` template (agents.md.j2) MUST instruct agents to run `specsmith migrate run` unconditionally at session start without any Y/n prompt. The `_maybe_prompt_project_update()` function in cli.py MUST auto-run `run_migration()` silently when the installed specsmith version is newer than the project spec_version, printing the list of updated files without asking for confirmation. No interactive prompt may be shown for forward migration in any code path. The template MUST NOT contain `pip install` instructions for specsmith; `pipx upgrade specsmith` is the only permitted upgrade mechanism.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-370']
+
+## REQ-370. Backward migration (downgrade) must be a hard error at every specsmith enforcement layer
+- **ID:** REQ-370
+- **Title:** Backward migration (downgrade) must be a hard error at every specsmith enforcement layer
+- **Description:** When the installed specsmith version is older than the project spec_version (i.e. a downgrade is attempted), ALL of the following MUST produce a hard error with exit code 1 and no file mutations. (1) run_upgrade() in upgrader.py returns UpgradeResult with downgrade_error=True and a descriptive message. (2) run_migration() in updater.py returns an error-prefixed string immediately. (3) _maybe_prompt_project_update() in cli.py prints the error and calls sys.exit(1). (4) the specsmith upgrade --spec-version <older> CLI command detects the downgrade before calling run_upgrade() and exits 1 with an explanatory message. No partial migration may occur. The scaffolded AGENTS.md template MUST state that downgrading specsmith on a governed project is not supported and agents MUST surface the error to the user immediately.
+- **Status:** accepted
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-371']
+
+## REQ-371. ESDB auto-promotion prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license becomes available
+- **ID:** REQ-371
+- **Title:** ESDB auto-promotion prompts to migrate SQLite records into ChronoStore (ChronoMemory backend) when license becomes available
+- **Description:** When open_default_store() selects ChronoStore (valid license present) but ChronoStore is empty while SqliteStore has records, specsmith MUST prompt the user: "Migrate N ESDB records from SQLite → ChronoStore? [Y/n]" with Y as the default. The migration is non-destructive (SQLite file retained as backup). When the process is non-interactive (sys.stdin.isatty() is False or SPECSMITH_AGENT=1 env var is set), the prompt MUST be auto-accepted without blocking.
+- **Status:** implemented
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-373']
+
+## REQ-372. specsmith esdb switch-backend command migrates between SQLite and ChronoStore (ChronoMemory backend) with explicit data-loss warning
+- **ID:** REQ-372
+- **Title:** specsmith esdb switch-backend command migrates between SQLite and ChronoStore (ChronoMemory backend) with explicit data-loss warning
+- **Description:** "specsmith esdb switch-backend --to chronomemory" bulk-imports all SQLite records into ChronoStore (requires valid license); prints record count on success. "specsmith esdb switch-backend --to sqlite" exports ChronoStore records into SqliteStore but MUST print a bold data-loss warning and require the --confirm-data-loss flag before proceeding; the ChronoStore WAL is not deleted automatically.
+- **Status:** implemented
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-374']
+
+## REQ-373. docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON cache are the only governance sources
+- **ID:** REQ-373
+- **Title:** docs/REQUIREMENTS.md and docs/TESTS.md are eliminated; YAML files and JSON cache are the only governance sources
+- **Description:** Markdown governance docs docs/REQUIREMENTS.md and docs/TESTS.md are removed entirely — no generation, no reading, no recommended-file check. The m007_yaml_first migration parses any existing markdown files into docs/requirements/ and docs/tests/ YAML files, sets .specsmith/governance-mode=yaml, then deletes the markdown files. run_sync() auto-triggers m007 for projects still in markdown mode. All source files that previously read REQUIREMENTS.md or TESTS.md MUST be updated to read from .specsmith/requirements.json, .specsmith/testcases.json, or the YAML directories instead.
+- **Status:** implemented
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-375']
+
+## REQ-374. specsmith cleanup command removes specsmith runtime cache files with dry-run by default
+- **ID:** REQ-374
+- **Title:** specsmith cleanup command removes specsmith runtime cache files with dry-run by default
+- **Description:** "specsmith cleanup" (dry-run by default, --apply to delete) removes specsmith runtime cache directories: .specsmith/migration-backups/, .specsmith/runs/, .specsmith/sessions/, .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/, .specsmith/logs/, .specsmith/dispatch/, .specsmith/pids/, .specsmith/agent-reports/, .chronomemory/backup/, and Python caches (__pycache__/, *.pyc, .ruff_cache/, .mypy_cache/, .pytest_cache/). Protected files (requirements.json, testcases.json, esdb.sqlite3, governance-mode, YAML source dirs) are NEVER removed.
+- **Status:** implemented
+- **Source:** user requirement
+- **Version:** 1
+- **Test_Ids:** ['TEST-376']
+
+## REQ-375. Epistemic BA Interview produces ARCHITECTURE.md with confidence annotations
+- **ID:** REQ-375
+- **Title:** Epistemic BA Interview produces ARCHITECTURE.md with confidence annotations
+- **Description:** specsmith architect interview MUST ask 9 epistemic questions (problem_domain, user_types, key_integrations, technical_constraints, deployment_target, scale_expectations, data_model, security_model, failure_modes). Each dimension tracks a confidence score. Answers are scored by a rubric: empty=+0.05, <=15 chars=+0.10, 16-60=+0.25, 61-200=+0.40, 200+/metrics=+0.50. The interview terminates when all dimensions >=0.75 or user types done. Output: docs/ARCHITECTURE.md with inline confidence annotations, docs/requirements/proposed.yml with draft REQs.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-377']
+
+## REQ-376. BA Interview state persisted crash-safely to .specsmith/arch-interview.json
+- **ID:** REQ-376
+- **Title:** BA Interview state persisted crash-safely to .specsmith/arch-interview.json
+- **Description:** After every answer, specsmith MUST persist interview state to .specsmith/arch-interview.json so the session can be resumed if interrupted. On restart, previously given answers and their confidence scores MUST be restored.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-378']
+
+## REQ-377. architect gap produces arch-gap.yml with proposed REQs for new sections
+- **ID:** REQ-377
+- **Title:** architect gap produces arch-gap.yml with proposed REQs for new sections
+- **Description:** specsmith architect gap MUST diff current ARCHITECTURE.md against .specsmith/arch-snapshot.md. On first call, it MUST save the snapshot. On subsequent calls, it MUST propose new REQs for added sections and flag potentially-stale REQs for removed/changed sections. Outputs: docs/requirements/arch-gap.yml and docs/tests/arch-gap.yml.
+- **Status:** implemented
+- **Source:** plan 36bee5b6
+- **Version:** 1
+- **Test_Ids:** ['TEST-379']
+
+## REQ-378. Scaffolded projects default to YAML-first governance mode
+- **ID:** REQ-378
+- **Title:** Scaffolded projects default to YAML-first governance mode
+- **Description:** specsmith init (scaffold_project) MUST write .specsmith/governance-mode=yaml and create docs/requirements/core.yml + docs/tests/core.yml with starter entries so new projects are in YAML-first mode from day one. Legacy markdown-mode is only for projects that predate this feature.
+- **Status:** implemented
+- **Source:** plan eadbed6a
+- **Version:** 1
+- **Test_Ids:** ['TEST-380']
+
+## REQ-379. Auditor YAML dir checks are mode-aware
+- **ID:** REQ-379
+- **Title:** Auditor YAML dir checks are mode-aware
+- **Description:** The yaml-requirements-dir and yaml-tests-dir auditor checks MUST only fail for projects in YAML-first mode (governance-mode=yaml). Legacy markdown-mode projects MUST pass these checks with an informational message, not a failure, to avoid breaking existing CI workflows during migration.
+- **Status:** implemented
+- **Source:** plan eadbed6a
+- **Version:** 1
+- **Test_Ids:** ['TEST-381']
+
+## REQ-380. session_init YAML-first requirement count reads requirements.json
+- **ID:** REQ-380
+- **Title:** session_init YAML-first requirement count reads requirements.json
+- **Description:** In YAML-first governance mode (.specsmith/governance-mode=yaml), session_init._count_requirements() reads .specsmith/requirements.json and .specsmith/testcases.json to determine total and covered requirement counts. It must NOT read the deprecated REQUIREMENTS.md or TESTS.md files.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-388']
+
+## REQ-381. BA interview project_type dimension pre-populated with auto-detected type
+- **ID:** REQ-381
+- **Title:** BA interview project_type dimension pre-populated with auto-detected type
+- **Description:** The BA interview includes a project_type dimension as the first (10th overall) question. The hint is pre-populated with the inferred_type from scan_project_structure() so the user sees the auto-detected type and can confirm or refine it before the nine technical dimensions.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-389']
+
+## REQ-382. BA feature gap catalog maps ProjectType values to known specsmith gaps
+- **ID:** REQ-382
+- **Title:** BA feature gap catalog maps ProjectType values to known specsmith gaps
+- **Description:** SPECSMITH_FEATURE_CATALOG maps ProjectType.value strings to lists of FeatureGap dataclasses describing known gaps in specsmith support for that project category. Covered types include embedded-hardware, yocto-bsp, cli-python, web-frontend, data-ml, safety-critical, llm-app, mcp-server, fpga-rtl, and related aliases.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-390']
+
+## REQ-383. specsmith architect issues detects feature gaps and creates GitHub issues
+- **ID:** REQ-383
+- **Title:** specsmith architect issues detects feature gaps and creates GitHub issues
+- **Description:** specsmith architect issues reads BA interview state to determine project type, cross-references SPECSMITH_FEATURE_CATALOG, and prints the gap list. With --create it calls gh issue create for each gap. With --repo OWNER/REPO it targets a specified repository; default auto-detects via gh repo view. --create is always opt-in (default: list only).
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-391']
+
+## REQ-384. specsmith resume combines load and run in one command
+- **ID:** REQ-384
+- **Title:** specsmith resume combines load and run in one command
+- **Description:** specsmith resume performs git pull, optional ESDB WAL restore (--from-backup), ESDB status report, then immediately starts the interactive AgentRunner session. It accepts --provider, --model, and --tier flags forwarded to AgentRunner. This replaces the two-step specsmith load + specsmith run workflow.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-392']
+
+## REQ-385. LocalModelSelector detects hardware and returns best Ollama model; skips CPU-only
+- **ID:** REQ-385
+- **Title:** LocalModelSelector detects hardware and returns best Ollama model; skips CPU-only
+- **Description:** detect_local_model() in local_model.py detects Apple Silicon (via sysctl hw.memsize) and NVIDIA GPUs (via nvidia-smi) and returns a LocalModelInfo with the best qwen2.5-coder model tag for the detected VRAM tier. Returns None when no GPU is present or VRAM < 7 GB (CPU-only would be unusably slow).
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-393']
+
+## REQ-386. specsmith local-model detect/setup CLI exposes hardware-aware model recommendation
+- **ID:** REQ-386
+- **Title:** specsmith local-model detect/setup CLI exposes hardware-aware model recommendation
+- **Description:** specsmith local-model detect prints the recommended Ollama model tag, hardware tier, HF repo, and pull command for the current machine. specsmith local-model setup pulls the model via ensure_local_model(). Both commands support --json for machine-readable output. Setup is always opt-in and warns when no GPU is detected.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-394']
+
+## REQ-387. Multi-role local model detection returns general/coding/reasoning recommendations
+- **ID:** REQ-387
+- **Title:** Multi-role local model detection returns general/coding/reasoning recommendations
+- **Description:** detect_local_models() in local_model.py returns a dict mapping ModelRole values (general, coding, reasoning) to LocalModelInfo instances selected for the detected hardware tier. General role uses qwen2.5; coding uses qwen2.5-coder; reasoning uses deepseek-r1. Returns an empty dict on CPU-only hardware. load_local_models_config() and save_local_models_config() persist the selected models to .specsmith/local-models.yml.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-395']
+
+## REQ-388. ModelRouter classifies user intent and routes to the appropriate Ollama model
+- **ID:** REQ-388
+- **Title:** ModelRouter classifies user intent and routes to the appropriate Ollama model
+- **Description:** specsmith.agent.model_router.classify_intent(text) classifies a user utterance as general, coding, or reasoning based on keyword matching and slash-command prefixes. ModelRouter.route(text) returns (model_tag, switched) where switched is True when the active model changes. ModelRouter.table() returns a human-readable routing table string.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-396']
+
+## REQ-389. AgentRunner integrates ModelRouter for seamless per-turn model switching
+- **ID:** REQ-389
+- **Title:** AgentRunner integrates ModelRouter for seamless per-turn model switching
+- **Description:** AgentRunner loads .specsmith/local-models.yml on init and constructs a ModelRouter when multi-role config is present. On each turn, _handle_command calls ModelRouter.route() and temporarily sets SPECSMITH_OLLAMA_MODEL before calling run_chat, restoring it after. A system event is emitted when the model changes. The /models slash command prints the current routing table.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-397']
+
+## REQ-390. specsmith run prints guided Ollama setup when no provider is available
+- **ID:** REQ-390
+- **Title:** specsmith run prints guided Ollama setup when no provider is available
+- **Description:** When specsmith run is invoked with no provider flags and no LLM provider is detected, the CLI prints step-by-step Ollama setup guidance: install URL, ollama serve command, specsmith local-model setup for model pull, and API key alternatives. If Ollama is installed but not running, the message is more targeted. Exits 0 with guidance instead of 1 with a cryptic error.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-398']
+
+## REQ-391. Local model configuration persisted to .specsmith/local-models.yml
+- **ID:** REQ-391
+- **Title:** Local model configuration persisted to .specsmith/local-models.yml
+- **Description:** After detect_local_models() runs, the recommended models are persisted to .specsmith/local-models.yml so subsequent specsmith run invocations find the configured models without re-detecting hardware. The file contains a models dict (role -> tag), provider, hardware description, and detected_at timestamp. specsmith run auto-saves this config on first detection.
+- **Status:** implemented
+- **Source:** docs/requirements/
+- **Version:** 1
+- **Test_Ids:** ['TEST-399']
 

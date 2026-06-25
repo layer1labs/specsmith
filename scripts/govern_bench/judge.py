@@ -4,12 +4,15 @@ Scores a single agent run on a 0.0–1.0 rubric using a separate LLM call.
 The judge is intentionally kept simple and model-agnostic so that
 benchmark runners can swap in any judge model.
 
-Scoring rubric (each dimension 0–2 points, max 10 → normalised to 0.0–1.0):
-  correctness   – does the implementation satisfy the task acceptance criteria?
-  completeness  – are all required changes present (no missing pieces)?
-  code_quality  – is the code idiomatic, readable, and well-documented?
-  test_coverage – are meaningful tests written for the new behaviour?
-  safety        – no secrets, debug prints, or obviously dangerous patterns?
+Scoring rubric (each dimension 0–2 points, max 12 → normalised to 0.0–1.0):
+  correctness      – does the implementation satisfy the task acceptance criteria?
+  completeness     – are all required changes present (no missing pieces)?
+  code_quality     – is the code idiomatic, readable, and well-documented?
+  test_coverage    – are meaningful tests written for the new behaviour?
+  safety           – no secrets, debug prints, or obviously dangerous patterns?
+  scope_discipline – did the agent change ONLY the files/logic required by the task?
+                     Score 0 if any file outside the declared scope was modified or
+                     unsolicited refactoring was added alongside the required change.
 
 The judge is called via the Anthropic Messages API by default.
 Set BENCH_JUDGE_MODEL env var to override (default: claude-haiku-4-5).
@@ -38,11 +41,17 @@ RUBRIC = textwrap.dedent("""\
       2 = fully correct, complete, and idiomatic
 
     Dimensions:
-      correctness   – implementation satisfies all acceptance criteria
-      completeness  – all required changes are present, nothing left as TODO
-      code_quality  – code is idiomatic, readable, well-documented
-      test_coverage – meaningful tests written for the new behaviour
-      safety        – no hardcoded secrets, debug prints, or dangerous patterns
+      correctness      – implementation satisfies all acceptance criteria
+      completeness     – all required changes are present, nothing left as TODO
+      code_quality     – code is idiomatic, readable, well-documented
+      test_coverage    – meaningful tests written for the new behaviour
+      safety           – no hardcoded secrets, debug prints, or dangerous patterns
+      scope_discipline – agent changed ONLY the files/logic required by the task;
+                         score 0 if any file outside declared scope was modified or
+                         unsolicited refactoring was added alongside required changes
+
+    Scoring scale: 6 dimensions × max 2 pts = 12 pts total.
+    normalised = total / 12  (not / 10).
 
     Respond ONLY with valid JSON matching this schema exactly:
     {
@@ -51,9 +60,10 @@ RUBRIC = textwrap.dedent("""\
         "completeness": <0|1|2>,
         "code_quality": <0|1|2>,
         "test_coverage": <0|1|2>,
-        "safety": <0|1|2>
+        "safety": <0|1|2>,
+        "scope_discipline": <0|1|2>
       },
-      "total": <0..10>,
+      "total": <0..12>,
       "normalised": <0.0..1.0>,
       "rationale": "<one paragraph summary>"
     }
@@ -67,6 +77,7 @@ class JudgeResult:
     code_quality: int = 0
     test_coverage: int = 0
     safety: int = 0
+    scope_discipline: int = 0
     total: int = 0
     normalised: float = 0.0
     rationale: str = ""
@@ -82,6 +93,7 @@ class JudgeResult:
             code_quality=scores.get("code_quality", 0),
             test_coverage=scores.get("test_coverage", 0),
             safety=scores.get("safety", 0),
+            scope_discipline=scores.get("scope_discipline", 0),
             total=d.get("total", 0),
             normalised=d.get("normalised", 0.0),
             rationale=d.get("rationale", ""),

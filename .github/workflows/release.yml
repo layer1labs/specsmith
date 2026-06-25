@@ -67,7 +67,8 @@ jobs:
       - name: Strip git-URL deps before PyPI build
         run: |
           # PyPI rejects packages with direct git+https:// dependencies.
-          # TODO: replace with chronomemory>=0.1.0 once chronomemory is published to PyPI.
+          # chronomemory is now on PyPI (>=0.2.7); this step is a no-op for the current
+          # version spec but is kept in case a git-URL dep is reintroduced.
           sed -i '/chronomemory @ git+/d' pyproject.toml
       - run: python -m build
       - name: Upload build artifacts

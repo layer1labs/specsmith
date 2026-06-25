@@ -51,7 +51,8 @@
 - id: REQ-327
   title: ESDB Context Written on Node Completion
   description: On successful TaskNode completion, AgentDispatcher MUST write a ChronoRecord
-    to ChronoStore with kind=dispatch_result containing the DispatchResult payload.
+    to ChronoStore (the ChronoMemory backend class) with kind=dispatch_result containing
+    the DispatchResult payload.
     Successor tasks MUST receive predecessor ChronoRecord IDs in their context_in
     and retrieve the records via ESDB query before starting.
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher

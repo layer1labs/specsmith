@@ -532,6 +532,7 @@ _LEGACY_SCAN_SKIP_DIRS = {
     "dist",
     "node_modules",
     ".chronomemory",  # ChronoStore ESDB — machine-generated state, not governance docs
+    "migration-backups",  # machine-generated JSON snapshots; may contain historical legacy names
 }
 
 _LEGACY_SCAN_SKIP_FILES = {
@@ -623,7 +624,7 @@ def test_key_modules_reference_tests_md():
         ("explain the cleanup module", "read_only_ask"),
         ("fix the cleanup bug", "change"),
         ("add a new validator command", "change"),
-        ("refactor the broker", "change"),
+        ("refactor the broker", "refactor"),
         ("ship a release", "release"),
         ("bump the version to 0.4.0", "release"),
         ("delete the entire dist directory", "destructive"),
@@ -637,6 +638,7 @@ def test_broker_classify_intent(utterance, expected_label):
     label_to_intent = {
         "read_only_ask": Intent.READ_ONLY_ASK,
         "change": Intent.CHANGE,
+        "refactor": Intent.REFACTOR,
         "release": Intent.RELEASE,
         "destructive": Intent.DESTRUCTIVE,
     }

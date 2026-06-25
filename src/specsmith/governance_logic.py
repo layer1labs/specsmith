@@ -79,13 +79,14 @@ def run_preflight(
     _root: Path = _safe_resolve(project_dir)
     _root_str: str = str(_root)
     intent = classify_intent(utterance)
-    # Requirements live at docs/REQUIREMENTS.md, not at the project root.
-    # Falling back to root/REQUIREMENTS.md would always yield an empty list
-    # on standard projects, causing preflight to always return
-    # needs_clarification (GitHub issue #197).
+    # Requirements are now sourced from .specsmith/requirements.json (YAML-first mode).
+    # docs/REQUIREMENTS.md is deprecated (REQ-373) but still used as a fallback
+    # for keyword matching in infer_scope() when it exists. Explicit REQ-NNN IDs
+    # in the utterance are always resolved from requirements.json regardless.
     _req_md = _safe_resolve(os.path.join(_root_str, "docs", "REQUIREMENTS.md"))
     if not _req_md.is_file():
         _req_md = _safe_resolve(os.path.join(_root_str, "REQUIREMENTS.md"))  # legacy
+    # infer_scope handles a non-existent path gracefully (returns empty scope)
     _repo_idx = _safe_resolve(os.path.join(_root_str, ".repo-index", "files.json"))
     scope = infer_scope(
         utterance,
@@ -174,6 +175,26 @@ def run_preflight(
             "Specify the target version and channel."
         )
         confidence_target = 0.9
+    elif intent == Intent.REFACTOR:
+        # Refactoring accepted only if scope is matched; unmatched refactors
+        # get needs_clarification because scope creep is the primary risk.
+        if scope.is_known or requirement_ids:
+            decision_str = "accepted"
+            instruction = (
+                "Refactoring detected — confirm scope: which files/functions should "
+                "change and which must not. Proceed under Specsmith verification."
+            )
+            # Refactoring always targets 0.85; higher than generic CHANGE (0.7)
+            # because behaviour-equivalence is a tighter correctness bar.
+            confidence_target = 0.85
+        else:
+            decision_str = "needs_clarification"
+            instruction = (
+                "Refactoring scope is unclear. "
+                "Describe which function or module should change and which must stay "
+                "unchanged so specsmith can map this to an existing requirement."
+            )
+            confidence_target = 0.85
     else:  # CHANGE
         # Accept if scope matched via token overlap OR explicit IDs were found (#166)
         if scope.is_known or requirement_ids:

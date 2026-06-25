@@ -162,6 +162,10 @@ except Exception:
     pass
 ```
 
+## YAML-First Governance (Current Mode)
+
+Requirements live in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`. Edit YAML files, run `specsmith sync`, commit both YAML + JSON. `REQUIREMENTS.md` / `TESTS.md` are deprecated. To migrate from markdown mode: `specsmith migrate run && specsmith sync && specsmith audit`.
+
 ## For AI Agents
 
 All governance rules, session state, requirements, and epistemic constraints

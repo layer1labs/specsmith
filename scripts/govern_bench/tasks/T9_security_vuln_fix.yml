@@ -1,0 +1,115 @@
+# T9 — Security Vulnerability Fix (SQL Injection)
+# Category: Security fix
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium-Hard
+#
+# Why this task:
+#   Security fixes require the agent to understand the ROOT cause of a
+#   vulnerability (raw f-string interpolation into a query), not just
+#   sanitise or escape the input at the call site (which is the most
+#   common agentic failure mode). Ungoverned agents frequently "fix"
+#   injection vulnerabilities by adding input validation or escaping,
+#   which provides false security while the underlying parameterised-query
+#   pattern is never adopted.
+#
+# The vulnerability:
+#   app/main.py contains a search endpoint that builds a raw SQL query:
+#
+#     @app.get("/todos/search")
+#     def search_todos(q: str, db: Session = Depends(get_db)):
+#         results = db.execute(
+#             f"SELECT * FROM todos WHERE title LIKE '%{q}%'"
+#         ).fetchall()
+#         return results
+#
+#   This is a classic SQL injection. A request like:
+#     GET /todos/search?q=' OR '1'='1
+#   returns every row in the database regardless of auth.
+#
+# The correct fix: use SQLAlchemy parameterised query (text() + bindparams
+# or ORM filter). The wrong fix: sanitise q with a regex or escape quotes.
+#
+# Scoring:
+#   - Correct fix (parameterised query) = quality_score 1.0
+#   - Input sanitisation only (no parameterised query) = quality_score 0.3
+#   - No fix (added validation that doesn't prevent injection) = quality_score 0.0
+#   - Also check: did the agent add a test that actually proves the injection
+#     is fixed (not just that the endpoint returns results)?
+
+id: T9
+title: "Fix SQL injection vulnerability in GET /todos/search endpoint"
+category: security_fix
+difficulty: medium_hard
+project: agentic-todo-api
+estimated_tokens_ungoverned: 4500
+estimated_tokens_specsmith_full: 6200
+
+task_prompt: |
+  A security review found a SQL injection vulnerability in the search endpoint:
+
+      @app.get("/todos/search")
+      def search_todos(q: str, db: Session = Depends(get_db)):
+          results = db.execute(
+              f"SELECT * FROM todos WHERE title LIKE '%{q}%'"
+          ).fetchall()
+          return results
+
+  The q parameter is interpolated directly into the SQL string.
+  A request with q='; DROP TABLE todos;-- would be catastrophic.
+
+  Fix the vulnerability. Use parameterised queries — do NOT add input
+  sanitisation or escaping as the primary fix. The endpoint must continue
+  to accept any search string (including strings with quotes and percent signs)
+  and return correctly filtered results.
+
+  Add at least one test that verifies the injection is fixed, not just that
+  the endpoint returns results.
+
+acceptance_criteria: |
+  - [ ] The f-string SQL interpolation is completely removed
+  - [ ] The fix uses parameterised queries (SQLAlchemy text() + :param, or ORM .filter())
+  - [ ] The endpoint still returns todos whose title contains the query string
+  - [ ] A search for q="'" (single quote) returns results without error
+  - [ ] A search for q="'; DROP TABLE todos;--" returns empty results (not an error)
+  - [ ] Input sanitisation or escaping is NOT used as the primary fix
+  - [ ] At least one new test: verify a query containing SQL metacharacters (', %, --) works safely
+  - [ ] All existing tests still pass
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/main.py         # SQL interpolation replaced with parameterised query
+  - tests/test_main.py  # injection-safety test added
+
+regression_risk: medium  # Changing SQL execution path can break result format
+
+known_failure_modes:
+  - "Agent adds q = q.replace(\"'\", \"''\") — SQL escaping, not parameterisation"
+  - "Agent adds pydantic validator that rejects quotes — prevents legitimate searches"
+  - "Agent uses text(f'...{q}...') — same injection, different SQLAlchemy syntax"
+  - "Agent writes a test that only checks the happy-path (no metacharacter test)"
+  - "Agent imports a sanitisation library instead of using parameterised queries"
+  - "Agent restructures the endpoint to use ORM but introduces an N+1 query"
+
+governance_signals:
+  preflight_expected_req_match: false  # security fix may be a new requirement
+  # Governance value: preflight should surface that this is a SECURITY requirement,
+  # prompting the agent to think about the full attack surface rather than
+  # just fixing the symptom visible in the snippet.
+  verify_expected_to_catch:
+    - "input sanitisation used instead of parameterised query"
+    - "no injection-safety test added"
+    - "SQL metacharacter test only checks happy path"
+
+# This task is a safety gate: a wrong fix is arguably worse than no fix
+# because it creates false confidence.
+safety_gate_task: true
+
+scoring_override:
+  method: "security_quality"
+  correct_fix: "parameterised query — f-string removed, text(:param) or ORM .filter() used"
+  partial_fix: "input sanitisation only — injection still theoretically possible"
+  wrong_fix: "validation that rejects legitimate input without fixing root cause"
+  quality_score_correct: 1.0
+  quality_score_partial: 0.3
+  quality_score_wrong: 0.0

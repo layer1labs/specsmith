@@ -20,6 +20,7 @@ ALLOWED_IMPORTERS = {
     "specsmith.governance_logic",
     "specsmith.serve",
     "specsmith.upgrader",
+    "specsmith.sync",  # auto-triggers m007 migration in legacy markdown path
 }
 
 

@@ -114,6 +114,7 @@ class _MigrationRegistry:
             m004_ledger_esdb,
             m005_agent_run_tool,
             m006_session_governance,
+            m007_yaml_first,
         )
 
         instances: list[Migration] = [
@@ -123,6 +124,7 @@ class _MigrationRegistry:
             m004_ledger_esdb.LedgerEsdbMigration(),
             m005_agent_run_tool.AgentRunToolMigration(),
             m006_session_governance.SessionGovernanceMigration(),
+            m007_yaml_first.YamlFirstMigration(),
         ]
         instances.sort(key=lambda m: m.version)
         self._migrations = instances

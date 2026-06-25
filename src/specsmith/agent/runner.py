@@ -237,6 +237,7 @@ SLASH_COMMANDS: dict[str, str] = {
     "/undo": "[UNDO] Revert the last action: ",
     "/context": "[CONTEXT] Surface repo context relevant to: ",
     "/search": "[SEARCH] Search the repo and external docs for: ",
+    "/models": "",  # handled inline — shows the multi-model routing table
 }
 
 
@@ -334,6 +335,10 @@ class AgentRunner:
         # back to single-profile behaviour so existing setups keep working.
         self._routing = self._load_routing()
 
+        # Multi-model router (REQ-389). Loaded from .specsmith/local-models.yml
+        # if present; falls back to None (single-model mode) on any error.
+        self._model_router = self._load_model_router()
+
         # Consumers may swap this with a closure that routes through their
         # own bus (see ``serve._AgentThread``). The default writes JSONL.
         self._emit_event: Callable[..., None] = self._default_emit_event
@@ -383,15 +388,21 @@ class AgentRunner:
             for s in statuses:
                 if s.available:
                     lines.append(
-                        f"    {s.icon} {s.name:<10} ✓ ready   model: {s.model}  ({s.note})"
+                        f"    {s.icon} {s.name:<10} \u2713 ready   model: {s.model}  ({s.note})"
                     )
                 else:
-                    lines.append(f"    {s.icon} {s.name:<10} ✗ {s.note}")
+                    lines.append(f"    {s.icon} {s.name:<10} \u2717 {s.note}")
             lines.append("")
             if active_count == 0:
-                lines.append("  ⚠  No provider available — commands will return no response.")
+                lines.append("  \u26a0  No provider available — commands will return no response.")
             else:
-                lines.append("  Type plain English, or use /plan /ask /fix /test /commit /pr /exit")
+                # Show multi-model routing if the router is configured (REQ-389).
+                if self._model_router is not None:
+                    lines.append(self._model_router.table())
+                    lines.append("")
+                lines.append(
+                    "  Type plain English, or use /plan /ask /fix /test /commit /pr /models /exit"
+                )
             print("\n".join(lines), flush=True)
 
     def run_interactive(self) -> None:
@@ -447,6 +458,14 @@ class AgentRunner:
             self._history = []
             self._emit_event(type="system", message="History cleared.")
             return None
+        if text.strip() == "/models":
+            msg = (
+                self._model_router.table()
+                if self._model_router is not None
+                else "  (multi-model routing not configured — run: specsmith local-model setup)"
+            )
+            self._emit_event(type="system", message=msg)
+            return None
         if text.startswith("/model "):
             new_model = text.split(maxsplit=1)[1].strip()
             self.model = new_model
@@ -494,6 +513,26 @@ class AgentRunner:
             )
 
         block_id = self._next_block_id()
+
+        # ── Multi-model routing (REQ-389) ──────────────────────────────────
+        # Ask the router which Ollama model best fits this utterance, then
+        # temporarily set SPECSMITH_OLLAMA_MODEL so _run_ollama picks it up.
+        # The env var is restored (or removed) after the turn completes.
+        import os as _os
+
+        _prev_ollama_model = _os.environ.get("SPECSMITH_OLLAMA_MODEL")
+        if self._model_router is not None:
+            routed_model, switched = self._model_router.route(text)
+            if routed_model:
+                _os.environ["SPECSMITH_OLLAMA_MODEL"] = routed_model
+                if switched:
+                    role = self._model_router.active_role or "?"
+                    self._emit_event(
+                        type="system",
+                        message=f"\u21bb model \u2192 {routed_model} (role: {role})",
+                    )
+        # ──────────────────────────────────────────────────────────────────
+
         try:
             from specsmith.agent.chat_runner import (
                 DEFAULT_OLLAMA_HOST,
@@ -519,12 +558,16 @@ class AgentRunner:
                 recoverable=True,
             )
             return None
+        finally:
+            # Restore SPECSMITH_OLLAMA_MODEL to its pre-turn state (REQ-389).
+            if _prev_ollama_model is None:
+                _os.environ.pop("SPECSMITH_OLLAMA_MODEL", None)
+            else:
+                _os.environ["SPECSMITH_OLLAMA_MODEL"] = _prev_ollama_model
 
         if result is None:
             # All providers failed — give the user an actionable explanation
             # rather than silent emptiness.
-            import os as _os
-
             host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
             if _ollama_alive(host):
                 model = _pick_ollama_model(host)
@@ -652,6 +695,23 @@ class AgentRunner:
 
             store = ProfileStore.load()
             return store if store.profiles else None
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _load_model_router(self) -> Any | None:
+        """Load ModelRouter from .specsmith/local-models.yml (REQ-389).
+
+        Returns ``None`` when no multi-role config is found, preserving
+        single-model behaviour for existing setups.
+        """
+        try:
+            from specsmith.agent.model_router import ModelRouter
+            from specsmith.local_model import load_local_models_config
+
+            roles = load_local_models_config(self.project_dir)
+            if not roles:
+                return None
+            return ModelRouter(roles)
         except Exception:  # noqa: BLE001
             return None
 

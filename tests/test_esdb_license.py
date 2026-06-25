@@ -10,8 +10,9 @@ from __future__ import annotations
 import base64
 import json
 import os
+import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -259,3 +260,96 @@ def test_chronomemory_pyproject_proprietary_classifier() -> None:
         "chronomemory [project] section must not declare MIT license"
     )
     assert "Proprietary" in text
+
+
+# ---------------------------------------------------------------------------
+# TEST-372 / issue #263: esdb status JSON output diagnostics
+# ---------------------------------------------------------------------------
+
+
+class _FakeStore:
+    def __enter__(self) -> _FakeStore:
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        return None
+
+    def record_count(self) -> int:
+        return 7
+
+    def chain_valid(self) -> bool:
+        return True
+
+
+def test_esdb_status_json_uses_active_backend(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """REQ-366/#263: status JSON must report the backend after open_default_store."""
+    from specsmith import esdb as esdb_mod
+    from specsmith.cli import esdb_status_cmd
+
+    old_backend = esdb_mod.ESDB_BACKEND
+    # Inject a fake chronomemory module so the test runs without the package installed.
+    mock_chrono = MagicMock()
+    mock_chrono.EsdbBridge.return_value.record_counts.return_value = {"requirement": 3}
+    try:
+        with (
+            patch.dict(sys.modules, {"chronomemory": mock_chrono}),
+            patch("specsmith.sync.auto_migrate_if_needed", return_value={}),
+            patch("specsmith.esdb.open_default_store", return_value=_FakeStore()),
+            patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+        ):
+            esdb_mod.ESDB_BACKEND = "chronomemory"
+            esdb_status_cmd.callback(str(tmp_path), True)
+    finally:
+        esdb_mod.ESDB_BACKEND = old_backend
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["backend"] == "chronomemory"
+    assert payload["backend_label"] == "ChronoStore WAL (chronomemory commercial)"
+    assert payload["record_count"] == 7
+
+
+def test_esdb_status_json_stdout_failure_has_structured_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """REQ-366/REQ-392/#263: stdout write failures exit 1 with structured stderr error."""
+    from specsmith import esdb as esdb_mod
+    from specsmith.cli import esdb_status_cmd
+
+    class BadStdout:
+        def write(self, _: str) -> int:
+            raise OSError("simulated stdout failure")
+
+        def flush(self) -> None:
+            raise OSError("simulated stdout flush failure")
+
+    old_backend = esdb_mod.ESDB_BACKEND
+    # Inject a fake chronomemory module so the test runs without the package installed.
+    mock_chrono = MagicMock()
+    mock_chrono.EsdbBridge.return_value.record_counts.return_value = {}
+    try:
+        with (
+            patch.dict(sys.modules, {"chronomemory": mock_chrono}),
+            patch("specsmith.sync.auto_migrate_if_needed", return_value={}),
+            patch("specsmith.esdb.open_default_store", return_value=_FakeStore()),
+            patch("specsmith.esdb._license.resolve_license_path", return_value=None),
+        ):
+            esdb_mod.ESDB_BACKEND = "chronomemory"
+            monkeypatch.setattr(sys, "stdout", BadStdout())
+            with pytest.raises(SystemExit) as exc_info:
+                esdb_status_cmd.callback(str(tmp_path), True)
+    finally:
+        esdb_mod.ESDB_BACKEND = old_backend
+
+    # Must exit 1 — not 0, not an Abort (REQ-392)
+    assert exc_info.value.code == 1
+
+    err = capsys.readouterr().err
+    payload = json.loads(err)
+    assert payload["ok"] is False
+    assert payload["error"] == "esdb status: stdout write failed"
+    assert "simulated stdout failure" in payload["reason"]

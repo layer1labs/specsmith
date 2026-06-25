@@ -12,6 +12,130 @@ consolidated into the next published release.
 
 ---
 
+## [0.17.0] - 2026-06-25
+
+### Added
+
+- **`specsmith architect interview`** — Epistemic BA interview system that asks 9 targeted
+  questions (problem domain, users, integrations, constraints, deployment, scale, data model,
+  security, failure modes), tracks per-dimension confidence, and produces `docs/ARCHITECTURE.md`
+  with confidence annotations and `docs/requirements/proposed.yml` with draft REQs.
+  Session state is crash-safe (persisted to `.specsmith/arch-interview.json`).
+  Non-interactive/CI mode auto-generates synthetic answers.
+
+- **`specsmith architect gap`** — Diffs current `ARCHITECTURE.md` against a stored snapshot;
+  proposes new REQs for added sections and flags potentially-stale REQs for removed sections.
+  Outputs `docs/requirements/arch-gap.yml` and `docs/tests/arch-gap.yml`.
+
+- **`specsmith architect update`** — Re-engages the BA interview for a project with existing
+  `ARCHITECTURE.md`, restoring confidence from inline annotations and running gap analysis.
+
+- **`specsmith cleanup`** — Removes runtime cache files (runs, sessions, chat, perf, recovery,
+  logs, dispatch, pids, agent-reports, migration-backups, chronomemory/backup, Python caches).
+  Dry-run by default; `--apply` to delete; `--json` for structured output.
+  Protected files (requirements.json, testcases.json, governance-mode, YAML source dirs) are
+  never removed.
+
+- **`specsmith esdb switch-backend`** — Migrates ESDB records between SQLite and ChronoStore.
+  `--to chronomemory` requires a valid ESDB license. `--to sqlite` requires `--confirm-data-loss`.
+
+- **ESDB auto-promotion** — When ChronoStore is selected but SQLite has existing records and
+  ChronoStore is empty, specsmith prompts to migrate records automatically. Auto-accepts in
+  non-interactive/agent mode (`SPECSMITH_AGENT=1`).
+
+- **YAML-first governance for new projects** — `specsmith init` now writes
+  `.specsmith/governance-mode=yaml` and creates `docs/requirements/core.yml` +
+  `docs/tests/core.yml` starter files. New projects are in YAML-first mode from day one.
+
+- **m007 migration** — `specsmith migrate run` now includes m007 which converts
+  `docs/REQUIREMENTS.md` and `docs/TESTS.md` to YAML source files under `docs/requirements/`
+  and `docs/tests/`. Idempotent and non-destructive (MD files are not deleted).
+
+- **BA Interview SKILL.md** — `.agents/skills/specsmith-architect/SKILL.md` documents the
+  epistemic BA interview protocol for AI agent use.
+
+- **BA project-type detection** — `specsmith import` now detects BA (Business Analyst)
+  project types and enriches scaffold metadata with domain classification, stakeholder
+  roles, and integration surface signals extracted from the project structure.
+
+- **Feature gap catalog + `specsmith github issues`** — Scans governance YAML and open
+  GitHub issues to identify feature gaps; generates a gap catalog and can bulk-create
+  GitHub issues via `gh` CLI (`specsmith github issue-plan|issue-create`).
+
+- **`specsmith resume` / `specsmith load`** — Resume a previous agent session from the
+  last LEDGER.md entry; `load` restores full session context without starting the REPL.
+
+- **Multi-model routing for `specsmith run`** — `AgentRunner` now auto-detects the
+  intent of each user turn (general / coding / reasoning) and routes to the best local
+  Ollama model for that role using `ModelRouter`. Hardware-tier–aware detection via
+  `detect_local_models()`. New `/models` slash command shows the current routing table.
+  Model switches are announced inline so users always know which model is active.
+
+- **Local model hardware selector** — `detect_local_models()` queries available Ollama
+  models and categorises them by role (general / coding / reasoning) using heuristics
+  based on model name and hardware tier (CPU-only → 7B cap; GPU ≥ 8 GB → up to 32B).
+  Config is saved to `.specsmith/local-models.yml` and reloaded across sessions.
+
+- **Guided Ollama setup** — When `specsmith run` is invoked with no configured provider,
+  the CLI now detects whether Ollama is installed and prints step-by-step setup instructions
+  with the recommended `ollama pull` commands for each hardware tier.
+
+### Changed
+
+- **Markdown governance mode deprecated** — Running `specsmith sync` in markdown mode now
+  emits a `DeprecationWarning` and auto-triggers m007 migration. Markdown mode will be
+  removed in a future release. Run `specsmith migrate run` to upgrade.
+
+- **Auditor YAML dir checks are mode-aware** — The `yaml-requirements-dir` and
+  `yaml-tests-dir` audit checks now only fail for projects in YAML-first mode. Legacy
+  markdown-mode projects get an informational pass.
+
+- **`specsmith architect` is now a group command** — `specsmith architect` (without a
+  subcommand) retains its original behavior (scan + generate architecture docs). New
+  subcommands `interview`, `gap`, and `update` are added.
+
+- **Req-test coverage check uses testcases.json** — In YAML-first mode, the auditor
+  now also uses `requirement_id` from `testcases.json` and `test_ids` from
+  `requirements.json` to determine test coverage, rather than only TESTS.md.
+
+- **ChronoMemory bumped to `>=0.2.7`** — The `specsmith[esdb]` extra now requires
+  chronomemory 0.2.7 or newer (available on PyPI). The git-URL dependency is fully
+  replaced; `pip install specsmith[esdb]` works without any extra index.
+
+### Fixed
+
+- **Issue #263 — `esdb status --json` emitted bare "Aborted!"** on Windows when Click's
+  `_winconsole` stream detection raised a `KeyboardInterrupt`. Now uses `sys.stdout.write`
+  directly; on write failure writes a structured JSON error payload to stderr and exits 1.
+
+- **Issue #264 — `specsmith save` false positive dirty-tree warning** — Post-commit
+  `_get_dirty_files()` check now correctly ignores untracked files so a clean commit
+  no longer triggers a spurious warning.
+
+- **CI matrix: Python 3.10–3.13 fully green** — `_read_project_name` in `quality_report.py`
+  now uses `tomllib` → `tomli` → regex fallback chain so `pyproject.toml` is parsed
+  correctly on Python 3.10 (where `tomllib` is not in stdlib). Chronomemory-dependent
+  ESDB status tests now use `patch.dict(sys.modules)` to inject a `MagicMock`, removing
+  the need for chronomemory to be installed in the test environment.
+
+---
+
+## [0.16.5] - 2026-06-25
+
+### Added
+
+- **Published `COMMERCIAL-LICENSE.md` in specsmith** as the canonical public
+  terms document for the **ChronoMemory commercial ESDB backend**.
+
+### Changed
+
+- ESDB docs and install guidance now link directly to
+  `COMMERCIAL-LICENSE.md` and explicitly distinguish:
+  - ChronoMemory commercial backend licensing scope, and
+  - SQLite default backend (`specsmith`) remaining MIT/free.
+
+---
+
 ## [0.16.4] - 2026-06-24
 
 ### Changed

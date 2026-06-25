@@ -83,10 +83,16 @@ Specsmith is a fully implemented AEE toolkit as of v0.11.3. This section documen
   - `reporter.py` — Markdown/JSON/HTML compliance report generation
   - `evidence.py` — Evidence collection from project governance files
 
-### ESDB / ChronoStore (v0.11)
+### ESDB naming model (canonical)
+- **ESDB** = specification/data model family
+- **SQLite backend** = free/default ESDB backend bundled in `specsmith`
+- **ChronoMemory** = commercial package
+- **ChronoStore** = backend engine/class implemented by the ChronoMemory package
+
+### ESDB / ChronoMemory backend (v0.11)
 - `src/specsmith/esdb/` — Epistemic State Database:
-  - `store.py` — `ChronoStore`: WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
-  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore when WAL exists, falls back to flat JSON read-only mode otherwise
+  - `store.py` — `ChronoStore` (ChronoMemory backend class): WAL-based per-project epistemic state database at `<project>/.chronomemory/events.wal`. NDJSON with SHA-256 hash chaining. Snapshot every 50 events. Crash-safe via write-to-temp-then-rename.
+  - `bridge.py` — `EsdbBridge`: Python adapter; delegates to ChronoStore (ChronoMemory backend) when WAL exists, falls back to flat JSON read-only mode otherwise
 - Every `ChronoRecord` carries OEA anti-hallucination fields: `source_type`, `confidence`, `evidence`, `epistemic_boundary`, `is_hypothesis`, `model_assumptions`, `recursion_depth`
 
 ### Session Persistence (v0.11)
@@ -890,7 +896,7 @@ Source: `src/specsmith/cli.py` §`save`, `load`; `src/specsmith/ci_manager.py`
 Two top-level CLI commands provide a complete governance checkpoint cycle:
 
 **`specsmith save`** (REQ-336):
-1. Create a timestamped ESDB backup via `ChronoStore.backup()` (written to `.chronomemory/backup/<timestamp>/`)
+1. Create a timestamped ESDB backup via `ChronoStore.backup()` (ChronoMemory backend class; written to `.chronomemory/backup/<timestamp>/`)
 2. `git add` all governance files and `git commit` with an auto-generated message
 3. `git push` the current branch to origin
 - `--json` emits `{backup_path, commit_hash, push_ok}`
@@ -966,7 +972,7 @@ Implementation:
 
 **Architecture invariant (I11):** The `/specsmith` handler MUST precede the broker branch in the REPL dispatch loop so governance commands bypass the LLM preflight path entirely.
 
-## 36. specsmith.esdb Namespace — chronomemory v0.1.1 Full API Surface
+## 36. specsmith.esdb Namespace — chronomemory (ChronoStore backend) v0.1.1 Full API Surface
 Source: `src/specsmith/esdb/__init__.py`; `src/specsmith/esdb/bridge.py`
 
 `specsmith.esdb` is the canonical import namespace for the chronomemory ESDB within specsmith code. It re-exports the full chronomemory v0.1.1 public surface so internal modules never import chronomemory directly in more than one place (REQ-344).
@@ -1028,3 +1034,20 @@ The **`codity-ai-review`** governance skill (REQ-356) documents the full Codity.
 The **AGENTS.md template** (REQ-355) includes a conditional Codity section: projects with Codity configured SHOULD run `codity review --staged` before commits touching production code; HIGH-severity findings block the commit; MEDIUM findings require inline acknowledgement.
 
 **Architecture invariant (I15):** The VCS-detection heuristic MUST default to `"github"` when no signals are present (scaffold.yml absent, no `.gitlab-ci.yml`, no `azure-pipelines.yml`). New VCS hosts require a new detection heuristic AND a corresponding workflow writer method.
+
+## 40. Migration Direction Enforcement
+Source: `src/specsmith/cli.py` (`_maybe_prompt_project_update`, `_AutoUpdateGroup.invoke`); `src/specsmith/upgrader.py` (`run_upgrade`); `src/specsmith/updater.py` (`run_migration`); `src/specsmith/templates/agents.md.j2`
+
+specsmith projects carry a `spec_version` field in `docs/SPECSMITH.yml` (or legacy `scaffold.yml`). When the installed specsmith version and the project `spec_version` differ, migration direction determines what happens:
+
+**Forward migration (installed > project):** The project is behind the installed specsmith. Migration is always safe and must proceed without user prompting. `_maybe_prompt_project_update()` auto-runs `run_migration()` and prints which files were updated. The scaffolded `AGENTS.md` bootstrap instructs agents to run `specsmith migrate run` unconditionally at session start — no `[Y/n]` prompt is generated.
+
+**Backward migration (installed < project):** The project was scaffolded with a newer specsmith than is currently installed. This is a downgrade, which can corrupt governance state and produce invalid templates. It is categorically forbidden:
+- `run_upgrade()` returns an `UpgradeResult` with `downgrade_error=True` and exits the CLI with code 1.
+- `run_migration()` returns an error string immediately without mutating any files.
+- `_maybe_prompt_project_update()` prints a clear error and calls `sys.exit(1)` so no CLI command can proceed on a mismatched project.
+- `specsmith upgrade --spec-version <older>` is rejected by the CLI before calling `run_upgrade()`.
+
+The scaffolded `AGENTS.md` template (REQ-369) makes this contract explicit: it lists `specsmith migrate run` as a required session-start step with no prompt, and declares that downgrading specsmith on a project is not supported — agents encountering a downgrade situation MUST surface it to the user immediately and halt.
+
+**Architecture invariant (I16):** specsmith migration is **strictly forward-only**. No code path may silently accept a `target_version < current spec_version`. Backward migration is a hard error at every enforcement layer: `run_upgrade`, `run_migration`, the CLI auto-prompt, and the upgrade command itself.

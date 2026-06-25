@@ -11,22 +11,26 @@ Run these steps at the start of **every** session before touching any code:
 # 0. Kill any orphaned processes from previous sessions
 specsmith kill-session 2>/dev/null || true
 
-# 1. Update specsmith (if this is specsmith itself, use editable source)
-pip install --pre --upgrade specsmith
+# 1. Apply any pending forward migrations (always auto-accepted — no prompt)
+specsmith migrate run --project-dir .
 
-# 2. Migrate project scaffold if behind installed version
-specsmith migrate-project --project-dir .
-
-# 3. Verify governance health + sync machine state
+# 2. Verify governance health + sync machine state
 specsmith audit --project-dir .
 specsmith sync --project-dir .
 
-# 4. Emit the initial GOVERNANCE ANCHOR
+# 3. Emit the initial GOVERNANCE ANCHOR
 specsmith checkpoint --project-dir .
 ```
 
 Output the `specsmith checkpoint` result verbatim as your **first response**.
 Only proceed once all steps complete without errors.
+
+> **Migration policy:** Forward migration (installing a newer specsmith) is always
+> auto-accepted — run `specsmith migrate run` and continue. Backward migration
+> (running an older specsmith on a project scaffolded with a newer version) is
+> **not supported** and will produce a hard error. If you see a downgrade error,
+> surface it to the user immediately and **do not proceed** until the specsmith
+> installation is updated (`pipx upgrade specsmith`).
 
 ## Session Governance Protocol
 

@@ -24,12 +24,13 @@ These six terms are enough to run a governed change end-to-end.
 | Preflight | Governance check before making a change. | Prevents uncontrolled or unclear edits. | `specsmith preflight "add retries"` returns `accepted`. |
 | AEE | Applied Epistemic Engineering method in SpecSmith. | Defines how assumptions are tested and refined. | Frame → Stress-test → Reconstruct decisions for a feature. |
 | ESDB | Epistemic State Database storing governance state/events. | Preserves durable, queryable governance history. | Work items and trace references are persisted in ESDB records. |
+| ChronoMemory | Commercial package that provides the advanced ESDB backend. | Distinguishes package identity from backend engine naming. | Installing `specsmith[esdb]` adds the ChronoMemory package. |
 | OEA | Ontology-Epistemic-Agentic anti-drift framework concepts. | Improves model behavior transparency and reliability controls. | OEA metadata fields record confidence and boundary context. |
 | Equilibrium | Verified state where requirements, tests, and evidence align. | Indicates the change is governed and stable enough to proceed. | `specsmith verify` reports equilibrium reached. |
 | Belief Artifact | Formalized assumption/claim treated as an engineering artifact. | Makes assumptions testable instead of implicit. | “API always returns JSON” is stress-tested as an artifact. |
 | TraceVault | Tamper-evident chained record of actions/decisions. | Supports post-hoc audit and integrity checks. | `trace.jsonl` contains hash-linked events. |
 | WAL | Write-ahead log used for append-only durability. | Enables recovery and tamper-evidence workflows. | ChronoStore writes events to WAL before snapshot update. |
-| ChronoStore | Commercial ESDB backend with advanced durability controls. | Adds enterprise tamper-evidence/performance features. | Organization enables ChronoStore+ for regulated workloads. |
+| ChronoStore | Backend engine/class implemented by the ChronoMemory package. | Clarifies that ChronoStore is the backend name, while ChronoMemory is the package/product name. | Organization enables ChronoMemory and runs the ChronoStore backend for regulated workloads. |
 | Epistemic Boundary | What is inside vs outside validated knowledge scope. | Prevents over-claiming and drift beyond evidence. | Agent marks unknowns outside the boundary as unresolved. |
 | Governance Phase | Current lifecycle stage in AEE workflow. | Gives objective readiness expectations per stage. | Project moves from Requirements to Test Spec phase. |
 | Audit Chain | Linked evidence path from decision to outcome. | Proves how and why a change happened. | Preflight decision links to implementation and verify records. |

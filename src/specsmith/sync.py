@@ -316,8 +316,6 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         A :class:`SyncResult` describing what changed.
     """
     from specsmith.governance_yaml import (
-        generate_requirements_md,
-        generate_tests_md,
         is_yaml_mode,
         load_yaml_requirements,
         load_yaml_tests,
@@ -392,13 +390,40 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
             for t in new_tests
         ]
     else:
-        # ── Legacy Markdown mode ─────────────────────────────────────────────
+        # ── Legacy Markdown mode (DEPRECATED — REQ-373) ──────────────────────
+        # Markdown mode will be removed in a future release.
+        # Run 'specsmith migrate run' to upgrade to YAML-first mode.
+        import warnings as _warnings
+
+        _warnings.warn(
+            "specsmith: markdown governance mode is deprecated. "
+            "Run 'specsmith migrate run' to migrate to YAML-first mode. "
+            "Markdown mode will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Auto-trigger m007 migration (idempotent, non-destructive)
+        import contextlib as _cl
+
+        with _cl.suppress(Exception):
+            from specsmith.migrations.m007_yaml_first import YamlFirstMigration as _M007
+            from specsmith.migrations.runner import MigrationRunner as _MR
+
+            _applied = _MR(root).applied_versions()
+            if 7 not in _applied and not dry_run:
+                _m007_result = _M007().run(root)
+                if _m007_result.success and is_yaml_mode(root):
+                    # Successfully migrated — restart sync in YAML mode
+                    return run_sync(root, dry_run=dry_run)
+
         new_reqs = []
         if reqs_md_path.exists():
+            # DEPRECATED: reads REQUIREMENTS.md — migrate to YAML-first mode
             new_reqs = parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
 
         new_tests = []
         if tests_md_path.exists():
+            # DEPRECATED: reads TESTS.md — migrate to YAML-first mode
             new_tests = parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
 
         # Inject test_ids into requirements even in Markdown mode (#147)
@@ -458,16 +483,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                 json.dumps(new_tests_obj, indent=2, ensure_ascii=False),
                 encoding="utf-8",
             )
-        # In YAML-first mode also regenerate the Markdown as a derived artifact
-        from specsmith.governance_yaml import is_yaml_mode
-
-        if is_yaml_mode(root):
-            md_reqs = generate_requirements_md(new_reqs_obj)
-            md_tests = generate_tests_md(new_tests_obj)
-            reqs_md_path.parent.mkdir(parents=True, exist_ok=True)
-            reqs_md_path.write_text(md_reqs, encoding="utf-8")
-            tests_md_path.parent.mkdir(parents=True, exist_ok=True)
-            tests_md_path.write_text(md_tests, encoding="utf-8")
+        # docs/REQUIREMENTS.md and docs/TESTS.md are deprecated in YAML-first mode.
+        # They are no longer regenerated; edit docs/requirements/*.yml instead.
 
         # ── ESDB sync (best-effort — never blocks sync on ESDB failure) ────────
         # Keep ChronoStore in sync with JSON so ESDB is never stale.

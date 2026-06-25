@@ -191,6 +191,22 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     if old_version == __version__:
         return [f"Already at version {__version__}"]
 
+    # Reject backward migration (downgrade) unconditionally — REQ-370 / I16.
+    def _ver(v: str) -> tuple[int, ...]:
+        import re
+
+        m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+        if not m:
+            return (0,)
+        return tuple(int(x) for x in m.groups() if x is not None)
+
+    if old_version != "unknown" and _ver(__version__) < _ver(old_version):
+        return [
+            f"ERROR: Backward migration is not supported. "
+            f"Project spec_version is {old_version!r} but installed specsmith is "
+            f"{__version__!r} (older). Upgrade specsmith first: pipx upgrade specsmith"
+        ]
+
     actions.append(f"Migrate spec_version: {old_version} → {__version__}")
 
     # Update scaffold.yml version

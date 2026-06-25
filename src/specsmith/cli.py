@@ -141,16 +141,27 @@ class _AutoUpdateGroup(click.Group):
 
 
 def _maybe_prompt_project_update() -> None:
-    """Check if the project's scaffold config is behind the installed version.
+    """Check if the project's scaffold config differs from the installed version.
+
+    Forward migration (installed > project): auto-runs migration immediately
+    without any Y/n prompt — REQ-369.  Backward migration (installed < project)
+    is a hard error that exits with code 1 — REQ-370.
 
     Checks docs/SPECSMITH.yml (canonical) then scaffold.yml (legacy).
-    If so, prints a one-line prompt and offers Y/n to migrate.
     Runs in under 5ms for projects that are up to date (no network call).
     """
     import os
+    import re
+    import sys
     from pathlib import Path
 
     from specsmith.paths import find_scaffold
+
+    def _ver(v: str) -> tuple[int, ...]:
+        m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+        if not m:
+            return (0,)
+        return tuple(int(x) for x in m.groups() if x is not None)
 
     # Look for scaffold config in CWD (canonical: docs/specsmith.yml)
     scaffold_path = find_scaffold(Path("."))
@@ -166,36 +177,41 @@ def _maybe_prompt_project_update() -> None:
         if not project_ver or project_ver == __version__:
             return  # Up to date or no version recorded
 
-        # Only prompt once per shell session (track via env var)
+        # Only act once per shell session (track via env var)
         session_key = f"SPECSMITH_CHECKED_{project_ver}_{__version__}"
         if os.environ.get(session_key):
             return
         os.environ[session_key] = "1"
 
-        console.print(
-            f"\n[yellow]⚠[/yellow] Project spec [bold]{project_ver}[/bold] → "
-            f"specsmith [bold]{__version__}[/bold] installed. "
-            rf"Migrate now? [bold]\[Y/n][/bold] ",
-            end="",
-        )
-        try:
-            answer = input().strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            console.print()
-            return
+        installed = _ver(__version__)
+        project = _ver(project_ver)
 
-        if answer in ("", "y", "yes"):
-            from specsmith.updater import run_migration
-
-            console.print("[cyan]Migrating project...[/cyan]")
-            actions = run_migration(Path("."))
-            for a in actions:
-                console.print(f"  [green]✓[/green] {a}")
-        else:
-            console.print(
-                "  [dim]Skipped. Run [bold]specsmith migrate-project[/bold] when ready. "
-                "Set SPECSMITH_NO_AUTO_UPDATE=1 to suppress this prompt.[/dim]"
+        if installed < project:
+            # Backward migration (downgrade) — hard error, REQ-370.
+            click.echo(
+                f"\nERROR: specsmith downgrade detected.\n"
+                f"  Project spec_version : {project_ver}\n"
+                f"  Installed specsmith  : {__version__} (older)\n"
+                "\n"
+                "  Backward migration is not supported.\n"
+                "  Upgrade specsmith first: pipx upgrade specsmith\n"
+                "  Then re-run this command.",
+                err=True,
             )
+            sys.exit(1)
+
+        # Forward migration — auto-accept, no prompt, REQ-369.
+        from specsmith.updater import run_migration
+
+        console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {__version__}...[/cyan]")
+        actions = run_migration(Path("."))
+        for a in actions:
+            if a.startswith("ERROR:"):
+                console.print(f"  [red]\u2717[/red] {a}", err=True)
+            else:
+                console.print(f"  [green]\u2713[/green] {a}")
+    except SystemExit:
+        raise  # Never swallow the hard-error exit
     except Exception:  # noqa: BLE001
         pass  # Never break the actual command on version check errors
 
@@ -1589,11 +1605,43 @@ def upgrade(spec_version: str | None, project_dir: str, full: bool) -> None:
     With --full: also regenerates exec shims (PID tracking), CI configs,
     agent integrations, and creates missing community files. Safe: never
     overwrites AGENTS.md, LEDGER.md, or user documentation.
+
+    Backward migration (downgrade) is rejected with exit code 1 — REQ-370.
     """
+    import re
+
     from specsmith.upgrader import run_upgrade
 
     root = Path(project_dir).resolve()
+
+    # Pre-flight downgrade check when --spec-version is explicit — REQ-370.
+    if spec_version:
+        from specsmith.updater import check_project_version
+
+        def _ver(v: str) -> tuple[int, ...]:
+            m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
+            if not m:
+                return (0,)
+            return tuple(int(x) for x in m.groups() if x is not None)
+
+        current_project_ver, _ = check_project_version(root)
+        if current_project_ver and _ver(spec_version) < _ver(current_project_ver):
+            click.echo(
+                f"ERROR: Backward migration is not supported.\n"
+                f"  Project spec_version  : {current_project_ver}\n"
+                f"  Requested target      : {spec_version} (older)\n"
+                "\n"
+                "  Upgrade specsmith first: pipx upgrade specsmith",
+                err=True,
+            )
+            raise SystemExit(1)
+
     result = run_upgrade(root, target_version=spec_version, full=full)
+
+    if result.downgrade_error:
+        click.echo(result.message, err=True)
+        raise SystemExit(1)
+
     console.print(result.message)
 
     if result.updated_files:
@@ -1798,7 +1846,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     import sys
 
     from specsmith.auditor import run_audit
-    from specsmith.esdb import ESDB_BACKEND, open_default_store
+    from specsmith.esdb import open_default_store
     from specsmith.phase import read_phase
 
     def _tool_version(cmd: str) -> tuple[bool, str]:
@@ -1855,7 +1903,11 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     except Exception as exc:  # noqa: BLE001
         _add("esdb backend", False, f"open failed: {exc}")
     if esdb_open:
-        _add("esdb backend", True, f"{ESDB_BACKEND} open")
+        # Re-read the module-level ESDB_BACKEND — open_default_store() updates
+        # the global in-place, so the locally-imported name is stale.
+        import specsmith.esdb as _esdb_mod
+
+        _add("esdb backend", True, f"{_esdb_mod.ESDB_BACKEND} open")
         _add(
             "esdb chain",
             chain_ok,
@@ -2139,15 +2191,24 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     return created
 
 
-@main.command()
+@main.group(name="architect", invoke_without_command=True)
+@click.pass_context
 @click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
 @click.option("--non-interactive", is_flag=True, default=False, help="Skip prompts, auto-generate.")
-def architect(project_dir: str, non_interactive: bool) -> None:
+def architect_group(ctx: click.Context, project_dir: str, non_interactive: bool) -> None:
     """Generate or enrich architecture documentation.
 
     Scans the project for modules, languages, dependencies, git history,
     then optionally interviews you about components and data flow.
+
+    Subcommands:
+      interview  Epistemic BA interview (builds ARCHITECTURE.md from scratch).
+      gap        Diff current architecture vs snapshot; produce gap REQs/tests.
+      update     Re-engage interview for a project with existing ARCHITECTURE.md.
     """
+    if ctx.invoked_subcommand is not None:
+        return  # Delegate to subcommand
+
     from specsmith.architect import generate_architecture, scan_project_structure
 
     root = Path(project_dir).resolve()
@@ -2197,6 +2258,286 @@ def architect(project_dir: str, non_interactive: bool) -> None:
             "are referenced but not merged. Review manually."
         )
     console.print('  [dim]Run "specsmith audit --project-dir ." to verify governance health.[/dim]')
+
+
+# ---------------------------------------------------------------------------
+# specsmith architect interview / gap / update (REQ-375–REQ-377)
+# ---------------------------------------------------------------------------
+
+
+@architect_group.command(name="interview")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--non-interactive",
+    is_flag=True,
+    default=False,
+    help="Auto-generate answers from project scan (CI-safe).",
+)
+def architect_interview_cmd(project_dir: str, non_interactive: bool) -> None:
+    """Epistemic BA interview: build ARCHITECTURE.md from scratch.
+
+    Asks 9 targeted questions about the system (problem domain, users,
+    integrations, constraints, deployment, scale, data model, security,
+    failure modes). Each dimension is tracked with a confidence score;
+    the interview ends when all dimensions reach \u226575% confidence.
+
+    Outputs:
+      docs/ARCHITECTURE.md     (with per-section confidence annotations)
+      docs/requirements/proposed.yml  (draft REQs inferred from interview)
+      .specsmith/arch-interview.json  (crash-safe session state)
+    """
+    from specsmith.architect import run_interview
+
+    root = Path(project_dir).resolve()
+    console.print("[bold]Epistemic BA Interview[/bold]\n")
+    console.print(
+        "This interview helps specsmith build an ARCHITECTURE.md grounded in "
+        "your actual requirements.\n"
+        "Type [bold]done[/bold] at any prompt to finish early.\n"
+    )
+
+    result = run_interview(root, non_interactive=non_interactive)
+    dims = result["dimensions"]
+    arch_path = result["arch_path"]
+    proposed_path = result["proposed_reqs_path"]
+    all_confident = result["all_confident"]
+
+    console.print("\n[bold]Interview complete.[/bold]")
+    for dim in dims:  # type: ignore[union-attr]
+        bar = "\u2588" * int(dim.confidence * 10) + "\u2591" * (10 - int(dim.confidence * 10))
+        status = "[green]\u2714[/green]" if dim.confidence >= 0.75 else "[yellow]~[/yellow]"
+        console.print(f"  {status} {dim.key:<25} {bar} {dim.confidence:.0%}")
+
+    rel_arch = arch_path.relative_to(root)  # type: ignore[union-attr]
+    rel_reqs = proposed_path.relative_to(root)  # type: ignore[union-attr]
+    console.print(f"\n[green]\u2713[/green] {rel_arch}")
+    console.print(f"[green]\u2713[/green] {rel_reqs}")
+    if not all_confident:
+        console.print(
+            "\n[yellow]Some dimensions below 75%.[/yellow] "
+            "Re-run [bold]specsmith architect interview[/bold] to continue."
+        )
+    else:
+        console.print("\n[green]All dimensions confident! \u2714[/green]")
+
+
+@architect_group.command(name="gap")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--save",
+    is_flag=True,
+    default=False,
+    help="Save current ARCHITECTURE.md as snapshot and exit.",
+)
+def architect_gap_cmd(project_dir: str, save: bool) -> None:
+    """Diff current ARCHITECTURE.md vs snapshot; propose gap REQs/tests.
+
+    On first call, saves a snapshot of ARCHITECTURE.md. Subsequent calls
+    produce arch-gap.yml files with:
+      - Proposed REQs for new architecture sections
+      - REQs flagged for review when sections were removed/changed
+      - Proposed test stubs for new REQs
+    """
+    from specsmith.architect import _ARCH_SNAPSHOT_FILE, run_gap_analysis
+
+    root = Path(project_dir).resolve()
+
+    if save:
+        arch_path = root / "docs" / "ARCHITECTURE.md"
+        if not arch_path.exists():
+            console.print("[red]\u2717[/red] No ARCHITECTURE.md found.")
+            raise SystemExit(1)
+        snapshot_path = root / _ARCH_SNAPSHOT_FILE
+        snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        snapshot_path.write_text(arch_path.read_text(encoding="utf-8"), encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Snapshot saved to {_ARCH_SNAPSHOT_FILE}")
+        return
+
+    result = run_gap_analysis(root)
+    console.print(f"[bold]Gap analysis[/bold]: {result.get('message', '')}")
+
+    new_reqs = result.get("new_reqs", [])
+    stale_reqs = result.get("stale_reqs", [])
+    proposed_tests = result.get("proposed_tests", [])
+
+    if new_reqs:
+        console.print(f"\n[green]\u2713[/green] {len(new_reqs)} new REQ(s) proposed:")
+        for req in new_reqs:  # type: ignore[union-attr]
+            console.print(f"  [cyan]{req['id']}[/cyan] {req['title']}")
+    if stale_reqs:
+        console.print(f"\n[yellow]~[/yellow] {len(stale_reqs)} REQ(s) may be stale:")
+        for req in stale_reqs:  # type: ignore[union-attr]
+            console.print(f"  [yellow]{req['id']}[/yellow] {req['reason']}")
+    if proposed_tests:
+        console.print(f"\n[green]\u2713[/green] {len(proposed_tests)} test stub(s) proposed")
+
+    gap_reqs = result.get("gap_reqs_path")
+    gap_tests = result.get("gap_tests_path")
+    if gap_reqs:
+        console.print(f"[green]\u2713[/green] {Path(gap_reqs).relative_to(root)}")
+    if gap_tests:
+        console.print(f"[green]\u2713[/green] {Path(gap_tests).relative_to(root)}")
+    if not new_reqs and not stale_reqs:
+        console.print("[green]No gaps detected.[/green]")
+
+
+@architect_group.command(name="update")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--non-interactive",
+    is_flag=True,
+    default=False,
+    help="Auto-generate answers (CI-safe).",
+)
+def architect_update_cmd(project_dir: str, non_interactive: bool) -> None:
+    """Re-engage BA interview for a project with existing ARCHITECTURE.md.
+
+    1. Saves current ARCHITECTURE.md as .specsmith/arch-snapshot.md.
+    2. Restores confidence levels from inline annotations.
+    3. Asks questions only about dimensions below 75% confidence.
+    4. Runs gap analysis to surface stale REQs and propose new ones.
+    """
+    from specsmith.architect import run_arch_update
+
+    root = Path(project_dir).resolve()
+    console.print("[bold]Updating architecture[/bold]...\n")
+
+    result = run_arch_update(root, non_interactive=non_interactive)
+    arch_path = result["arch_path"]
+    gap = result.get("gap", {})
+
+    rel_arch = arch_path.relative_to(root)  # type: ignore[union-attr]
+    console.print(f"[green]\u2713[/green] Updated {rel_arch}")
+
+    if gap:
+        msg = gap.get("message", "")
+        if msg:
+            console.print(f"Gap: {msg}")
+
+
+@architect_group.command(name="issues")
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option(
+    "--create",
+    "do_create",
+    is_flag=True,
+    default=False,
+    help="Create a GitHub issue for each gap via the 'gh' CLI (opt-in).",
+)
+@click.option(
+    "--repo",
+    default="",
+    help="Target GitHub repo (OWNER/REPO). Default: auto-detect from 'gh repo view'.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit gaps as JSON.")
+def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: bool) -> None:
+    """Detect gaps between this project's needs and specsmith's feature set (REQ-383).
+
+    Reads the BA interview state (run 'specsmith architect interview' first) to
+    identify the project type, then cross-references the specsmith feature catalog
+    to produce a list of missing capabilities.
+
+    Use --create to open a GitHub issue for each gap (requires 'gh' CLI and auth).
+    Use --repo OWNER/REPO to target a specific repository (default: auto-detected).
+    """
+    import json as _json
+    import shutil
+    import subprocess as _sub  # noqa: S404 — gh CLI is trusted
+
+    from specsmith.architect import run_feature_gap_analysis
+
+    root = Path(project_dir).resolve()
+    gaps = run_feature_gap_analysis(root)
+
+    if as_json:
+        from dataclasses import asdict
+
+        click.echo(_json.dumps([asdict(g) for g in gaps], indent=2))
+        return
+
+    if not gaps:
+        console.print(
+            "[green]\u2714 No specsmith feature gaps detected for this project type.[/green]"
+        )
+        return
+
+    console.print(f"[bold]specsmith feature gaps[/bold] ({len(gaps)} found):\n")
+    for gap in gaps:
+        console.print(f"  [cyan]\u25ba[/cyan] [bold]{gap.title}[/bold]")
+        desc = gap.description[:120] + "..." if len(gap.description) > 120 else gap.description
+        console.print(f"    {desc}")
+        console.print(f"    Labels: {', '.join(gap.labels) or 'none'}\n")
+
+    if not do_create:
+        console.print(
+            "[dim]Run with [bold]--create[/bold] to open GitHub issues for each gap.[/dim]"
+        )
+        return
+
+    # Resolve target repo
+    if not shutil.which("gh"):
+        console.print("[red]\u2717[/red] 'gh' CLI not found. Install from https://cli.github.com")
+        raise SystemExit(1)
+
+    target_repo = repo
+    if not target_repo:
+        try:
+            result = _sub.run(  # noqa: S603, S607
+                ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            target_repo = result.stdout.strip()
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not target_repo:
+        console.print("[red]\u2717[/red] Could not detect repo. Use --repo OWNER/REPO.")
+        raise SystemExit(1)
+
+    created = 0
+    for gap in gaps:
+        body = (
+            f"{gap.description}\n\n"
+            f"**Project type:** `{gap.project_type}`\n"
+            f"**Severity:** `{gap.severity}`\n"
+            f"**Generated by:** `specsmith architect issues`"
+        )
+        label_args: list[str] = []
+        for lbl in gap.labels:
+            label_args += ["--label", lbl]
+        try:
+            proc = _sub.run(  # noqa: S603, S607
+                [
+                    "gh",
+                    "issue",
+                    "create",
+                    "--repo",
+                    target_repo,
+                    "--title",
+                    gap.title,
+                    "--body",
+                    body,
+                ]
+                + label_args,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if proc.returncode == 0:
+                url = proc.stdout.strip()
+                console.print(f"  [green]\u2714[/green] {gap.title} \u2192 {url}")
+                created += 1
+            else:
+                console.print(f"  [red]\u2717[/red] {gap.title}: {proc.stderr.strip()[:80]}")
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"  [red]\u2717[/red] {gap.title}: {exc}")
+
+    console.print(
+        f"\n[bold green]\u2714[/bold green] {created}/{len(gaps)} issue(s) "
+        f"created on {target_repo}."
+    )
 
 
 @main.command(name="parse-reqs")
@@ -2934,17 +3275,63 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
         push_result = run_push(root, force=force)
         steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
 
+    # Issue #264 (REQ-393): After commit, check for remaining dirty files and
+    # warn the user.  ok stays True so the overall save is not marked failed
+    # (the commit may have been partial, not a save failure).
+    commit_step_ok = any(s["step"] == "commit" and s["ok"] for s in steps)
+    if commit_step_ok:
+        remaining = _get_dirty_files(root)
+        if remaining:
+            steps.append(
+                {
+                    "step": "dirty_tree_warning",
+                    "ok": True,  # informational — does not block overall ok
+                    "note": (
+                        f"{len(remaining)} file(s) still uncommitted after save. Run: git status"
+                    ),
+                    "dirty_files": remaining,
+                }
+            )
+
     ok = all(s["ok"] for s in steps)
     result = {"ok": ok, "steps": steps}
 
     if as_json:
-        click.echo(_json.dumps(result, indent=2))
+        import sys as _sys
+
+        _payload = _json.dumps(result, indent=2)
+        try:
+            _sys.stdout.write(_payload + "\n")
+            _sys.stdout.flush()
+        except Exception as _out_exc:  # noqa: BLE001
+            try:
+                _sys.stderr.write(_json.dumps({"ok": False, "error": str(_out_exc)}) + "\n")
+                _sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
+            raise SystemExit(1) from None
     else:
         for step in steps:
             icon = "\u2713" if step["ok"] else "\u2717"
+            if step["step"] == "dirty_tree_warning":
+                files_str = ", ".join(step.get("dirty_files", [])[:5])
+                extra = " ..." if len(step.get("dirty_files", [])) > 5 else ""
+                console.print(
+                    f"  [yellow]\u26a0[/yellow]  {step['note']}  [dim]({files_str}{extra})[/dim]"
+                )
+                continue
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
             note = step.get("message") or step.get("note") or step.get("error") or ""
             console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
+
+    # Auto-record a minimal metrics row for lifetime tracking
+    try:
+        from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+        _store = MetricsStore(root)
+        _store.append(MetricsRecord.new(command="save", passed=ok))
+    except Exception:  # noqa: BLE001  # intentional: metrics are best-effort; never block save
+        pass
 
     if not ok:
         raise SystemExit(1)
@@ -4107,6 +4494,76 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _get_dirty_files(root: Path) -> list[str]:
+    """Return list of uncommitted file paths (REQ-393)."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            return [line[3:].strip() for line in result.stdout.splitlines() if line.strip()]
+    except Exception:  # noqa: BLE001
+        pass
+    return []
+
+
+def _print_ollama_setup_guidance(console_obj: object) -> None:
+    """Print step-by-step Ollama setup when no provider is available (REQ-390)."""
+    import shutil
+
+    ollama_installed = bool(shutil.which("ollama"))
+
+    console_obj.print("\n[bold yellow]No LLM provider detected.[/bold yellow]\n")
+
+    if ollama_installed:
+        # Ollama binary exists but the daemon is not running.
+        console_obj.print(
+            "[bold]Ollama is installed but not running.[/bold]\n\n"
+            "  1. Start the Ollama daemon:\n"
+            "       ollama serve\n\n"
+            "  2. Pull recommended models (auto-detected for your hardware):\n"
+            "       specsmith local-model setup\n\n"
+            "  3. Run specsmith again:\n"
+            "       specsmith run\n"
+        )
+    else:
+        # Ollama is not installed at all.
+        console_obj.print(
+            "[bold]Option A — Local AI (free, private, no API key needed):[/bold]\n\n"
+            "  1. Install Ollama from https://ollama.ai\n"
+            "     (macOS/Linux: curl -fsSL https://ollama.ai/install.sh | sh)\n\n"
+            "  2. Start the daemon:\n"
+            "       ollama serve\n\n"
+            "  3. Pull recommended models (auto-detected for your hardware):\n"
+            "       specsmith local-model setup\n\n"
+            "  4. Run specsmith again:\n"
+            "       specsmith run\n"
+        )
+        console_obj.print(
+            "[bold]Option B — Cloud AI (requires an API key):[/bold]\n\n"
+            "  ANTHROPIC_API_KEY=sk-ant-...   then   specsmith run   # Claude\n"
+            "  OPENAI_API_KEY=sk-...          then   specsmith run   # GPT\n"
+            "  GOOGLE_API_KEY=...             then   specsmith run   # Gemini\n"
+        )
+
+
+def _auto_detect_and_save_local_models(project_dir: str) -> None:
+    """Detect hardware and persist local-models.yml if GPU is found (REQ-391)."""
+    try:
+        from specsmith.local_model import detect_local_models, save_local_models_config
+
+        roles = detect_local_models()
+        if roles:
+            save_local_models_config(project_dir, roles)
+    except Exception:  # noqa: BLE001 — best-effort; never crash run_cmd
+        pass
+
+
 @main.command(name="run")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option(
@@ -4227,7 +4684,19 @@ def run_cmd(
         return
 
     from specsmith.agent.core import ModelTier
-    from specsmith.agent.runner import AgentRunner
+    from specsmith.agent.runner import AgentRunner, check_providers
+
+    # ── Auto-detect + guided Ollama setup (REQ-390) ──────────────────────────
+    # When no flags were supplied and no provider is reachable, print
+    # step-by-step Ollama setup guidance and exit 0 instead of crashing.
+    if not json_events and not provider_name and not model and not task:
+        statuses = check_providers()
+        if not any(s.available for s in statuses):
+            _print_ollama_setup_guidance(console)
+            # Auto-save detected model config for next run (REQ-391)
+            _auto_detect_and_save_local_models(project_dir)
+            raise SystemExit(0)
+    # ──────────────────────────────────────────────────────────────────
 
     try:
         runner = AgentRunner(
@@ -10781,7 +11250,9 @@ def esdb_group() -> None:
 def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     """Show ESDB backend, license status, and record counts."""
     import json as _json
+    import sys
 
+    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND
     from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
     from specsmith.esdb._license import check_license, resolve_license_path
     from specsmith.sync import auto_migrate_if_needed
@@ -10793,14 +11264,17 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     lic_path = resolve_license_path()
     lic_status = check_license(warn=False) if lic_path else None
 
-    # Open the appropriate store (no warning — we'll report it ourselves)
+    # Open the appropriate store (no warning — we’ll report it ourselves)
     store = open_default_store(root, warn=False)
-    from specsmith.esdb import ESDB_BACKEND
+    # Re-read ESDB_BACKEND from the module — open_default_store() updates the
+    # module-level global; the locally-imported name would be stale.  (#263)
+    active_backend = _esdb_mod.ESDB_BACKEND
 
     backend_label: str
     chain_ok: bool = True
     record_count: int = 0
     counts: dict[str, int] = {}
+    store_error: str = ""
 
     try:
         with store as s:  # type: ignore[attr-defined]
@@ -10808,10 +11282,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
             # Issue #202: chain_valid() may return non-bool in some chronomemory
             # versions for an intact chain.  Only treat literal False as invalid.
             chain_ok = s.chain_valid() is not False
-            if ESDB_BACKEND == "sqlite":
+            if active_backend == "sqlite":
                 sqlite_db = root / ".specsmith" / "esdb.sqlite3"
-                backend_label = f"SQLite (free, MIT) — {sqlite_db}"
-                # count by kind for sqlite
+                backend_label = f"SQLite (free, MIT) \u2014 {sqlite_db}"
                 for k in ("requirement", "testcase", "fact", "hypothesis", "decision"):
                     n = len(s.query(kind=k))
                     if n:
@@ -10823,7 +11296,8 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                 bridge = EsdbBridge(str(root))
                 counts = bridge.record_counts()
     except Exception as exc:  # noqa: BLE001
-        backend_label = f"{ESDB_BACKEND} (error: {exc})"
+        store_error = str(exc)
+        backend_label = f"{active_backend} (error: {exc})"
 
     license_info: dict[str, object]
     if not CHRONO_AVAILABLE:
@@ -10844,34 +11318,63 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         }
 
     if as_json:
-        click.echo(
-            _json.dumps(
+        payload = _json.dumps(
+            {
+                "backend": active_backend,
+                "backend_label": backend_label,
+                "record_count": record_count,
+                "chain_valid": chain_ok,
+                "counts": counts,
+                "license": license_info,
+                "auto_migrated": bool(auto_counts),
+                "auto_migrate_counts": auto_counts,
+                "store_error": store_error or None,
+            },
+            indent=2,
+        )
+        # Issue #263 (REQ-392): click.echo() can raise click.exceptions.Abort
+        # on Windows when console encoding lookup triggers a KeyboardInterrupt.
+        # Write directly to sys.stdout to bypass Click's _winconsole stream
+        # detection.  On failure, write a structured error payload to stderr
+        # and exit 1 so automation can distinguish write failures from success.
+        _write_failed = False
+        try:
+            sys.stdout.write(payload + "\n")
+            sys.stdout.flush()
+        except Exception as out_exc:  # noqa: BLE001
+            _write_failed = True
+            error_payload = _json.dumps(
                 {
-                    "backend": ESDB_BACKEND,
-                    "backend_label": backend_label,
+                    "ok": False,
+                    "error": "esdb status: stdout write failed",
+                    "reason": str(out_exc),
+                    "backend": active_backend,
                     "record_count": record_count,
-                    "chain_valid": chain_ok,
-                    "counts": counts,
-                    "license": license_info,
-                    "auto_migrated": bool(auto_counts),
-                    "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
             )
-        )
+            try:
+                sys.stderr.write(error_payload + "\n")
+                sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
+        if _write_failed:
+            raise SystemExit(1)
         return
 
     icon = "[green]\u25cf[/green]"
-    console.print(f"{icon} ESDB — {backend_label}")
+    console.print(f"{icon} ESDB \u2014 {backend_label}")
     console.print(f"  Records: {record_count}")
     for kind, count in counts.items():
         console.print(f"    {kind}: {count}")
     chain_icon = "[green]\u2714[/green]" if chain_ok else "[red]\u2717[/red]"
     console.print(f"  {chain_icon} Integrity OK")
+    if store_error:
+        console.print(f"  [red]\u2717[/red] Store error: {store_error}")
     # License line
     if not CHRONO_AVAILABLE:
         console.print(
-            "  [dim]chronomemory not installed — run "
+            "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"
         )
     elif lic_status and lic_status.valid:
@@ -10887,7 +11390,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         )
     if auto_counts:
         console.print(
-            "  [cyan]⟳[/cyan] Auto-migrated from legacy JSON: "
+            "  [cyan]\u27f3[/cyan] Auto-migrated from legacy JSON: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
             f"({auto_counts.get('skipped', 0)} skipped)"
@@ -11528,7 +12031,270 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
         )
 
 
+@esdb_group.command(name="switch-backend")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--to",
+    "target_backend",
+    required=True,
+    type=click.Choice(["chronomemory", "sqlite"]),
+    help="Target backend to migrate to.",
+)
+@click.option(
+    "--confirm-data-loss",
+    is_flag=True,
+    default=False,
+    help="Required when migrating to sqlite: acknowledges WAL history loss.",
+)
+def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_loss: bool) -> None:
+    """Migrate ESDB records between SQLite and ChronoStore backends (REQ-372).
+
+    \b
+    --to chronomemory  Bulk-imports SQLite records into ChronoStore. Requires a
+                       valid license (specsmith esdb enable --key-file ...).
+    --to sqlite        Exports ChronoStore records into SqliteStore.
+                       WARNING: ChronoStore WAL history and epistemic chain
+                       integrity are NOT preserved in SQLite. Requires
+                       --confirm-data-loss.
+    """
+    import json as _json
+
+    from specsmith.esdb import CHRONO_AVAILABLE, SqliteStore, open_default_store
+    from specsmith.esdb._license import check_license
+
+    root = Path(project_dir).resolve()
+
+    if target_backend == "chronomemory":
+        if not CHRONO_AVAILABLE:
+            console.print(
+                "[red]\u2717[/red] chronomemory is not installed. Run: pip install specsmith[esdb]"
+            )
+            raise SystemExit(1)
+        lic = check_license(warn=False)
+        if not lic.valid:
+            console.print(
+                f"[red]\u2717[/red] No valid ESDB license: {lic.reason}\n"
+                "  Run: specsmith esdb enable --key-file /path/to/your.esdb.key"
+            )
+            raise SystemExit(1)
+        # Count SQLite records
+        sqlite_store = SqliteStore(root)
+        with sqlite_store as s:
+            sqlite_count = s.record_count()
+        if sqlite_count == 0:
+            console.print("[yellow]No SQLite records to migrate.[/yellow]")
+            return
+        # Migrate SQLite → ChronoStore
+        sqlite2 = SqliteStore(root)
+        with sqlite2 as s:
+            counts = s.migrate_from_json(root / ".specsmith")
+        migrated = sum(counts.values()) if isinstance(counts, dict) else 0
+        console.print(
+            f"[green]\u2714[/green] Migrated [bold]{migrated}[/bold] records "
+            "from SQLite \u2192 ChronoStore."
+        )
+        return
+
+    # target_backend == "sqlite"
+    if not confirm_data_loss:
+        console.print(
+            "[bold red]WARNING:[/bold red] Migrating to SQLite loses ChronoStore WAL "
+            "history and epistemic chain integrity.\n"
+            "  The ChronoStore WAL is NOT deleted automatically.\n"
+            "  Re-run with [bold]--confirm-data-loss[/bold] to proceed."
+        )
+        raise SystemExit(1)
+
+    # Export ChronoStore → SQLite via requirements.json / testcases.json
+    with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        all_records = store.query(status=None)  # type: ignore[attr-defined]
+    reqs = [r.to_dict() for r in all_records if r.kind == "requirement"]
+    tests = [r.to_dict() for r in all_records if r.kind == "testcase"]
+    specsmith_dir = root / ".specsmith"
+    specsmith_dir.mkdir(parents=True, exist_ok=True)
+    (specsmith_dir / "requirements.json").write_text(
+        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    (specsmith_dir / "testcases.json").write_text(
+        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    sqlite_store2 = SqliteStore(root)
+    with sqlite_store2 as s:
+        s.migrate_from_json(specsmith_dir)
+        final_count = s.record_count()
+    console.print(
+        f"[green]\u2714[/green] Exported [bold]{final_count}[/bold] records to SQLite. "
+        "ChronoStore WAL preserved (not deleted)."
+    )
+
+
 main.add_command(esdb_group)
+
+
+# ---------------------------------------------------------------------------
+# specsmith cleanup — remove specsmith runtime cache files (REQ-374)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="cleanup")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--apply",
+    "apply_flag",
+    is_flag=True,
+    default=False,
+    help="Actually delete (default is dry-run).",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit report as JSON.",
+)
+def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
+    """Remove specsmith runtime cache files (REQ-374). Dry-run by default.
+
+    Removes: .specsmith/migration-backups/, .specsmith/runs/, .specsmith/sessions/,
+    .specsmith/chat/, .specsmith/perf/, .specsmith/recovery/, .specsmith/logs/,
+    .specsmith/dispatch/, .specsmith/pids/, .specsmith/agent-reports/,
+    .chronomemory/backup/, Python caches (__pycache__/, .ruff_cache/, .mypy_cache/,
+    .pytest_cache/, *.pyc).
+
+    PROTECTED (never removed): .specsmith/config.yml, requirements.json, testcases.json,
+    esdb.sqlite3, migration-state.json, governance-mode, .chronomemory/events.wal,
+    .chronomemory/snapshot.json, docs/requirements/, docs/tests/, docs/governance/.
+    """
+    import json as _json
+    import shutil
+
+    root = Path(project_dir).resolve()
+
+    _SPECSMITH_CACHE_DIRS = [
+        ".specsmith/migration-backups",
+        ".specsmith/runs",
+        ".specsmith/sessions",
+        ".specsmith/chat",
+        ".specsmith/perf",
+        ".specsmith/recovery",
+        ".specsmith/logs",
+        ".specsmith/dispatch",
+        ".specsmith/pids",
+        ".specsmith/agent-reports",
+        ".chronomemory/backup",
+    ]
+    _PYTHON_CACHE_NAMES = {
+        "__pycache__",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".pytest_cache",
+    }
+    _PROTECTED_DIRS = {
+        str(root / "docs" / "requirements"),
+        str(root / "docs" / "tests"),
+        str(root / "docs" / "governance"),
+    }
+
+    targets: list[Path] = []
+    total_bytes = 0
+
+    def _dir_size(p: Path) -> int:
+        s = 0
+        for f in p.rglob("*"):
+            if f.is_file():
+                with contextlib.suppress(OSError):
+                    s += f.stat().st_size
+        return s
+
+    # Specsmith cache dirs
+    for rel in _SPECSMITH_CACHE_DIRS:
+        p = root / rel
+        if p.is_dir():
+            targets.append(p)
+            total_bytes += _dir_size(p)
+
+    # Python caches (walk tree, skip protected)
+    for dirpath, dirnames, filenames in root.walk() if hasattr(root, "walk") else _os_walk(root):
+        dirpath = Path(dirpath)
+        if str(dirpath) in _PROTECTED_DIRS:
+            dirnames[:] = []
+            continue
+        to_remove = [d for d in dirnames if d in _PYTHON_CACHE_NAMES]
+        for d in to_remove:
+            p = dirpath / d
+            targets.append(p)
+            total_bytes += _dir_size(p)
+            dirnames.remove(d)
+        for f in filenames:
+            if f.endswith(".pyc"):
+                fp = dirpath / f
+                with contextlib.suppress(OSError):
+                    total_bytes += fp.stat().st_size
+                targets.append(fp)
+
+    removed: list[str] = []
+    if apply_flag:
+        for p in targets:
+            try:
+                if p.is_dir():
+                    shutil.rmtree(p)
+                else:
+                    p.unlink(missing_ok=True)
+                removed.append(str(p.relative_to(root)))
+            except OSError:
+                pass
+        with contextlib.suppress(Exception):
+            from specsmith.ledger import add_entry
+
+            add_entry(
+                root,
+                description=(
+                    f"specsmith cleanup --apply removed {len(removed)} target(s), "
+                    f"{total_bytes} bytes reclaimed."
+                ),
+                entry_type="cleanup",
+                author="specsmith",
+                reqs="REQ-374",
+            )
+
+    mb = total_bytes / (1_048_576)
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "apply": apply_flag,
+                    "removed" if apply_flag else "would_remove": [
+                        str(p.relative_to(root)) for p in targets
+                    ],
+                    "bytes_reclaimed": total_bytes,
+                },
+                indent=2,
+            )
+        )
+    else:
+        mode = "APPLY" if apply_flag else "DRY-RUN"
+        console.print(f"[bold]specsmith cleanup[/bold] ({mode}) \u2014 {root}\n")
+        for p in targets:
+            icon = "[red]\u2717[/red]" if apply_flag else "[yellow]~[/yellow]"
+            console.print(f"  {icon} {p.relative_to(root)}")
+        verb = "reclaimed" if apply_flag else "would reclaim"
+        console.print(
+            f"\n[bold green]\u2713[/bold green] {len(targets)} target(s); {verb} {mb:.2f} MB."
+        )
+        if not apply_flag:
+            console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
+
+
+def _os_walk(root: Path):
+    """Compatibility shim: os.walk on Python < 3.12 (Path.walk added in 3.12)."""
+    import os
+
+    return os.walk(str(root))
 
 
 # ---------------------------------------------------------------------------
@@ -12640,6 +13406,432 @@ except Exception:  # noqa: BLE001
     pass
 
 register_issue_policy_commands(main, console)
+
+
+# ---------------------------------------------------------------------------
+# specsmith metrics  (add / report / reset)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="metrics")
+def metrics_group() -> None:
+    """Manage lifetime project governance metrics.
+
+    Records are stored at .specsmith/session_metrics.jsonl and accumulate
+    over the full life of the project.  ``specsmith save`` auto-records a
+    minimal entry on each call; use ``specsmith metrics add`` for manual entries
+    with richer data (cost, quality, rework).
+    """
+
+
+@metrics_group.command(name="add")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--input-tokens", "input_tokens", type=int, default=0)
+@click.option("--output-tokens", "output_tokens", type=int, default=0)
+@click.option("--cost-usd", "cost_usd", type=float, default=0.0)
+@click.option(
+    "--quality-score", "quality_score", type=float, default=0.0, help="0.0–1.0 judge score."
+)
+@click.option("--passed/--failed", default=False, help="Whether the session work item passed.")
+@click.option("--rework-turns", "rework_turns", type=int, default=1)
+@click.option("--work-item-id", "work_item_id", default="")
+@click.option("--model", default="")
+@click.option("--notes", default="")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def metrics_add_cmd(
+    project_dir: str,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float,
+    quality_score: float,
+    passed: bool,
+    rework_turns: int,
+    work_item_id: str,
+    model: str,
+    notes: str,
+    as_json: bool,
+) -> None:
+    """Record a manual governance metrics entry."""
+    import json as _json
+
+    from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+    root = Path(project_dir).resolve()
+    rec = MetricsRecord.new(
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=cost_usd,
+        quality_score=quality_score,
+        passed=passed,
+        rework_turns=rework_turns,
+        work_item_id=work_item_id,
+        model=model,
+        command="manual",
+        notes=notes,
+    )
+    MetricsStore(root).append(rec)
+    if as_json:
+        click.echo(_json.dumps(rec.to_dict(), indent=2))
+    else:
+        console.print(f"[green]\u2713[/green] Recorded {rec.session_id} at {rec.timestamp}")
+
+
+@metrics_group.command(name="report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--since", default=None, help="ISO-8601 date, e.g. 2026-01-01")
+@click.option("--until", default=None, help="ISO-8601 date, e.g. 2026-12-31")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def metrics_report_cmd(
+    project_dir: str,
+    since: str | None,
+    until: str | None,
+    as_json: bool,
+) -> None:
+    """Report lifetime (or period) project governance metrics."""
+    import json as _json
+
+    from specsmith.project_metrics import MetricsStore
+
+    root = Path(project_dir).resolve()
+    store = MetricsStore(root)
+    data = store.report(since=since, until=until)
+
+    if as_json:
+        click.echo(_json.dumps(data, indent=2))
+        return
+
+    n = data.get("n_sessions", 0)
+    if n == 0:
+        console.print(
+            "[dim]No metrics recorded yet. Use `specsmith save` or `specsmith metrics add`.[/dim]"
+        )
+        return
+
+    label_width = 22
+    console.print("[bold]Governance Metrics Report[/bold]")
+    if since or until:
+        console.print(f"  Period: {since or 'start'} \u2013 {until or 'now'}")
+    console.print()
+
+    def _row(label: str, value: Any, suffix: str = "") -> None:
+        v = "N/A" if value is None else f"{value}{suffix}"
+        console.print(f"  {label:<{label_width}} {v}")
+
+    _row("Sessions", n)
+    pr = data.get("pass_rate")
+    _row("Pass rate", f"{pr:.0%}" if pr is not None else None)
+    _row("Mean tokens", data.get("mean_tokens"))
+    mc = data.get("mean_cost_usd")
+    _row("Mean cost", f"${mc:.6f}" if mc is not None else None)
+    tc = data.get("total_cost_usd", 0.0)
+    console.print(f"  {'Total cost':<{label_width}} ${tc:.6f}")
+    cop = data.get("cost_of_pass")
+    _row("Cost-of-pass", f"${cop:.6f}" if cop is not None else None)
+    mq = data.get("mean_quality")
+    _row("Mean quality", f"{mq:.4f}" if mq is not None else None)
+    q7 = data.get("quality_7d")
+    _row("Quality (7-day)", f"{q7:.4f}" if q7 is not None else None)
+    mr = data.get("mean_rework")
+    _row("Mean rework turns", f"{mr:.2f}" if mr is not None else None)
+
+    top = data.get("top_rework_sessions") or []
+    if top:
+        console.print()
+        console.print("[bold]Top rework sessions:[/bold]")
+        for r in top:
+            console.print(
+                f"  {r['session_id']}  {r.get('work_item_id') or '—':30s}  "
+                f"rework={r['rework_turns']}  {r['timestamp'][:10]}"
+            )
+
+
+@metrics_group.command(name="reset")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--yes", is_flag=True, default=False, help="Skip confirmation prompt.")
+def metrics_reset_cmd(project_dir: str, yes: bool) -> None:
+    """Erase all project metrics (destructive — cannot be undone)."""
+    from specsmith.project_metrics import MetricsStore
+
+    root = Path(project_dir).resolve()
+    if not yes:
+        click.confirm(
+            "This will permanently delete all metrics data. Continue?",
+            abort=True,
+        )
+    MetricsStore(root).reset()
+    console.print("[yellow]\u26a0[/yellow] Metrics data erased.")
+
+
+# ---------------------------------------------------------------------------
+# specsmith quality-report
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="quality-report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--since", default=None, help="ISO-8601 date filter start, e.g. 2026-01-01")
+@click.option("--until", default=None, help="ISO-8601 date filter end, e.g. 2026-12-31")
+@click.option(
+    "--create-issue",
+    "create_issue",
+    is_flag=True,
+    default=False,
+    help="Post report as a GitHub issue labelled 'quality_improvement' and print the URL.",
+)
+@click.option("--repo", default="", help="GitHub repo (owner/name). Defaults to current repo.")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def quality_report_cmd(
+    project_dir: str,
+    since: str | None,
+    until: str | None,
+    create_issue: bool,
+    repo: str,
+    as_json: bool,
+) -> None:
+    """Generate a quality improvement report and optionally post it as a GitHub issue.
+
+    Gathers audit health, phase readiness, lifetime metrics, bottleneck sessions,
+    and open GitHub issues, then renders a structured Markdown report.  Use
+    ``--create-issue`` to post the report to GitHub automatically.
+    """
+    import json as _json
+    from dataclasses import asdict
+
+    from specsmith.quality_report import build_quality_report, create_github_issue, render_markdown
+
+    root = Path(project_dir).resolve()
+    console.print("[dim]Gathering project data\u2026[/dim]")
+    data = build_quality_report(root, since=since, until=until)
+
+    if as_json:
+        click.echo(_json.dumps(asdict(data), indent=2, default=str))
+        return
+
+    md = render_markdown(data)
+    click.echo(md)
+
+    if create_issue:
+        try:
+            url = create_github_issue(data, repo=repo, project_root=root)
+            console.print(f"\n[green]\u2713[/green] Issue created: {url}")
+        except RuntimeError as exc:
+            console.print(f"[red]\u2717[/red] {exc}")
+            raise SystemExit(1) from exc
+
+
+# ---------------------------------------------------------------------------
+# specsmith resume — load + run in one command (REQ-384)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="resume")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--from-backup",
+    "from_backup",
+    default=None,
+    type=click.Path(),
+    help="Restore ESDB WAL from a specific backup directory before starting.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default=None,
+    help="LLM provider override (default: auto-detect).",
+)
+@click.option("--model", default=None, help="Model name override.")
+@click.option(
+    "--tier",
+    type=click.Choice(["fast", "balanced", "powerful"]),
+    default="balanced",
+    help="Model capability tier (default: balanced).",
+)
+def resume_cmd(
+    project_dir: str,
+    from_backup: str | None,
+    provider_name: str | None,
+    model: str | None,
+    tier: str,
+) -> None:
+    """Pull, restore ESDB, then immediately start an interactive agent session (REQ-384).
+
+    Combines ``specsmith load`` (git pull + optional ESDB restore) with
+    ``specsmith run`` (interactive AgentRunner) in a single command.
+
+    \b
+    Equivalent to:
+        specsmith load [--from-backup PATH]
+        specsmith run  [--provider P] [--model M] [--tier T]
+    """
+    import shutil
+
+    from specsmith.agent.core import ModelTier
+    from specsmith.agent.runner import AgentRunner
+    from specsmith.esdb.bridge import EsdbBridge
+    from specsmith.vcs_commands import run_sync
+
+    root = Path(project_dir).resolve()
+
+    # --- Step 1: git pull ---
+    console.print("[bold]specsmith resume[/bold] — syncing from remote...")
+    sync_result = run_sync(root)
+    icon = "\u2713" if sync_result.success else "\u2717"
+    color = "green" if sync_result.success else "yellow"
+    console.print(f"  [{color}]{icon}[/{color}] git pull: {sync_result.message}")
+
+    # --- Step 2: restore ESDB from backup if supplied ---
+    if from_backup:
+        backup_path = Path(from_backup).resolve()
+        esdb_dir = root / ".chronomemory"
+        if not backup_path.exists():
+            console.print(f"  [red]\u2717[/red] Backup not found: {backup_path}")
+            raise SystemExit(1)
+        if esdb_dir.exists():
+            shutil.rmtree(esdb_dir)
+        shutil.copytree(str(backup_path), str(esdb_dir))
+        console.print(f"  [green]\u2713[/green] ESDB restored from {backup_path}")
+
+    # --- Step 3: ESDB status ---
+    with contextlib.suppress(Exception):
+        bridge = EsdbBridge(str(root))
+        status = bridge.status()
+        chain_icon = "\u2713" if status.chain_valid else "\u2717"
+        console.print(
+            f"  [green]\u2713[/green] ESDB: {status.backend} "
+            f"({status.record_count} records, chain {chain_icon})"
+        )
+
+    # --- Step 4: start interactive agent session ---
+    console.print("\n[bold]Starting agent session...[/bold]")
+    try:
+        runner = AgentRunner(
+            project_dir=project_dir,
+            provider_name=provider_name,
+            model=model,
+            tier=ModelTier.parse(tier, default=ModelTier.BALANCED),
+        )
+        runner.run_interactive()
+    except Exception as e:  # noqa: BLE001
+        console.print(f"[red]{e}[/red]")
+        raise SystemExit(1) from e
+
+
+# ---------------------------------------------------------------------------
+# specsmith local-model — hardware-aware local fallback AI (REQ-385, REQ-386)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="local-model")
+def local_model_group() -> None:
+    """Hardware-aware local fallback AI model management (REQ-385, REQ-386).
+
+    Detects the host GPU/unified-memory tier and recommends the best
+    Qwen2.5-Coder model to run locally via Ollama as a cloud-API fallback.
+
+    Supported tiers (all via Ollama):
+      Apple Silicon ≥ 32 GB  →  qwen2.5-coder:32b
+      Apple Silicon 16–31 GB  →  qwen2.5-coder:14b
+      Apple Silicon 8–15 GB   →  qwen2.5-coder:7b
+      NVIDIA ≥ 20 GB VRAM     →  qwen2.5-coder:32b
+      NVIDIA 12–19 GB         →  qwen2.5-coder:14b
+      NVIDIA 8–11 GB          →  qwen2.5-coder:7b
+      CPU-only / < 8 GB       →  (not recommended; skipped)
+    """
+
+
+@local_model_group.command(name="detect")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit result as JSON.")
+def local_model_detect_cmd(as_json: bool) -> None:
+    """Show recommended local model for this machine (REQ-386)."""
+    import json as _json
+
+    from specsmith.local_model import detect_local_model
+
+    info = detect_local_model()
+
+    if as_json:
+        if info is None:
+            click.echo(
+                _json.dumps({"recommended": None, "reason": "cpu-only or insufficient VRAM"})
+            )
+        else:
+            click.echo(
+                _json.dumps(
+                    {
+                        "recommended": info.model,
+                        "runtime": info.runtime,
+                        "hardware": info.hardware,
+                        "vram_gb": info.vram_gb,
+                        "hf_repo": info.hf_repo,
+                        "pull_cmd": info.pull_cmd,
+                    }
+                )
+            )
+        return
+
+    if info is None:
+        console.print(
+            "[yellow]\u2014[/yellow] No GPU / insufficient VRAM detected. "
+            "Local model skipped (CPU-only would be too slow)."
+        )
+        console.print("  Install Ollama + get a GPU to enable local fallback AI.")
+        return
+
+    console.print(f"[bold]Hardware:[/bold]  {info.hardware}  ({info.vram_gb:.1f} GB)")
+    console.print(f"[bold]Model:[/bold]     [green]{info.model}[/green]  (via {info.runtime})")
+    console.print(f"[bold]HF repo:[/bold]   {info.hf_repo}")
+    console.print(f"[bold]To pull:[/bold]   [cyan]{info.pull_cmd}[/cyan]")
+    console.print(
+        "\n[dim]Run [bold]specsmith local-model setup[/bold] to download the model.[/dim]"
+    )
+
+
+@local_model_group.command(name="setup")
+def local_model_setup_cmd() -> None:
+    """Pull the recommended local model via Ollama (REQ-386).
+
+    Downloads the hardware-appropriate Qwen2.5-Coder model from Ollama.
+    This is an opt-in download — it may be several gigabytes.
+    """
+    import shutil
+
+    from specsmith.local_model import detect_local_model, ensure_local_model
+
+    if not shutil.which("ollama"):
+        console.print(
+            "[red]\u2717[/red] Ollama is not installed. "
+            "Install from https://ollama.com then re-run."
+        )
+        raise SystemExit(1)
+
+    info = detect_local_model()
+    if info is None:
+        console.print(
+            "[yellow]\u2014[/yellow] No GPU detected — skipping local model setup. "
+            "Local inference on CPU would be unusably slow."
+        )
+        return
+
+    console.print(
+        f"[bold]Pulling[/bold] [green]{info.model}[/green] "
+        f"for {info.hardware}  ({info.vram_gb:.1f} GB)...\n"
+        "This may take several minutes depending on your connection."
+    )
+    ok = ensure_local_model(info.model)
+    if ok:
+        console.print(f"[green]\u2714[/green] {info.model} is ready.")
+        console.print(
+            f"Start a session: [cyan]specsmith run --provider ollama --model {info.model}[/cyan]"
+        )
+    else:
+        console.print(
+            f"[red]\u2717[/red] Failed to pull {info.model}. "
+            "Make sure Ollama is running (ollama serve) and try again."
+        )
+        raise SystemExit(1)
+
+
+main.add_command(local_model_group)
 
 
 if __name__ == "__main__":

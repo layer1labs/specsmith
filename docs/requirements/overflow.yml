@@ -51,9 +51,10 @@
   source: ARCHITECTURE.md §YAML-Native Governance Layer
   status: implemented
 - id: REQ-305
-  title: ChronoStore WAL-Based ESDB Write Layer
+  title: ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
   description: specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore
-    class providing a WAL-based per-project epistemic state database. The WAL MUST
+    class (the ChronoMemory backend implementation) providing a WAL-based per-project
+    epistemic state database. The WAL MUST
     be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining.
     A materialized snapshot MUST be written every 50 events at snapshot.json. WAL
     append MUST be crash-safe via write-to-temp-then-rename.
@@ -63,7 +64,8 @@
   title: ESDB Must Be Per-Project
   description: Each governed project MUST have its own ESDB at <project_root>/.chronomemory/.
     Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to
-    ChronoStore when vents.wal exists, and fall back to flat JSON read-only mode otherwise.
+    ChronoStore (the ChronoMemory backend class) when vents.wal exists, and fall
+    back to flat JSON read-only mode otherwise.
   source: ARCHITECTURE.md §ESDB / ChronoStore
   status: implemented
 - id: REQ-307
