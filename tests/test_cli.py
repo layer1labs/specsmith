@@ -124,7 +124,7 @@ class TestCLIUpgrade:
             yaml.dump(data, fh, default_flow_style=False)
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.16.5"]
+            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.17.1"]
         )
         assert result.exit_code == 0
         assert "Upgraded" in result.output
