@@ -157,11 +157,14 @@ class CiManager:
 
         import yaml
 
+        from specsmith.config import _normalize_scaffold_raw
+
         raw = yaml.safe_load(scaffold_path.read_text(encoding="utf-8")) or {}
+        raw = _normalize_scaffold_raw(raw)
         try:
             config = ProjectConfig(**raw)
         except Exception as exc:
-            raise RuntimeError(f"Invalid scaffold.yml: {exc}") from exc
+            raise RuntimeError(f"Invalid scaffold config: {exc}") from exc
 
         p_name = platform or _detect_platform(self.root)
         self._platform_name = p_name

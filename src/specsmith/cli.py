@@ -1845,8 +1845,9 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     import subprocess
     import sys
 
+    # Single import style (no from-import) avoids CodeQL py/import-and-import-from.
+    import specsmith.esdb as _esdb_mod_dr
     from specsmith.auditor import run_audit
-    from specsmith.esdb import open_default_store
     from specsmith.phase import read_phase
 
     def _tool_version(cmd: str) -> tuple[bool, str]:
@@ -1896,7 +1897,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     chain_ok = False
     record_count = 0
     try:
-        with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+        with _esdb_mod_dr.open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
             esdb_open = True
             record_count = int(store.record_count())
             chain_ok = store.chain_valid() is not False
@@ -1904,10 +1905,9 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         _add("esdb backend", False, f"open failed: {exc}")
     if esdb_open:
         # Re-read the module-level ESDB_BACKEND — open_default_store() updates
-        # the global in-place, so the locally-imported name is stale.
-        import specsmith.esdb as _esdb_mod
-
-        _add("esdb backend", True, f"{_esdb_mod.ESDB_BACKEND} open")
+        # the global in-place so we read it via the module object, not a
+        # locally-imported name that would be stale. (#263)
+        _add("esdb backend", True, f"{_esdb_mod_dr.ESDB_BACKEND} open")
         _add(
             "esdb chain",
             chain_ok,
@@ -2935,16 +2935,20 @@ main.add_command(test)
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def migrate(new_type: str, project_dir: str) -> None:
     """Change the project type and regenerate type-dependent files."""
-    root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    from specsmith.config import _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
 
-    if not scaffold_path.exists():
-        console.print("[red]No scaffold.yml found.[/red]")
+    root = Path(project_dir).resolve()
+    scaffold_path = find_scaffold(root)
+
+    if not scaffold_path or not scaffold_path.exists():
+        console.print("[red]No scaffold config found (docs/SPECSMITH.yml or scaffold.yml).[/red]")
         raise SystemExit(1)
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     old_type = raw.get("type", "unknown")
     raw["type"] = new_type
 
@@ -3103,17 +3107,21 @@ def verify_release() -> None:
     help="Project root directory.",
 )
 def apply(project_dir: str) -> None:
-    """Regenerate CI and agent files from current scaffold.yml."""
-    root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    """Regenerate CI and agent files from current scaffold config."""
+    from specsmith.config import _normalize_scaffold_raw
+    from specsmith.paths import find_scaffold
 
-    if not scaffold_path.exists():
-        console.print("[red]No scaffold.yml found.[/red]")
+    root = Path(project_dir).resolve()
+    scaffold_path = find_scaffold(root)
+
+    if not scaffold_path or not scaffold_path.exists():
+        console.print("[red]No scaffold config found (docs/SPECSMITH.yml or scaffold.yml).[/red]")
         raise SystemExit(1)
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     config = ProjectConfig(**raw)
     created: list[Path] = []
 
@@ -8032,19 +8040,21 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
 
     import yaml
 
-    from specsmith.config import ProjectConfig
+    from specsmith.config import ProjectConfig, _normalize_scaffold_raw
     from specsmith.doctor import _check_tool
+    from specsmith.paths import find_scaffold
 
     root = Path(project_dir).resolve()
-    scaffold_path = root / "scaffold.yml"
+    scaffold_path = find_scaffold(root)
 
     checks: list[dict] = []
 
     # Standard project tools via doctor
-    if scaffold_path.exists():
+    if scaffold_path and scaffold_path.exists():
         try:
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f) or {}
+            raw = _normalize_scaffold_raw(raw)
             config = ProjectConfig(**raw)
             from specsmith.tools import get_tools
 
@@ -8075,10 +8085,10 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                     )
         except Exception as e:  # noqa: BLE001
             if not as_json:
-                console.print(f"[yellow]Could not read scaffold.yml: {e}[/yellow]")
+                console.print(f"[yellow]Could not read scaffold config: {e}[/yellow]")
 
     # FPGA/HDL tools from scaffold.yml fpga_tools list
-    if fpga and scaffold_path.exists():
+    if fpga and scaffold_path and scaffold_path.exists():
         try:
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f) or {}
@@ -8143,7 +8153,9 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
         return
 
     if not checks:
-        console.print("[yellow]No tools found. Does scaffold.yml exist?[/yellow]")
+        console.print(
+            "[yellow]No tools found. Does docs/SPECSMITH.yml (or scaffold.yml) exist?[/yellow]"
+        )
         return
 
     installed_count = sum(1 for c in checks if c["installed"])
@@ -11252,8 +11264,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     import json as _json
     import sys
 
-    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND
-    from specsmith.esdb import CHRONO_AVAILABLE, open_default_store
+    import specsmith.esdb as _esdb_mod  # used after open to read updated ESDB_BACKEND (#263)
     from specsmith.esdb._license import check_license, resolve_license_path
     from specsmith.sync import auto_migrate_if_needed
 
@@ -11265,7 +11276,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     lic_status = check_license(warn=False) if lic_path else None
 
     # Open the appropriate store (no warning — we’ll report it ourselves)
-    store = open_default_store(root, warn=False)
+    store = _esdb_mod.open_default_store(root, warn=False)
     # Re-read ESDB_BACKEND from the module — open_default_store() updates the
     # module-level global; the locally-imported name would be stale.  (#263)
     active_backend = _esdb_mod.ESDB_BACKEND
@@ -11300,7 +11311,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         backend_label = f"{active_backend} (error: {exc})"
 
     license_info: dict[str, object]
-    if not CHRONO_AVAILABLE:
+    if not _esdb_mod.CHRONO_AVAILABLE:
         license_info = {"chronomemory_installed": False, "active": False}
     elif lic_status is None:
         license_info = {
@@ -11372,7 +11383,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     if store_error:
         console.print(f"  [red]\u2717[/red] Store error: {store_error}")
     # License line
-    if not CHRONO_AVAILABLE:
+    if not _esdb_mod.CHRONO_AVAILABLE:
         console.print(
             "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"
@@ -12240,14 +12251,12 @@ def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
     removed: list[str] = []
     if apply_flag:
         for p in targets:
-            try:
+            with contextlib.suppress(OSError):  # best-effort; locked/missing files are skipped
                 if p.is_dir():
                     shutil.rmtree(p)
                 else:
                     p.unlink(missing_ok=True)
                 removed.append(str(p.relative_to(root)))
-            except OSError:
-                pass
         with contextlib.suppress(Exception):
             from specsmith.ledger import add_entry
 

@@ -112,6 +112,8 @@ class TestCLIUpgrade:
         assert "Already at spec version" in result.output
 
     def test_upgrade_to_new_version(self, tmp_path: Path) -> None:
+        from specsmith import __version__
+
         target = _scaffold_governed(tmp_path)
         # Backdate spec_version so there is an actual upgrade to perform.
         # Without this the scaffold is already at __version__ and the
@@ -124,14 +126,14 @@ class TestCLIUpgrade:
             yaml.dump(data, fh, default_flow_style=False)
         runner = CliRunner()
         result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", "0.16.5"]
+            main, ["upgrade", "--project-dir", str(target), "--spec-version", __version__]
         )
         assert result.exit_code == 0
         assert "Upgraded" in result.output
         # Verify scaffold.yml spec_version was updated to the target version
         with open(target / "scaffold.yml") as fh:
             data = yaml.safe_load(fh)
-        assert data["spec_version"] == "0.16.5"
+        assert data["spec_version"] == __version__
 
 
 class TestCLICreditsLimits:

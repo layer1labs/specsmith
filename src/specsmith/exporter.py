@@ -30,6 +30,9 @@ def run_export(root: Path) -> str:
 
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f)
+        from specsmith.config import _normalize_scaffold_raw
+
+        raw = _normalize_scaffold_raw(raw or {})
         try:
             config = ProjectConfig(**raw)
             tools = get_tools(config)

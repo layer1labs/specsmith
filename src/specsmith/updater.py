@@ -214,14 +214,14 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
         raw["spec_version"] = __version__
         with open(scaffold_path, "w") as f:
             yaml.dump(raw, f, default_flow_style=False, sort_keys=False)
-    actions.append("Updated scaffold.yml")
+    actions.append(f"Updated {scaffold_path.name}")
 
     # Regenerate governance templates
-    from specsmith.config import ProjectConfig
+    from specsmith.config import ProjectConfig, _normalize_scaffold_raw
     from specsmith.upgrader import run_upgrade
 
     try:
-        ProjectConfig(**raw)  # Validate config
+        ProjectConfig(**_normalize_scaffold_raw(raw))  # Validate config
         if not dry_run:
             result = run_upgrade(root, target_version=__version__)
             for updated_file in result.updated_files:

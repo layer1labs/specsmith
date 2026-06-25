@@ -141,7 +141,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.16.5", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.17.1", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -527,6 +527,27 @@ class ProjectConfig(BaseModel):
             return ProjectType(self.type)
         except ValueError:
             return None
+
+
+# ---------------------------------------------------------------------------
+# Legacy key normalisation helper
+# ---------------------------------------------------------------------------
+
+
+def _normalize_scaffold_raw(raw: dict[str, Any]) -> dict[str, Any]:
+    """Normalise legacy scaffold YAML keys to the current schema.
+
+    Call this before ``ProjectConfig(**raw)`` whenever raw YAML is loaded from
+    disk so that projects created by older specsmith versions continue to parse
+    correctly after a key rename.
+
+    Migrations handled:
+    - ``project`` → ``name``  (renamed in specsmith ≤ 0.9)
+    """
+    if raw and "project" in raw and "name" not in raw:
+        raw = dict(raw)
+        raw["name"] = raw.pop("project")
+    return raw
 
 
 # Keys are str (ProjectType enum values) for compatibility now that config.type is str

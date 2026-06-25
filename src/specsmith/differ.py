@@ -10,7 +10,8 @@ from pathlib import Path
 import yaml
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from specsmith.config import ProjectConfig
+from specsmith.config import ProjectConfig, _normalize_scaffold_raw
+from specsmith.paths import find_scaffold
 
 _GOVERNANCE_FILES: list[tuple[str, str]] = [
     ("governance/rules.md.j2", "docs/governance/RULES.md"),
@@ -28,17 +29,18 @@ def run_diff(root: Path) -> list[tuple[str, str]]:
 
     Returns list of (relative_path, status) where status is 'match', 'differs', or 'missing'.
     """
-    scaffold_path = root / "scaffold.yml"
-    if not scaffold_path.exists():
-        return [("scaffold.yml", "missing")]
+    scaffold_path = find_scaffold(root)
+    if not scaffold_path or not scaffold_path.exists():
+        return [("docs/SPECSMITH.yml", "missing")]
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
     except Exception:
-        return [("scaffold.yml", "invalid")]
+        return [(scaffold_path.name, "invalid")]
 
     env = Environment(
         loader=PackageLoader("specsmith", "templates"),
@@ -116,17 +118,21 @@ def run_diff_html(root: Path) -> str:
     """Generate an HTML diff report with side-by-side views."""
     import difflib
 
-    scaffold_path = root / "scaffold.yml"
-    if not scaffold_path.exists():
-        return "<html><body><p>No scaffold.yml found.</p></body></html>"
+    scaffold_path = find_scaffold(root)
+    if not scaffold_path or not scaffold_path.exists():
+        return (
+            "<html><body><p>No scaffold config found"
+            " (docs/SPECSMITH.yml or scaffold.yml).</p></body></html>"
+        )
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
     except Exception:
-        return "<html><body><p>Invalid scaffold.yml.</p></body></html>"
+        return "<html><body><p>Invalid scaffold config.</p></body></html>"
 
     from specsmith.tools import get_tools
 

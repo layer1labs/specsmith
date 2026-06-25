@@ -12,6 +12,49 @@ consolidated into the next published release.
 
 ---
 
+## [0.17.1] - 2026-06-25
+
+### Fixed
+
+- **Issue #265 — scaffold canonical path/schema mismatch** — All CLI commands
+  (`migrate`, `apply`, `tools scan`, `diff`, `doctor`, `validate`, `export`,
+  `ci enable`, `upgrade`, `push`, `create-pr`, `save`) now locate the scaffold
+  config via `find_scaffold()` from `paths.py`, which checks `docs/SPECSMITH.yml`
+  (canonical) before `scaffold.yml` (legacy). Previously these commands
+  hardcoded `root / "scaffold.yml"`, silently failing for projects already
+  migrated to the canonical path.
+
+- **Legacy `project:` key normalization** — Added `_normalize_scaffold_raw()`
+  to `config.py`. All `ProjectConfig(**raw)` call sites now pass raw YAML
+  through this helper first, mapping the legacy `project:` key to `name:` so
+  scaffold files created by specsmith ≤ 0.9 continue to load without a
+  `ValidationError`.
+
+- **`updater.py` migration log message** — The `run_migration()` action log
+  now reports the actual filename (`SPECSMITH.yml` or `scaffold.yml`) instead
+  of always saying `"Updated scaffold.yml"`.
+
+- **`vcs_commands.run_sync` governance watch-list** — `docs/SPECSMITH.yml` is
+  now included alongside `scaffold.yml` in the list of governance files that
+  trigger a post-pull warning when changed upstream.
+
+- **8 CodeQL alerts resolved (all alerts → 0)**:
+  - `governance_logic.py` — inline `os.path.realpath()` so CodeQL tracks the
+    taint sanitizer correctly (`py/path-injection`).
+  - `quality_report.py` — removed duplicate `\'` from two regex character
+    classes (`py/regex/duplicate-in-character-class`); replaced adjacent string
+    literals with explicit `+` concatenation
+    (`py/string-concat-implicit-operands`); replaced bare
+    `except ValueError: pass` with `contextlib.suppress(ValueError)`
+    (`py/empty-except`).
+  - `cli.py` — consolidated `specsmith.esdb` imports to a single
+    `import specsmith.esdb as _esdb_mod_dr` style throughout the `doctor`
+    command, removing `from specsmith.esdb import …` mixed usage
+    (`py/import-and-import-from`); replaced `try/except OSError: pass`
+    with `contextlib.suppress(OSError)` (`py/empty-except`).
+
+---
+
 ## [0.17.0] - 2026-06-25
 
 ### Added

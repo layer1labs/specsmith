@@ -125,10 +125,13 @@ def run_upgrade(
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f)
 
+    from specsmith.config import _normalize_scaffold_raw
+
+    raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
     except Exception as e:
-        return UpgradeResult(message=f"Invalid scaffold.yml: {e}")
+        return UpgradeResult(message=f"Invalid scaffold config: {e}")
 
     new_version = target_version or __version__
     old_version = config.spec_version
