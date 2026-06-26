@@ -8,6 +8,7 @@ traceability matrix. Used by both CLI commands and REST endpoints.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -41,63 +42,107 @@ class ComplianceSummary:
 
 
 def _parse_requirements(root: Path) -> dict[str, dict[str, str]]:
-    """Parse REQUIREMENTS.md into {req_id: {title, status, ...}}."""
+    """Parse requirements into {req_id: {title, status, ...}}.
+
+    Sources tried in order:
+    1. ``docs/REQUIREMENTS.md`` (legacy markdown mode)
+    2. ``REQUIREMENTS.md`` (legacy markdown mode, repo-root variant)
+    3. ``.specsmith/requirements.json`` (YAML-first sync cache)
+    """
     req_path = root / "docs" / "REQUIREMENTS.md"
     if not req_path.is_file():
         req_path = root / "REQUIREMENTS.md"
-    if not req_path.is_file():
-        return {}
 
-    text = req_path.read_text(encoding="utf-8", errors="replace")
-    reqs: dict[str, dict[str, str]] = {}
+    if req_path.is_file():
+        text = req_path.read_text(encoding="utf-8", errors="replace")
+        reqs: dict[str, dict[str, str]] = {}
+        # Parse markdown sections: ## N. Title\n- **ID:** REQ-NNN
+        blocks = re.split(r"\n## ", text)
+        for block in blocks:
+            id_match = re.search(r"\*\*ID:\*\*\s*(REQ-\d+)", block)
+            if not id_match:
+                # Try alternate format: ## REQ-NNN
+                id_match = re.search(r"^(REQ-\d+)", block.strip())
+            if id_match:
+                req_id = id_match.group(1)
+                title_match = re.search(r"\*\*Title:\*\*\s*(.+)", block)
+                status_match = re.search(r"\*\*Status:\*\*\s*(.+)", block)
+                reqs[req_id] = {
+                    "id": req_id,
+                    "title": title_match.group(1).strip() if title_match else "",
+                    "status": status_match.group(1).strip() if status_match else "draft",
+                }
+        return reqs
 
-    # Parse markdown sections: ## N. Title\n- **ID:** REQ-NNN
-    blocks = re.split(r"\n## ", text)
-    for block in blocks:
-        id_match = re.search(r"\*\*ID:\*\*\s*(REQ-\d+)", block)
-        if not id_match:
-            # Try alternate format: ## REQ-NNN
-            id_match = re.search(r"^(REQ-\d+)", block.strip())
-        if id_match:
-            req_id = id_match.group(1)
-            title_match = re.search(r"\*\*Title:\*\*\s*(.+)", block)
-            status_match = re.search(r"\*\*Status:\*\*\s*(.+)", block)
-            reqs[req_id] = {
-                "id": req_id,
-                "title": title_match.group(1).strip() if title_match else "",
-                "status": status_match.group(1).strip() if status_match else "draft",
+    # YAML-first fallback: read from the .specsmith sync cache
+    json_path = root / ".specsmith" / "requirements.json"
+    if json_path.is_file():
+        try:
+            entries = json.loads(json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+        return {
+            entry["id"]: {
+                "id": entry["id"],
+                "title": entry.get("title", ""),
+                "status": entry.get("status", "draft"),
             }
+            for entry in entries
+            if isinstance(entry, dict) and "id" in entry
+        }
 
-    return reqs
+    return {}
 
 
 def _parse_tests(root: Path) -> dict[str, dict[str, str]]:
-    """Parse TESTS.md into {test_id: {title, requirement_id, ...}}."""
+    """Parse test cases into {test_id: {title, requirement_id, ...}}.
+
+    Sources tried in order:
+    1. ``docs/TESTS.md`` (legacy markdown mode)
+    2. ``TESTS.md`` (legacy markdown mode, repo-root variant)
+    3. ``.specsmith/testcases.json`` (YAML-first sync cache)
+    """
     test_path = root / "docs" / "TESTS.md"
     if not test_path.is_file():
         test_path = root / "TESTS.md"
-    if not test_path.is_file():
-        return {}
 
-    text = test_path.read_text(encoding="utf-8", errors="replace")
-    tests: dict[str, dict[str, str]] = {}
+    if test_path.is_file():
+        text = test_path.read_text(encoding="utf-8", errors="replace")
+        tests: dict[str, dict[str, str]] = {}
+        blocks = re.split(r"\n## ", text)
+        for block in blocks:
+            id_match = re.search(r"\*\*ID:\*\*\s*(TEST-\d+)", block)
+            if not id_match:
+                id_match = re.search(r"^(TEST-\d+)", block.strip())
+            if id_match:
+                test_id = id_match.group(1)
+                req_match = re.search(r"\*\*Requirement(?:\s+ID)?:\*\*\s*(REQ-\d+)", block)
+                title_match = re.search(r"\*\*Title:\*\*\s*(.+)", block)
+                tests[test_id] = {
+                    "id": test_id,
+                    "title": title_match.group(1).strip() if title_match else "",
+                    "requirement_id": req_match.group(1) if req_match else "",
+                }
+        return tests
 
-    blocks = re.split(r"\n## ", text)
-    for block in blocks:
-        id_match = re.search(r"\*\*ID:\*\*\s*(TEST-\d+)", block)
-        if not id_match:
-            id_match = re.search(r"^(TEST-\d+)", block.strip())
-        if id_match:
-            test_id = id_match.group(1)
-            req_match = re.search(r"\*\*Requirement(?:\s+ID)?:\*\*\s*(REQ-\d+)", block)
-            title_match = re.search(r"\*\*Title:\*\*\s*(.+)", block)
-            tests[test_id] = {
-                "id": test_id,
-                "title": title_match.group(1).strip() if title_match else "",
-                "requirement_id": req_match.group(1) if req_match else "",
+    # YAML-first fallback: read from the .specsmith sync cache
+    json_path = root / ".specsmith" / "testcases.json"
+    if json_path.is_file():
+        try:
+            entries = json.loads(json_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return {}
+        return {
+            entry["id"]: {
+                "id": entry["id"],
+                "title": entry.get("title", ""),
+                "requirement_id": entry.get("requirement_id", ""),
             }
+            for entry in entries
+            if isinstance(entry, dict) and "id" in entry
+        }
 
-    return tests
+    return {}
 
 
 def get_compliance_summary(project_dir: str | Path = ".") -> ComplianceSummary:
