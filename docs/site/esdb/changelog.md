@@ -3,6 +3,16 @@
 All notable changes to the chronomemory ESDB engine.
 Available on [PyPI](https://pypi.org/project/chronomemory/#history).
 
+## [0.2.7] — 2026-06-25
+
+### Changed
+
+- **PyPI-only distribution** — chronomemory is now fully published to PyPI with all required
+  wheels. The git-URL dependency is removed; `pip install specsmith[esdb]` installs cleanly
+  from PyPI with no extra index. Required by specsmith ≥ 0.17.0.
+
+---
+
 ## [0.2.4] — 2026-06-23
 
 ### Fixed
