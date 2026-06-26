@@ -90,6 +90,33 @@ specsmith kill-session           # stop governance-serve and tracked processes
 
 Never end a session with uncommitted governance changes.
 
+## Parallel Agents (task delegation)
+
+When a task has independent subtasks that benefit from running concurrently
+(e.g. implementation + validation, or planning + research), dispatch child
+agents pinned to the right profile:
+
+```bash
+# Non-interactive one-shot — safe to run in parallel
+specsmith run --agent coder-14b   --task "<implementation task>" --project-dir .
+specsmith run --agent planner-30b --task "<planning/review task>" --project-dir .
+```
+
+Routing reference:
+
+| Activity / Phase | Profile | Model |
+|---|---|---|
+| `/fix`, `phase:implementation`, `phase:test_spec`, `phase:verification` | `coder-14b` | `ollama/qwen2.5-coder:14b` |
+| `/plan`, `phase:architecture`, `phase:requirements`, `phase:active`, `phase:release` | `planner-30b` | `ollama/qwen3:30b-a3b` |
+
+The default profile (`*`) is `coder-14b`.  Verify profiles at any time:
+
+```bash
+specsmith agents list
+specsmith agents test coder-14b
+specsmith agents test planner-30b
+```
+
 ## Quick reference
 
 | When | Command |
