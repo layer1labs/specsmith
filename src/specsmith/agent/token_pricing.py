@@ -23,6 +23,8 @@ Update this table when provider pricing changes (bump the table version comment)
 
 from __future__ import annotations
 
+from typing import Any
+
 # ---------------------------------------------------------------------------
 # Pricing table — (input_usd_per_1M, output_usd_per_1M)
 # Table version: 2026-Q2
@@ -157,7 +159,7 @@ def cost_for_tokens_breakdown(
 
 
 def tokens_per_correct_answer(
-    records: list,
+    records: list[Any],
     *,
     token_attr: str = "tokens_total",
     passed_attr: str = "passed",
