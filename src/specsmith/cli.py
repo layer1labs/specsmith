@@ -2698,6 +2698,105 @@ def ledger_stats(project_dir: str) -> None:
             console.print(f"  {name}: {count} entries")
 
 
+@ledger.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--since",
+    default="",
+    help="Filter to entries since date prefix, e.g. '2026-06-01'.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="text",
+    type=click.Choice(["text", "json"]),
+    help="Output format (default: text).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False, help="Shorthand for --format json.")
+@click.option(
+    "--source",
+    default="esdb",
+    type=click.Choice(["esdb", "file", "both"]),
+    help="Read from ESDB ledger_event records, LEDGER.md file, or both (default: esdb).",
+)
+def ledger_export(
+    project_dir: str,
+    since: str,
+    fmt: str,
+    as_json: bool,
+    source: str,
+) -> None:
+    """Export ledger entries from ESDB or LEDGER.md.
+
+    ESDB source (default) queries ledger_event records inserted by recent
+    specsmith add-entry calls, which is faster than parsing LEDGER.md.
+
+    REQ-409: specsmith ledger export command.
+    """
+    import json as _json
+
+    if as_json:
+        fmt = "json"
+
+    root = Path(project_dir).resolve()
+    entries: list[dict[str, Any]] = []
+
+    if source in ("esdb", "both"):
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+            if sqlite_path.exists():
+                with SqliteStore(root) as store:
+                    records = store.query(kind="ledger_event", status="active")
+                for r in records:
+                    ts = str(r.data.get("timestamp") or "")
+                    if since and ts[:len(since)] < since:
+                        continue
+                    entries.append(
+                        {
+                            "id": r.id,
+                            "timestamp": ts,
+                            "description": str(r.data.get("description") or r.label),
+                            "entry_type": str(r.data.get("entry_type") or ""),
+                            "author": str(r.data.get("author") or ""),
+                            "reqs": str(r.data.get("reqs") or ""),
+                            "status": str(r.data.get("status") or ""),
+                            "source": "esdb",
+                        }
+                    )
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[yellow]ESDB read failed: {exc}[/yellow]")
+
+    if source in ("file", "both"):
+        try:
+            from specsmith.ledger import list_entries
+
+            file_entries = list_entries(root, since=since)
+            for e in file_entries:
+                entries.append({**e, "source": "LEDGER.md"})
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[yellow]LEDGER.md read failed: {exc}[/yellow]")
+
+    if not entries:
+        console.print("[yellow]No ledger entries found.[/yellow]")
+        return
+
+    # Sort by timestamp
+    entries.sort(key=lambda e: str(e.get("timestamp") or ""))
+
+    if fmt == "json":
+        click.echo(_json.dumps(entries, indent=2, ensure_ascii=False))
+    else:
+        for e in entries:
+            ts = str(e.get("timestamp") or "")[:16]
+            desc = str(e.get("description") or e.get("heading") or "")
+            author = str(e.get("author") or "")
+            suffix = f"  [dim]({author})[/dim]" if author else ""
+            console.print(f"  [dim]{ts}[/dim]  {desc}{suffix}")
+        console.print(f"\n  [bold]{len(entries)} entry(ies)[/bold]")
+
+
 main.add_command(ledger)
 
 
@@ -3346,6 +3445,120 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
 
     if not ok:
         raise SystemExit(1)
+
+
+@main.command(name="inspect")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def inspect_cmd(project_dir: str, as_json: bool) -> None:
+    """Inspect project state: governance anchor, active WIs, efficiency, and context quality.
+
+    Designed to be called at the start of every session after checkpoint.
+    Outputs a bordered block with project state suitable for agent context injection.
+
+    REQ-409: specsmith inspect command.
+    """
+    import json as _json
+    from datetime import datetime, timezone
+
+    root = Path(project_dir).resolve()
+    lines: list[str] = []
+    data: dict[str, Any] = {}
+
+    # Governance anchor
+    try:
+        from specsmith.auditor import run_audit
+
+        audit_report = run_audit(root)
+        data["audit_healthy"] = audit_report.healthy
+        data["audit_failed"] = audit_report.failed
+        gov_status = "healthy" if audit_report.healthy else f"ISSUES ({audit_report.failed})"
+        lines.append(f"  Governance : {gov_status} ")
+    except Exception:  # noqa: BLE001
+        data["audit_healthy"] = None
+        lines.append("  Governance : unknown (audit failed)")
+
+    # Active work items
+    try:
+        from specsmith.wi_store import WorkItemStore
+
+        wi_store = WorkItemStore(root)
+        active_wis = [wi for wi in wi_store.list_all() if wi.status in ("open", "implemented")]
+        data["active_work_items"] = [w.id for w in active_wis]
+        if active_wis:
+            for wi in active_wis[:5]:
+                lines.append(f"  WI         : [{wi.id}] {str(wi.intent or '')[:60]} ({wi.status})")
+        else:
+            lines.append("  WI         : no active work items")
+    except Exception:  # noqa: BLE001
+        data["active_work_items"] = []
+        lines.append("  WI         : (unavailable)")
+
+    # EFF-CURRENT
+    try:
+        from specsmith.esdb import SqliteStore
+
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        eff_data: dict[str, Any] = {}
+        if sqlite_path.exists():
+            with SqliteStore(root) as store:
+                eff_rec = store.get("EFF-CURRENT")
+            if eff_rec:
+                eff_data = dict(eff_rec.data)
+
+        if eff_data:
+            tpc = eff_data.get("tokens_per_correct_answer")
+            degraded = eff_data.get("degraded", False)
+            ctx_eff = eff_data.get("context_char_efficiency")
+            eq = eff_data.get("epistemic_quality") or {}
+            eq_score = float(eq.get("score", 0.0)) if isinstance(eq, dict) else 0.0
+            data["efficiency"] = eff_data
+            tok_str = f"{tpc:.0f}" if tpc else "n/a"
+            deg_str = "  ⚠ DEGRADED" if degraded else ""
+            lines.append(
+                f"  Efficiency : tokens/pass={tok_str}  ctx_fill={ctx_eff or 'n/a'}{deg_str}"
+            )
+            lines.append(f"  Epistemic  : score={eq_score:.2f} ({_band(eq_score)})")
+            # 5-dim breakdown
+            for dim, key in [
+                ("confidence", "confidence_density"),
+                ("recency", "recency_score"),
+                ("coherence", "coherence_score"),
+                ("closure", "closure_score"),
+                ("non-contr", "non_contradiction_score"),
+            ]:
+                val = eq.get(key, 0.0) if isinstance(eq, dict) else 0.0
+                lines.append(f"    {dim:12s}: {val:.3f}")
+        else:
+            lines.append("  Efficiency : EFF-CURRENT not yet computed (run specsmith save)")
+    except Exception:  # noqa: BLE001
+        lines.append("  Efficiency : (unavailable)")
+
+    data["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    if as_json:
+        click.echo(_json.dumps(data, indent=2, ensure_ascii=False))
+        return
+
+    width = 60
+    border = "═" * width
+    console.print(f"[bold]╬ {border}[/bold]")
+    console.print(f"  specsmith inspect \u2014 {root}")
+    console.print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%MZ')}")
+    console.print(f"[bold]╪ {border}[/bold]")
+    for line in lines:
+        console.print(line)
+    console.print(f"[bold]╩ {border}[/bold]")
+
+
+def _band(score: float) -> str:
+    if score >= 0.85:
+        return "excellent"
+    if score >= 0.70:
+        return "good"
+    if score >= 0.50:
+        return "fair"
+    return "poor"
 
 
 @main.command(name="load")
@@ -12143,6 +12356,85 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
         f"[green]\u2714[/green] Exported [bold]{final_count}[/bold] records to SQLite. "
         "ChronoStore WAL preserved (not deleted)."
     )
+
+
+@esdb_group.command(name="sweep")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--orphans-only",
+    is_flag=True,
+    default=False,
+    help="Only remove orphaned work_item / preflight_decision records (skip retention sweep).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be swept without writing.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_sweep_cmd(
+    project_dir: str,
+    orphans_only: bool,
+    dry_run: bool,
+    as_json: bool,
+) -> None:
+    """Sweep expired and orphaned ESDB records (REQ-412).
+
+    Tombstones records whose retention period has expired and removes
+    orphaned work_item / preflight_decision records.  Refreshes EFF-CURRENT
+    after a full sweep.
+
+    \b
+    Retention periods:
+      session_metric   60 days
+      context_usage    30 days
+      ledger_event     90 days
+      seal_record      forever
+      token_metric     forever
+      efficiency_metric forever
+    """
+    import json as _json
+
+    from specsmith.esdb_sweep import run_sweep
+
+    root = Path(project_dir).resolve()
+    result = run_sweep(root, orphans_only=orphans_only, dry_run=dry_run)
+
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "tombstoned": result.tombstoned,
+                    "orphans_flagged": result.orphans_flagged,
+                    "efficiency_refreshed": result.efficiency_refreshed,
+                    "kinds_swept": result.kinds_swept,
+                    "errors": result.errors,
+                    "dry_run": dry_run,
+                },
+                indent=2,
+            )
+        )
+    else:
+        mode = "[dim](dry-run)[/dim]" if dry_run else ""
+        console.print(f"[bold]specsmith esdb sweep[/bold] {mode} \u2014 {root}\n")
+        if result.tombstoned:
+            console.print(
+                f"  [green]\u2713[/green] Tombstoned {result.tombstoned} expired record(s):"
+            )
+            for kind, n in result.kinds_swept.items():
+                console.print(f"    {kind}: {n}")
+        else:
+            console.print("  [dim]No expired records to sweep.[/dim]")
+        if result.orphans_flagged:
+            console.print(
+                f"  [green]\u2713[/green] Flagged {result.orphans_flagged} orphan record(s)."
+            )
+        if result.efficiency_refreshed:
+            console.print("  [green]\u2713[/green] EFF-CURRENT refreshed.")
+        if result.errors:
+            for err in result.errors:
+                console.print(f"  [yellow]\u26a0[/yellow] {err}")
 
 
 main.add_command(esdb_group)

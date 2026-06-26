@@ -1,0 +1,230 @@
+# specsmith test cases — ESDB-First Migration
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-412
+  title: ledger_event Dual-Write on add_entry
+  description: >-
+    Call ledger.add_entry() with description="test ledger" on a tmp project root.
+    Assert that ESDB contains a SqliteRecord with kind="ledger_event" and
+    label containing "test ledger". Assert confidence==0.9 and timestamp is present
+    in data. Assert that add_entry returns normally even if the ESDB is missing.
+  requirement_id: REQ-403
+  type: unit
+  verification_method: pytest
+  input: tmp project root; ledger.add_entry(description="test ledger")
+  expected_behavior: ESDB contains ledger_event record; add_entry does not raise
+  confidence: 1.0
+
+- id: TEST-413
+  title: seal_record Dual-Write on TraceVault.seal
+  description: >-
+    Call TraceVault(tmp_root).seal(SealType.DECISION, "my decision") on a tmp project
+    root. Assert that ESDB contains a SqliteRecord with kind="seal_record" and
+    label containing "my decision". Assert id starts with "ESDB-SEAL-". Assert
+    TraceVault.seal() does not raise even if ESDB write fails.
+  requirement_id: REQ-404
+  type: unit
+  verification_method: pytest
+  input: tmp project root; TraceVault.seal(SealType.DECISION, "my decision")
+  expected_behavior: ESDB contains seal_record; seal() does not raise
+  confidence: 1.0
+
+- id: TEST-414
+  title: session_metric Dual-Write on MetricsStore.append
+  description: >-
+    Call MetricsStore(tmp_root).append(MetricsRecord.new(passed=True, tokens_total=1000))
+    on a tmp project root. Assert ESDB contains a SqliteRecord with kind="session_metric"
+    and data["passed"]==True. Assert id starts with "MET-". Assert append() does
+    not raise even if ESDB write fails.
+  requirement_id: REQ-405
+  type: unit
+  verification_method: pytest
+  input: tmp project root; MetricsStore.append(MetricsRecord.new(passed=True, tokens_total=1000))
+  expected_behavior: ESDB contains session_metric; append() does not raise
+  confidence: 1.0
+
+- id: TEST-415
+  title: M009 Backfills LEDGER.md trace.jsonl session_metrics.jsonl
+  description: >-
+    Create a tmp project with a LEDGER.md containing 2 headings, a trace.jsonl with
+    2 seal records, and session_metrics.jsonl with 2 metric records. Run M009 via
+    MigrationRunner(root).run_one(9). Assert result.success==True, result.message
+    contains "2 ledger event(s), 2 seal record(s), 2 session metric(s)". Assert
+    .specsmith/esdb-m009-backfill exists. Assert ESDB contains 2 ledger_event,
+    2 seal_record, 2 session_metric records. Assert re-run is idempotent (no error).
+  requirement_id: REQ-406
+  type: integration
+  verification_method: pytest
+  input: tmp project with 2-heading LEDGER.md, 2-line trace.jsonl, 2-line session_metrics.jsonl
+  expected_behavior: M009 result.success; 6 records in ESDB; marker file created; re-run is no-op
+  confidence: 1.0
+
+- id: TEST-416
+  title: ESDB-First Ledger Snippet Falls Back to LEDGER.md
+  description: >-
+    On a tmp project with no ESDB, _load_ledger_snippet() MUST return content from
+    LEDGER.md. After adding a ledger_event record to ESDB, _load_ledger_snippet()
+    MUST return content from ESDB (not LEDGER.md). Assert the ESDB result uses
+    timestamp/label format; assert the fallback result uses raw LEDGER.md lines.
+  requirement_id: REQ-407
+  type: unit
+  verification_method: pytest
+  input: (1) tmp project with LEDGER.md and no ESDB; (2) same root + ledger_event in ESDB
+  expected_behavior: (1) returns LEDGER.md content; (2) returns ESDB ledger_event formatted lines
+  confidence: 1.0
+
+- id: TEST-417
+  title: ESDB-First Commit Message Falls Back to LEDGER.md
+  description: >-
+    On a tmp project with no ESDB, generate_commit_message() MUST return a string
+    derived from LEDGER.md headings. After adding a ledger_event record with
+    description="my commit desc" to ESDB, generate_commit_message() MUST return
+    "my commit desc" (truncated to 72 chars). Assert the ESDB path is used when
+    at least one ledger_event record exists.
+  requirement_id: REQ-408
+  type: unit
+  verification_method: pytest
+  input: tmp project with LEDGER.md; then add ledger_event to ESDB
+  expected_behavior: returns "my commit desc"; fallback returns LEDGER.md heading
+  confidence: 1.0
+
+- id: TEST-418
+  title: specsmith inspect Command Shows EFF-CURRENT and Governance State
+  description: >-
+    Run "specsmith inspect --project-dir <tmp_root> --json" on a governed tmp project.
+    Assert exit code is 0. Assert JSON output contains "audit_healthy", "active_work_items",
+    and "timestamp" keys. When EFF-CURRENT is present in ESDB, assert "efficiency"
+    key is in the JSON with "degraded" and "epistemic_quality" sub-fields.
+  requirement_id: REQ-409
+  type: cli
+  verification_method: pytest
+  input: specsmith inspect --json --project-dir <governed tmp project>
+  expected_behavior: exit 0; JSON contains audit_healthy, active_work_items, timestamp; efficiency when EFF-CURRENT exists
+  confidence: 1.0
+
+- id: TEST-419
+  title: specsmith ledger export Reads from ESDB by Default
+  description: >-
+    Add 3 ledger_event records to a tmp project ESDB. Run "specsmith ledger export
+    --project-dir <tmp_root> --json". Assert exit code is 0 and JSON array length
+    is 3. Run with "--source file" on a project with a LEDGER.md containing 2 headings.
+    Assert JSON array length is 2. Run with "--source both" and assert combined count.
+  requirement_id: REQ-409
+  type: cli
+  verification_method: pytest
+  input: tmp project with 3 ESDB ledger_events and 2-heading LEDGER.md
+  expected_behavior: --source esdb returns 3; --source file returns 2; --source both returns 5
+  confidence: 1.0
+
+- id: TEST-420
+  title: write_token_metric Writes token_metric to ESDB
+  description: >-
+    Call write_token_metric(tmp_root, input_tokens=100, output_tokens=50, cost_usd=0.001,
+    model="ollama", command_source="chat", work_item_id="WI-TEST"). Assert returns
+    True. Assert ESDB contains a SqliteRecord with kind="token_metric", id starting
+    with "TOK-", confidence==1.0, data["input_tokens"]==100, data["output_tokens"]==50,
+    data["total_tokens"]==150. Assert write_token_metric returns False (not raises)
+    when ESDB path does not exist.
+  requirement_id: REQ-410
+  type: unit
+  verification_method: pytest
+  input: write_token_metric(tmp_root, input_tokens=100, output_tokens=50, ...)
+  expected_behavior: returns True; ESDB has token_metric with correct fields; returns False when no ESDB
+  confidence: 1.0
+
+- id: TEST-421
+  title: compute_and_upsert_efficiency Creates EFF-CURRENT Record
+  description: >-
+    Create a tmp project ESDB with 3 session_metric records (2 passed, 1 failed)
+    having tokens_total values. Call compute_and_upsert_efficiency(tmp_root). Assert
+    returns True. Assert ESDB contains SqliteRecord(id="EFF-CURRENT", kind="efficiency_metric").
+    Assert data["sessions_analyzed"]==3 and data["epistemic_quality"]["score"] is
+    between 0.0 and 1.0. Call again and assert upsert is idempotent (still one record).
+  requirement_id: REQ-411
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with 3 session_metric records; compute_and_upsert_efficiency(root)
+  expected_behavior: returns True; EFF-CURRENT has sessions_analyzed==3 and epistemic_quality.score in [0,1]
+  confidence: 1.0
+
+- id: TEST-422
+  title: run_sweep Tombstones Expired session_metric Records
+  description: >-
+    Create a tmp project ESDB with 2 session_metric records with timestamp 61 days
+    ago and 1 record with timestamp today. Call run_sweep(tmp_root). Assert
+    result.tombstoned==2, result.kinds_swept["session_metric"]==2. Assert the 2 old
+    records are now tombstone status in ESDB. Assert the recent record is still active.
+    Assert result.efficiency_refreshed==True.
+  requirement_id: REQ-412
+  type: unit
+  verification_method: pytest
+  input: 2 expired session_metric records + 1 fresh; run_sweep(root)
+  expected_behavior: tombstoned==2; kinds_swept["session_metric"]==2; recent record still active
+  confidence: 1.0
+
+- id: TEST-423
+  title: run_sweep Detects Orphan work_item Records
+  description: >-
+    Create a tmp project ESDB with a work_item record whose id is NOT in
+    workitems.json. Create a preflight_decision record whose work_item_id is NOT
+    in ESDB or workitems.json. Call run_sweep(root, orphans_only=True). Assert
+    result.orphans_flagged==2. Assert both records have status=="tombstone" in ESDB.
+    Assert result.tombstoned==0 (retention sweep was skipped).
+  requirement_id: REQ-413
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with orphan work_item and preflight_decision; run_sweep(orphans_only=True)
+  expected_behavior: orphans_flagged==2; both tombstoned; tombstoned==0
+  confidence: 1.0
+
+- id: TEST-424
+  title: compute_epistemic_quality Returns Valid 5-Dim Score
+  description: >-
+    Create a tmp project ESDB with 5 active records: 4 with confidence>=0.7 and
+    1 with confidence==0.5. Call compute_epistemic_quality(tmp_root). Assert returns
+    dict with keys score, confidence_density, recency_score, coherence_score,
+    closure_score, non_contradiction_score. Assert confidence_density==0.8 (4/5).
+    Assert score is in [0.0, 1.0]. Assert all-zeros dict is returned when ESDB
+    does not exist.
+  requirement_id: REQ-414
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with 5 records; compute_epistemic_quality(root)
+  expected_behavior: confidence_density==0.8; score in [0,1]; all-zeros when no ESDB
+  confidence: 1.0
+
+- id: TEST-425
+  title: build_context_seed Reduces Budget When EFF-CURRENT Degraded
+  description: >-
+    Create a tmp project ESDB with an EFF-CURRENT record where degraded=True and
+    tokens_per_correct_answer=5000, baseline_tokens_per_pass=2000. Call
+    build_context_seed(root, char_budget=12000). Assert a CTX- record is written to
+    ESDB with kind="context_usage". Assert seed turns contain a system message with
+    "[EFFICIENCY WARNING". Assert seed_fill_pct is computed correctly.
+  requirement_id: REQ-415
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with EFF-CURRENT(degraded=True); build_context_seed(root)
+  expected_behavior: CTX- context_usage record written; EFFICIENCY WARNING in turns; seed_fill_pct computed
+  confidence: 1.0
+
+- id: TEST-426
+  title: build_context_seed Writes context_usage to ESDB and Exempts It from Eviction
+  description: >-
+    Call build_context_seed(root) on a tmp project with an empty ESDB. Assert that
+    a SqliteRecord with kind="context_usage" and id starting with "CTX-" is upserted
+    into ESDB after the call. Assert the record has seed_chars, seed_fill_pct,
+    session_id, and timestamp fields in its data dict. Assert that context_usage
+    and efficiency_metric records are NOT tombstoned by _evict_low_confidence_records()
+    even when their confidence is below the eviction threshold.
+  requirement_id: REQ-416
+  type: unit
+  verification_method: pytest
+  input: tmp project ESDB; build_context_seed(root); then manually lower confidence on the
+    context_usage record and call ContextOrchestrator or run_sweep
+  expected_behavior: CTX- record written; context_usage and efficiency_metric exempt from eviction
+  confidence: 1.0

@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""specsmith.esdb_writer — centralised best-effort ESDB write paths (REQ-395..402).
+"""specsmith.esdb_writer — centralised best-effort ESDB write paths (REQ-395..402, REQ-410).
 
 This module provides the write paths that were previously missing from ESDB:
   - Preflight decisions  (kind="preflight_decision")
   - Verify results       (kind="verify_result")
   - Work item records    (kind="work_item")
+  - Token metrics        (kind="token_metric")  ← REQ-410
 
-All three functions are **best-effort** — they are wrapped in try/except so
+All functions are **best-effort** — they are wrapped in try/except so
 they never block their callers when ESDB is unavailable or the store fails.
 
 Backend-agnostic: uses ``open_default_store()`` which dispatches to either
@@ -18,16 +19,20 @@ Record confidence mapping:
   preflight_decision  → payload["confidence_target"]   (0.7–0.9 typical)
   verify_result       → 0.85 on equilibrium, 0.4 otherwise
   work_item           → wi.confidence_target; tombstone on terminal states
+  token_metric        → 1.0 (objective measurement; never evicted)
 
 REQ-395: ESDBWriter utility module
 REQ-396: Preflight decision ESDB write path
 REQ-397: Verify result ESDB write path
 REQ-398: Work item ESDB synchronisation
+REQ-410: Token metric ESDB write path
 """
 
 from __future__ import annotations
 
 import hashlib
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -219,8 +224,201 @@ def write_work_item_record(
         return False
 
 
+def write_token_metric(
+    project_root: str | Path,
+    *,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float = 0.0,
+    model: str = "",
+    command_source: str = "agent",
+    work_item_id: str = "",
+) -> bool:
+    """Upsert a ``token_metric`` ESDB record for one LLM turn (REQ-410).
+
+    Called by AgentRunner after every ChatRunResult.  Confidence=1.0 because
+    token counts are objective measurements — never evicted by the sweep.
+
+    Record shape:
+      id            = "TOK-{uuid8}"
+      kind          = "token_metric"
+      label         = "{command_source}: {input_tokens}in {output_tokens}out"
+      confidence    = 1.0
+      data          = {input_tokens, output_tokens, total_tokens, cost_usd,
+                       model, command_source, work_item_id, timestamp}
+
+    Returns True on success, False on any error.
+    """
+    try:
+        from specsmith.esdb import SqliteRecord, open_default_store
+
+        root = Path(project_root)
+        tok_id = f"TOK-{uuid.uuid4().hex[:8].upper()}"
+        total = input_tokens + output_tokens
+        record = SqliteRecord(
+            id=tok_id,
+            kind="token_metric",
+            status="active",
+            label=f"{command_source}: {input_tokens}in {output_tokens}out",
+            confidence=1.0,
+            data={
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total,
+                "cost_usd": cost_usd,
+                "model": model,
+                "command_source": command_source,
+                "work_item_id": work_item_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            source_ids=[work_item_id] if work_item_id else [],
+        )
+        with open_default_store(root, warn=False) as store:
+            store.upsert(record)
+        return True
+    except Exception:  # noqa: BLE001 — best-effort; never blocks caller
+        return False
+
+
+def write_ledger_event(
+    project_root: str | Path,
+    *,
+    description: str,
+    entry_type: str = "task",
+    author: str = "agent",
+    reqs: str = "",
+    status: str = "complete",
+    epistemic_status: str = "unknown",
+    belief_artifacts: str = "",
+    entry_hash: str = "",
+) -> bool:
+    """Upsert a ``ledger_event`` ESDB record from a ledger entry (REQ-403).
+
+    Called best-effort by ``ledger.add_entry()`` after writing LEDGER.md.
+    Confidence=0.9; retention=90 days (managed by esdb_sweep).
+
+    Returns True on success, False on any error.
+    """
+    try:
+        from specsmith.esdb import SqliteRecord, open_default_store
+
+        root = Path(project_root)
+        rec_id = f"LED-{uuid.uuid4().hex[:12].upper()}"
+        record = SqliteRecord(
+            id=rec_id,
+            kind="ledger_event",
+            status="active",
+            label=description[:200],
+            confidence=0.9,
+            data={
+                "description": description,
+                "entry_type": entry_type,
+                "author": author,
+                "reqs": reqs,
+                "status": status,
+                "epistemic_status": epistemic_status,
+                "belief_artifacts": belief_artifacts,
+                "entry_hash": entry_hash,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+            source_ids=[r.strip() for r in reqs.split(",") if r.strip()] if reqs else [],
+        )
+        with open_default_store(root, warn=False) as store:
+            store.upsert(record)
+        return True
+    except Exception:  # noqa: BLE001 — best-effort; never blocks add_entry
+        return False
+
+
+def write_seal_record(
+    project_root: str | Path,
+    record_dict: dict[str, Any],
+) -> bool:
+    """Upsert a ``seal_record`` ESDB record from a TraceVault SealRecord (REQ-404).
+
+    Called best-effort by ``TraceVault._append()`` after writing trace.jsonl.
+    Confidence=0.9; seal_record records are kept forever (no retention sweep).
+
+    Args:
+        project_root: Project root directory.
+        record_dict:  ``SealRecord.to_dict()`` output.
+
+    Returns True on success, False on any error.
+    """
+    try:
+        from specsmith.esdb import SqliteRecord, open_default_store
+
+        root = Path(project_root)
+        seal_id = str(record_dict.get("seal_id", ""))
+        if not seal_id:
+            return False
+        description = str(record_dict.get("description", ""))
+        record = SqliteRecord(
+            id=f"ESDB-{seal_id}",
+            kind="seal_record",
+            status="active",
+            label=description[:200],
+            confidence=0.9,
+            data=dict(record_dict),
+            source_ids=list(record_dict.get("artifact_ids") or []),
+        )
+        with open_default_store(root, warn=False) as store:
+            store.upsert(record)
+        return True
+    except Exception:  # noqa: BLE001 — best-effort; never blocks seal()
+        return False
+
+
+def write_session_metric(
+    project_root: str | Path,
+    record_dict: dict[str, Any],
+) -> bool:
+    """Upsert a ``session_metric`` ESDB record from a MetricsRecord (REQ-405).
+
+    Called best-effort by ``MetricsStore.append()`` after writing session_metrics.jsonl.
+    Confidence=0.8; retention=60 days (managed by esdb_sweep).
+
+    Args:
+        project_root: Project root directory.
+        record_dict:  ``MetricsRecord.to_dict()`` output.
+
+    Returns True on success, False on any error.
+    """
+    try:
+        from specsmith.esdb import SqliteRecord, open_default_store
+
+        root = Path(project_root)
+        session_id = str(record_dict.get("session_id", ""))
+        rec_id = f"MET-{session_id}" if session_id else f"MET-{uuid.uuid4().hex[:8].upper()}"
+        record = SqliteRecord(
+            id=rec_id,
+            kind="session_metric",
+            status="active",
+            label=(
+                f"{session_id}: tokens={record_dict.get('tokens_total', 0)} "
+                f"passed={record_dict.get('passed', False)}"
+            )[:200],
+            confidence=0.8,
+            data=dict(record_dict),
+            source_ids=(
+                [str(record_dict["work_item_id"])]
+                if record_dict.get("work_item_id")
+                else []
+            ),
+        )
+        with open_default_store(root, warn=False) as store:
+            store.upsert(record)
+        return True
+    except Exception:  # noqa: BLE001 — best-effort; never blocks append()
+        return False
+
+
 __all__ = [
     "write_preflight_record",
     "write_verify_record",
     "write_work_item_record",
+    "write_token_metric",
+    "write_ledger_event",
+    "write_seal_record",
+    "write_session_metric",
 ]

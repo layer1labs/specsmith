@@ -604,6 +604,23 @@ class AgentRunner:
         )
         self._state.elapsed_minutes = round((time.time() - self._started_at) / 60.0, 2)
 
+        # Write token_metric to ESDB (REQ-410) — best-effort, never blocks.
+        if tokens_in or tokens_out:
+            try:
+                from specsmith.esdb_writer import write_token_metric
+
+                write_token_metric(
+                    self.project_dir,
+                    input_tokens=tokens_in,
+                    output_tokens=tokens_out,
+                    cost_usd=cost_usd,
+                    model=str(getattr(result, "provider", "") if result else ""),
+                    command_source=activity or "chat",
+                    work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
         if result is not None:
             self._history.append({"role": "user", "text": utterance})
             self._history.append({"role": "agent", "text": result.summary})

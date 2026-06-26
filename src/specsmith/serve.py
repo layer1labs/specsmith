@@ -708,6 +708,17 @@ class _Handler(BaseHTTPRequestHandler):
             ctx_dict = self.agent.status()
             root = Path(self.agent._project_dir)  # noqa: SLF001
             saved = save_if_governed(root, ctx_dict, history)
+
+            # Best-effort: efficiency recompute + orphan sweep on save (REQ-411, REQ-412).
+            try:
+                from specsmith.efficiency import compute_and_upsert_efficiency
+                from specsmith.esdb_sweep import run_sweep
+
+                compute_and_upsert_efficiency(root)
+                run_sweep(root, orphans_only=True)
+            except Exception:  # noqa: BLE001
+                pass
+
             self._json_response({"ok": True, "saved": saved})
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})

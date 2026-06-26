@@ -3964,5 +3964,160 @@
     "test_ids": [
       "TEST-411"
     ]
+  },
+  {
+    "id": "REQ-403",
+    "version": 1,
+    "title": "ledger_event Dual-Write from add_entry",
+    "description": "ledger.add_entry() MUST best-effort upsert a SqliteRecord(kind=\"ledger_event\", confidence=0.9) into ESDB immediately after writing LEDGER.md. The upsert MUST be wrapped in try/except so a broken ESDB never blocks the ledger write. The record MUST carry description, entry_type, author, reqs, status, epistemic_status, belief_artifacts, entry_hash, and timestamp fields in its data dict. Source_ids MUST be populated from the reqs field (comma-split).",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-412"
+    ]
+  },
+  {
+    "id": "REQ-404",
+    "version": 1,
+    "title": "seal_record Dual-Write from TraceVault._append",
+    "description": "TraceVault._append() MUST best-effort upsert a SqliteRecord(kind=\"seal_record\", confidence=0.9, id=\"ESDB-{seal_id}\") into ESDB immediately after appending to trace.jsonl. The upsert MUST be wrapped in try/except. The record data MUST be the full SealRecord.to_dict() output. source_ids MUST be populated from artifact_ids.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-413"
+    ]
+  },
+  {
+    "id": "REQ-405",
+    "version": 1,
+    "title": "session_metric Dual-Write from MetricsStore.append",
+    "description": "MetricsStore.append() MUST best-effort upsert a SqliteRecord(kind=\"session_metric\", confidence=0.8, id=\"MET-{session_id}\") into ESDB immediately after writing to session_metrics.jsonl. The upsert MUST be wrapped in try/except. The record data MUST be the full MetricsRecord.to_dict() output. source_ids MUST be populated from work_item_id when present.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-414"
+    ]
+  },
+  {
+    "id": "REQ-406",
+    "version": 1,
+    "title": "M009 ESDB-First Backfill Migration",
+    "description": "specsmith MUST include migration M009 (version=9) that backfills existing loose state files into ESDB records. M009 MUST: (1) parse every ## heading in LEDGER.md and upsert as ledger_event; (2) parse every line of trace.jsonl and upsert as seal_record; (3) parse every line of session_metrics.jsonl and upsert as session_metric. M009 MUST be idempotent via a marker file (.specsmith/esdb-m009-backfill), non-destructive, and registered in MigrationRegistry.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-415"
+    ]
+  },
+  {
+    "id": "REQ-407",
+    "version": 1,
+    "title": "ESDB-First Ledger Snippet in context_seed",
+    "description": "build_context_seed() MUST query ESDB ledger_event records first when loading the ledger snippet. Only if ESDB has no ledger_event records MUST it fall back to reading LEDGER.md directly. The ESDB query MUST sort by timestamp descending and return the last max_ledger records as formatted lines.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-416"
+    ]
+  },
+  {
+    "id": "REQ-408",
+    "version": 1,
+    "title": "ESDB-First Commit Message in generate_commit_message",
+    "description": "vcs_commands.generate_commit_message() MUST query ESDB ledger_event records first. It MUST select the record with the latest timestamp and return its description field truncated to 72 characters. Only if ESDB has no ledger_event records MUST it fall back to reading LEDGER.md.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-417"
+    ]
+  },
+  {
+    "id": "REQ-409",
+    "version": 1,
+    "title": "specsmith inspect and ledger export CLI Commands",
+    "description": "specsmith MUST provide a top-level `inspect` CLI command that displays a bordered block containing: governance health (audit result), active work items, EFF-CURRENT efficiency snapshot, and 5-dimension epistemic quality score. specsmith MUST also provide `ledger export` (subcommand of ledger group) that queries ledger_event records from ESDB (default) or LEDGER.md (--source file) and emits text or JSON output. Both commands MUST support --project-dir and --json flags.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-418",
+      "TEST-419"
+    ]
+  },
+  {
+    "id": "REQ-410",
+    "version": 1,
+    "title": "Token Metric ESDB Write Path from AgentRunner",
+    "description": "AgentRunner._handle_command() MUST best-effort call write_token_metric() after every ChatRunResult. The call MUST pass input_tokens, output_tokens, cost_usd, model (provider name), command_source (activity), and work_item_id from the active session state. The write MUST be wrapped in try/except and never block the chat loop.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-420"
+    ]
+  },
+  {
+    "id": "REQ-411",
+    "version": 1,
+    "title": "EFF-CURRENT efficiency_metric ESDB Record",
+    "description": "specsmith MUST maintain a singleton EFF-CURRENT record (kind=\"efficiency_metric\", id=\"EFF-CURRENT\", confidence=1.0) in ESDB. compute_and_upsert_efficiency(root) MUST read the last 20 session_metric, token_metric, and context_usage records, compute tokens_per_correct_answer, cost_of_pass_usd, quality_trend_7d, mean_rework_turns, context_char_efficiency, context_health_score, baseline (last 50), degraded flag, and epistemic_quality, then upsert EFF-CURRENT. The function MUST be best-effort (returns False on error). compute_and_upsert_efficiency() MUST be called from specsmith save and the serve.py _session_save endpoint.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-421"
+    ]
+  },
+  {
+    "id": "REQ-412",
+    "version": 1,
+    "title": "ESDB Sweep with Per-Kind Retention",
+    "description": "specsmith MUST provide esdb_sweep.run_sweep(root, orphans_only, dry_run) that tombstones active records whose retention period has expired. Retention periods: session_metric=60d, context_usage=30d, ledger_event=90d, seal_record/token_metric/ efficiency_metric=forever. The full sweep (orphans_only=False) MUST also call compute_and_upsert_efficiency() to refresh EFF-CURRENT. run_sweep MUST return a SweepResult dataclass with tombstoned, orphans_flagged, efficiency_refreshed, errors, and kinds_swept counts.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-422"
+    ]
+  },
+  {
+    "id": "REQ-413",
+    "version": 1,
+    "title": "Orphan Detection for work_item and preflight_decision Records",
+    "description": "run_sweep() MUST detect and tombstone orphaned records. A work_item record is an orphan if it is active in ESDB but absent from workitems.json. A preflight_decision record is an orphan if its parent work_item_id is not found in ESDB or workitems.json. Orphan detection MUST run in both full and orphans_only=True modes.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-423"
+    ]
+  },
+  {
+    "id": "REQ-414",
+    "version": 1,
+    "title": "Epistemic Quality Score in EFF-CURRENT",
+    "description": "compute_epistemic_quality(root) MUST compute a 5-dimension composite score: confidence_density (weight 0.30, fraction of active records with confidence>=0.7), recency_score (0.20, records with timestamp < 90 days), coherence_score (0.20, work_items with matching preflight_decision), closure_score (0.15, verify_results / preflight_decisions), non_contradiction_score (0.15, 1 minus duplicate label ratio). Composite MUST be clamped to [0.0, 1.0] and stored in EFF-CURRENT.epistemic_quality.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-424"
+    ]
+  },
+  {
+    "id": "REQ-415",
+    "version": 1,
+    "title": "Context Seed Auto-Tune from EFF-CURRENT",
+    "description": "build_context_seed() MUST load EFF-CURRENT from ESDB before assembling the seed. When degraded=True, it MUST reduce char_budget by 25%. When context_char_efficiency>0.9, it MUST halve max_ledger (minimum 10). ContextOrchestrator.check_and_optimize() MUST load dynamic thresholds from EFF-CURRENT: when degraded=True, all three tier thresholds MUST be reduced by 5 percentage points.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-425"
+    ]
+  },
+  {
+    "id": "REQ-416",
+    "version": 1,
+    "title": "context_usage Records from build_context_seed and ContextOrchestrator",
+    "description": "build_context_seed() MUST write a SqliteRecord(kind=\"context_usage\", id=\"CTX-{session_id}\", confidence=1.0) to ESDB after assembling each seed, containing session_id, seed_chars, seed_fill_pct, turns_count, degraded_at_seed, and timestamp. ContextOrchestrator.check_and_optimize() MUST upsert the latest context_usage record's peak_fill_pct field when a higher fill percentage is observed. Both efficiency_metric and context_usage kinds MUST be exempt from _evict_low_confidence_records().",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-426"
+    ]
   }
 ]

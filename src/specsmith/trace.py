@@ -295,6 +295,13 @@ class TraceVault:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with open(self._path, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record.to_dict()) + "\n")
+        # Dual-write: best-effort seal_record in ESDB (REQ-404).
+        try:
+            from specsmith.esdb_writer import write_seal_record
+
+            write_seal_record(self._root, record.to_dict())
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def _sha256(text: str) -> str:

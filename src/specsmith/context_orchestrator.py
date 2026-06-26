@@ -74,6 +74,8 @@ class ContextOrchestrator:
     ) -> OptimizeResultEx:
         """Run the appropriate optimization tier for the current fill percentage.
 
+        Uses dynamic thresholds from EFF-CURRENT when available (REQ-415).
+
         Args:
             fill_pct: Current context fill as a percentage (0–100).
             history: Current conversation history (list of {role, content}).
@@ -83,12 +85,17 @@ class ContextOrchestrator:
         """
         result = OptimizeResultEx(history=list(history or []))
 
-        if fill_pct >= TIER3_PCT:
+        t1, t2, t3 = self._load_dynamic_thresholds()
+
+        if fill_pct >= t3:
             self._run_tier3(result)
-        elif fill_pct >= TIER2_PCT:
+        elif fill_pct >= t2:
             self._run_tier2(result)
-        elif fill_pct >= TIER1_PCT:
+        elif fill_pct >= t1:
             self._run_tier1(result)
+
+        # Update context_usage with peak fill (REQ-416)
+        self._update_context_usage_peak(fill_pct)
 
         return result
 
@@ -215,6 +222,67 @@ class ContextOrchestrator:
     # ESDB helpers
     # ------------------------------------------------------------------
 
+    def _load_dynamic_thresholds(self) -> tuple[float, float, float]:
+        """Return (t1, t2, t3) tier thresholds, adjusted by EFF-CURRENT (REQ-415).
+
+        When the context is degraded, lower thresholds so compression triggers
+        earlier.  Falls back to module-level constants on any error.
+        """
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return TIER1_PCT, TIER2_PCT, TIER3_PCT
+            with SqliteStore(self.root) as store:
+                rec = store.get("EFF-CURRENT")
+            if rec is None or not rec.data.get("degraded"):
+                return TIER1_PCT, TIER2_PCT, TIER3_PCT
+            # Degraded: trigger compression 5% earlier
+            return TIER1_PCT - 5.0, TIER2_PCT - 5.0, TIER3_PCT - 5.0
+        except Exception:  # noqa: BLE001
+            return TIER1_PCT, TIER2_PCT, TIER3_PCT
+
+    def _update_context_usage_peak(self, fill_pct: float) -> None:
+        """Upsert/update the peak fill percentage in the latest context_usage record (REQ-416)."""
+        try:
+            from specsmith.esdb import SqliteRecord, SqliteStore, open_default_store
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return
+
+            # Find the most recent context_usage record and update its peak_fill_pct
+            with SqliteStore(self.root) as store:
+                records = store.query(kind="context_usage", status="active")
+
+            if not records:
+                return
+
+            # Sort by timestamp desc
+            latest = max(
+                records,
+                key=lambda r: str(r.data.get("timestamp") or ""),
+            )
+            data = dict(latest.data)
+            existing_peak = float(data.get("peak_fill_pct") or 0.0)
+            if fill_pct <= existing_peak:
+                return  # No update needed
+            data["peak_fill_pct"] = fill_pct
+            updated = SqliteRecord(
+                id=latest.id,
+                kind=latest.kind,
+                status=latest.status,
+                label=latest.label,
+                confidence=latest.confidence,
+                data=data,
+                source_ids=latest.source_ids,
+            )
+            with open_default_store(self.root, warn=False) as store:
+                store.upsert(updated)
+        except Exception:  # noqa: BLE001
+            pass
+
     def _evict_low_confidence_records(
         self,
         min_confidence: float = 0.5,
@@ -225,7 +293,8 @@ class ContextOrchestrator:
         Writes back to the store (tombstone via store.delete()) so the eviction
         persists across sessions.  Data is never physically removed — tombstone
         only.  Infrastructure records (edge, rollback_event, token_metric,
-        skill_run) and governance records (requirement, testcase) are exempt.
+        skill_run, efficiency_metric, context_usage) and governance records
+        (requirement, testcase) are exempt.
 
         Returns the count of records actually tombstoned.
         """
@@ -237,6 +306,8 @@ class ContextOrchestrator:
                 "rollback_event",
                 "token_metric",
                 "skill_run",
+                "efficiency_metric",
+                "context_usage",
             }
         )
 

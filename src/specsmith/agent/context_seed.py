@@ -27,7 +27,9 @@ left off (extended to cover full epistemic continuity).
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +64,10 @@ def build_context_seed(
     records (failed approaches, stale decisions, low-confidence hypotheses) are
     excluded from the context window.
 
+    REQ-407: ESDB-first ledger snippet (falls back to LEDGER.md).
+    REQ-415: auto-tune seed parameters from EFF-CURRENT.
+    REQ-416: write context_usage record per build_context_seed() call.
+
     Args:
         project_dir: Project root containing ``.specsmith/``.
         char_budget: Maximum total characters across all seed turns.
@@ -75,8 +81,20 @@ def build_context_seed(
         Empty list if no prior context is available.
     """
     root = Path(project_dir).resolve()
+    session_id = uuid.uuid4().hex[:16].upper()
     turns: list[dict[str, Any]] = []
     used = 0
+
+    # Auto-tune parameters from EFF-CURRENT (REQ-415)
+    eff = _load_efficiency_params(root)
+    if eff.get("degraded"):
+        # Reduce budget when context is degraded to force tighter seeds
+        char_budget = int(char_budget * 0.75)
+    if eff.get("context_char_efficiency") is not None:
+        # Scale max_ledger based on fill efficiency: high fill → fewer ledger lines
+        fill_eff = float(eff["context_char_efficiency"])
+        if fill_eff > 0.9:
+            max_ledger = max(10, max_ledger // 2)
 
     # ── 1. Session state snapshot ─────────────────────────────────────
     session_summary = _load_session_summary(root)
@@ -95,7 +113,7 @@ def build_context_seed(
         turns.append(t)
         used += len(c)
 
-    # ── 3. Recent LEDGER entries ─────────────────────────────────
+    # ── 3. Recent LEDGER entries — ESDB-first (REQ-407) ─────────────────
     ledger_block = _load_ledger_snippet(root, max_lines=max_ledger)
     if ledger_block and used + len(ledger_block) <= char_budget:
         turns.append(
@@ -106,7 +124,22 @@ def build_context_seed(
         )
         used += len(ledger_block)
 
-    # ── 4. ESDB records — relevance-based by kind (REQ-399) ──────────────
+    # ── 4. Efficiency degradation warning ────────────────────────────────
+    if eff.get("degraded"):
+        eq_score = eff.get("epistemic_quality_score", 0.0)
+        tpc = eff.get("tokens_per_correct_answer")
+        baseline = eff.get("baseline_tokens_per_pass")
+        warn_parts = ["[EFFICIENCY WARNING: context degraded"]
+        if tpc is not None and baseline is not None:
+            warn_parts.append(f"tokens/pass={tpc:.0f} vs baseline={baseline:.0f}")
+        if eq_score:
+            warn_parts.append(f"epistemic_quality={eq_score:.2f}")
+        warn_parts.append("— consider specsmith esdb sweep]")
+        warn_content = " ".join(warn_parts)
+        turns.append({"role": "system", "content": warn_content})
+        used += len(warn_content)
+
+    # ── 5. ESDB records — relevance-based by kind (REQ-399) ──────────────
     esdb_block = _load_esdb_by_kind(
         root,
         max_preflight=max_preflight,
@@ -123,6 +156,17 @@ def build_context_seed(
                 ),
             }
         )
+        used += len(esdb_block)
+
+    # ── 6. Write context_usage record (REQ-416) ──────────────────────────
+    _write_context_usage(
+        root,
+        session_id=session_id,
+        seed_chars=used,
+        seed_fill_pct=round(used / max(1, char_budget) * 100.0, 1),
+        turns_count=len(turns),
+        degraded=bool(eff.get("degraded")),
+    )
 
     return turns
 
@@ -192,7 +236,35 @@ def _load_conversation_history(
 
 
 def _load_ledger_snippet(root: Path, *, max_lines: int) -> str:
-    """Return the last ``max_lines`` of LEDGER.md, newest-first."""
+    """Return the last ``max_lines`` of ledger entries — ESDB-first (REQ-407).
+
+    Query order:
+      1. ESDB ``ledger_event`` records (sorted by timestamp desc).
+      2. Fall back to LEDGER.md file if ESDB has no ledger_event records.
+    """
+    # 1. Try ESDB first
+    try:
+        from specsmith.esdb import SqliteStore
+
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        if sqlite_path.exists():
+            with SqliteStore(root) as store:
+                records = store.query(kind="ledger_event", status="active")
+            if records:
+                # Sort newest first by timestamp in data, then take last max_lines
+                def _ts(r: Any) -> str:
+                    return str(r.data.get("timestamp") or "")
+
+                sorted_recs = sorted(records, key=_ts, reverse=True)[:max_lines]
+                lines_out = [
+                    f"{r.data.get('timestamp', '')[:16]} — {r.label[:120]}"
+                    for r in sorted_recs
+                ]
+                return "\n".join(lines_out)
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 2. Fall back to LEDGER.md file
     try:
         candidates = [root / "LEDGER.md", root / "docs" / "LEDGER.md"]
         for path in candidates:
@@ -308,6 +380,66 @@ def _load_esdb_by_kind(
             pass
 
     return "\n".join(lines)
+
+
+def _load_efficiency_params(root: Path) -> dict[str, Any]:
+    """Load EFF-CURRENT from ESDB and return its data dict (REQ-415).
+
+    Returns an empty dict on any error (best-effort).
+    """
+    try:
+        from specsmith.esdb import SqliteStore
+
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        if not sqlite_path.exists():
+            return {}
+        with SqliteStore(root) as store:
+            rec = store.get("EFF-CURRENT")
+        if rec is None:
+            return {}
+        data = dict(rec.data)
+        # Flatten epistemic_quality score for convenience
+        eq = data.get("epistemic_quality")
+        if isinstance(eq, dict):
+            data["epistemic_quality_score"] = eq.get("score", 0.0)
+        return data
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _write_context_usage(
+    root: Path,
+    *,
+    session_id: str,
+    seed_chars: int,
+    seed_fill_pct: float,
+    turns_count: int,
+    degraded: bool,
+) -> None:
+    """Write a context_usage record to ESDB (REQ-416, best-effort)."""
+    try:
+        from specsmith.esdb import SqliteRecord, open_default_store
+
+        rec_id = f"CTX-{session_id}"
+        record = SqliteRecord(
+            id=rec_id,
+            kind="context_usage",
+            status="active",
+            label=f"seed session={session_id} fill={seed_fill_pct:.1f}%",
+            confidence=1.0,
+            data={
+                "session_id": session_id,
+                "seed_chars": seed_chars,
+                "seed_fill_pct": seed_fill_pct,
+                "turns_count": turns_count,
+                "degraded_at_seed": degraded,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+        with open_default_store(root, warn=False) as store:
+            store.upsert(record)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 __all__ = ["build_context_seed"]

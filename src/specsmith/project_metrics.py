@@ -155,6 +155,13 @@ class MetricsStore:
         line = json.dumps(record.to_dict(), ensure_ascii=False)
         with self._path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
+        # Dual-write: best-effort session_metric in ESDB (REQ-405).
+        try:
+            from specsmith.esdb_writer import write_session_metric
+
+            write_session_metric(self._root, record.to_dict())
+        except Exception:  # noqa: BLE001
+            pass
 
     def reset(self) -> None:
         """Erase all metrics (destructive — requires explicit caller confirmation)."""

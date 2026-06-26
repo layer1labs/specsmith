@@ -20,9 +20,13 @@ specsmith sync --project-dir .
 
 # 3. Emit the initial GOVERNANCE ANCHOR
 specsmith checkpoint --project-dir .
+
+# 4. Emit session efficiency + epistemic quality snapshot (REQ-409)
+specsmith inspect --project-dir .
 ```
 
-Output the `specsmith checkpoint` result verbatim as your **first response**.
+Output the `specsmith checkpoint` result verbatim as your **first response**,
+followed by the `specsmith inspect` block.
 Only proceed once all steps complete without errors.
 
 > **Migration policy:** Forward migration (installing a newer specsmith) is always
@@ -90,7 +94,7 @@ Never end a session with uncommitted governance changes.
 
 | When | Command |
 |---|---|
-| Session start | `specsmith audit && specsmith sync && specsmith checkpoint` |
+| Session start | `specsmith audit && specsmith sync && specsmith checkpoint && specsmith inspect` |
 | Before any code change | `specsmith preflight "<intent>" --json` |
 | Every 8–10 turns | `specsmith checkpoint` (output verbatim) |
 | Context summary | Checkpoint output at top |
