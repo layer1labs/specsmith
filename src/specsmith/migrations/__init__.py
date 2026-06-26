@@ -115,6 +115,9 @@ class _MigrationRegistry:
             m005_agent_run_tool,
             m006_session_governance,
             m007_yaml_first,
+            m008_esdb_full_coverage,
+            m009_esdb_first,
+            m010_post_esdb_cleanup,
         )
 
         instances: list[Migration] = [
@@ -125,6 +128,9 @@ class _MigrationRegistry:
             m005_agent_run_tool.AgentRunToolMigration(),
             m006_session_governance.SessionGovernanceMigration(),
             m007_yaml_first.YamlFirstMigration(),
+            m008_esdb_full_coverage.EsdbFullCoverageMigration(),
+            m009_esdb_first.EsdbFirstMigration(),
+            m010_post_esdb_cleanup.PostEsdbCleanupMigration(),
         ]
         instances.sort(key=lambda m: m.version)
         self._migrations = instances

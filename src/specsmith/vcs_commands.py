@@ -74,7 +74,31 @@ def is_ledger_modified_since_last_commit(root: Path) -> bool:
 
 
 def generate_commit_message(root: Path) -> str:
-    """Generate commit message from the last ledger entry."""
+    """Generate commit message from the last ledger entry — ESDB-first (REQ-408).
+
+    Query order:
+      1. ESDB ``ledger_event`` records — newest first by timestamp.
+      2. Fall back to LEDGER.md file if ESDB has no ledger_event records.
+    """
+    # 1. Try ESDB first
+    try:
+        from specsmith.esdb import SqliteStore
+
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        if sqlite_path.exists():
+            with SqliteStore(root) as store:
+                records = store.query(kind="ledger_event", status="active")
+            if records:
+                latest = max(
+                    records,
+                    key=lambda r: str(r.data.get("timestamp") or ""),
+                )
+                desc = str(latest.data.get("description") or latest.label)
+                return desc[:72]
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 2. Fall back to LEDGER.md
     ledger_path = root / "LEDGER.md"
     if not ledger_path.exists():
         return "chore: update project files"

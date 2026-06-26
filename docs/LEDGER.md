@@ -188,3 +188,55 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `dc451c3e0c2ef776...`
+
+## 2026-06-25T19:57 — ESDB Full Coverage: docs/ARCHITECTURE.md §19 record kinds table + §41 appended; chronomemory-esdb skill updated with write-path table, record kinds, M008 note; all ruff violations fixed; 15/15 tests pass
+- **Author**: agent
+- **Type**: task
+- **Status**: complete
+- **Chain hash**: `1e9d9f99eb4f4088...`
+
+## 2026-06-25T20:44 — wi_archive WI-C6FAA737: ESDB full coverage implemented and verified: TEST-404..411 and tests in test_esdb_writer.py + test_esdb_integration.py cover REQ-395..402.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `0ca9ac14a5f3fcbd...`
+
+## 2026-06-25T21:12 — wi_close WI-9A9A9E22: REQ-084 implemented: governance_logic.run_preflight delegates from CLI; 1885 tests passing.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `7cbe46a5cf3b7756...`
+
+## 2026-06-25T21:12 — wi_close WI-B6A6E24A: REQ-085 implemented: pipx install-origin guard active; SPECSMITH_ALLOW_NON_PIPX override for CI.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `1f4fc87febc37b92...`
+
+## 2026-06-25T21:12 — wi_close WI-BEAADF17: REQ-371..374 implemented: ESDB auto-promotion, switch-backend, m007 YAML migration, cleanup command all present and tested.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `531f877f5d72b2f9...`
+
+## 2026-06-26T10:36 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `ace65defe939991d...`
+
+## 2026-06-26T13:24 — specsmith migration: 0.17.0 → 0.17.1
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `e8034ede0d786d14...`
+
+## 2026-06-26T13:25 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `c481074e0b828d95...`

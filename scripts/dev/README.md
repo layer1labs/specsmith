@@ -13,6 +13,7 @@ their PowerShell `$PROFILE`.
 | Run pytest with proper Unicode in PowerShell | `.\scripts\dev\test.ps1` |
 | Run pytest with arguments forwarded | `.\scripts\dev\test.ps1 -k history -v` |
 | Run ruff check + format check | `.\scripts\dev\lint.ps1` |
+| Validate BOTH ESDB backends (SQLite + ChronoStore) | `.\scripts\dev\test-esdb-backends.ps1` |
 | Run pytest from cmd.exe | `scripts\dev\test.cmd` |
 | Just fix encoding in your current shell | `. .\scripts\dev\Set-Utf8Encoding.ps1` |
 
@@ -27,6 +28,51 @@ Each wrapper dot-sources `Set-Utf8Encoding.ps1` first, which:
 
 After the encoding is fixed, the wrappers call `py -m pytest` (or
 `py -m ruff`) with any arguments you passed.
+
+## Two-tier ESDB harness (SQLite + ChronoStore)
+`test-esdb-backends.ps1` (wrapping the cross-platform
+`test_esdb_backends.py`) builds specsmith into a fresh, isolated virtual
+environment and validates BOTH Epistemic State Database backends end-to-end,
+mirroring the CI `esdb-backends` job locally before you push to git / PyPI:
+
+* **Free tier** — the built-in SQLite backend (MIT, no license, no
+  `chronomemory`). Always runs.
+* **Commercial tier** — the ChronoStore backend (`chronomemory` + a valid
+  Ed25519 license). Auto-skips when the `chronomemory` source or a license is
+  unavailable, so the free tier stays the zero-config default for this OSS
+  project.
+
+It is non-destructive: every `esdb status` / `esdb migrate` dogfood runs against
+an isolated **copy** of `.specsmith/`, never your tracked stores — important,
+because `esdb status` auto-promotes SQLite records into ChronoStore in
+non-interactive mode.
+
+```pwsh
+.\scripts\dev\test-esdb-backends.ps1             # both tiers, ESDB-focused set
+.\scripts\dev\test-esdb-backends.ps1 --full      # whole pytest suite per tier
+.\scripts\dev\test-esdb-backends.ps1 --free-only # SQLite tier only
+```
+
+Common flags (forwarded to the Python harness):
+
+| Flag | Effect |
+|---|---|
+| `--full` | Run the entire pytest suite per tier (slow) instead of the ESDB set. |
+| `--free-only` / `--chrono-only` | Run only one tier. |
+| `--editable` | `pip install -e .` instead of building + installing a wheel. |
+| `--chronomemory-src <path>` | Use a specific `chronomemory` source checkout. |
+| `--keep-venv` | Keep the temp venv for inspection. |
+
+The commercial tier sources `chronomemory` from (in priority order)
+`--chronomemory-src`, `$env:SPECSMITH_CHRONOMEMORY_SRC`, `crates/chronomemory`,
+or the sibling `../chronomemory`, and the license from `--license-key`,
+`$env:SPECSMITH_ESDB_KEY`, or `~/.specsmith/esdb.key`. On macOS / Linux run
+`python scripts/dev/test_esdb_backends.py` directly.
+
+The harness builds its isolated venv from a specsmith-supported Python
+(3.10-3.13, matching the CI test matrix), auto-selecting one when the default
+`py` / `python` resolves to a newer, untested interpreter (e.g. 3.14). Override
+with `--python <path>`.
 
 ## Permanent fix (recommended for daily Windows pwsh users)
 Add this to your PowerShell `$PROFILE` so every new shell starts in

@@ -127,7 +127,8 @@ _EU_AI_ACT = Regulation(
             category="logging",
             specsmith_controls=[
                 "specsmith trace (SHA-256 chain)",
-                ".specsmith/trace.jsonl",
+                # DEPRECATED(REQ-421): legacy trace.jsonl replaced by ESDB seal_record.
+                "ESDB seal_record (.specsmith/esdb.sqlite3 | .chronomemory/)",
                 "ChronoStore WAL (.chronomemory/events.wal)",
                 ".specsmith/ledger.jsonl",
                 "specsmith trace verify",

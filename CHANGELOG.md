@@ -12,6 +12,61 @@ consolidated into the next published release.
 
 ---
 
+## [0.18.0] - 2026-06-26
+
+### Added
+
+- **ESDB-first dual-write architecture (REQ-403..416)** — Every governance event now writes
+  to ESDB alongside the append-only `LEDGER.md`. `esdb_writer.py` provides atomic writer
+  helpers; `efficiency.py` computes rolling `EFF-CURRENT` (tokens/pass, cost-of-pass, EuTB
+  metric, and 5-dimension epistemic quality score); `esdb_sweep.py` back-fills ESDB from the
+  existing ledger on first activation. `ledger.py`, `trace.py`, and `project_metrics.py`
+  all participate in dual-write.
+
+- **`specsmith inspect`** (REQ-409) — Session-start command that emits a bordered governance
+  block: audit health, active work items, ESDB `EFF-CURRENT` efficiency stats
+  (tokens/correct-answer, context fill rate), and the 5-dimension epistemic quality breakdown
+  (confidence density, recency, coherence, closure, non-contradiction). `--json` flag for
+  machine-readable output. Replaces `specsmith checkpoint` as the recommended agent
+  context-injection call at the start of every session.
+
+- **Benchmark tasks T10–T13** — Three new `govern_bench` scenarios: T10 (add stats
+  endpoint), T11 (add tags field), T13 (ambiguous production-readiness prompt); `bench.yml`
+  workflow updated to include these tasks in the default `workflow_dispatch` task set.
+
+- **`specsmith.agent.token_pricing` module** — `cost_for_tokens(model, input_tokens,
+  output_tokens)`, `cost_for_tokens_breakdown(...)`, and `tokens_per_correct_answer(...)` with
+  Q2-2026 pricing for 20+ OpenAI, Anthropic, and Google models. Ollama models always return
+  `0.0` (free local inference). Import with
+  `from specsmith.agent.token_pricing import cost_for_tokens`.
+
+- **49 new ESDB tests** (TEST-404..411) covering dual-write correctness, sweep runner,
+  `EFF-CURRENT` computation, epistemic quality dimensions, audit chain validation, and
+  ChronoStore compatibility paths.
+
+- **142 new agent/REPL/benchmark tests** — `tests/test_token_cost.py` (57 tests),
+  `tests/test_parallel_agents.py` (37 tests), `tests/test_repl_extended.py` (30 tests),
+  `tests/test_benchmark_harness.py` (27 tests).
+
+- **M010 post-ESDB cleanup migration** — `specsmith migrate run` removes files now
+  superseded by YAML+ESDB governance: `docs/REQUIREMENTS.md`, `docs/TESTS.md`,
+  `.specsmith/requirements.json`, `.specsmith/testcases.json`, the M006 AGENTS.md backup,
+  and old `migration-backups/` dirs (newest kept). Guards require all YAML source files
+  and ESDB marker files to exist before deletion; idempotent via migration marker file.
+
+### Fixed
+
+- **`write_token_metric` ESDB guard** — returns `False` gracefully when the ESDB SQLite
+  file does not yet exist (e.g. fresh project before first `specsmith audit`).
+
+- **mypy strict compliance** — added `from typing import Any` to `token_pricing.py`;
+  resolved `Sequence` covariance annotation in `context_seed.py`; fixed `TypedDict`
+  narrowing in M008 migration; resolved type-arg errors in `test_parallel_agents.py`.
+
+- **ruff format** — reformatted 8 files after ESDB-first changes to satisfy `ruff format --check`.
+
+---
+
 ## [0.17.1] - 2026-06-25
 
 ### Fixed
@@ -668,7 +723,10 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.16.4...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.17.1...HEAD
+[0.17.1]: https://github.com/layer1labs/specsmith/compare/v0.17.0...v0.17.1
+[0.17.0]: https://github.com/layer1labs/specsmith/compare/v0.16.5...v0.17.0
+[0.16.5]: https://github.com/layer1labs/specsmith/compare/v0.16.4...v0.16.5
 [0.16.4]: https://github.com/layer1labs/specsmith/compare/v0.16.3...v0.16.4
 [0.16.3]: https://github.com/layer1labs/specsmith/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/layer1labs/specsmith/compare/v0.16.1...v0.16.2

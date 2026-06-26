@@ -185,9 +185,47 @@ specsmith checkpoint --json   # machine-readable for programmatic injection
 All data gathering is best-effort: the command never fails even on projects with no
 ESDB WAL, no LEDGER.md, or no `.specsmith/` directory.
 
+## `specsmith inspect`
+
+Emit a session-start governance block with live project state (REQ-409). Designed to replace
+`specsmith checkpoint` as the recommended agent context-injection call at the start of every
+session after running `specsmith audit && specsmith sync`.
+
+```bash
+specsmith inspect                         # bordered governance block (human-readable)
+specsmith inspect --json                  # machine-readable JSON payload
+specsmith inspect --project-dir ./my-project
+```
+
+**Block sections:**
+
+- **Governance** — audit health (`healthy` or `ISSUES (N)`).
+- **WI** — active and `implemented` work items (up to 5), or "no active work items".
+- **Efficiency** — ESDB `EFF-CURRENT` record: `tokens/pass`, context fill rate, and a
+  degradation warning when efficiency drops below baseline.
+- **Epistemic** — composite quality score (0.0–1.0, band: `excellent`/`good`/`fair`/`poor`)
+  with 5-dimension breakdown: confidence density, recency, coherence, closure,
+  non-contradiction.
+
+**JSON payload keys:** `audit_healthy`, `audit_failed`, `active_work_items`, `efficiency`
+(full `EFF-CURRENT` dict), `timestamp`.
+
+**Typical agent usage:**
+
+```bash
+# At the very start of every session (replaces checkpoint)
+specsmith audit && specsmith sync && specsmith inspect
+
+# Agent-mode: machine-readable for context injection
+specsmith inspect --json
+```
+
+All data gathering is best-effort: the command never fails even on projects with no ESDB
+records, no LEDGER.md, or no `.specsmith/` directory.
+
 ## `specsmith sync`
 
-Sync `.specsmith/` machine-state JSON from `docs/` Markdown (REQ-003).
+Sync `.specsmith/` machine-state JSON from governance source files (REQ-003).
 
 ```bash
 specsmith sync                            # regenerate requirements.json + testcases.json
@@ -195,9 +233,11 @@ specsmith sync --check                    # CI: exit 1 if out of sync, no writes
 specsmith sync --json                     # emit result as JSON
 ```
 
-Markdown files in `docs/` are always the source of truth; the JSON files are a derived cache
-that tools like `preflight` and `verify` read for fast machine-state lookup. Run `sync` after
-any edit to `docs/REQUIREMENTS.md` or `docs/TESTS.md`.
+In **YAML-first mode** (default for projects on specsmith ≥ 0.17.0), the source of truth is
+`docs/requirements/*.yml` and `docs/tests/*.yml`. In legacy markdown mode, `docs/REQUIREMENTS.md`
+and `docs/TESTS.md` are used. The derived `.specsmith/requirements.json` and
+`.specsmith/testcases.json` caches are read by `preflight` and `verify` for fast machine-state
+lookup. Run `sync` after any edit to the YAML source files.
 
 ## `specsmith governance-serve`
 

@@ -3518,7 +3518,7 @@
     "title": "Warp terminal integration: repository workflow YAML files for common governance commands",
     "description": "The specsmith repository ships .warp/workflows/ YAML files so developers using Warp terminal can invoke governance commands (audit, checkpoint, preflight, save, session-start) directly from the Warp command palette without context-switching.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-363"
     ]
@@ -3529,7 +3529,7 @@
     "title": "specsmith mcp serve: native stdio MCP server exposing governance tools to Warp, Cursor, and Claude Code agents",
     "description": "specsmith exposes an MCP-compliant stdio server via 'specsmith mcp serve'. The server implements JSON-RPC 2.0 over stdin/stdout and offers six governance tools: governance_audit, governance_checkpoint, governance_preflight, governance_phase, governance_req_list, and governance_trace_seal. Any MCP client (Warp/Oz, Cursor, Claude Code) can add specsmith as a tool server and call governance commands as structured tool calls without shell roundtrips. A companion 'specsmith mcp install-warp' command prints the Warp MCP config snippet.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-364"
     ]
@@ -3585,7 +3585,7 @@
     "title": "Governance Efficiency Benchmark Suite: harness, task definitions, and demo projects for token cost and quality comparison across governance conditions",
     "description": "Implement scripts/govern_bench/ with T1-T7 benchmark task definitions (YAML), a runner harness, LLM-judge module, and demo projects (agentic-todo-api, agentic-cli-tool). Compare six conditions: UNGOVERNED, CONTEXT_ONLY, BMAD_STYLE, OPENSPEC_STYLE, SPECSMITH_LIGHT, SPECSMITH_FULL. Primary metric: cost-of-pass = total_tokens / pass_rate.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-369"
     ]
@@ -3871,10 +3871,319 @@
     "title": "specsmith test suite must pass on all supported Python versions (3.10-3.13)",
     "description": "CI matrix covers Python 3.10, 3.11, 3.12, 3.13. All tests must pass on every version, including tests that use optional packages (chronomemory, tomllib). Tests requiring unavailable optional packages must use sys.modules mocking or stdlib fallbacks rather than skip decorators.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-402",
       "TEST-403"
+    ]
+  },
+  {
+    "id": "REQ-395",
+    "version": 1,
+    "title": "ESDBWriter Utility Module",
+    "description": "A centralised best-effort ESDB write API at specsmith.esdb_writer provides write_preflight_record(), write_verify_record(), and write_work_item_record(). All functions use open_default_store() and are wrapped in try/except so they never block their callers on store failures.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-404"
+    ]
+  },
+  {
+    "id": "REQ-396",
+    "version": 1,
+    "title": "Preflight Decision ESDB Write Path",
+    "description": "run_preflight() must upsert a kind=\"preflight_decision\" ESDB record for every accepted preflight that mints a work_item_id. Record id = work_item_id, label = utterance, confidence = confidence_target, source_ids = requirement_ids, data includes decision, intent, and work_item_id.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-405"
+    ]
+  },
+  {
+    "id": "REQ-397",
+    "version": 1,
+    "title": "Verify Result ESDB Write Path",
+    "description": "run_verify() must upsert a kind=\"verify_result\" ESDB record after each verification run. Record id = \"VERIFY-{work_item_id}\", confidence = result confidence (0.85 on equilibrium, 0.4 otherwise), source_ids = [work_item_id], data includes equilibrium, retry_strategy, files_changed count. When equilibrium is reached the corresponding preflight_decision record is marked status=\"implemented\" (tombstoned in ChronoStore).\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-406"
+    ]
+  },
+  {
+    "id": "REQ-398",
+    "version": 1,
+    "title": "Work Item ESDB Synchronisation",
+    "description": "WorkItemStore.create(), set_status(), mark_implemented(), and promote_to_req() must each upsert a kind=\"work_item\" ESDB record via esdb_writer.write_work_item_record(). ESDB status maps: open/implemented → active; promoted/closed/archived/rejected → tombstone. source_ids contains requirement_ids and test_case_ids from the WI.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-407"
+    ]
+  },
+  {
+    "id": "REQ-399",
+    "version": 1,
+    "title": "Context Seed Relevance-Based ESDB Query",
+    "description": "build_context_seed() must query ESDB by kind rather than returning the last N records by insertion order. It must separately query preflight_decision (last 10, confidence>=0.6), verify_result (last 5, confidence>=0.6), and work_item (last 5 active). The char budget is raised from 8000 to 12000 to accommodate the richer context. Records are deduplicated and formatted compactly.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-408"
+    ]
+  },
+  {
+    "id": "REQ-400",
+    "version": 1,
+    "title": "Context Eviction ESDB Write-Back",
+    "description": "ContextOrchestrator._evict_low_confidence_records() must actually write back to the store: for SqliteStore call store.delete(rec.id) (tombstone); for ChronoStore call store.invalidate() or tombstone. The method must return the count of records actually tombstoned, not just counted.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-409"
+    ]
+  },
+  {
+    "id": "REQ-401",
+    "version": 1,
+    "title": "M008 ESDB Full-Coverage Backfill Migration",
+    "description": "Migration version 8 (m008_esdb_full_coverage) backfills existing flat JSON state into ESDB on first run: reads workitems.json and upserts each WI as kind=\"work_item\"; reads SQLite audit_events and upserts each as kind=\"ledger_event\". Idempotent via .specsmith/esdb-full-coverage marker file. Runs automatically via specsmith migrate run.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-410"
+    ]
+  },
+  {
+    "id": "REQ-402",
+    "version": 1,
+    "title": "ESDB Record Kind Taxonomy Documentation",
+    "description": "ARCHITECTURE.md section 19 (ChronoMemory ESDB) must include a complete record kinds table (preflight_decision, verify_result, work_item, ledger_event, compliance_evidence, dispatch_result) with write-source for each kind. The chronomemory-esdb governance skill must include the same table plus write-path code examples for specsmith-internal callers.\n",
+    "source": "architecture",
+    "status": "accepted",
+    "test_ids": [
+      "TEST-411"
+    ]
+  },
+  {
+    "id": "REQ-403",
+    "version": 1,
+    "title": "ledger_event Dual-Write from add_entry",
+    "description": "ledger.add_entry() MUST best-effort upsert a SqliteRecord(kind=\"ledger_event\", confidence=0.9) into ESDB immediately after writing LEDGER.md. The upsert MUST be wrapped in try/except so a broken ESDB never blocks the ledger write. The record MUST carry description, entry_type, author, reqs, status, epistemic_status, belief_artifacts, entry_hash, and timestamp fields in its data dict. Source_ids MUST be populated from the reqs field (comma-split).",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-412"
+    ]
+  },
+  {
+    "id": "REQ-404",
+    "version": 1,
+    "title": "seal_record Dual-Write from TraceVault._append",
+    "description": "TraceVault._append() MUST best-effort upsert a SqliteRecord(kind=\"seal_record\", confidence=0.9, id=\"ESDB-{seal_id}\") into ESDB immediately after appending to trace.jsonl. The upsert MUST be wrapped in try/except. The record data MUST be the full SealRecord.to_dict() output. source_ids MUST be populated from artifact_ids.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-413"
+    ]
+  },
+  {
+    "id": "REQ-405",
+    "version": 1,
+    "title": "session_metric Dual-Write from MetricsStore.append",
+    "description": "MetricsStore.append() MUST best-effort upsert a SqliteRecord(kind=\"session_metric\", confidence=0.8, id=\"MET-{session_id}\") into ESDB immediately after writing to session_metrics.jsonl. The upsert MUST be wrapped in try/except. The record data MUST be the full MetricsRecord.to_dict() output. source_ids MUST be populated from work_item_id when present.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-414"
+    ]
+  },
+  {
+    "id": "REQ-406",
+    "version": 1,
+    "title": "M009 ESDB-First Backfill Migration",
+    "description": "specsmith MUST include migration M009 (version=9) that backfills existing loose state files into ESDB records. M009 MUST: (1) parse every ## heading in LEDGER.md and upsert as ledger_event; (2) parse every line of trace.jsonl and upsert as seal_record; (3) parse every line of session_metrics.jsonl and upsert as session_metric. M009 MUST be idempotent via a marker file (.specsmith/esdb-m009-backfill), non-destructive, and registered in MigrationRegistry.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-415"
+    ]
+  },
+  {
+    "id": "REQ-407",
+    "version": 1,
+    "title": "ESDB-First Ledger Snippet in context_seed",
+    "description": "build_context_seed() MUST query ESDB ledger_event records first when loading the ledger snippet. Only if ESDB has no ledger_event records MUST it fall back to reading LEDGER.md directly. The ESDB query MUST sort by timestamp descending and return the last max_ledger records as formatted lines.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-416"
+    ]
+  },
+  {
+    "id": "REQ-408",
+    "version": 1,
+    "title": "ESDB-First Commit Message in generate_commit_message",
+    "description": "vcs_commands.generate_commit_message() MUST query ESDB ledger_event records first. It MUST select the record with the latest timestamp and return its description field truncated to 72 characters. Only if ESDB has no ledger_event records MUST it fall back to reading LEDGER.md.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-417"
+    ]
+  },
+  {
+    "id": "REQ-409",
+    "version": 1,
+    "title": "specsmith inspect and ledger export CLI Commands",
+    "description": "specsmith MUST provide a top-level `inspect` CLI command that displays a bordered block containing: governance health (audit result), active work items, EFF-CURRENT efficiency snapshot, and 5-dimension epistemic quality score. specsmith MUST also provide `ledger export` (subcommand of ledger group) that queries ledger_event records from ESDB (default) or LEDGER.md (--source file) and emits text or JSON output. Both commands MUST support --project-dir and --json flags.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-418",
+      "TEST-419"
+    ]
+  },
+  {
+    "id": "REQ-410",
+    "version": 1,
+    "title": "Token Metric ESDB Write Path from AgentRunner",
+    "description": "AgentRunner._handle_command() MUST best-effort call write_token_metric() after every ChatRunResult. The call MUST pass input_tokens, output_tokens, cost_usd, model (provider name), command_source (activity), and work_item_id from the active session state. The write MUST be wrapped in try/except and never block the chat loop.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-420"
+    ]
+  },
+  {
+    "id": "REQ-411",
+    "version": 1,
+    "title": "EFF-CURRENT efficiency_metric ESDB Record",
+    "description": "specsmith MUST maintain a singleton EFF-CURRENT record (kind=\"efficiency_metric\", id=\"EFF-CURRENT\", confidence=1.0) in ESDB. compute_and_upsert_efficiency(root) MUST read the last 20 session_metric, token_metric, and context_usage records, compute tokens_per_correct_answer, cost_of_pass_usd, quality_trend_7d, mean_rework_turns, context_char_efficiency, context_health_score, baseline (last 50), degraded flag, and epistemic_quality, then upsert EFF-CURRENT. The function MUST be best-effort (returns False on error). compute_and_upsert_efficiency() MUST be called from specsmith save and the serve.py _session_save endpoint.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-421"
+    ]
+  },
+  {
+    "id": "REQ-412",
+    "version": 1,
+    "title": "ESDB Sweep with Per-Kind Retention",
+    "description": "specsmith MUST provide esdb_sweep.run_sweep(root, orphans_only, dry_run) that tombstones active records whose retention period has expired. Retention periods: session_metric=60d, context_usage=30d, ledger_event=90d, seal_record/token_metric/ efficiency_metric=forever. The full sweep (orphans_only=False) MUST also call compute_and_upsert_efficiency() to refresh EFF-CURRENT. run_sweep MUST return a SweepResult dataclass with tombstoned, orphans_flagged, efficiency_refreshed, errors, and kinds_swept counts.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-422"
+    ]
+  },
+  {
+    "id": "REQ-413",
+    "version": 1,
+    "title": "Orphan Detection for work_item and preflight_decision Records",
+    "description": "run_sweep() MUST detect and tombstone orphaned records. A work_item record is an orphan if it is active in ESDB but absent from workitems.json. A preflight_decision record is an orphan if its parent work_item_id is not found in ESDB or workitems.json. Orphan detection MUST run in both full and orphans_only=True modes.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-423"
+    ]
+  },
+  {
+    "id": "REQ-414",
+    "version": 1,
+    "title": "Epistemic Quality Score in EFF-CURRENT",
+    "description": "compute_epistemic_quality(root) MUST compute a 5-dimension composite score: confidence_density (weight 0.30, fraction of active records with confidence>=0.7), recency_score (0.20, records with timestamp < 90 days), coherence_score (0.20, work_items with matching preflight_decision), closure_score (0.15, verify_results / preflight_decisions), non_contradiction_score (0.15, 1 minus duplicate label ratio). Composite MUST be clamped to [0.0, 1.0] and stored in EFF-CURRENT.epistemic_quality.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-424"
+    ]
+  },
+  {
+    "id": "REQ-415",
+    "version": 1,
+    "title": "Context Seed Auto-Tune from EFF-CURRENT",
+    "description": "build_context_seed() MUST load EFF-CURRENT from ESDB before assembling the seed. When degraded=True, it MUST reduce char_budget by 25%. When context_char_efficiency>0.9, it MUST halve max_ledger (minimum 10). ContextOrchestrator.check_and_optimize() MUST load dynamic thresholds from EFF-CURRENT: when degraded=True, all three tier thresholds MUST be reduced by 5 percentage points.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-425"
+    ]
+  },
+  {
+    "id": "REQ-416",
+    "version": 1,
+    "title": "context_usage Records from build_context_seed and ContextOrchestrator",
+    "description": "build_context_seed() MUST write a SqliteRecord(kind=\"context_usage\", id=\"CTX-{session_id}\", confidence=1.0) to ESDB after assembling each seed, containing session_id, seed_chars, seed_fill_pct, turns_count, degraded_at_seed, and timestamp. ContextOrchestrator.check_and_optimize() MUST upsert the latest context_usage record's peak_fill_pct field when a higher fill percentage is observed. Both efficiency_metric and context_usage kinds MUST be exempt from _evict_low_confidence_records().",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-426"
+    ]
+  },
+  {
+    "id": "REQ-417",
+    "version": 1,
+    "title": "Honest ESDB Integrity Reporting in status and resume",
+    "description": "specsmith esdb status and specsmith resume MUST report the actual ESDB hash-chain verification result. esdb status MUST render \"Integrity OK\" only when chain_valid() is true and \"Integrity FAILED\" when it is false, instead of a hardcoded \"Integrity OK\" label. resume MUST drive its leading ESDB indicator from status.chain_valid (green check only when valid, red cross when invalid) rather than always printing a green check.",
+    "source": "ARCHITECTURE.md [ESDB Extended Management]",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-427"
+    ]
+  },
+  {
+    "id": "REQ-418",
+    "version": 1,
+    "title": "Preflight CLI Delegates to run_preflight",
+    "description": "The `specsmith preflight` CLI command MUST delegate its decision to governance_logic.run_preflight(utterance, project_dir) so that explicit REQ-NNN references and the synced requirements.json drive the result, instead of relying on self-contained heuristics. The command MUST preserve its existing flags: --predict-only emits a predicted_refinement (and persists no work item) when the decision is needs_clarification; --stress appends stress_warnings; --verbose appends narration; and accepted, non-predict-only runs still append a ledger entry when LEDGER.md exists. Exit codes MUST remain accepted=0, needs_clarification=2, blocked/rejected=3, and the REQ-098 confidence floor MUST NOT be applied twice.",
+    "source": "ARCHITECTURE.md [Preflight]",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-428"
+    ]
+  },
+  {
+    "id": "REQ-419",
+    "version": 1,
+    "title": "ESDB Status Human-Readable Output Never Aborts",
+    "description": "`specsmith esdb status` in human-readable (non-JSON) mode MUST emit its output via a resilient stdout write path that cannot raise a spurious Click Abort or KeyboardInterrupt on legacy Windows consoles. It MUST build plain-text lines (no Rich markup) and write them through the same sys.stdout.write + flush pattern, with a stderr fallback, used by the --json branch. The REQ-417 \"Integrity OK\" / \"Integrity FAILED\" line MUST be preserved.",
+    "source": "ARCHITECTURE.md [ESDB Extended Management]",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-429"
+    ]
+  },
+  {
+    "id": "REQ-420",
+    "version": 1,
+    "title": "ESDB-Only Trace Vault Readiness and Persistence",
+    "description": "The trace vault MUST treat ESDB as its single source of truth. TraceVault._load() MUST reconstruct seals exclusively from ESDB seal_record records (via SealRecord.from_dict on each record's data) and TraceVault._append() MUST persist new seals to ESDB only, no longer writing .specsmith/trace.jsonl. The phase readiness helpers (_trace_vault_exists, _trace_vault_min_seals) MUST count active seal_record records in ESDB rather than reading trace.jsonl. This path is forward-only with no jsonl fallback; an ESDB error MUST be treated as zero seals. The hash chain MUST continue to verify via content_hash/prev_hash/entry_hash in the record data.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-430"
+    ]
+  },
+  {
+    "id": "REQ-421",
+    "version": 1,
+    "title": "Legacy Flat-File Deprecation Registry",
+    "description": "specsmith MUST maintain a single greppable registry of legacy flat-file persistence sites slated for removal once ESDB is the sole source of truth, so a future teardown is a one-grep operation. Every such site in src/specsmith MUST carry a `# DEPRECATED(REQ-421):` marker comment, and docs/DEPRECATIONS.md MUST enumerate each marker with its file, the legacy artifact, the ESDB record kind that supersedes it, and the follow-up item. The registry MUST include the planned (not-yet-executed) teardown items: flipping work_item persistence to ESDB-first (superseding workitems.json) and stopping sync from regenerating the .specsmith/requirements.json and testcases.json caches. No legacy file or fallback may be deleted by this requirement; it only records and annotates them.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-431"
+    ]
+  },
+  {
+    "id": "REQ-422",
+    "version": 1,
+    "title": "SQLite-Backend Parity for Retrieval and Critical-Count",
+    "description": "When ESDB runs on the free SQLite backend (no ChronoMemory), governance knowledge MUST still flow through the same runtime paths as the commercial backend. retrieval.build_index() MUST inject ESDB records into the RAG index via SqliteStore.query(rag_filter=True) — excluding infrastructure kinds (edge, rollback_event, token_metric, skill_run, efficiency_metric, context_usage) — when ChronoStore is unavailable, instead of indexing nothing. ContextOrchestrator._count_critical_records() MUST fall back to counting active SQLite records with confidence >= CRITICAL_CONFIDENCE rather than returning 0. Commercial-only capabilities MUST remain optional and degrade to no-ops on SQLite.",
+    "source": "ARCHITECTURE.md §ESDB-First Migration",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-432"
     ]
   }
 ]

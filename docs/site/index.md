@@ -76,7 +76,8 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 - **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
 - **Work Item (WI) lifecycle** — every accepted `preflight` mints a `WI-XXXXXXXX`; 6-state machine (`open → implemented → promoted/closed/archived/rejected`); `specsmith wi` CLI with 7 commands
 - **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
-- **docs/REQUIREMENTS.md** — requirements parseable as `BeliefArtifact` instances
+- **YAML governance** — requirements in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`; machine-state cache in `.specsmith/requirements.json` + `testcases.json`. Run `specsmith migrate run` to upgrade from legacy Markdown mode.
+- **ESDB** — SQLite-backed Epistemic State Database; every governance event is dual-written so `specsmith inspect` can surface live efficiency and epistemic quality metrics.
 - **CI config** — GitHub Actions, GitLab CI, Bitbucket Pipelines with correct tools per project type
 
 **Agentic Client:**

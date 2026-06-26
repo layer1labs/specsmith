@@ -116,3 +116,24 @@
     config file.
   source: ARCHITECTURE.md [Kairos Settings Extensions]
   status: implemented
+- id: REQ-417
+  title: Honest ESDB Integrity Reporting in status and resume
+  description: 'specsmith esdb status and specsmith resume MUST report the actual ESDB
+    hash-chain verification result. esdb status MUST render "Integrity OK" only when
+    chain_valid() is true and "Integrity FAILED" when it is false, instead of a hardcoded
+    "Integrity OK" label. resume MUST drive its leading ESDB indicator from status.chain_valid
+    (green check only when valid, red cross when invalid) rather than always printing
+    a green check.'
+  source: ARCHITECTURE.md [ESDB Extended Management]
+  status: implemented
+- id: REQ-419
+  title: ESDB Status Human-Readable Output Never Aborts
+  description: >-
+    `specsmith esdb status` in human-readable (non-JSON) mode MUST emit its output
+    via a resilient stdout write path that cannot raise a spurious Click Abort or
+    KeyboardInterrupt on legacy Windows consoles. It MUST build plain-text lines
+    (no Rich markup) and write them through the same sys.stdout.write + flush pattern,
+    with a stderr fallback, used by the --json branch. The REQ-417 "Integrity OK" /
+    "Integrity FAILED" line MUST be preserved.
+  source: ARCHITECTURE.md [ESDB Extended Management]
+  status: implemented

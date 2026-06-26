@@ -32,6 +32,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+# DEPRECATED(REQ-421): legacy NDJSON metrics file. Superseded by the ESDB
+# ``session_metric`` kind (REQ-405 dual-write in MetricsStore.append). Retained
+# for back-compat reads until teardown. See docs/DEPRECATIONS.md.
 _METRICS_FILE = Path(".specsmith") / "session_metrics.jsonl"
 
 
@@ -151,10 +154,20 @@ class MetricsStore:
 
     def append(self, record: MetricsRecord) -> None:
         """Append one metrics record to the NDJSON file."""
+        # DEPRECATED(REQ-421): legacy NDJSON write. The forward path is the ESDB
+        # ``session_metric`` dual-write below (REQ-405); this file write is kept
+        # until teardown. See docs/DEPRECATIONS.md.
         self._path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps(record.to_dict(), ensure_ascii=False)
         with self._path.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
+        # Dual-write: best-effort session_metric in ESDB (REQ-405).
+        try:
+            from specsmith.esdb_writer import write_session_metric
+
+            write_session_metric(self._root, record.to_dict())
+        except Exception:  # noqa: BLE001
+            pass
 
     def reset(self) -> None:
         """Erase all metrics (destructive — requires explicit caller confirmation)."""

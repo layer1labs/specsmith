@@ -32,20 +32,37 @@ _TEXT_EXTS = {
 _SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "dist", "build", ".mypy_cache"}
 
 
+#: Infrastructure record kinds excluded from the RAG index (critical rule §18).
+#: Mirrors chronomemory ``query.what_is_known()`` so the free SQLite backend
+#: produces the same retrieval context as the commercial ChronoStore (REQ-422).
+_RAG_EXCLUDE_KINDS = frozenset(
+    {
+        "edge",
+        "rollback_event",
+        "token_metric",
+        "skill_run",
+        "efficiency_metric",
+        "context_usage",
+    }
+)
+
+
 def build_index(root: Path, *, include_ledger: bool = False, external: str = "") -> str:
     """Build or refresh the local retrieval index.
 
-    H18 (RAG retrieval filtering): when ChronoStore is available, only records
-    with confidence >= 0.6 are included in the retrieval context.
+    H18 (RAG retrieval filtering): only records with confidence >= 0.6 are
+    included in the retrieval context. REQ-422: parity across backends — the
+    ChronoStore WAL is used when present, otherwise the free SQLite ESDB backend
+    supplies the same governance knowledge so RAG works without commercial deps.
     """
     entries: list[dict[str, str]] = []
 
     # H18: inject high-confidence ESDB records as retrieval context.
-    # Use query.what_is_known() (not store.query(rag_filter=True)) so that
-    # infrastructure records (edge, rollback_event, token_metric, skill_run)
-    # are excluded from the RAG index — critical rule §18.
+    # Infrastructure records (see _RAG_EXCLUDE_KINDS) are excluded — rule §18.
     wal = root / ".chronomemory" / "events.wal"
     if wal.exists():
+        # ChronoStore branch (commercial backend). Use query.what_is_known()
+        # so infrastructure records are excluded from the RAG index.
         try:
             from chronomemory import ChronoStore
             from chronomemory import query as _cm_query
@@ -67,6 +84,33 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
                         )
         except Exception:  # noqa: BLE001
             pass  # ChronoStore read failure is non-fatal for RAG
+    else:
+        # SQLite parity branch (free default backend) — REQ-422. Inject the same
+        # high-confidence governance knowledge via SqliteStore.query(rag_filter)
+        # (confidence >= 0.6, active only), excluding infrastructure kinds.
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        if sqlite_path.exists():
+            try:
+                from specsmith.esdb import SqliteStore
+
+                with SqliteStore(root) as store:
+                    for rec in store.query(rag_filter=True):
+                        if rec.kind in _RAG_EXCLUDE_KINDS or not rec.data:
+                            continue
+                        content = (
+                            f"[{rec.kind.upper()} {rec.id}] {rec.label}\n"
+                            + str(rec.data.get("description", rec.data.get("title", "")))[:500]
+                        )
+                        entries.append(
+                            {
+                                "path": f"esdb/{rec.kind}/{rec.id}",
+                                "content": content,
+                                "source_type": str(rec.data.get("source_type", "observed")),
+                                "confidence": str(rec.confidence),
+                            }
+                        )
+            except Exception:  # noqa: BLE001
+                pass  # SQLite read failure is non-fatal for RAG
     candidates: list[Path] = []
 
     for rel in ["AGENTS.md", "docs/REQUIREMENTS.md", "docs/ARCHITECTURE.md", "docs/TESTS.md"]:

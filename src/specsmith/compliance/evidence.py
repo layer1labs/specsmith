@@ -163,17 +163,21 @@ class EvidenceCollector:
             )
         )
 
-        # Trace vault
-        trace = self.root / ".specsmith" / "trace.jsonl"
+        # Trace vault (REQ-420: seals are ESDB ``seal_record`` entries, no
+        # longer a .specsmith/trace.jsonl flat file).
+        from specsmith.trace import count_seal_records
+
+        seal_count = count_seal_records(self.root)
         items.append(
             EvidenceItem(
                 control_id="Art.12",
                 regulation_id="*",
-                description="SHA-256 chained trace vault (decision seals)",
-                source=".specsmith/trace.jsonl",
-                source_type="file",
-                confidence=0.9 if trace.exists() else 0.1,
-                present=trace.exists(),
+                description="SHA-256 chained trace vault (decision seals, ESDB seal_record)",
+                source="ESDB seal_record (.specsmith/esdb.sqlite3 | .chronomemory/)",
+                source_type="esdb",
+                confidence=0.9 if seal_count > 0 else 0.1,
+                present=seal_count > 0,
+                detail=f"{seal_count} seal(s) in ESDB",
             )
         )
 

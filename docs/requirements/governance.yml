@@ -355,3 +355,18 @@
     workflow.
   source: ARCHITECTURE.md
   status: implemented
+- id: REQ-418
+  title: Preflight CLI Delegates to run_preflight
+  description: >-
+    The `specsmith preflight` CLI command MUST delegate its decision to
+    governance_logic.run_preflight(utterance, project_dir) so that explicit
+    REQ-NNN references and the synced requirements.json drive the result, instead
+    of relying on self-contained heuristics. The command MUST preserve its existing
+    flags: --predict-only emits a predicted_refinement (and persists no work item)
+    when the decision is needs_clarification; --stress appends stress_warnings;
+    --verbose appends narration; and accepted, non-predict-only runs still append a
+    ledger entry when LEDGER.md exists. Exit codes MUST remain accepted=0,
+    needs_clarification=2, blocked/rejected=3, and the REQ-098 confidence floor MUST
+    NOT be applied twice.
+  source: ARCHITECTURE.md [Preflight]
+  status: implemented

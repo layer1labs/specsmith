@@ -74,6 +74,8 @@ class ContextOrchestrator:
     ) -> OptimizeResultEx:
         """Run the appropriate optimization tier for the current fill percentage.
 
+        Uses dynamic thresholds from EFF-CURRENT when available (REQ-415).
+
         Args:
             fill_pct: Current context fill as a percentage (0–100).
             history: Current conversation history (list of {role, content}).
@@ -83,12 +85,17 @@ class ContextOrchestrator:
         """
         result = OptimizeResultEx(history=list(history or []))
 
-        if fill_pct >= TIER3_PCT:
+        t1, t2, t3 = self._load_dynamic_thresholds()
+
+        if fill_pct >= t3:
             self._run_tier3(result)
-        elif fill_pct >= TIER2_PCT:
+        elif fill_pct >= t2:
             self._run_tier2(result)
-        elif fill_pct >= TIER1_PCT:
+        elif fill_pct >= t1:
             self._run_tier1(result)
+
+        # Update context_usage with peak fill (REQ-416)
+        self._update_context_usage_peak(fill_pct)
 
         return result
 
@@ -215,51 +222,175 @@ class ContextOrchestrator:
     # ESDB helpers
     # ------------------------------------------------------------------
 
+    def _load_dynamic_thresholds(self) -> tuple[float, float, float]:
+        """Return (t1, t2, t3) tier thresholds, adjusted by EFF-CURRENT (REQ-415).
+
+        When the context is degraded, lower thresholds so compression triggers
+        earlier.  Falls back to module-level constants on any error.
+        """
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return TIER1_PCT, TIER2_PCT, TIER3_PCT
+            with SqliteStore(self.root) as store:
+                rec = store.get("EFF-CURRENT")
+            if rec is None or not rec.data.get("degraded"):
+                return TIER1_PCT, TIER2_PCT, TIER3_PCT
+            # Degraded: trigger compression 5% earlier
+            return TIER1_PCT - 5.0, TIER2_PCT - 5.0, TIER3_PCT - 5.0
+        except Exception:  # noqa: BLE001
+            return TIER1_PCT, TIER2_PCT, TIER3_PCT
+
+    def _update_context_usage_peak(self, fill_pct: float) -> None:
+        """Upsert/update the peak fill percentage in the latest context_usage record (REQ-416)."""
+        try:
+            from specsmith.esdb import SqliteRecord, SqliteStore, open_default_store
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return
+
+            # Find the most recent context_usage record and update its peak_fill_pct
+            with SqliteStore(self.root) as store:
+                records = store.query(kind="context_usage", status="active")
+
+            if not records:
+                return
+
+            # Sort by timestamp desc
+            latest = max(
+                records,
+                key=lambda r: str(r.data.get("timestamp") or ""),
+            )
+            data = dict(latest.data)
+            existing_peak = float(data.get("peak_fill_pct") or 0.0)
+            if fill_pct <= existing_peak:
+                return  # No update needed
+            data["peak_fill_pct"] = fill_pct
+            updated = SqliteRecord(
+                id=latest.id,
+                kind=latest.kind,
+                status=latest.status,
+                label=latest.label,
+                confidence=latest.confidence,
+                data=data,
+                source_ids=latest.source_ids,
+            )
+            with open_default_store(self.root, warn=False) as store:
+                store.upsert(updated)
+        except Exception:  # noqa: BLE001
+            pass
+
     def _evict_low_confidence_records(
         self,
         min_confidence: float = 0.5,
         source_type_exclude: list[str] | None = None,
     ) -> int:
-        """Mark low-confidence records as 'evicted-from-context' in memory only.
+        """Tombstone low-confidence records in the ESDB store (REQ-400).
 
-        NOTE: This does NOT delete from the WAL — it only removes from the
-        in-context representation returned by the current query.
+        Writes back to the store (tombstone via store.delete()) so the eviction
+        persists across sessions.  Data is never physically removed — tombstone
+        only.  Infrastructure records (edge, rollback_event, token_metric,
+        skill_run, efficiency_metric, context_usage) and governance records
+        (requirement, testcase) are exempt.
 
-        Returns the count of records that would be evicted.
+        Returns the count of records actually tombstoned.
         """
+        _EXEMPT_KINDS = frozenset(
+            {
+                "requirement",
+                "testcase",
+                "edge",
+                "rollback_event",
+                "token_metric",
+                "skill_run",
+                "efficiency_metric",
+                "context_usage",
+            }
+        )
 
+        # --- Try ChronoStore first (commercial backend) ----------------------
         wal = self.root / ".chronomemory" / "events.wal"
-        if not wal.exists():
-            return 0
-        try:
-            from chronomemory import ChronoStore
+        if wal.exists():
+            try:
+                from chronomemory import ChronoStore
 
-            with ChronoStore(self.root) as store:
-                records = store.query()
+                with ChronoStore(self.root) as store:
+                    records = store.query()
+                    count = 0
+                    for rec in records:
+                        if getattr(rec, "kind", "") in _EXEMPT_KINDS:
+                            continue
+                        evict = rec.confidence < min_confidence
+                        if (
+                            source_type_exclude
+                            and getattr(rec, "source_type", "") in source_type_exclude
+                        ):
+                            evict = True
+                        if evict:
+                            store.delete(rec.id)  # tombstone — never physically removed
+                            count += 1
+                    return count
+            except Exception:  # noqa: BLE001
+                pass  # fall through to SqliteStore
+
+        # --- Fall back to SqliteStore (free default backend) -----------------
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return 0
+            with SqliteStore(self.root) as store:
+                records = store.query(status="active")
                 count = 0
                 for rec in records:
+                    if rec.kind in _EXEMPT_KINDS:
+                        continue
                     evict = rec.confidence < min_confidence
-                    if source_type_exclude and rec.source_type in source_type_exclude:
+                    if source_type_exclude and rec.kind in source_type_exclude:
                         evict = True
                     if evict:
+                        store.delete(rec.id)  # tombstone
                         count += 1
                 return count
         except Exception:  # noqa: BLE001
             return 0
 
     def _count_critical_records(self) -> int:
-        """Count records that qualify as critical (must be protected)."""
-        wal = self.root / ".chronomemory" / "events.wal"
-        if not wal.exists():
-            return 0
-        try:
-            from chronomemory import ChronoStore
+        """Count records that qualify as critical (must be protected).
 
-            with ChronoStore(self.root) as store:
+        REQ-422: parity across backends — prefer the ChronoStore WAL when present,
+        otherwise count active high-confidence records from the free SQLite ESDB
+        backend so the protection path behaves identically without ChronoStore.
+        """
+        # --- ChronoStore first (commercial backend) -------------------------
+        wal = self.root / ".chronomemory" / "events.wal"
+        if wal.exists():
+            try:
+                from chronomemory import ChronoStore
+
+                with ChronoStore(self.root) as store:
+                    return sum(
+                        1
+                        for r in store.query()
+                        if r.confidence >= CRITICAL_CONFIDENCE and r.status == "active"
+                    )
+            except Exception:  # noqa: BLE001
+                pass  # fall through to SqliteStore
+
+        # --- Fall back to SqliteStore (free default backend) ----------------
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return 0
+            with SqliteStore(self.root) as store:
                 return sum(
-                    1
-                    for r in store.query()
-                    if r.confidence >= CRITICAL_CONFIDENCE and r.status == "active"
+                    1 for r in store.query(status="active") if r.confidence >= CRITICAL_CONFIDENCE
                 )
         except Exception:  # noqa: BLE001
             return 0

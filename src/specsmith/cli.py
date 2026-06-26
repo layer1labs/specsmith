@@ -771,174 +771,81 @@ def preflight_cmd(
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
-    Reads REQUIREMENTS.md and ``.repo-index/files.json`` from PROJECT-DIR,
-    classifies intent (read-only ask / change / release / destructive),
-    infers scope, and emits a JSON object describing the preflight decision.
-    Read-only asks accept by default; destructive intents require
-    clarification; changes with no matching scope return needs_clarification.
+    REQ-418: this command delegates to ``governance_logic.run_preflight`` so the
+    CLI decision matches the in-process broker — explicit ``REQ-NNN`` references
+    and ``.specsmith/requirements.json`` are honored, the REQ-098 floor is applied
+    once, and the work item / ESDB ``preflight_decision`` record are persisted
+    (unless ``--predict-only``). The command then layers on presentation-only
+    extras (``predicted_refinement``, ``stress_warnings``, ``narration``) and the
+    REQ-093/099 LEDGER.md events, and exits 0/2/3 per the decision (REQ-092).
     """
     import json as _json
-    import uuid
 
-    from specsmith.agent.broker import (
-        Intent,
-        PreflightDecision,
-        classify_intent,
-        infer_scope,
-        narrate_plan,
-    )
+    from specsmith.governance_logic import run_preflight
 
     root = Path(project_dir).resolve()
-    intent = classify_intent(utterance)
-    scope = infer_scope(
+    # REQ-418: delegate the decision to the authoritative broker so explicit
+    # REQ-NNN ids and .specsmith/requirements.json drive the result.  run_preflight
+    # also applies the REQ-098 floor, allocates/persists the work item (unless
+    # predict_only), writes the ESDB preflight_decision record, and attaches the
+    # ai_disclosure + REG-004 escalation fields.  Do NOT re-apply the floor here.
+    payload = run_preflight(
         utterance,
-        root / "REQUIREMENTS.md",
-        repo_index_path=root / ".repo-index" / "files.json",
+        str(root),
+        predict_only=predict_only,
+        escalate_threshold=escalate_threshold,
     )
+    decision_str = str(payload.get("decision", ""))
+    work_item_id = str(payload.get("work_item_id", ""))
+    requirement_ids = list(payload.get("requirement_ids", []))
+    confidence_target = float(payload.get("confidence_target", 0.0))
 
-    requirement_ids = [r.req_id for r in scope.matched_requirements]
-
-    # REQ-088: resolve test_case_ids from machine state by joining
-    # `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md`
-    # when the JSON is unavailable). Never invent ids.
-    test_case_ids: list[str] = []
-    if requirement_ids:
-        testcases_json = root / ".specsmith" / "testcases.json"
-        if testcases_json.is_file():
-            try:
-                records = _json.loads(testcases_json.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                records = []
-            req_set = set(requirement_ids)
-            for record in records:
-                if (
-                    isinstance(record, dict)
-                    and record.get("requirement_id") in req_set
-                    and isinstance(record.get("id"), str)
-                ):
-                    test_case_ids.append(record["id"])
-        else:
-            tests_md = root / "TESTS.md"
-            if tests_md.is_file():
-                import re as _re
-
-                text = tests_md.read_text(encoding="utf-8")
-                # Match each test block: a `TEST-NNN` id paired with a
-                # `REQ-NNN` requirement-id reference within the same block.
-                req_set = set(requirement_ids)
-                for block in _re.split(r"\n## ", text):
-                    test_match = _re.search(r"\*\*ID:\*\*\s+(TEST-\d+)", block)
-                    req_match = _re.search(r"\*\*Requirement ID:\*\*\s+(REQ-\d+)", block)
-                    if test_match and req_match and req_match.group(1) in req_set:
-                        test_case_ids.append(test_match.group(1))
-
-    # Heuristic decision policy. Specsmith governance owns the contract; the
-    # CLI implementation is intentionally simple and deterministic so the
-    # broker (and tests) can rely on it without an LLM.
-    decision_str = "accepted"
-    instruction = ""
-    confidence_target = 0.7
-
-    if intent == Intent.READ_ONLY_ASK:
-        decision_str = "accepted"
-        instruction = "Read-only ask; no governance changes required."
-    elif intent == Intent.DESTRUCTIVE:
-        decision_str = "needs_clarification"
-        instruction = (
-            "Destructive operation detected. "
-            "Confirm explicitly which paths or resources should be removed."
-        )
-        confidence_target = 0.9
-    elif intent == Intent.RELEASE:
-        decision_str = "needs_clarification"
-        instruction = (
-            "Release operations require explicit confirmation. "
-            "Specify the target version and channel."
-        )
-        confidence_target = 0.9
-    else:  # CHANGE
-        if scope.is_known:
-            decision_str = "accepted"
-            instruction = (
-                "Change request matched existing governance scope. Proceed under "
-                "Specsmith verification."
-            )
-            confidence_target = max(0.7, scope.confidence)
-        else:
-            decision_str = "needs_clarification"
-            instruction = (
-                "This change does not match an existing requirement. "
-                "Could you say in one sentence which behavior you expect?"
-            )
-            confidence_target = 0.7
-
-    # REQ-098: respect epistemic.confidence_threshold from .specsmith/config.yml
-    # as a floor for confidence_target (heuristic default still applies when
-    # the configured value is lower or the file is missing).
-    config_threshold = _read_confidence_threshold_floor(root)
-    if config_threshold is not None and config_threshold > confidence_target:
-        confidence_target = config_threshold
-
-    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if decision_str == "accepted" else ""
-
-    # REQ-117: predict-only mode does not allocate a work_item_id and does
-    # not write a ledger event; instead it adds a `predicted_refinement`
-    # field for IDE autocomplete.
+    # REQ-117: predict-only adds a `predicted_refinement` hint for IDE autocomplete.
+    # run_preflight already withholds the work item and the ESDB/ledger writes here.
     if predict_only:
-        work_item_id = ""
-
-    payload = {
-        "decision": decision_str,
-        "work_item_id": work_item_id,
-        "requirement_ids": requirement_ids,
-        "test_case_ids": test_case_ids,
-        "confidence_target": round(confidence_target, 3),
-        "instruction": instruction,
-        "intent": intent.value,
-    }
-    if predict_only:
-        if not scope.is_known and intent == Intent.CHANGE:
+        if decision_str == "needs_clarification":
             payload["predicted_refinement"] = (
-                f"{utterance} (please name the component or file you want to change)"
+                f"{utterance} (please name the component, file, or REQ id to change)"
             )
-        elif intent == Intent.DESTRUCTIVE:
-            payload["predicted_refinement"] = f"{utterance} (specify the exact paths or resources)"
         else:
             payload["predicted_refinement"] = utterance
 
-    # REQ-100: optional stress-test bridge over matched requirements. The flag
-    # defaults off so unrelated tests stay green.
-    if stress and scope.matched_requirements:
-        warnings = _stress_test_warnings(root, scope.matched_requirements)
-        if warnings:
-            payload["stress_warnings"] = warnings
+    # REQ-100 (--stress) and --verbose (narration) need the broker's scope/intent
+    # view.  Re-derive it best-effort; failures never affect the decision payload.
+    if stress or verbose:
+        try:
+            from specsmith.agent.broker import (
+                PreflightDecision,
+                classify_intent,
+                infer_scope,
+                narrate_plan,
+            )
 
-    if verbose:
-        decision_obj = PreflightDecision.from_json(payload)
-        payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
-        if payload.get("stress_warnings"):
-            payload["narration"] += "\nNote: stress-test surfaced one or more critical failures."
-
-    # REG-009: AI disclosure metadata (FTC Operation AI Comply, Utah SB149 2024).
-    # Every governed output must disclose the AI system producing it.
-    import os as _os
-
-    payload["ai_disclosure"] = {
-        "governed_by": "specsmith",
-        "governance_gated": True,
-        "provider": _os.environ.get("SPECSMITH_PROVIDER", "local/heuristic"),
-        "model": _os.environ.get("SPECSMITH_MODEL", "deterministic-broker"),
-        "spec_version": __version__,
-    }
-
-    # REG-004: human escalation — if a threshold is set and confidence < threshold,
-    # surface an explicit escalation notice in the payload.
-    if escalate_threshold is not None and confidence_target < escalate_threshold:
-        payload["escalation_required"] = True
-        payload["escalation_reason"] = (
-            f"Confidence {confidence_target:.3f} is below escalation threshold "
-            f"{escalate_threshold:.3f}. Human review required before execution."
-        )
+            intent = classify_intent(utterance)
+            # Mirror run_preflight's requirements-path resolution (REQ-418 parity):
+            # prefer docs/REQUIREMENTS.md, fall back to the project-root file so the
+            # stress/verbose scope view matches the authoritative decision's scope.
+            req_md = root / "docs" / "REQUIREMENTS.md"
+            if not req_md.is_file():
+                req_md = root / "REQUIREMENTS.md"
+            scope = infer_scope(
+                utterance,
+                req_md,
+                repo_index_path=root / ".repo-index" / "files.json",
+            )
+            if stress and scope.matched_requirements:
+                warnings = _stress_test_warnings(root, scope.matched_requirements)
+                if warnings:
+                    payload["stress_warnings"] = warnings
+            if verbose:
+                decision_obj = PreflightDecision.from_json(payload)
+                payload["narration"] = narrate_plan(intent, scope, decision_obj, verbose=True)
+                if payload.get("stress_warnings"):
+                    payload["narration"] += (
+                        "\nNote: stress-test surfaced one or more critical failures."
+                    )
+        except Exception:  # noqa: BLE001 - presentation extras are best-effort
+            pass
 
     # Bypass rich's renderer to keep the JSON intact (same pattern as clean).
     click.echo(_json.dumps(payload, indent=2))
@@ -2698,6 +2605,105 @@ def ledger_stats(project_dir: str) -> None:
             console.print(f"  {name}: {count} entries")
 
 
+@ledger.command(name="export")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--since",
+    default="",
+    help="Filter to entries since date prefix, e.g. '2026-06-01'.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="text",
+    type=click.Choice(["text", "json"]),
+    help="Output format (default: text).",
+)
+@click.option("--json", "as_json", is_flag=True, default=False, help="Shorthand for --format json.")
+@click.option(
+    "--source",
+    default="esdb",
+    type=click.Choice(["esdb", "file", "both"]),
+    help="Read from ESDB ledger_event records, LEDGER.md file, or both (default: esdb).",
+)
+def ledger_export(
+    project_dir: str,
+    since: str,
+    fmt: str,
+    as_json: bool,
+    source: str,
+) -> None:
+    """Export ledger entries from ESDB or LEDGER.md.
+
+    ESDB source (default) queries ledger_event records inserted by recent
+    specsmith add-entry calls, which is faster than parsing LEDGER.md.
+
+    REQ-409: specsmith ledger export command.
+    """
+    import json as _json
+
+    if as_json:
+        fmt = "json"
+
+    root = Path(project_dir).resolve()
+    entries: list[dict[str, Any]] = []
+
+    if source in ("esdb", "both"):
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+            if sqlite_path.exists():
+                with SqliteStore(root) as store:
+                    records = store.query(kind="ledger_event", status="active")
+                for r in records:
+                    ts = str(r.data.get("timestamp") or "")
+                    if since and ts[: len(since)] < since:
+                        continue
+                    entries.append(
+                        {
+                            "id": r.id,
+                            "timestamp": ts,
+                            "description": str(r.data.get("description") or r.label),
+                            "entry_type": str(r.data.get("entry_type") or ""),
+                            "author": str(r.data.get("author") or ""),
+                            "reqs": str(r.data.get("reqs") or ""),
+                            "status": str(r.data.get("status") or ""),
+                            "source": "esdb",
+                        }
+                    )
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[yellow]ESDB read failed: {exc}[/yellow]")
+
+    if source in ("file", "both"):
+        try:
+            from specsmith.ledger import list_entries
+
+            file_entries = list_entries(root, since=since)
+            for e in file_entries:
+                entries.append({**e, "source": "LEDGER.md"})
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[yellow]LEDGER.md read failed: {exc}[/yellow]")
+
+    if not entries:
+        console.print("[yellow]No ledger entries found.[/yellow]")
+        return
+
+    # Sort by timestamp
+    entries.sort(key=lambda e: str(e.get("timestamp") or ""))
+
+    if fmt == "json":
+        click.echo(_json.dumps(entries, indent=2, ensure_ascii=False))
+    else:
+        for e in entries:
+            ts = str(e.get("timestamp") or "")[:16]
+            desc = str(e.get("description") or e.get("heading") or "")
+            author = str(e.get("author") or "")
+            suffix = f"  [dim]({author})[/dim]" if author else ""
+            console.print(f"  [dim]{ts}[/dim]  {desc}{suffix}")
+        console.print(f"\n  [bold]{len(entries)} entry(ies)[/bold]")
+
+
 main.add_command(ledger)
 
 
@@ -3346,6 +3352,120 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
 
     if not ok:
         raise SystemExit(1)
+
+
+@main.command(name="inspect")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False)
+def inspect_cmd(project_dir: str, as_json: bool) -> None:
+    """Inspect project state: governance anchor, active WIs, efficiency, and context quality.
+
+    Designed to be called at the start of every session after checkpoint.
+    Outputs a bordered block with project state suitable for agent context injection.
+
+    REQ-409: specsmith inspect command.
+    """
+    import json as _json
+    from datetime import datetime, timezone
+
+    root = Path(project_dir).resolve()
+    lines: list[str] = []
+    data: dict[str, Any] = {}
+
+    # Governance anchor
+    try:
+        from specsmith.auditor import run_audit
+
+        audit_report = run_audit(root)
+        data["audit_healthy"] = audit_report.healthy
+        data["audit_failed"] = audit_report.failed
+        gov_status = "healthy" if audit_report.healthy else f"ISSUES ({audit_report.failed})"
+        lines.append(f"  Governance : {gov_status} ")
+    except Exception:  # noqa: BLE001
+        data["audit_healthy"] = None
+        lines.append("  Governance : unknown (audit failed)")
+
+    # Active work items
+    try:
+        from specsmith.wi_store import WorkItemStore
+
+        wi_store = WorkItemStore(root)
+        active_wis = [wi for wi in wi_store.list_all() if wi.status in ("open", "implemented")]
+        data["active_work_items"] = [w.id for w in active_wis]
+        if active_wis:
+            for wi in active_wis[:5]:
+                lines.append(f"  WI         : [{wi.id}] {str(wi.intent or '')[:60]} ({wi.status})")
+        else:
+            lines.append("  WI         : no active work items")
+    except Exception:  # noqa: BLE001
+        data["active_work_items"] = []
+        lines.append("  WI         : (unavailable)")
+
+    # EFF-CURRENT
+    try:
+        from specsmith.esdb import SqliteStore
+
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        eff_data: dict[str, Any] = {}
+        if sqlite_path.exists():
+            with SqliteStore(root) as store:
+                eff_rec = store.get("EFF-CURRENT")
+            if eff_rec:
+                eff_data = dict(eff_rec.data)
+
+        if eff_data:
+            tpc = eff_data.get("tokens_per_correct_answer")
+            degraded = eff_data.get("degraded", False)
+            ctx_eff = eff_data.get("context_char_efficiency")
+            eq = eff_data.get("epistemic_quality") or {}
+            eq_score = float(eq.get("score", 0.0)) if isinstance(eq, dict) else 0.0
+            data["efficiency"] = eff_data
+            tok_str = f"{tpc:.0f}" if tpc else "n/a"
+            deg_str = "  ⚠ DEGRADED" if degraded else ""
+            lines.append(
+                f"  Efficiency : tokens/pass={tok_str}  ctx_fill={ctx_eff or 'n/a'}{deg_str}"
+            )
+            lines.append(f"  Epistemic  : score={eq_score:.2f} ({_band(eq_score)})")
+            # 5-dim breakdown
+            for dim, key in [
+                ("confidence", "confidence_density"),
+                ("recency", "recency_score"),
+                ("coherence", "coherence_score"),
+                ("closure", "closure_score"),
+                ("non-contr", "non_contradiction_score"),
+            ]:
+                val = eq.get(key, 0.0) if isinstance(eq, dict) else 0.0
+                lines.append(f"    {dim:12s}: {val:.3f}")
+        else:
+            lines.append("  Efficiency : EFF-CURRENT not yet computed (run specsmith save)")
+    except Exception:  # noqa: BLE001
+        lines.append("  Efficiency : (unavailable)")
+
+    data["timestamp"] = datetime.now(timezone.utc).isoformat()
+
+    if as_json:
+        click.echo(_json.dumps(data, indent=2, ensure_ascii=False))
+        return
+
+    width = 60
+    border = "═" * width
+    console.print(f"[bold]╬ {border}[/bold]")
+    console.print(f"  specsmith inspect \u2014 {root}")
+    console.print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%MZ')}")
+    console.print(f"[bold]╪ {border}[/bold]")
+    for line in lines:
+        console.print(line)
+    console.print(f"[bold]╩ {border}[/bold]")
+
+
+def _band(score: float) -> str:
+    if score >= 0.85:
+        return "excellent"
+    if score >= 0.70:
+        return "good"
+    if score >= 0.50:
+        return "fair"
+    return "poor"
 
 
 @main.command(name="load")
@@ -11379,39 +11499,99 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
             raise SystemExit(1)
         return
 
-    icon = "[green]\u25cf[/green]"
-    console.print(f"{icon} ESDB \u2014 {backend_label}")
-    console.print(f"  Records: {record_count}")
-    for kind, count in counts.items():
-        console.print(f"    {kind}: {count}")
+    # REQ-417: report the actual chain-verification result, not a hardcoded label.
+    integrity_label = "Integrity OK" if chain_ok else "Integrity FAILED"
     chain_icon = "[green]\u2714[/green]" if chain_ok else "[red]\u2717[/red]"
-    console.print(f"  {chain_icon} Integrity OK")
+
+    # Issue #263 / REQ-419: build both a colored (Rich markup) and a plain ASCII
+    # rendering.  The Rich render is attempted first for healthy consoles; on the
+    # Windows legacy console it can raise a spurious KeyboardInterrupt (which Click
+    # turns into Abort/exit 1), so ANY failure falls back to a resilient plain-text
+    # stdout writer that mirrors the --json branch and never aborts.
+    markup_lines: list[str] = [
+        f"[green]\u25cf[/green] ESDB \u2014 {backend_label}",
+        f"  Records: {record_count}",
+    ]
+    plain_lines: list[str] = [
+        f"ESDB - {backend_label}",
+        f"  Records: {record_count}",
+    ]
+    for kind, count in counts.items():
+        markup_lines.append(f"    {kind}: {count}")
+        plain_lines.append(f"    {kind}: {count}")
+    markup_lines.append(f"  {chain_icon} {integrity_label}")
+    plain_lines.append(f"  {integrity_label}")
     if store_error:
-        console.print(f"  [red]\u2717[/red] Store error: {store_error}")
+        markup_lines.append(f"  [red]\u2717[/red] Store error: {store_error}")
+        plain_lines.append(f"  Store error: {store_error}")
     # License line
     if not sys.modules["specsmith.esdb"].CHRONO_AVAILABLE:
-        console.print(
+        markup_lines.append(
             "  [dim]chronomemory not installed \u2014 run "
             "'pip install specsmith[esdb]' for ChronoStore[/dim]"
         )
+        plain_lines.append(
+            "  chronomemory not installed - run 'pip install specsmith[esdb]' for ChronoStore"
+        )
     elif lic_status and lic_status.valid:
-        console.print(
+        markup_lines.append(
             f"  [green]\u2714[/green] License: {lic_status.customer} "
             f"(expires {lic_status.expires_at})"
         )
+        plain_lines.append(f"  License: {lic_status.customer} (expires {lic_status.expires_at})")
     else:
         reason = lic_status.reason if lic_status else "no license file"
-        console.print(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
-        console.print(
+        markup_lines.append(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
+        markup_lines.append(
             "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]"
         )
+        plain_lines.append(f"  ESDB license: {reason}")
+        plain_lines.append(
+            "  Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore."
+        )
     if auto_counts:
-        console.print(
+        markup_lines.append(
             "  [cyan]\u27f3[/cyan] Auto-migrated from legacy JSON: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
             f"({auto_counts.get('skipped', 0)} skipped)"
         )
+        plain_lines.append(
+            "  Auto-migrated from legacy JSON: "
+            f"{auto_counts.get('requirements', 0)} requirements + "
+            f"{auto_counts.get('testcases', 0)} testcases "
+            f"({auto_counts.get('skipped', 0)} skipped)"
+        )
+
+    def _emit_plain() -> None:
+        """Resiliently write the plain-text status block (mirrors the --json branch)."""
+        plain_text = "\n".join(plain_lines)
+        try:
+            sys.stdout.write(plain_text + "\n")
+            sys.stdout.flush()
+        except Exception as out_exc:  # noqa: BLE001
+            try:
+                sys.stderr.write(
+                    _json.dumps(
+                        {
+                            "ok": False,
+                            "error": "esdb status: stdout write failed",
+                            "reason": str(out_exc),
+                            "backend": active_backend,
+                            "record_count": record_count,
+                        }
+                    )
+                    + "\n"
+                )
+                sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
+            raise SystemExit(1) from out_exc
+
+    try:
+        console.print("\n".join(markup_lines))
+    except (KeyboardInterrupt, Exception):  # noqa: BLE001
+        _emit_plain()
 
 
 @esdb_group.command(name="verify-chain")
@@ -11675,12 +11855,13 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False)
 def esdb_replay_cmd(project_dir: str, as_json: bool) -> None:
-    """Replay the trace vault WAL and verify SHA-256 hash chain integrity.
+    """Replay the trace vault and verify SHA-256 hash chain integrity.
 
-    Reads .specsmith/trace.jsonl and walks every seal entry, recomputing
-    each entry_hash from its stored content_hash + prev_hash and comparing
-    to the stored value. Any mismatch indicates tampering or corruption.
-    Also reports ledger.jsonl entry count as a secondary consistency signal.
+    Reads seal records from the ESDB (``seal_record`` kind; REQ-420) and walks
+    every seal entry, recomputing each entry_hash from its stored content_hash +
+    prev_hash and comparing to the stored value. Any mismatch indicates tampering
+    or corruption. Also reports ledger.jsonl entry count as a secondary
+    consistency signal.
     """
     import json as _json
 
@@ -12143,6 +12324,85 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
         f"[green]\u2714[/green] Exported [bold]{final_count}[/bold] records to SQLite. "
         "ChronoStore WAL preserved (not deleted)."
     )
+
+
+@esdb_group.command(name="sweep")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--orphans-only",
+    is_flag=True,
+    default=False,
+    help="Only remove orphaned work_item / preflight_decision records (skip retention sweep).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be swept without writing.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def esdb_sweep_cmd(
+    project_dir: str,
+    orphans_only: bool,
+    dry_run: bool,
+    as_json: bool,
+) -> None:
+    """Sweep expired and orphaned ESDB records (REQ-412).
+
+    Tombstones records whose retention period has expired and removes
+    orphaned work_item / preflight_decision records.  Refreshes EFF-CURRENT
+    after a full sweep.
+
+    \b
+    Retention periods:
+      session_metric   60 days
+      context_usage    30 days
+      ledger_event     90 days
+      seal_record      forever
+      token_metric     forever
+      efficiency_metric forever
+    """
+    import json as _json
+
+    from specsmith.esdb_sweep import run_sweep
+
+    root = Path(project_dir).resolve()
+    result = run_sweep(root, orphans_only=orphans_only, dry_run=dry_run)
+
+    if as_json:
+        click.echo(
+            _json.dumps(
+                {
+                    "tombstoned": result.tombstoned,
+                    "orphans_flagged": result.orphans_flagged,
+                    "efficiency_refreshed": result.efficiency_refreshed,
+                    "kinds_swept": result.kinds_swept,
+                    "errors": result.errors,
+                    "dry_run": dry_run,
+                },
+                indent=2,
+            )
+        )
+    else:
+        mode = "[dim](dry-run)[/dim]" if dry_run else ""
+        console.print(f"[bold]specsmith esdb sweep[/bold] {mode} \u2014 {root}\n")
+        if result.tombstoned:
+            console.print(
+                f"  [green]\u2713[/green] Tombstoned {result.tombstoned} expired record(s):"
+            )
+            for kind, n in result.kinds_swept.items():
+                console.print(f"    {kind}: {n}")
+        else:
+            console.print("  [dim]No expired records to sweep.[/dim]")
+        if result.orphans_flagged:
+            console.print(
+                f"  [green]\u2713[/green] Flagged {result.orphans_flagged} orphan record(s)."
+            )
+        if result.efficiency_refreshed:
+            console.print("  [green]\u2713[/green] EFF-CURRENT refreshed.")
+        if result.errors:
+            for err in result.errors:
+                console.print(f"  [yellow]\u26a0[/yellow] {err}")
 
 
 main.add_command(esdb_group)
@@ -13710,9 +13970,12 @@ def resume_cmd(
     with contextlib.suppress(Exception):
         bridge = EsdbBridge(str(root))
         status = bridge.status()
+        # REQ-417: the leading ESDB indicator must reflect the real chain state,
+        # not a hardcoded green check.
         chain_icon = "\u2713" if status.chain_valid else "\u2717"
+        chain_color = "green" if status.chain_valid else "red"
         console.print(
-            f"  [green]\u2713[/green] ESDB: {status.backend} "
+            f"  [{chain_color}]{chain_icon}[/{chain_color}] ESDB: {status.backend} "
             f"({status.record_count} records, chain {chain_icon})"
         )
 

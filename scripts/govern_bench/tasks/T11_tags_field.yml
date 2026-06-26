@@ -1,0 +1,97 @@
+# T11 — Add Tags Field to Todo (Cross-Model Schema Extension)
+# Category: Schema extension / cross-model consistency
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium
+#
+# Why this task:
+#   Extending a data model touches multiple files in a consistent way:
+#   models.py (TodoCreate, TodoUpdate, TodoItem), main.py (filter support),
+#   and tests/test_main.py. Ungoverned agents almost always update TodoCreate
+#   and TodoItem but forget TodoUpdate — meaning you can set tags at creation
+#   but not change them later via PATCH. This is a subtle contract violation
+#   that only manifests at runtime for the update path.
+#
+#   A second common failure: agents add the `?tag=` query parameter to the
+#   docstring but don't implement the filter logic (or implement it for
+#   list_todos but not the in-memory store lookup).
+#
+# Governance value:
+#   A specsmith preflight for "add tags to todos" should match an existing
+#   data-model or API-contract requirement. The verify step catches missing
+#   PATCH coverage and absent filter tests.
+#
+# Scoring:
+#   - All three models updated + filter works + tests pass = quality_score 1.0
+#   - TodoUpdate missing tags field = quality_score 0.4 (update path broken)
+#   - Tags on TodoItem but filter not implemented = quality_score 0.6
+#   - Tags added but no tests for PATCH /todos/{id} with tags = quality_score 0.7
+
+id: T11
+title: "Add tags field to TodoItem with filter support"
+category: schema_extension
+difficulty: medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 4500
+estimated_tokens_specsmith_full: 6000
+
+task_prompt: |
+  Add a `tags` field to the todo model so that each todo can carry zero or
+  more string labels (e.g. "work", "urgent", "personal").
+
+  Changes required:
+  1. Add `tags: list[str] = []` to TodoCreate, TodoUpdate, and TodoItem in models.py
+  2. Update PATCH /todos/{todo_id} in main.py to merge/replace tags when provided
+  3. Add `?tag=<label>` query parameter to GET /todos that returns only todos
+     whose tags list contains that label (case-sensitive exact match).
+     If no `?tag=` is provided, return all todos (existing behaviour unchanged).
+
+  Requirements:
+  - Creating a todo without tags produces an item with tags=[]
+  - Creating a todo with tags=["work","urgent"] stores both tags
+  - PATCH /todos/{id} with {"tags": ["done"]} replaces the tags list entirely
+  - PATCH /todos/{id} without a tags field leaves existing tags unchanged
+  - GET /todos?tag=work returns only todos containing "work" in their tags list
+  - GET /todos?tag= (empty string) returns all todos (no filter applied)
+  - All existing tests must still pass
+
+acceptance_criteria: |
+  - [ ] TodoCreate has `tags: list[str] = []`
+  - [ ] TodoUpdate has `tags: Optional[list[str]] = None` (None = unchanged)
+  - [ ] TodoItem has `tags: list[str] = []`
+  - [ ] POST /todos accepts tags in the request body and stores them
+  - [ ] PATCH /todos/{id} with tags replaces the full list; without tags leaves unchanged
+  - [ ] GET /todos?tag=work returns only todos where "work" in item.tags
+  - [ ] GET /todos with no tag param returns all todos (backward compatible)
+  - [ ] At least 4 tests: create with tags, create without tags, PATCH updates tags,
+        GET /todos?tag= filter
+  - [ ] All existing tests still pass
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/models.py        # TodoCreate, TodoUpdate, TodoItem all get tags field
+  - app/main.py          # list_todos gets tag query param; update_todo handles tags
+  - tests/test_main.py   # new tests for tags create, update, filter
+
+regression_risk: medium  # existing tests break if default tags=[] not added to fixture data
+
+known_failure_modes:
+  - "Agent adds tags to TodoCreate and TodoItem but forgets TodoUpdate — PATCH tags silently ignored"
+  - "Agent adds tags: list[str] to TodoUpdate (not Optional) — PATCH without tags overwrites to []"
+  - "Agent implements filter but uses 'in' on the tags string repr instead of list membership"
+  - "Agent adds filter param to GET /todos but only filters the return value, not early-exits"
+  - "Agent forgets that existing test fixtures now need tags=[] field in expected responses"
+  - "Agent tests creation with tags but skips PATCH update test entirely"
+  - "Agent uses tags: set[str] instead of list[str] — JSON serialisation fails"
+
+governance_signals:
+  preflight_expected_req_match: true
+  # Governance value: preflight for a schema-change intent should surface the
+  # API-contract requirement and remind the agent that all three model classes
+  # (Create, Update, Item) must be consistent — preventing the TodoUpdate gap.
+  verify_expected_to_catch:
+    - "PATCH /todos/{id} with tags returns 422 or ignores tags (TodoUpdate missing field)"
+    - "GET /todos?tag= filter not implemented or uses string search instead of list membership"
+    - "no test for PATCH updating tags"
+
+scope_discipline_metric: true

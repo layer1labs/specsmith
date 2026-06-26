@@ -394,7 +394,9 @@ class AgentRunner:
                     lines.append(f"    {s.icon} {s.name:<10} \u2717 {s.note}")
             lines.append("")
             if active_count == 0:
-                lines.append("  \u26a0  No provider available — commands will return no response.")
+                lines.append(
+                    "  \u26a0  No provider available \u2014 commands will return no response."
+                )
             else:
                 # Show multi-model routing if the router is configured (REQ-389).
                 if self._model_router is not None:
@@ -585,6 +587,28 @@ class AgentRunner:
             self._emit_event(type="system", message=hint)
             return None
 
+        if result is None:
+            # All providers failed — give the user an actionable explanation
+            # rather than silent emptiness.
+            import os as _os
+
+            host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
+            if _ollama_alive(host):
+                model = _pick_ollama_model(host)
+                hint = (
+                    f"Ollama is running but returned no response "
+                    f"(model: {model}). "
+                    "Try: ollama run " + model
+                )
+            else:
+                hint = (
+                    "No LLM provider available. Options:\n"
+                    "  • Start Ollama: ollama serve\n"
+                    "  • Set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY"
+                )
+            self._emit_event(type="system", message=hint)
+            return None
+
         # Aggregate metrics into the session state (C1).
         # ``run_chat`` now reports tokens_in / tokens_out / cost_usd off the
         # provider response (Ollama prompt_eval_count + eval_count, OpenAI
@@ -603,6 +627,23 @@ class AgentRunner:
             tool_calls=0,
         )
         self._state.elapsed_minutes = round((time.time() - self._started_at) / 60.0, 2)
+
+        # Write token_metric to ESDB (REQ-410) — best-effort, never blocks.
+        if tokens_in or tokens_out:
+            try:
+                from specsmith.esdb_writer import write_token_metric
+
+                write_token_metric(
+                    self.project_dir,
+                    input_tokens=tokens_in,
+                    output_tokens=tokens_out,
+                    cost_usd=cost_usd,
+                    model=str(getattr(result, "provider", "") if result else ""),
+                    command_source=activity or "chat",
+                    work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                )
+            except Exception:  # noqa: BLE001
+                pass
 
         if result is not None:
             self._history.append({"role": "user", "text": utterance})
@@ -757,10 +798,11 @@ class AgentRunner:
     def _seal_profile_pin(self, profile_id: str) -> None:
         """Append a TraceVault decision seal recording the ``/agent`` pin (G4).
 
-        Wrapped in best-effort try/except so an unwriteable
-        ``.specsmith/trace.jsonl`` (read-only fs, missing project root, etc.)
-        never breaks the chat loop. The seal type is ``decision`` because
-        a profile pin is an explicit governance choice the user made.
+        Wrapped in best-effort try/except so an unwriteable ESDB store
+        (read-only fs, missing project root, etc.) never breaks the chat loop.
+        The seal is persisted as an ESDB ``seal_record`` (REQ-420). The seal
+        type is ``decision`` because a profile pin is an explicit governance
+        choice the user made.
         """
         try:
             from specsmith.trace import SealType, TraceVault

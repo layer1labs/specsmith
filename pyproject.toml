@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.17.1"
+version = "0.18.0"
 description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, and Aider."
 readme = "README.md"
 license = "MIT"

@@ -136,39 +136,30 @@ def _scaffold_field(key: str) -> Callable[[Path], bool]:
 
 
 def _trace_vault_exists() -> Callable[[Path], bool]:
-    """Return True if the trace vault has at least 1 seal."""
+    """Return True if the trace vault has at least 1 seal.
+
+    REQ-420: seals live exclusively in ESDB as ``seal_record`` entries; the
+    legacy ``.specsmith/trace.jsonl`` flat file is no longer consulted.
+    """
 
     def _check(root: Path) -> bool:
-        for name in ("trace-vault.jsonl", "trace.jsonl"):
-            vault = root / ".specsmith" / name
-            if vault.exists():
-                try:
-                    lines = vault.read_text(encoding="utf-8", errors="ignore").strip().splitlines()
-                    return len(lines) >= 1
-                except OSError:
-                    pass
-        return False
+        from specsmith.trace import count_seal_records
+
+        return count_seal_records(root) >= 1
 
     return _check
 
 
 def _trace_vault_min_seals(min_count: int) -> Callable[[Path], bool]:
-    """Return True if the trace vault has at least `min_count` seals."""
+    """Return True if the trace vault has at least `min_count` seals.
+
+    REQ-420: counts active ESDB ``seal_record`` entries (no jsonl fallback).
+    """
 
     def _check(root: Path) -> bool:
-        for name in ("trace-vault.jsonl", "trace.jsonl"):
-            vault = root / ".specsmith" / name
-            if vault.exists():
-                try:
-                    lines = [
-                        ln
-                        for ln in vault.read_text(encoding="utf-8", errors="ignore").splitlines()
-                        if ln.strip()
-                    ]
-                    return len(lines) >= min_count
-                except OSError:
-                    pass
-        return False
+        from specsmith.trace import count_seal_records
+
+        return count_seal_records(root) >= min_count
 
     return _check
 

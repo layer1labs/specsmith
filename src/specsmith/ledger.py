@@ -101,6 +101,23 @@ def add_entry(
                 )
     except Exception:  # noqa: BLE001
         pass
+    # Dual-write: best-effort ledger_event record in ESDB (REQ-403).
+    try:
+        from specsmith.esdb_writer import write_ledger_event
+
+        write_ledger_event(
+            root,
+            description=description,
+            entry_type=entry_type,
+            author=author,
+            reqs=reqs,
+            status=status,
+            epistemic_status=epistemic_status,
+            belief_artifacts=belief_artifacts,
+            entry_hash=entry_hash,
+        )
+    except Exception:  # noqa: BLE001
+        pass
     return entry.strip()
 
 
