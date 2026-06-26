@@ -567,9 +567,14 @@ _LEGACY_SCAN_SKIP_FILES = {
 
 
 def test_canonical_tests_md_exists():
-    # Canonical location is now docs/TESTS.md (root TESTS.md was moved there)
-    assert (REPO_ROOT / "docs" / "TESTS.md").is_file()
-    assert not (REPO_ROOT / "TESTS.md").exists(), "Root TESTS.md should have been moved to docs/"
+    # Canonical location is docs/TESTS.md (legacy markdown) or docs/tests/*.yml
+    # (YAML-first mode, post-M010).  Either form satisfies REQ-083.
+    yaml_dir = REPO_ROOT / "docs" / "tests"
+    md_file = REPO_ROOT / "docs" / "TESTS.md"
+    assert md_file.is_file() or (yaml_dir.is_dir() and any(yaml_dir.glob("*.yml"))), (
+        "Expected docs/TESTS.md (legacy) or docs/tests/*.yml (YAML-first) — neither found"
+    )
+    assert not (REPO_ROOT / "TESTS.md").exists(), "Root TESTS.md should have been removed"
     assert not (REPO_ROOT / "TEST_SPEC.md").exists()
     assert not (REPO_ROOT / "docs" / "TEST_SPEC.md").exists()
 
