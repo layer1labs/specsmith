@@ -257,8 +257,7 @@ def _load_ledger_snippet(root: Path, *, max_lines: int) -> str:
 
                 sorted_recs = sorted(records, key=_ts, reverse=True)[:max_lines]
                 lines_out = [
-                    f"{r.data.get('timestamp', '')[:16]} — {r.label[:120]}"
-                    for r in sorted_recs
+                    f"{r.data.get('timestamp', '')[:16]} — {r.label[:120]}" for r in sorted_recs
                 ]
                 return "\n".join(lines_out)
     except Exception:  # noqa: BLE001

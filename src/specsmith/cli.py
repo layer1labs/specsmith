@@ -2751,7 +2751,7 @@ def ledger_export(
                     records = store.query(kind="ledger_event", status="active")
                 for r in records:
                     ts = str(r.data.get("timestamp") or "")
-                    if since and ts[:len(since)] < since:
+                    if since and ts[: len(since)] < since:
                         continue
                     entries.append(
                         {

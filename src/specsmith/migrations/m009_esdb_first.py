@@ -229,7 +229,8 @@ def _backfill_metrics(root: Path, counts: dict[str, int], *, dry_run: bool) -> N
                         d = json.loads(line)
                         session_id = str(d.get("session_id", ""))
                         rec_id = (
-                            f"MET-{session_id}" if session_id
+                            f"MET-{session_id}"
+                            if session_id
                             else f"MET-{uuid.uuid4().hex[:8].upper()}"
                         )
                         rec = SqliteRecord(
@@ -242,9 +243,7 @@ def _backfill_metrics(root: Path, counts: dict[str, int], *, dry_run: bool) -> N
                             )[:200],
                             confidence=0.8,
                             data=d,
-                            source_ids=(
-                                [str(d["work_item_id"])] if d.get("work_item_id") else []
-                            ),
+                            source_ids=([str(d["work_item_id"])] if d.get("work_item_id") else []),
                         )
                         store.upsert(rec)
                         counts["session_metrics"] += 1

@@ -39,9 +39,7 @@ def test_resume_cmd_json_contains_expected_keys(tmp_project: Path) -> None:
     from specsmith.cli import main
 
     runner = CliRunner()
-    result = runner.invoke(
-        main, ["inspect", "--json", "--project-dir", str(tmp_project)]
-    )
+    result = runner.invoke(main, ["inspect", "--json", "--project-dir", str(tmp_project)])
     assert result.exit_code == 0
 
     payload = json.loads(result.output)
@@ -84,9 +82,7 @@ def test_resume_cmd_json_has_efficiency_when_eff_current_present(
         )
 
     runner = CliRunner()
-    result = runner.invoke(
-        main, ["inspect", "--json", "--project-dir", str(tmp_project)]
-    )
+    result = runner.invoke(main, ["inspect", "--json", "--project-dir", str(tmp_project)])
     assert result.exit_code == 0
     payload = json.loads(result.output)
     assert "efficiency" in payload
@@ -169,9 +165,7 @@ def test_esdb_sweep_cmd_exits_zero(tmp_project: Path) -> None:
         pass  # create schema
 
     runner = CliRunner()
-    result = runner.invoke(
-        main, ["esdb", "sweep", "--project-dir", str(tmp_project)]
-    )
+    result = runner.invoke(main, ["esdb", "sweep", "--project-dir", str(tmp_project)])
     assert result.exit_code == 0
 
 

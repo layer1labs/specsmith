@@ -201,9 +201,7 @@ def test_sweep_detects_orphan_work_item(tmp_project: Path) -> None:
 
     # Write workitems.json without WI-ORPHAN
     wi_path = tmp_project / ".specsmith" / "workitems.json"
-    wi_path.write_text(
-        json.dumps([{"id": "WI-KNOWN", "intent": "real"}]), encoding="utf-8"
-    )
+    wi_path.write_text(json.dumps([{"id": "WI-KNOWN", "intent": "real"}]), encoding="utf-8")
 
     _insert_record(tmp_project, rec_id="WI-ORPHAN", kind="work_item")
 
@@ -243,9 +241,7 @@ def test_sweep_known_work_item_not_orphaned(tmp_project: Path) -> None:
     from specsmith.esdb_sweep import run_sweep
 
     wi_path = tmp_project / ".specsmith" / "workitems.json"
-    wi_path.write_text(
-        json.dumps([{"id": "WI-KNOWN", "intent": "legit"}]), encoding="utf-8"
-    )
+    wi_path.write_text(json.dumps([{"id": "WI-KNOWN", "intent": "legit"}]), encoding="utf-8")
 
     _insert_record(tmp_project, rec_id="WI-KNOWN", kind="work_item")
 

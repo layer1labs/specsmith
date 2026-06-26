@@ -253,6 +253,10 @@ def write_token_metric(
         from specsmith.esdb import SqliteRecord, open_default_store
 
         root = Path(project_root)
+        # Only write to an existing ESDB; never create one just for token metrics
+        sqlite_path = root / ".specsmith" / "esdb.sqlite3"
+        if not sqlite_path.exists():
+            return False
         tok_id = f"TOK-{uuid.uuid4().hex[:8].upper()}"
         total = input_tokens + output_tokens
         record = SqliteRecord(
@@ -401,9 +405,7 @@ def write_session_metric(
             confidence=0.8,
             data=dict(record_dict),
             source_ids=(
-                [str(record_dict["work_item_id"])]
-                if record_dict.get("work_item_id")
-                else []
+                [str(record_dict["work_item_id"])] if record_dict.get("work_item_id") else []
             ),
         )
         with open_default_store(root, warn=False) as store:

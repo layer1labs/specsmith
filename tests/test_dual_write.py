@@ -188,6 +188,10 @@ def test_write_token_metric_creates_record(tmp_project: Path) -> None:
     from specsmith.esdb import SqliteStore
     from specsmith.esdb_writer import write_token_metric
 
+    # Pre-initialise the ESDB schema so the sqlite file exists before the call
+    with SqliteStore(tmp_project):
+        pass
+
     result = write_token_metric(
         tmp_project,
         input_tokens=100,

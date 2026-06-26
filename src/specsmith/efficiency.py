@@ -67,9 +67,7 @@ def compute_epistemic_quality(root: str | Path) -> dict[str, float]:
         if not sqlite_path.exists():
             return _ZERO
 
-        cutoff_90d = (datetime.now(timezone.utc) - timedelta(days=90)).strftime(
-            "%Y-%m-%d"
-        )
+        cutoff_90d = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
 
         with SqliteStore(Path(root)) as store:
             active = store.query(status="active")
@@ -99,20 +97,14 @@ def compute_epistemic_quality(root: str | Path) -> dict[str, float]:
         wi_records = [r for r in active if r.kind == "work_item"]
         if wi_records:
             active_ids = {r.id for r in all_records if r.status == "active"}
-            wi_with_pf = sum(
-                1 for wi in wi_records if f"PF-{wi.id}" in active_ids
-            )
+            wi_with_pf = sum(1 for wi in wi_records if f"PF-{wi.id}" in active_ids)
             coherence_score = wi_with_pf / len(wi_records)
         else:
             coherence_score = 1.0  # No WIs = no coherence gap
 
         # 4. Closure — verify_result / active preflight_decision
-        preflight_count = sum(
-            1 for r in active if r.kind == "preflight_decision"
-        )
-        verify_count = sum(
-            1 for r in all_records if r.kind == "verify_result"
-        )
+        preflight_count = sum(1 for r in active if r.kind == "preflight_decision")
+        verify_count = sum(1 for r in all_records if r.kind == "verify_result")
         closure_score = min(1.0, verify_count / max(1, preflight_count))
 
         # 5. Non-contradiction — label deduplication
@@ -184,9 +176,7 @@ def compute_and_upsert_efficiency(root: str | Path) -> bool:
         tokens_per_correct: float | None = None
         cost_of_pass: float | None = None
         if passing:
-            tok_vals = [
-                float(r.data.get("tokens_total") or 0) for r in passing
-            ]
+            tok_vals = [float(r.data.get("tokens_total") or 0) for r in passing]
             cost_vals = [float(r.data.get("cost_usd") or 0) for r in passing]
             if any(v > 0 for v in tok_vals):
                 tokens_per_correct = statistics.mean(v for v in tok_vals if v > 0)
@@ -244,16 +234,12 @@ def compute_and_upsert_efficiency(root: str | Path) -> bool:
             "tokens_per_correct_answer": (
                 round(tokens_per_correct, 1) if tokens_per_correct is not None else None
             ),
-            "cost_of_pass_usd": (
-                round(cost_of_pass, 6) if cost_of_pass is not None else None
-            ),
+            "cost_of_pass_usd": (round(cost_of_pass, 6) if cost_of_pass is not None else None),
             "quality_trend_7d": quality_trend_7d,
             "mean_rework_turns": mean_rework,
             "context_char_efficiency": context_char_efficiency,
             "context_health_score": context_health_score,
-            "baseline_tokens_per_pass": (
-                round(baseline, 1) if baseline is not None else None
-            ),
+            "baseline_tokens_per_pass": (round(baseline, 1) if baseline is not None else None),
             "sessions_analyzed": len(session_recent),
             "degraded": degraded,
             "epistemic_quality": epistemic_quality,

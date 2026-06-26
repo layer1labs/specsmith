@@ -169,10 +169,7 @@ def run_sweep(
         wi_from_json = _load_wi_ids_from_json(root_path)
 
         with SqliteStore(root_path) as store:
-            esdb_wi_ids = {
-                r.id
-                for r in store.query(kind="work_item", status="active")
-            }
+            esdb_wi_ids = {r.id for r in store.query(kind="work_item", status="active")}
             preflight_records = store.query(kind="preflight_decision", status="active")
 
             # Orphan work_items: in ESDB but absent from workitems.json
