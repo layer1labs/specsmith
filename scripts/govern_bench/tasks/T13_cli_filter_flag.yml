@@ -1,0 +1,118 @@
+# T13 — Add --filter Flag to CLI process Command (Stdout Integrity Trap)
+# Category: CLI extension / side-effect isolation
+# Project: agentic-cli-tool (Click file-processing CLI)
+# Difficulty: Medium
+#
+# Why this task:
+#   The `process` command writes JSON output to stdout (or --output file).
+#   Adding a `--filter KEY=VALUE` option that filters JSON array elements
+#   is conceptually simple but has three common failure modes that governance
+#   directly addresses:
+#
+#   1. **Stdout pollution**: agents add `click.echo(f"Filtering by {key}={value}")`
+#      status messages to stdout, corrupting the JSON pipe output. The correct
+#      behaviour is: status/debug messages go to stderr, filtered JSON to stdout.
+#
+#   2. **Non-array input**: agents implement filtering for JSON arrays of objects
+#      but crash (unhandled TypeError) when the input is a JSON object or scalar.
+#      The correct behaviour: non-array input passes through unchanged.
+#
+#   3. **Dotted-path support**: the task says `--filter status=active` should
+#      match `{"status": "active"}`. Ungoverned agents implement top-level key
+#      lookup only, then claim the requirement is met. Governance prompts them
+#      to check whether nested-path filtering is in scope.
+#
+# The exit-code discipline trap:
+#   When the filter matches zero items, the command should return the empty
+#   array `[]` with exit code 0 (not exit code 1). Ungoverned agents often
+#   call sys.exit(1) on empty results, breaking pipelines.
+#
+# Scoring:
+#   - Filter works, stdout clean, non-array pass-through, exit 0 on empty = 1.0
+#   - Filter works but prints status to stdout (JSON corrupted) = 0.2
+#   - Filter works but crashes on non-array input = 0.6
+#   - Filter exits 1 on empty results = 0.5
+#   - Filter only matches top-level keys correctly, rest fail = 0.7
+
+id: T13
+title: "Add --filter KEY=VALUE flag to the process CLI command"
+category: cli_extension
+difficulty: medium
+project: agentic-cli-tool
+estimated_tokens_ungoverned: 3800
+estimated_tokens_specsmith_full: 5200
+
+task_prompt: |
+  Add a `--filter KEY=VALUE` option to the `process` command.
+
+  When `--filter` is provided, the command should filter the items in the
+  processed JSON output:
+  - If the input (after transforms like --uppercase) is a JSON array of objects,
+    return only the objects where `obj[KEY] == VALUE` (exact string match after
+    converting VALUE to the type of obj[KEY] where possible).
+  - If the input is NOT a JSON array, pass it through unchanged (no error).
+  - Multiple `--filter` options may be provided; they are ANDed together.
+
+  Output rules (IMPORTANT):
+  - The filtered JSON output MUST go to stdout (or --output file), exactly as
+    the unfiltered output does today.
+  - Any status messages or debug output MUST go to stderr only.
+  - The command MUST exit 0 even if the filter matches zero items (output: `[]`).
+
+  Examples:
+    # Filter a JSON array by status field:
+    echo '[{"name":"a","status":"active"},{"name":"b","status":"done"}]' > items.json
+    python -m cli.main process items.json --filter status=active
+    # → stdout: [{"name": "a", "status": "active"}]   exit 0
+
+    # Non-array input passes through:
+    echo '{"key": "value"}' > obj.json
+    python -m cli.main process obj.json --filter status=active
+    # → stdout: {"key": "value"}   exit 0
+
+    # Empty result:
+    python -m cli.main process items.json --filter status=missing
+    # → stdout: []   exit 0
+
+acceptance_criteria: |
+  - [ ] --filter KEY=VALUE option added to the `process` command
+  - [ ] JSON array input: only matching objects are included in output
+  - [ ] JSON object/scalar input: passed through unchanged (no error, no filter applied)
+  - [ ] Multiple --filter options are ANDed (all must match)
+  - [ ] Filter output goes to stdout (or --output file), NOT stderr
+  - [ ] No status/progress messages on stdout — only valid JSON
+  - [ ] Empty filter match exits 0 and outputs `[]`
+  - [ ] At least 4 tests: array filter match, no-match empty result,
+        non-array pass-through, multiple filters ANDed
+  - [ ] All existing tests still pass
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - cli/commands/process.py  # --filter option + filter logic
+  - tests/test_process.py    # new filter tests (may need to create this file)
+
+regression_risk: low  # --filter is additive; existing --uppercase tests unaffected
+
+known_failure_modes:
+  - "Agent adds click.echo(f'Filtering by {key}={value}') to stdout — corrupts JSON"
+  - "Agent calls sys.exit(1) when filter returns empty list instead of outputting []"
+  - "Agent crashes with TypeError/AttributeError when input is a JSON object, not array"
+  - "Agent implements filtering but applies it before --uppercase transform (wrong order)"
+  - "Agent uses str(obj[KEY]) == VALUE comparison — fails for integer values like priority"
+  - "Agent adds --filter to the top-level CLI group instead of the process subcommand"
+  - "Agent writes test that pipes to shell but test infra runs in-process — test is unreliable"
+
+governance_signals:
+  preflight_expected_req_match: false  # new CLI feature — may need a new requirement
+  # Governance value: preflight should prompt the agent to clarify whether
+  # nested-path filtering (e.g. --filter meta.status=active) is in scope,
+  # and to confirm the stdout integrity requirement (no mixed output).
+  verify_expected_to_catch:
+    - "stdout contains non-JSON content (status messages mixed with output)"
+    - "exit code 1 on empty filter match"
+    - "crash on non-array JSON input"
+
+# Exit-code discipline: exit 0 even on empty results is a common source of pipeline
+# breakage that ungoverned agents miss. This flag makes the score sensitive to it.
+exit_code_discipline_metric: true

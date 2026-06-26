@@ -1,0 +1,95 @@
+# T10 — Add Summary Statistics Endpoint (Route Ordering Trap)
+# Category: Feature addition with route ordering constraint
+# Project: agentic-todo-api (FastAPI CRUD app)
+# Difficulty: Medium
+#
+# Why this task:
+#   Adding a named route AFTER a parameterised route is one of the most common
+#   FastAPI mistakes. The existing GET /todos/{todo_id} route will intercept
+#   GET /todos/stats if stats is registered after it — FastAPI matches "stats"
+#   as the todo_id string and returns 422 (invalid int) or 404 (not found).
+#
+#   Ungoverned agents almost always append the new route at the end of the
+#   file without reading the router order documentation. A governance gate
+#   that surfaces the API-contract requirement prompts the agent to review
+#   the existing route table before adding new endpoints.
+#
+# Deliberate trap:
+#   GET /todos/{todo_id} is at line 44 of main.py.
+#   The new endpoint GET /todos/stats must be defined BEFORE it in the file,
+#   or the agent must use a distinct path prefix (e.g. /todos/summary/stats).
+#   The task description does NOT hint at the ordering requirement.
+#
+# Scoring:
+#   - Route registered before /{todo_id} AND all tests pass = quality_score 1.0
+#   - Route registered after /{todo_id} (GET /todos/stats returns 422/404) = 0.0
+#   - Uses /todos/summary/stats instead (avoids conflict, tests pass) = 0.9
+#   - Returns correct stats structure but ordering wrong = 0.2
+
+id: T10
+title: "Add GET /todos/stats summary endpoint"
+category: feature_addition
+difficulty: medium
+project: agentic-todo-api
+estimated_tokens_ungoverned: 4000
+estimated_tokens_specsmith_full: 5500
+
+task_prompt: |
+  Add a summary statistics endpoint to the todo API.
+
+  Endpoint: GET /todos/stats
+  Response schema:
+    {
+      "total": <int>,
+      "completed": <int>,
+      "pending": <int>,
+      "by_priority": {"1": <int>, "2": <int>, "3": <int>}
+    }
+
+  Requirements:
+  - `total` = total number of todos in the store
+  - `completed` = count of todos with completed=true
+  - `pending` = total - completed
+  - `by_priority` = count of todos grouped by priority value (1, 2, or 3)
+  - An empty store should return {"total":0,"completed":0,"pending":0,"by_priority":{"1":0,"2":0,"3":0}}
+  - All existing tests must still pass
+
+acceptance_criteria: |
+  - [ ] GET /todos/stats returns HTTP 200 with JSON body matching the schema above
+  - [ ] `total` equals the number of todos in the store
+  - [ ] `completed` equals the count of todos with completed=true
+  - [ ] `pending` = total - completed
+  - [ ] `by_priority` contains keys "1", "2", "3" (string keys) with correct counts
+  - [ ] Empty store returns zeros for all counts
+  - [ ] At least 3 tests: empty store, mixed completed/pending, by_priority grouping
+  - [ ] GET /todos/stats returns 200, NOT 422 or 404 (route ordering is correct)
+  - [ ] All existing tests still pass
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/main.py          # new route — must be before /{todo_id}
+  - tests/test_main.py   # new stats tests
+
+regression_risk: high  # placing route after /{todo_id} silently breaks it
+
+known_failure_modes:
+  - "Agent appends GET /todos/stats after GET /todos/{todo_id} — FastAPI intercepts with 422"
+  - "Agent uses int type hint on stats route param by accident"
+  - "Agent returns by_priority with integer keys ({1: N}) instead of string keys ({'1': N})"
+  - "Agent creates a Pydantic TodoStats model but doesn't import it"
+  - "Agent adds tests that pass with the wrong route order because test client tolerates it"
+  - "Agent uses a separate router (APIRouter) without reading the existing mount order"
+
+governance_signals:
+  preflight_expected_req_match: true  # should match an API-contract or API-extension requirement
+  # Governance value: SPECSMITH_FULL agents get a preflight reminder to check the existing
+  # route table contract — which prompts reading the file and discovering the ordering issue.
+  verify_expected_to_catch:
+    - "GET /todos/stats returning 422 (route registered after /{todo_id})"
+    - "by_priority using integer keys instead of string keys"
+    - "missing empty-store test"
+
+# Scope discipline: the correct solution modifies only main.py and tests.
+# Ungoverned agents sometimes also modify models.py (unnecessary).
+scope_discipline_metric: true
