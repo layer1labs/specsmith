@@ -10,6 +10,10 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+---
+
+## [0.18.0] - 2026-06-26
+
 ### Added
 
 - **ESDB-first dual-write architecture (REQ-403..416)** — Every governance event now writes

@@ -798,10 +798,11 @@ class AgentRunner:
     def _seal_profile_pin(self, profile_id: str) -> None:
         """Append a TraceVault decision seal recording the ``/agent`` pin (G4).
 
-        Wrapped in best-effort try/except so an unwriteable
-        ``.specsmith/trace.jsonl`` (read-only fs, missing project root, etc.)
-        never breaks the chat loop. The seal type is ``decision`` because
-        a profile pin is an explicit governance choice the user made.
+        Wrapped in best-effort try/except so an unwriteable ESDB store
+        (read-only fs, missing project root, etc.) never breaks the chat loop.
+        The seal is persisted as an ESDB ``seal_record`` (REQ-420). The seal
+        type is ``decision`` because a profile pin is an explicit governance
+        choice the user made.
         """
         try:
             from specsmith.trace import SealType, TraceVault

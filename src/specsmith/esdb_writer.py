@@ -50,6 +50,63 @@ def _short_hash(text: str, length: int = 8) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:length].upper()
 
 
+def _make_record(
+    store: Any,
+    *,
+    id: str,
+    kind: str,
+    status: str = "active",
+    label: str = "",
+    confidence: float = 0.7,
+    data: dict[str, Any] | None = None,
+    source_ids: list[str] | None = None,
+) -> Any:
+    """Build a record of the type the *active* ESDB backend expects.
+
+    ``open_default_store()`` returns either the free :class:`SqliteStore` or the
+    commercial ``ChronoStore``.  ``ChronoStore.upsert()`` mutates
+    ``record.recursion_depth`` and serialises ChronoRecord-native fields, so a
+    :class:`SqliteRecord` (``__slots__``, no ``recursion_depth``) cannot be
+    handed to it — doing so raises ``AttributeError`` which the best-effort
+    callers silently swallow, losing **every** governance dual-write on the
+    ChronoStore backend.  We therefore construct the record type matching the
+    live store:
+
+      - ``SqliteStore`` → :class:`SqliteRecord` (``source_ids`` preserved)
+      - ``ChronoStore`` → ``ChronoRecord``     (``source_ids`` → ``evidence``)
+
+    Both backends persist ``data`` verbatim — the canonical payload every reader
+    relies on (e.g. ``SealRecord.from_dict(record.data)``).
+    """
+    payload = data or {}
+    ids = list(source_ids or [])
+    if type(store).__name__ == "SqliteStore":
+        from specsmith.esdb import SqliteRecord
+
+        return SqliteRecord(
+            id=id,
+            kind=kind,
+            status=status,
+            label=label,
+            confidence=confidence,
+            data=payload,
+            source_ids=ids,
+        )
+    # Commercial ChronoStore backend — build its native record type so
+    # upsert()'s recursion_depth mutation and WAL serialisation succeed.
+    from specsmith.esdb import ChronoRecord
+
+    return ChronoRecord(
+        id=id,
+        kind=kind,
+        status=status,
+        label=label,
+        confidence=confidence,
+        data=payload,
+        evidence=ids,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public write functions — all best-effort (wrapped in try/except by callers)
 # ---------------------------------------------------------------------------
@@ -79,27 +136,28 @@ def write_preflight_record(
         if not work_item_id:
             return False  # only persist accepted preflights that minted a WI
 
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         pf_id = f"PF-{work_item_id}"
-        record = SqliteRecord(
-            id=pf_id,
-            kind="preflight_decision",
-            status="active",
-            label=str(payload.get("instruction", payload.get("intent", "")))[:200],
-            confidence=float(payload.get("confidence_target", 0.7)),
-            data={
-                "decision": payload.get("decision", ""),
-                "intent": payload.get("intent", ""),
-                "work_item_id": work_item_id,
-                "test_case_ids": payload.get("test_case_ids", []),
-                "instruction": payload.get("instruction", ""),
-                "ai_disclosure": payload.get("ai_disclosure", {}),
-            },
-            source_ids=list(payload.get("requirement_ids", [])),
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=pf_id,
+                kind="preflight_decision",
+                status="active",
+                label=str(payload.get("instruction", payload.get("intent", "")))[:200],
+                confidence=float(payload.get("confidence_target", 0.7)),
+                data={
+                    "decision": payload.get("decision", ""),
+                    "intent": payload.get("intent", ""),
+                    "work_item_id": work_item_id,
+                    "test_case_ids": payload.get("test_case_ids", []),
+                    "instruction": payload.get("instruction", ""),
+                    "ai_disclosure": payload.get("ai_disclosure", {}),
+                },
+                source_ids=list(payload.get("requirement_ids", [])),
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort; never blocks preflight
@@ -133,29 +191,30 @@ def write_verify_record(
         equilibrium = bool(result.get("equilibrium", False))
         confidence = 0.85 if equilibrium else 0.4
 
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         verify_id = (
             f"VERIFY-{work_item_id}" if work_item_id else f"VERIFY-{_short_hash(str(result))}"
         )
 
-        record = SqliteRecord(
-            id=verify_id,
-            kind="verify_result",
-            status="active",
-            label=str(result.get("summary", ""))[:200],
-            confidence=confidence,
-            data={
-                "equilibrium": equilibrium,
-                "confidence": result.get("confidence", confidence),
-                "retry_strategy": result.get("retry_strategy", ""),
-                "files_changed_count": len(result.get("files_changed", [])),
-                "work_item_id": work_item_id,
-            },
-            source_ids=[work_item_id] if work_item_id else [],
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=verify_id,
+                kind="verify_result",
+                status="active",
+                label=str(result.get("summary", ""))[:200],
+                confidence=confidence,
+                data={
+                    "equilibrium": equilibrium,
+                    "confidence": result.get("confidence", confidence),
+                    "retry_strategy": result.get("retry_strategy", ""),
+                    "files_changed_count": len(result.get("files_changed", [])),
+                    "work_item_id": work_item_id,
+                },
+                source_ids=[work_item_id] if work_item_id else [],
+            )
             store.upsert(record)
             # When equilibrium reached, tombstone the preflight_decision record
             # so context seed knows this WI is complete.
@@ -190,7 +249,7 @@ def write_work_item_record(
     Returns True on success, False on any error.
     """
     try:
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         _TERMINAL = frozenset({"promoted", "closed", "archived", "rejected"})
         esdb_status = "tombstone" if wi.status in _TERMINAL else "active"
@@ -198,26 +257,27 @@ def write_work_item_record(
         source_ids = list(getattr(wi, "requirement_ids", []))
         source_ids += list(getattr(wi, "test_case_ids", []))
 
-        record = SqliteRecord(
-            id=wi.id,
-            kind="work_item",
-            status=esdb_status,
-            label=str(wi.intent or wi.id)[:200],
-            confidence=float(getattr(wi, "confidence_target", 0.7)),
-            data={
-                "status": wi.status,
-                "kind": getattr(wi, "kind", "feature"),
-                "verified": getattr(wi, "verified", False),
-                "promoted_to_req": getattr(wi, "promoted_to_req", ""),
-                "blast_radius_estimate": getattr(wi, "blast_radius_estimate", ""),
-                "created_at": getattr(wi, "created_at", ""),
-                "updated_at": getattr(wi, "updated_at", ""),
-                "closed_reason": getattr(wi, "closed_reason", ""),
-            },
-            source_ids=source_ids,
-        )
         root = Path(project_root)
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=wi.id,
+                kind="work_item",
+                status=esdb_status,
+                label=str(wi.intent or wi.id)[:200],
+                confidence=float(getattr(wi, "confidence_target", 0.7)),
+                data={
+                    "status": wi.status,
+                    "kind": getattr(wi, "kind", "feature"),
+                    "verified": getattr(wi, "verified", False),
+                    "promoted_to_req": getattr(wi, "promoted_to_req", ""),
+                    "blast_radius_estimate": getattr(wi, "blast_radius_estimate", ""),
+                    "created_at": getattr(wi, "created_at", ""),
+                    "updated_at": getattr(wi, "updated_at", ""),
+                    "closed_reason": getattr(wi, "closed_reason", ""),
+                },
+                source_ids=source_ids,
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort
@@ -250,7 +310,7 @@ def write_token_metric(
     Returns True on success, False on any error.
     """
     try:
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         # Only write to an existing ESDB; never create one just for token metrics
@@ -259,25 +319,26 @@ def write_token_metric(
             return False
         tok_id = f"TOK-{uuid.uuid4().hex[:8].upper()}"
         total = input_tokens + output_tokens
-        record = SqliteRecord(
-            id=tok_id,
-            kind="token_metric",
-            status="active",
-            label=f"{command_source}: {input_tokens}in {output_tokens}out",
-            confidence=1.0,
-            data={
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "total_tokens": total,
-                "cost_usd": cost_usd,
-                "model": model,
-                "command_source": command_source,
-                "work_item_id": work_item_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-            source_ids=[work_item_id] if work_item_id else [],
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=tok_id,
+                kind="token_metric",
+                status="active",
+                label=f"{command_source}: {input_tokens}in {output_tokens}out",
+                confidence=1.0,
+                data={
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                    "total_tokens": total,
+                    "cost_usd": cost_usd,
+                    "model": model,
+                    "command_source": command_source,
+                    "work_item_id": work_item_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                source_ids=[work_item_id] if work_item_id else [],
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort; never blocks caller
@@ -304,30 +365,31 @@ def write_ledger_event(
     Returns True on success, False on any error.
     """
     try:
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         rec_id = f"LED-{uuid.uuid4().hex[:12].upper()}"
-        record = SqliteRecord(
-            id=rec_id,
-            kind="ledger_event",
-            status="active",
-            label=description[:200],
-            confidence=0.9,
-            data={
-                "description": description,
-                "entry_type": entry_type,
-                "author": author,
-                "reqs": reqs,
-                "status": status,
-                "epistemic_status": epistemic_status,
-                "belief_artifacts": belief_artifacts,
-                "entry_hash": entry_hash,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            },
-            source_ids=[r.strip() for r in reqs.split(",") if r.strip()] if reqs else [],
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=rec_id,
+                kind="ledger_event",
+                status="active",
+                label=description[:200],
+                confidence=0.9,
+                data={
+                    "description": description,
+                    "entry_type": entry_type,
+                    "author": author,
+                    "reqs": reqs,
+                    "status": status,
+                    "epistemic_status": epistemic_status,
+                    "belief_artifacts": belief_artifacts,
+                    "entry_hash": entry_hash,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+                source_ids=[r.strip() for r in reqs.split(",") if r.strip()] if reqs else [],
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort; never blocks add_entry
@@ -340,8 +402,10 @@ def write_seal_record(
 ) -> bool:
     """Upsert a ``seal_record`` ESDB record from a TraceVault SealRecord (REQ-404).
 
-    Called best-effort by ``TraceVault._append()`` after writing trace.jsonl.
-    Confidence=0.9; seal_record records are kept forever (no retention sweep).
+    Called by ``TraceVault._append()`` to persist each seal; ESDB is the sole
+    source of truth for the trace vault (REQ-420 — the legacy ``.specsmith/
+    trace.jsonl`` is no longer written). Confidence=0.9; seal_record records are
+    kept forever (no retention sweep).
 
     Args:
         project_root: Project root directory.
@@ -350,23 +414,24 @@ def write_seal_record(
     Returns True on success, False on any error.
     """
     try:
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         seal_id = str(record_dict.get("seal_id", ""))
         if not seal_id:
             return False
         description = str(record_dict.get("description", ""))
-        record = SqliteRecord(
-            id=f"ESDB-{seal_id}",
-            kind="seal_record",
-            status="active",
-            label=description[:200],
-            confidence=0.9,
-            data=dict(record_dict),
-            source_ids=list(record_dict.get("artifact_ids") or []),
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=f"ESDB-{seal_id}",
+                kind="seal_record",
+                status="active",
+                label=description[:200],
+                confidence=0.9,
+                data=dict(record_dict),
+                source_ids=list(record_dict.get("artifact_ids") or []),
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort; never blocks seal()
@@ -389,26 +454,27 @@ def write_session_metric(
     Returns True on success, False on any error.
     """
     try:
-        from specsmith.esdb import SqliteRecord, open_default_store
+        from specsmith.esdb import open_default_store
 
         root = Path(project_root)
         session_id = str(record_dict.get("session_id", ""))
         rec_id = f"MET-{session_id}" if session_id else f"MET-{uuid.uuid4().hex[:8].upper()}"
-        record = SqliteRecord(
-            id=rec_id,
-            kind="session_metric",
-            status="active",
-            label=(
-                f"{session_id}: tokens={record_dict.get('tokens_total', 0)} "
-                f"passed={record_dict.get('passed', False)}"
-            )[:200],
-            confidence=0.8,
-            data=dict(record_dict),
-            source_ids=(
-                [str(record_dict["work_item_id"])] if record_dict.get("work_item_id") else []
-            ),
-        )
         with open_default_store(root, warn=False) as store:
+            record = _make_record(
+                store,
+                id=rec_id,
+                kind="session_metric",
+                status="active",
+                label=(
+                    f"{session_id}: tokens={record_dict.get('tokens_total', 0)} "
+                    f"passed={record_dict.get('passed', False)}"
+                )[:200],
+                confidence=0.8,
+                data=dict(record_dict),
+                source_ids=(
+                    [str(record_dict["work_item_id"])] if record_dict.get("work_item_id") else []
+                ),
+            )
             store.upsert(record)
         return True
     except Exception:  # noqa: BLE001 — best-effort; never blocks append()

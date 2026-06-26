@@ -930,7 +930,14 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
 
 
 def check_trace_chain_integrity(root: Path) -> list[AuditResult]:
-    """Check trace vault chain integrity if it exists."""
+    """Check trace vault chain integrity if it exists.
+
+    DEPRECATED(REQ-421): this verifies the legacy ``epistemic.trace`` flat-file
+    vault (``.specsmith/trace.jsonl``). The current trace vault is ESDB-only
+    (``specsmith.trace``; REQ-420). Retained so legacy projects that still carry
+    a trace.jsonl keep getting an integrity signal; remove at teardown.
+    See docs/DEPRECATIONS.md.
+    """
     trace_path = root / ".specsmith" / "trace.jsonl"
     if not trace_path.exists():
         return []  # No trace vault configured — skip silently

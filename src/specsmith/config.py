@@ -141,7 +141,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.17.1", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.18.0", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -451,7 +451,7 @@ class ProjectConfig(BaseModel):
     )
     enable_trace_vault: bool = Field(
         default=False,
-        description="Enable cryptographic trace vault (.specsmith/trace.jsonl)",
+        description="Enable cryptographic trace vault (ESDB seal_record; REQ-420)",
     )
 
     @property

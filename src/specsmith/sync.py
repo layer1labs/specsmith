@@ -220,6 +220,10 @@ _ESDB_GITIGNORE_FORBIDDEN = frozenset(
     }
 )
 
+# DEPRECATED(REQ-421): several entries below (workitems.json, ledger.jsonl,
+# trace.jsonl, esdb_migration_manifest.json, sessions/) are legacy flat files kept
+# ignored until their teardown REQs land. The policy keeps canonical ESDB state
+# (esdb.sqlite3, .chronomemory/*) tracked. See docs/DEPRECATIONS.md.
 _ESDB_GITIGNORE_REQUIRED = (
     "!.specsmith/config.yml",
     "!.specsmith/requirements.json",
@@ -473,6 +477,10 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
 
     if not dry_run:
         state_dir.mkdir(parents=True, exist_ok=True)
+        # DEPRECATED(REQ-421): ``.specsmith/requirements.json`` and ``testcases.json``
+        # are a regeneratable cache of docs/requirements/*.yml + docs/tests/*.yml,
+        # mirrored into ESDB by _sync_esdb below. REQ-424 will stop writing this JSON
+        # cache once all projects read governance from ESDB. See docs/DEPRECATIONS.md.
         if reqs_changed:
             reqs_json_path.write_text(
                 json.dumps(new_reqs_obj, indent=2, ensure_ascii=False),

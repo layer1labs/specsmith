@@ -41,42 +41,48 @@ class TestReq206TraceVault:
         assert valid, f"Chain should be valid; errors: {errors}"
         assert vault.count() == 3
 
-    def test_tamper_detected(self, tmp_path: Path) -> None:
-        """Modify a seal on disk and verify the chain reports an error (REQ-206)."""
+    def test_tamper_detected(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Corrupt a seal in ESDB and verify the chain reports an error (REQ-206, REQ-420)."""
+        # Force the free SQLite backend so the test is deterministic and the
+        # stored seal_record can be mutated directly.
+        monkeypatch.setenv("SPECSMITH_ESDB_BACKEND", "sqlite")
+        from specsmith.esdb import SqliteStore
         from specsmith.trace import SealType, TraceVault
 
         vault = TraceVault(tmp_path)
         vault.seal(SealType.DECISION, "Original decision")
         vault.seal(SealType.MILESTONE, "Milestone")
 
-        trace_file = tmp_path / ".specsmith" / "trace.jsonl"
-        assert trace_file.exists()
+        # REQ-420: seals live in ESDB, not a trace.jsonl flat file.
+        assert not (tmp_path / ".specsmith" / "trace.jsonl").exists()
 
-        lines = trace_file.read_text(encoding="utf-8").splitlines()
-        # Corrupt the first seal's description
-        first = json.loads(lines[0])
-        first["description"] = "TAMPERED"
-        lines[0] = json.dumps(first)
-        trace_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        # Corrupt the first seal's description directly in its ESDB record.
+        with SqliteStore(tmp_path) as store:
+            rec = store.get("ESDB-SEAL-0001")
+            assert rec is not None
+            rec.data["description"] = "TAMPERED"
+            store.upsert(rec)
 
         valid, errors = vault.verify()
         assert not valid, "Tampered chain should fail verification"
         assert len(errors) > 0
 
-    def test_append_only_never_truncates(self, tmp_path: Path) -> None:
-        """Appending a seal never reduces byte count (REQ-206 append-only)."""
-        from specsmith.trace import SealType, TraceVault
+    def test_append_only_never_truncates(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Each seal adds an ESDB seal_record without removing prior ones (REQ-206, REQ-420)."""
+        monkeypatch.setenv("SPECSMITH_ESDB_BACKEND", "sqlite")
+        from specsmith.trace import SealType, TraceVault, count_seal_records
 
         vault = TraceVault(tmp_path)
         vault.seal(SealType.DECISION, "First")
-
-        trace_file = tmp_path / ".specsmith" / "trace.jsonl"
-        size_after_one = trace_file.stat().st_size
+        count_after_one = count_seal_records(tmp_path)
 
         vault.seal(SealType.DECISION, "Second")
-        size_after_two = trace_file.stat().st_size
+        count_after_two = count_seal_records(tmp_path)
 
-        assert size_after_two > size_after_one, "File size must grow on each seal"
+        assert count_after_two > count_after_one, "Seal count must grow on each seal"
+        assert not (tmp_path / ".specsmith" / "trace.jsonl").exists()
 
 
 # ---------------------------------------------------------------------------

@@ -228,3 +228,53 @@
     context_usage record and call ContextOrchestrator or run_sweep
   expected_behavior: CTX- record written; context_usage and efficiency_metric exempt from eviction
   confidence: 1.0
+
+- id: TEST-430
+  title: Trace Vault Seals and Reads Exclusively via ESDB
+  description: >-
+    On a tmp project, TraceVault(root).seal(...) MUST create a seal_record in ESDB and
+    MUST NOT create .specsmith/trace.jsonl. A second TraceVault(root) MUST reconstruct
+    the sealed entries from ESDB with a valid hash chain. The phase helpers
+    _trace_vault_exists() and _trace_vault_min_seals(2) MUST count the ESDB seal_record
+    records (returning True after >=1 and >=2 seals respectively) without consulting
+    trace.jsonl.
+  requirement_id: REQ-420
+  type: integration
+  verification_method: pytest (test_trace_vault_esdb.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+
+- id: TEST-431
+  title: Deprecation Registry Is Greppable and Complete
+  description: >-
+    docs/DEPRECATIONS.md MUST exist and list every `# DEPRECATED(REQ-421):` marker
+    present in src/specsmith. A test MUST grep src/specsmith for the marker, assert the
+    known legacy sites are annotated (trace.jsonl, workitems.json, the
+    requirements.json/testcases.json sync writers, session-state.json,
+    conversation-history.jsonl, session_metrics.jsonl, ledger fallbacks), and assert
+    each annotated file is referenced in docs/DEPRECATIONS.md. The registry MUST name
+    the planned work_item ESDB-first and sync-cache-stop teardown items.
+  requirement_id: REQ-421
+  type: unit
+  verification_method: pytest (test_deprecation_registry.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+
+- id: TEST-432
+  title: SQLite Backend Feeds Retrieval Index and Critical Count
+  description: >-
+    On a tmp project using the SQLite ESDB backend with no .chronomemory directory,
+    seeding a few high-confidence requirement/work_item records then calling
+    retrieval.build_index(root) MUST produce an index containing those records' content
+    (not an empty index). ContextOrchestrator._count_critical_records() MUST return the
+    count of active records with confidence >= CRITICAL_CONFIDENCE (a positive number),
+    not 0. Infrastructure kinds (token_metric, context_usage, etc.) MUST be excluded
+    from the retrieval index.
+  requirement_id: REQ-422
+  type: unit
+  verification_method: pytest (test_sqlite_parity.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

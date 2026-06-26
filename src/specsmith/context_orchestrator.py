@@ -360,18 +360,37 @@ class ContextOrchestrator:
             return 0
 
     def _count_critical_records(self) -> int:
-        """Count records that qualify as critical (must be protected)."""
-        wal = self.root / ".chronomemory" / "events.wal"
-        if not wal.exists():
-            return 0
-        try:
-            from chronomemory import ChronoStore
+        """Count records that qualify as critical (must be protected).
 
-            with ChronoStore(self.root) as store:
+        REQ-422: parity across backends — prefer the ChronoStore WAL when present,
+        otherwise count active high-confidence records from the free SQLite ESDB
+        backend so the protection path behaves identically without ChronoStore.
+        """
+        # --- ChronoStore first (commercial backend) -------------------------
+        wal = self.root / ".chronomemory" / "events.wal"
+        if wal.exists():
+            try:
+                from chronomemory import ChronoStore
+
+                with ChronoStore(self.root) as store:
+                    return sum(
+                        1
+                        for r in store.query()
+                        if r.confidence >= CRITICAL_CONFIDENCE and r.status == "active"
+                    )
+            except Exception:  # noqa: BLE001
+                pass  # fall through to SqliteStore
+
+        # --- Fall back to SqliteStore (free default backend) ----------------
+        try:
+            from specsmith.esdb import SqliteStore
+
+            sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
+            if not sqlite_path.exists():
+                return 0
+            with SqliteStore(self.root) as store:
                 return sum(
-                    1
-                    for r in store.query()
-                    if r.confidence >= CRITICAL_CONFIDENCE and r.status == "active"
+                    1 for r in store.query(status="active") if r.confidence >= CRITICAL_CONFIDENCE
                 )
         except Exception:  # noqa: BLE001
             return 0

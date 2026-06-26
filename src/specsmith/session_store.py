@@ -10,6 +10,10 @@ On ``init_session()``, the previous session state is loaded and injected
 as the first synthetic history entry so the model has prior context.
 
 REQ-307: Session state must survive restart; agents resume where they left off.
+
+DEPRECATED(REQ-421): ``session-state.json`` and ``conversation-history.jsonl``
+are legacy flat files with no ESDB equivalent yet; migration to ESDB session
+records is tracked in docs/DEPRECATIONS.md.
 """
 
 from __future__ import annotations
@@ -39,11 +43,14 @@ def save_session(
     specsmith_dir.mkdir(parents=True, exist_ok=True)
 
     # Write session-state.json atomically
+    # DEPRECATED(REQ-421): legacy flat-file session snapshot; ESDB migration
+    # tracked in docs/DEPRECATIONS.md.
     state_path = specsmith_dir / "session-state.json"
     ctx_dict["saved_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     _atomic_write_json(state_path, ctx_dict)
 
     # Write conversation-history.jsonl (capped at MAX_TURNS)
+    # DEPRECATED(REQ-421): legacy flat-file conversation history; see DEPRECATIONS.md.
     hist_path = specsmith_dir / "conversation-history.jsonl"
     capped = history[-MAX_TURNS:]
     _atomic_write_jsonl(hist_path, capped)

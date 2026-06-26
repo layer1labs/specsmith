@@ -166,3 +166,49 @@
     _evict_low_confidence_records().
   source: ARCHITECTURE.md §ESDB-First Migration
   status: implemented
+
+- id: REQ-420
+  title: ESDB-Only Trace Vault Readiness and Persistence
+  description: >-
+    The trace vault MUST treat ESDB as its single source of truth. TraceVault._load()
+    MUST reconstruct seals exclusively from ESDB seal_record records (via
+    SealRecord.from_dict on each record's data) and TraceVault._append() MUST persist
+    new seals to ESDB only, no longer writing .specsmith/trace.jsonl. The phase
+    readiness helpers (_trace_vault_exists, _trace_vault_min_seals) MUST count active
+    seal_record records in ESDB rather than reading trace.jsonl. This path is
+    forward-only with no jsonl fallback; an ESDB error MUST be treated as zero seals.
+    The hash chain MUST continue to verify via content_hash/prev_hash/entry_hash in
+    the record data.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+
+- id: REQ-421
+  title: Legacy Flat-File Deprecation Registry
+  description: >-
+    specsmith MUST maintain a single greppable registry of legacy flat-file
+    persistence sites slated for removal once ESDB is the sole source of truth, so a
+    future teardown is a one-grep operation. Every such site in src/specsmith MUST
+    carry a `# DEPRECATED(REQ-421):` marker comment, and docs/DEPRECATIONS.md MUST
+    enumerate each marker with its file, the legacy artifact, the ESDB record kind
+    that supersedes it, and the follow-up item. The registry MUST include the planned
+    (not-yet-executed) teardown items: flipping work_item persistence to ESDB-first
+    (superseding workitems.json) and stopping sync from regenerating the
+    .specsmith/requirements.json and testcases.json caches. No legacy file or fallback
+    may be deleted by this requirement; it only records and annotates them.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+
+- id: REQ-422
+  title: SQLite-Backend Parity for Retrieval and Critical-Count
+  description: >-
+    When ESDB runs on the free SQLite backend (no ChronoMemory), governance knowledge
+    MUST still flow through the same runtime paths as the commercial backend.
+    retrieval.build_index() MUST inject ESDB records into the RAG index via
+    SqliteStore.query(rag_filter=True) — excluding infrastructure kinds (edge,
+    rollback_event, token_metric, skill_run, efficiency_metric, context_usage) — when
+    ChronoStore is unavailable, instead of indexing nothing.
+    ContextOrchestrator._count_critical_records() MUST fall back to counting active
+    SQLite records with confidence >= CRITICAL_CONFIDENCE rather than returning 0.
+    Commercial-only capabilities MUST remain optional and degrade to no-ops on SQLite.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented

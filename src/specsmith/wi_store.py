@@ -19,6 +19,11 @@ State machine invariants:
 Storage: ``.specsmith/workitems.json``  — a JSON array of WorkItem dicts.
 This file is the machine-readable source of truth; LEDGER.md holds the
 human-readable audit trail via ``work_proposal`` entries.
+
+DEPRECATED(REQ-421): the ``workitems.json`` flat file is slated for teardown.
+Every mutation is already mirrored into the ESDB ``work_item`` kind via
+``WorkItemStore._sync_to_esdb`` (REQ-398); REQ-423 will make ESDB the source of
+truth and drop this file. See docs/DEPRECATIONS.md.
 """
 
 from __future__ import annotations
@@ -34,6 +39,8 @@ from typing import Any
 # Constants
 # ---------------------------------------------------------------------------
 
+# DEPRECATED(REQ-421): legacy flat-file cache; superseded by the ESDB ``work_item``
+# kind (REQ-398 dual-write today, REQ-423 ESDB-first teardown). See docs/DEPRECATIONS.md.
 _WORKITEMS_FILE = "workitems.json"
 
 #: Valid WI lifecycle states (ordered from youngest to oldest).
@@ -199,6 +206,9 @@ class WorkItemStore:
 
     def save(self, items: list[WorkItem]) -> None:
         """Write *items* to disk atomically (write-to-tmp-then-rename)."""
+        # DEPRECATED(REQ-421): writes the legacy ``.specsmith/workitems.json``.
+        # ESDB ``work_item`` records are the forward store (see _sync_to_esdb);
+        # this writer is retained until REQ-423 flips ESDB to source of truth.
         self._path.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps([it.to_dict() for it in items], indent=2, ensure_ascii=False)
         tmp = self._path.with_suffix(".json.tmp")

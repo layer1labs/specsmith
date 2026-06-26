@@ -591,3 +591,18 @@
   input: {}
   expected_behavior: {}
   confidence: 1.0
+- id: TEST-428
+  title: Preflight CLI Accepts Explicit REQ Reference
+  description: >-
+    Invoking `specsmith preflight "Implement REQ-NNN: ..." --json` for a REQ that
+    exists in the synced requirements.json MUST return decision=accepted with a
+    work_item_id, matching the payload returned by run_preflight() for the same
+    utterance. A vague utterance MUST return needs_clarification with exit code 2,
+    and --predict-only on such an utterance MUST emit predicted_refinement without
+    persisting a work item.
+  requirement_id: REQ-418
+  type: cli
+  verification_method: pytest (test_preflight_cli_parity.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

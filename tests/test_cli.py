@@ -35,6 +35,30 @@ def _scaffold_governed(tmp_path: Path) -> Path:
     return target
 
 
+def _older_version(version: str) -> str:
+    """Return a semantic version strictly older than ``version``.
+
+    Decrements the least-significant non-zero component so the result is always
+    a valid forward-upgrade target regardless of which release ``__version__``
+    resolves to at runtime. Hardcoding a constant breaks whenever ``__version__``
+    resolves to an equal-or-older release and the backward-migration guard
+    (REQ-370) then refuses the upgrade.
+    """
+    import re
+
+    match = re.match(r"(\d+)\.(\d+)(?:\.(\d+))?", version or "")
+    if not match:
+        return "0.0.0"
+    major, minor, patch = (int(part) if part is not None else 0 for part in match.groups())
+    if patch > 0:
+        patch -= 1
+    elif minor > 0:
+        minor -= 1
+    elif major > 0:
+        major -= 1
+    return f"{major}.{minor}.{patch}"
+
+
 class TestCLIVersion:
     def test_version_flag(self) -> None:
         from specsmith import __version__
@@ -116,12 +140,14 @@ class TestCLIUpgrade:
 
         target = _scaffold_governed(tmp_path)
         # Backdate spec_version so there is an actual upgrade to perform.
-        # Without this the scaffold is already at __version__ and the
-        # command would return "Already at spec version" instead.
+        # Derive it dynamically from __version__ so the value is always strictly
+        # older than the upgrade target; otherwise the backward-migration guard
+        # (REQ-370) refuses the upgrade whenever __version__ resolves to an
+        # equal-or-older release than the previously hardcoded constant.
         scaffold_yml = target / "scaffold.yml"
         with open(scaffold_yml) as fh:
             data = yaml.safe_load(fh)
-        data["spec_version"] = "0.11.6"
+        data["spec_version"] = _older_version(__version__)
         with open(scaffold_yml, "w") as fh:
             yaml.dump(data, fh, default_flow_style=False)
         runner = CliRunner()
