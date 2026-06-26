@@ -554,8 +554,9 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
 
 
 # Default thresholds (used when no project type is detected)
+# AGENTS.md: raised to 250 (template now generates ~202 lines with Parallel Agents section)
 _DEFAULT_THRESHOLDS: dict[str, int] = {
-    "AGENTS.md": 200,
+    "AGENTS.md": 250,
     "docs/governance/RULES.md": 800,
     "docs/governance/SESSION-PROTOCOL.md": 400,
     "docs/governance/LIFECYCLE.md": 200,
