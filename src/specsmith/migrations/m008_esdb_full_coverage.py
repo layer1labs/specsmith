@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from specsmith.migrations import Migration, MigrationResult
 
@@ -197,15 +198,15 @@ class _DictProxy:
 
     __slots__ = ("_d",)
 
-    def __init__(self, d: dict) -> None:  # type: ignore[type-arg]
+    def __init__(self, d: dict[str, Any]) -> None:
         object.__setattr__(self, "_d", d)
 
-    def __getattr__(self, name: str) -> object:
-        d: dict = object.__getattribute__(self, "_d")  # type: ignore[type-arg]
+    def __getattr__(self, name: str) -> Any:
+        d: dict[str, Any] = cast("dict[str, Any]", object.__getattribute__(self, "_d"))
         if name in d:
             return d[name]
         # Provide sensible defaults for optional fields
-        defaults: dict[str, object] = {  # type: ignore[type-arg]
+        defaults: dict[str, object] = {
             "status": "open",
             "kind": "feature",
             "intent": "",

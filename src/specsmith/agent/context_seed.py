@@ -27,6 +27,7 @@ left off (extended to cover full epistemic continuity).
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -251,7 +252,7 @@ def _load_esdb_by_kind(
             line += f" — {str(detail)[:80]}"
         return line
 
-    def _add_records(records: list[object], max_n: int) -> None:
+    def _add_records(records: Sequence[object], max_n: int) -> None:
         added = 0
         for rec in sorted(records, key=lambda r: -getattr(r, "confidence", 0)):
             if added >= max_n:
