@@ -200,3 +200,21 @@
 - **Type**: wi_archive
 - **Status**: complete
 - **Chain hash**: `0ca9ac14a5f3fcbd...`
+
+## 2026-06-25T21:12 — wi_close WI-9A9A9E22: REQ-084 implemented: governance_logic.run_preflight delegates from CLI; 1885 tests passing.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `7cbe46a5cf3b7756...`
+
+## 2026-06-25T21:12 — wi_close WI-B6A6E24A: REQ-085 implemented: pipx install-origin guard active; SPECSMITH_ALLOW_NON_PIPX override for CI.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `1f4fc87febc37b92...`
+
+## 2026-06-25T21:12 — wi_close WI-BEAADF17: REQ-371..374 implemented: ESDB auto-promotion, switch-backend, m007 YAML migration, cleanup command all present and tested.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `531f877f5d72b2f9...`

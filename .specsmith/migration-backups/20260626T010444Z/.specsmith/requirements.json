@@ -3518,7 +3518,7 @@
     "title": "Warp terminal integration: repository workflow YAML files for common governance commands",
     "description": "The specsmith repository ships .warp/workflows/ YAML files so developers using Warp terminal can invoke governance commands (audit, checkpoint, preflight, save, session-start) directly from the Warp command palette without context-switching.",
     "source": "docs/requirements/",
-    "status": "implemented",
+    "status": "planned",
     "test_ids": [
       "TEST-363"
     ]
@@ -3529,7 +3529,7 @@
     "title": "specsmith mcp serve: native stdio MCP server exposing governance tools to Warp, Cursor, and Claude Code agents",
     "description": "specsmith exposes an MCP-compliant stdio server via 'specsmith mcp serve'. The server implements JSON-RPC 2.0 over stdin/stdout and offers six governance tools: governance_audit, governance_checkpoint, governance_preflight, governance_phase, governance_req_list, and governance_trace_seal. Any MCP client (Warp/Oz, Cursor, Claude Code) can add specsmith as a tool server and call governance commands as structured tool calls without shell roundtrips. A companion 'specsmith mcp install-warp' command prints the Warp MCP config snippet.",
     "source": "docs/requirements/",
-    "status": "implemented",
+    "status": "planned",
     "test_ids": [
       "TEST-364"
     ]
@@ -3585,7 +3585,7 @@
     "title": "Governance Efficiency Benchmark Suite: harness, task definitions, and demo projects for token cost and quality comparison across governance conditions",
     "description": "Implement scripts/govern_bench/ with T1-T7 benchmark task definitions (YAML), a runner harness, LLM-judge module, and demo projects (agentic-todo-api, agentic-cli-tool). Compare six conditions: UNGOVERNED, CONTEXT_ONLY, BMAD_STYLE, OPENSPEC_STYLE, SPECSMITH_LIGHT, SPECSMITH_FULL. Primary metric: cost-of-pass = total_tokens / pass_rate.",
     "source": "docs/requirements/",
-    "status": "implemented",
+    "status": "planned",
     "test_ids": [
       "TEST-369"
     ]
@@ -3871,7 +3871,7 @@
     "title": "specsmith test suite must pass on all supported Python versions (3.10-3.13)",
     "description": "CI matrix covers Python 3.10, 3.11, 3.12, 3.13. All tests must pass on every version, including tests that use optional packages (chronomemory, tomllib). Tests requiring unavailable optional packages must use sys.modules mocking or stdlib fallbacks rather than skip decorators.",
     "source": "docs/requirements/",
-    "status": "implemented",
+    "status": "planned",
     "test_ids": [
       "TEST-402",
       "TEST-403"
