@@ -394,7 +394,9 @@ class AgentRunner:
                     lines.append(f"    {s.icon} {s.name:<10} \u2717 {s.note}")
             lines.append("")
             if active_count == 0:
-                lines.append("  \u26a0  No provider available \u2014 commands will return no response.")
+                lines.append(
+                    "  \u26a0  No provider available \u2014 commands will return no response."
+                )
             else:
                 # Show multi-model routing if the router is configured (REQ-389).
                 if self._model_router is not None:

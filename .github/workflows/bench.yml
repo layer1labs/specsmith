@@ -16,7 +16,7 @@ on:
         required: false
         default: "T1,T2,T6,T7,T10,T11,T13"
       conditions:
-        description: "Condition IDs to run (comma-separated). Leave blank for all 6."
+        description: "Condition IDs to run (comma-separated). Leave blank for all 13 conditions (A-M). Key specsmith conditions: UNGOVERNED,SPECSMITH_LIGHT,SPECSMITH_FULL,SPECSMITH_DISPATCH."
         required: false
         default: ""
       reps:
@@ -68,7 +68,7 @@ jobs:
       - name: Verify task registry loads
         run: python scripts/govern_bench/run_bench.py --list
 
-      - name: Dry-run benchmark (T6, T7, T10, T11, T13 — 2 reps)
+      - name: Dry-run benchmark (T6, T7, T10, T11, T13 — 2 reps, all conditions including DISPATCH)
         env:
           BENCH_DRY_RUN: "1"
         run: |

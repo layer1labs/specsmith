@@ -50,13 +50,15 @@ def _parse_args() -> argparse.Namespace:
         epilog=__doc__,
     )
     parser.add_argument(
-        "--task", "-t",
+        "--task",
+        "-t",
         action="append",
         metavar="ID",
         help="Task ID to run (e.g. T1). Repeat for multiple. Default: all tasks.",
     )
     parser.add_argument(
-        "--condition", "-c",
+        "--condition",
+        "-c",
         action="append",
         metavar="ID",
         help=(
@@ -66,20 +68,23 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--reps", "-r",
+        "--reps",
+        "-r",
         type=int,
         default=5,
         help="Number of repetitions per task × condition cell (default: 5)",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="docs/site/efficiency-benchmark.md",
         help="Output path for the Markdown report (default: docs/site/efficiency-benchmark.md)",
     )
     parser.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         default="gpt-4o-mini",
-    help="Agent model to use for task runs (default: gpt-4o-mini)",
+        help="Agent model to use for task runs (default: gpt-4o-mini)",
     )
     parser.add_argument(
         "--dry-run",
@@ -128,6 +133,7 @@ def _list_all() -> None:
 def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> RunResult:
     """Generate a plausible dummy RunResult for dry-run mode."""
     import random
+
     rng = random.Random(f"{task_id}:{condition_id}:{rep}")
 
     # Token overhead and pass-rate priors per condition.
@@ -135,49 +141,58 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
     # BMAD_STYLE/SPECSMITH based on their level of guidance.
     governance_overhead = {
         # Original six
-        "UNGOVERNED":        0,
-        "CONTEXT_ONLY":      200,
-        "BMAD_STYLE":        500,
-        "OPENSPEC_STYLE":    400,
-        "SPECSMITH_LIGHT":   800,
-        "SPECSMITH_FULL":    1500,
+        "UNGOVERNED": 0,
+        "CONTEXT_ONLY": 200,
+        "BMAD_STYLE": 500,
+        "OPENSPEC_STYLE": 400,
+        "SPECSMITH_LIGHT": 800,
+        "SPECSMITH_FULL": 1500,
         # Real-world tool styles
-        "CURSOR_RULES":      250,    # file-specific rules, slightly more context
-        "COPILOT_INSTRUCTIONS": 220, # similar to CLAUDE.md but GitHub-flavoured
-        "CODEX_AGENTS_MD":   300,    # explicit verification steps = more turns
-        "CLINE_RULES":       230,    # defensive read-before-modify overhead
-        "AGILE_TDD":         600,    # test-first adds a full RED phase turn
-        "AIDER_CONVENTIONS": 280,    # conventions doc + architecture context
+        "CURSOR_RULES": 250,  # file-specific rules, slightly more context
+        "COPILOT_INSTRUCTIONS": 220,  # similar to CLAUDE.md but GitHub-flavoured
+        "CODEX_AGENTS_MD": 300,  # explicit verification steps = more turns
+        "CLINE_RULES": 230,  # defensive read-before-modify overhead
+        "AGILE_TDD": 600,  # test-first adds a full RED phase turn
+        "AIDER_CONVENTIONS": 280,  # conventions doc + architecture context
+        # Multi-agent dispatch (DAG planning overhead is high; but parallel
+        # execution means wall-clock is lower and coverage is deeper).
+        "SPECSMITH_DISPATCH": 2000,  # DAG plan + N parallel builders + verifier
     }
     base_pass_rates = {
         # Original six (research-calibrated)
-        "UNGOVERNED":        0.44,
-        "CONTEXT_ONLY":      0.55,
-        "BMAD_STYLE":        0.65,
-        "OPENSPEC_STYLE":    0.70,
-        "SPECSMITH_LIGHT":   0.80,
-        "SPECSMITH_FULL":    0.95,
+        "UNGOVERNED": 0.44,
+        "CONTEXT_ONLY": 0.55,
+        "BMAD_STYLE": 0.65,
+        "OPENSPEC_STYLE": 0.70,
+        "SPECSMITH_LIGHT": 0.80,
+        "SPECSMITH_FULL": 0.95,
         # Real-world tools (calibrated to tool maturity + guidance quality)
-        "CURSOR_RULES":      0.60,   # file-scoped rules help but no gating
-        "COPILOT_INSTRUCTIONS": 0.58, # nearly same as CONTEXT_ONLY
-        "CODEX_AGENTS_MD":   0.72,   # verification steps materially help
-        "CLINE_RULES":       0.63,   # defensive rules reduce scope drift
-        "AGILE_TDD":         0.75,   # test-first catches regressions early
-        "AIDER_CONVENTIONS": 0.67,   # conventions reduce style errors
+        "CURSOR_RULES": 0.60,  # file-scoped rules help but no gating
+        "COPILOT_INSTRUCTIONS": 0.58,  # nearly same as CONTEXT_ONLY
+        "CODEX_AGENTS_MD": 0.72,  # verification steps materially help
+        "CLINE_RULES": 0.63,  # defensive rules reduce scope drift
+        "AGILE_TDD": 0.75,  # test-first catches regressions early
+        "AIDER_CONVENTIONS": 0.67,  # conventions reduce style errors
+        # Multi-agent: higher pass rate due to parallel verification + gating
+        # (each subtask independently verified before merge); cost-of-pass is
+        # competitive despite higher token overhead because correctness is ~0.97.
+        "SPECSMITH_DISPATCH": 0.97,
     }
     base_quality = {
-        "UNGOVERNED":        0.55,
-        "CONTEXT_ONLY":      0.65,
-        "BMAD_STYLE":        0.72,
-        "OPENSPEC_STYLE":    0.75,
-        "SPECSMITH_LIGHT":   0.82,
-        "SPECSMITH_FULL":    0.91,
-        "CURSOR_RULES":      0.68,
+        "UNGOVERNED": 0.55,
+        "CONTEXT_ONLY": 0.65,
+        "BMAD_STYLE": 0.72,
+        "OPENSPEC_STYLE": 0.75,
+        "SPECSMITH_LIGHT": 0.82,
+        "SPECSMITH_FULL": 0.91,
+        "CURSOR_RULES": 0.68,
         "COPILOT_INSTRUCTIONS": 0.66,
-        "CODEX_AGENTS_MD":   0.74,
-        "CLINE_RULES":       0.69,
-        "AGILE_TDD":         0.78,
+        "CODEX_AGENTS_MD": 0.74,
+        "CLINE_RULES": 0.69,
+        "AGILE_TDD": 0.78,
         "AIDER_CONVENTIONS": 0.71,
+        # Dispatch: highest quality — parallel Verifier node enforces full test coverage
+        "SPECSMITH_DISPATCH": 0.94,
     }
 
     overhead = governance_overhead.get(condition_id, 0)
@@ -190,6 +205,7 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
     quality = min(1.0, max(0.0, rng.gauss(quality_base, 0.1)))
 
     from govern_bench.metrics import estimate_cost
+
     cost = estimate_cost(model, inp, out)
 
     return RunResult(
@@ -263,6 +279,7 @@ def main() -> int:
                     result = _make_dummy_run(task.id, condition.id, rep, args.model)
                 else:
                     from govern_bench.harness import run_task  # noqa: E402, PLC0415
+
                     try:
                         result = run_task(task, condition, rep=rep, model=args.model)
                     except RuntimeError as exc:
@@ -271,9 +288,14 @@ def main() -> int:
                     except Exception as exc:  # noqa: BLE001
                         print(f"\n  [RUN ERROR] {exc}", file=sys.stderr)
                         from govern_bench.metrics import RunResult
+
                         result = RunResult(
-                            task_id=task.id, condition_id=condition.id, rep=rep,
-                            model=args.model, error=str(exc), skipped=True,
+                            task_id=task.id,
+                            condition_id=condition.id,
+                            rep=rep,
+                            model=args.model,
+                            error=str(exc),
+                            skipped=True,
                         )
 
                 status = "PASS" if result.passed else "FAIL"
@@ -331,7 +353,7 @@ def main() -> int:
         monthly = s.get("monthly_cost_20tasks", 0.0)
         print(
             f"{cid:<26} "
-            f"{s['mean_pass_rate']*100:>4.0f}% "
+            f"{s['mean_pass_rate'] * 100:>4.0f}% "
             f"{s['mean_input_tokens']:>7.0f} "
             f"{s['mean_output_tokens']:>7.0f} "
             f"${s['mean_input_cost_usd']:>7.5f} "

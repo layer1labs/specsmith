@@ -77,6 +77,7 @@ _OPENSPEC_HEADER = textwrap.dedent("""\
 # Dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Condition:
     """A governance/scaffolding condition for benchmarking."""
@@ -269,7 +270,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["baseline", "no-governance"],
     ),
-
     # -----------------------------------------------------------------------
     # B: CONTEXT_ONLY — CLAUDE.md / AGENTS.md static injection
     # -----------------------------------------------------------------------
@@ -285,7 +285,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["context-injection", "claude-md"],
     ),
-
     # -----------------------------------------------------------------------
     # C: BMAD_STYLE — Blueprint→Milestone→Artifact→Delivery structured prompting
     # -----------------------------------------------------------------------
@@ -301,7 +300,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=1,  # one blueprint-review turn
         tags=["bmad", "structured-prompting", "external-scaffold"],
     ),
-
     # -----------------------------------------------------------------------
     # D: OPENSPEC_STYLE — structured REQUIREMENTS.md context
     # -----------------------------------------------------------------------
@@ -317,7 +315,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["openspec", "requirements-driven", "external-scaffold"],
     ),
-
     # -----------------------------------------------------------------------
     # E: SPECSMITH_LIGHT — preflight gate only
     # -----------------------------------------------------------------------
@@ -346,7 +343,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=1,  # preflight turn
         tags=["specsmith", "preflight-only", "light"],
     ),
-
     # -----------------------------------------------------------------------
     # F: SPECSMITH_FULL — complete session (preflight + verify + save)
     # -----------------------------------------------------------------------
@@ -378,13 +374,11 @@ CONDITIONS: list[Condition] = [
         overhead_turns=3,  # audit + preflight + verify/save turns
         tags=["specsmith", "full-governance", "primary"],
     ),
-
     # =======================================================================
     # Real-world tool style conditions (G–L)
     # These represent what agents receive when developers use popular
     # AI coding tools without additional governance scaffolding.
     # =======================================================================
-
     # -----------------------------------------------------------------------
     # G: CURSOR_RULES — Cursor .cursor/rules MDX format
     # -----------------------------------------------------------------------
@@ -401,7 +395,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["cursor", "ide-native", "context-injection", "real-world"],
     ),
-
     # -----------------------------------------------------------------------
     # H: COPILOT_INSTRUCTIONS — GitHub Copilot .github/copilot-instructions.md
     # -----------------------------------------------------------------------
@@ -418,7 +411,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["github-copilot", "ide-native", "context-injection", "real-world"],
     ),
-
     # -----------------------------------------------------------------------
     # I: CODEX_AGENTS_MD — OpenAI Codex CLI AGENTS.md format
     # -----------------------------------------------------------------------
@@ -435,7 +427,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["codex-cli", "openai", "agents-md", "real-world"],
     ),
-
     # -----------------------------------------------------------------------
     # J: CLINE_RULES — Cline .clinerules format
     # -----------------------------------------------------------------------
@@ -452,7 +443,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["cline", "claude-dev", "ide-native", "real-world"],
     ),
-
     # -----------------------------------------------------------------------
     # K: AGILE_TDD — BDD Given/When/Then test-first methodology
     # -----------------------------------------------------------------------
@@ -469,7 +459,6 @@ CONDITIONS: list[Condition] = [
         overhead_turns=1,  # test-writing turn before implementation
         tags=["tdd", "bdd", "agile", "test-first", "real-world"],
     ),
-
     # -----------------------------------------------------------------------
     # L: AIDER_CONVENTIONS — Aider CONVENTIONS.md format
     # -----------------------------------------------------------------------
@@ -486,6 +475,45 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["aider", "conventions-md", "real-world"],
     ),
+    # -----------------------------------------------------------------------
+    # M: SPECSMITH_DISPATCH — specsmith multi-agent DAG dispatch
+    # -----------------------------------------------------------------------
+    Condition(
+        id="SPECSMITH_DISPATCH",
+        name="specsmith DISPATCH (multi-agent DAG)",
+        description=(
+            "Full specsmith governance plus multi-agent parallel dispatch via "
+            "`specsmith dispatch run`. The task is decomposed into a dependency "
+            "DAG: a Planner agent produces subtasks, a pool of Builder agents "
+            "implement them in parallel (predecessor context injected "
+            "automatically), and a Verifier agent runs the quality gate. "
+            "Fail-forward BLOCKED propagation is active. Represents the "
+            "specsmith AgentDispatcher + AgentPool workflow (REQ-321..334)."
+        ),
+        system_prompt_template=textwrap.dedent("""\
+            You are operating under specsmith DISPATCH governance.
+
+            Session protocol:
+            1. specsmith audit --project-dir .          # verify governance health
+            2. specsmith preflight "<change>" --json    # gate the change
+               - decision == "accepted" → note work_item_id, proceed
+               - decision == "needs_clarification" → surface instruction, wait
+            3. Decompose the task into a dependency DAG:
+               - Each node is a self-contained subtask (implement, test, or verify).
+               - Express dependencies explicitly so parallel nodes never conflict.
+            4. specsmith dispatch run --dag dag.yml --project-dir .
+               - Planner node: produce implementation plan
+               - Builder nodes: implement subtasks in parallel
+               - Verifier node: ruff check . && pytest (runs after all builders)
+            5. specsmith save --project-dir .           # commit + ESDB backup
+
+            Never make a code change without an accepted preflight.
+            Never skip the Verifier node — it is the quality gate.
+            Prefer surgical, non-overlapping subtasks to avoid merge conflicts.
+        """),
+        overhead_turns=5,  # audit + preflight + DAG planning + dispatch + verify/save
+        tags=["specsmith", "multi-agent", "dispatch", "dag", "parallel"],
+    ),
 ]
 
 # Lookup by id
@@ -495,8 +523,5 @@ CONDITION_MAP: dict[str, Condition] = {c.id: c for c in CONDITIONS}
 def get_condition(condition_id: str) -> Condition:
     """Return a condition by ID, raising KeyError if not found."""
     if condition_id not in CONDITION_MAP:
-        raise KeyError(
-            f"Unknown condition {condition_id!r}. "
-            f"Available: {list(CONDITION_MAP)}"
-        )
+        raise KeyError(f"Unknown condition {condition_id!r}. Available: {list(CONDITION_MAP)}")
     return CONDITION_MAP[condition_id]
