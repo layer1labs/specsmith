@@ -150,8 +150,15 @@ class SqliteStore:
     """
 
     def __init__(self, project_root: str | Path) -> None:
-        self.root = Path(project_root).resolve()
-        self._db_path = self.root / ".specsmith" / _DB_FILENAME
+        # CodeQL py/path-injection: normalize with os.path.realpath AND assert the
+        # DB path stays within the project root (containment), then store the
+        # sanitised values so the open() sinks (mkdir/connect) receive clean paths.
+        _root = os.path.realpath(str(project_root))
+        _db = os.path.realpath(os.path.join(_root, ".specsmith", _DB_FILENAME))
+        if _db != _root and not _db.startswith(_root + os.sep):
+            raise ValueError(f"Database path escapes project root: {_db!r}")
+        self.root = Path(_root)
+        self._db_path = Path(_db)
         self._conn: sqlite3.Connection | None = None
         self._open: bool = False
 
@@ -415,10 +422,15 @@ class SqliteStore:
         Returns a dict with counts: ``{"requirements": N, "testcases": M, "skipped": K}``.
         Already-present records (by ID) are updated in-place.
         """
-        state_dir = Path(specsmith_dir)
+        # CodeQL py/path-injection: normalize + containment-check each JSON path
+        # before the .exists()/.read_text() sinks below.
+        _state = os.path.realpath(str(specsmith_dir))
         counts: dict[str, int] = {"requirements": 0, "testcases": 0, "skipped": 0}
 
-        req_path = state_dir / "requirements.json"
+        _req = os.path.realpath(os.path.join(_state, "requirements.json"))
+        if _req != _state and not _req.startswith(_state + os.sep):
+            raise ValueError(f"Path escapes state directory: {_req!r}")
+        req_path = Path(_req)
         if req_path.exists():
             try:
                 reqs = json.loads(req_path.read_text(encoding="utf-8"))
@@ -439,7 +451,10 @@ class SqliteStore:
             except (OSError, ValueError):
                 counts["skipped"] += 1  # file unreadable or invalid JSON
 
-        test_path = state_dir / "testcases.json"
+        _test = os.path.realpath(os.path.join(_state, "testcases.json"))
+        if _test != _state and not _test.startswith(_state + os.sep):
+            raise ValueError(f"Path escapes state directory: {_test!r}")
+        test_path = Path(_test)
         if test_path.exists():
             try:
                 tests = json.loads(test_path.read_text(encoding="utf-8"))

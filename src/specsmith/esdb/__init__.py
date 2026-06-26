@@ -136,7 +136,10 @@ def open_default_store(
 
     from pathlib import Path
 
-    root = Path(str(project_root)).resolve()
+    # CodeQL py/path-injection: use os.path.realpath (recognised normaliser);
+    # the filesystem-path containment checks live in SqliteStore.__init__ and
+    # _maybe_promote_sqlite_to_chrono where the actual sinks are.
+    root = Path(_os.path.realpath(str(project_root)))
 
     # Priority 1: explicit override
     if _os.environ.get("SPECSMITH_ESDB_BACKEND", "").strip().lower() == "sqlite":
@@ -172,7 +175,11 @@ def _maybe_promote_sqlite_to_chrono(root: "object", chrono: "object") -> None:
     from pathlib import Path as _Path
 
     try:
-        sqlite_path = _Path(str(root)) / ".specsmith" / "esdb.sqlite3"
+        _r = os.path.realpath(str(root))
+        _sp = os.path.realpath(os.path.join(_r, ".specsmith", "esdb.sqlite3"))
+        if _sp != _r and not _sp.startswith(_r + os.sep):
+            return
+        sqlite_path = _Path(_sp)
         if not sqlite_path.exists():
             return
 

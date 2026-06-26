@@ -98,10 +98,23 @@ def run_preflight(
     # traces the py/path-injection sanitiser inline; selecting between two
     # already-sanitised Paths does not re-taint.  infer_scope handles a
     # non-existent path gracefully (returns an empty scope).
-    _req_md_docs = Path(os.path.realpath(os.path.join(_safe_root, "docs", "REQUIREMENTS.md")))
-    _req_md_root = Path(os.path.realpath(os.path.join(_safe_root, "REQUIREMENTS.md")))
+    # CodeQL py/path-injection requires normalize (realpath) AND containment
+    # (startswith root), not normalization alone. Build each candidate as a
+    # realpath string, assert it stays within _safe_root, then wrap in Path so
+    # the sanitised value flows into infer_scope() and the .is_file() sinks.
+    _docs_str = os.path.realpath(os.path.join(_safe_root, "docs", "REQUIREMENTS.md"))
+    if _docs_str != _safe_root and not _docs_str.startswith(_safe_root + os.sep):
+        raise ValueError(f"Path escapes project root: {_docs_str!r}")
+    _root_md_str = os.path.realpath(os.path.join(_safe_root, "REQUIREMENTS.md"))
+    if _root_md_str != _safe_root and not _root_md_str.startswith(_safe_root + os.sep):
+        raise ValueError(f"Path escapes project root: {_root_md_str!r}")
+    _repo_idx_str = os.path.realpath(os.path.join(_safe_root, ".repo-index", "files.json"))
+    if _repo_idx_str != _safe_root and not _repo_idx_str.startswith(_safe_root + os.sep):
+        raise ValueError(f"Path escapes project root: {_repo_idx_str!r}")
+    _req_md_docs = Path(_docs_str)
+    _req_md_root = Path(_root_md_str)
     _req_md = _req_md_docs if _req_md_docs.is_file() else _req_md_root
-    _repo_idx = Path(os.path.realpath(os.path.join(_safe_root, ".repo-index", "files.json")))
+    _repo_idx = Path(_repo_idx_str)
     scope = infer_scope(
         utterance,
         _req_md,
@@ -122,7 +135,10 @@ def run_preflight(
     # Read requirements machine-state using os.path.join on the clean _root_str
     # so CodeQL traces the full sanitisation chain without re-tainting via Path.
     rq_records: list[Any] = []
-    rq_path = Path(os.path.realpath(os.path.join(_safe_root, ".specsmith", "requirements.json")))
+    rq_str = os.path.realpath(os.path.join(_safe_root, ".specsmith", "requirements.json"))
+    if rq_str != _safe_root and not rq_str.startswith(_safe_root + os.sep):
+        raise ValueError(f"Path escapes project root: {rq_str!r}")
+    rq_path = Path(rq_str)
     if rq_path.is_file():
         try:
             _rq = _json.loads(rq_path.read_text(encoding="utf-8"))
@@ -139,7 +155,10 @@ def run_preflight(
     # Read test-case machine-state (same rationale as above).
     test_case_ids: list[str] = []
     tc_records: list[Any] = []
-    tc_path = Path(os.path.realpath(os.path.join(_safe_root, ".specsmith", "testcases.json")))
+    tc_str = os.path.realpath(os.path.join(_safe_root, ".specsmith", "testcases.json"))
+    if tc_str != _safe_root and not tc_str.startswith(_safe_root + os.sep):
+        raise ValueError(f"Path escapes project root: {tc_str!r}")
+    tc_path = Path(tc_str)
     if tc_path.is_file():
         try:
             _tc = _json.loads(tc_path.read_text(encoding="utf-8"))
