@@ -394,7 +394,7 @@ class AgentRunner:
                     lines.append(f"    {s.icon} {s.name:<10} \u2717 {s.note}")
             lines.append("")
             if active_count == 0:
-                lines.append("  \u26a0  No provider available — commands will return no response.")
+                lines.append("  \u26a0  No provider available \u2014 commands will return no response.")
             else:
                 # Show multi-model routing if the router is configured (REQ-389).
                 if self._model_router is not None:
@@ -568,6 +568,28 @@ class AgentRunner:
         if result is None:
             # All providers failed — give the user an actionable explanation
             # rather than silent emptiness.
+            host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
+            if _ollama_alive(host):
+                model = _pick_ollama_model(host)
+                hint = (
+                    f"Ollama is running but returned no response "
+                    f"(model: {model}). "
+                    "Try: ollama run " + model
+                )
+            else:
+                hint = (
+                    "No LLM provider available. Options:\n"
+                    "  • Start Ollama: ollama serve\n"
+                    "  • Set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY"
+                )
+            self._emit_event(type="system", message=hint)
+            return None
+
+        if result is None:
+            # All providers failed — give the user an actionable explanation
+            # rather than silent emptiness.
+            import os as _os
+
             host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
             if _ollama_alive(host):
                 model = _pick_ollama_model(host)
