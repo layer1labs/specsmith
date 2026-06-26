@@ -117,6 +117,7 @@ class _MigrationRegistry:
             m007_yaml_first,
             m008_esdb_full_coverage,
             m009_esdb_first,
+            m010_post_esdb_cleanup,
         )
 
         instances: list[Migration] = [
@@ -129,6 +130,7 @@ class _MigrationRegistry:
             m007_yaml_first.YamlFirstMigration(),
             m008_esdb_full_coverage.EsdbFullCoverageMigration(),
             m009_esdb_first.EsdbFirstMigration(),
+            m010_post_esdb_cleanup.PostEsdbCleanupMigration(),
         ]
         instances.sort(key=lambda m: m.version)
         self._migrations = instances
