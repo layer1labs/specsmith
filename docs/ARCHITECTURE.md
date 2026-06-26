@@ -598,7 +598,7 @@ Specsmith writes the following record kinds into ESDB via `src/specsmith/esdb_wr
 
 | Kind | Writer | id scheme | Active when | Tombstone when |
 |---|---|---|---|---|
-| `preflight_decision` | `write_preflight_record()` | work_item_id | decision accepted | verify equilibrium reached |
+| `preflight_decision` | `write_preflight_record()` | `PF-{work_item_id}` | decision accepted | verify equilibrium reached |
 | `verify_result` | `write_verify_record()` | `VERIFY-{wi_id}` | equilibrium reached (conf≥0.85) | verify failed (conf<0.5) |
 | `work_item` | `_sync_to_esdb()` in wi_store | wi.id | status = open / implemented | status = promoted / closed / archived / rejected |
 | `ledger_event` | M008 backfill only | `LEDGER-{event_id}` | always active | never (audit trail) |
@@ -1074,7 +1074,7 @@ Specsmith v0.17+ writes all governance state transitions directly to ESDB so tha
 ### Write path
 `esdb_writer.py` centralises all ESDB writes. Every function is best-effort (`try/except` — never blocks the caller). It resolves the active store with `open_default_store(root)` and works identically with the SQLite backend and ChronoStore:
 
-- `write_preflight_record(root, payload)` — called by `governance_logic.run_preflight()` after work item is persisted. Stores `preflight_decision` with confidence from the payload's `confidence_target` and source_ids = matched requirement IDs.
+- `write_preflight_record(root, payload)` — called by `governance_logic.run_preflight()` after work item is persisted. Stores `preflight_decision` with id=`PF-{work_item_id}` (prefixed to avoid id collision with the `work_item` record), confidence from the payload's `confidence_target`, and source_ids = matched requirement IDs.
 - `write_verify_record(root, result)` — called by `governance_logic.run_verify()` after `mark_implemented()`. Confidence 0.85 on equilibrium, 0.40 on failure. Tombstones the corresponding `preflight_decision` on equilibrium.
 - `write_work_item_record(root, wi)` — called by `wi_store._sync_to_esdb()` on every WI mutation (`create`, `set_status`, `mark_implemented`, `promote_to_req`). Maps WI status to ESDB status: open/implemented → active; terminal states → tombstone.
 

@@ -194,3 +194,9 @@
 - **Type**: task
 - **Status**: complete
 - **Chain hash**: `1e9d9f99eb4f4088...`
+
+## 2026-06-25T20:44 — wi_archive WI-C6FAA737: ESDB full coverage implemented and verified: TEST-404..411 and tests in test_esdb_writer.py + test_esdb_integration.py cover REQ-395..402.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `0ca9ac14a5f3fcbd...`

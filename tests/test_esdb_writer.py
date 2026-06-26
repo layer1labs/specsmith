@@ -111,9 +111,9 @@ def test_write_preflight_record_sqlite(tmp_project: Path) -> None:
     assert result is True
 
     with SqliteStore(tmp_project) as store:
-        rec = store.get("WI-AABBCCDD")
+        rec = store.get("PF-WI-AABBCCDD")
 
-    assert rec is not None, "Expected a record with id='WI-AABBCCDD'"
+    assert rec is not None, "Expected a record with id='PF-WI-AABBCCDD'"
     assert rec.kind == "preflight_decision"
     assert rec.status == "active"
     assert rec.confidence == pytest.approx(0.75)
@@ -171,7 +171,7 @@ def test_write_verify_record_tombstones_preflight_on_equilibrium(tmp_project: Pa
     write_verify_record(tmp_project, _make_verify_result(equilibrium=True))
 
     with SqliteStore(tmp_project) as store:
-        pf = store.get("WI-AABBCCDD")
+        pf = store.get("PF-WI-AABBCCDD")
 
     # After equilibrium, the preflight record should be tombstoned
     assert pf is not None
@@ -187,7 +187,7 @@ def test_write_verify_record_no_tombstone_without_equilibrium(tmp_project: Path)
     write_verify_record(tmp_project, _make_verify_result(equilibrium=False))
 
     with SqliteStore(tmp_project) as store:
-        pf = store.get("WI-AABBCCDD")
+        pf = store.get("PF-WI-AABBCCDD")
 
     assert pf is not None
     assert pf.status == "active"

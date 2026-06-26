@@ -298,7 +298,7 @@ Every write is best-effort (try/except BLE001 — never blocks the caller).
 
 | Kind | Writer function | Caller | id scheme |
 |---|---|---|---|
-| `preflight_decision` | `write_preflight_record(root, payload)` | `governance_logic.run_preflight()` | work_item_id |
+| `preflight_decision` | `write_preflight_record(root, payload)` | `governance_logic.run_preflight()` | `PF-{work_item_id}` |
 | `verify_result` | `write_verify_record(root, result)` | `governance_logic.run_verify()` | `VERIFY-{wi_id}` |
 | `work_item` | `write_work_item_record(root, wi)` | `wi_store._sync_to_esdb()` | wi.id |
 | `ledger_event` | M008 backfill | one-time migration | `LEDGER-{event_id}` |

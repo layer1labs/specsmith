@@ -3884,7 +3884,9 @@
     "description": "A centralised best-effort ESDB write API at specsmith.esdb_writer provides write_preflight_record(), write_verify_record(), and write_work_item_record(). All functions use open_default_store() and are wrapped in try/except so they never block their callers on store failures.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-404"
+    ]
   },
   {
     "id": "REQ-396",
@@ -3893,7 +3895,9 @@
     "description": "run_preflight() must upsert a kind=\"preflight_decision\" ESDB record for every accepted preflight that mints a work_item_id. Record id = work_item_id, label = utterance, confidence = confidence_target, source_ids = requirement_ids, data includes decision, intent, and work_item_id.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-405"
+    ]
   },
   {
     "id": "REQ-397",
@@ -3902,7 +3906,9 @@
     "description": "run_verify() must upsert a kind=\"verify_result\" ESDB record after each verification run. Record id = \"VERIFY-{work_item_id}\", confidence = result confidence (0.85 on equilibrium, 0.4 otherwise), source_ids = [work_item_id], data includes equilibrium, retry_strategy, files_changed count. When equilibrium is reached the corresponding preflight_decision record is marked status=\"implemented\" (tombstoned in ChronoStore).\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-406"
+    ]
   },
   {
     "id": "REQ-398",
@@ -3911,7 +3917,9 @@
     "description": "WorkItemStore.create(), set_status(), mark_implemented(), and promote_to_req() must each upsert a kind=\"work_item\" ESDB record via esdb_writer.write_work_item_record(). ESDB status maps: open/implemented → active; promoted/closed/archived/rejected → tombstone. source_ids contains requirement_ids and test_case_ids from the WI.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-407"
+    ]
   },
   {
     "id": "REQ-399",
@@ -3920,7 +3928,9 @@
     "description": "build_context_seed() must query ESDB by kind rather than returning the last N records by insertion order. It must separately query preflight_decision (last 10, confidence>=0.6), verify_result (last 5, confidence>=0.6), and work_item (last 5 active). The char budget is raised from 8000 to 12000 to accommodate the richer context. Records are deduplicated and formatted compactly.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-408"
+    ]
   },
   {
     "id": "REQ-400",
@@ -3929,7 +3939,9 @@
     "description": "ContextOrchestrator._evict_low_confidence_records() must actually write back to the store: for SqliteStore call store.delete(rec.id) (tombstone); for ChronoStore call store.invalidate() or tombstone. The method must return the count of records actually tombstoned, not just counted.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-409"
+    ]
   },
   {
     "id": "REQ-401",
@@ -3938,7 +3950,9 @@
     "description": "Migration version 8 (m008_esdb_full_coverage) backfills existing flat JSON state into ESDB on first run: reads workitems.json and upserts each WI as kind=\"work_item\"; reads SQLite audit_events and upserts each as kind=\"ledger_event\". Idempotent via .specsmith/esdb-full-coverage marker file. Runs automatically via specsmith migrate run.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-410"
+    ]
   },
   {
     "id": "REQ-402",
@@ -3947,6 +3961,8 @@
     "description": "ARCHITECTURE.md section 19 (ChronoMemory ESDB) must include a complete record kinds table (preflight_decision, verify_result, work_item, ledger_event, compliance_evidence, dispatch_result) with write-source for each kind. The chronomemory-esdb governance skill must include the same table plus write-path code examples for specsmith-internal callers.\n",
     "source": "architecture",
     "status": "accepted",
-    "test_ids": []
+    "test_ids": [
+      "TEST-411"
+    ]
   }
 ]

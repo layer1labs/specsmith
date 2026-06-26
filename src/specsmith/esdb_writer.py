@@ -77,8 +77,9 @@ def write_preflight_record(
         from specsmith.esdb import SqliteRecord, open_default_store
 
         root = Path(project_root)
+        pf_id = f"PF-{work_item_id}"
         record = SqliteRecord(
-            id=work_item_id,
+            id=pf_id,
             kind="preflight_decision",
             status="active",
             label=str(payload.get("instruction", payload.get("intent", "")))[:200],
@@ -154,9 +155,10 @@ def write_verify_record(
             # When equilibrium reached, tombstone the preflight_decision record
             # so context seed knows this WI is complete.
             if equilibrium and work_item_id:
-                existing = store.get(work_item_id)
+                pf_id = f"PF-{work_item_id}"
+                existing = store.get(pf_id)
                 if existing is not None and existing.kind == "preflight_decision":
-                    store.delete(work_item_id)
+                    store.delete(pf_id)
         return True
     except Exception:  # noqa: BLE001 — best-effort
         return False
