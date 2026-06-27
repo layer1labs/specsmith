@@ -587,28 +587,6 @@ class AgentRunner:
             self._emit_event(type="system", message=hint)
             return None
 
-        if result is None:
-            # All providers failed — give the user an actionable explanation
-            # rather than silent emptiness.
-            import os as _os
-
-            host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
-            if _ollama_alive(host):
-                model = _pick_ollama_model(host)
-                hint = (
-                    f"Ollama is running but returned no response "
-                    f"(model: {model}). "
-                    "Try: ollama run " + model
-                )
-            else:
-                hint = (
-                    "No LLM provider available. Options:\n"
-                    "  • Start Ollama: ollama serve\n"
-                    "  • Set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY"
-                )
-            self._emit_event(type="system", message=hint)
-            return None
-
         # Aggregate metrics into the session state (C1).
         # ``run_chat`` now reports tokens_in / tokens_out / cost_usd off the
         # provider response (Ollama prompt_eval_count + eval_count, OpenAI

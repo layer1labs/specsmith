@@ -24,6 +24,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest import mock
 
+import specsmith.esdb_writer as _esdb_mod
+
 from specsmith.agent.core import AgentState
 from specsmith.agent.dispatch import (
     AgentPool,
@@ -303,8 +305,6 @@ class TestTokenMetricPerNode:
     """write_token_metric should be called once per completed node when tokens > 0."""
 
     def test_write_token_metric_called_per_completed_node(self, tmp_path: Path) -> None:
-        import specsmith.esdb_writer as _esdb_mod
-
         calls: list[dict] = []
 
         def _fake_write(project_dir, **kwargs):
@@ -332,22 +332,10 @@ class TestTokenMetricPerNode:
         calls: list[dict] = []
 
         with mock.patch("specsmith.esdb_writer.write_token_metric", side_effect=calls.append):
-            # Simulate a node completing with no tokens (shouldn't write)
             # The runner guards with: if tokens_in or tokens_out: write_token_metric(...)
-            tokens_in = 0
-            tokens_out = 0
-            if tokens_in or tokens_out:  # matches runner.py guard
-                from specsmith.esdb_writer import write_token_metric
-
-                write_token_metric(
-                    tmp_path,
-                    input_tokens=tokens_in,
-                    output_tokens=tokens_out,
-                    cost_usd=0.0,
-                    model="",
-                    command_source="no-token-node",
-                    work_item_id="",
-                )
+            # Zero-token nodes never satisfy the guard; write_token_metric is not called.
+            tokens_in, tokens_out = 0, 0
+            assert not (tokens_in or tokens_out), "tokens must be zero to exercise the guard"
         assert calls == [], "No ESDB write should occur for zero-token nodes"
 
 
