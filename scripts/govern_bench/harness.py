@@ -23,6 +23,7 @@ Environment variables:
     OPENAI_API_KEY             required for provider=openai
     ANTHROPIC_API_KEY          required for provider=anthropic
     GOOGLE_API_KEY             required for provider=google
+    HF_TOKEN                   required for provider=huggingface (Inference API token)
     BENCH_OPENAI_BASE_URL      required for provider=openai-compat unless --base-url is set
     BENCH_OPENAI_COMPAT_API_KEY optional auth key for provider=openai-compat
     BENCH_MAX_TURNS            max agent turns per run (default: 12)
@@ -59,7 +60,10 @@ _SPECSMITH_DIR = Path(__file__).parent.parent.parent  # repo root
 
 MAX_TURNS_DEFAULT = 12
 MAX_FILE_BYTES = 32_000  # truncate very large files when reading
-SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat")
+SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat", "huggingface")
+
+# HuggingFace Inference API — OpenAI-compatible endpoint
+_HF_INFERENCE_BASE_URL = "https://api-inference.huggingface.co/v1/"
 RUN_COMMAND_ALLOWLIST = ("ruff check .", "pytest", "ruff check . && pytest")
 
 
@@ -159,7 +163,7 @@ def _openai_completion_token_param(model: str) -> dict[str, int]:
 
 def _completion_token_param(provider: str, model: str) -> dict[str, int]:
     """Return the provider-specific completion token parameter map."""
-    if provider in ("openai", "openai-compat"):
+    if provider in ("openai", "openai-compat", "huggingface"):
         return _openai_completion_token_param(model)
     if provider == "anthropic":
         return {"max_tokens": 4096}
@@ -732,6 +736,25 @@ def _build_provider_client(provider: str, base_url: str | None = None) -> tuple[
             raise RuntimeError("GOOGLE_API_KEY environment variable not set for provider=google")
         return provider_key, {"api_key": api_key}
 
+    if provider_key == "huggingface":
+        try:
+            import openai  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "openai package not installed; pip install openai to use provider=huggingface"
+            ) from exc
+        hf_token = os.environ.get("HF_TOKEN", "")
+        if not hf_token:
+            raise RuntimeError(
+                "HF_TOKEN environment variable not set for provider=huggingface. "
+                "Get a token at https://huggingface.co/settings/tokens"
+            )
+        # HF Inference API is OpenAI-compatible; we just point the OpenAI client at it.
+        return "openai-compat", openai.OpenAI(
+            api_key=hf_token,
+            base_url=_HF_INFERENCE_BASE_URL,
+        )
+
     raise RuntimeError(f"Unsupported provider: {provider_key}")
 
 
@@ -1098,6 +1121,8 @@ def _call_llm(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]],
 ) -> NormalizedLLMResponse:
+    # huggingface is normalised to "openai-compat" by _build_provider_client;
+    # both route through the same OpenAI-compatible call path.
     if provider in ("openai", "openai-compat"):
         return _call_openai_provider(provider, client, model, messages, tools)
     if provider == "anthropic":

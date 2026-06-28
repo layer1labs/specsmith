@@ -90,17 +90,22 @@ jobs:
   # ──────────────────────────────────────────────────────────────────────────
   # bench-matrix — full tier × provider matrix
   #
-  # Tier breakdown (10 models, 3 providers):
-  #   nano     : gpt-4.1-nano                        (openai)
-  #   mini     : gpt-4o-mini                         (openai)
-  #              claude-haiku-4-5                    (anthropic)
-  #              gemini-2.0-flash                    (google)
-  #   mid      : gpt-4.1                             (openai)
-  #              claude-sonnet-4-5                   (anthropic)
-  #              gemini-2.5-flash                    (google)
-  #   frontier : gpt-5.5                             (openai)
-  #              claude-opus-4-5                     (anthropic)
-  #              gemini-2.5-pro                      (google)
+  # Tier breakdown (15 models, 4 providers):
+  #   nano        : gpt-4.1-nano                        (openai)
+  #   mini        : gpt-4o-mini                         (openai)
+  #                 claude-haiku-4-5                    (anthropic)
+  #                 gemini-2.0-flash                    (google)
+  #   mid         : gpt-4.1                             (openai)
+  #                 claude-sonnet-4-5                   (anthropic)
+  #                 gemini-2.5-flash                    (google)
+  #   frontier    : gpt-5.5                             (openai)
+  #                 claude-opus-4-5                     (anthropic)
+  #                 gemini-2.5-pro                      (google)
+  #   open_source : Qwen2.5-7B-Instruct                 (huggingface)
+  #                 Qwen2.5-72B-Instruct                (huggingface)
+  #                 Llama-3.1-8B-Instruct               (huggingface)
+  #                 Llama-3.3-70B-Instruct              (huggingface)
+  #                 Mistral-7B-Instruct-v0.3            (huggingface)
   #
   # Jobs that lack an API key secret skip gracefully (continue-on-error).
   # ──────────────────────────────────────────────────────────────────────────
@@ -125,10 +130,16 @@ jobs:
           - { provider: openai,     model: gpt-4.1,            tier: mid      }
           - { provider: anthropic,  model: claude-sonnet-4-5,  tier: mid      }
           - { provider: google,     model: gemini-2.5-flash,   tier: mid      }
-          # ── frontier ──────────────────────────────────────────────────────
-          - { provider: openai,     model: gpt-5.5,            tier: frontier }
-          - { provider: anthropic,  model: claude-opus-4-5,    tier: frontier }
-          - { provider: google,     model: gemini-2.5-pro,     tier: frontier }
+          # ── frontier ──────────────────────────────────────────────────────────
+          - { provider: openai,     model: gpt-5.5,            tier: frontier    }
+          - { provider: anthropic,  model: claude-opus-4-5,    tier: frontier    }
+          - { provider: google,     model: gemini-2.5-pro,     tier: frontier    }
+          # ── open_source (via HuggingFace Inference API) ───────────────────────
+          - { provider: huggingface, model: "Qwen/Qwen2.5-7B-Instruct",          tier: open_source }
+          - { provider: huggingface, model: "Qwen/Qwen2.5-72B-Instruct",         tier: open_source }
+          - { provider: huggingface, model: "meta-llama/Llama-3.1-8B-Instruct",  tier: open_source }
+          - { provider: huggingface, model: "meta-llama/Llama-3.3-70B-Instruct", tier: open_source }
+          - { provider: huggingface, model: "mistralai/Mistral-7B-Instruct-v0.3", tier: open_source }
 
     steps:
       - uses: actions/checkout@v6
@@ -147,9 +158,10 @@ jobs:
       - name: Install provider SDK
         run: |
           case "${{ matrix.provider }}" in
-            openai)    pip install openai ;;
-            anthropic) pip install anthropic ;;
-            google)    pip install google-generativeai ;;
+            openai)       pip install openai ;;
+            anthropic)    pip install anthropic ;;
+            google)       pip install google-generativeai ;;
+            huggingface)  pip install openai ;;  # HF Inference API is OpenAI-compatible
           esac
 
       - name: Check API key available
@@ -158,11 +170,13 @@ jobs:
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
+          HF_TOKEN:          ${{ secrets.HF_TOKEN }}
         run: |
           case "${{ matrix.provider }}" in
-            openai)    [ -n "$OPENAI_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
-            anthropic) [ -n "$ANTHROPIC_API_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
-            google)    [ -n "$GOOGLE_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            openai)       [ -n "$OPENAI_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            anthropic)    [ -n "$ANTHROPIC_API_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            google)       [ -n "$GOOGLE_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            huggingface)  [ -n "$HF_TOKEN" ]          && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
           esac
 
       - name: Skip — no API key configured
@@ -187,6 +201,7 @@ jobs:
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
+          HF_TOKEN:          ${{ secrets.HF_TOKEN }}
           BENCH_DRY_RUN:     ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
           BENCH_MAX_TURNS:   "12"
         run: |
@@ -249,6 +264,11 @@ jobs:
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2.5-7B-Instruct-${{ github.run_id }}",          path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2.5-72B-Instruct-${{ github.run_id }}",         path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3.1-8B-Instruct-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3.3-70B-Instruct-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0.3-${{ github.run_id }}", path: results/}}
 
       - name: Generate unified tier comparison report
         run: |
@@ -301,8 +321,8 @@ jobs:
           echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tasks | ${{ github.event.inputs.tasks || 'T1,T2,T6,T7,T10,T11,T13' }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Reps  | ${{ github.event.inputs.reps || '2' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tiers | nano · mini · mid · frontier |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Models (10) | gpt-4.1-nano · gpt-4o-mini · gpt-4.1 · gpt-5.5 · claude-haiku-4-5 · claude-sonnet-4-5 · claude-opus-4-5 · gemini-2.0-flash · gemini-2.5-flash · gemini-2.5-pro |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tiers | nano · mini · mid · frontier · open_source |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Models (15) | gpt-4.1-nano · gpt-4o-mini · gpt-4.1 · gpt-5.5 · claude-haiku-4-5 · claude-sonnet-4-5 · claude-opus-4-5 · gemini-2.0-flash · gemini-2.5-flash · gemini-2.5-pro · Qwen2.5-7B · Qwen2.5-72B · Llama-3.1-8B · Llama-3.3-70B · Mistral-7B |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/site/model-comparison.md ]; then
             python -c "import re,pathlib; c=pathlib.Path('docs/site/model-comparison.md').read_text(); m=re.search(r'## Headline findings.*',c,re.DOTALL); print(m.group()[:3000] if m else '')" >> "$GITHUB_STEP_SUMMARY"
