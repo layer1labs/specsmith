@@ -24,7 +24,7 @@ from __future__ import annotations
 import contextlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, cast
 
@@ -183,6 +183,11 @@ def parse_tests_md(text: str) -> list[dict[str, Any]]:
 
 
 @dataclass
+class SyncWarning:
+    message: str
+
+
+@dataclass
 class SyncResult:
     reqs_before: int
     reqs_after: int
@@ -191,6 +196,7 @@ class SyncResult:
     reqs_changed: bool
     tests_changed: bool
     dry_run: bool
+    warnings: list[SyncWarning] = field(default_factory=list)
 
     @property
     def changed(self) -> bool:
@@ -436,6 +442,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     tests_md_path = root / "docs" / "TESTS.md"
     reqs_json_path = state_dir / "requirements.json"
     tests_json_path = state_dir / "testcases.json"
+    sync_warnings: list[SyncWarning] = []
     if not dry_run:
         normalize_esdb_gitignore_policy(root)
 
@@ -443,6 +450,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         # ── YAML-first mode ─────────────────────────────────────────────────
         new_reqs = load_yaml_requirements(root)
         new_tests = load_yaml_tests(root)
+        yaml_req_ids = {str(r["id"]) for r in new_reqs if str(r.get("id", "")).strip()}
+        yaml_test_ids = {str(t["id"]) for t in new_tests if str(t.get("id", "")).strip()}
 
         # REQ-358: If YAML mode has no YAML files but REQUIREMENTS.md has content,
         # fall back to Markdown parsing rather than silently producing an empty state.
@@ -499,6 +508,36 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
             }
             for t in new_tests
         ]
+        if reqs_md_path.exists():
+            reqs_md_ids = {
+                r["id"]
+                for r in parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
+                if str(r.get("id", "")).strip()
+            }
+            for req_id in sorted(reqs_md_ids - yaml_req_ids):
+                sync_warnings.append(
+                    SyncWarning(
+                        message=(
+                            f"{req_id} found in docs/REQUIREMENTS.md but missing from "
+                            "docs/requirements/*.yml — add it to a YAML file and re-run sync."
+                        )
+                    )
+                )
+        if tests_md_path.exists():
+            tests_md_ids = {
+                t["id"]
+                for t in parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+                if str(t.get("id", "")).strip()
+            }
+            for test_id in sorted(tests_md_ids - yaml_test_ids):
+                sync_warnings.append(
+                    SyncWarning(
+                        message=(
+                            f"{test_id} found in docs/TESTS.md but missing from "
+                            "docs/tests/*.yml — add it to a YAML file and re-run sync."
+                        )
+                    )
+                )
     else:
         # ── Legacy Markdown mode (DEPRECATED — REQ-373) ──────────────────────
         # Markdown mode will be removed in a future release.
@@ -614,6 +653,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         reqs_changed=reqs_changed,
         tests_changed=tests_changed,
         dry_run=dry_run,
+        warnings=sync_warnings,
     )
 
 
