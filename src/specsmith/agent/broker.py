@@ -331,6 +331,7 @@ def infer_scope(
     repo_index_path: Path | None = None,
     *,
     top_k: int = 3,
+    min_score: float = 0.15,
 ) -> ScopeProposal:
     """Infer the project scope affected by a natural-language utterance.
 
@@ -354,6 +355,7 @@ def infer_scope(
         denom = max(1, min(len(tokens), len(req_tokens)))
         scored.append((overlap / denom, req))
     scored.sort(key=lambda x: -x[0])
+    scored = [(s, r) for s, r in scored if s >= min_score]
     top_reqs = [r for _, r in scored[:top_k]]
 
     # File matches from .repo-index/files.json (best-effort, optional).
