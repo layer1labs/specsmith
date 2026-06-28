@@ -813,14 +813,30 @@ class TestPreflightWiring:
         assert wi is not None
         assert wi.status == "open"
 
-    def test_needs_clarification_does_not_create_wi(self, tmp_path: Path) -> None:
+    def test_needs_clarification_destructive_creates_wi(self, tmp_path: Path) -> None:
+        """REQ-431: DESTRUCTIVE needs_clarification now allocates a WI so the user
+        can pass --work-item to approve/preflight on retry."""
         from specsmith.governance_logic import run_preflight
 
-        # Destructive intent → needs_clarification (no WI minted)
         result = run_preflight("delete all the files", project_dir=str(tmp_path))
         assert result["decision"] == "needs_clarification"
-        assert result["work_item_id"] == ""
-        assert WorkItemStore(tmp_path).load() == []
+        # REQ-431: WI IS now minted for DESTRUCTIVE intents on needs_clarification
+        assert result["work_item_id"].startswith("WI-")
+        wi = WorkItemStore(tmp_path).get(result["work_item_id"])
+        assert wi is not None
+        assert wi.status == "open"
+
+    def test_needs_clarification_scope_creep_does_not_create_wi(self, tmp_path: Path) -> None:
+        """Non-DESTRUCTIVE/non-RELEASE needs_clarification still produces no WI."""
+        from specsmith.governance_logic import run_preflight
+
+        # Ambiguous scope-creep CHANGE with no seed requirements → needs_clarification
+        # but NOT a DESTRUCTIVE/RELEASE intent, so no WI is minted.
+        result = run_preflight("refactor everything", project_dir=str(tmp_path))
+        # Intent is CHANGE; empty scope → needs_clarification; no WI allocated
+        if result["decision"] == "needs_clarification":
+            assert result["work_item_id"] == ""
+            assert WorkItemStore(tmp_path).load() == []
 
     def test_preflight_wi_carries_confidence_target(self, tmp_path: Path) -> None:
         from specsmith.governance_logic import run_preflight
