@@ -15,6 +15,14 @@ except ImportError:  # noqa: BLE001  # intentional: soft import, raise clearly b
     yaml = None  # type: ignore[assignment]
 
 TASKS_DIR = Path(__file__).parent / "tasks"
+PROJECT_SUBDIR_MAP: dict[str, str] = {
+    "agentic-todo-api": "todo_api",
+    "agentic-cli-tool": "cli_tool",
+    "agentic-data-pipeline": "data_pipeline",
+    "agentic-verilog-module": "verilog_module",
+    "agentic-shell-scripts": "shell_scripts",
+    "agentic-patent-draft": "patent_draft",
+}
 
 
 @dataclass
@@ -49,8 +57,15 @@ class BenchTask:
     def from_dict(cls, data: dict) -> BenchTask:
         """Construct a BenchTask from a parsed YAML dict."""
         # Required fields
-        required = ("id", "title", "category", "difficulty", "project",
-                    "task_prompt", "acceptance_criteria")
+        required = (
+            "id",
+            "title",
+            "category",
+            "difficulty",
+            "project",
+            "task_prompt",
+            "acceptance_criteria",
+        )
         missing = [k for k in required if k not in data]
         if missing:
             raise ValueError(f"Task YAML missing required fields: {missing}")
@@ -93,6 +108,26 @@ class BenchTask:
     def uses_cli_tool(self) -> bool:
         return self.project == "agentic-cli-tool"
 
+    @property
+    def uses_data_pipeline(self) -> bool:
+        return self.project == "agentic-data-pipeline"
+
+    @property
+    def uses_verilog_module(self) -> bool:
+        return self.project == "agentic-verilog-module"
+
+    @property
+    def uses_shell_scripts(self) -> bool:
+        return self.project == "agentic-shell-scripts"
+
+    @property
+    def uses_patent_draft(self) -> bool:
+        return self.project == "agentic-patent-draft"
+
+    @property
+    def project_subdir(self) -> str:
+        return PROJECT_SUBDIR_MAP.get(self.project, "")
+
 
 def load_all_tasks(tasks_dir: Path | None = None) -> list[BenchTask]:
     """Load all benchmark tasks from tasks/*.yml.
@@ -101,8 +136,7 @@ def load_all_tasks(tasks_dir: Path | None = None) -> list[BenchTask]:
     """
     if yaml is None:
         raise ImportError(
-            "PyYAML is required to load task definitions. "
-            "Install it with: pip install pyyaml"
+            "PyYAML is required to load task definitions. Install it with: pip install pyyaml"
         )
 
     directory = tasks_dir or TASKS_DIR
@@ -127,9 +161,7 @@ def get_task(task_id: str, tasks_dir: Path | None = None) -> BenchTask:
     all_tasks = load_all_tasks(tasks_dir)
     task_map = {t.id: t for t in all_tasks}
     if task_id not in task_map:
-        raise KeyError(
-            f"Task {task_id!r} not found. Available: {sorted(task_map)}"
-        )
+        raise KeyError(f"Task {task_id!r} not found. Available: {sorted(task_map)}")
     return task_map[task_id]
 
 

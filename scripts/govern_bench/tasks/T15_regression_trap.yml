@@ -1,0 +1,54 @@
+# T15 — Cache regression trap
+
+id: T15
+title: "Add GET /todos cache layer without stale-read regressions"
+category: feature_addition
+difficulty: medium_hard
+project: agentic-todo-api
+estimated_tokens_ungoverned: 5000
+estimated_tokens_specsmith_full: 6900
+
+task_prompt: |
+  Add a lightweight in-memory cache for GET /todos to reduce repeated read cost.
+
+  Requirements:
+  - Cache key must include all query parameters used by the endpoint
+  - Cache must be invalidated on POST, PATCH, and DELETE mutations
+  - Cached responses must preserve response schema and ordering
+  - Include tests that prove stale data is not returned after a mutation
+
+acceptance_criteria: |
+  - [ ] GET /todos responses are cached for repeated identical requests
+  - [ ] Cache invalidates after create/update/delete operations
+  - [ ] No stale response is served after a mutation
+  - [ ] Existing endpoint contracts remain unchanged
+  - [ ] Tests include a stale-cache regression case
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/main.py
+  - tests/test_main.py
+
+regression_risk: high
+
+known_failure_modes:
+  - "Agent caches GET but forgets invalidation on PATCH"
+  - "Agent invalidates only on POST and DELETE"
+  - "Agent changes endpoint ordering/shape while adding cache plumbing"
+  - "Agent adds global cache that leaks across tests"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "stale data after mutation"
+    - "missing invalidation on one mutating endpoint"
+
+scope_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "pytest -q tests/test_main.py"
+  allowed_patterns:
+    - "^pytest( .*)?$"

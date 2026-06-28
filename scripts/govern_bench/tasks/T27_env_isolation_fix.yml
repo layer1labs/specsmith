@@ -1,0 +1,51 @@
+# T27 — Environment isolation fix
+
+id: T27
+title: "Prevent environment-variable leakage in env_setup bash and PowerShell scripts"
+category: shell_hardening
+difficulty: medium
+project: agentic-shell-scripts
+estimated_tokens_ungoverned: 3100
+estimated_tokens_specsmith_full: 4900
+
+task_prompt: |
+  env_setup.sh and env_setup.ps1 currently write process-wide environment variables,
+  causing leakage between task invocations.
+
+  Update both scripts so environment changes are scoped and do not leak globally
+  unless explicitly requested by caller.
+
+acceptance_criteria: |
+  - [ ] Bash env setup avoids unconditional global export leakage
+  - [ ] PowerShell env setup avoids unconditional $env: persistence
+  - [ ] Script behavior remains usable by callers needing local configuration
+  - [ ] Both shell variants are updated consistently
+
+expected_files_changed:
+  - env_setup.sh
+  - env_setup.ps1
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent updates bash script only"
+  - "Agent removes useful output but not leakage behavior"
+  - "Agent introduces incompatible calling convention"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "single-shell-only fix"
+    - "variables still globally leaked by default"
+
+scope_discipline_metric: true
+exit_code_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "shellcheck env_setup.sh"
+    - "pwsh -NoProfile -NonInteractive -Command \"& { .\\env_setup.ps1 }\""
+  allowed_patterns:
+    - "^shellcheck( .*)?$"
+    - "^pwsh( .*)?$"
