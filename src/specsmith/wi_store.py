@@ -341,6 +341,16 @@ class WorkItemStore:
         self._sync_to_esdb(item)
         return item
 
+    def set_files_touched(self, wi_id: str, files: list[str]) -> WorkItem | None:
+        item = self.get(wi_id)
+        if item is None:
+            return None
+        item.files_touched = list(files)
+        item.updated_at = _now_iso()
+        self.upsert(item)
+        self._sync_to_esdb(item)
+        return item
+
     def promote_to_req(self, wi_id: str, req_id: str) -> WorkItem:
         """Record that *wi_id* has been promoted to *req_id*.
 

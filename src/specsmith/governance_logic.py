@@ -417,7 +417,9 @@ def run_verify(
         try:
             from specsmith.wi_store import WorkItemStore
 
-            WorkItemStore(root).mark_implemented(work_item_id)
+            store = WorkItemStore(root)
+            store.mark_implemented(work_item_id)
+            store.set_files_touched(work_item_id, files_changed)
         except Exception:  # noqa: BLE001
             pass
 
