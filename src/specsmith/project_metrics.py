@@ -364,3 +364,31 @@ class MetricsStore:
             "since": since,
             "until": until,
         }
+
+
+def flush_session_metrics(
+    root: Path,
+    *,
+    work_item_id: str = "",
+    model: str = "",
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cost_usd: float = 0.0,
+    command: str = "chat",
+) -> None:
+    """Append a MetricsRecord from LLM usage data captured in runner.py (REQ-436).
+    Best-effort: never raises."""
+    try:
+        store = MetricsStore(root)
+        rec = MetricsRecord.new(
+            command=command,
+            passed=True,
+            work_item_id=work_item_id,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+        )
+        store.append(rec)
+    except Exception:  # noqa: BLE001
+        pass
