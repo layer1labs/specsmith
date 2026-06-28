@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specsmith.dev/schemas/governancebench/leaderboard_schema.json",
+  "title": "GovernanceBench HF Leaderboard Export",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "rows"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "benchmark_name": {
+      "type": "string",
+      "default": "GovernanceBench"
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/leaderboard_row"
+      }
+    }
+  },
+  "$defs": {
+    "leaderboard_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "provider",
+        "tier",
+        "scaffold",
+        "task_suite",
+        "pass_rate",
+        "cop_usd",
+        "scaffold_lift",
+        "is_open_source"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Model identifier used for this slice (e.g. gpt-4.1-nano)."
+        },
+        "provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "google",
+            "openai-compat",
+            "other"
+          ]
+        },
+        "tier": {
+          "type": "string",
+          "enum": [
+            "nano",
+            "mini",
+            "mid",
+            "frontier",
+            "open_source",
+            "unknown"
+          ]
+        },
+        "scaffold": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Governance condition/scaffold id (e.g. SPECSMITH_FULL)."
+        },
+        "task_suite": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task suite identifier (e.g. core_t1_t13, wave1_t14_t22)."
+        },
+        "pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cop_usd": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cost-of-pass in USD; null when non-finite or undefined."
+        },
+        "scaffold_lift": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Pass-rate delta versus UNGOVERNED baseline for matched task/model."
+        },
+        "is_open_source": {
+          "type": "boolean"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n_reps": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ci_pass_rate_low": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ci_pass_rate_high": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "ci_cop_low": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ci_cop_high": {
+          "type": "number",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
