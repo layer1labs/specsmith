@@ -292,6 +292,7 @@ def _untrack_diverged_paths(root: Path, *, dry_run: bool = False) -> list[str]:
 
     Returns the list of paths that were (or would be) untracked.
     """
+    import contextlib  # noqa: PLC0415  # lazy: only needed when git is present
     import subprocess  # noqa: PLC0415  # lazy: only needed when git is present
 
     diverged: list[str] = []
@@ -311,7 +312,7 @@ def _untrack_diverged_paths(root: Path, *, dry_run: bool = False) -> list[str]:
         for tracked_path in tracked:
             diverged.append(tracked_path)
             if not dry_run:
-                try:
+                with contextlib.suppress(Exception):  # best-effort: skip if git unavailable
                     subprocess.run(
                         ["git", "rm", "--cached", "--quiet", "--", tracked_path],
                         cwd=str(root),
@@ -319,8 +320,6 @@ def _untrack_diverged_paths(root: Path, *, dry_run: bool = False) -> list[str]:
                         capture_output=True,
                         timeout=10,
                     )
-                except Exception:  # noqa: BLE001  # intentional: best-effort
-                    pass
     return diverged
 
 
@@ -348,9 +347,7 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
     # --- Read and strip forbidden broad ignores + stale auto-normalized block -
     gitignore_path = root / ".gitignore"
     original_lines = (
-        gitignore_path.read_text(encoding="utf-8").splitlines()
-        if gitignore_path.exists()
-        else []
+        gitignore_path.read_text(encoding="utf-8").splitlines() if gitignore_path.exists() else []
     )
 
     normalized_lines: list[str] = []
