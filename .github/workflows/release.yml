@@ -180,12 +180,13 @@ jobs:
             || echo "latest-dev not found — skipping."
 
   rtd-publish:
-    # RTD only publishes after PyPI succeeds AND the code-scan gate has passed.
-    # RTD_TOKEN is a repository secret (not environment-scoped); consistent with
-    # dev-release.yml which accesses it without an environment declaration.
+    # RTD publish is DISABLED in the automated release workflow.
+    # Trigger manually via .github/workflows/rtd-deploy.yml AFTER benchmark
+    # results are complete and docs have been updated with the latest results.
     needs: [pypi-publish, code-scan-gate]
     runs-on: ubuntu-latest
     continue-on-error: true
+    if: false  # manual trigger only — use rtd-deploy.yml workflow
     steps:
       - name: Trigger ReadTheDocs stable build
         env:
