@@ -84,9 +84,14 @@ crates/chronomemory/target/
 app/target/
 
 # specsmith ESDB policy (auto-normalized)
+# Tracked (governance source-of-truth):
 !.specsmith/config.yml
 !.specsmith/requirements.json
 !.specsmith/testcases.json
 !.specsmith/esdb.sqlite3
+!.specsmith/esdb_migration_manifest.json
 !.chronomemory/events.wal
 !.chronomemory/snapshot.json
+# Ephemeral runtime paths (never commit):
+.specsmith/session_metrics.jsonl
+.specsmith/backups/

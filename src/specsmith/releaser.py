@@ -71,22 +71,57 @@ def bump_version(root: Path, new_version: str) -> list[str]:
     return updated
 
 
+# Context tokens that mark a *legitimate* "--pre specsmith" reference rather
+# than a stale stable-install instruction. The dev/pre-release channel is a
+# supported feature (see channel.py and docs/site/releasing.md), so docs that
+# describe it -- and explicit prohibitions ("NEVER run pip install --pre
+# specsmith") -- must not be flagged. Only a reference that recommends
+# installing the *stable* package with the pre-release flag is stale.
+_PRE_OK_CONTEXT: tuple[str, ...] = ("dev", "pre-release", "prerelease", "never", "badge")
+
+
+def _has_stale_pre_flag(content: str) -> bool:
+    """Return True if *content* has a stale ``--pre specsmith`` install hint.
+
+    The scan is line-aware and tracks the nearest Markdown heading so a
+    legitimate ``--pre specsmith`` reference inside a dev/pre-release section or
+    a prohibition line is ignored. An occurrence is only treated as stale when
+    neither its line nor the enclosing section carries a :data:`_PRE_OK_CONTEXT`
+    token.
+    """
+    current_heading = ""
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            current_heading = stripped
+        if "--pre specsmith" not in line:
+            continue
+        context = f"{line} {current_heading}".lower()
+        if any(token in context for token in _PRE_OK_CONTEXT):
+            continue
+        return True
+    return False
+
+
 def scan_stale_refs(root: Path, current_version: str) -> list[str]:
-    """Scan docs for stale version references."""
+    """Scan docs for stale version references.
+
+    The ``--pre specsmith`` check is context-aware (see
+    :func:`_has_stale_pre_flag`) so the supported dev/pre-release channel docs
+    and prohibitions do not produce false positives; only stale *stable*-install
+    hints are reported.
+    """
     issues: list[str] = []
     scan_dirs = [root / "docs" / "site", root]
-    scan_patterns = [
-        (r"--pre specsmith", "stale --pre flag"),
-        (r"0\.1\.0a\d+", "alpha version reference"),
-    ]
 
     for scan_dir in scan_dirs:
         for md_file in scan_dir.glob("*.md"):
             content = md_file.read_text(encoding="utf-8")
-            for pattern, desc in scan_patterns:
-                if re.search(pattern, content):
-                    rel = md_file.relative_to(root)
-                    issues.append(f"{rel}: {desc}")
+            rel = md_file.relative_to(root)
+            if _has_stale_pre_flag(content):
+                issues.append(f"{rel}: stale --pre flag")
+            if re.search(r"0\.1\.0a\d+", content):
+                issues.append(f"{rel}: alpha version reference")
 
     # Check classifier
     pyproject = root / "pyproject.toml"

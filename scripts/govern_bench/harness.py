@@ -1,7 +1,8 @@
 """Real agent harness for the governance efficiency benchmark.
 
-Runs a multi-turn OpenAI agentic loop against a fresh copy of a demo project,
-records token usage and timing, then validates the result with ruff + pytest.
+Runs a multi-turn tool-calling agent loop against a fresh copy of a demo
+project, records token usage and timing, then validates the result with
+ruff + pytest.
 
 Agent tools available in every run:
   write_file(path, content)   – write/overwrite a project file
@@ -19,22 +20,33 @@ Usage:
     result = run_task(task, condition, rep=1, model="gpt-4o-mini")
 
 Environment variables:
-    OPENAI_API_KEY    required for real runs
-    BENCH_MAX_TURNS   max agent turns per run (default: 12)
-    SPECSMITH_DIR     path to specsmith project root for preflight (default: auto-detect)
+    OPENAI_API_KEY             required for provider=openai
+    ANTHROPIC_API_KEY          required for provider=anthropic
+    GOOGLE_API_KEY             required for provider=google
+    BENCH_OPENAI_BASE_URL      required for provider=openai-compat unless --base-url is set
+    BENCH_OPENAI_COMPAT_API_KEY optional auth key for provider=openai-compat
+    BENCH_MAX_TURNS            max agent turns per run (default: 12)
+    SPECSMITH_DIR              path to specsmith project root for preflight (default: auto-detect)
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 if TYPE_CHECKING:
     from govern_bench.conditions import Condition
@@ -47,6 +59,72 @@ _SPECSMITH_DIR = Path(__file__).parent.parent.parent  # repo root
 
 MAX_TURNS_DEFAULT = 12
 MAX_FILE_BYTES = 32_000  # truncate very large files when reading
+SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat")
+RUN_COMMAND_ALLOWLIST = ("ruff check .", "pytest", "ruff check . && pytest")
+
+
+@dataclass(slots=True)
+class NormalizedToolCall:
+    """Provider-agnostic tool call shape."""
+
+    id: str
+    name: str
+    arguments: str
+
+
+@dataclass(slots=True)
+class NormalizedAssistantMessage:
+    """Provider-agnostic assistant message shape."""
+
+    content: str = ""
+    tool_calls: list[NormalizedToolCall] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class NormalizedUsage:
+    """Provider-agnostic token usage shape."""
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+
+
+@dataclass(slots=True)
+class NormalizedLLMResponse:
+    """Provider-agnostic completion response shape."""
+
+    message: NormalizedAssistantMessage
+    usage: NormalizedUsage
+
+
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _estimate_tokens(text: str) -> int:
+    """Estimate tokens when provider usage metadata is unavailable."""
+    if not text:
+        return 0
+    return max(1, len(text) // 4)
+
+
+def _obj_get(obj: Any, key: str, default: Any = None) -> Any:
+    """Get key/attribute from dict-like or object-like values."""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def _json_loads_maybe(raw: Any) -> Any:
+    """Parse JSON strings when possible; otherwise return raw value."""
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return raw
+    return raw
 
 
 # ---------------------------------------------------------------------------
@@ -69,10 +147,24 @@ def _get_project_dir(project_id: str) -> Path:
     return p
 
 
-def _completion_token_param(model: str) -> dict[str, int]:
-    """Return the correct completion-token limit parameter for an OpenAI model."""
+def _openai_completion_token_param(model: str) -> dict[str, int]:
+    """Return the correct completion-token limit parameter for OpenAI-style APIs."""
     if model.startswith(("gpt-5", "o1", "o3", "o4")):
-        return {"max_completion_tokens": 4096}
+        # gpt-5.x and o-series models use 'max_completion_tokens'; reasoning models
+        # consume hidden reasoning tokens against this budget, so 4096 is too low
+        # for multi-step governance tasks — use 32k to give reasoning room.
+        return {"max_completion_tokens": 32_768}
+    return {"max_tokens": 4096}
+
+
+def _completion_token_param(provider: str, model: str) -> dict[str, int]:
+    """Return the provider-specific completion token parameter map."""
+    if provider in ("openai", "openai-compat"):
+        return _openai_completion_token_param(model)
+    if provider == "anthropic":
+        return {"max_tokens": 4096}
+    if provider == "google":
+        return {"max_output_tokens": 4096}
     return {"max_tokens": 4096}
 
 
@@ -146,7 +238,7 @@ _BASE_TOOLS: list[dict] = [
                 "properties": {
                     "command": {
                         "type": "string",
-                        "enum": ["ruff check .", "pytest", "ruff check . && pytest"],
+                        "enum": list(RUN_COMMAND_ALLOWLIST),
                     }
                 },
                 "required": ["command"],
@@ -212,8 +304,10 @@ _SPECSMITH_TOOL: dict = {
         "description": (
             "REQUIRED: Run the specsmith governance preflight gate before making ANY code changes. "
             "Pass a one-sentence description of the change you intend to make. "
-            "If the decision is 'needs_clarification', you MUST surface the instruction "
-            "and call done(refused=True). If 'accepted', note the work_item_id and proceed."
+            "If the decision is 'accepted', note the work_item_id and proceed. "
+            "If the decision is 'needs_clarification', follow the instructions "
+            "in your system prompt "
+            "to resolve it autonomously — do NOT call done(refused=True) unless explicitly told to."
         ),
         "parameters": {
             "type": "object",
@@ -253,8 +347,61 @@ _SPECSMITH_VERIFY_TOOL: dict = {
 }
 
 
-def _build_tools(condition_id: str) -> list[dict]:
+def _validator_commands_for_task(task: BenchTask) -> list[str]:
+    commands = list(getattr(task, "allowed_validator_commands", []) or [])
+    validator = getattr(task, "validator", None)
+    if isinstance(validator, dict):
+        extra_commands = validator.get("commands") or []
+        for cmd in extra_commands:
+            cmd_s = str(cmd).strip()
+            if cmd_s and cmd_s not in commands:
+                commands.append(cmd_s)
+    return commands
+
+
+def _validator_patterns_for_task(task: BenchTask) -> list[str]:
+    validator = getattr(task, "validator", None)
+    if not isinstance(validator, dict):
+        return []
+    patterns = validator.get("allowed_patterns") or []
+    return [str(p).strip() for p in patterns if str(p).strip()]
+
+
+def _build_run_validator_tool(task: BenchTask) -> dict | None:
+    commands = _validator_commands_for_task(task)
+    patterns = _validator_patterns_for_task(task)
+    if not commands and not patterns:
+        return None
+    command_field: dict[str, Any] = {
+        "type": "string",
+        "description": "Task-scoped validator command from the allowed list.",
+    }
+    if commands:
+        command_field["enum"] = commands
+    return {
+        "type": "function",
+        "function": {
+            "name": "run_validator",
+            "description": (
+                "Run a task-specific validation command. "
+                "Only task-whitelisted commands are allowed."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": command_field,
+                },
+                "required": ["command"],
+            },
+        },
+    }
+
+
+def _build_tools(condition_id: str, task: BenchTask) -> list[dict]:
     tools = list(_BASE_TOOLS)
+    run_validator_tool = _build_run_validator_tool(task)
+    if run_validator_tool is not None:
+        tools.append(run_validator_tool)
     if condition_id in ("SPECSMITH_LIGHT", "SPECSMITH_FULL"):
         tools.append(_SPECSMITH_TOOL)
     if condition_id == "SPECSMITH_FULL":
@@ -337,6 +484,118 @@ def _exec_run_command(project_root: Path, command: str) -> tuple[bool, str]:
         return False, f"ERROR: {exc}"
 
 
+def _normalise_shell_result(result: Any) -> tuple[bool, str]:
+    if isinstance(result, subprocess.CompletedProcess):
+        out = (result.stdout or "") + (result.stderr or "")
+        return result.returncode == 0, out.strip()[:3000]
+    if isinstance(result, tuple) and len(result) >= 2:
+        ok = bool(result[0])
+        return ok, str(result[1])[:3000]
+    if isinstance(result, dict):
+        code = _safe_int(result.get("returncode", result.get("exit_code", 0)))
+        out = str(result.get("stdout", "")) + str(result.get("stderr", ""))
+        if not out:
+            out = str(result.get("message", ""))
+        return code == 0, out.strip()[:3000]
+    return True, str(result)[:3000]
+
+
+def _try_exec_with_specsmith_shell(
+    project_root: Path, command: str, timeout_s: int = 90
+) -> tuple[bool, str] | None:
+    """Feature-detect specsmith.shell and execute if a compatible entry point exists."""
+    try:
+        shell_mod = __import__("specsmith.shell", fromlist=["specsmith_shell"])
+    except Exception:  # noqa: BLE001  # optional feature; fallback below
+        return None
+
+    for fn_name in ("run_command", "exec_command", "run", "exec"):
+        fn = getattr(shell_mod, fn_name, None)
+        if not callable(fn):
+            continue
+        call_variants = (
+            {"command": command, "cwd": str(project_root), "timeout": timeout_s, "shell": False},
+            {"command": command, "cwd": str(project_root), "timeout": timeout_s},
+            {"cmd": command, "cwd": str(project_root), "timeout": timeout_s},
+        )
+        for kwargs in call_variants:
+            try:
+                return _normalise_shell_result(fn(**kwargs))
+            except TypeError:
+                continue
+            except Exception as exc:  # noqa: BLE001
+                return False, f"specsmith.shell.{fn_name} failed: {exc}"
+    return None
+
+
+def _run_validator_subprocess(
+    project_root: Path, command: str, timeout_s: int = 90
+) -> tuple[bool, str]:
+    env = {**os.environ, "PYTHONPATH": str(project_root)}
+    if "&&" in command:
+        parts = [part.strip() for part in command.split("&&") if part.strip()]
+        all_output: list[str] = []
+        for part in parts:
+            ok, out = _run_validator_subprocess(project_root, part, timeout_s=timeout_s)
+            all_output.append(f"$ {part}\n{out}")
+            if not ok:
+                return False, "\n\n".join(all_output)
+        return True, "\n\n".join(all_output)
+    try:
+        args = shlex.split(command, posix=os.name != "nt")
+        if not args:
+            return False, "ERROR: empty validator command"
+        result = subprocess.run(
+            args,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+            env=env,
+            shell=False,
+        )
+        out = (result.stdout + result.stderr).strip()
+        return result.returncode == 0, out[:3000]
+    except subprocess.TimeoutExpired:
+        return False, f"ERROR: command timed out after {timeout_s}s"
+    except ValueError as exc:
+        return False, f"ERROR: invalid validator command: {exc}"
+    except Exception as exc:  # noqa: BLE001
+        return False, f"ERROR: {exc}"
+
+
+def _exec_run_validator(project_root: Path, task: BenchTask, command: str) -> tuple[bool, str]:
+    """Run task-scoped validator command with strict allowlist checks."""
+    command = str(command or "").strip()
+    allowed_commands = _validator_commands_for_task(task)
+    allowed_patterns = _validator_patterns_for_task(task)
+
+    is_allowed = command in allowed_commands
+    if not is_allowed and allowed_patterns:
+        for pattern in allowed_patterns:
+            try:
+                if re.fullmatch(pattern, command):
+                    is_allowed = True
+                    break
+            except re.error:
+                continue
+
+    if not is_allowed:
+        allowed_text = ", ".join(repr(c) for c in allowed_commands) or "(pattern-only)"
+        return (
+            False,
+            (
+                f"ERROR: validator command not allowed: {command!r}. "
+                f"Allowed commands: {allowed_text}"
+            ),
+        )
+
+    shell_result = _try_exec_with_specsmith_shell(project_root, command)
+    if shell_result is not None:
+        return shell_result
+    return _run_validator_subprocess(project_root, command)
+
+
 def _exec_specsmith_preflight(utterance: str, specsmith_dir: Path) -> str:
     """Run the real specsmith preflight CLI and return its JSON output."""
     try:
@@ -381,6 +640,471 @@ def _exec_specsmith_verify(work_item_id: str, specsmith_dir: Path) -> str:
         )
     except Exception as exc:  # noqa: BLE001  # intentional: surface as tool error
         return json.dumps({"verified": True, "work_item_id": work_item_id, "note": str(exc)})
+
+
+def _stringify_content(content: Any) -> str:
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                if "text" in item:
+                    parts.append(str(item.get("text", "")))
+                elif "content" in item:
+                    parts.append(str(item.get("content", "")))
+                else:
+                    parts.append(json.dumps(item, ensure_ascii=False))
+            else:
+                parts.append(str(item))
+        return "\n".join(parts).strip()
+    return str(content)
+
+
+def _normalized_message_to_openai_dict(message: NormalizedAssistantMessage) -> dict[str, Any]:
+    payload: dict[str, Any] = {"role": "assistant", "content": message.content}
+    if message.tool_calls:
+        payload["tool_calls"] = [
+            {
+                "id": tc.id,
+                "type": "function",
+                "function": {"name": tc.name, "arguments": tc.arguments},
+            }
+            for tc in message.tool_calls
+        ]
+    return payload
+
+
+def _build_provider_client(provider: str, base_url: str | None = None) -> tuple[str, Any]:
+    provider_key = provider.strip().lower()
+    if provider_key not in SUPPORTED_PROVIDERS:
+        raise RuntimeError(
+            f"Unsupported provider {provider!r}; expected one of {', '.join(SUPPORTED_PROVIDERS)}"
+        )
+
+    if provider_key in ("openai", "openai-compat"):
+        try:
+            import openai  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "openai package not installed; pip install openai to use this provider"
+            ) from exc
+
+        if provider_key == "openai":
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            if not api_key:
+                raise RuntimeError(
+                    "OPENAI_API_KEY environment variable not set for provider=openai"
+                )
+            return provider_key, openai.OpenAI(api_key=api_key)
+
+        resolved_base_url = (base_url or os.environ.get("BENCH_OPENAI_BASE_URL", "")).strip()
+        if not resolved_base_url:
+            raise RuntimeError(
+                "provider=openai-compat requires --base-url or BENCH_OPENAI_BASE_URL"
+            )
+        compat_key = (
+            os.environ.get("BENCH_OPENAI_COMPAT_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+            or "bench-openai-compat"
+        )
+        return provider_key, openai.OpenAI(api_key=compat_key, base_url=resolved_base_url)
+
+    if provider_key == "anthropic":
+        try:
+            import anthropic  # noqa: PLC0415
+        except ImportError as exc:
+            raise RuntimeError(
+                "anthropic package not installed; pip install anthropic to use this provider"
+            ) from exc
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY environment variable not set for provider=anthropic"
+            )
+        return provider_key, anthropic.Anthropic(api_key=api_key)
+
+    if provider_key == "google":
+        api_key = os.environ.get("GOOGLE_API_KEY", "")
+        if not api_key:
+            raise RuntimeError("GOOGLE_API_KEY environment variable not set for provider=google")
+        return provider_key, {"api_key": api_key}
+
+    raise RuntimeError(f"Unsupported provider: {provider_key}")
+
+
+def _http_post_json(
+    url: str,
+    *,
+    body: dict[str, Any],
+    headers: dict[str, str] | None = None,
+    timeout_s: int = 120,
+) -> dict[str, Any]:
+    payload = json.dumps(body).encode("utf-8")
+    req_headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    if headers:
+        req_headers.update(headers)
+    request = urllib.request.Request(url, data=payload, headers=req_headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310
+            raw = response.read()
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"HTTP {exc.code}: {raw[:400]}") from exc
+    if not raw:
+        return {}
+    return json.loads(raw.decode("utf-8"))
+
+
+def _openai_tools_to_anthropic(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    converted: list[dict[str, Any]] = []
+    for tool in tools:
+        function_spec = tool.get("function") or {}
+        name = str(function_spec.get("name") or "").strip()
+        if not name:
+            continue
+        converted.append(
+            {
+                "name": name,
+                "description": str(function_spec.get("description") or ""),
+                "input_schema": function_spec.get("parameters")
+                or {"type": "object", "properties": {}},
+            }
+        )
+    return converted
+
+
+def _openai_tools_to_google(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    declarations: list[dict[str, Any]] = []
+    for tool in tools:
+        function_spec = tool.get("function") or {}
+        name = str(function_spec.get("name") or "").strip()
+        if not name:
+            continue
+        declarations.append(
+            {
+                "name": name,
+                "description": str(function_spec.get("description") or ""),
+                "parameters": function_spec.get("parameters")
+                or {"type": "object", "properties": {}},
+            }
+        )
+    return declarations
+
+
+def _to_anthropic_messages(messages: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+    system_parts: list[str] = []
+    converted: list[dict[str, Any]] = []
+    tool_name_by_id: dict[str, str] = {}
+
+    for message in messages:
+        role = str(message.get("role") or "")
+        if role == "system":
+            content = _stringify_content(message.get("content"))
+            if content:
+                system_parts.append(content)
+            continue
+
+        if role == "assistant":
+            blocks: list[dict[str, Any]] = []
+            text = _stringify_content(message.get("content"))
+            if text:
+                blocks.append({"type": "text", "text": text})
+            for tool_call in message.get("tool_calls") or []:
+                if not isinstance(tool_call, dict):
+                    continue
+                function_spec = tool_call.get("function") or {}
+                name = str(function_spec.get("name") or "").strip()
+                if not name:
+                    continue
+                tool_call_id = str(tool_call.get("id") or f"tool_{uuid4().hex}")
+                raw_args = _json_loads_maybe(function_spec.get("arguments") or "{}")
+                parsed_args = raw_args if isinstance(raw_args, dict) else {"value": raw_args}
+                tool_name_by_id[tool_call_id] = name
+                blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call_id,
+                        "name": name,
+                        "input": parsed_args,
+                    }
+                )
+            if not blocks:
+                blocks = [{"type": "text", "text": ""}]
+            converted.append({"role": "assistant", "content": blocks})
+            continue
+
+        if role == "tool":
+            tool_call_id = str(message.get("tool_call_id") or "")
+            if not tool_call_id:
+                continue
+            tool_name_by_id.setdefault(tool_call_id, "tool_result")
+            converted.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_call_id,
+                            "content": _stringify_content(message.get("content")),
+                        }
+                    ],
+                }
+            )
+            continue
+
+        converted.append({"role": "user", "content": _stringify_content(message.get("content"))})
+
+    if not converted:
+        converted = [{"role": "user", "content": ""}]
+    return "\n\n".join(system_parts), converted
+
+
+def _to_google_contents(
+    messages: list[dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
+    system_parts: list[str] = []
+    contents: list[dict[str, Any]] = []
+    tool_name_by_id: dict[str, str] = {}
+
+    for message in messages:
+        role = str(message.get("role") or "")
+        if role == "system":
+            content = _stringify_content(message.get("content"))
+            if content:
+                system_parts.append(content)
+            continue
+
+        if role == "assistant":
+            parts: list[dict[str, Any]] = []
+            text = _stringify_content(message.get("content"))
+            if text:
+                parts.append({"text": text})
+            for tool_call in message.get("tool_calls") or []:
+                if not isinstance(tool_call, dict):
+                    continue
+                function_spec = tool_call.get("function") or {}
+                name = str(function_spec.get("name") or "").strip()
+                if not name:
+                    continue
+                tool_call_id = str(tool_call.get("id") or f"tool_{uuid4().hex}")
+                raw_args = _json_loads_maybe(function_spec.get("arguments") or "{}")
+                parsed_args = raw_args if isinstance(raw_args, dict) else {"value": raw_args}
+                tool_name_by_id[tool_call_id] = name
+                parts.append({"functionCall": {"name": name, "args": parsed_args}})
+            if not parts:
+                parts = [{"text": ""}]
+            contents.append({"role": "model", "parts": parts})
+            continue
+
+        if role == "tool":
+            tool_call_id = str(message.get("tool_call_id") or "")
+            if not tool_call_id:
+                continue
+            tool_name = tool_name_by_id.get(tool_call_id, "tool_result")
+            contents.append(
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "functionResponse": {
+                                "name": tool_name,
+                                "response": {
+                                    "name": tool_name,
+                                    "content": _stringify_content(message.get("content")),
+                                },
+                            }
+                        }
+                    ],
+                }
+            )
+            continue
+
+        contents.append(
+            {"role": "user", "parts": [{"text": _stringify_content(message.get("content"))}]}
+        )
+
+    if not contents:
+        contents = [{"role": "user", "parts": [{"text": ""}]}]
+    return "\n\n".join(system_parts), contents
+
+
+def _call_openai_provider(
+    provider: str,
+    client: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+) -> NormalizedLLMResponse:
+    response = client.chat.completions.create(
+        model=model,
+        messages=messages,
+        tools=tools,
+        tool_choice="auto",
+        temperature=1.0,
+        **_completion_token_param(provider, model),
+    )
+    usage = getattr(response, "usage", None)
+    msg = response.choices[0].message
+    tool_calls = [
+        NormalizedToolCall(
+            id=str(tc.id or f"tool_{uuid4().hex}"),
+            name=str(tc.function.name or ""),
+            arguments=str(tc.function.arguments or "{}"),
+        )
+        for tc in (msg.tool_calls or [])
+    ]
+    return NormalizedLLMResponse(
+        message=NormalizedAssistantMessage(
+            content=_stringify_content(getattr(msg, "content", "")),
+            tool_calls=tool_calls,
+        ),
+        usage=NormalizedUsage(
+            prompt_tokens=_safe_int(_obj_get(usage, "prompt_tokens", 0)),
+            completion_tokens=_safe_int(_obj_get(usage, "completion_tokens", 0)),
+        ),
+    )
+
+
+def _call_anthropic_provider(
+    client: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+) -> NormalizedLLMResponse:
+    system_text, anthropic_messages = _to_anthropic_messages(messages)
+    request: dict[str, Any] = {
+        "model": model,
+        "messages": anthropic_messages,
+        "tools": _openai_tools_to_anthropic(tools),
+        "temperature": 1.0,
+        **_completion_token_param("anthropic", model),
+    }
+    if system_text:
+        request["system"] = system_text
+    response = client.messages.create(**request)
+
+    text_chunks: list[str] = []
+    tool_calls: list[NormalizedToolCall] = []
+    for block in response.content or []:
+        block_type = _obj_get(block, "type", "")
+        if block_type == "text":
+            text_chunks.append(str(_obj_get(block, "text", "")))
+        elif block_type == "tool_use":
+            block_id = str(_obj_get(block, "id", f"tool_{uuid4().hex}"))
+            name = str(_obj_get(block, "name", ""))
+            block_input = _obj_get(block, "input", {})
+            tool_calls.append(
+                NormalizedToolCall(
+                    id=block_id,
+                    name=name,
+                    arguments=json.dumps(block_input if isinstance(block_input, dict) else {}),
+                )
+            )
+
+    usage = getattr(response, "usage", None)
+    prompt_tokens = _safe_int(_obj_get(usage, "input_tokens", 0))
+    completion_tokens = _safe_int(_obj_get(usage, "output_tokens", 0))
+    if prompt_tokens == 0:
+        prompt_tokens = _estimate_tokens(json.dumps(messages))
+    if completion_tokens == 0:
+        completion_tokens = _estimate_tokens("\n".join(text_chunks))
+
+    return NormalizedLLMResponse(
+        message=NormalizedAssistantMessage(content="\n".join(text_chunks), tool_calls=tool_calls),
+        usage=NormalizedUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
+    )
+
+
+def _call_google_provider(
+    client: dict[str, Any],
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+) -> NormalizedLLMResponse:
+    api_key = str(client.get("api_key") or "")
+    system_text, google_contents = _to_google_contents(messages)
+    google_tools = _openai_tools_to_google(tools)
+    token_params = _completion_token_param("google", model)
+    payload: dict[str, Any] = {
+        "contents": google_contents,
+        "generationConfig": {
+            "temperature": 1.0,
+            "maxOutputTokens": _safe_int(token_params.get("max_output_tokens", 4096)),
+        },
+    }
+    if system_text:
+        payload["systemInstruction"] = {"parts": [{"text": system_text}]}
+    if google_tools:
+        payload["tools"] = [{"functionDeclarations": google_tools}]
+        payload["toolConfig"] = {"functionCallingConfig": {"mode": "AUTO"}}
+
+    model_path = urllib.parse.quote(model, safe="")
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_path}:generateContent?key={urllib.parse.quote(api_key, safe='')}"
+    )
+    data = _http_post_json(url, body=payload)
+
+    candidates = data.get("candidates") or []
+    first_candidate = candidates[0] if candidates else {}
+    parts = (first_candidate.get("content") or {}).get("parts") or []
+
+    text_chunks: list[str] = []
+    tool_calls: list[NormalizedToolCall] = []
+    for part in parts:
+        if not isinstance(part, dict):
+            continue
+        if "text" in part:
+            text_chunks.append(str(part.get("text", "")))
+        function_call = part.get("functionCall") or part.get("function_call")
+        if function_call:
+            tool_calls.append(
+                NormalizedToolCall(
+                    id=str(function_call.get("id") or f"tool_{uuid4().hex}"),
+                    name=str(function_call.get("name") or ""),
+                    arguments=json.dumps(function_call.get("args") or {}),
+                )
+            )
+
+    usage = data.get("usageMetadata") or {}
+    prompt_tokens = _safe_int(
+        usage.get("promptTokenCount")
+        or usage.get("inputTokenCount")
+        or usage.get("prompt_token_count")
+    )
+    completion_tokens = _safe_int(
+        usage.get("candidatesTokenCount")
+        or usage.get("outputTokenCount")
+        or usage.get("candidates_token_count")
+    )
+    if prompt_tokens == 0:
+        prompt_tokens = _estimate_tokens(json.dumps(messages))
+    if completion_tokens == 0:
+        completion_tokens = _estimate_tokens("\n".join(text_chunks))
+
+    return NormalizedLLMResponse(
+        message=NormalizedAssistantMessage(content="\n".join(text_chunks), tool_calls=tool_calls),
+        usage=NormalizedUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
+    )
+
+
+def _call_llm(
+    provider: str,
+    client: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+) -> NormalizedLLMResponse:
+    if provider in ("openai", "openai-compat"):
+        return _call_openai_provider(provider, client, model, messages, tools)
+    if provider == "anthropic":
+        return _call_anthropic_provider(client, model, messages, tools)
+    if provider == "google":
+        return _call_google_provider(client, model, messages, tools)
+    raise RuntimeError(f"Unsupported provider: {provider}")
 
 
 # ---------------------------------------------------------------------------
@@ -443,6 +1167,8 @@ def run_task(
     condition: Condition,
     rep: int = 1,
     model: str = "gpt-4o-mini",
+    provider: str = "openai",
+    base_url: str | None = None,
     specsmith_dir: Path | None = None,
     max_turns: int | None = None,
 ) -> RunResult:
@@ -451,15 +1177,7 @@ def run_task(
     Returns a RunResult with token counts, cost, pass/fail, quality score.
     """
 
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY environment variable not set. Set it before running the real benchmark."
-        )
-
-    import openai  # noqa: PLC0415  # lazy import — optional dep
-
-    client = openai.OpenAI(api_key=api_key)
+    provider_key, provider_client = _build_provider_client(provider, base_url=base_url)
 
     _specsmith_dir = specsmith_dir or _SPECSMITH_DIR
     _max_turns = max_turns or int(os.environ.get("BENCH_MAX_TURNS", MAX_TURNS_DEFAULT))
@@ -472,7 +1190,8 @@ def run_task(
         shutil.copytree(str(source_dir), str(project_root))
 
         result = _run_agent_loop(
-            client=client,
+            provider=provider_key,
+            client=provider_client,
             model=model,
             task=task,
             condition=condition,
@@ -488,6 +1207,7 @@ def run_task(
 
 
 def _run_agent_loop(
+    provider: str,
     client: Any,
     model: str,
     task: BenchTask,
@@ -498,7 +1218,7 @@ def _run_agent_loop(
 ) -> RunResult:
     from govern_bench.metrics import RunResult, estimate_cost
 
-    tools = _build_tools(condition.id)
+    tools = _build_tools(condition.id, task)
     system_prompt = condition.render_prompt(
         task_description=task.task_prompt,
         acceptance_criteria=task.acceptance_criteria,
@@ -532,13 +1252,12 @@ def _run_agent_loop(
 
     for turn in range(max_turns):
         try:
-            response = client.chat.completions.create(
+            response = _call_llm(
+                provider=provider,
+                client=client,
                 model=model,
                 messages=messages,
                 tools=tools,
-                tool_choice="auto",
-                temperature=1.0,
-                **_completion_token_param(model),
             )
         except Exception as exc:  # noqa: BLE001  # surface as run error
             return RunResult(
@@ -553,9 +1272,9 @@ def _run_agent_loop(
         total_input_tokens += response.usage.prompt_tokens
         total_output_tokens += response.usage.completion_tokens
 
-        msg = response.choices[0].message
-        messages.append(msg.model_dump(exclude_none=True))
-        tc_names = [tc.function.name for tc in (msg.tool_calls or [])]
+        msg = response.message
+        messages.append(_normalized_message_to_openai_dict(msg))
+        tc_names = [tc.name for tc in msg.tool_calls]
         agent_transcript.append({"turn": turn + 1, "role": "assistant", "tool_calls": tc_names})
 
         if not msg.tool_calls:
@@ -564,13 +1283,10 @@ def _run_agent_loop(
 
         tool_results: list[dict] = []
         finished = False
-
         for tc in msg.tool_calls:
-            fn_name = tc.function.name
-            try:
-                args = json.loads(tc.function.arguments)
-            except json.JSONDecodeError:
-                args = {}
+            fn_name = tc.name
+            args_raw = _json_loads_maybe(tc.arguments)
+            args = args_raw if isinstance(args_raw, dict) else {}
 
             # ── Execute tool ──────────────────────────────────────────────
             if fn_name == "read_file":
@@ -587,6 +1303,12 @@ def _run_agent_loop(
             elif fn_name == "run_command":
                 cmd = args.get("command", "ruff check .")
                 ok, out = _exec_run_command(project_root, cmd)
+                rework_turns += 1
+                if not ok:
+                    out = f"FAILED:\n{out}"
+            elif fn_name == "run_validator":
+                cmd = args.get("command", "")
+                ok, out = _exec_run_validator(project_root, task, cmd)
                 rework_turns += 1
                 if not ok:
                     out = f"FAILED:\n{out}"

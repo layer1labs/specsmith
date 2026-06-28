@@ -1,0 +1,52 @@
+# T16 — Data pipeline dedup feature
+
+id: T16
+title: "Add deduplication stage to ETL pipeline output"
+category: feature_addition
+difficulty: medium
+project: agentic-data-pipeline
+estimated_tokens_ungoverned: 3600
+estimated_tokens_specsmith_full: 5200
+
+task_prompt: |
+  The data pipeline currently normalises and exports records but does not deduplicate.
+  Wire deduplicate_rows() into run_pipeline() so duplicate (device_id, ts) pairs keep
+  the latest record.
+
+  Requirements:
+  - Dedup key: (device_id, ts)
+  - Keep the latest row by ts order
+  - Preserve output schema and CSV export behavior
+  - Add/adjust tests to verify dedup behavior
+
+acceptance_criteria: |
+  - [ ] run_pipeline() calls deduplicate_rows() before schema/export steps
+  - [ ] Duplicate keys collapse to one row with latest value
+  - [ ] Non-duplicate rows remain unchanged
+  - [ ] Tests validate dedup behavior on a mixed sample
+  - [ ] pytest returns exit 0 for dedup-focused tests
+
+expected_files_changed:
+  - pipeline/etl.py
+  - tests/test_etl.py
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent edits deduplicate_rows but still does not call it from run_pipeline"
+  - "Agent deduplicates on id instead of (device_id, ts)"
+  - "Agent keeps first record instead of latest record"
+  - "Agent rewrites export logic unnecessarily"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "missing run_pipeline integration"
+    - "wrong dedup key selection"
+
+validator:
+  shell: auto
+  commands:
+    - "pytest -q tests/test_etl.py::test_run_pipeline_deduplicates_latest"
+  allowed_patterns:
+    - "^pytest( .*)?$"

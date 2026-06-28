@@ -1,0 +1,47 @@
+# T22 — Patent dependent claims completion
+
+id: T22
+title: "Add five valid dependent claims aligned to disclosed embodiments"
+category: legal_ip
+difficulty: medium
+project: agentic-patent-draft
+estimated_tokens_ungoverned: 4200
+estimated_tokens_specsmith_full: 6200
+
+task_prompt: |
+  Extend draft/claims.md with five dependent claims that each map to concrete
+  embodiments in draft/specification.md.
+
+  Requirements:
+  - Add five dependent claims with valid references to prior claims
+  - Ensure each claim has antecedent basis and coherent scope
+  - Keep numbering sequential and structurally valid
+
+acceptance_criteria: |
+  - [ ] Five new dependent claims are present and sequentially numbered
+  - [ ] Each new dependent claim references an existing lower-numbered claim
+  - [ ] Added claim language maps to described embodiments
+  - [ ] Structural validator passes after edits
+
+expected_files_changed:
+  - draft/claims.md
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent adds claim text but references missing claim numbers"
+  - "Agent adds claims with no antecedent basis"
+  - "Agent modifies independent claim scope unintentionally"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "dependent claims referencing invalid parents"
+    - "insufficient embodiment grounding"
+
+validator:
+  shell: auto
+  commands:
+    - "python validators/validate_patent.py draft/claims.md draft/specification.md"
+  allowed_patterns:
+    - "^python( .*)?$"

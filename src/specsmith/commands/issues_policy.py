@@ -93,6 +93,8 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
         project_dir: str,
         as_json: bool,
     ) -> None:
+        from specsmith.wi_store import _now_iso
+
         record = record_approval(
             Path(project_dir).resolve(),
             approval_type=approval_type,
@@ -101,6 +103,16 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
             scope=scope,
             requirement_ids=list(requirements),
         )
+        # Update human_review_status to 'approved' (REQ-434)
+        try:
+            store = WorkItemStore(Path(project_dir).resolve())
+            item = store.get(work_item_id)
+            if item is not None:
+                item.human_review_status = "approved"
+                item.updated_at = _now_iso()
+                store.upsert(item)
+        except Exception:  # noqa: BLE001
+            pass
         if as_json:
             click.echo(json.dumps(record.to_dict(), indent=2))
         else:

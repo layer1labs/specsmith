@@ -37,41 +37,38 @@ htmlcov/
 .work/
 *.log
 
-# specsmith governance data policy
-# Keep committed:
-# - .specsmith/config.yml
-# - .specsmith/requirements.json
-# - .specsmith/testcases.json
-# - .specsmith/esdb.sqlite3
-# - .chronomemory/events.wal
-# - .chronomemory/snapshot.json
-# Always track these even if broader ignore rules are added later:
+# specsmith governance data policy (auto-enforced by specsmith sync)
+#
+# Tracked (governance source-of-truth) — always committed:
 !.specsmith/config.yml
 !.specsmith/requirements.json
 !.specsmith/testcases.json
 !.specsmith/esdb.sqlite3
+!.specsmith/esdb_migration_manifest.json
 !.chronomemory/events.wal
 !.chronomemory/snapshot.json
 #
-# Ignore runtime-only / regeneratable artifacts:
-.chronomemory/backup/
+# Ephemeral runtime paths — never committed:
+# (specsmith sync will run `git rm --cached` for any of these already tracked)
 .specsmith/workitems.json
-.specsmith/runs/
-.specsmith/chat/
-.specsmith/perf/
-.specsmith/recovery/
-.specsmith/ledger.jsonl
 .specsmith/ledger-chain.txt
 .specsmith/trace.jsonl
 .specsmith/credit-budget.json
 .specsmith/credits.json
 .specsmith/model-rate-limits.json
+.specsmith/session_metrics.jsonl
+.specsmith/backups/
+.specsmith/runs/
+.specsmith/chat/
+.specsmith/perf/
+.specsmith/recovery/
 .specsmith/pids/
 .specsmith/logs/
 .specsmith/sessions/
 .specsmith/agent-reports/
 .specsmith/dispatch/
-.specsmith/esdb_migration_manifest.json
+.specsmith/ledger.jsonl
+.chronomemory/backup/
 {% if project.type in ('cli-rust', 'library-rust') %}
 
 # Rust

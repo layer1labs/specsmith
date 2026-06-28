@@ -160,30 +160,3 @@
   input: {}
   expected_behavior: {}
   confidence: 1.0
-- id: TEST-427
-  title: ESDB Status And Resume Reflect Chain Validity
-  description: 'When the hash chain is valid, specsmith esdb status output contains
-    "Integrity OK" and specsmith resume shows the valid ESDB indicator. When chain_valid()
-    is monkeypatched to return False, esdb status output contains "Integrity FAILED"
-    and does not contain a standalone "Integrity OK", and resume shows the invalid
-    indicator.'
-  requirement_id: REQ-417
-  type: cli
-  verification_method: pytest (test_esdb_status_integrity.py)
-  input: {}
-  expected_behavior: {}
-  confidence: 1.0
-- id: TEST-429
-  title: ESDB Status Human-Readable Mode Emits Without Aborting
-  description: >-
-    Running `specsmith esdb status` without --json on a governed project MUST exit 0
-    and print the status block (record count, backend, integrity line) to stdout
-    without raising click.Abort or KeyboardInterrupt. When the Rich console render is
-    forced to raise KeyboardInterrupt, the command MUST fall back to the plain stdout
-    writer and still print the status block and exit 0.
-  requirement_id: REQ-419
-  type: cli
-  verification_method: pytest (test_esdb_status_output.py)
-  input: {}
-  expected_behavior: {}
-  confidence: 1.0

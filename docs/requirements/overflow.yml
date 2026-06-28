@@ -4,439 +4,363 @@
 #
 # Schema: id (REQ-NNN), title, description, source, status
 # Required fields: id, title, status
-- id: REQ-300
-  title: YAML-First Governance Sync Pipeline
-  description: When `.specsmith/governance-mode` contains `yaml`, `specsmith sync`
-    MUST read docs/requirements/*.yml and docs/tests/*.yml as canonical sources, write
-    .specsmith/requirements.json + testcases.json as JSON caches, and regenerate docs/REQUIREMENTS.md
-    + docs/TESTS.md as derived artifacts. Legacy Markdown mode (governance-mode absent
-    or `markdown`) MUST still work for backward compatibility.
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-301
-  title: Strict Governance Schema Validation
-  description: '`specsmith validate --strict` MUST enforce 8 governance schema checks:
-    (1) duplicate REQ IDs, (2) duplicate TEST IDs, (3) missing required REQ fields
-    (id/title/status), (4) missing required TEST fields (id/title/requirement_id),
-    (5) orphaned TESTs (reference non-existent REQ), (6) untested REQs (warning),
-    (7) duplicate REQ titles (warning), (8) machine-state drift between YAML and JSON
-    (warning). Exits 1 on errors; warnings do not block. `--json` flag emits structured
-    output.'
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-302
-  title: Generate Docs Command Renders YAML to Markdown
-  description: '`specsmith generate docs` MUST read docs/requirements/*.yml and docs/tests/*.yml
-    in YAML-first mode, render the canonical Markdown artifacts docs/REQUIREMENTS.md
-    and docs/TESTS.md, and also re-sync the JSON machine state. `--check` flag MUST
-    report what would change without writing. Only available when governance-mode
-    is `yaml`.'
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-303
-  title: Governance Mode Flag Controls Authority Direction
-  description: '`.specsmith/governance-mode` MUST contain `yaml` to activate YAML-first
-    mode. `is_yaml_mode(root)` in `specsmith.governance_yaml` reads this flag. Absence
-    of the file or value `markdown` activates legacy Markdown-primary mode. The flag
-    is written by `scripts/migrate_governance_to_yaml.py`.'
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-304
-  title: YAML Governance Migration Script
-  description: '`scripts/migrate_governance_to_yaml.py` MUST be idempotent and execute
-    the following steps in order: (1) remove duplicate REQs from REQUIREMENTS.md,
-    (2) re-sync .specsmith/ JSON from cleaned MD, (3) export JSON to grouped YAML
-    files under docs/requirements/ and docs/tests/, (4) write .specsmith/governance-mode
-    = yaml. Re-running must not corrupt the governance state.'
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-305
-  title: ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
-  description: specsmith MUST implement src/specsmith/esdb/store.py with a ChronoStore
-    class (the ChronoMemory backend implementation) providing a WAL-based per-project
-    epistemic state database. The WAL MUST
-    be stored at <project>/.chronomemory/events.wal as NDJSON with SHA-256 hash chaining.
-    A materialized snapshot MUST be written every 50 events at snapshot.json. WAL
-    append MUST be crash-safe via write-to-temp-then-rename.
-  source: ARCHITECTURE.md §ESDB / ChronoStore
-  status: implemented
-- id: REQ-306
-  title: ESDB Must Be Per-Project
-  description: Each governed project MUST have its own ESDB at <project_root>/.chronomemory/.
-    Global or shared ESDB instances are not permitted. EsdbBridge MUST delegate to
-    ChronoStore (the ChronoMemory backend class) when vents.wal exists, and fall
-    back to flat JSON read-only mode otherwise.
-  source: ARCHITECTURE.md §ESDB / ChronoStore
-  status: implemented
-- id: REQ-307
-  title: Session State Must Survive Restart
-  description: specsmith MUST persist session context to .specsmith/session-state.json
-    and conversation history to .specsmith/conversation-history.jsonl (capped at 200
-    turns). On init_session(), the previous session context MUST be loaded and a synthetic
-    resume message injected as the first history entry. GET /api/session/history MUST
-    return the stored history.
-  source: ARCHITECTURE.md §Session Persistence
-  status: implemented
-- id: REQ-308
-  title: Context Orchestrator with Tiered Auto-Optimization
-  description: 'specsmith MUST implement src/specsmith/context_orchestrator.py with
-    a ContextOrchestrator that applies three tiers: Tier 1 (60-79% fill) compresses
-    LEDGER.md history; Tier 2 (80-84%) summarizes conversation and evicts low-confidence
-    ESDB records; Tier 3 (>=85%) emergency-drops records with confidence < 0.7. Data
-    on disk MUST NEVER be deleted.'
-  source: ARCHITECTURE.md §Context Orchestrator
-  status: implemented
-- id: REQ-309
-  title: CI Automation Togglable Per Project
-  description: specsmith ci enable MUST generate CI, Dependabot, and CodeQL configs.
-    specsmith ci status --json MUST return a JSON object with ci_available, ci_passing,
-    open_dep_alerts, open_security_alerts. specsmith ci watch MUST poll until the
-    run completes. CI automation state MUST be persisted to .specsmith/config.yml.
-  source: ARCHITECTURE.md §CI Automation Manager
-  status: implemented
-- id: REQ-310
-  title: OEA Anti-Hallucination Fields on ESDB Records
-  description: 'Every ChronoRecord MUST carry OEA anti-hallucination fields: source_type,
-    confidence, vidence, pistemic_boundary, is_hypothesis, model_assumptions, ecursion_depth.
-    All fields MUST default to safe non-blocking values for records migrated from
-    legacy JSON.'
-  source: ARCHITECTURE.md §OEA Anti-Hallucination Governance Layer
-  status: implemented
-- id: REQ-311
-  title: RAG Retrieval Must Filter by Confidence
-  description: ESDB retrieval MUST accept a min_confidence threshold and exclude records
-    with confidence < min_confidence. Records at exactly the threshold MUST be included.
-    Default threshold is 0.0 (no filtering).
-  source: ARCHITECTURE.md §ESDB / ChronoStore
-  status: implemented
-- id: REQ-312
-  title: Context Optimize Command
-  description: "specsmith context optimize --fill-pct <N> [--json] MUST call ContextOrchestrator.optimize()\
-    \ and report tier-specific actions taken. --json MUST emit a JSON summary with\
-    \ \tier, ctions, and\n\tokens_freed."
-  source: ARCHITECTURE.md §Context Orchestrator
-  status: implemented
-# NOTE: REQ-313..320 are implemented in docs/requirements/multiagent_compliance.yml
-# (multi-agent governance traceability — compliance plan 5939f743).
-# EU AI Act Art. 12/13/14 obligations for dispatched multi-agent work.
-- id: REQ-335
-  title: specsmith test-ran CLI Subcommand
-  description: >-
-    specsmith MUST provide a `test-ran <TEST-ID> --result passed|failed|error|skipped`
-    CLI subcommand that records a test run outcome in `.specsmith/testcases.json`.
-    On invocation it MUST update `last_result` and `last_run_at` fields on the matching
-    test case record, transition status from `pending` to `implemented` when result is
-    `passed`, transition to `failing` when result is `failed`, write a best-effort ledger
-    entry via `add_entry`, and emit a JSON payload (with `--json`) or a human-readable
-    summary. If the test ID is not found it MUST exit 1. If `testcases.json` is absent
-    it MUST exit 1 with a message directing the user to run `specsmith sync`.
-  source: ARCHITECTURE.md §Governance CLI
-  status: implemented
-- id: REQ-336
-  title: specsmith save CLI Command
-  description: >-
-    specsmith MUST provide a top-level `save` CLI command that performs a full governance
-    checkpoint in three steps: (1) create a timestamped ESDB backup via ChronoStore.backup();
-    (2) git-commit all pending governance changes (LEDGER.md, .specsmith/, docs/) with an
-    auto-generated commit message; (3) git-push the current branch to origin. The command
-    MUST exit 0 on success, exit 1 on any step failure, and print a human-readable
-    summary of what was saved. `--json` MUST emit a structured payload with backup_path,
-    commit_hash, and push_ok fields.
-  source: ARCHITECTURE.md §CI Automation Manager — save/load Commands
-  status: implemented
-- id: REQ-337
-  title: specsmith load CLI Command
-  description: >-
-    specsmith MUST provide a top-level `load` CLI command that pulls the latest governance
-    state from origin: (1) git-pull the current branch; (2) optionally restore the latest
-    ESDB backup when `--restore-backup` is passed; (3) print a status report of what changed.
-    The command MUST exit 0 on success and exit 1 if git-pull fails with an unresolvable
-    conflict. `--json` MUST emit a structured payload with pull_ok, files_changed, and
-    backup_restored fields.
-  source: ARCHITECTURE.md §CI Automation Manager — save/load Commands
-  status: implemented
-- id: REQ-338
-  title: specsmith_run Agent Tool with Slash-Command Routing
-  description: >-
-    The agent tool registry MUST expose a `specsmith_run(command)` tool that normalises
-    three input forms to `specsmith <args>` and executes via subprocess: (1) slash-command
-    prefix (`/specsmith save`); (2) single-word verb shortcuts (`save`, `load`, `push`,
-    `pull`, `sync`, `audit`, `status`, `watch`, `commit`, `validate`, `doctor`, `run`);
-    (3) full passthrough (`specsmith <args>`). The tool MUST be registered in AVAILABLE_TOOLS
-    and build_tool_registry() with REG-001/REG-002 epistemic claim metadata. Agents MUST
-    use specsmith_run for all governance CLI operations instead of raw run_shell calls.
-  source: ARCHITECTURE.md §Agent Tool Registry — specsmith_run
-  status: implemented
-- id: REQ-339
-  title: M005 Agent-Run-Tool Migration
-  description: >-
-    The migration framework MUST include migration M005 (version=5) that auto-upgrades
-    existing projects to use the specsmith_run governance command. M005 MUST: (1) write
-    `.specsmith/agent-tools.json` declaring specsmith_run as the primary_governance_command
-    with a full verb_shortcuts list; (2) append a "Governance commands" section to AGENTS.md
-    documenting all /specsmith slash-command forms, backing up the original to
-    `.specsmith/agents.md.m005.bak`. Both steps MUST be non-destructive and support
-    `dry_run=True` and `rollback()`. M005 MUST be registered in MigrationRegistry.
-  source: ARCHITECTURE.md §Migration Framework — M005
-  status: implemented
-- id: REQ-340
-  title: /specsmith REPL Slash-Command Handler
-  description: >-
-    The Nexus REPL (agent/repl.py) MUST handle `/specsmith <args>` as a first-class
-    slash command that passes args verbatim to the specsmith CLI subprocess and streams
-    output directly to the terminal without buffering. The handler MUST gracefully handle
-    subprocess timeout (120 s default) and unexpected exceptions without crashing the REPL.
-    The REPL startup banner MUST advertise the /specsmith command. Invoking `/specsmith`
-    with no args MUST display specsmith --help.
-  source: ARCHITECTURE.md §Nexus REPL — /specsmith Handler
-  status: implemented
-- id: REQ-341
-  title: Terminal Awareness Skill in Skills Catalog
-  description: >-
-    specsmith.skills MUST include a 	erminal-awareness skill in the CROSS_PLATFORM domain
-    covering: (1) shell detection from Python and from the shell itself; (2) PowerShell 5 vs 7
-    syntax differences (null-coalescing, ternary, parallel ForEach-Object, encoding, &&/||
-    availability); (3) cmd.exe rules (no PowerShell cmdlets in pipelines, % variables, ^ continuation);
-    (4) bash/zsh/fish patterns (background PID capture, trap cleanup, timeout); (5) Python subprocess
-    spawn with PID tracking using communicate(timeout) and DEVNULL stdin; (6) PowerShell
-    Start-Process -PassThru PID tracking with WaitForExit; (7) a cross-platform command
-    equivalents table; (8) a cleanup checklist for spawned processes.
-  source: ARCHITECTURE.md §37 Skills Catalog
-  status: implemented
-- id: REQ-342
-  title: Shell-Aware Command Generation
-  description: >-
-    Agents operating on behalf of specsmith MUST detect the active shell before emitting shell
-    commands. PowerShell cmdlets (Write-Host, Get-ChildItem, Start-Process, etc.) MUST NOT be
-    emitted when the active shell is bash, zsh, fish, or cmd.exe. bash-isms (, export, $!)
-    MUST NOT be emitted in PowerShell or cmd.exe contexts. The terminal-awareness skill provides
-    the detection and equivalents reference that agents MUST consult.
-  source: ARCHITECTURE.md §37 Skills Catalog
-  status: implemented
-- id: REQ-343
-  title: Subprocess Spawn with PID Tracking and Cleanup
-  description: >-
-    specsmith process execution (specsmith exec, run_tracked) MUST spawn subprocesses using
-    communicate(timeout=N) with stdin=DEVNULL to prevent hanging. Spawned PIDs MUST be written to
-    .specsmith/pids/<pid>.json so specsmith ps and specsmith abort can list and kill them.
-    On timeout, the implementation MUST call proc.kill() then proc.communicate() to drain pipes
-    and avoid zombie processes. On Windows, CREATE_NEW_PROCESS_GROUP MUST be set for clean signal
-    forwarding.
-  source: ARCHITECTURE.md §37 Skills Catalog
-  status: implemented
-- id: REQ-344
-  title: specsmith.esdb Namespace Re-exports chronomemory v0.1.1
-  description: >-
-    src/specsmith/esdb/__init__.py MUST re-export the full chronomemory v0.1.1 public API surface
-    under the specsmith.esdb namespace: ChronoStore, ChronoRecord, WalEvent, open_store,
-    EsdbBridge, EsdbRecord, EsdbStatus, DepGraph, DependencyEdge, RollbackReport, invalidate,
-    ContextPack, ContextPackCompiler, ContextPackEntry, RustChronoStore, RustRecord, RUST_BACKEND,
-    plus module-level references to query and metrics. specsmith.esdb.bridge MUST expose
-    EsdbBridge, ContextPackCompiler, DepGraph, RUST_BACKEND, query, and metrics.
-  source: ARCHITECTURE.md §36 specsmith.esdb Namespace
-  status: implemented
-- id: REQ-345
-  title: LLM Context MUST Use query.what_is_known Not store.query(rag_filter)
-  description: >-
-    All specsmith code paths that inject ESDB ChronoRecords into LLM context (retrieval index
-    building, context seed generation, context orchestrator eviction decisions) MUST use
-    query.what_is_known(store) instead of store.query(rag_filter=True). query.what_is_known
-    excludes infrastructure record kinds (edge, rollback_event, token_metric, skill_run) in
-    addition to applying the confidence >= 0.6 filter. Infrastructure records MUST NEVER appear
-    in agent-facing context.
-  source: ARCHITECTURE.md §36 specsmith.esdb Namespace
-  status: implemented
-- id: REQ-346
-  title: specsmith save --force Propagates Force to Push
-  description: >-
-    specsmith save MUST accept a --force flag that propagates to the underlying run_push() call,
-    bypassing the gitflow direct-to-main guard and any other push safety checks. The push MUST
-    use git push --force-with-lease (not --force) to avoid overwriting concurrent remote changes.
-    --force has no effect when --no-push is also passed. When --force is omitted, all existing
-    safety checks apply unchanged.
-  source: ARCHITECTURE.md §38 VCS Force Operations
-  status: implemented
-- id: REQ-347
-  title: specsmith pull --discard Hard-Resets to Remote Branch
-  description: >-
-    specsmith pull MUST accept a --discard flag. When passed, the implementation MUST: (1) run
-    git fetch origin <branch> to bring the remote ref current; (2) run git reset --hard
-    origin/<branch> to hard-reset the working tree; (3) report success with the branch name.
-    All local uncommitted changes are discarded. This replaces the normal git pull (which
-    preserves local state) when a clean reset to remote is required.
-  source: ARCHITECTURE.md §38 VCS Force Operations
-  status: implemented
-- id: REQ-348
-  title: specsmith pull --clean Removes Untracked Files After Discard
-  description: >-
-    When specsmith pull --clean is passed, the implementation MUST perform the same hard-reset
-    sequence as --discard and additionally run git clean -fd to remove all untracked files and
-    directories. The success message MUST note that untracked files were removed. --clean implies
-    --discard; passing --clean without --discard MUST produce the same result.
-  source: ARCHITECTURE.md §38 VCS Force Operations
-  status: implemented
-- id: REQ-349
-  title: gh-ci-polling Skill Prohibits Sleep-Based CI Waiting
-  description: >-
-    specsmith.skills MUST include a gh-ci-polling skill in the GOVERNANCE domain documenting
-    gh run watch as the correct CI-wait primitive. The skill MUST explicitly prohibit Start-Sleep,
-    sleep, and time.sleep as CI wait mechanisms. It MUST provide: (1) the canonical gh run watch
-    pattern for bash and PowerShell; (2) non-blocking gh run list --json conclusion status check;
-    (3) the one acceptable polling loop (with state check, minimum 15-second interval) for when
-    gh run watch is unavailable; (4) gh run view --log-failed for immediate failure triage.
-  source: ARCHITECTURE.md §37 Skills Catalog
-  status: implemented
-- id: REQ-350
-  title: Epistemic Metadata Passthrough in Sync Pipeline
-  description: >-
-    specsmith sync MUST pass through platform, boundary, and confidence fields from YAML
-    requirement sources into the .specsmith/requirements.json machine-state entries when those
-    fields are present in the YAML. These fields are used by generate_requirements_md to render
-    them into REQUIREMENTS.md and by belief.py to parse Platform/Boundary/Confidence metadata.
-    Absent fields MUST be omitted from the JSON entry (not written as null).
-  source: ARCHITECTURE.md §YAML-Native Governance Layer
-  status: implemented
-- id: REQ-351
-  title: specsmith checkpoint Governance Anchor Command
-  description: >-
-    specsmith MUST provide a checkpoint CLI command that emits a compact GOVERNANCE ANCHOR
-    summarising the current project state: project name (from scaffold.yml), AEE phase with
-    readiness percentage, audit health and failed check count, REQ count, TEST count,
-    ESDB record count with chain validity, up to 3 recent WI- identifiers from LEDGER.md,
-    and the last preflight acceptance line. With --json it MUST emit a JSON payload containing
-    ts, project, phase, phase_label, phase_pct, health, audit_failed, req_count, test_count,
-    esdb_records, esdb_chain_valid, recent_wis, last_preflight, and anchor fields.
-    Without --json it MUST emit a human-readable bordered GOVERNANCE ANCHOR block with a
-    footer instructing agents to include it verbatim in any context summary. All data
-    gathering MUST be best-effort (exceptions silently swallowed) so the command never
-    fails even on projects with no ESDB or LEDGER.
-  source: ARCHITECTURE.md §Session Governance Protocol
-  status: implemented
-- id: REQ-352
-  title: M006 Session Governance Migration Auto-injects Protocol into AGENTS.md
-  description: >-
-    specsmith MUST include migration M006 (version=6) that detects whether AGENTS.md
-    contains any of the sentinel strings 'specsmith checkpoint', 'Session Governance Protocol',
-    'GOVERNANCE ANCHOR', or 'governance heartbeat'. When none are present, M006 MUST
-    back up AGENTS.md to .specsmith/agents.md.m006.bak and inject the full Session Governance
-    Protocol section (heartbeat every 8-10 turns, preflight gate, drift detection checklist,
-    checkpoint-in-summary rule, session end). M006 MUST be idempotent (re-running when section
-    is present is a no-op), non-destructive (original always backed up), and registered in
-    MigrationRegistry so it runs automatically via specsmith migrate-project and
-    specsmith upgrade --full.
-  source: ARCHITECTURE.md §Session Governance Protocol
-  status: implemented
-- id: REQ-353
-  title: Modern Web Framework Project Types
-  description: >-
-    specsmith MUST support the following modern web framework project types in addition to
-    the existing web-frontend and fullstack-js types: nextjs-app (Next.js / React with
-    SSR/SSG, next lint, jest/playwright), nuxt-app (Nuxt.js / Vue, vitest, playwright),
-    sveltekit-app (SvelteKit, vitest, playwright), remix-app (Remix React, vitest,
-    playwright), astro-site (Astro static/SSR, vitest, playwright). Each MUST have a
-    corresponding ToolSet entry in the tool registry with appropriate lint, typecheck,
-    test, security, build, and format tools. Each MUST appear in _TYPE_LABELS with a
-    human-readable label.
-  source: ARCHITECTURE.md §Implemented Specsmith System
-  status: implemented
-- id: REQ-354
-  title: CodityAdapter Scaffolds AI Code Review CI Workflow
-  description: >-
-    specsmith MUST provide a CodityAdapter registered as 'codity' in the integrations
-    registry. CodityAdapter.generate() MUST detect the VCS host from scaffold.yml content
-    ('gitlab' keyword → gitlab, 'azure' keyword → azure, else github) and from directory
-    heuristics (.gitlab-ci.yml → gitlab, azure-pipelines.yml → azure). For github it MUST
-    write .github/workflows/codity-review.yml; for gitlab it MUST write .gitlab-ci-codity.yml;
-    for azure it MUST write .azure-pipelines/codity-review.yml. All variants MUST install
-    the Codity CLI via the official install script, run 'codity review --staged', and require
-    CODITY_ACCESS_TOKEN. GitLab and Azure variants MUST additionally call
-    'codity config set-pat --provider <vcs>'. generate() MUST also write docs/codity-setup.md
-    (one-time setup checklist) and append a TODO checklist to LEDGER.md if it exists.
-    The adapter MUST be discoverable via specsmith integrate codity.
-  source: ARCHITECTURE.md §39
-  status: implemented
-- id: REQ-355
-  title: AGENTS.md Template Includes Codity.ai Pre-commit Rule
-  description: >-
-    The AGENTS.md Jinja2 template (agents.md.j2) MUST include a 'Codity.ai Code Review'
-    section that instructs agents: if 'codity doctor' exits 0 (Codity is configured), run
-    'codity review --staged' before any commit touching production code; HIGH-severity
-    findings are blocking; MEDIUM-severity findings require inline acknowledgement in the
-    commit message; setup is via 'specsmith integrate codity --project-dir .'.
-  source: ARCHITECTURE.md §39
-  status: implemented
-- id: REQ-356
-  title: codity-ai-review Governance Skill in Skills Catalog
-  description: >-
-    specsmith MUST include a 'codity-ai-review' SkillEntry in the governance domain skills
-    catalog. The skill MUST document: Codity CLI install command (curl install script),
-    codity login (magic-link browser auth), codity init (per-repo initialisation), daily
-    commands (review --staged, scan --staged, test-gen --staged, doctor), the AGENTS.md
-    blocking rule (HIGH severity = commit blocked, MEDIUM = acknowledgement required),
-    CI integration via specsmith integrate codity, GitHub App setup, GitLab PAT setup
-    (codity config set-pat --provider gitlab), and Azure DevOps PAT setup. The skill MUST
-    be tagged with codity, ai-review, code-review, security, test-gen, ci, github, gitlab,
-    azure, staged, pre-commit and discoverable via specsmith skill list.
-  source: ARCHITECTURE.md §39
-  status: implemented
-- id: REQ-357
-  title: Audit accepted_warnings Suppression in scaffold.yml
-  description: >-
-    scaffold.yml MUST support an `accepted_warnings` list field. When a check's name
-    (or a canonical alias) appears in `accepted_warnings`, `specsmith audit` MUST render
-    that check as `~ <check> (accepted)` instead of `✗`, exclude it from the failure
-    count and the non-zero exit code, and prevent `specsmith audit --fix` from
-    auto-correcting that field. Supported canonical aliases MUST include at minimum:
-    `scaffold_type_mismatch` (for the `type-mismatch` check), `ledger_line_threshold`
-    (for `ledger-size`), and `open_todo_count` (for `ledger-open-todos`).
-  source: GitHub issue #188
-  status: implemented
-- id: REQ-358
-  title: Sync Markdown Fallback When YAML Mode Has No YAML Files
-  description: >-
-    When `specsmith sync` is invoked in YAML-first mode (`governance-mode == yaml`)
-    but `load_yaml_requirements` returns zero entries AND `docs/REQUIREMENTS.md` exists
-    with non-trivial content (≥ 5 REQ- patterns), `sync` MUST fall back to Markdown
-    parsing for the current sync run rather than treating the empty YAML result as
-    authoritative. This prevents a fresh YAML-mode project from silently losing its
-    Markdown-authored requirements in the JSON machine-state cache.
-  source: GitHub issue #189
-  status: implemented
-- id: REQ-359
-  title: Phase Check _req_count Detects H2 REQ Headings
-  description: >-
-    The `_req_count` readiness check in `phase.py` MUST count requirement headings at
-    both H2 (`##`) and H3 (`###`) depth. The current implementation only detects
-    `^###\s+REQ-` patterns, causing false `At least N requirements defined` failures for
-    projects whose `REQUIREMENTS.md` uses `## REQ-DOMAIN-NNN` H2-style headings.
-    The fix MUST also count `## REQ-` (H2) headings so phase-readiness percentages
-    reflect the actual requirement count visible to `specsmith validate` and `specsmith audit`.
-  source: GitHub issue #189
-  status: implemented
-- id: REQ-360
-  title: Skills Catalog Self-Referential Entries and Subdirectory Install Format
-  description: >-
-    specsmith.skills MUST include three self-referential SkillEntry entries in the
-    GOVERNANCE domain: `specsmith` (master CLI reference), `specsmith-save` (save
-    workflow), and `specsmith-audit` (audit workflow). These MUST be installable via
-    `specsmith skill install <slug>`. The `install()` function MUST write skills to
-    `.agents/skills/<slug>/SKILL.md` (subdirectory format) rather than `.agents/skills/<slug>.md`
-    (flat format) so Warp, Claude Code, and Codex discover them automatically. The
-    `installed_skills()` function MUST detect both legacy flat files and subdirectory
-    format.
-  source: GitHub issue #190
-  status: implemented
-- id: REQ-361
-  title: Skills System Documented in RTD, README, AGENTS.md, and CHANGELOG
-  description: >-
-    The specsmith skills system MUST be documented in four locations: (1) `README.md`
-    MUST have a `## Skills` section showing `specsmith skill list`, `specsmith skill install
-    <slug>`, the `.agents/skills/` directory format, Warp/Claude Code/Codex compatibility,
-    and the remote reference format `--skill "layer1labs/specsmith:<slug>"`. (2)
-    `docs/site/skills-index.md` MUST include the three new `specsmith-*` skills in the
-    Governance table. (3) `AGENTS.md` MUST mention `.agents/skills/` and list the three
-    self-referential skills. (4) `CHANGELOG.md` MUST have an entry for the skills
-    feature addition.
-  source: GitHub issue #190
-  status: implemented
+- id: REQ-400
+  title: Context Eviction ESDB Write-Back
+  description: 'ContextOrchestrator._evict_low_confidence_records() must actually
+    write back to the store: for SqliteStore call store.delete(rec.id) (tombstone);
+    for ChronoStore call store.invalidate() or tombstone. The method must return the
+    count of records actually tombstoned, not just counted.
 
+    '
+  status: accepted
+  source: architecture
+  priority: P2
+  domain: esdb
+- id: REQ-401
+  title: M008 ESDB Full-Coverage Backfill Migration
+  description: 'Migration version 8 (m008_esdb_full_coverage) backfills existing flat
+    JSON state into ESDB on first run: reads workitems.json and upserts each WI as
+    kind="work_item"; reads SQLite audit_events and upserts each as kind="ledger_event".
+    Idempotent via .specsmith/esdb-full-coverage marker file. Runs automatically via
+    specsmith migrate run.
+
+    '
+  status: accepted
+  source: architecture
+  priority: P1
+  domain: esdb
+- id: REQ-402
+  title: ESDB Record Kind Taxonomy Documentation
+  description: 'ARCHITECTURE.md section 19 (ChronoMemory ESDB) must include a complete
+    record kinds table (preflight_decision, verify_result, work_item, ledger_event,
+    compliance_evidence, dispatch_result) with write-source for each kind. The chronomemory-esdb
+    governance skill must include the same table plus write-path code examples for
+    specsmith-internal callers.
+
+    '
+  status: accepted
+  source: architecture
+  priority: P2
+  domain: esdb
+- id: REQ-403
+  title: ledger_event Dual-Write from add_entry
+  description: ledger.add_entry() MUST best-effort upsert a SqliteRecord(kind="ledger_event",
+    confidence=0.9) into ESDB immediately after writing LEDGER.md. The upsert MUST
+    be wrapped in try/except so a broken ESDB never blocks the ledger write. The record
+    MUST carry description, entry_type, author, reqs, status, epistemic_status, belief_artifacts,
+    entry_hash, and timestamp fields in its data dict. Source_ids MUST be populated
+    from the reqs field (comma-split).
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-404
+  title: seal_record Dual-Write from TraceVault._append
+  description: TraceVault._append() MUST best-effort upsert a SqliteRecord(kind="seal_record",
+    confidence=0.9, id="ESDB-{seal_id}") into ESDB immediately after appending to
+    trace.jsonl. The upsert MUST be wrapped in try/except. The record data MUST be
+    the full SealRecord.to_dict() output. source_ids MUST be populated from artifact_ids.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-405
+  title: session_metric Dual-Write from MetricsStore.append
+  description: MetricsStore.append() MUST best-effort upsert a SqliteRecord(kind="session_metric",
+    confidence=0.8, id="MET-{session_id}") into ESDB immediately after writing to
+    session_metrics.jsonl. The upsert MUST be wrapped in try/except. The record data
+    MUST be the full MetricsRecord.to_dict() output. source_ids MUST be populated
+    from work_item_id when present.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-406
+  title: M009 ESDB-First Backfill Migration
+  description: 'specsmith MUST include migration M009 (version=9) that backfills existing
+    loose state files into ESDB records. M009 MUST: (1) parse every ## heading in
+    LEDGER.md and upsert as ledger_event; (2) parse every line of trace.jsonl and
+    upsert as seal_record; (3) parse every line of session_metrics.jsonl and upsert
+    as session_metric. M009 MUST be idempotent via a marker file (.specsmith/esdb-m009-backfill),
+    non-destructive, and registered in MigrationRegistry.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-407
+  title: ESDB-First Ledger Snippet in context_seed
+  description: build_context_seed() MUST query ESDB ledger_event records first when
+    loading the ledger snippet. Only if ESDB has no ledger_event records MUST it fall
+    back to reading LEDGER.md directly. The ESDB query MUST sort by timestamp descending
+    and return the last max_ledger records as formatted lines.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-408
+  title: ESDB-First Commit Message in generate_commit_message
+  description: vcs_commands.generate_commit_message() MUST query ESDB ledger_event
+    records first. It MUST select the record with the latest timestamp and return
+    its description field truncated to 72 characters. Only if ESDB has no ledger_event
+    records MUST it fall back to reading LEDGER.md.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-409
+  title: specsmith inspect and ledger export CLI Commands
+  description: 'specsmith MUST provide a top-level `inspect` CLI command that displays
+    a bordered block containing: governance health (audit result), active work items,
+    EFF-CURRENT efficiency snapshot, and 5-dimension epistemic quality score. specsmith
+    MUST also provide `ledger export` (subcommand of ledger group) that queries ledger_event
+    records from ESDB (default) or LEDGER.md (--source file) and emits text or JSON
+    output. Both commands MUST support --project-dir and --json flags.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-410
+  title: Token Metric ESDB Write Path from AgentRunner
+  description: AgentRunner._handle_command() MUST best-effort call write_token_metric()
+    after every ChatRunResult. The call MUST pass input_tokens, output_tokens, cost_usd,
+    model (provider name), command_source (activity), and work_item_id from the active
+    session state. The write MUST be wrapped in try/except and never block the chat
+    loop.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-411
+  title: EFF-CURRENT efficiency_metric ESDB Record
+  description: specsmith MUST maintain a singleton EFF-CURRENT record (kind="efficiency_metric",
+    id="EFF-CURRENT", confidence=1.0) in ESDB. compute_and_upsert_efficiency(root)
+    MUST read the last 20 session_metric, token_metric, and context_usage records,
+    compute tokens_per_correct_answer, cost_of_pass_usd, quality_trend_7d, mean_rework_turns,
+    context_char_efficiency, context_health_score, baseline (last 50), degraded flag,
+    and epistemic_quality, then upsert EFF-CURRENT. The function MUST be best-effort
+    (returns False on error). compute_and_upsert_efficiency() MUST be called from
+    specsmith save and the serve.py _session_save endpoint.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-412
+  title: ESDB Sweep with Per-Kind Retention
+  description: 'specsmith MUST provide esdb_sweep.run_sweep(root, orphans_only, dry_run)
+    that tombstones active records whose retention period has expired. Retention periods:
+    session_metric=60d, context_usage=30d, ledger_event=90d, seal_record/token_metric/
+    efficiency_metric=forever. The full sweep (orphans_only=False) MUST also call
+    compute_and_upsert_efficiency() to refresh EFF-CURRENT. run_sweep MUST return
+    a SweepResult dataclass with tombstoned, orphans_flagged, efficiency_refreshed,
+    errors, and kinds_swept counts.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-413
+  title: Orphan Detection for work_item and preflight_decision Records
+  description: run_sweep() MUST detect and tombstone orphaned records. A work_item
+    record is an orphan if it is active in ESDB but absent from workitems.json. A
+    preflight_decision record is an orphan if its parent work_item_id is not found
+    in ESDB or workitems.json. Orphan detection MUST run in both full and orphans_only=True
+    modes.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-414
+  title: Epistemic Quality Score in EFF-CURRENT
+  description: 'compute_epistemic_quality(root) MUST compute a 5-dimension composite
+    score: confidence_density (weight 0.30, fraction of active records with confidence>=0.7),
+    recency_score (0.20, records with timestamp < 90 days), coherence_score (0.20,
+    work_items with matching preflight_decision), closure_score (0.15, verify_results
+    / preflight_decisions), non_contradiction_score (0.15, 1 minus duplicate label
+    ratio). Composite MUST be clamped to [0.0, 1.0] and stored in EFF-CURRENT.epistemic_quality.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-415
+  title: Context Seed Auto-Tune from EFF-CURRENT
+  description: 'build_context_seed() MUST load EFF-CURRENT from ESDB before assembling
+    the seed. When degraded=True, it MUST reduce char_budget by 25%. When context_char_efficiency>0.9,
+    it MUST halve max_ledger (minimum 10). ContextOrchestrator.check_and_optimize()
+    MUST load dynamic thresholds from EFF-CURRENT: when degraded=True, all three tier
+    thresholds MUST be reduced by 5 percentage points.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-416
+  title: context_usage Records from build_context_seed and ContextOrchestrator
+  description: build_context_seed() MUST write a SqliteRecord(kind="context_usage",
+    id="CTX-{session_id}", confidence=1.0) to ESDB after assembling each seed, containing
+    session_id, seed_chars, seed_fill_pct, turns_count, degraded_at_seed, and timestamp.
+    ContextOrchestrator.check_and_optimize() MUST upsert the latest context_usage
+    record's peak_fill_pct field when a higher fill percentage is observed. Both efficiency_metric
+    and context_usage kinds MUST be exempt from _evict_low_confidence_records().
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-417
+  title: Honest ESDB Integrity Reporting in status and resume
+  description: specsmith esdb status and specsmith resume MUST report the actual ESDB
+    hash-chain verification result. esdb status MUST render "Integrity OK" only when
+    chain_valid() is true and "Integrity FAILED" when it is false, instead of a hardcoded
+    "Integrity OK" label. resume MUST drive its leading ESDB indicator from status.chain_valid
+    (green check only when valid, red cross when invalid) rather than always printing
+    a green check.
+  source: ARCHITECTURE.md [ESDB Extended Management]
+  status: implemented
+- id: REQ-418
+  title: Preflight CLI Delegates to run_preflight
+  description: 'The `specsmith preflight` CLI command MUST delegate its decision to
+    governance_logic.run_preflight(utterance, project_dir) so that explicit REQ-NNN
+    references and the synced requirements.json drive the result, instead of relying
+    on self-contained heuristics. The command MUST preserve its existing flags: --predict-only
+    emits a predicted_refinement (and persists no work item) when the decision is
+    needs_clarification; --stress appends stress_warnings; --verbose appends narration;
+    and accepted, non-predict-only runs still append a ledger entry when LEDGER.md
+    exists. Exit codes MUST remain accepted=0, needs_clarification=2, blocked/rejected=3,
+    and the REQ-098 confidence floor MUST NOT be applied twice.'
+  source: ARCHITECTURE.md [Preflight]
+  status: implemented
+- id: REQ-419
+  title: ESDB Status Human-Readable Output Never Aborts
+  description: '`specsmith esdb status` in human-readable (non-JSON) mode MUST emit
+    its output via a resilient stdout write path that cannot raise a spurious Click
+    Abort or KeyboardInterrupt on legacy Windows consoles. It MUST build plain-text
+    lines (no Rich markup) and write them through the same sys.stdout.write + flush
+    pattern, with a stderr fallback, used by the --json branch. The REQ-417 "Integrity
+    OK" / "Integrity FAILED" line MUST be preserved.'
+  source: ARCHITECTURE.md [ESDB Extended Management]
+  status: implemented
+- id: REQ-420
+  title: ESDB-Only Trace Vault Readiness and Persistence
+  description: The trace vault MUST treat ESDB as its single source of truth. TraceVault._load()
+    MUST reconstruct seals exclusively from ESDB seal_record records (via SealRecord.from_dict
+    on each record's data) and TraceVault._append() MUST persist new seals to ESDB
+    only, no longer writing .specsmith/trace.jsonl. The phase readiness helpers (_trace_vault_exists,
+    _trace_vault_min_seals) MUST count active seal_record records in ESDB rather than
+    reading trace.jsonl. This path is forward-only with no jsonl fallback; an ESDB
+    error MUST be treated as zero seals. The hash chain MUST continue to verify via
+    content_hash/prev_hash/entry_hash in the record data.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-421
+  title: Legacy Flat-File Deprecation Registry
+  description: 'specsmith MUST maintain a single greppable registry of legacy flat-file
+    persistence sites slated for removal once ESDB is the sole source of truth, so
+    a future teardown is a one-grep operation. Every such site in src/specsmith MUST
+    carry a `# DEPRECATED(REQ-421):` marker comment, and docs/DEPRECATIONS.md MUST
+    enumerate each marker with its file, the legacy artifact, the ESDB record kind
+    that supersedes it, and the follow-up item. The registry MUST include the planned
+    (not-yet-executed) teardown items: flipping work_item persistence to ESDB-first
+    (superseding workitems.json) and stopping sync from regenerating the .specsmith/requirements.json
+    and testcases.json caches. No legacy file or fallback may be deleted by this requirement;
+    it only records and annotates them.'
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-422
+  title: SQLite-Backend Parity for Retrieval and Critical-Count
+  description: When ESDB runs on the free SQLite backend (no ChronoMemory), governance
+    knowledge MUST still flow through the same runtime paths as the commercial backend.
+    retrieval.build_index() MUST inject ESDB records into the RAG index via SqliteStore.query(rag_filter=True)
+    — excluding infrastructure kinds (edge, rollback_event, token_metric, skill_run,
+    efficiency_metric, context_usage) — when ChronoStore is unavailable, instead of
+    indexing nothing. ContextOrchestrator._count_critical_records() MUST fall back
+    to counting active SQLite records with confidence >= CRITICAL_CONFIDENCE rather
+    than returning 0. Commercial-only capabilities MUST remain optional and degrade
+    to no-ops on SQLite.
+  source: ARCHITECTURE.md §ESDB-First Migration
+  status: implemented
+- id: REQ-423
+  title: Governed benchmark agents must achieve 100% pass rate across all tasks and
+    conditions
+  status: planned
+  description: All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark
+    tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps
+  test_ids:
+  - TEST-433
+- id: REQ-424
+  title: CI pipeline must produce zero CodeQL static analysis alerts on every run
+  description: Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static
+    analysis alerts on every CI run
+  source: WI-0CEA445B
+  status: planned
+  test_ids:
+  - TEST-434
+- id: REQ-425
+  title: Governed agents must autonomously resolve preflight needs_clarification without
+    blocking
+  description: Promoted from WI-B73B339B. The benchmark harness must never deadlock
+    on preflight needs_clarification — governed agents must autonomously resolve missing
+    requirements and always produce a passing implementation
+  source: WI-B73B339B
+  status: planned
+  test_ids:
+  - TEST-435
+- id: REQ-426
+  title: Benchmark harness completion token budget must allow reasoning models to
+    produce tool calls
+  status: planned
+  description: max_completion_tokens must be at least 32768 for gpt-5.x and o-series
+    models to prevent reasoning token exhaustion truncating tool call output
+- id: REQ-427
+  title: GovernanceBench metrics/report statistical and leaderboard outputs
+  status: planned
+  description: GovernanceBench metrics/report shall compute Wilson pass-rate confidence
+    intervals, bootstrap cost-of-pass confidence intervals, first-pass and consistency
+    statistics, scaffold-lift vs UNGOVERNED, model-tier mapping, democratization and
+    Pareto summaries, and Hugging Face leaderboard JSON/rendered report sections.
+- id: REQ-428
+  title: gitignore normalizer must enforce disjoint allow/deny policy and untrack
+    diverged paths
+  status: planned
+  description: normalize_esdb_gitignore_policy in sync.py must (a) separate tracked
+    paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule
+    for a path it also allows, (c) run git rm --cached for any deny-listed path found
+    in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked
+- id: REQ-429
+  title: 'checkpoint ESDB field must reflect active backend: show SQLite record count
+    and chain status when chronomemory is unavailable, ChronoMemory count otherwise,
+    and N/A when no ESDB is present'
+  status: planned
+  description: The 'specsmith checkpoint' GOVERNANCE ANCHOR box must accurately show
+    the active ESDB backend. When chronomemory (commercial) is the active backend
+    and WAL exists, show record count and chain validity as now. When SQLite is the
+    active backend (chronomemory absent or WAL missing), show 'SQLite (N recs, ✓ chain)'
+    with actual SqliteStore record count and chain_valid() result. When no ESDB is
+    present at all, show 'N/A'. The current 0-record default is misleading for SQLite-only
+    installations.
+- id: REQ-430
+  title: preflight release classifier must distinguish release execution from release
+    tooling edits
+  status: planned
+  description: The deterministic broker must not classify edits to release.yml, packaging
+    scripts, dist files, and release documentation as intent=release. Only utterances
+    that explicitly execute a release (cut, publish, ship, tag vX.Y.Z, bump version)
+    should trigger the release gate. Maintenance of release tooling must fall through
+    to CHANGE classification so it can be accepted by scope-matching.
+- id: REQ-431
+  title: preflight release intent must accept when known scope matched or explicit
+    REQ cited, and always allocate a work item
+  status: planned
+  description: 'When intent=release is classified: (a) if the utterance contains explicit
+    release-management REQ IDs (e.g. REQ-050, REQ-051) or the scope confidence >=
+    0.6, the decision must be accepted as a governed change; (b) needs_clarification
+    must still allocate a work_item_id so specsmith approve --work-item can proceed;
+    (c) the instruction must reference --req flag for explicit override. The current
+    dead-end (needs_clarification + empty work_item_id) makes approve impossible.'
+- id: REQ-432
+  title: audit must flag empty or fallback-only governance YAML rule sets
+  status: planned
+  description: 'check_governance_yaml_content must iterate .specsmith/governance/*.yaml;
+    fail audit if any file has rules: [] or rules: [{note: ...}] only. Gate on presence
+    of governance dir. m001 silent-skip when source_md missing must become a loud
+    warning.'
+- id: REQ-433
+  title: sync must warn when REQUIREMENTS.md contains REQ IDs absent from docs/requirements
+    YAML files
+  status: planned
+  description: In YAML-first mode run_sync must compare IDs in docs/REQUIREMENTS.md
+    against those loaded from docs/requirements/*.yml; emit SyncWarning for any ID
+    present in markdown but absent from YAML with hint to add to yml and re-run sync.
+    Same pattern for TESTS.md vs docs/tests/*.yml.
+- id: REQ-434
+  title: CLI verify_cmd must wire equilibrium to WI mark_implemented and files_touched
+  status: planned
+  description: verify_cmd (cli.py) computes equilibrium but never calls WorkItemStore.mark_implemented
+    or sets files_touched on the WI, unlike governance_logic.run_verify. verify_cmd
+    must call run_verify from governance_logic or mirror the WI-update logic so WI
+    status advances to implemented on equilibrium.
+- id: REQ-435
+  title: infer_scope must apply a minimum relevance score threshold to drop incidental
+    matches
+  status: planned
+  description: infer_scope currently returns up to top_k=3 results with no minimum
+    score floor (only overlap>0). Add min_score=0.15 parameter; filter out matches
+    below threshold before returning. Update run_preflight to pass min_score=0.15
+    so only genuinely related requirements are associated with work items.
+- id: REQ-436
+  title: session_metrics.jsonl must record real token counts, cost, model, and work_item_id
+    per turn
+  status: planned
+  description: session_metrics.jsonl auto-save path passes only command=save with
+    all telemetry defaults zero. Real per-turn token usage is captured in ESDB token_metric
+    via write_token_metric (runner.py:614). Add flush_session_metrics helper that
+    reads the most recent ESDB token_metric record and appends a populated MetricsRecord
+    to session_metrics.jsonl after write_token_metric is called.

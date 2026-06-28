@@ -4185,5 +4185,164 @@
     "test_ids": [
       "TEST-432"
     ]
+  },
+  {
+    "id": "REQ-423",
+    "version": 1,
+    "title": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
+    "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-433"
+    ]
+  },
+  {
+    "id": "REQ-424",
+    "version": 1,
+    "title": "CI pipeline must produce zero CodeQL static analysis alerts on every run",
+    "description": "Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static analysis alerts on every CI run",
+    "source": "WI-0CEA445B",
+    "status": "planned",
+    "test_ids": [
+      "TEST-434"
+    ]
+  },
+  {
+    "id": "REQ-425",
+    "version": 1,
+    "title": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
+    "description": "Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation",
+    "source": "WI-B73B339B",
+    "status": "planned",
+    "test_ids": [
+      "TEST-435"
+    ]
+  },
+  {
+    "id": "REQ-426",
+    "version": 1,
+    "title": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
+    "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-436"
+    ]
+  },
+  {
+    "id": "REQ-427",
+    "version": 1,
+    "title": "GovernanceBench metrics/report statistical and leaderboard outputs",
+    "description": "GovernanceBench metrics/report shall compute Wilson pass-rate confidence intervals, bootstrap cost-of-pass confidence intervals, first-pass and consistency statistics, scaffold-lift vs UNGOVERNED, model-tier mapping, democratization and Pareto summaries, and Hugging Face leaderboard JSON/rendered report sections.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-437",
+      "TEST-438",
+      "TEST-440",
+      "TEST-441"
+    ]
+  },
+  {
+    "id": "REQ-428",
+    "version": 1,
+    "title": "gitignore normalizer must enforce disjoint allow/deny policy and untrack diverged paths",
+    "description": "normalize_esdb_gitignore_policy in sync.py must (a) separate tracked paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule for a path it also allows, (c) run git rm --cached for any deny-listed path found in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-439"
+    ]
+  },
+  {
+    "id": "REQ-429",
+    "version": 1,
+    "title": "checkpoint ESDB field must reflect active backend: show SQLite record count and chain status when chronomemory is unavailable, ChronoMemory count otherwise, and N/A when no ESDB is present",
+    "description": "The 'specsmith checkpoint' GOVERNANCE ANCHOR box must accurately show the active ESDB backend. When chronomemory (commercial) is the active backend and WAL exists, show record count and chain validity as now. When SQLite is the active backend (chronomemory absent or WAL missing), show 'SQLite (N recs, ✓ chain)' with actual SqliteStore record count and chain_valid() result. When no ESDB is present at all, show 'N/A'. The current 0-record default is misleading for SQLite-only installations.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-442"
+    ]
+  },
+  {
+    "id": "REQ-430",
+    "version": 1,
+    "title": "preflight release classifier must distinguish release execution from release tooling edits",
+    "description": "The deterministic broker must not classify edits to release.yml, packaging scripts, dist files, and release documentation as intent=release. Only utterances that explicitly execute a release (cut, publish, ship, tag vX.Y.Z, bump version) should trigger the release gate. Maintenance of release tooling must fall through to CHANGE classification so it can be accepted by scope-matching.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-443",
+      "TEST-445"
+    ]
+  },
+  {
+    "id": "REQ-431",
+    "version": 1,
+    "title": "preflight release intent must accept when known scope matched or explicit REQ cited, and always allocate a work item",
+    "description": "When intent=release is classified: (a) if the utterance contains explicit release-management REQ IDs (e.g. REQ-050, REQ-051) or the scope confidence >= 0.6, the decision must be accepted as a governed change; (b) needs_clarification must still allocate a work_item_id so specsmith approve --work-item can proceed; (c) the instruction must reference --req flag for explicit override. The current dead-end (needs_clarification + empty work_item_id) makes approve impossible.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-444"
+    ]
+  },
+  {
+    "id": "REQ-432",
+    "version": 1,
+    "title": "audit must flag empty or fallback-only governance YAML rule sets",
+    "description": "check_governance_yaml_content must iterate .specsmith/governance/*.yaml; fail audit if any file has rules: [] or rules: [{note: ...}] only. Gate on presence of governance dir. m001 silent-skip when source_md missing must become a loud warning.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-446"
+    ]
+  },
+  {
+    "id": "REQ-433",
+    "version": 1,
+    "title": "sync must warn when REQUIREMENTS.md contains REQ IDs absent from docs/requirements YAML files",
+    "description": "In YAML-first mode run_sync must compare IDs in docs/REQUIREMENTS.md against those loaded from docs/requirements/*.yml; emit SyncWarning for any ID present in markdown but absent from YAML with hint to add to yml and re-run sync. Same pattern for TESTS.md vs docs/tests/*.yml.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-447",
+      "TEST-448"
+    ]
+  },
+  {
+    "id": "REQ-434",
+    "version": 1,
+    "title": "CLI verify_cmd must wire equilibrium to WI mark_implemented and files_touched",
+    "description": "verify_cmd (cli.py) computes equilibrium but never calls WorkItemStore.mark_implemented or sets files_touched on the WI, unlike governance_logic.run_verify. verify_cmd must call run_verify from governance_logic or mirror the WI-update logic so WI status advances to implemented on equilibrium.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-449"
+    ]
+  },
+  {
+    "id": "REQ-435",
+    "version": 1,
+    "title": "infer_scope must apply a minimum relevance score threshold to drop incidental matches",
+    "description": "infer_scope currently returns up to top_k=3 results with no minimum score floor (only overlap>0). Add min_score=0.15 parameter; filter out matches below threshold before returning. Update run_preflight to pass min_score=0.15 so only genuinely related requirements are associated with work items.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-450"
+    ]
+  },
+  {
+    "id": "REQ-436",
+    "version": 1,
+    "title": "session_metrics.jsonl must record real token counts, cost, model, and work_item_id per turn",
+    "description": "session_metrics.jsonl auto-save path passes only command=save with all telemetry defaults zero. Real per-turn token usage is captured in ESDB token_metric via write_token_metric (runner.py:614). Add flush_session_metrics helper that reads the most recent ESDB token_metric record and appends a populated MetricsRecord to session_metrics.jsonl after write_token_metric is called.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-451"
+    ]
   }
 ]

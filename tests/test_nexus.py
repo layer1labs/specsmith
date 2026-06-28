@@ -632,6 +632,16 @@ def test_key_modules_reference_tests_md():
         ("refactor the broker", "refactor"),
         ("ship a release", "release"),
         ("bump the version to 0.4.0", "release"),
+        ("cut a release", "release"),
+        ("create the release", "release"),
+        ("release v2.1.0", "release"),
+        # REQ-430: release *tooling* edits must be CHANGE, not RELEASE
+        ("fix the release.yml workflow", "change"),
+        ("update the release pipeline", "change"),
+        ("edit release notes in docs", "change"),
+        ("debug the release process", "read_only_ask"),  # debug alone is ambiguous; not release
+        ("patch scripts/package_dist.ps1", "change"),
+        ("update .github/workflows/release.yml", "change"),
         ("delete the entire dist directory", "destructive"),
         ("rm -rf node_modules", "destructive"),
         ("force-push to main", "destructive"),
@@ -718,6 +728,75 @@ def test_broker_run_preflight_handles_missing_cli(tmp_path):
 
     decision = run_preflight("fix cleanup", tmp_path, runner=empty_runner)
     assert decision.decision == "needs_clarification"
+
+
+# ---------------------------------------------------------------------------
+# REQ-430 / REQ-431 — release classifier + dead-end unblock
+# ---------------------------------------------------------------------------
+def _write_release_mgmt_requirements(path: Path) -> None:
+    """Write a minimal REQUIREMENTS.md with release-management REQs."""
+    path.write_text(
+        "# Requirements\n\n"
+        "## 1. Guided Release Strategy\n"
+        "- **ID:** REQ-051\n"
+        "- **Title:** Guided Release Strategy Workflow\n"
+        "- **Description:** Specsmith must offer a guided workflow for release strategy.\n\n"
+        "## 2. Guided Version Bump\n"
+        "- **ID:** REQ-050\n"
+        "- **Title:** Guided Version Bump Workflow\n"
+        "- **Description:** Specsmith must provide a guided workflow for bumping versions.\n\n",
+        encoding="utf-8",
+    )
+
+
+def test_release_tooling_edit_with_explicit_req_is_accepted(tmp_path: Path) -> None:
+    """REQ-431: release intent + explicit REQ ID in utterance → accepted + non-empty WI."""
+    from specsmith.governance_logic import run_preflight
+
+    req_md = tmp_path / "docs" / "REQUIREMENTS.md"
+    req_md.parent.mkdir(parents=True)
+    _write_release_mgmt_requirements(req_md)
+
+    # Utterance: release intent but explicit REQ-051 cited
+    utterance = "update release.yml to fix governed release workflow [REQ-051]"
+    result = run_preflight(utterance, str(tmp_path), predict_only=True)
+
+    assert result["decision"] == "accepted", (
+        f"Expected accepted, got {result['decision']!r}: {result.get('instruction')}"
+    )
+    assert "REQ-051" in result.get("requirement_ids", [])
+
+
+def test_true_release_without_scope_allocates_wi(tmp_path: Path) -> None:
+    """REQ-431: true release (no scope) → needs_clarification but WI is non-empty."""
+    from specsmith.governance_logic import run_preflight
+
+    # No REQUIREMENTS.md — scope will be empty
+    result = run_preflight("ship a release", str(tmp_path), predict_only=True)
+
+    # predict_only suppresses WI creation, but decision must be needs_clarification
+    # and instruction must mention --req as escape hatch
+    assert result["decision"] == "needs_clarification"
+    assert "--req" in result.get("instruction", ""), (
+        f"Instruction should mention --req, got: {result.get('instruction')!r}"
+    )
+
+
+def test_release_tooling_patterns_not_classified_as_release() -> None:
+    """REQ-430: common release-tooling edits must classify as CHANGE not RELEASE."""
+    from specsmith.agent.broker import Intent, classify_intent
+
+    tooling_edits = [
+        "fix the release.yml workflow",
+        "update .github/workflows/release.yml",
+        "patch scripts/package_dist.ps1",
+        "edit release notes in CHANGELOG",
+        "debug the release pipeline",
+        "add a step to the release process",
+    ]
+    for utterance in tooling_edits:
+        result = classify_intent(utterance)
+        assert result != Intent.RELEASE, f"Expected CHANGE for {utterance!r}, got RELEASE"
 
 
 def test_broker_narrate_plan_hides_governance_ids_by_default(tmp_path):

@@ -24,7 +24,7 @@ from __future__ import annotations
 import contextlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, cast
 
@@ -183,6 +183,11 @@ def parse_tests_md(text: str) -> list[dict[str, Any]]:
 
 
 @dataclass
+class SyncWarning:
+    message: str
+
+
+@dataclass
 class SyncResult:
     reqs_before: int
     reqs_after: int
@@ -191,6 +196,7 @@ class SyncResult:
     reqs_changed: bool
     tests_changed: bool
     dry_run: bool
+    warnings: list[SyncWarning] = field(default_factory=list)
 
     @property
     def changed(self) -> bool:
@@ -220,79 +226,185 @@ _ESDB_GITIGNORE_FORBIDDEN = frozenset(
     }
 )
 
-# DEPRECATED(REQ-421): several entries below (workitems.json, ledger.jsonl,
-# trace.jsonl, esdb_migration_manifest.json, sessions/) are legacy flat files kept
-# ignored until their teardown REQs land. The policy keeps canonical ESDB state
-# (esdb.sqlite3, .chronomemory/*) tracked. See docs/DEPRECATIONS.md.
-_ESDB_GITIGNORE_REQUIRED = (
-    "!.specsmith/config.yml",
-    "!.specsmith/requirements.json",
-    "!.specsmith/testcases.json",
-    "!.specsmith/esdb.sqlite3",
-    "!.chronomemory/events.wal",
-    "!.chronomemory/snapshot.json",
-    ".chronomemory/backup/",
+# Paths that MUST be tracked in git — never emit a bare ignore rule for these.
+# These are governance source-of-truth artifacts that define project state.
+#
+# Decision rationale:
+#   config.yml              — project identity and settings
+#   requirements/testcases  — governance canon (YAML-first or JSON cache)
+#   esdb.sqlite3            — ESDB SQLite backend (canonical record store)
+#   esdb_migration_manifest — which migrations have run; tracked for
+#                             reproducibility so fresh clones don't re-run
+#   events.wal/snapshot     — ChronoMemory canonical state (commercial tier)
+_GIT_TRACKED_POLICY: tuple[str, ...] = (
+    ".specsmith/config.yml",
+    ".specsmith/requirements.json",
+    ".specsmith/testcases.json",
+    ".specsmith/esdb.sqlite3",
+    ".specsmith/esdb_migration_manifest.json",
+    ".chronomemory/events.wal",
+    ".chronomemory/snapshot.json",
+)
+
+# Paths that MUST NOT be tracked in git — runtime/ephemeral artifacts.
+# If any of these appear in `git ls-files`, the normalizer will run
+# `git rm --cached` to reconcile tracking state with ignore policy so the
+# ignore rule is immediately effective rather than a dormant no-op.
+#
+# Decision rationale:
+#   workitems.json      — runtime WI allocation; re-minted by preflight
+#   ledger-chain.txt    — ephemeral hash-chain cache; DEPRECATED (REQ-420)
+#   trace.jsonl         — trace log; DEPRECATED by ESDB seal_records (REQ-420)
+#   credit-budget.json  — session runtime budget; regenerated on start
+#   credits.json        — runtime credit ledger
+#   model-rate-limits   — runtime rate-limit state
+#   backups/            — timestamped SQLite snapshots; regeneratable via save
+#   session_metrics     — per-session telemetry; not governance source-of-truth
+#   runs/chat/perf/...  — transient runtime directories
+#   ledger.jsonl        — deprecated flat-file ledger (superseded by LEDGER.md)
+#   chronomemory/backup — timestamped ChronoMemory backup copies
+_GIT_IGNORED_POLICY: tuple[str, ...] = (
     ".specsmith/workitems.json",
-    ".specsmith/runs/",
-    ".specsmith/chat/",
-    ".specsmith/perf/",
-    ".specsmith/recovery/",
-    ".specsmith/ledger.jsonl",
     ".specsmith/ledger-chain.txt",
     ".specsmith/trace.jsonl",
     ".specsmith/credit-budget.json",
     ".specsmith/credits.json",
     ".specsmith/model-rate-limits.json",
+    ".specsmith/session_metrics.jsonl",
+    ".specsmith/backups/",
+    ".specsmith/runs/",
+    ".specsmith/chat/",
+    ".specsmith/perf/",
+    ".specsmith/recovery/",
     ".specsmith/pids/",
     ".specsmith/logs/",
     ".specsmith/sessions/",
     ".specsmith/agent-reports/",
     ".specsmith/dispatch/",
-    ".specsmith/esdb_migration_manifest.json",
+    ".specsmith/ledger.jsonl",
+    ".chronomemory/backup/",
 )
+
+# Sentinel comment line that marks the auto-normalized block.
+_POLICY_SENTINEL = "# specsmith ESDB policy (auto-normalized)"
+
+
+def _untrack_diverged_paths(root: Path, *, dry_run: bool = False) -> list[str]:
+    """Find deny-listed paths that are currently tracked in git and untrack them.
+
+    For each path in _GIT_IGNORED_POLICY that appears in `git ls-files`, runs
+    `git rm --cached <path>` (unless dry_run) so the .gitignore deny rule
+    becomes effective instead of a dormant no-op.
+
+    Returns the list of paths that were (or would be) untracked.
+    """
+    import contextlib  # noqa: PLC0415  # lazy: only needed when git is present
+    import subprocess  # noqa: PLC0415  # lazy: only needed when git is present
+
+    diverged: list[str] = []
+    for pattern in _GIT_IGNORED_POLICY:
+        bare = pattern.rstrip("/")
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--", bare],
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            tracked = [f for f in result.stdout.splitlines() if f]
+        except Exception:  # noqa: BLE001  # intentional: git unavailable, skip
+            continue
+        for tracked_path in tracked:
+            diverged.append(tracked_path)
+            if not dry_run:
+                with contextlib.suppress(Exception):  # best-effort: skip if git unavailable
+                    subprocess.run(
+                        ["git", "rm", "--cached", "--quiet", "--", tracked_path],
+                        cwd=str(root),
+                        check=True,
+                        capture_output=True,
+                        timeout=10,
+                    )
+    return diverged
 
 
 def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> bool:
-    """Normalize ESDB gitignore policy for legacy projects.
+    """Normalize ESDB gitignore policy (REQ-428).
 
-    Ensures broad ignores that hide canonical ESDB state are removed and that
-    explicit policy lines are present so SQLite/Chrono canonical artifacts are
-    always tracked while runtime files stay ignored.
+    Enforces a single, consistent tracking decision for every governance path:
+
+    - Paths in _GIT_TRACKED_POLICY receive ``!``-prefixed allow rules and are
+      never given a bare deny rule.  The two sets are validated to be disjoint.
+    - Paths in _GIT_IGNORED_POLICY receive bare deny rules.  Any such path
+      currently tracked in git is untracked via ``git rm --cached`` so the deny
+      rule is immediately effective rather than a dormant, misleading no-op.
+    - Broad directory ignores (``.specsmith/``, ``.chronomemory/``) are removed
+      because they would inadvertently hide the canonical ESDB state files.
+
+    Returns True if any change was made (gitignore written or files untracked).
     """
+    # Disjoint-set invariant: a path cannot appear in both allow and deny lists.
+    _tracked_bare = set(_GIT_TRACKED_POLICY)
+    _overlap = _tracked_bare & set(_GIT_IGNORED_POLICY)
+    if _overlap:  # pragma: no cover — programming error
+        raise AssertionError(f"BUG: paths in both allow and deny policy: {_overlap}")
+
+    # --- Read and strip forbidden broad ignores + stale auto-normalized block -
     gitignore_path = root / ".gitignore"
-    if gitignore_path.exists():
-        original_lines = gitignore_path.read_text(encoding="utf-8").splitlines()
-    else:
-        original_lines = []
+    original_lines = (
+        gitignore_path.read_text(encoding="utf-8").splitlines() if gitignore_path.exists() else []
+    )
 
     normalized_lines: list[str] = []
     removed_forbidden = False
+    in_auto_block = False
     for line in original_lines:
-        if line.strip() in _ESDB_GITIGNORE_FORBIDDEN:
+        stripped = line.strip()
+        if stripped in _ESDB_GITIGNORE_FORBIDDEN:
             removed_forbidden = True
+            continue
+        if stripped == _POLICY_SENTINEL:
+            in_auto_block = True  # drop the old sentinel and everything after it
+            continue
+        if in_auto_block:
+            # Keep lines that are unrelated to the specsmith policy block
+            if not (
+                stripped.startswith("!.specsmith/")
+                or stripped.startswith(".specsmith/")
+                or stripped.startswith("!.chronomemory/")
+                or stripped.startswith(".chronomemory/")
+                or stripped.startswith("# ")
+            ):
+                in_auto_block = False
+                normalized_lines.append(line)
             continue
         normalized_lines.append(line)
 
-    existing = {line.strip() for line in normalized_lines if line.strip()}
-    missing = [entry for entry in _ESDB_GITIGNORE_REQUIRED if entry not in existing]
-    changed = removed_forbidden or bool(missing)
+    # --- Determine which policy lines are missing from the retained content ---
+    existing = {ln.strip() for ln in normalized_lines if ln.strip()}
+    allow_lines = [f"!{p}" for p in _GIT_TRACKED_POLICY]
+    deny_lines = list(_GIT_IGNORED_POLICY)
+    missing_allows = [ln for ln in allow_lines if ln not in existing]
+    missing_denies = [ln for ln in deny_lines if ln not in existing]
+    gitignore_changed = removed_forbidden or bool(missing_allows) or bool(missing_denies)
 
-    if not changed:
-        return False
-
-    if normalized_lines and normalized_lines[-1].strip():
-        normalized_lines.append("")
-    if missing:
-        normalized_lines.append("# specsmith ESDB policy (auto-normalized)")
-        normalized_lines.extend(missing)
-
-    if not dry_run:
+    if not dry_run and gitignore_changed:
+        if normalized_lines and normalized_lines[-1].strip():
+            normalized_lines.append("")
+        normalized_lines.append(_POLICY_SENTINEL)
+        normalized_lines.append("# Tracked (governance source-of-truth):")
+        normalized_lines.extend(missing_allows)
+        normalized_lines.append("# Ephemeral runtime paths (never commit):")
+        normalized_lines.extend(missing_denies)
         rendered = "\n".join(normalized_lines)
         if rendered and not rendered.endswith("\n"):
             rendered += "\n"
         gitignore_path.write_text(rendered, encoding="utf-8")
 
-    return True
+    # --- Reconcile git index: untrack any deny-listed paths still tracked ----
+    untracked = _untrack_diverged_paths(root, dry_run=dry_run)
+    return gitignore_changed or bool(untracked)
 
 
 # ---------------------------------------------------------------------------
@@ -330,6 +442,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     tests_md_path = root / "docs" / "TESTS.md"
     reqs_json_path = state_dir / "requirements.json"
     tests_json_path = state_dir / "testcases.json"
+    sync_warnings: list[SyncWarning] = []
     if not dry_run:
         normalize_esdb_gitignore_policy(root)
 
@@ -337,6 +450,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         # ── YAML-first mode ─────────────────────────────────────────────────
         new_reqs = load_yaml_requirements(root)
         new_tests = load_yaml_tests(root)
+        yaml_req_ids = {str(r["id"]) for r in new_reqs if str(r.get("id", "")).strip()}
+        yaml_test_ids = {str(t["id"]) for t in new_tests if str(t.get("id", "")).strip()}
 
         # REQ-358: If YAML mode has no YAML files but REQUIREMENTS.md has content,
         # fall back to Markdown parsing rather than silently producing an empty state.
@@ -393,6 +508,36 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
             }
             for t in new_tests
         ]
+        if reqs_md_path.exists():
+            reqs_md_ids = {
+                r["id"]
+                for r in parse_requirements_md(reqs_md_path.read_text(encoding="utf-8"))
+                if str(r.get("id", "")).strip()
+            }
+            for req_id in sorted(reqs_md_ids - yaml_req_ids):
+                sync_warnings.append(
+                    SyncWarning(
+                        message=(
+                            f"{req_id} found in docs/REQUIREMENTS.md but missing from "
+                            "docs/requirements/*.yml — add it to a YAML file and re-run sync."
+                        )
+                    )
+                )
+        if tests_md_path.exists():
+            tests_md_ids = {
+                t["id"]
+                for t in parse_tests_md(tests_md_path.read_text(encoding="utf-8"))
+                if str(t.get("id", "")).strip()
+            }
+            for test_id in sorted(tests_md_ids - yaml_test_ids):
+                sync_warnings.append(
+                    SyncWarning(
+                        message=(
+                            f"{test_id} found in docs/TESTS.md but missing from "
+                            "docs/tests/*.yml — add it to a YAML file and re-run sync."
+                        )
+                    )
+                )
     else:
         # ── Legacy Markdown mode (DEPRECATED — REQ-373) ──────────────────────
         # Markdown mode will be removed in a future release.
@@ -508,6 +653,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
         reqs_changed=reqs_changed,
         tests_changed=tests_changed,
         dry_run=dry_run,
+        warnings=sync_warnings,
     )
 
 

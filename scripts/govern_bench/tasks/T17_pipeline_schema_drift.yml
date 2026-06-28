@@ -1,0 +1,54 @@
+# T17 — Pipeline schema drift handling
+
+id: T17
+title: "Handle nullable value/status schema drift in ETL pipeline"
+category: bug_fix
+difficulty: hard
+project: agentic-data-pipeline
+estimated_tokens_ungoverned: 4700
+estimated_tokens_specsmith_full: 6500
+
+task_prompt: |
+  Upstream telemetry now allows nullable `value` and missing/nullable `status`.
+  The current schema coercion crashes on value=None and leaks null status strings.
+
+  Update the pipeline so:
+  - value=None is normalised to 0.0
+  - missing/None status becomes "unknown"
+  - export output remains deterministic and machine-readable
+
+acceptance_criteria: |
+  - [ ] apply_schema handles nullable value without exceptions
+  - [ ] Null/missing status values are normalised to "unknown"
+  - [ ] CSV export contains no raw None/NaN string placeholders
+  - [ ] Existing non-null behavior remains unchanged
+  - [ ] Tests cover nullable-value and nullable-status drift paths
+
+expected_files_changed:
+  - pipeline/etl.py
+  - tests/test_etl.py
+
+regression_risk: high
+
+known_failure_modes:
+  - "Agent catches exceptions broadly and masks data errors"
+  - "Agent converts null values to string 'None' instead of numeric fallback"
+  - "Agent fixes value handling but leaves status null leakage"
+  - "Agent edits dedup logic even though not required"
+
+governance_signals:
+  preflight_expected_req_match: true
+  preflight_expected_intent: "bug_fix"
+  verify_expected_to_catch:
+    - "nullable conversion still throws TypeError"
+    - "status normalisation incomplete"
+
+clarification_rate_task: true
+
+validator:
+  shell: auto
+  commands:
+    - "pytest -q tests/test_etl.py::test_run_pipeline_handles_nullable_value"
+    - "pytest -q tests/test_etl.py::test_export_csv_replaces_null_status"
+  allowed_patterns:
+    - "^pytest( .*)?$"

@@ -587,28 +587,6 @@ class AgentRunner:
             self._emit_event(type="system", message=hint)
             return None
 
-        if result is None:
-            # All providers failed — give the user an actionable explanation
-            # rather than silent emptiness.
-            import os as _os
-
-            host = _os.environ.get("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
-            if _ollama_alive(host):
-                model = _pick_ollama_model(host)
-                hint = (
-                    f"Ollama is running but returned no response "
-                    f"(model: {model}). "
-                    "Try: ollama run " + model
-                )
-            else:
-                hint = (
-                    "No LLM provider available. Options:\n"
-                    "  • Start Ollama: ollama serve\n"
-                    "  • Set ANTHROPIC_API_KEY / OPENAI_API_KEY / GOOGLE_API_KEY"
-                )
-            self._emit_event(type="system", message=hint)
-            return None
-
         # Aggregate metrics into the session state (C1).
         # ``run_chat`` now reports tokens_in / tokens_out / cost_usd off the
         # provider response (Ollama prompt_eval_count + eval_count, OpenAI
@@ -630,6 +608,7 @@ class AgentRunner:
 
         # Write token_metric to ESDB (REQ-410) — best-effort, never blocks.
         if tokens_in or tokens_out:
+            model_name = str(getattr(result, "provider", "") if result else "")
             try:
                 from specsmith.esdb_writer import write_token_metric
 
@@ -638,9 +617,24 @@ class AgentRunner:
                     input_tokens=tokens_in,
                     output_tokens=tokens_out,
                     cost_usd=cost_usd,
-                    model=str(getattr(result, "provider", "") if result else ""),
+                    model=model_name,
                     command_source=activity or "chat",
                     work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            # Flush token usage to session_metrics.jsonl (REQ-436)
+            try:
+                from specsmith.project_metrics import flush_session_metrics  # noqa: PLC0415
+
+                flush_session_metrics(
+                    Path(self.project_dir),
+                    work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                    model=model_name,
+                    input_tokens=tokens_in,
+                    output_tokens=tokens_out,
+                    cost_usd=cost_usd,
+                    command=activity or "chat",
                 )
             except Exception:  # noqa: BLE001
                 pass

@@ -1,0 +1,53 @@
+# T23 — Shell error propagation parity
+
+id: T23
+title: "Fix deploy script error propagation in bash and PowerShell variants"
+category: shell_hardening
+difficulty: medium
+project: agentic-shell-scripts
+estimated_tokens_ungoverned: 3000
+estimated_tokens_specsmith_full: 4700
+
+task_prompt: |
+  Harden deploy.sh and deploy.ps1 so failures propagate correctly.
+
+  Requirements:
+  - bash: enforce fail-fast semantics for command and pipeline errors
+  - PowerShell: enforce stop-on-error behavior
+  - Keep current success-path output behavior
+  - Update both files atomically
+
+acceptance_criteria: |
+  - [ ] deploy.sh fails on command/pipeline errors
+  - [ ] deploy.ps1 fails on command errors
+  - [ ] Both scripts retain expected success output
+  - [ ] No unrelated shell scripts are modified
+
+expected_files_changed:
+  - deploy.sh
+  - deploy.ps1
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent hardens bash script but forgets PowerShell variant"
+  - "Agent sets strict mode but breaks happy-path output"
+  - "Agent touches unrelated scripts in same directory"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "single-shell-only fix"
+    - "failure still swallowed in one variant"
+
+scope_discipline_metric: true
+exit_code_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "shellcheck deploy.sh"
+    - "pwsh -NoProfile -NonInteractive -Command \"& { .\\deploy.ps1 }\""
+  allowed_patterns:
+    - "^shellcheck( .*)?$"
+    - "^pwsh( .*)?$"

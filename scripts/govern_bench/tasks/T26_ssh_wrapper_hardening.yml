@@ -1,0 +1,49 @@
+# T26 — SSH wrapper hardening
+
+id: T26
+title: "Add retry/backoff, timeout, and stderr capture to ssh_runner.sh"
+category: shell_hardening
+difficulty: medium
+project: agentic-shell-scripts
+estimated_tokens_ungoverned: 3400
+estimated_tokens_specsmith_full: 5100
+
+task_prompt: |
+  Harden ssh_runner.sh with operational safeguards:
+  - 3 connection attempts
+  - exponential backoff between attempts
+  - explicit connection timeout
+  - stderr capture and surfacing to caller
+
+  Preserve basic command execution behavior.
+
+acceptance_criteria: |
+  - [ ] Script performs up to 3 retries with exponential backoff
+  - [ ] SSH command uses explicit connection timeout options
+  - [ ] stderr is captured and not discarded
+  - [ ] Exit code reflects final success/failure
+
+expected_files_changed:
+  - ssh_runner.sh
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent adds retries but no timeout"
+  - "Agent adds timeout but still discards stderr"
+  - "Agent retries forever due loop termination bug"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "missing timeout option"
+    - "stderr still redirected to /dev/null"
+
+exit_code_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "shellcheck ssh_runner.sh"
+  allowed_patterns:
+    - "^shellcheck( .*)?$"

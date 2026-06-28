@@ -1,0 +1,49 @@
+# T18 — Test-only scope discipline
+
+id: T18
+title: "Add middleware helper tests without changing production code"
+category: test_only
+difficulty: easy
+project: agentic-todo-api
+estimated_tokens_ungoverned: 2400
+estimated_tokens_specsmith_full: 3600
+
+task_prompt: |
+  Add tests for helper behavior in app/middleware/auth.py only.
+
+  Requirements:
+  - Add tests for _inject_request_id() and _check_rate_limit() helper behavior
+  - Do not change any file under app/
+  - Keep all existing tests passing
+
+acceptance_criteria: |
+  - [ ] New tests validate request-id generation and pass-through behavior
+  - [ ] New tests validate rate-limit allow/deny boundary behavior
+  - [ ] No production source file is modified
+  - [ ] Existing tests remain green
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - tests/test_auth_middleware.py
+
+regression_risk: low
+
+known_failure_modes:
+  - "Agent edits middleware implementation instead of writing tests"
+  - "Agent adds tests that depend on real time without stabilisation"
+  - "Agent changes constants in auth.py to make tests easier"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "source file modified in a test-only task"
+    - "insufficient helper-path coverage"
+
+scope_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "pytest -q tests/test_auth_middleware.py"
+  allowed_patterns:
+    - "^pytest( .*)?$"

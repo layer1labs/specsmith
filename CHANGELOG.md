@@ -12,6 +12,61 @@ consolidated into the next published release.
 
 ---
 
+## [0.19.0] - 2026-06-28
+
+### Added
+
+- **`specsmith wi link-test`** — New CLI command to link one or more `TEST-NNN` IDs to a work
+  item (`wi link-test <WI_ID> --test TEST-NNN`, repeatable). Clears the `linked tests` gate
+  that the auditor checks on medium-risk WIs. Backed by `WorkItemStore.add_test_case_ids()`
+  which deduplicates and persists test case IDs to `workitems.json` + ESDB.
+
+- **`check_governance_yaml_content` auditor check (REQ-432)** — `specsmith audit` now validates
+  every file under `.specsmith/governance/*.yaml`: confirms the top-level key matches the file
+  stem, rejects empty lists, and rejects single `{note: …}` fallback entries. Wired into
+  `run_audit()`. Migration `m001_governance_yaml` now emits warnings (not silent no-ops) when
+  expected source markdown files are missing.
+
+- **Sync markdown-reconcile warning (REQ-433)** — `specsmith sync` now emits a `SyncWarning`
+  when `REQUIREMENTS.md` or `TESTS.md` contain IDs (e.g. `REQ-NNN`, `TEST-NNN`) that are
+  absent from the YAML source files, alerting teams to IDs that exist only in the deprecated
+  markdown layer. `scripts/rebuild_workitems.py` also fixed to pass `ensure_ascii=False` to
+  `json.dump`, preventing unicode mojibake in work-item exports.
+
+- **WI lifecycle: `verify_cmd` wiring + `files_touched` + `human_review_status` (REQ-434)**
+  — `specsmith verify --work-item-id <WI>` now calls `governance_logic.run_verify` when
+  equilibrium is reached, automatically transitioning the WI to `implemented` and persisting
+  `files_touched`. `specsmith approve` sets `human_review_status="approved"` on the bound WI.
+  `WorkItemStore.set_files_touched()` is fully wired in both the CLI and the governance layer.
+
+- **Broker scope `min_score` threshold (REQ-435)** — `infer_scope` in `broker.py` now
+  applies a `min_score=0.15` threshold; requirement matches below this confidence floor are
+  dropped. `run_preflight` passes this threshold through, preventing spurious scope
+  attribution from weak token overlap. Guards against false-positive `accepted` decisions
+  caused by single-word matches.
+
+- **Session metrics flush (REQ-436)** — `flush_session_metrics()` in `project_metrics.py`
+  now appends a structured JSON record (session ID, total tokens, model, timestamp) to
+  `.specsmith/session_metrics.jsonl` after every governed run. `runner.py` calls
+  `flush_session_metrics()` after `write_token_metric`, completing the token-usage pipeline
+  from agent run → ESDB → JSONL audit log.
+
+- **Requirements gap report** (`docs/REQUIREMENTS_GAP_REPORT.md`) — Comprehensive audit
+  of feature coverage: 47 CLI commands inventoried, 4 feature families without explicit REQs
+  identified (datasources, GUI, external integrations, plugin lifecycle), and 3 commands
+  lacking explicit requirement linkage flagged (plugin, pr, ps).
+
+### Fixed
+
+- **`test_needs_clarification_does_not_create_wi`** renamed and corrected to
+  `test_needs_clarification_destructive_creates_wi` — REQ-431 intentionally allocates a WI
+  for DESTRUCTIVE/RELEASE `needs_clarification` decisions so users can pass `--work-item` on
+  retry. The old test asserted no-WI; the new test asserts WI IS created. A companion test
+  (`test_needs_clarification_scope_creep_does_not_create_wi`) verifies non-destructive
+  ambiguous CHANGE intents still produce no WI.
+
+---
+
 ## [0.18.0] - 2026-06-26
 
 ### Added

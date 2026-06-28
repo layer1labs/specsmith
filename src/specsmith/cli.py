@@ -760,6 +760,19 @@ def audit(fix: bool, project_dir: str) -> None:
         "Overrides .specsmith/config.yml epistemic.confidence_threshold for this call."
     ),
 )
+@click.option(
+    "--req",
+    "hint_req_ids",
+    multiple=True,
+    default=(),
+    metavar="REQ-NNN",
+    help=(
+        "Inject an explicit requirement ID into the utterance (repeatable). "
+        "Useful for release/destructive intents where the broker asks for clarification: "
+        "'specsmith preflight \"update release.yml\" --req REQ-051' "
+        "appends the ID so scope-matching can accept it (REQ-431)."
+    ),
+)
 def preflight_cmd(
     utterance: str,
     project_dir: str,
@@ -768,6 +781,7 @@ def preflight_cmd(
     stress: bool,
     predict_only: bool,
     escalate_threshold: float | None,
+    hint_req_ids: tuple[str, ...],
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
@@ -784,6 +798,15 @@ def preflight_cmd(
     from specsmith.governance_logic import run_preflight
 
     root = Path(project_dir).resolve()
+
+    # REQ-431: --req flags inject explicit REQ IDs into the utterance so the
+    # governance_logic explicit-ID extractor (line ~149) picks them up.  This
+    # lets the user escape release/destructive needs_clarification dead-ends by
+    # naming a known requirement without having to reword the whole utterance.
+    if hint_req_ids:
+        req_suffix = " ".join(r.upper() for r in hint_req_ids if r.strip())
+        utterance = f"{utterance} [{req_suffix}]"
+
     # REQ-418: delegate the decision to the authoritative broker so explicit
     # REQ-NNN ids and .specsmith/requirements.json drive the result.  run_preflight
     # also applies the REQ-098 floor, allocates/persists the work item (unless
@@ -1129,6 +1152,20 @@ def verify_cmd(
         if equilibrium and confidence >= threshold
         else classify_retry_strategy(fake_report, fake_decision)
     )
+    # Wire equilibrium back to WI lifecycle (REQ-434)
+    if equilibrium and work_item_id:
+        try:
+            from specsmith.governance_logic import run_verify as _gov_verify
+
+            _gov_verify(
+                diff=payload_in.get("diff", ""),
+                files_changed=files_changed,
+                test_results=test_results,
+                project_dir=str(root),
+                work_item_id=work_item_id,
+            )
+        except Exception:  # noqa: BLE001
+            pass  # best-effort; never block verify output
 
     out = {
         "equilibrium": equilibrium,
@@ -4011,9 +4048,15 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         pass
 
     # ── ESDB ──────────────────────────────────────────────────────────────────
-    esdb_ok, esdb_records = True, 0
+    # Three possible states (REQ-429):
+    #   "chronomemory" — commercial ChronoStore backend, WAL present
+    #   "sqlite"       — free SQLite backend (chronomemory absent or WAL missing)
+    #   "n/a"          — no ESDB artefact found at all
+    esdb_ok: bool = True
+    esdb_records: int = 0
+    esdb_backend: str = "n/a"
     try:
-        from chronomemory import ChronoStore
+        from chronomemory import ChronoStore  # noqa: PLC0415
 
         wal = root / ".chronomemory" / "events.wal"
         if wal.exists():
@@ -4023,8 +4066,23 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
                 # value that is not the literal False as valid.
                 esdb_ok = store.chain_valid() is not False
                 esdb_records = store.record_count()
+            esdb_backend = "chronomemory"
     except Exception:  # noqa: BLE001
         pass
+
+    if esdb_backend == "n/a":
+        # chronomemory not available or WAL absent — try SQLite (free default)
+        try:
+            from specsmith.esdb.sqlite_store import SqliteStore  # noqa: PLC0415
+
+            db = root / ".specsmith" / "esdb.sqlite3"
+            if db.exists():
+                with SqliteStore(root) as store:
+                    esdb_ok = store.chain_valid()
+                    esdb_records = store.record_count()
+                esdb_backend = "sqlite"
+        except Exception:  # noqa: BLE001
+            pass
 
     # ── Recent work items + last preflight from LEDGER.md ─────────────────────
     recent_wis: list[str] = []
@@ -4060,8 +4118,9 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         "audit_failed": audit_failed,
         "req_count": req_count,
         "test_count": test_count,
-        "esdb_records": esdb_records,
-        "esdb_chain_valid": esdb_ok,
+        "esdb_backend": esdb_backend,
+        "esdb_records": esdb_records if esdb_backend != "n/a" else None,
+        "esdb_chain_valid": esdb_ok if esdb_backend != "n/a" else None,
         "recent_wis": recent_wis,
         "last_preflight": last_preflight,
         "anchor": f"SPECSMITH-ANCHOR-{ts}",
@@ -4078,6 +4137,14 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     vbar = "\u2551"  # ║
     health_icon = "\u2713" if health_ok else "\u2717"
     esdb_icon = "\u2713" if esdb_ok else "\u2717"
+    if esdb_backend == "chronomemory":
+        esdb_field = f"ESDB: {esdb_records} records ({esdb_icon} chain)"
+    elif esdb_backend == "sqlite":
+        # Compact format keeps the row within the 57-char box interior.
+        # " REQs    : NNN   TESTs: NNN   " = 30 chars, leaving 27 for esdb_field.
+        esdb_field = f"ESDB: SQLite {esdb_records} recs {esdb_icon}"
+    else:
+        esdb_field = "ESDB: N/A"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
     def _arow(rich: str, plain: str, wide: int = 0) -> str:
@@ -4115,10 +4182,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     )
     console.print(_arow(r4_rich, r4_plain))
 
-    r5 = (
-        f" REQs    : {req_count}   TESTs: {test_count}"
-        f"   ESDB: {esdb_records} records ({esdb_icon} chain)"
-    )
+    r5 = f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"
     console.print(_arow(r5, r5))
 
     r6 = f" WIs     : {wi_str}"
@@ -9223,6 +9287,30 @@ def wi_show_cmd(wi_id: str, project_dir: str, as_json: bool) -> None:
         console.print(f"  Closed    : {item.closed_at}")
     if item.closed_reason:
         console.print(f"  Reason    : {item.closed_reason}")
+
+
+@wi_group.command(name="link-test")
+@click.argument("wi_id")
+@click.option(
+    "--test",
+    "test_ids",
+    multiple=True,
+    required=True,
+    metavar="TEST-NNN",
+    help="Test case ID to link (repeatable).",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def wi_link_test_cmd(wi_id: str, test_ids: tuple[str, ...], project_dir: str) -> None:
+    """Link one or more test case IDs to a work item."""
+    from specsmith.wi_store import WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    item = store.add_test_case_ids(wi_id.upper(), list(test_ids))
+    if item is None:
+        console.print(f"[red]Work item {wi_id!r} not found.[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]\u2713[/green] {item.id} linked tests: {', '.join(test_ids)}")
 
 
 @wi_group.command(name="close")

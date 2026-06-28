@@ -35,5 +35,5 @@ for i, req in enumerate(reqs, 1):
         }
     )
 with open(".specsmith/workitems.json", "w", encoding="utf-8") as f:
-    json.dump(workitems, f, indent=2)
+    json.dump(workitems, f, indent=2, ensure_ascii=False)
 print("Rebuilt", len(workitems), "work items")

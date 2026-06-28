@@ -119,6 +119,7 @@ def run_preflight(
         utterance,
         _req_md,
         repo_index_path=_repo_idx,
+        min_score=0.15,
     )
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
@@ -202,12 +203,25 @@ def run_preflight(
         )
         confidence_target = 0.9
     elif intent == Intent.RELEASE:
-        decision_str = "needs_clarification"
-        instruction = (
-            "Release operations require explicit confirmation. "
-            "Specify the target version and channel."
-        )
-        confidence_target = 0.9
+        # Accept if scope is known or explicit REQ IDs are present (REQ-431).
+        # This handles release-tooling edits that survived the narrowed classifier
+        # (e.g. the user cited REQ-050 or REQ-051 explicitly, or the utterance
+        # matched a release-management requirement via token overlap).
+        if requirement_ids or scope.is_known:
+            decision_str = "accepted"
+            instruction = (
+                "Release-adjacent change under known governance scope. "
+                "Proceed under Specsmith verification."
+            )
+            confidence_target = 0.85
+        else:
+            decision_str = "needs_clarification"
+            instruction = (
+                "Release operations require explicit confirmation. "
+                "Specify the target version and channel, or cite a release-management "
+                "requirement via --req REQ-050 / --req REQ-051."
+            )
+            confidence_target = 0.9
     elif intent == Intent.REFACTOR:
         # Refactoring accepted only if scope is matched; unmatched refactors
         # get needs_clarification because scope creep is the primary risk.
@@ -251,11 +265,13 @@ def run_preflight(
     if cfg_threshold is not None and cfg_threshold > confidence_target:
         confidence_target = cfg_threshold
 
-    work_item_id = (
-        f"WI-{uuid.uuid4().hex[:8].upper()}"
-        if (decision_str == "accepted" and not predict_only)
-        else ""
+    # Allocate a WI for accepted decisions AND for needs_clarification on
+    # RELEASE/DESTRUCTIVE intents (REQ-431) so `specsmith approve --work-item`
+    # can proceed after the user provides the requested context out-of-band.
+    _alloc_wi = decision_str == "accepted" or (
+        decision_str == "needs_clarification" and intent in (Intent.RELEASE, Intent.DESTRUCTIVE)
     )
+    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if (_alloc_wi and not predict_only) else ""
 
     payload: dict[str, Any] = {
         "decision": decision_str,
@@ -402,7 +418,9 @@ def run_verify(
         try:
             from specsmith.wi_store import WorkItemStore
 
-            WorkItemStore(root).mark_implemented(work_item_id)
+            store = WorkItemStore(root)
+            store.mark_implemented(work_item_id)
+            store.set_files_touched(work_item_id, files_changed)
         except Exception:  # noqa: BLE001
             pass
 

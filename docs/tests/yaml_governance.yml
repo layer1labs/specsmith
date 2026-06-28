@@ -1098,3 +1098,89 @@
   description: test_project_name_from_pyproject must pass on Python 3.10 where tomllib
     is not in stdlib. quality_report._read_project_name falls back to tomli if available,
     then regex matching, rather than failing.
+- id: TEST-404
+  title: ESDBWriter Utility Module — best-effort, never raises
+  description: 'write_preflight_record(), write_verify_record(), and write_work_item_record()
+    all return False (not raise) when no WI id is present or the store is unavailable.
+    All functions use open_default_store() and are backend-agnostic.
+
+    '
+  requirement_id: REQ-395
+  type: unit
+  verification_method: 'pytest (tests/test_esdb_writer.py::test_write_preflight_record_no_wi_id_is_noop,
+    tests/test_esdb_integration.py::test_esdb_writer_best_effort_returns_false_on_bad_root)
+
+    '
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-405
+  title: Preflight Decision ESDB Write Path — governance_logic.run_preflight
+  description: 'run_preflight() with an accepted decision and non-empty work_item_id
+    must upsert a kind="preflight_decision" ESDB record. id == work_item_id, confidence
+    == confidence_target, source_ids contains matched requirement_ids, data contains
+    decision and work_item_id. predict_only=True must NOT write a record (no WI minted).
+
+    '
+  requirement_id: REQ-396
+  type: integration
+  verification_method: 'pytest (tests/test_esdb_integration.py::test_run_preflight_writes_preflight_decision,
+    tests/test_esdb_integration.py::test_run_preflight_predict_only_no_esdb_record,
+    tests/test_esdb_writer.py::test_write_preflight_record_sqlite)
+
+    '
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-406
+  title: Verify Result ESDB Write Path — governance_logic.run_verify
+  description: 'run_verify() with equilibrium=True must upsert kind="verify_result"
+    with id= "VERIFY-{work_item_id}", confidence=0.85, and must tombstone the corresponding
+    preflight_decision record. Without equilibrium, confidence=0.4 and no tombstone.
+
+    '
+  requirement_id: REQ-397
+  type: integration
+  verification_method: 'pytest (tests/test_esdb_integration.py::test_run_verify_writes_verify_result,
+    tests/test_esdb_integration.py::test_run_verify_tombstones_preflight_on_equilibrium,
+    tests/test_esdb_writer.py::test_write_verify_record_sqlite_equilibrium, tests/test_esdb_writer.py::test_write_verify_record_tombstones_preflight_on_equilibrium)
+
+    '
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-407
+  title: Work Item ESDB Synchronisation — wi_store mutations
+  description: 'WorkItemStore.create() upserts a kind="work_item" ESDB record with
+    status="active". mark_implemented() keeps status="active". set_status to a terminal
+    state (closed, archived, rejected, promoted) must tombstone the ESDB record (status="tombstone").
+    source_ids contains requirement_ids + test_case_ids from the WI.
+
+    '
+  requirement_id: REQ-398
+  type: integration
+  verification_method: 'pytest (tests/test_esdb_integration.py::test_wi_store_create_writes_work_item,
+    tests/test_esdb_integration.py::test_wi_store_mark_implemented_stays_active, tests/test_esdb_integration.py::test_wi_store_close_tombstones_esdb,
+    tests/test_esdb_writer.py::test_write_work_item_record_sqlite, tests/test_esdb_writer.py::test_write_work_item_record_terminal_becomes_tombstone)
+
+    '
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-408
+  title: Context Seed Relevance-Based ESDB Query — build_context_seed
+  description: 'build_context_seed() must query ESDB by kind (preflight_decision,
+    verify_result, work_item) using rag_filter=True, excluding records with confidence
+    < 0.6. The returned seed must include an ESDB governance context turn when matching
+    records exist. Records with confidence < 0.6 must not appear in the seed.
+
+    '
+  requirement_id: REQ-399
+  type: integration
+  verification_method: 'pytest (tests/test_esdb_integration.py::test_context_seed_session_resume_includes_preflight,
+    tests/test_esdb_writer.py::test_context_seed_uses_preflight_records, tests/test_esdb_writer.py::test_context_seed_excludes_low_confidence_records)
+
+    '
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0

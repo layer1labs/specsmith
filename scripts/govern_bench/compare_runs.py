@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+from govern_bench.metrics import model_tier
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -41,6 +44,13 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
         avg_cost = sum(r["cost_usd"] for r in reps) / len(reps)
         avg_quality = sum(r["quality"] for r in reps) / len(reps)
         avg_turns = sum(r["rework_turns"] for r in reps) / len(reps)
+        first_pass_rate = sum(1 for r in reps if r["rework_turns"] <= 1) / len(reps)
+        pass_values = [1.0 if r["passed"] else 0.0 for r in reps]
+        consistency_score = (
+            1.0
+            if len(pass_values) < 2
+            else max(0.0, 1.0 - statistics.pstdev(pass_values))
+        )
         cop = avg_cost / pass_rate if pass_rate > 0 else float("inf")
         result[task][cond] = {
             "pass_rate": pass_rate,
@@ -48,9 +58,20 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
             "avg_cost": avg_cost,
             "avg_quality": avg_quality,
             "avg_turns": avg_turns,
+            "first_pass_rate": first_pass_rate,
+            "consistency_score": consistency_score,
             "cost_of_pass": cop,
             "n_reps": len(reps),
         }
+
+    for _task, conditions in result.items():
+        baseline = conditions.get("UNGOVERNED", {}).get("pass_rate")
+        for stats in conditions.values():
+            stats["scaffold_lift"] = (
+                stats["pass_rate"] - baseline
+                if baseline is not None
+                else None
+            )
     return result
 
 
@@ -142,7 +163,8 @@ def render_comparison(
     lines += [
         "# specsmith Governance Efficiency — Model Comparison",
         "",
-        "**Models compared:** " + " · ".join(m for m, _ in models),
+        "**Models compared:** "
+        + " · ".join(f"{m} ({model_tier(m)})" for m, _ in models),
         "",
         "> **Cost-of-pass (CoP)** = mean_cost_per_run ÷ pass_rate.",
         "> Lower = cheaper per correct answer. ∞ = condition never passed.",

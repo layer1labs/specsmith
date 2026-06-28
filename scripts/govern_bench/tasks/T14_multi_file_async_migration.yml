@@ -1,0 +1,57 @@
+# T14 — Multi-file async migration
+
+id: T14
+title: "Migrate todo API service layer to async across routes and services"
+category: refactoring
+difficulty: hard
+project: agentic-todo-api
+estimated_tokens_ungoverned: 6200
+estimated_tokens_specsmith_full: 8100
+
+task_prompt: |
+  Convert the todo API service path from mixed sync helpers to a consistent async flow.
+
+  Requirements:
+  - Introduce async service helpers in app/services.py for list, get, and create operations
+  - Update route handlers in app/main.py to use async definitions and await the service helpers
+  - Keep response schemas and status codes unchanged
+  - Do not introduce external dependencies or rewrite storage architecture
+  - Add tests that prove route behavior is unchanged after the migration
+
+acceptance_criteria: |
+  - [ ] app/services.py exposes async helpers used by list/get/create routes
+  - [ ] app/main.py route handlers are async and await the helpers
+  - [ ] Existing API behavior is unchanged (same payload shape and status codes)
+  - [ ] No unrelated files are modified outside the todo_api project
+  - [ ] New/updated tests cover list/get/create behavior after migration
+  - [ ] ruff check . returns exit 0
+  - [ ] pytest returns exit 0
+
+expected_files_changed:
+  - app/main.py
+  - app/services.py
+  - tests/test_main.py
+
+regression_risk: high
+
+known_failure_modes:
+  - "Agent migrates only one route and leaves partial sync/async flow"
+  - "Agent changes response shape while touching route internals"
+  - "Agent rewrites storage into a database layer (scope creep)"
+  - "Agent introduces blocking calls inside async handlers"
+
+governance_signals:
+  preflight_expected_req_match: true
+  preflight_expected_intent: "refactor"
+  verify_expected_to_catch:
+    - "partial migration across files"
+    - "unapproved API contract change"
+
+scope_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "pytest -q tests/test_main.py"
+  allowed_patterns:
+    - "^pytest( .*)?$"
