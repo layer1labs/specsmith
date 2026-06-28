@@ -336,12 +336,17 @@ CONDITIONS: list[Condition] = [
             - decision == "accepted" → note the work_item_id and proceed immediately.
             - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
               Instead, autonomously resolve it:
-              1. specsmith req add "<feature title>" --description "<one-line scope>" --status planned
+              1. specsmith req add --title "<feature title>" --description "<one-line scope>" --status planned
               2. Re-run preflight. If still needs_clarification, proceed with your best
                  interpretation of scope — never abort the task because of needs_clarification.
 
             For tasks where the correct response IS to ask a clarifying question
             (e.g. ambiguous or destructive requests), do so without writing any code.
+
+            Stdout/stderr discipline (CLI tasks):
+            - The command's JSON/data output MUST go to stdout (or --output file) only.
+            - ALL status messages, progress updates, and debug output MUST go to stderr.
+            - Never mix diagnostic text with JSON output on stdout — it corrupts pipelines.
 
             After implementation:
             - Run: ruff check .
@@ -372,7 +377,7 @@ CONDITIONS: list[Condition] = [
                - decision == "accepted" → note work_item_id, proceed.
                - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
                  Instead, autonomously resolve it:
-                 a. specsmith req add "<title>" --description "<one-line scope>" --status planned
+                 a. specsmith req add --title "<title>" --description "<one-line scope>" --status planned
                  b. Re-run preflight. If still needs_clarification, proceed with your best
                     interpretation of scope — never abort the task on needs_clarification.
             3. Implement the change.
@@ -380,6 +385,7 @@ CONDITIONS: list[Condition] = [
                Ensure ALL acceptance criteria are covered by tests.
                A complete implementation has ≥ 4 tests including edge cases
                (e.g. empty input, type edge cases, boundary conditions).
+               Stdout/stderr discipline: data output → stdout only; diagnostics → stderr.
             5. specsmith verify --project-dir .         # governance verify
             6. specsmith save --project-dir .           # commit + ESDB backup
 
@@ -514,7 +520,7 @@ CONDITIONS: list[Condition] = [
                - decision == "accepted" → note work_item_id, proceed.
                - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
                  Instead, autonomously resolve it:
-                 a. specsmith req add "<title>" --description "<one-line scope>" --status planned
+                 a. specsmith req add --title "<title>" --description "<one-line scope>" --status planned
                  b. Re-run preflight. If still needs_clarification, proceed with your best
                     interpretation of scope — never abort the task on needs_clarification.
             3. Decompose the task into a dependency DAG:
@@ -523,8 +529,11 @@ CONDITIONS: list[Condition] = [
                - CRITICAL: If two subtasks modify the same file, make them sequential
                  (the later one must depend on the earlier) to prevent merge conflicts
                  and ensure correct ordering (e.g. route registration order in FastAPI).
+               - CRITICAL: Before adding a new route, read the existing route table in
+                 the file and insert BEFORE any parameterised routes (e.g. /{id}) to
+                 prevent FastAPI path-matching conflicts.
             4. specsmith dispatch run --dag dag.yml --project-dir .
-               - Planner node: produce implementation plan
+               - Planner node: produce implementation plan + read existing route table
                - Builder nodes: implement subtasks in parallel (only for truly independent files)
                - Verifier node: ruff check . && pytest (runs after all builders)
             5. specsmith save --project-dir .           # commit + ESDB backup
