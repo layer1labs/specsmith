@@ -25,7 +25,6 @@ from pathlib import Path
 from unittest import mock
 
 import specsmith.esdb_writer as _esdb_mod
-
 from specsmith.agent.core import AgentState
 from specsmith.agent.dispatch import (
     AgentPool,
