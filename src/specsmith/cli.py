@@ -1152,6 +1152,20 @@ def verify_cmd(
         if equilibrium and confidence >= threshold
         else classify_retry_strategy(fake_report, fake_decision)
     )
+    # Wire equilibrium back to WI lifecycle (REQ-434)
+    if equilibrium and work_item_id:
+        try:
+            from specsmith.governance_logic import run_verify as _gov_verify
+
+            _gov_verify(
+                diff=payload_in.get("diff", ""),
+                files_changed=files_changed,
+                test_results=test_results,
+                project_dir=str(root),
+                work_item_id=work_item_id,
+            )
+        except Exception:  # noqa: BLE001
+            pass  # best-effort; never block verify output
 
     out = {
         "equilibrium": equilibrium,
