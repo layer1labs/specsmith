@@ -38,6 +38,190 @@ def _fmt_tokens(n: float) -> str:
     return str(int(n))
 
 
+def _fmt_ci_pct(low: float, high: float) -> str:
+    return f"{low * 100:.0f}%–{high * 100:.0f}%"
+
+
+def _fmt_ci_cost(low: float, high: float) -> str:
+    if low == float("inf") or high == float("inf"):
+        return "∞"
+    return f"${low:.4f}–${high:.4f}"
+
+
+def _fmt_lift(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value * 100:+.0f}pp"
+
+
+def _fmt_ratio(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value:.2f}×"
+
+
+def render_scaffold_lift_matrix(
+    report: BenchReport,
+    conditions: list[Condition],
+    tasks: list[BenchTask],
+) -> str:
+    """Render a task × condition scaffold lift table."""
+    condition_ids = [c.id for c in conditions if c.id != "UNGOVERNED"]
+    slices_by_task: dict[str, dict[str, SliceStats]] = {}
+    for s in report.slices():
+        slices_by_task.setdefault(s.task_id, {})[s.condition_id] = s
+
+    lines = [
+        "## Scaffold Lift Matrix (vs UNGOVERNED)",
+        "",
+    ]
+    if not condition_ids:
+        lines += ["No scaffold conditions available.", ""]
+        return "\n".join(lines)
+
+    header = "| Task | " + " | ".join(condition_ids) + " |"
+    sep = "|" + "---|" * (len(condition_ids) + 1)
+    lines += [header, sep]
+    for task in tasks:
+        task_slices = slices_by_task.get(task.id, {})
+        row = [task.id]
+        for cid in condition_ids:
+            slice_stats = task_slices.get(cid)
+            row.append(_fmt_lift(slice_stats.scaffold_lift if slice_stats else None))
+        lines.append("| " + " | ".join(row) + " |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_democratization_table(report: BenchReport) -> str:
+    """Render the cheapest model tier beating frontier+UNGOVERNED CoP per scaffold."""
+    rows = report.democratization_table()
+    lines = [
+        "## Democratization Table",
+        "",
+    ]
+    if not rows:
+        lines += [
+            "No frontier+UNGOVERNED baseline is available yet, so democratization metrics are pending.",
+            "",
+        ]
+        return "\n".join(lines)
+
+    lines += [
+        "| Scaffold | Frontier Baseline | Cheapest Model That Beats Frontier | Tier | Cost Multiplier |",
+        "|----------|-------------------|------------------------------------|------|-----------------|",
+    ]
+    for row in rows:
+        baseline = _fmt_cost(float(row["frontier_cop_usd"]))
+        winner = str(row["cheapest_model"]) if row["cheapest_model"] else "—"
+        tier = str(row["cheapest_model_tier"]) if row["cheapest_model_tier"] else "—"
+        multiplier = _fmt_ratio(
+            float(row["cost_multiplier_vs_frontier"])
+            if row["cost_multiplier_vs_frontier"] is not None
+            else None
+        )
+        lines.append(
+            "| "
+            + " | ".join([
+                str(row["scaffold"]),
+                baseline,
+                winner,
+                tier,
+                multiplier,
+            ])
+            + " |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_pareto_scatter_data(report: BenchReport) -> str:
+    """Render Pareto frontier data as JSON for chart pipelines."""
+    lines = [
+        "## Pareto Frontier Data",
+        "",
+        "```json",
+        json.dumps(report.pareto_frontier_data(), indent=2),
+        "```",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def render_key_claims(report: BenchReport) -> str:
+    """Render the three headline claims for HF-facing narrative."""
+    summary = report.condition_summary()
+    lines = [
+        "## Key Claims",
+        "",
+    ]
+
+    specsmith_cops = [
+        s["mean_cost_of_pass"]
+        for cid, s in summary.items()
+        if cid.startswith("SPECSMITH") and s["mean_cost_of_pass"] < float("inf")
+    ]
+    non_specsmith_cops = [
+        s["mean_cost_of_pass"]
+        for cid, s in summary.items()
+        if not cid.startswith("SPECSMITH") and s["mean_cost_of_pass"] < float("inf")
+    ]
+    if specsmith_cops and non_specsmith_cops:
+        best_specsmith = min(specsmith_cops)
+        best_non_specsmith = min(non_specsmith_cops)
+        ratio = best_non_specsmith / best_specsmith if best_specsmith > 0 else float("inf")
+        lines.append(
+            "- Best specsmith CoP is "
+            f"{_fmt_ratio(ratio)} better than best non-specsmith CoP "
+            f"({_fmt_cost(best_specsmith)} vs {_fmt_cost(best_non_specsmith)})."
+        )
+    else:
+        lines.append("- Best specsmith vs non-specsmith CoP claim: pending sufficient data.")
+
+    democratization = [r for r in report.democratization_table() if r["cheapest_model"]]
+    if democratization:
+        best_row = min(
+            democratization,
+            key=lambda row: float(row["cheapest_cop_usd"]),
+        )
+        lines.append(
+            "- Cheapest tier matching/beating frontier+UNGOVERNED is "
+            f"`{best_row['cheapest_model_tier']}` via `{best_row['cheapest_model']}` "
+            f"under `{best_row['scaffold']}`."
+        )
+    else:
+        lines.append("- Cheapest tier matching frontier+UNGOVERNED CoP: not observed yet.")
+
+    specsmith_full_lifts = [
+        s.scaffold_lift
+        for s in report.slices()
+        if s.condition_id == "SPECSMITH_FULL" and s.scaffold_lift is not None
+    ]
+    if specsmith_full_lifts:
+        mean_lift = sum(specsmith_full_lifts) / len(specsmith_full_lifts)
+        lines.append(
+            "- Average scaffold lift for `SPECSMITH_FULL` vs `UNGOVERNED` is "
+            f"{_fmt_lift(mean_lift)}."
+        )
+    else:
+        lines.append("- Average scaffold lift for `SPECSMITH_FULL`: pending baseline data.")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_hf_leaderboard(
+    report: BenchReport,
+    output_path: Path,
+    task_suite: str = "governancebench-v1",
+) -> None:
+    """Write HF leaderboard JSON rows to disk."""
+    payload = report.hf_leaderboard_json(task_suite=task_suite)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print(f"HF leaderboard written to {output_path}")
+
+
 def render_report(
     report: BenchReport,
     conditions: list[Condition],
@@ -77,7 +261,7 @@ def render_report(
     cids = [c.id for c in conditions]
 
     # Build rows
-    rows: list[tuple[str, str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str, str, str]] = []
     for cid in cids:
         if cid not in summary:
             continue
@@ -85,17 +269,26 @@ def render_report(
         cname = next((c.name for c in conditions if c.id == cid), cid)
         rows.append((
             cname,
-            _fmt_pct(s["mean_pass_rate"]),
+            f"{_fmt_pct(s['mean_pass_rate'])} ({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
             _fmt_tokens(s["mean_total_tokens"]),
             _fmt_cost(s["mean_api_cost_usd"]),
             f"{s['mean_quality_score']:.2f}",
-            _fmt_cost(s["mean_cost_of_pass"]),
+            f"{_fmt_cost(s['mean_cost_of_pass'])} ({_fmt_ci_cost(s['ci_cop_low'], s['ci_cop_high'])})",
+            _fmt_pct(s["mean_first_pass_rate"]),
+            f"{s['mean_consistency_score']:.2f}",
+            _fmt_lift(s["mean_scaffold_lift"]),
         ))
 
     # Best-value variables reserved for future bolding logic (not yet applied)
 
-    header = "| Condition | Pass Rate | Mean Tokens | Mean Cost | Quality | Cost-of-Pass |"
-    sep    = "|-----------|-----------|-------------|-----------|---------|--------------|"
+    header = (
+        "| Condition | Pass Rate (95% CI) | Mean Tokens | Mean Cost | Quality | "
+        "Cost-of-Pass (95% CI) | First Pass | Consistency | Scaffold Lift |"
+    )
+    sep = (
+        "|-----------|---------------------|-------------|-----------|---------|"
+        "------------------------|------------|-------------|---------------|"
+    )
     lines += [header, sep]
 
     for r in rows:
@@ -131,8 +324,12 @@ def render_report(
             lines += ["*No results recorded for this task.*", ""]
             continue
 
-        lines.append("| Condition | Pass Rate | Tokens | Cost | Quality | CoP |")
-        lines.append("|-----------|-----------|--------|------|---------|-----|")
+        lines.append(
+            "| Condition | Pass Rate | Tokens | Cost | Quality | CoP | First Pass | Lift |"
+        )
+        lines.append(
+            "|-----------|-----------|--------|------|---------|-----|------------|------|"
+        )
         def _slice_order(s: SliceStats) -> int:
             return cids.index(s.condition_id) if s.condition_id in cids else 99
 
@@ -144,7 +341,9 @@ def render_report(
                 f"| {_fmt_tokens(s.mean_total_tokens)} "
                 f"| {_fmt_cost(s.mean_api_cost_usd)} "
                 f"| {s.mean_quality_score:.2f} "
-                f"| {_fmt_cost(s.cost_of_pass)} |"
+                f"| {_fmt_cost(s.cost_of_pass)} "
+                f"| {_fmt_pct(s.first_pass_rate)} "
+                f"| {_fmt_lift(s.scaffold_lift)} |"
             )
         lines.append("")
 
@@ -159,24 +358,18 @@ def render_report(
             ]
 
     # ------------------------------------------------------------------
-    # Section 3: Key findings
+    # Section 3: Key findings and leaderboard narrative
     # ------------------------------------------------------------------
     lines += [
-        "## Key Findings",
+        render_key_claims(report),
+        render_scaffold_lift_matrix(report, conditions, tasks),
+        render_democratization_table(report),
+        render_pareto_scatter_data(report),
+        "## HF Leaderboard JSON Preview",
         "",
-        "<!-- Fill in after running the benchmark. Suggested structure: -->",
-        "",
-        "### Token Efficiency",
-        "- SPECSMITH_FULL vs UNGOVERNED cost-of-pass ratio: _TBD_",
-        "- Mean token reduction on governance-gate tasks (T6, T7): _TBD_",
-        "",
-        "### Quality",
-        "- Mean quality score improvement SPECSMITH_FULL vs UNGOVERNED: _TBD_",
-        "- Pass rate on safety tasks (T7) by condition: _TBD_",
-        "",
-        "### Scope Discipline",
-        "- Mean rework turns on refactoring task (T4) by condition: _TBD_",
-        "- Clarification rate on ambiguous task (T6): _TBD_",
+        "```json",
+        json.dumps(report.hf_leaderboard_json(), indent=2),
+        "```",
         "",
         "## Methodology",
         "",
