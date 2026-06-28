@@ -12,23 +12,23 @@ on:
   workflow_dispatch:
     inputs:
       tasks:
-        description: "Task IDs to run (comma-separated, e.g. T1,T2,T6,T7,T10,T11,T13). Leave blank for all."
+        description: "Task IDs to run (comma-separated, e.g. T1,T2,T6,T7). Leave blank for all."
         required: false
         default: "T1,T2,T6,T7,T10,T11,T13"
       conditions:
-        description: "Condition IDs to run (comma-separated). Leave blank for all 13 conditions (A-M). Key specsmith conditions: UNGOVERNED,SPECSMITH_LIGHT,SPECSMITH_FULL,SPECSMITH_DISPATCH."
+        description: "Condition IDs (comma-separated). Blank = all 13. Key: UNGOVERNED,SPECSMITH_LIGHT,SPECSMITH_FULL,SPECSMITH_DISPATCH."
         required: false
         default: ""
       reps:
-        description: "Repetitions per cell (default 2 for cost; use 5 for publication)"
+        description: "Repetitions per cell (2 = cost run; 5 = publication)"
         required: false
         default: "2"
-      model:
-        description: "OpenAI model to use"
+      tiers:
+        description: "Tiers to run (comma-separated: nano,mini,mid,frontier). Blank = all."
         required: false
-        default: "gpt-4o-mini"
+        default: ""
       dry_run:
-        description: "Use dry-run mode (no real API calls, deterministic dummy data)"
+        description: "Dry-run mode — no real API calls, deterministic dummy data"
         required: false
         type: boolean
         default: false
@@ -88,22 +88,48 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────────────────
-  # bench-matrix — runs both gpt-4o-mini and gpt-5.5 in parallel
-  # then combines their results into a cross-model comparison report.
-  # Triggered manually via workflow_dispatch OR on a schedule.
+  # bench-matrix — full tier × provider matrix
+  #
+  # Tier breakdown (10 models, 3 providers):
+  #   nano     : gpt-4.1-nano                        (openai)
+  #   mini     : gpt-4o-mini                         (openai)
+  #              claude-haiku-4-5                    (anthropic)
+  #              gemini-2.0-flash                    (google)
+  #   mid      : gpt-4.1                             (openai)
+  #              claude-sonnet-4-5                   (anthropic)
+  #              gemini-2.5-flash                    (google)
+  #   frontier : gpt-5.5                             (openai)
+  #              claude-opus-4-5                     (anthropic)
+  #              gemini-2.5-pro                      (google)
+  #
+  # Jobs that lack an API key secret skip gracefully (continue-on-error).
   # ──────────────────────────────────────────────────────────────────────────
   bench-matrix:
-    name: Benchmark (${{ matrix.model }})
+    name: "Bench [${{ matrix.tier }}] ${{ matrix.provider }}/${{ matrix.model }}"
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
     permissions:
       contents: read
     strategy:
-      fail-fast: false   # let both models run even if one fails
+      fail-fast: false
       matrix:
-        model:
-          - gpt-4o-mini
-          - gpt-5.5
+        include:
+          # ── nano ──────────────────────────────────────────────────────────
+          - { provider: openai,     model: gpt-4.1-nano,       tier: nano     }
+          # ── mini ──────────────────────────────────────────────────────────
+          - { provider: openai,     model: gpt-4o-mini,        tier: mini     }
+          - { provider: anthropic,  model: claude-haiku-4-5,   tier: mini     }
+          - { provider: google,     model: gemini-2.0-flash,   tier: mini     }
+          # ── mid ───────────────────────────────────────────────────────────
+          - { provider: openai,     model: gpt-4.1,            tier: mid      }
+          - { provider: anthropic,  model: claude-sonnet-4-5,  tier: mid      }
+          - { provider: google,     model: gemini-2.5-flash,   tier: mid      }
+          # ── frontier ──────────────────────────────────────────────────────
+          - { provider: openai,     model: gpt-5.5,            tier: frontier }
+          - { provider: anthropic,  model: claude-opus-4-5,    tier: frontier }
+          - { provider: google,     model: gemini-2.5-pro,     tier: frontier }
+
     steps:
       - uses: actions/checkout@v6
 
@@ -112,11 +138,38 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install dependencies
+      - name: Install base dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-          pip install pyyaml fastapi uvicorn httpx starlette click openai
+          pip install pyyaml click
+
+      - name: Install provider SDK
+        run: |
+          case "${{ matrix.provider }}" in
+            openai)    pip install openai ;;
+            anthropic) pip install anthropic ;;
+            google)    pip install google-generativeai ;;
+          esac
+
+      - name: Check API key available
+        id: key_check
+        env:
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          case "${{ matrix.provider }}" in
+            openai)    [ -n "$OPENAI_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            anthropic) [ -n "$ANTHROPIC_API_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            google)    [ -n "$GOOGLE_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Skip — no API key configured
+        if: steps.key_check.outputs.ok == '0' && github.event.inputs.dry_run != 'true'
+        run: |
+          echo "::warning::Skipping ${{ matrix.provider }}/${{ matrix.model }} — secret not set."
+          exit 0
 
       - name: Build task arguments
         id: build-args
@@ -129,38 +182,43 @@ jobs:
           done
           echo "task_args=$TASK_ARGS" >> "$GITHUB_OUTPUT"
 
-      - name: Run benchmark (${{ matrix.model }})
+      - name: "Run benchmark — ${{ matrix.tier }} / ${{ matrix.provider }} / ${{ matrix.model }}"
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          BENCH_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
-          BENCH_MAX_TURNS: "12"
+          OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
+          BENCH_DRY_RUN:     ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+          BENCH_MAX_TURNS:   "12"
         run: |
           DRY_FLAG=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_FLAG="--dry-run"
-          MODEL=$(echo "${{ matrix.model }}" | tr '.' '-')
+          # Filesystem-safe slug: openai_gpt-4o-mini
+          SLUG="${{ matrix.provider }}_$(echo '${{ matrix.model }}' | tr '.' '-')"
 
           python scripts/govern_bench/run_bench.py \
             ${{ steps.build-args.outputs.task_args }} \
             --reps ${{ github.event.inputs.reps || '2' }} \
-            --model ${{ matrix.model }} \
-            --output bench-report-${MODEL}.md \
-            --json-output bench-results-${MODEL}.json \
+            --provider ${{ matrix.provider }} \
+            --model    ${{ matrix.model }} \
+            --output   bench-report-${SLUG}.md \
+            --json-output bench-results-${SLUG}.json \
             $DRY_FLAG
 
       - name: Upload per-model artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bench-${{ matrix.model }}-${{ github.run_id }}
+          name: bench-${{ matrix.provider }}-${{ matrix.model }}-${{ github.run_id }}
           path: |
             bench-report-*.md
             bench-results-*.json
           retention-days: 30
 
   # ──────────────────────────────────────────────────────────────────────────
-  # compare — downloads both model results, generates cross-model report
+  # compare — downloads ALL model artifacts, generates unified tier report
   # ──────────────────────────────────────────────────────────────────────────
   compare:
-    name: Cross-model comparison
+    name: Cross-model comparison (all tiers)
     runs-on: ubuntu-latest
     needs: bench-matrix
     if: always() && github.event_name == 'workflow_dispatch'
@@ -180,36 +238,50 @@ jobs:
           pip install -e ".[dev]"
           pip install pyyaml
 
-      - name: Download gpt-4o-mini results
-        uses: actions/download-artifact@v4
-        with:
-          name: bench-gpt-4o-mini-${{ github.run_id }}
-          path: results/
-        continue-on-error: true
+      # One download step per matrix entry (continue-on-error for skipped jobs)
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-nano-${{ github.run_id }}",     path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4o-mini-${{ github.run_id }}",      path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-haiku-4-5-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.0-flash-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-${{ github.run_id }}",           path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-sonnet-4-5-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-flash-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
 
-      - name: Download gpt-5.5 results
-        uses: actions/download-artifact@v4
-        with:
-          name: bench-gpt-5.5-${{ github.run_id }}
-          path: results/
-        continue-on-error: true
-
-      - name: Generate comparison report
+      - name: Generate unified tier comparison report
         run: |
           INPUTS=""
           for f in results/bench-results-*.json; do
             [ -f "$f" ] || continue
-            # Extract model name from filename: bench-results-gpt-4o-mini.json -> gpt-4o-mini
-            MODEL=$(basename "$f" .json | sed 's/bench-results-//' | tr '-' '.' | sed 's/gpt\.4o\.mini/gpt-4o-mini/' | sed 's/gpt\.5\.5/gpt-5.5/')
-            INPUTS="$INPUTS $f:$MODEL"
+            # Slug format: bench-results-<provider>_<model-with-dashes>.json
+            # Reconstruct label as provider/model
+            SLUG=$(basename "$f" .json | sed 's/bench-results-//')
+            PROVIDER=$(echo "$SLUG" | cut -d_ -f1)
+            MODEL_SLUG=$(echo "$SLUG" | cut -d_ -f2-)
+            # Re-expand known dot-version model names
+            MODEL=$(echo "$MODEL_SLUG" | sed \
+              -e 's/gpt-4o-mini/gpt-4o-mini/' \
+              -e 's/gpt-4-1-nano/gpt-4.1-nano/' \
+              -e 's/gpt-4-1/gpt-4.1/' \
+              -e 's/gpt-5-5/gpt-5.5/' \
+              -e 's/claude-haiku-4-5/claude-haiku-4-5/' \
+              -e 's/claude-sonnet-4-5/claude-sonnet-4-5/' \
+              -e 's/claude-opus-4-5/claude-opus-4-5/' \
+              -e 's/gemini-2-0-flash/gemini-2.0-flash/' \
+              -e 's/gemini-2-5-flash/gemini-2.5-flash/' \
+              -e 's/gemini-2-5-pro/gemini-2.5-pro/')
+            LABEL="${PROVIDER}/${MODEL}"
+            INPUTS="$INPUTS $f:$LABEL"
           done
           if [ -z "$INPUTS" ]; then
-            echo "No result files found."
+            echo "No result files found — all provider jobs may have been skipped."
             exit 0
           fi
+          echo "Comparing:$INPUTS"
           python scripts/govern_bench/compare_runs.py \
             $INPUTS \
-            --tasks T1 T6 T7 T10 T11 T13 \
             --output docs/site/model-comparison.md
           cat docs/site/model-comparison.md
 
@@ -220,15 +292,18 @@ jobs:
           path: docs/site/model-comparison.md
           retention-days: 30
 
-      - name: Post comparison summary
+      - name: Post summary
         if: always()
         run: |
-          echo "## Model Comparison Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "## GovernanceBench — Multi-Tier Model Comparison" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Tasks:** ${{ github.event.inputs.tasks || 'T1,T2,T6,T7,T10,T11,T13' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Reps:** ${{ github.event.inputs.reps || '2' }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Models:** gpt-4o-mini vs gpt-5.5" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tasks | ${{ github.event.inputs.tasks || 'T1,T2,T6,T7,T10,T11,T13' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Reps  | ${{ github.event.inputs.reps || '2' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tiers | nano · mini · mid · frontier |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Models (10) | gpt-4.1-nano · gpt-4o-mini · gpt-4.1 · gpt-5.5 · claude-haiku-4-5 · claude-sonnet-4-5 · claude-opus-4-5 · gemini-2.0-flash · gemini-2.5-flash · gemini-2.5-pro |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/site/model-comparison.md ]; then
-            python -c "import re,pathlib; c=pathlib.Path('docs/site/model-comparison.md').read_text(); m=re.search(r'## Headline findings.*',c,re.DOTALL); print(m.group()[:2000]) if m else None" >> "$GITHUB_STEP_SUMMARY"
+            python -c "import re,pathlib; c=pathlib.Path('docs/site/model-comparison.md').read_text(); m=re.search(r'## Headline findings.*',c,re.DOTALL); print(m.group()[:3000] if m else '')" >> "$GITHUB_STEP_SUMMARY"
           fi
