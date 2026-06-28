@@ -6,6 +6,11 @@ Usage:
 
     # Run a single task × condition (one rep) for development:
     python -m govern_bench.run_bench --task T1 --condition UNGOVERNED --reps 1 --dry-run
+    # Run with Anthropic:
+    python -m govern_bench.run_bench --provider anthropic --model claude-haiku-4-5
+
+    # Run against an OpenAI-compatible endpoint (vLLM/Ollama):
+    python -m govern_bench.run_bench --provider openai-compat --base-url http://localhost:8000/v1
 
     # Run the full benchmark (7 tasks × 6 conditions × 5 reps = 210 runs):
     python -m govern_bench.run_bench --reps 5 --output docs/site/efficiency-benchmark.md
@@ -21,6 +26,8 @@ Environment variables:
     BENCH_JUDGE_PROVIDER  LLM judge provider: anthropic|openai (default: anthropic)
     ANTHROPIC_API_KEY     Required for Anthropic judge
     OPENAI_API_KEY        Required for OpenAI judge
+    BENCH_PROVIDER        Agent provider override (openai|anthropic|google|openai-compat)
+    BENCH_OPENAI_BASE_URL Default base URL for provider=openai-compat
     BENCH_DRY_RUN         Set to '1' to skip actual agent calls (for CI)
 """
 
@@ -85,6 +92,17 @@ def _parse_args() -> argparse.Namespace:
         "-m",
         default="gpt-4o-mini",
         help="Agent model to use for task runs (default: gpt-4o-mini)",
+    )
+    parser.add_argument(
+        "--provider",
+        default=os.environ.get("BENCH_PROVIDER", "openai"),
+        choices=["openai", "anthropic", "google", "openai-compat"],
+        help="Model provider to use for task runs (default: openai)",
+    )
+    parser.add_argument(
+        "--base-url",
+        default=os.environ.get("BENCH_OPENAI_BASE_URL"),
+        help=("Base URL for provider=openai-compat. Defaults to BENCH_OPENAI_BASE_URL when set."),
     )
     parser.add_argument(
         "--dry-run",
@@ -261,6 +279,11 @@ def main() -> int:
     )
     if args.dry_run:
         print("DRY RUN — generating dummy data (no agent calls)")
+    else:
+        provider_line = f"Provider={args.provider} Model={args.model}"
+        if args.provider == "openai-compat" and args.base_url:
+            provider_line += f" BaseURL={args.base_url}"
+        print(provider_line)
 
     report = BenchReport()
     run_num = 0
@@ -281,7 +304,14 @@ def main() -> int:
                     from govern_bench.harness import run_task  # noqa: E402, PLC0415
 
                     try:
-                        result = run_task(task, condition, rep=rep, model=args.model)
+                        result = run_task(
+                            task,
+                            condition,
+                            rep=rep,
+                            model=args.model,
+                            provider=args.provider,
+                            base_url=args.base_url,
+                        )
                     except RuntimeError as exc:
                         print(f"\n  [ERROR] {exc}", file=sys.stderr)
                         return 1
