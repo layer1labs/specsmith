@@ -4218,5 +4218,14 @@
     "test_ids": [
       "TEST-435"
     ]
+  },
+  {
+    "id": "REQ-426",
+    "version": 1,
+    "title": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
+    "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": []
   }
 ]

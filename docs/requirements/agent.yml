@@ -531,11 +531,3 @@
     and `pyproject.toml` to `1.0.0`.'
   source: docs/site/api-stability.md, pyproject.toml
   status: implemented
-- id: REQ-424
-  title: CI pipeline must produce zero CodeQL static analysis alerts on every run
-  description: >-
-    Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static analysis alerts on every CI run
-  source: WI-0CEA445B
-  status: planned
-  test_ids:
-  - TEST-434

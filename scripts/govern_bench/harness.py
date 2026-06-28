@@ -72,7 +72,10 @@ def _get_project_dir(project_id: str) -> Path:
 def _completion_token_param(model: str) -> dict[str, int]:
     """Return the correct completion-token limit parameter for an OpenAI model."""
     if model.startswith(("gpt-5", "o1", "o3", "o4")):
-        return {"max_completion_tokens": 4096}
+        # gpt-5.x and o-series models use 'max_completion_tokens'; reasoning models
+        # consume hidden reasoning tokens against this budget, so 4096 is too low
+        # for multi-step governance tasks — use 32k to give reasoning room.
+        return {"max_completion_tokens": 32_768}
     return {"max_tokens": 4096}
 
 
@@ -212,8 +215,9 @@ _SPECSMITH_TOOL: dict = {
         "description": (
             "REQUIRED: Run the specsmith governance preflight gate before making ANY code changes. "
             "Pass a one-sentence description of the change you intend to make. "
-            "If the decision is 'needs_clarification', you MUST surface the instruction "
-            "and call done(refused=True). If 'accepted', note the work_item_id and proceed."
+            "If the decision is 'accepted', note the work_item_id and proceed. "
+            "If the decision is 'needs_clarification', follow the instructions in your system prompt "
+            "to resolve it autonomously — do NOT call done(refused=True) unless explicitly told to."
         ),
         "parameters": {
             "type": "object",

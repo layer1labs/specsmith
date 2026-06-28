@@ -255,3 +255,27 @@
     tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps
   test_ids:
   - TEST-433
+- id: REQ-424
+  title: CI pipeline must produce zero CodeQL static analysis alerts on every run
+  description: Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static
+    analysis alerts on every CI run
+  source: WI-0CEA445B
+  status: planned
+  test_ids:
+  - TEST-434
+- id: REQ-425
+  title: Governed agents must autonomously resolve preflight needs_clarification without
+    blocking
+  description: Promoted from WI-B73B339B. The benchmark harness must never deadlock
+    on preflight needs_clarification — governed agents must autonomously resolve missing
+    requirements and always produce a passing implementation
+  source: WI-B73B339B
+  status: planned
+  test_ids:
+  - TEST-435
+- id: REQ-426
+  title: Benchmark harness completion token budget must allow reasoning models to
+    produce tool calls
+  status: planned
+  description: max_completion_tokens must be at least 32768 for gpt-5.x and o-series
+    models to prevent reasoning token exhaustion truncating tool call output
