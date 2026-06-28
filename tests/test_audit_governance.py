@@ -59,6 +59,26 @@ def test_check_governance_yaml_content_noop_when_governance_dir_missing(tmp_path
     assert results == []
 
 
+def test_check_governance_yaml_content_passes_m001_content_blob(tmp_path: Path) -> None:
+    """m001 content-blob files (content + kind keys) should pass the check."""
+    gov_dir = tmp_path / ".specsmith" / "governance"
+    gov_dir.mkdir(parents=True)
+    (gov_dir / "axioms.yaml").write_text(
+        "content: '# Epistemic Axioms\\nAxiom 1: Observability\\n'\n"
+        "generated_by: specsmith migrate (m001)\n"
+        "kind: axioms\n"
+        "source_md: docs/governance/EPISTEMIC-AXIOMS.md\n",
+        encoding="utf-8",
+    )
+
+    results = check_governance_yaml_content(tmp_path)
+
+    assert len(results) == 1
+    assert results[0].name == "governance-yaml:axioms"
+    assert results[0].passed, results[0].message
+    assert "m001 content-blob" in results[0].message
+
+
 def test_req_test_consistency_fails_with_zero_testcases_json_only(tmp_path: Path) -> None:
     state_dir = tmp_path / ".specsmith"
     state_dir.mkdir(parents=True)
