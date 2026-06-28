@@ -4750,5 +4750,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-442",
+    "version": 1,
+    "title": "checkpoint ESDB field shows correct backend label and record count",
+    "description": "checkpoint --json must include esdb_backend field ('chronomemory', 'sqlite', or 'n/a') and esdb_records/esdb_chain_valid must be None when backend is n/a; SQLite backend must read actual record count from SqliteStore",
+    "requirement_id": "REQ-429",
+    "type": "unit",
+    "verification_method": "PYTHONPATH=src python -m specsmith checkpoint --json | python -c \"import json,sys; d=json.load(sys.stdin); assert d['esdb_backend'] in ('chronomemory','sqlite','n/a')\"",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

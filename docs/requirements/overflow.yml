@@ -294,3 +294,15 @@
     paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule
     for a path it also allows, (c) run git rm --cached for any deny-listed path found
     in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked
+- id: REQ-429
+  title: 'checkpoint ESDB field must reflect active backend: show SQLite record count
+    and chain status when chronomemory is unavailable, ChronoMemory count otherwise,
+    and N/A when no ESDB is present'
+  status: planned
+  description: The 'specsmith checkpoint' GOVERNANCE ANCHOR box must accurately show
+    the active ESDB backend. When chronomemory (commercial) is the active backend
+    and WAL exists, show record count and chain validity as now. When SQLite is the
+    active backend (chronomemory absent or WAL missing), show 'SQLite (N recs, ✓ chain)'
+    with actual SqliteStore record count and chain_valid() result. When no ESDB is
+    present at all, show 'N/A'. The current 0-record default is misleading for SQLite-only
+    installations.

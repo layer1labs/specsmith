@@ -441,3 +441,12 @@
     assert 'properties' in s"
   description: scripts/govern_bench/leaderboard_schema.json and docs/govern_bench/hf_card.md
     must exist; schema must contain required leaderboard fields
+- id: TEST-442
+  title: checkpoint ESDB field shows correct backend label and record count
+  requirement_id: REQ-429
+  type: unit
+  verification_method: PYTHONPATH=src python -m specsmith checkpoint --json | python
+    -c "import json,sys; d=json.load(sys.stdin); assert d['esdb_backend'] in ('chronomemory','sqlite','n/a')"
+  description: checkpoint --json must include esdb_backend field ('chronomemory',
+    'sqlite', or 'n/a') and esdb_records/esdb_chain_valid must be None when backend
+    is n/a; SQLite backend must read actual record count from SqliteStore

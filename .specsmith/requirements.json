@@ -4254,5 +4254,16 @@
     "test_ids": [
       "TEST-439"
     ]
+  },
+  {
+    "id": "REQ-429",
+    "version": 1,
+    "title": "checkpoint ESDB field must reflect active backend: show SQLite record count and chain status when chronomemory is unavailable, ChronoMemory count otherwise, and N/A when no ESDB is present",
+    "description": "The 'specsmith checkpoint' GOVERNANCE ANCHOR box must accurately show the active ESDB backend. When chronomemory (commercial) is the active backend and WAL exists, show record count and chain validity as now. When SQLite is the active backend (chronomemory absent or WAL missing), show 'SQLite (N recs, ✓ chain)' with actual SqliteStore record count and chain_valid() result. When no ESDB is present at all, show 'N/A'. The current 0-record default is misleading for SQLite-only installations.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-442"
+    ]
   }
 ]

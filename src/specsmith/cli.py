@@ -4011,9 +4011,15 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         pass
 
     # ── ESDB ──────────────────────────────────────────────────────────────────
-    esdb_ok, esdb_records = True, 0
+    # Three possible states (REQ-429):
+    #   "chronomemory" — commercial ChronoStore backend, WAL present
+    #   "sqlite"       — free SQLite backend (chronomemory absent or WAL missing)
+    #   "n/a"          — no ESDB artefact found at all
+    esdb_ok: bool = True
+    esdb_records: int = 0
+    esdb_backend: str = "n/a"
     try:
-        from chronomemory import ChronoStore
+        from chronomemory import ChronoStore  # noqa: PLC0415
 
         wal = root / ".chronomemory" / "events.wal"
         if wal.exists():
@@ -4023,8 +4029,23 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
                 # value that is not the literal False as valid.
                 esdb_ok = store.chain_valid() is not False
                 esdb_records = store.record_count()
+            esdb_backend = "chronomemory"
     except Exception:  # noqa: BLE001
         pass
+
+    if esdb_backend == "n/a":
+        # chronomemory not available or WAL absent — try SQLite (free default)
+        try:
+            from specsmith.esdb.sqlite_store import SqliteStore  # noqa: PLC0415
+
+            db = root / ".specsmith" / "esdb.sqlite3"
+            if db.exists():
+                with SqliteStore(root) as store:
+                    esdb_ok = store.chain_valid()
+                    esdb_records = store.record_count()
+                esdb_backend = "sqlite"
+        except Exception:  # noqa: BLE001
+            pass
 
     # ── Recent work items + last preflight from LEDGER.md ─────────────────────
     recent_wis: list[str] = []
@@ -4060,8 +4081,9 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         "audit_failed": audit_failed,
         "req_count": req_count,
         "test_count": test_count,
-        "esdb_records": esdb_records,
-        "esdb_chain_valid": esdb_ok,
+        "esdb_backend": esdb_backend,
+        "esdb_records": esdb_records if esdb_backend != "n/a" else None,
+        "esdb_chain_valid": esdb_ok if esdb_backend != "n/a" else None,
         "recent_wis": recent_wis,
         "last_preflight": last_preflight,
         "anchor": f"SPECSMITH-ANCHOR-{ts}",
@@ -4078,6 +4100,14 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     vbar = "\u2551"  # ║
     health_icon = "\u2713" if health_ok else "\u2717"
     esdb_icon = "\u2713" if esdb_ok else "\u2717"
+    if esdb_backend == "chronomemory":
+        esdb_field = f"ESDB: {esdb_records} records ({esdb_icon} chain)"
+    elif esdb_backend == "sqlite":
+        # Compact format keeps the row within the 57-char box interior.
+        # " REQs    : NNN   TESTs: NNN   " = 30 chars, leaving 27 for esdb_field.
+        esdb_field = f"ESDB: SQLite {esdb_records} recs {esdb_icon}"
+    else:
+        esdb_field = "ESDB: N/A"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
     def _arow(rich: str, plain: str, wide: int = 0) -> str:
@@ -4115,10 +4145,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     )
     console.print(_arow(r4_rich, r4_plain))
 
-    r5 = (
-        f" REQs    : {req_count}   TESTs: {test_count}"
-        f"   ESDB: {esdb_records} records ({esdb_icon} chain)"
-    )
+    r5 = f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"
     console.print(_arow(r5, r5))
 
     r6 = f" WIs     : {wi_str}"
