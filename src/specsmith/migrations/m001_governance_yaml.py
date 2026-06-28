@@ -49,7 +49,10 @@ class GovernanceYamlMigration(Migration):
             yaml_path = gov_dir / yaml_name
 
             if not md_path.exists():
-                continue  # Skip if source doesn't exist
+                result.warnings.append(
+                    f"Missing source_md for {yaml_name}: docs/governance/{md_name}"
+                )
+                continue
 
             if yaml_path.exists():
                 continue  # Already migrated — skip
