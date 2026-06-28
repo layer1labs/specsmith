@@ -240,3 +240,27 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `c481074e0b828d95...`
+
+## 2026-06-27T17:43 — specsmith migration: 0.17.1 → 0.18.0
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `3bf0f8567e3120e0...`
+
+## 2026-06-28T11:11 — wi_promote WI-0CEA445B → REQ-424: CI pipeline must produce zero CodeQL static analysis alerts on every run
+- **Author**: specsmith
+- **Type**: wi_promote
+- **Status**: complete
+- **Chain hash**: `297b1aa2359c38f5...`
+
+## 2026-06-28T11:11 — wi_promote WI-B73B339B → REQ-425: Governed agents must autonomously resolve preflight needs_clarification without blocking
+- **Author**: specsmith
+- **Type**: wi_promote
+- **Status**: complete
+- **Chain hash**: `a1595baa2a82e9c2...`
+
+## 2026-06-28T11:11 — wi_promote WI-122A76C4 → REQ-426: Benchmark governance conditions must achieve 100% pass rate across all tasks
+- **Author**: specsmith
+- **Type**: wi_promote
+- **Status**: complete
+- **Chain hash**: `e8a20807f2c5b195...`

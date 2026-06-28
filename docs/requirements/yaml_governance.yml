@@ -1007,3 +1007,11 @@
   source: architecture
   priority: P1
   domain: esdb
+- id: REQ-425
+  title: Governed agents must autonomously resolve preflight needs_clarification without blocking
+  description: >-
+    Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation
+  source: WI-B73B339B
+  status: planned
+  test_ids:
+  - TEST-435

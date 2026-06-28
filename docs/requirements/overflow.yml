@@ -253,3 +253,5 @@
   status: planned
   description: All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark
     tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps
+  test_ids:
+  - TEST-433

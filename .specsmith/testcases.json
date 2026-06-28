@@ -4642,5 +4642,41 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-433",
+    "version": 1,
+    "title": "Governed benchmark agents achieve 100% pass rate across all tasks and conditions",
+    "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must achieve 100% pass rate across all benchmark tasks (T1, T2, T6, T7, T10, T11, T13). T13 requires correct stdout discipline (click.echo err=True) and T10 requires correct route ordering.",
+    "requirement_id": "REQ-423",
+    "type": "script",
+    "verification_method": "scripts/govern_bench/run_benchmark.py",
+    "input": "SPECSMITH_LIGHT, SPECSMITH_FULL, SPECSMITH_DISPATCH conditions × all tasks × 3 reps",
+    "expected_behavior": "pass_rate == 1.0 for every (task, condition) pair; zero CoP drift from baseline",
+    "confidence": 0.9
+  },
+  {
+    "id": "TEST-434",
+    "version": 1,
+    "title": "CI CodeQL scan produces zero alerts on every run",
+    "description": "The GitHub Actions CodeQL workflow must complete with zero open alerts for the specsmith codebase. This covers py/unreachable-statement, py/import-and-import-from, and py/path-injection patterns documented in AGENTS.md CodeQL Safe Patterns.",
+    "requirement_id": "REQ-424",
+    "type": "build",
+    "verification_method": "gh api repos/specsmith-dev/specsmith/code-scanning/alerts",
+    "input": "GitHub Actions CodeQL workflow run on develop branch",
+    "expected_behavior": "Zero open CodeQL alerts; workflow exits with code 0",
+    "confidence": 0.95
+  },
+  {
+    "id": "TEST-435",
+    "version": 1,
+    "title": "Governed agent autonomously resolves preflight needs_clarification without blocking",
+    "description": "When specsmith preflight returns needs_clarification, a governed benchmark agent must add a requirement via 'specsmith req add --title ...' and retry the preflight without human intervention. The agent must never block or deadlock waiting for clarification. Validated by T13 SPECSMITH_LIGHT and SPECSMITH_FULL benchmark conditions.",
+    "requirement_id": "REQ-425",
+    "type": "integration",
+    "verification_method": "scripts/govern_bench/run_benchmark.py (T13 condition)",
+    "input": "T13 benchmark task with SPECSMITH_LIGHT and SPECSMITH_FULL conditions; preflight intentionally returns needs_clarification on first call",
+    "expected_behavior": "Agent adds requirement and retries; task completes with pass_rate == 1.0; no deadlock",
+    "confidence": 0.9
   }
 ]

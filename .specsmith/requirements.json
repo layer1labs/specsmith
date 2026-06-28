@@ -4185,5 +4185,38 @@
     "test_ids": [
       "TEST-432"
     ]
+  },
+  {
+    "id": "REQ-423",
+    "version": 1,
+    "title": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
+    "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-433"
+    ]
+  },
+  {
+    "id": "REQ-424",
+    "version": 1,
+    "title": "CI pipeline must produce zero CodeQL static analysis alerts on every run",
+    "description": "Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static analysis alerts on every CI run",
+    "source": "WI-0CEA445B",
+    "status": "planned",
+    "test_ids": [
+      "TEST-434"
+    ]
+  },
+  {
+    "id": "REQ-425",
+    "version": 1,
+    "title": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
+    "description": "Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation",
+    "source": "WI-B73B339B",
+    "status": "planned",
+    "test_ids": [
+      "TEST-435"
+    ]
   }
 ]
