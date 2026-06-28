@@ -450,3 +450,29 @@
   description: checkpoint --json must include esdb_backend field ('chronomemory',
     'sqlite', or 'n/a') and esdb_records/esdb_chain_valid must be None when backend
     is n/a; SQLite backend must read actual record count from SqliteStore
+- id: TEST-443
+  title: release tooling edits classify as CHANGE not RELEASE
+  requirement_id: REQ-430
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_nexus.py -k 'classify_intent
+    or release_tooling_patterns' -q
+  description: 'classify_intent must return CHANGE (not RELEASE) for: fix release.yml,
+    update release pipeline, edit release notes, patch package_dist.ps1, update .github/workflows/release.yml'
+- id: TEST-444
+  title: release intent with explicit REQ ID accepts and WI allocated for needs_clarification
+  requirement_id: REQ-431
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_nexus.py -k 'release_tooling_edit_with_explicit
+    or release_without_scope' -q
+  description: run_preflight with release-intent utterance + [REQ-051] suffix must
+    return accepted; unscoped release must return needs_clarification with --req mentioned
+    in instruction
+- id: TEST-445
+  title: preflight --req flag injects REQ IDs into scope and unblocks release tooling
+  requirement_id: REQ-430
+  type: integration
+  verification_method: PYTHONPATH=src python -m specsmith preflight 'update release.yml'
+    --req REQ-051 --json --predict-only | python -c "import json,sys; d=json.load(sys.stdin);
+    assert d['decision']=='accepted','got '+d['decision']"
+  description: 'CLI: specsmith preflight ''update release.yml'' --req REQ-051 must
+    return accepted because REQ-051 is injected and picked up by scope-matching'

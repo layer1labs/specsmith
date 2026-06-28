@@ -4265,5 +4265,28 @@
     "test_ids": [
       "TEST-442"
     ]
+  },
+  {
+    "id": "REQ-430",
+    "version": 1,
+    "title": "preflight release classifier must distinguish release execution from release tooling edits",
+    "description": "The deterministic broker must not classify edits to release.yml, packaging scripts, dist files, and release documentation as intent=release. Only utterances that explicitly execute a release (cut, publish, ship, tag vX.Y.Z, bump version) should trigger the release gate. Maintenance of release tooling must fall through to CHANGE classification so it can be accepted by scope-matching.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-443",
+      "TEST-445"
+    ]
+  },
+  {
+    "id": "REQ-431",
+    "version": 1,
+    "title": "preflight release intent must accept when known scope matched or explicit REQ cited, and always allocate a work item",
+    "description": "When intent=release is classified: (a) if the utterance contains explicit release-management REQ IDs (e.g. REQ-050, REQ-051) or the scope confidence >= 0.6, the decision must be accepted as a governed change; (b) needs_clarification must still allocate a work_item_id so specsmith approve --work-item can proceed; (c) the instruction must reference --req flag for explicit override. The current dead-end (needs_clarification + empty work_item_id) makes approve impossible.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-444"
+    ]
   }
 ]

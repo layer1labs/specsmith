@@ -89,12 +89,19 @@ _DESTRUCTIVE_PATTERNS = (
 )
 
 _RELEASE_PATTERNS = (
-    re.compile(r"\brelease\b", re.IGNORECASE),
+    # Explicit release execution verbs — never matches tooling edits (REQ-430)
     re.compile(r"\bship\b", re.IGNORECASE),
     re.compile(r"\bpublish\s+(to\s+)?pypi\b", re.IGNORECASE),
     re.compile(r"\btag\s+v?\d", re.IGNORECASE),
     re.compile(r"\bbump\s+(the\s+)?version\b", re.IGNORECASE),
+    # "cut/do/make/create/publish a release" — execution intent only
+    re.compile(r"\b(cut|do|make|create|publish)\s+(a\s+|the\s+)?release\b", re.IGNORECASE),
+    # "release vX.Y" or "release 1.2.3" — version-tagged releases
+    re.compile(r"\brelease\s+v?\d+[\d\.]*\b", re.IGNORECASE),
 )
+# NOTE: bare "\brelease\b" was intentionally removed (REQ-430).  Edits to
+# release.yml, packaging scripts, release pipelines, and release docs must
+# fall through to _CHANGE_PATTERNS so scope-matching can accept them.
 
 _REFACTOR_PATTERNS = (
     re.compile(r"\b(refactor|rewrite|extract|reorganise|reorganize|restructure)\b", re.IGNORECASE),
@@ -109,7 +116,7 @@ _CHANGE_PATTERNS = (
     re.compile(r"\b(fix|repair|patch)\b", re.IGNORECASE),
     re.compile(r"\b(add|implement|create|introduce|build)\b", re.IGNORECASE),
     re.compile(r"\b(rename)\b", re.IGNORECASE),
-    re.compile(r"\b(update|migrate|upgrade)\b", re.IGNORECASE),
+    re.compile(r"\b(update|migrate|upgrade|edit)\b", re.IGNORECASE),
     re.compile(r"\b(remove|delete)\s+(the\s+)?(unused|stale|legacy)\b", re.IGNORECASE),
 )
 

@@ -760,6 +760,19 @@ def audit(fix: bool, project_dir: str) -> None:
         "Overrides .specsmith/config.yml epistemic.confidence_threshold for this call."
     ),
 )
+@click.option(
+    "--req",
+    "hint_req_ids",
+    multiple=True,
+    default=(),
+    metavar="REQ-NNN",
+    help=(
+        "Inject an explicit requirement ID into the utterance (repeatable). "
+        "Useful for release/destructive intents where the broker asks for clarification: "
+        "'specsmith preflight \"update release.yml\" --req REQ-051' "
+        "appends the ID so scope-matching can accept it (REQ-431)."
+    ),
+)
 def preflight_cmd(
     utterance: str,
     project_dir: str,
@@ -768,6 +781,7 @@ def preflight_cmd(
     stress: bool,
     predict_only: bool,
     escalate_threshold: float | None,
+    hint_req_ids: tuple[str, ...],
 ) -> None:
     """Classify a natural-language utterance under Specsmith governance (REQ-085).
 
@@ -784,6 +798,15 @@ def preflight_cmd(
     from specsmith.governance_logic import run_preflight
 
     root = Path(project_dir).resolve()
+
+    # REQ-431: --req flags inject explicit REQ IDs into the utterance so the
+    # governance_logic explicit-ID extractor (line ~149) picks them up.  This
+    # lets the user escape release/destructive needs_clarification dead-ends by
+    # naming a known requirement without having to reword the whole utterance.
+    if hint_req_ids:
+        req_suffix = " ".join(r.upper() for r in hint_req_ids if r.strip())
+        utterance = f"{utterance} [{req_suffix}]"
+
     # REQ-418: delegate the decision to the authoritative broker so explicit
     # REQ-NNN ids and .specsmith/requirements.json drive the result.  run_preflight
     # also applies the REQ-098 floor, allocates/persists the work item (unless
