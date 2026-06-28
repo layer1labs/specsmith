@@ -40,6 +40,7 @@ class MigrationResult:
     message: str = ""
     files_created: list[str] = field(default_factory=list)
     files_modified: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     error: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -51,6 +52,7 @@ class MigrationResult:
             "message": self.message,
             "files_created": self.files_created,
             "files_modified": self.files_modified,
+            "warnings": self.warnings,
             "error": self.error,
         }
 
