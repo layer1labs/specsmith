@@ -4226,7 +4226,9 @@
     "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
     "source": "docs/requirements/",
     "status": "planned",
-    "test_ids": []
+    "test_ids": [
+      "TEST-436"
+    ]
   },
   {
     "id": "REQ-427",
@@ -4235,7 +4237,12 @@
     "description": "GovernanceBench metrics/report shall compute Wilson pass-rate confidence intervals, bootstrap cost-of-pass confidence intervals, first-pass and consistency statistics, scaffold-lift vs UNGOVERNED, model-tier mapping, democratization and Pareto summaries, and Hugging Face leaderboard JSON/rendered report sections.",
     "source": "docs/requirements/",
     "status": "planned",
-    "test_ids": []
+    "test_ids": [
+      "TEST-437",
+      "TEST-438",
+      "TEST-440",
+      "TEST-441"
+    ]
   },
   {
     "id": "REQ-428",
@@ -4244,6 +4251,8 @@
     "description": "normalize_esdb_gitignore_policy in sync.py must (a) separate tracked paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule for a path it also allows, (c) run git rm --cached for any deny-listed path found in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked",
     "source": "docs/requirements/",
     "status": "planned",
-    "test_ids": []
+    "test_ids": [
+      "TEST-439"
+    ]
   }
 ]

@@ -5,583 +5,439 @@
 # Schema: id, title, description, requirement_id, type,
 #         verification_method, input, expected_behavior, confidence
 # Required fields: id, title, requirement_id
-- id: TEST-300
-  title: YAML-First Sync Reads YAML and Writes JSON + MD
-  description: When `.specsmith/governance-mode` == `yaml` and docs/requirements/*.yml
-    exist, `specsmith sync` reads from YAML files, writes .specsmith/ requirements.json
-    + testcases.json, and regenerates docs/REQUIREMENTS.md + docs/TESTS.md. `specsmith
-    sync --check` exits 0 after sync. In legacy mode (no governance-mode file), sync
-    reads from REQUIREMENTS.md as before.
-  requirement_id: REQ-300
-  type: integration
-  verification_method: pytest
-  input: tmp_path with YAML files + governance-mode=yaml
-  expected_behavior: JSON updated; REQUIREMENTS.md regenerated; sync --check exits
-    0
+- id: TEST-409
+  title: Context Eviction ESDB Write-Back — ContextOrchestrator._evict_low_confidence_records
+  description: '_evict_low_confidence_records() must call store.delete(rec.id) for
+    each low-confidence record, persisting the tombstone to the store. Governance
+    kinds (requirement, testcase, edge, rollback_event, token_metric, skill_run) must
+    never be tombstoned. The method must return the actual count of records tombstoned,
+    not zero.
+
+    '
+  requirement_id: REQ-400
+  type: unit
+  verification_method: 'pytest (tests/test_esdb_writer.py::test_eviction_writes_back_tombstone,
+    tests/test_esdb_writer.py::test_eviction_exempts_governance_kinds)
+
+    '
+  input: {}
+  expected_behavior: {}
   confidence: 1.0
-- id: TEST-301
-  title: validate --strict Enforces All 8 Schema Checks
-  description: '`specsmith validate --strict --json` returns `{ok: true, strict_errors:
-    0}` on a clean project. When a duplicate REQ ID is injected, strict_errors > 0
-    and exit code is 1. When an untested REQ exists, strict_warnings > 0 but exit
-    code is still 0. The `validate-strict` CI job runs this gate on every push.'
-  requirement_id: REQ-301
-  type: cli
-  verification_method: pytest
-  input: specsmith validate --strict --json; inject duplicate REQ; inject untested
-    REQ
-  expected_behavior: clean project exits 0 strict_errors=0; dup exits 1; untested
-    exits 0 with warning
+- id: TEST-410
+  title: M008 ESDB Full-Coverage Backfill Migration — idempotent
+  description: 'M008 applied to a project with workitems.json backfills all WIs as
+    kind="work_item" ESDB records. Re-running M008 is idempotent (skips silently via
+    marker file). Dry-run mode reports counts but writes nothing. Rollback removes
+    the marker file. Terminal WIs map to ESDB status=tombstone; open/implemented map
+    to active.
+
+    '
+  requirement_id: REQ-401
+  type: unit
+  verification_method: 'pytest (tests/test_esdb_writer.py::test_m008_backfills_workitems,
+    tests/test_esdb_writer.py::test_m008_is_idempotent, tests/test_esdb_writer.py::test_m008_dry_run_no_writes,
+    tests/test_esdb_writer.py::test_m008_rollback_removes_marker)
+
+    '
+  input: {}
+  expected_behavior: {}
   confidence: 1.0
-- id: TEST-302
-  title: generate docs Renders YAML to REQUIREMENTS.md and TESTS.md
-  description: '`specsmith generate docs --json` in YAML-first mode exits 0 and returns
-    `{ok: true, reqs: N, tests: M}`. The regenerated docs/REQUIREMENTS.md contains
-    a heading for each REQ in the YAML files. `--check` flag reports changes without
-    writing.'
-  requirement_id: REQ-302
-  type: cli
-  verification_method: pytest
-  input: specsmith generate docs --json; specsmith generate docs --check --json
-  expected_behavior: exits 0; ok=true; REQUIREMENTS.md updated; check exits 0 with
-    dry_run=true
+- id: TEST-411
+  title: ESDB Record Kind Taxonomy — ARCHITECTURE.md §19 and chronomemory-esdb skill
+  description: 'ARCHITECTURE.md §19 must contain a specsmith ESDB Record Kinds table
+    listing preflight_decision, verify_result, work_item, ledger_event, compliance_evidence,
+    and dispatch_result with their writer, id scheme, and active/tombstone conditions.
+    ARCHITECTURE.md §41 must exist as the ESDB Full Coverage section. The chronomemory-esdb
+    skill must include the same record kinds table.
+
+    '
+  requirement_id: REQ-402
+  type: documentation
+  verification_method: 'static (grep docs/ARCHITECTURE.md for ''| `preflight_decision`''
+    and ''## 41.''; grep src/specsmith/skills/governance.py for ''specsmith ESDB write
+    path'')
+
+    '
+  input: {}
+  expected_behavior: {}
   confidence: 1.0
-- id: TEST-303
-  title: governance-mode Flag Controls YAML vs Markdown Authority
-  description: '`is_yaml_mode(root)` returns True when `.specsmith/governance-mode`
-    == `yaml` and False when the file is absent or contains `markdown`. `specsmith
-    sync` uses YAML sources when yaml_mode=True and Markdown sources when False. The
-    flag is preserved across specsmith upgrades.'
-  requirement_id: REQ-303
+- id: TEST-412
+  title: ledger_event Dual-Write on add_entry
+  description: Call ledger.add_entry() with description="test ledger" on a tmp project
+    root. Assert that ESDB contains a SqliteRecord with kind="ledger_event" and label
+    containing "test ledger". Assert confidence==0.9 and timestamp is present in data.
+    Assert that add_entry returns normally even if the ESDB is missing.
+  requirement_id: REQ-403
   type: unit
   verification_method: pytest
-  input: governance-mode = yaml; governance-mode absent; governance-mode = markdown
-  expected_behavior: is_yaml_mode returns True/False/False respectively
+  input: tmp project root; ledger.add_entry(description="test ledger")
+  expected_behavior: ESDB contains ledger_event record; add_entry does not raise
   confidence: 1.0
-- id: TEST-304
-  title: Migration Script Is Idempotent
-  description: 'Running `scripts/migrate_governance_to_yaml.py` twice produces the
-    same result as running it once. After migration: docs/requirements/ and docs/tests/
-    contain YAML files, .specsmith/governance-mode == `yaml`, and `specsmith sync
-    --check` exits 0.'
-  requirement_id: REQ-304
-  type: integration
-  verification_method: script
-  input: scripts/migrate_governance_to_yaml.py run twice on same project
-  expected_behavior: second run produces no changes; governance-mode=yaml; sync --check
-    exits 0
+- id: TEST-413
+  title: seal_record Dual-Write on TraceVault.seal
+  description: Call TraceVault(tmp_root).seal(SealType.DECISION, "my decision") on
+    a tmp project root. Assert that ESDB contains a SqliteRecord with kind="seal_record"
+    and label containing "my decision". Assert id starts with "ESDB-SEAL-". Assert
+    TraceVault.seal() does not raise even if ESDB write fails.
+  requirement_id: REQ-404
+  type: unit
+  verification_method: pytest
+  input: tmp project root; TraceVault.seal(SealType.DECISION, "my decision")
+  expected_behavior: ESDB contains seal_record; seal() does not raise
   confidence: 1.0
-- id: TEST-305
-  title: ChronoStore (ChronoMemory Backend Class) WAL-Based ESDB Write Layer
-  description: ChronoStore (the ChronoMemory backend class) MUST append events as
-    NDJSON with SHA-256 hash chaining to <project>/.chronomemory/events.wal. EsdbBridge.status()
-    returns chain_valid=True
-    after appending records.
-  requirement_id: REQ-305
+- id: TEST-414
+  title: session_metric Dual-Write on MetricsStore.append
+  description: Call MetricsStore(tmp_root).append(MetricsRecord.new(passed=True, tokens_total=1000))
+    on a tmp project root. Assert ESDB contains a SqliteRecord with kind="session_metric"
+    and data["passed"]==True. Assert id starts with "MET-". Assert append() does not
+    raise even if ESDB write fails.
+  requirement_id: REQ-405
+  type: unit
+  verification_method: pytest
+  input: tmp project root; MetricsStore.append(MetricsRecord.new(passed=True, tokens_total=1000))
+  expected_behavior: ESDB contains session_metric; append() does not raise
+  confidence: 1.0
+- id: TEST-415
+  title: M009 Backfills LEDGER.md trace.jsonl session_metrics.jsonl
+  description: Create a tmp project with a LEDGER.md containing 2 headings, a trace.jsonl
+    with 2 seal records, and session_metrics.jsonl with 2 metric records. Run M009
+    via MigrationRunner(root).run_one(9). Assert result.success==True, result.message
+    contains "2 ledger event(s), 2 seal record(s), 2 session metric(s)". Assert .specsmith/esdb-m009-backfill
+    exists. Assert ESDB contains 2 ledger_event, 2 seal_record, 2 session_metric records.
+    Assert re-run is idempotent (no error).
+  requirement_id: REQ-406
   type: integration
   verification_method: pytest
-  input: ChronoStore(tmp_path) append 3 records; EsdbBridge(tmp_path).status()
-  expected_behavior: WAL file exists with chained hashes; chain_valid=True
-  confidence: 0.95
-- id: TEST-306
-  title: ESDB Must Be Per-Project
-  description: "Two EsdbBridge instances on separate \tmp_path directories MUST have\
-    \ independent .chronomemory/events.wal files; records from project A are not visible\
-    \ in project B."
-  requirement_id: REQ-306
+  input: tmp project with 2-heading LEDGER.md, 2-line trace.jsonl, 2-line session_metrics.jsonl
+  expected_behavior: M009 result.success; 6 records in ESDB; marker file created;
+    re-run is no-op
+  confidence: 1.0
+- id: TEST-416
+  title: ESDB-First Ledger Snippet Falls Back to LEDGER.md
+  description: On a tmp project with no ESDB, _load_ledger_snippet() MUST return content
+    from LEDGER.md. After adding a ledger_event record to ESDB, _load_ledger_snippet()
+    MUST return content from ESDB (not LEDGER.md). Assert the ESDB result uses timestamp/label
+    format; assert the fallback result uses raw LEDGER.md lines.
+  requirement_id: REQ-407
+  type: unit
+  verification_method: pytest
+  input: (1) tmp project with LEDGER.md and no ESDB; (2) same root + ledger_event
+    in ESDB
+  expected_behavior: (1) returns LEDGER.md content; (2) returns ESDB ledger_event
+    formatted lines
+  confidence: 1.0
+- id: TEST-417
+  title: ESDB-First Commit Message Falls Back to LEDGER.md
+  description: On a tmp project with no ESDB, generate_commit_message() MUST return
+    a string derived from LEDGER.md headings. After adding a ledger_event record with
+    description="my commit desc" to ESDB, generate_commit_message() MUST return "my
+    commit desc" (truncated to 72 chars). Assert the ESDB path is used when at least
+    one ledger_event record exists.
+  requirement_id: REQ-408
+  type: unit
+  verification_method: pytest
+  input: tmp project with LEDGER.md; then add ledger_event to ESDB
+  expected_behavior: returns "my commit desc"; fallback returns LEDGER.md heading
+  confidence: 1.0
+- id: TEST-418
+  title: specsmith inspect Command Shows EFF-CURRENT and Governance State
+  description: Run "specsmith inspect --project-dir <tmp_root> --json" on a governed
+    tmp project. Assert exit code is 0. Assert JSON output contains "audit_healthy",
+    "active_work_items", and "timestamp" keys. When EFF-CURRENT is present in ESDB,
+    assert "efficiency" key is in the JSON with "degraded" and "epistemic_quality"
+    sub-fields.
+  requirement_id: REQ-409
+  type: cli
+  verification_method: pytest
+  input: specsmith inspect --json --project-dir <governed tmp project>
+  expected_behavior: exit 0; JSON contains audit_healthy, active_work_items, timestamp;
+    efficiency when EFF-CURRENT exists
+  confidence: 1.0
+- id: TEST-419
+  title: specsmith ledger export Reads from ESDB by Default
+  description: Add 3 ledger_event records to a tmp project ESDB. Run "specsmith ledger
+    export --project-dir <tmp_root> --json". Assert exit code is 0 and JSON array
+    length is 3. Run with "--source file" on a project with a LEDGER.md containing
+    2 headings. Assert JSON array length is 2. Run with "--source both" and assert
+    combined count.
+  requirement_id: REQ-409
+  type: cli
+  verification_method: pytest
+  input: tmp project with 3 ESDB ledger_events and 2-heading LEDGER.md
+  expected_behavior: --source esdb returns 3; --source file returns 2; --source both
+    returns 5
+  confidence: 1.0
+- id: TEST-420
+  title: write_token_metric Writes token_metric to ESDB
+  description: Call write_token_metric(tmp_root, input_tokens=100, output_tokens=50,
+    cost_usd=0.001, model="ollama", command_source="chat", work_item_id="WI-TEST").
+    Assert returns True. Assert ESDB contains a SqliteRecord with kind="token_metric",
+    id starting with "TOK-", confidence==1.0, data["input_tokens"]==100, data["output_tokens"]==50,
+    data["total_tokens"]==150. Assert write_token_metric returns False (not raises)
+    when ESDB path does not exist.
+  requirement_id: REQ-410
+  type: unit
+  verification_method: pytest
+  input: write_token_metric(tmp_root, input_tokens=100, output_tokens=50, ...)
+  expected_behavior: returns True; ESDB has token_metric with correct fields; returns
+    False when no ESDB
+  confidence: 1.0
+- id: TEST-421
+  title: compute_and_upsert_efficiency Creates EFF-CURRENT Record
+  description: Create a tmp project ESDB with 3 session_metric records (2 passed,
+    1 failed) having tokens_total values. Call compute_and_upsert_efficiency(tmp_root).
+    Assert returns True. Assert ESDB contains SqliteRecord(id="EFF-CURRENT", kind="efficiency_metric").
+    Assert data["sessions_analyzed"]==3 and data["epistemic_quality"]["score"] is
+    between 0.0 and 1.0. Call again and assert upsert is idempotent (still one record).
+  requirement_id: REQ-411
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with 3 session_metric records; compute_and_upsert_efficiency(root)
+  expected_behavior: returns True; EFF-CURRENT has sessions_analyzed==3 and epistemic_quality.score
+    in [0,1]
+  confidence: 1.0
+- id: TEST-422
+  title: run_sweep Tombstones Expired session_metric Records
+  description: Create a tmp project ESDB with 2 session_metric records with timestamp
+    61 days ago and 1 record with timestamp today. Call run_sweep(tmp_root). Assert
+    result.tombstoned==2, result.kinds_swept["session_metric"]==2. Assert the 2 old
+    records are now tombstone status in ESDB. Assert the recent record is still active.
+    Assert result.efficiency_refreshed==True.
+  requirement_id: REQ-412
+  type: unit
+  verification_method: pytest
+  input: 2 expired session_metric records + 1 fresh; run_sweep(root)
+  expected_behavior: tombstoned==2; kinds_swept["session_metric"]==2; recent record
+    still active
+  confidence: 1.0
+- id: TEST-423
+  title: run_sweep Detects Orphan work_item Records
+  description: Create a tmp project ESDB with a work_item record whose id is NOT in
+    workitems.json. Create a preflight_decision record whose work_item_id is NOT in
+    ESDB or workitems.json. Call run_sweep(root, orphans_only=True). Assert result.orphans_flagged==2.
+    Assert both records have status=="tombstone" in ESDB. Assert result.tombstoned==0
+    (retention sweep was skipped).
+  requirement_id: REQ-413
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with orphan work_item and preflight_decision; run_sweep(orphans_only=True)
+  expected_behavior: orphans_flagged==2; both tombstoned; tombstoned==0
+  confidence: 1.0
+- id: TEST-424
+  title: compute_epistemic_quality Returns Valid 5-Dim Score
+  description: 'Create a tmp project ESDB with 5 active records: 4 with confidence>=0.7
+    and 1 with confidence==0.5. Call compute_epistemic_quality(tmp_root). Assert returns
+    dict with keys score, confidence_density, recency_score, coherence_score, closure_score,
+    non_contradiction_score. Assert confidence_density==0.8 (4/5). Assert score is
+    in [0.0, 1.0]. Assert all-zeros dict is returned when ESDB does not exist.'
+  requirement_id: REQ-414
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with 5 records; compute_epistemic_quality(root)
+  expected_behavior: confidence_density==0.8; score in [0,1]; all-zeros when no ESDB
+  confidence: 1.0
+- id: TEST-425
+  title: build_context_seed Reduces Budget When EFF-CURRENT Degraded
+  description: Create a tmp project ESDB with an EFF-CURRENT record where degraded=True
+    and tokens_per_correct_answer=5000, baseline_tokens_per_pass=2000. Call build_context_seed(root,
+    char_budget=12000). Assert a CTX- record is written to ESDB with kind="context_usage".
+    Assert seed turns contain a system message with "[EFFICIENCY WARNING". Assert
+    seed_fill_pct is computed correctly.
+  requirement_id: REQ-415
+  type: unit
+  verification_method: pytest
+  input: tmp ESDB with EFF-CURRENT(degraded=True); build_context_seed(root)
+  expected_behavior: CTX- context_usage record written; EFFICIENCY WARNING in turns;
+    seed_fill_pct computed
+  confidence: 1.0
+- id: TEST-426
+  title: build_context_seed Writes context_usage to ESDB and Exempts It from Eviction
+  description: Call build_context_seed(root) on a tmp project with an empty ESDB.
+    Assert that a SqliteRecord with kind="context_usage" and id starting with "CTX-"
+    is upserted into ESDB after the call. Assert the record has seed_chars, seed_fill_pct,
+    session_id, and timestamp fields in its data dict. Assert that context_usage and
+    efficiency_metric records are NOT tombstoned by _evict_low_confidence_records()
+    even when their confidence is below the eviction threshold.
+  requirement_id: REQ-416
+  type: unit
+  verification_method: pytest
+  input: tmp project ESDB; build_context_seed(root); then manually lower confidence
+    on the context_usage record and call ContextOrchestrator or run_sweep
+  expected_behavior: CTX- record written; context_usage and efficiency_metric exempt
+    from eviction
+  confidence: 1.0
+- id: TEST-427
+  title: ESDB Status And Resume Reflect Chain Validity
+  description: When the hash chain is valid, specsmith esdb status output contains
+    "Integrity OK" and specsmith resume shows the valid ESDB indicator. When chain_valid()
+    is monkeypatched to return False, esdb status output contains "Integrity FAILED"
+    and does not contain a standalone "Integrity OK", and resume shows the invalid
+    indicator.
+  requirement_id: REQ-417
+  type: cli
+  verification_method: pytest (test_esdb_status_integrity.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-428
+  title: Preflight CLI Accepts Explicit REQ Reference
+  description: 'Invoking `specsmith preflight "Implement REQ-NNN: ..." --json` for
+    a REQ that exists in the synced requirements.json MUST return decision=accepted
+    with a work_item_id, matching the payload returned by run_preflight() for the
+    same utterance. A vague utterance MUST return needs_clarification with exit code
+    2, and --predict-only on such an utterance MUST emit predicted_refinement without
+    persisting a work item.'
+  requirement_id: REQ-418
+  type: cli
+  verification_method: pytest (test_preflight_cli_parity.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-429
+  title: ESDB Status Human-Readable Mode Emits Without Aborting
+  description: Running `specsmith esdb status` without --json on a governed project
+    MUST exit 0 and print the status block (record count, backend, integrity line)
+    to stdout without raising click.Abort or KeyboardInterrupt. When the Rich console
+    render is forced to raise KeyboardInterrupt, the command MUST fall back to the
+    plain stdout writer and still print the status block and exit 0.
+  requirement_id: REQ-419
+  type: cli
+  verification_method: pytest (test_esdb_status_output.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-430
+  title: Trace Vault Seals and Reads Exclusively via ESDB
+  description: On a tmp project, TraceVault(root).seal(...) MUST create a seal_record
+    in ESDB and MUST NOT create .specsmith/trace.jsonl. A second TraceVault(root)
+    MUST reconstruct the sealed entries from ESDB with a valid hash chain. The phase
+    helpers _trace_vault_exists() and _trace_vault_min_seals(2) MUST count the ESDB
+    seal_record records (returning True after >=1 and >=2 seals respectively) without
+    consulting trace.jsonl.
+  requirement_id: REQ-420
   type: integration
-  verification_method: pytest
-  input: Two EsdbBridge instances on different tmp_path directories
-  expected_behavior: Each project has independent WAL; no cross-contamination
-  confidence: 0.95
-- id: TEST-307
-  title: Session State Must Survive Restart
-  description: SessionStore MUST persist session context to .specsmith/session-state.json.
-    A new SessionStore instance on the same path MUST load the saved state.
-  requirement_id: REQ-307
-  type: integration
-  verification_method: pytest
-  input: SessionStore(tmp_path) save; new SessionStore(tmp_path) load
-  expected_behavior: Loaded state matches saved state; session-state.json exists
-  confidence: 0.95
-- id: TEST-308
-  title: Context Orchestrator Tiered Auto-Optimization
-  description: ContextOrchestrator.optimize(fill_pct=N) MUST apply the correct tier.
-    Data on disk MUST NEVER be deleted at any tier.
-  requirement_id: REQ-308
-  type: integration
-  verification_method: pytest
-  input: optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)
-  expected_behavior: Correct tier actions returned; no files deleted from disk
-  confidence: 0.9
-- id: TEST-309
-  title: CI Automation Togglable Per Project
-  description: CiManager.enable(platform=github, force=True) MUST generate CI workflow
-    files and persist ci_automation_enabled=true to .specsmith/config.yml.
-  requirement_id: REQ-309
-  type: cli
-  verification_method: pytest
-  input: CiManager(tmp_path).enable(platform=github, force=True)
-  expected_behavior: CI files generated; config.yml has ci_automation_enabled=true
-  confidence: 0.9
-- id: TEST-310
-  title: OEA Anti-Hallucination Fields on ESDB Records
-  description: ChronoRecord(kind=test, payload={}) with no OEA arguments MUST default
-    all 7 OEA fields to safe non-blocking values.
-  requirement_id: REQ-310
+  verification_method: pytest (test_trace_vault_esdb.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-431
+  title: Deprecation Registry Is Greppable and Complete
+  description: docs/DEPRECATIONS.md MUST exist and list every `# DEPRECATED(REQ-421):`
+    marker present in src/specsmith. A test MUST grep src/specsmith for the marker,
+    assert the known legacy sites are annotated (trace.jsonl, workitems.json, the
+    requirements.json/testcases.json sync writers, session-state.json, conversation-history.jsonl,
+    session_metrics.jsonl, ledger fallbacks), and assert each annotated file is referenced
+    in docs/DEPRECATIONS.md. The registry MUST name the planned work_item ESDB-first
+    and sync-cache-stop teardown items.
+  requirement_id: REQ-421
   type: unit
-  verification_method: pytest
-  input: ChronoRecord(kind=test, payload={}) inspect all 7 OEA fields
-  expected_behavior: source_type=observed, confidence=1.0, evidence=[], is_hypothesis=False,
-    recursion_depth=0
-  confidence: 0.95
-- id: TEST-311
-  title: RAG Retrieval Must Filter by Confidence
-  description: ESDB retrieval MUST exclude records with confidence < min_confidence.
-    Records at exactly the threshold MUST be included.
-  requirement_id: REQ-311
+  verification_method: pytest (test_deprecation_registry.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
+- id: TEST-432
+  title: SQLite Backend Feeds Retrieval Index and Critical Count
+  description: On a tmp project using the SQLite ESDB backend with no .chronomemory
+    directory, seeding a few high-confidence requirement/work_item records then calling
+    retrieval.build_index(root) MUST produce an index containing those records' content
+    (not an empty index). ContextOrchestrator._count_critical_records() MUST return
+    the count of active records with confidence >= CRITICAL_CONFIDENCE (a positive
+    number), not 0. Infrastructure kinds (token_metric, context_usage, etc.) MUST
+    be excluded from the retrieval index.
+  requirement_id: REQ-422
   type: unit
-  verification_method: pytest
-  input: Append records with confidence 0.3, 0.7, 0.9; query(min_confidence=0.7)
-  expected_behavior: Only confidence >= 0.7 records returned; 0.3 excluded
-  confidence: 0.9
-- id: TEST-312
-  title: Context Optimize Command
-  description: "specsmith context optimize --fill-pct N --json MUST exit 0 and return\
-    \ JSON with \tier, ctions, and \tokens_freed."
-  requirement_id: REQ-312
-  type: cli
-  verification_method: pytest
-  input: specsmith context optimize --fill-pct 65 --json --project-dir tmp
-  expected_behavior: Exit 0; JSON contains tier, actions list, tokens_freed integer
-  confidence: 0.9
-- id: TEST-335
-  title: specsmith test-ran Records Test Result in testcases.json
-  description: >-
-    Running `specsmith test-ran TEST-001 --result passed` on a project with a valid
-    testcases.json MUST: (1) update last_result to 'passed' and set last_run_at to
-    an ISO-8601 UTC timestamp; (2) transition status from pending to implemented;
-    (3) write a ledger entry of type test-ran; (4) exit 0. Running with --result
-    failed MUST set status to failing. Running with an unknown TEST-ID MUST exit 1.
-    Running with --json MUST emit a valid JSON payload with ok, test_id, result,
-    old_status, new_status, and recorded_at fields.
-  requirement_id: REQ-335
-  type: cli
-  verification_method: pytest
-  input: specsmith test-ran TEST-001 --result passed / failed / unknown-id / --json
-  expected_behavior: >-
-    testcases.json updated; status transitions correct; ledger entry written;
-    exit codes correct; JSON output valid
-  confidence: 0.95
-- id: TEST-336
-  title: specsmith save Performs Backup, Commit, and Push
-  description: >-
-    `specsmith save` on a project with pending governance changes MUST create a
-    timestamped backup under .chronomemory/backup/, git-commit all changed files,
-    and git-push to origin. With --json it MUST emit {backup_path, commit_hash,
-    push_ok}. With no pending changes it MUST exit 0 with a 'nothing to commit' message.
-    On push failure it MUST exit 1 with an informative error.
-  requirement_id: REQ-336
-  type: cli
-  verification_method: pytest
-  input: specsmith save [--json] on project with dirty governance files; repeat with clean repo
-  expected_behavior: >-
-    Backup created; git commit recorded; push attempted; exit 0 on success;
-    --json payload valid; clean repo exits 0 with 'nothing to commit'
-  confidence: 0.95
-- id: TEST-337
-  title: specsmith load Pulls Latest Governance State
-  description: >-
-    `specsmith load` MUST execute git-pull on the current branch and report files
-    changed. With `--restore-backup` it MUST also restore the most recent backup from
-    .chronomemory/backup/. With --json it MUST emit {pull_ok, files_changed, backup_restored}.
-    On merge conflict git-pull it MUST exit 1 with the conflict details.
-  requirement_id: REQ-337
-  type: cli
-  verification_method: pytest
-  input: specsmith load [--restore-backup] [--json] on project with remote changes
-  expected_behavior: >-
-    git-pull executed; files_changed count correct; backup optionally restored;
-    --json payload valid; conflict exits 1
-  confidence: 0.9
-- id: TEST-338
-  title: specsmith_run Tool Normalises Slash-Command and Verb Shortcut Forms
-  description: >-
-    specsmith_run('/specsmith save') MUST execute `specsmith save`. specsmith_run('save')
-    MUST execute `specsmith save`. specsmith_run('specsmith audit --strict') MUST
-    execute `specsmith audit --strict`. specsmith_run('') MUST execute `specsmith --help`.
-    specsmith_run MUST appear in AVAILABLE_TOOLS and build_tool_registry() and carry
-    epistemic_claims listing side-effect categories.
-  requirement_id: REQ-338
-  type: unit
-  verification_method: pytest
-  input: specsmith_run('/specsmith save'); specsmith_run('save'); specsmith_run('specsmith audit --strict'); specsmith_run('')
-  expected_behavior: >-
-    All three input forms resolve to the correct specsmith subprocess call;
-    empty input triggers --help; tool registered with correct metadata
-  confidence: 0.95
-- id: TEST-339
-  title: M005 Migration Writes agent-tools.json and Patches AGENTS.md
-  description: >-
-    Running AgentRunToolMigration().run(project_root) MUST create
-    .specsmith/agent-tools.json with primary_governance_command=specsmith_run and
-    the full verb_shortcuts list. It MUST append a Governance commands section to
-    AGENTS.md and write .specsmith/agents.md.m005.bak. dry_run=True MUST report
-    expected changes without writing. rollback() MUST remove agent-tools.json and
-    restore AGENTS.md from backup. M005 MUST appear in MigrationRegistry.all().
-  requirement_id: REQ-339
-  type: integration
-  verification_method: pytest
-  input: AgentRunToolMigration().run(tmp_path); dry_run=True; rollback()
-  expected_behavior: >-
-    agent-tools.json written with correct schema; AGENTS.md patched; backup
-    created; dry_run produces no files; rollback restores state; registry includes v5
-  confidence: 0.95
-- id: TEST-340
-  title: /specsmith REPL Handler Streams CLI Output
-  description: >-
-    In the Nexus REPL, entering `/specsmith status` MUST invoke `specsmith status`
-    as a subprocess with shell=True, streaming output to the terminal (capture_output=False).
-    `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout
-    MUST print a timeout message without crashing the REPL loop. The REPL startup
-    banner MUST contain the string '/specsmith'.
-  requirement_id: REQ-340
-  type: unit
-  verification_method: pytest
-  input: NEXUS_BANNER string; mock subprocess.run for /specsmith status; /specsmith with no args; timeout simulation
-  expected_behavior: >-
-    Banner contains '/specsmith'; subprocess called with correct args;
-    timeout handled gracefully; REPL loop continues after error
-  confidence: 0.9
-- id: TEST-341
-  title: terminal-awareness Skill Exists in Skills Catalog
-  description: >-
-    specsmith.skills.get('terminal-awareness') MUST return a non-None SkillEntry with
-    domain=CROSS_PLATFORM. The skill body MUST contain sections for shell detection,
-    PowerShell 5 vs 7 differences, cmd.exe rules, bash/zsh/fish, Python subprocess PID
-    tracking, and a cleanup checklist. specsmith skill list MUST include terminal-awareness
-    in its output.
-  requirement_id: REQ-341
-  type: unit
-  verification_method: pytest
-  input: from specsmith.skills import get; get('terminal-awareness')
-  expected_behavior: Non-None SkillEntry; domain=CROSS_PLATFORM; body contains expected sections
-  confidence: 0.95
-- id: TEST-342
-  title: Shell Detection Returns Correct Shell for Active Environment
-  description: >-
-    The detect_shell() example in terminal-awareness skill MUST return 'bash' when SHELL
-    ends with 'bash', 'zsh' when SHELL ends with 'zsh', 'fish' when SHELL ends with 'fish',
-    'cmd' when ComSpec is set, and 'powershell' when PSModulePath is set but ComSpec is not.
-  requirement_id: REQ-342
-  type: unit
-  verification_method: pytest
-  input: Patch os.environ for each shell type; call detect_shell()
-  expected_behavior: Returns correct shell string for each patched environment
-  confidence: 0.9
-- id: TEST-343
-  title: run_tracked Uses DEVNULL stdin and communicate with Timeout
-  description: >-
-    specsmith.executor.run_tracked MUST call subprocess.Popen with stdin=subprocess.DEVNULL
-    and must call proc.communicate(timeout=N) not proc.wait(). On timeout, it MUST call
-    proc.kill() then proc.communicate() to drain. Spawned PIDs MUST be tracked in
-    .specsmith/pids/.
-  requirement_id: REQ-343
-  type: unit
-  verification_method: pytest
-  input: run_tracked(tmp_path, 'echo ok', timeout=10); mock subprocess.Popen
-  expected_behavior: DEVNULL stdin; communicate called with timeout; PID file written
-  confidence: 0.9
-- id: TEST-344
-  title: specsmith.esdb Namespace Exports Full chronomemory v0.1.1 Surface
-  description: >-
-    from specsmith.esdb import ChronoStore, ChronoRecord, EsdbBridge, DepGraph,
-    ContextPackCompiler, RUST_BACKEND, query, metrics MUST all succeed without ImportError.
-    RUST_BACKEND MUST be a bool. query MUST be a module with what_is_known. metrics MUST
-    be a module with record_token_metric.
-  requirement_id: REQ-344
-  type: unit
-  verification_method: pytest
-  input: from specsmith.esdb import <all exports>
-  expected_behavior: All imports succeed; RUST_BACKEND is bool; query/metrics are modules
-  confidence: 0.95
-- id: TEST-345
-  title: LLM Context Build Does Not Call store.query(rag_filter=True)
-  description: >-
-    specsmith.retrieval.build_index and specsmith.agent.context_seed._load_esdb_snippet
-    MUST NOT call store.query(rag_filter=True). Both MUST call query.what_is_known(store).
-    A grep over the codebase for 'rag_filter=True' in retrieval.py and context_seed.py
-    MUST return zero matches.
-  requirement_id: REQ-345
-  type: unit
-  verification_method: pytest
-  input: inspect source of retrieval.py and context_seed.py for rag_filter=True
-  expected_behavior: No occurrences of rag_filter=True in the LLM context code paths
-  confidence: 0.95
-- id: TEST-346
-  title: specsmith save --force Bypasses Gitflow Guard
-  description: >-
-    specsmith save --force on a project with branching_strategy=gitflow on the main branch
-    MUST NOT return the 'Refusing to push directly to main' error. run_push() called with
-    force=True MUST issue git push --force-with-lease. Without --force on main, save MUST
-    still refuse.
-  requirement_id: REQ-346
-  type: unit
-  verification_method: pytest
-  input: run_push(tmp_path, force=True) on gitflow main; run_push(tmp_path, force=False) on main
-  expected_behavior: force=True succeeds; force=False returns failure with guard message
-  confidence: 0.9
-- id: TEST-347
-  title: specsmith pull --discard Hard-Resets Working Tree to Remote
-  description: >-
-    specsmith.vcs_commands.run_discard MUST issue git fetch then git reset --hard
-    origin/<branch>. The result.success MUST be True on success. The result.message MUST
-    contain 'reset to origin/<branch>'. With clean=False, git clean MUST NOT be called.
-  requirement_id: REQ-347
-  type: unit
-  verification_method: pytest
-  input: run_discard(tmp_path, clean=False); mock _run_git
-  expected_behavior: fetch then reset called; success=True; message contains 'reset to origin/'
-  confidence: 0.9
-- id: TEST-348
-  title: specsmith pull --clean Also Runs git clean -fd
-  description: >-
-    specsmith.vcs_commands.run_discard(clean=True) MUST call git clean -fd after the hard
-    reset. The result.message MUST mention 'untracked files removed'. With clean=False,
-    git clean MUST NOT be called.
-  requirement_id: REQ-348
-  type: unit
-  verification_method: pytest
-  input: run_discard(tmp_path, clean=True) vs run_discard(tmp_path, clean=False); mock _run_git
-  expected_behavior: clean=True calls git clean -fd and message notes untracked removal; clean=False does not
-  confidence: 0.9
-- id: TEST-349
-  title: gh-ci-polling Skill Exists and Contains gh run watch Pattern
-  description: >-
-    specsmith.skills.get('gh-ci-polling') MUST return a non-None SkillEntry with
-    domain=GOVERNANCE. The skill body MUST contain 'gh run watch', 'NEVER', and explicit
-    prohibition of 'Start-Sleep' and 'sleep'. It MUST contain a PowerShell example and
-    a bash example.
-  requirement_id: REQ-349
-  type: unit
-  verification_method: pytest
-  input: from specsmith.skills import get; get('gh-ci-polling')
-  expected_behavior: Non-None; body contains 'gh run watch', 'NEVER', 'Start-Sleep', pwsh and bash examples
-  confidence: 0.95
-- id: TEST-350
-  title: Sync Pipeline Passes Through platform/boundary/confidence Fields
-  description: >-
-    When a YAML requirement entry includes platform, boundary, or confidence fields,
-    run_sync MUST include those fields in the corresponding .specsmith/requirements.json
-    entry. When those fields are absent from the YAML entry, they MUST NOT appear in the
-    JSON entry (not written as null or empty string).
-  requirement_id: REQ-350
-  type: unit
-  verification_method: pytest
-  input: YAML req with platform='linux', boundary='OS', confidence='0.9'; run_sync; inspect JSON
-  expected_behavior: JSON entry has platform, boundary, confidence keys; absent fields not present
-  confidence: 0.9
-- id: TEST-351
-  title: specsmith checkpoint Emits GOVERNANCE ANCHOR with Required Fields
-  description: >-
-    specsmith checkpoint --json on a project with scaffold.yml MUST exit 0 and return
-    JSON containing ts (ISO-8601), project (string), phase (string), phase_label,
-    phase_pct (int), health (string), audit_failed (int), req_count (int), test_count (int),
-    esdb_records (int), esdb_chain_valid (bool), recent_wis (list), last_preflight (string),
-    and anchor ('SPECSMITH-ANCHOR-' prefix). Without --json it MUST print a line containing
-    'GOVERNANCE ANCHOR'. Both forms MUST exit 0 on a project with no ESDB or LEDGER
-    (best-effort, never throws).
-  requirement_id: REQ-351
-  type: cli
-  verification_method: pytest
-  input: specsmith checkpoint --json --project-dir tmp; specsmith checkpoint --project-dir tmp
-  expected_behavior: JSON has all required fields; human output contains GOVERNANCE ANCHOR; exit 0 in both cases
-  confidence: 0.95
-- id: TEST-352
-  title: M006 Injects Session Governance Protocol into AGENTS.md
-  description: >-
-    SessionGovernanceMigration().run(tmp_path) on a project with AGENTS.md that lacks
-    'specsmith checkpoint' MUST inject the Session Governance Protocol section, create
-    .specsmith/agents.md.m006.bak, and return success=True with 'AGENTS.md' in
-    files_modified. Re-running MUST be a no-op (idempotent). Running with dry_run=True
-    MUST report what would change without writing. rollback() MUST restore AGENTS.md
-    from the backup. M006 MUST appear in MigrationRegistry.all().
-  requirement_id: REQ-352
-  type: integration
-  verification_method: pytest
-  input: SessionGovernanceMigration().run(tmp_path); dry_run=True; rollback(); re-run after injection
-  expected_behavior: Protocol injected; backup created; dry_run no writes; rollback restores; idempotent; registry includes v6
-  confidence: 0.95
-- id: TEST-353
-  title: Modern Web Framework Types Have Tool Registry Entries
-  description: >-
-    list_tools_for_type(ProjectType.NEXTJS_APP) MUST return a ToolSet with 'next build'
-    in build and 'eslint' in lint. list_tools_for_type(ProjectType.NUXT_APP) MUST have
-    'nuxt build' in build. list_tools_for_type(ProjectType.SVELTEKIT_APP) MUST have
-    'vite build'. list_tools_for_type(ProjectType.REMIX_APP) MUST have 'remix vite:build'.
-    list_tools_for_type(ProjectType.ASTRO_SITE) MUST have 'astro build'. All five types
-    MUST appear in _TYPE_LABELS with non-empty human-readable labels.
-  requirement_id: REQ-353
-  type: unit
-  verification_method: pytest
-  input: list_tools_for_type for each new type; check _TYPE_LABELS
-  expected_behavior: Each type has correct build tool; all five types in _TYPE_LABELS
-  confidence: 0.95
-- id: TEST-354
-  title: CodityAdapter Generates GitHub Workflow by Default
-  description: >-
-    CodityAdapter().generate(config, tmp_path) on a directory with no VCS signals MUST
-    create .github/workflows/codity-review.yml containing 'codity review --staged',
-    'curl -fsSL https://cli.codity.ai/install.sh | sh', 'CODITY_ACCESS_TOKEN', and
-    'actions/checkout@v4'. It MUST also create docs/codity-setup.md. When LEDGER.md
-    exists, a TODO checklist entry MUST be appended containing 'codity login' and
-    'codity doctor'. CodityAdapter().name MUST equal 'codity'.
-  requirement_id: REQ-354
-  type: unit
-  verification_method: pytest
-  input: CodityAdapter().generate(mock_config, tmp_path); tmp_path has no scaffold.yml or VCS hint files
-  expected_behavior: .github/workflows/codity-review.yml created; docs/codity-setup.md created; LEDGER.md appended; name == 'codity'
-  confidence: 0.95
-- id: TEST-355
-  title: CodityAdapter Detects GitLab and Azure VCS from Scaffold or Directory
-  description: >-
-    When scaffold.yml contains 'gitlab' (case-insensitive), _detect_vcs() MUST return
-    'gitlab' and generate() MUST write .gitlab-ci-codity.yml (not a GitHub workflow).
-    When scaffold.yml contains 'azure', _detect_vcs() MUST return 'azure' and generate()
-    MUST write .azure-pipelines/codity-review.yml. When .gitlab-ci.yml exists in the
-    project root (no scaffold.yml), _detect_vcs() MUST return 'gitlab'. When
-    azure-pipelines.yml exists, _detect_vcs() MUST return 'azure'. The GitLab workflow
-    MUST contain 'codity config set-pat --provider gitlab'. The Azure workflow MUST
-    contain 'codity config set-pat --provider azure'.
-  requirement_id: REQ-354
-  type: unit
-  verification_method: pytest
-  input: Scaffold.yml with gitlab/azure keyword; .gitlab-ci.yml present; azure-pipelines.yml present
-  expected_behavior: Correct VCS detected; correct workflow file written; PAT setup command present
-  confidence: 0.95
-- id: TEST-356
-  title: codity-ai-review Skill Is in Governance Skills Catalog
-  description: >-
-    specsmith.skills.governance.SKILLS MUST contain a SkillEntry with slug='codity-ai-review'.
-    Its body MUST contain 'codity review --staged', 'codity login', 'codity init',
-    'codity scan --staged', 'codity test-gen --staged', 'codity doctor',
-    'specsmith integrate codity', 'HIGH severity', 'set-pat --provider gitlab',
-    and 'set-pat --provider azure'. Its tags MUST include 'codity', 'ai-review', and
-    'pre-commit'. Its domain MUST be SkillDomain.GOVERNANCE.
-  requirement_id: REQ-356
-  type: unit
-  verification_method: pytest
-  input: from specsmith.skills.governance import SKILLS; find slug='codity-ai-review'
-  expected_behavior: SkillEntry found; body and tags correct; domain GOVERNANCE
-  confidence: 0.95
-- id: TEST-357
-  title: AGENTS.md Template Contains Codity.ai Pre-commit Rule
-  description: >-
-    The rendered agents.md.j2 template MUST contain a 'Codity.ai Code Review' section.
-    The section MUST instruct agents to run 'codity review --staged' if codity doctor
-    exits 0; MUST state that HIGH-severity findings block the commit; MUST mention
-    MEDIUM-severity acknowledgement; MUST reference 'specsmith integrate codity'. The
-    section MUST appear after the Session Governance Protocol section and before the
-    project metadata footer.
-  requirement_id: REQ-355
-  type: unit
-  verification_method: pytest
-  input: Read src/specsmith/templates/agents.md.j2 directly; render via Jinja2 with minimal context
-  expected_behavior: Template contains Codity section with review --staged, HIGH severity, MEDIUM, integrate codity
-  confidence: 0.95
-- id: TEST-358
-  title: accepted_warnings Suppresses Matching Audit Check
-  description: >-
-    When scaffold.yml contains `accepted_warnings: [scaffold_type_mismatch]` and the
-    type-mismatch check fires, `run_audit` MUST mark that result as suppressed=True,
-    AuditReport.failed MUST NOT count it, AuditReport.healthy MUST be True if no other
-    failures exist, and the CLI MUST render it as '~ type-mismatch (accepted)' rather
-    than '✗ type-mismatch'. ledger_line_threshold suppresses ledger-size similarly.
-  requirement_id: REQ-357
-  type: unit
-  verification_method: pytest
-  input: >-
-    run_audit(tmp_path) with scaffold.yml containing type!=detected AND
-    accepted_warnings: [scaffold_type_mismatch]; repeat for ledger_line_threshold
-  expected_behavior: >-
-    suppressed=True on matched result; failed count excludes suppressed; healthy=True;
-    ledger-size suppressed by ledger_line_threshold alias
-  confidence: 0.95
-- id: TEST-359
-  title: Sync Falls Back to Markdown When YAML Mode Has No YAML Files
-  description: >-
-    `run_sync(root)` on a project where governance-mode=yaml but docs/requirements/ has
-    no .yml files AND docs/REQUIREMENTS.md has >= 5 REQ- patterns MUST parse the Markdown
-    and populate .specsmith/requirements.json with those requirements rather than writing
-    an empty list. The sync result MUST show reqs_after >= 5.
-  requirement_id: REQ-358
-  type: unit
-  verification_method: pytest
-  input: >-
-    tmp_path with .specsmith/governance-mode=yaml; no docs/requirements/*.yml;
-    docs/REQUIREMENTS.md with 6 ## REQ-BE-NNN headings; run_sync(root)
-  expected_behavior: requirements.json contains 6 entries; reqs_after=6
-  confidence: 0.95
-- id: TEST-360
-  title: _req_count Returns True for H2 REQ Headings
-  description: >-
-    `_req_count(5)(root)` MUST return True when docs/REQUIREMENTS.md uses `## REQ-BE-001`
-    through `## REQ-BE-005` H2 headings (not H3 `###`). Currently it returns False for H2
-    headings, causing false phase failures on domain-namespaced Markdown projects.
-  requirement_id: REQ-359
-  type: unit
-  verification_method: pytest
-  input: >-
-    tmp_path/docs/REQUIREMENTS.md with 5 `## REQ-BE-NNN: Title` H2 headings;
-    _req_count(5)(tmp_path)
-  expected_behavior: Returns True
-  confidence: 0.95
-- id: TEST-361
-  title: Skills Catalog Contains specsmith/specsmith-save/specsmith-audit Entries
-  description: >-
-    `specsmith.skills.get('specsmith')`, `get('specsmith-save')`, and
-    `get('specsmith-audit')` MUST each return a non-None SkillEntry with
-    domain=GOVERNANCE. The `specsmith` body MUST contain 'specsmith audit', 'specsmith save',
-    and 'specsmith checkpoint'. `specsmith skill install specsmith` MUST create
-    `.agents/skills/specsmith/SKILL.md` (subdirectory format). `installed_skills(root)` MUST
-    return paths to both flat `<slug>.md` and subdirectory `<slug>/SKILL.md` installations.
-  requirement_id: REQ-360
-  type: unit
-  verification_method: pytest
-  input: >-
-    get('specsmith'); get('specsmith-save'); get('specsmith-audit');
-    install('specsmith', tmp_path); installed_skills(tmp_path)
-  expected_behavior: >-
-    All three entries exist in GOVERNANCE domain; install writes <slug>/SKILL.md;
-    installed_skills returns the subdirectory path
-  confidence: 0.95
-- id: TEST-362
-  title: Skills System Documented in README, skills-index.md, AGENTS.md, and CHANGELOG
-  description: >-
-    README.md MUST contain a `## Skills` section with `specsmith skill list` and
-    `specsmith skill install`. `docs/site/skills-index.md` MUST list specsmith, specsmith-save,
-    and specsmith-audit in the Governance table. AGENTS.md MUST mention `.agents/skills/`.
-    CHANGELOG.md MUST have an entry (unreleased or versioned) describing the skills feature.
-  requirement_id: REQ-361
-  type: unit
-  verification_method: manual
-  input: >-
-    Read README.md for Skills section; grep skills-index.md for specsmith-save;
-    grep AGENTS.md for .agents/skills/; grep CHANGELOG for skills
-  expected_behavior: >-
-    All four documentation locations contain the required skills content
-  confidence: 0.9
+  verification_method: pytest (test_sqlite_parity.py)
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
 - id: TEST-433
   title: Governed benchmark agents achieve 100% pass rate across all tasks and conditions
-  description: >-
-    All specsmith conditions (LIGHT, FULL, DISPATCH) must achieve 100% pass rate
-    across all benchmark tasks (T1, T2, T6, T7, T10, T11, T13). T13 requires correct
-    stdout discipline (click.echo err=True) and T10 requires correct route ordering.
+  description: All specsmith conditions (LIGHT, FULL, DISPATCH) must achieve 100%
+    pass rate across all benchmark tasks (T1, T2, T6, T7, T10, T11, T13). T13 requires
+    correct stdout discipline (click.echo err=True) and T10 requires correct route
+    ordering.
   requirement_id: REQ-423
   type: script
   verification_method: scripts/govern_bench/run_benchmark.py
-  input: >-
-    SPECSMITH_LIGHT, SPECSMITH_FULL, SPECSMITH_DISPATCH conditions × all tasks × 3 reps
-  expected_behavior: >-
-    pass_rate == 1.0 for every (task, condition) pair; zero CoP drift from baseline
+  input: SPECSMITH_LIGHT, SPECSMITH_FULL, SPECSMITH_DISPATCH conditions × all tasks
+    × 3 reps
+  expected_behavior: pass_rate == 1.0 for every (task, condition) pair; zero CoP drift
+    from baseline
   confidence: 0.9
+- id: TEST-434
+  title: CI CodeQL scan produces zero alerts on every run
+  description: The GitHub Actions CodeQL workflow must complete with zero open alerts
+    for the specsmith codebase. This covers py/unreachable-statement, py/import-and-import-from,
+    and py/path-injection patterns documented in AGENTS.md CodeQL Safe Patterns.
+  requirement_id: REQ-424
+  type: build
+  verification_method: gh api repos/specsmith-dev/specsmith/code-scanning/alerts
+  input: GitHub Actions CodeQL workflow run on develop branch
+  expected_behavior: Zero open CodeQL alerts; workflow exits with code 0
+  confidence: 0.95
+- id: TEST-435
+  title: Governed agent autonomously resolves preflight needs_clarification without
+    blocking
+  description: When specsmith preflight returns needs_clarification, a governed benchmark
+    agent must add a requirement via 'specsmith req add --title ...' and retry the
+    preflight without human intervention. The agent must never block or deadlock waiting
+    for clarification. Validated by T13 SPECSMITH_LIGHT and SPECSMITH_FULL benchmark
+    conditions.
+  requirement_id: REQ-425
+  type: integration
+  verification_method: scripts/govern_bench/run_benchmark.py (T13 condition)
+  input: T13 benchmark task with SPECSMITH_LIGHT and SPECSMITH_FULL conditions; preflight
+    intentionally returns needs_clarification on first call
+  expected_behavior: Agent adds requirement and retries; task completes with pass_rate
+    == 1.0; no deadlock
+  confidence: 0.9
+- id: TEST-436
+  title: Harness max_completion_tokens >= 32768 for reasoning models
+  requirement_id: REQ-426
+  type: script
+  verification_method: grep -r 'max_completion_tokens' scripts/govern_bench/harness.py
+    | grep '32768\|65536'
+  description: harness.py must set max_completion_tokens >= 32768 for gpt-5.x and
+    o-series models to prevent reasoning token exhaustion
+- id: TEST-437
+  title: GovernanceBench metrics include Wilson CI and bootstrap CoP confidence intervals
+  requirement_id: REQ-427
+  type: script
+  verification_method: python -c 'from govern_bench.metrics import wilson_ci, bootstrap_cop_ci;
+    print(wilson_ci(8,10), bootstrap_cop_ci([1.0,0.8]))'
+  description: govern_bench/metrics.py must export wilson_ci() and bootstrap_cop_ci()
+    functions that return (lower, upper) tuples
+- id: TEST-438
+  title: GovernanceBench tasks.py defines all 27 tasks across expanded project domains
+  requirement_id: REQ-427
+  type: script
+  verification_method: python -c 'from govern_bench.tasks import TASK_CATALOGUE; assert
+    len(TASK_CATALOGUE) >= 27'
+  description: 'tasks.py must define tasks T1-T27 including new domains: data_pipeline,
+    verilog_module, patent_draft, shell_scripts'
+- id: TEST-439
+  title: gitignore normalizer enforces disjoint allow/deny policy and untracks diverged
+    paths
+  requirement_id: REQ-428
+  type: unit
+  verification_method: PYTHONPATH=src python -m pytest tests/test_esdb_enforcement.py
+    -k 'disjoint or idempotent or untrack' -q
+  description: normalize_esdb_gitignore_policy must (a) keep _GIT_TRACKED_POLICY and
+    _GIT_IGNORED_POLICY disjoint, (b) untrack paths in git index that belong to deny
+    list, (c) be idempotent on repeated runs
+- id: TEST-440
+  title: Multi-provider harness dispatches by provider_name field
+  requirement_id: REQ-427
+  type: script
+  verification_method: python -c 'from govern_bench.harness import _dispatch_llm;
+    print("ok")'
+  description: govern_bench/harness.py must export _dispatch_llm or equivalent that
+    routes by provider_name to openai, anthropic, or google providers
+- id: TEST-441
+  title: GovernanceBench HF leaderboard artifacts exist and are schema-valid
+  requirement_id: REQ-427
+  type: script
+  verification_method: python -c "import json,pathlib; s=json.loads(pathlib.Path('scripts/govern_bench/leaderboard_schema.json').read_text());
+    assert 'properties' in s"
+  description: scripts/govern_bench/leaderboard_schema.json and docs/govern_bench/hf_card.md
+    must exist; schema must contain required leaderboard fields

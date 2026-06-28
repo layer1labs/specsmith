@@ -4678,5 +4678,77 @@
     "input": "T13 benchmark task with SPECSMITH_LIGHT and SPECSMITH_FULL conditions; preflight intentionally returns needs_clarification on first call",
     "expected_behavior": "Agent adds requirement and retries; task completes with pass_rate == 1.0; no deadlock",
     "confidence": 0.9
+  },
+  {
+    "id": "TEST-436",
+    "version": 1,
+    "title": "Harness max_completion_tokens >= 32768 for reasoning models",
+    "description": "harness.py must set max_completion_tokens >= 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion",
+    "requirement_id": "REQ-426",
+    "type": "script",
+    "verification_method": "grep -r 'max_completion_tokens' scripts/govern_bench/harness.py | grep '32768\\|65536'",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-437",
+    "version": 1,
+    "title": "GovernanceBench metrics include Wilson CI and bootstrap CoP confidence intervals",
+    "description": "govern_bench/metrics.py must export wilson_ci() and bootstrap_cop_ci() functions that return (lower, upper) tuples",
+    "requirement_id": "REQ-427",
+    "type": "script",
+    "verification_method": "python -c 'from govern_bench.metrics import wilson_ci, bootstrap_cop_ci; print(wilson_ci(8,10), bootstrap_cop_ci([1.0,0.8]))'",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-438",
+    "version": 1,
+    "title": "GovernanceBench tasks.py defines all 27 tasks across expanded project domains",
+    "description": "tasks.py must define tasks T1-T27 including new domains: data_pipeline, verilog_module, patent_draft, shell_scripts",
+    "requirement_id": "REQ-427",
+    "type": "script",
+    "verification_method": "python -c 'from govern_bench.tasks import TASK_CATALOGUE; assert len(TASK_CATALOGUE) >= 27'",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-439",
+    "version": 1,
+    "title": "gitignore normalizer enforces disjoint allow/deny policy and untracks diverged paths",
+    "description": "normalize_esdb_gitignore_policy must (a) keep _GIT_TRACKED_POLICY and _GIT_IGNORED_POLICY disjoint, (b) untrack paths in git index that belong to deny list, (c) be idempotent on repeated runs",
+    "requirement_id": "REQ-428",
+    "type": "unit",
+    "verification_method": "PYTHONPATH=src python -m pytest tests/test_esdb_enforcement.py -k 'disjoint or idempotent or untrack' -q",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-440",
+    "version": 1,
+    "title": "Multi-provider harness dispatches by provider_name field",
+    "description": "govern_bench/harness.py must export _dispatch_llm or equivalent that routes by provider_name to openai, anthropic, or google providers",
+    "requirement_id": "REQ-427",
+    "type": "script",
+    "verification_method": "python -c 'from govern_bench.harness import _dispatch_llm; print(\"ok\")'",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-441",
+    "version": 1,
+    "title": "GovernanceBench HF leaderboard artifacts exist and are schema-valid",
+    "description": "scripts/govern_bench/leaderboard_schema.json and docs/govern_bench/hf_card.md must exist; schema must contain required leaderboard fields",
+    "requirement_id": "REQ-427",
+    "type": "script",
+    "verification_method": "python -c \"import json,pathlib; s=json.loads(pathlib.Path('scripts/govern_bench/leaderboard_schema.json').read_text()); assert 'properties' in s\"",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
