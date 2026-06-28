@@ -119,6 +119,7 @@ def run_preflight(
         utterance,
         _req_md,
         repo_index_path=_repo_idx,
+        min_score=0.15,
     )
 
     requirement_ids = [r.req_id for r in scope.matched_requirements]
