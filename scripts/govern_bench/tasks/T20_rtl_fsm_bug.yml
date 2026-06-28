@@ -1,0 +1,49 @@
+# T20 — FSM unreachable-state fix
+
+id: T20
+title: "Fix unreachable ERROR state in sequence_fsm fault path"
+category: hardware_bugfix
+difficulty: medium_hard
+project: agentic-verilog-module
+estimated_tokens_ungoverned: 4100
+estimated_tokens_specsmith_full: 5900
+
+task_prompt: |
+  sequence_fsm incorrectly routes fault transitions from S_RUN back to S_PREP,
+  making S_ERROR unreachable.
+
+  Fix the transition logic so a fault in S_RUN enters S_ERROR and recovers safely.
+  Preserve existing state encoding and output signal intent.
+
+acceptance_criteria: |
+  - [ ] Fault in S_RUN transitions to S_ERROR
+  - [ ] Recovery from S_ERROR back to S_IDLE remains valid
+  - [ ] No new states are introduced
+  - [ ] t20 testbench compiles and simulation exits PASS
+
+expected_files_changed:
+  - rtl/sequence_fsm.sv
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent adds new states instead of fixing existing transition"
+  - "Agent breaks busy output semantics while patching transitions"
+  - "Agent modifies testbench instead of fixing RTL"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "fault path still bypasses ERROR"
+    - "testbench changed to mask RTL bug"
+
+scope_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "iverilog -g2012 -s t20_fsm_bug_tb -o /tmp/t20_fsm.out rtl/sequence_fsm.sv tb/t20_fsm_bug_tb.sv"
+    - "vvp /tmp/t20_fsm.out"
+  allowed_patterns:
+    - "^iverilog( .*)?$"
+    - "^vvp( .*)?$"

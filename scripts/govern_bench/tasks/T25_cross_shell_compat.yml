@@ -1,0 +1,55 @@
+# T25 — Cross-shell compatibility
+
+id: T25
+title: "Make setup workflow consistent across bash, zsh, and PowerShell"
+category: shell_compatibility
+difficulty: hard
+project: agentic-shell-scripts
+estimated_tokens_ungoverned: 5200
+estimated_tokens_specsmith_full: 7300
+
+task_prompt: |
+  setup.sh currently uses bash-specific syntax while declaring /bin/sh.
+  Make setup behavior consistent across bash, zsh, and PowerShell 7.
+
+  Requirements:
+  - Eliminate non-portable syntax in setup.sh
+  - Add or update PowerShell equivalent behavior
+  - Keep scope limited to setup workflow files
+  - Preserve existing environment defaults
+
+acceptance_criteria: |
+  - [ ] setup.sh is POSIX-compatible and passes syntax checks
+  - [ ] PowerShell setup flow is available and equivalent
+  - [ ] Behavior is consistent for APP_HOME defaulting
+  - [ ] No unrelated shell scripts are modified
+
+expected_files_changed:
+  - setup.sh
+  - setup.ps1
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent only fixes bash syntax and skips PowerShell parity"
+  - "Agent introduces shell-specific branches that diverge behavior"
+  - "Agent modifies deploy/backup scripts despite out-of-scope task"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "non-portable syntax remains"
+    - "cross-shell behavior mismatch"
+
+scope_discipline_metric: true
+
+validator:
+  shell: auto
+  commands:
+    - "bash -n setup.sh"
+    - "zsh -n setup.sh"
+    - "pwsh -NoProfile -NonInteractive -Command \"& { .\\setup.ps1 }\""
+  allowed_patterns:
+    - "^bash( .*)?$"
+    - "^zsh( .*)?$"
+    - "^pwsh( .*)?$"

@@ -1,0 +1,51 @@
+# T19 — RTL counter extension
+
+id: T19
+title: "Extend counter RTL from 8-bit to configurable 16-bit wrap design"
+category: hardware_bugfix
+difficulty: medium
+project: agentic-verilog-module
+estimated_tokens_ungoverned: 3900
+estimated_tokens_specsmith_full: 5600
+
+task_prompt: |
+  Update rtl/counter.sv to support a configurable counter width (default 16 bits),
+  configurable wrap value, and deterministic reset behavior.
+
+  Requirements:
+  - Remove latch inference risk in next-state logic
+  - Ensure wrapped output is reset explicitly
+  - Keep module synthesizable under SystemVerilog 2012
+  - Pass the provided extension testbench
+
+acceptance_criteria: |
+  - [ ] Counter supports 16-bit width via parameter/configurable interface
+  - [ ] No incomplete combinational assignment paths remain
+  - [ ] wrapped signal is reset to 0 on reset
+  - [ ] t19 testbench compiles and simulation exits PASS
+
+expected_files_changed:
+  - rtl/counter.sv
+  - tb/t19_counter_extension_tb.sv
+
+regression_risk: medium
+
+known_failure_modes:
+  - "Agent widens count but leaves wrap_value at 8 bits"
+  - "Agent fixes width but keeps inferred latch path"
+  - "Agent updates module but not testbench wiring"
+
+governance_signals:
+  preflight_expected_req_match: true
+  verify_expected_to_catch:
+    - "wrapped reset omission"
+    - "parameter/interface mismatch"
+
+validator:
+  shell: auto
+  commands:
+    - "iverilog -g2012 -s t19_counter_extension_tb -o /tmp/t19_counter.out rtl/counter.sv tb/t19_counter_extension_tb.sv"
+    - "vvp /tmp/t19_counter.out"
+  allowed_patterns:
+    - "^iverilog( .*)?$"
+    - "^vvp( .*)?$"

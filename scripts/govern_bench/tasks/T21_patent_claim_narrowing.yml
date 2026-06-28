@@ -1,0 +1,52 @@
+# T21 — Patent claim narrowing
+
+id: T21
+title: "Narrow overbroad independent claim while preserving specification support"
+category: legal_ip
+difficulty: hard
+project: agentic-patent-draft
+estimated_tokens_ungoverned: 5300
+estimated_tokens_specsmith_full: 7600
+
+task_prompt: |
+  Claim 1 in draft/claims.md is overbroad relative to cited prior art in prior_art.md.
+  Narrow claim 1 so it distinguishes prior art while remaining supported by
+  draft/specification.md.
+
+  Requirements:
+  - Remove "any machine process" style over-claiming language
+  - Add concrete technical limitations reflected in the specification
+  - Keep claim dependencies valid after edits
+  - Ensure no placeholder tokens remain
+
+acceptance_criteria: |
+  - [ ] Claim 1 is materially narrower and technically specific
+  - [ ] Narrowing language is supported in specification text
+  - [ ] Claim numbering and dependencies remain valid
+  - [ ] No {placeholder} tokens remain
+  - [ ] Structural validator passes
+
+expected_files_changed:
+  - draft/claims.md
+  - draft/specification.md
+
+regression_risk: high
+
+known_failure_modes:
+  - "Agent rewrites claim 1 but leaves unsupported limitations"
+  - "Agent narrows claim 1 but breaks dependent claim references"
+  - "Agent leaves placeholder tokens in the final draft"
+
+governance_signals:
+  preflight_expected_req_match: true
+  preflight_expected_intent: "change"
+  verify_expected_to_catch:
+    - "missing spec support for narrowed limitations"
+    - "invalid claim dependency graph"
+
+validator:
+  shell: auto
+  commands:
+    - "python validators/validate_patent.py draft/claims.md draft/specification.md"
+  allowed_patterns:
+    - "^python( .*)?$"

@@ -15,6 +15,14 @@ except ImportError:  # noqa: BLE001  # intentional: soft import, raise clearly b
     yaml = None  # type: ignore[assignment]
 
 TASKS_DIR = Path(__file__).parent / "tasks"
+PROJECT_SUBDIR_MAP: dict[str, str] = {
+    "agentic-todo-api": "todo_api",
+    "agentic-cli-tool": "cli_tool",
+    "agentic-data-pipeline": "data_pipeline",
+    "agentic-verilog-module": "verilog_module",
+    "agentic-shell-scripts": "shell_scripts",
+    "agentic-patent-draft": "patent_draft",
+}
 
 
 @dataclass
@@ -107,6 +115,26 @@ class BenchTask:
     @property
     def uses_cli_tool(self) -> bool:
         return self.project == "agentic-cli-tool"
+
+    @property
+    def uses_data_pipeline(self) -> bool:
+        return self.project == "agentic-data-pipeline"
+
+    @property
+    def uses_verilog_module(self) -> bool:
+        return self.project == "agentic-verilog-module"
+
+    @property
+    def uses_shell_scripts(self) -> bool:
+        return self.project == "agentic-shell-scripts"
+
+    @property
+    def uses_patent_draft(self) -> bool:
+        return self.project == "agentic-patent-draft"
+
+    @property
+    def project_subdir(self) -> str:
+        return PROJECT_SUBDIR_MAP.get(self.project, "")
 
 
 def load_all_tasks(tasks_dir: Path | None = None) -> list[BenchTask]:
