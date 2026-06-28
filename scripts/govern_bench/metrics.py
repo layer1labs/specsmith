@@ -31,44 +31,51 @@ from dataclasses import dataclass, field
 
 MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     # ── OpenAI GPT-4 family ──────────────────────────────────────────────
-    "gpt-4o-mini":           (0.15,    0.60),
-    "gpt-4o":                (2.50,   10.00),
-    "gpt-4.1":               (2.00,    8.00),
-    "gpt-4.1-mini":          (0.40,    1.60),
-    "gpt-4.1-nano":          (0.10,    0.40),
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4o": (2.50, 10.00),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
+    "gpt-4.1-nano": (0.10, 0.40),
     # ── OpenAI GPT-5 family (prices verified Q3–Q4 2025 / Q1–Q2 2026) ───
-    "gpt-5":                 (15.00,  60.00),
-    "gpt-5-mini":             (2.00,   8.00),
-    "gpt-5-nano":             (0.50,   2.00),
-    "gpt-5-pro":             (50.00, 200.00),
-    "gpt-5-codex":           (15.00,  60.00),
-    "gpt-5.1":               (12.00,  48.00),
-    "gpt-5.2":               (10.00,  40.00),
-    "gpt-5.2-pro":           (40.00, 160.00),
-    "gpt-5.2-codex":         (10.00,  40.00),
-    "gpt-5.3-codex":          (8.00,  32.00),
-    "gpt-5.4":                (5.00,  20.00),
-    "gpt-5.4-mini":           (1.00,   4.00),
-    "gpt-5.4-nano":           (0.30,   1.20),
-    "gpt-5.4-pro":           (20.00,  80.00),
-    "gpt-5.5":                (3.00,  12.00),   # mid-tier coding model
-    "gpt-5.5-pro":           (15.00,  60.00),
+    "gpt-5": (15.00, 60.00),
+    "gpt-5-mini": (2.00, 8.00),
+    "gpt-5-nano": (0.50, 2.00),
+    "gpt-5-pro": (50.00, 200.00),
+    "gpt-5-codex": (15.00, 60.00),
+    "gpt-5.1": (12.00, 48.00),
+    "gpt-5.2": (10.00, 40.00),
+    "gpt-5.2-pro": (40.00, 160.00),
+    "gpt-5.2-codex": (10.00, 40.00),
+    "gpt-5.3-codex": (8.00, 32.00),
+    "gpt-5.4": (5.00, 20.00),
+    "gpt-5.4-mini": (1.00, 4.00),
+    "gpt-5.4-nano": (0.30, 1.20),
+    "gpt-5.4-pro": (20.00, 80.00),
+    "gpt-5.5": (3.00, 12.00),  # mid-tier coding model
+    "gpt-5.5-pro": (15.00, 60.00),
     # ── OpenAI reasoning models ──────────────────────────────────────────
-    "o1":                     (15.0,  60.00),
-    "o3":                     (10.0,  40.00),
-    "o3-mini":                 (1.1,   4.40),
-    "o4-mini":                 (1.1,   4.40),
+    "o1": (15.0, 60.00),
+    "o3": (10.0, 40.00),
+    "o3-mini": (1.1, 4.40),
+    "o4-mini": (1.1, 4.40),
     # ── Anthropic ────────────────────────────────────────────────────────
-    "claude-haiku-4-5":        (0.25,   1.25),
-    "claude-sonnet-4-5":       (3.00,  15.00),
-    "claude-opus-4-5":        (15.00,  75.00),
-    "claude-sonnet-4-6":       (3.00,  15.00),
+    "claude-haiku-4-5": (0.25, 1.25),
+    "claude-sonnet-4-5": (3.00, 15.00),
+    "claude-opus-4-5": (15.00, 75.00),
+    "claude-sonnet-4-6": (3.00, 15.00),
     # ── Google ───────────────────────────────────────────────────────────
-    "gemini-3-flash":           (0.35,  1.05),
-    "gemini-3.5-flash":         (0.15,  0.60),
-    "gemini-3.1-pro":           (1.25,  5.00),
+    "gemini-3-flash": (0.35, 1.05),
+    "gemini-3.5-flash": (0.15, 0.60),
+    "gemini-3.1-pro": (1.25, 5.00),
+    # ── OpenAI-compatible / open-source endpoints (hosted estimates) ────
+    "Llama-3.1-70B": (0.88, 0.88),
+    "llama-3.1-70b": (0.88, 0.88),
+    "Qwen2.5-Coder-72B": (0.90, 0.90),
+    "qwen2.5-coder-72b": (0.90, 0.90),
+    "DeepSeek-Coder-V3": (0.70, 0.70),
+    "deepseek-coder-v3": (0.70, 0.70),
     # ── Fallback ─────────────────────────────────────────────────────────
-    "unknown":                 (3.00,  15.00),
+    "unknown": (3.00, 15.00),
 }
 
 # Backwards-compatible alias — keep old key format working
@@ -80,22 +87,15 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Return estimated API cost in USD."""
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(
-        model, MODEL_PRICING_PER_1M["unknown"]
-    )
-    return (
-        (input_tokens / 1_000_000 * inp_per_m)
-        + (output_tokens / 1_000_000 * out_per_m)
-    )
+    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(model, MODEL_PRICING_PER_1M["unknown"])
+    return (input_tokens / 1_000_000 * inp_per_m) + (output_tokens / 1_000_000 * out_per_m)
 
 
 def estimate_cost_breakdown(
     model: str, input_tokens: int, output_tokens: int
 ) -> tuple[float, float, float]:
     """Return (input_cost_usd, output_cost_usd, total_cost_usd)."""
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(
-        model, MODEL_PRICING_PER_1M["unknown"]
-    )
+    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(model, MODEL_PRICING_PER_1M["unknown"])
     inp_cost = input_tokens / 1_000_000 * inp_per_m
     out_cost = output_tokens / 1_000_000 * out_per_m
     return inp_cost, out_cost, inp_cost + out_cost
@@ -114,6 +114,7 @@ def monthly_cost_projection(
 # RunResult
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RunResult:
     """Metrics for a single task x condition x repetition run."""
@@ -130,17 +131,17 @@ class RunResult:
     # Monetary cost breakdown (USD)
     input_cost_usd: float = 0.0
     output_cost_usd: float = 0.0
-    api_cost_usd: float = 0.0    # total = input + output
+    api_cost_usd: float = 0.0  # total = input + output
 
     # Quality
     lint_passed: bool = False
     tests_passed: bool = False
-    quality_score: float = 0.0   # 0.0-1.0 from LLM judge
+    quality_score: float = 0.0  # 0.0-1.0 from LLM judge
     judge_rationale: str = ""
 
     # Efficiency
-    rework_turns: int = 1        # >=1 (1 = first-pass success)
-    governance_turns: int = 0    # turns consumed by governance overhead
+    rework_turns: int = 1  # >=1 (1 = first-pass success)
+    governance_turns: int = 0  # turns consumed by governance overhead
     wall_clock_s: float = 0.0
 
     # Error tracking
@@ -176,6 +177,7 @@ class RunResult:
 # ---------------------------------------------------------------------------
 # Aggregate statistics for (task, condition) slice
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SliceStats:
@@ -257,6 +259,7 @@ class SliceStats:
 # Full benchmark report container
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BenchReport:
     """Aggregated results across all tasks × conditions."""
@@ -272,8 +275,7 @@ class BenchReport:
 
         sorted_runs = sorted(self.runs, key=_run_key)
         return [
-            SliceStats.from_runs(list(group))
-            for _, group in groupby(sorted_runs, key=_run_key)
+            SliceStats.from_runs(list(group)) for _, group in groupby(sorted_runs, key=_run_key)
         ]
 
     def condition_summary(self) -> dict[str, dict]:
@@ -289,33 +291,17 @@ class BenchReport:
 
         summary: dict[str, dict] = {}
         for cid, slices in per_condition.items():
-            finite_cop = [
-                s.cost_of_pass for s in slices if s.cost_of_pass < float("inf")
-            ]
+            finite_cop = [s.cost_of_pass for s in slices if s.cost_of_pass < float("inf")]
             mean_cop = statistics.mean(finite_cop) if finite_cop else float("inf")
             summary[cid] = {
                 "mean_pass_rate": statistics.mean(s.pass_rate for s in slices),
-                "mean_input_tokens": statistics.mean(
-                    s.mean_input_tokens for s in slices
-                ),
-                "mean_output_tokens": statistics.mean(
-                    s.mean_output_tokens for s in slices
-                ),
-                "mean_total_tokens": statistics.mean(
-                    s.mean_total_tokens for s in slices
-                ),
-                "mean_input_cost_usd": statistics.mean(
-                    s.mean_input_cost_usd for s in slices
-                ),
-                "mean_output_cost_usd": statistics.mean(
-                    s.mean_output_cost_usd for s in slices
-                ),
-                "mean_api_cost_usd": statistics.mean(
-                    s.mean_api_cost_usd for s in slices
-                ),
-                "mean_quality_score": statistics.mean(
-                    s.mean_quality_score for s in slices
-                ),
+                "mean_input_tokens": statistics.mean(s.mean_input_tokens for s in slices),
+                "mean_output_tokens": statistics.mean(s.mean_output_tokens for s in slices),
+                "mean_total_tokens": statistics.mean(s.mean_total_tokens for s in slices),
+                "mean_input_cost_usd": statistics.mean(s.mean_input_cost_usd for s in slices),
+                "mean_output_cost_usd": statistics.mean(s.mean_output_cost_usd for s in slices),
+                "mean_api_cost_usd": statistics.mean(s.mean_api_cost_usd for s in slices),
+                "mean_quality_score": statistics.mean(s.mean_quality_score for s in slices),
                 "mean_cost_of_pass": mean_cop,
                 # will be filled below once baseline is known
                 "cost_delta_vs_ungoverned": None,

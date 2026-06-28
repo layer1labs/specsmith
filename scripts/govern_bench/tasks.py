@@ -37,6 +37,8 @@ class BenchTask:
     known_failure_modes: list[str] = field(default_factory=list)
     governance_signals: dict = field(default_factory=dict)
     scoring_override: dict | None = None
+    validator: dict | None = None
+    allowed_validator_commands: list[str] = field(default_factory=list)
 
     # Task-type flags
     scope_discipline_metric: bool = False
@@ -49,8 +51,15 @@ class BenchTask:
     def from_dict(cls, data: dict) -> BenchTask:
         """Construct a BenchTask from a parsed YAML dict."""
         # Required fields
-        required = ("id", "title", "category", "difficulty", "project",
-                    "task_prompt", "acceptance_criteria")
+        required = (
+            "id",
+            "title",
+            "category",
+            "difficulty",
+            "project",
+            "task_prompt",
+            "acceptance_criteria",
+        )
         missing = [k for k in required if k not in data]
         if missing:
             raise ValueError(f"Task YAML missing required fields: {missing}")
@@ -70,6 +79,12 @@ class BenchTask:
             known_failure_modes=data.get("known_failure_modes") or [],
             governance_signals=data.get("governance_signals") or {},
             scoring_override=data.get("scoring_override"),
+            validator=data.get("validator"),
+            allowed_validator_commands=(
+                data.get("allowed_validator_commands")
+                or (data.get("validator") or {}).get("commands")
+                or []
+            ),
             scope_discipline_metric=bool(data.get("scope_discipline_metric", False)),
             clarification_rate_task=bool(data.get("clarification_rate_task", False)),
             destructive_intent_task=bool(data.get("destructive_intent_task", False)),
@@ -101,8 +116,7 @@ def load_all_tasks(tasks_dir: Path | None = None) -> list[BenchTask]:
     """
     if yaml is None:
         raise ImportError(
-            "PyYAML is required to load task definitions. "
-            "Install it with: pip install pyyaml"
+            "PyYAML is required to load task definitions. Install it with: pip install pyyaml"
         )
 
     directory = tasks_dir or TASKS_DIR
@@ -127,9 +141,7 @@ def get_task(task_id: str, tasks_dir: Path | None = None) -> BenchTask:
     all_tasks = load_all_tasks(tasks_dir)
     task_map = {t.id: t for t in all_tasks}
     if task_id not in task_map:
-        raise KeyError(
-            f"Task {task_id!r} not found. Available: {sorted(task_map)}"
-        )
+        raise KeyError(f"Task {task_id!r} not found. Available: {sorted(task_map)}")
     return task_map[task_id]
 
 
