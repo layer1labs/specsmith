@@ -608,6 +608,7 @@ class AgentRunner:
 
         # Write token_metric to ESDB (REQ-410) — best-effort, never blocks.
         if tokens_in or tokens_out:
+            model_name = str(getattr(result, "provider", "") if result else "")
             try:
                 from specsmith.esdb_writer import write_token_metric
 
@@ -616,9 +617,24 @@ class AgentRunner:
                     input_tokens=tokens_in,
                     output_tokens=tokens_out,
                     cost_usd=cost_usd,
-                    model=str(getattr(result, "provider", "") if result else ""),
+                    model=model_name,
                     command_source=activity or "chat",
                     work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            # Flush token usage to session_metrics.jsonl (REQ-436)
+            try:
+                from specsmith.project_metrics import flush_session_metrics  # noqa: PLC0415
+
+                flush_session_metrics(
+                    Path(self.project_dir),
+                    work_item_id=str(getattr(self._state, "active_work_item_id", "") or ""),
+                    model=model_name,
+                    input_tokens=tokens_in,
+                    output_tokens=tokens_out,
+                    cost_usd=cost_usd,
+                    command=activity or "chat",
                 )
             except Exception:  # noqa: BLE001
                 pass
