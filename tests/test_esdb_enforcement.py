@@ -48,13 +48,59 @@ def test_run_sync_normalizes_legacy_esdb_gitignore(tmp_path: Path) -> None:
         for line in (tmp_path / ".gitignore").read_text(encoding="utf-8").splitlines()
         if line.strip()
     }
+    # Broad ignores must be gone
     assert ".specsmith/" not in lines
     assert ".chronomemory/" not in lines
-    assert ".chronomemory/backup/" in lines
-    assert ".specsmith/workitems.json" in lines
+    # Allow-list (tracked source-of-truth) must be present
     assert "!.specsmith/esdb.sqlite3" in lines
+    assert "!.specsmith/esdb_migration_manifest.json" in lines
     assert "!.chronomemory/events.wal" in lines
     assert "!.chronomemory/snapshot.json" in lines
+    # Deny-list (ephemeral runtime) must be present
+    assert ".chronomemory/backup/" in lines
+    assert ".specsmith/workitems.json" in lines
+    assert ".specsmith/ledger-chain.txt" in lines
+    assert ".specsmith/trace.jsonl" in lines
+    assert ".specsmith/backups/" in lines
+    assert ".specsmith/session_metrics.jsonl" in lines
+    # esdb_migration_manifest must NOT appear as a bare deny rule
+    assert ".specsmith/esdb_migration_manifest.json" not in lines
+
+
+def test_normalizer_policy_sets_are_disjoint() -> None:
+    """_GIT_TRACKED_POLICY and _GIT_IGNORED_POLICY must never overlap."""
+    from specsmith.sync import _GIT_IGNORED_POLICY, _GIT_TRACKED_POLICY
+
+    tracked = set(_GIT_TRACKED_POLICY)
+    ignored = set(_GIT_IGNORED_POLICY)
+    overlap = tracked & ignored
+    assert not overlap, f"Paths in both allow and deny policy: {overlap}"
+
+
+def test_normalizer_idempotent(tmp_path: Path) -> None:
+    """Running normalize twice must not change the file on the second pass."""
+    from specsmith.sync import normalize_esdb_gitignore_policy
+
+    normalize_esdb_gitignore_policy(tmp_path)
+    content_after_first = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    normalize_esdb_gitignore_policy(tmp_path)
+    content_after_second = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    assert content_after_first == content_after_second
+
+
+def test_normalizer_untrack_dry_run_returns_diverged(tmp_path: Path) -> None:
+    """dry_run=True reports diverged paths without modifying git index."""
+    from unittest.mock import MagicMock, patch
+
+    from specsmith.sync import _untrack_diverged_paths
+
+    # Simulate git ls-files returning a tracked workitems.json
+    fake_result = MagicMock()
+    fake_result.stdout = ".specsmith/workitems.json\n"
+    with patch("subprocess.run", return_value=fake_result):
+        diverged = _untrack_diverged_paths(tmp_path, dry_run=True)
+
+    assert ".specsmith/workitems.json" in diverged
 
 
 def test_save_uses_sqlite_store_backup(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

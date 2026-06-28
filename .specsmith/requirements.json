@@ -4227,5 +4227,23 @@
     "source": "docs/requirements/",
     "status": "planned",
     "test_ids": []
+  },
+  {
+    "id": "REQ-427",
+    "version": 1,
+    "title": "GovernanceBench metrics/report statistical and leaderboard outputs",
+    "description": "GovernanceBench metrics/report shall compute Wilson pass-rate confidence intervals, bootstrap cost-of-pass confidence intervals, first-pass and consistency statistics, scaffold-lift vs UNGOVERNED, model-tier mapping, democratization and Pareto summaries, and Hugging Face leaderboard JSON/rendered report sections.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": []
+  },
+  {
+    "id": "REQ-428",
+    "version": 1,
+    "title": "gitignore normalizer must enforce disjoint allow/deny policy and untrack diverged paths",
+    "description": "normalize_esdb_gitignore_policy in sync.py must (a) separate tracked paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule for a path it also allows, (c) run git rm --cached for any deny-listed path found in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": []
   }
 ]
