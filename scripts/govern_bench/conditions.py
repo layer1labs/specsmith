@@ -332,8 +332,16 @@ CONDITIONS: list[Condition] = [
             Before writing any code you must call:
                 specsmith preflight "<describe the change>" --json
 
-            If the decision is "needs_clarification", surface the instruction
-            to the user and wait. If "accepted", note the work_item_id and proceed.
+            Handling preflight responses:
+            - decision == "accepted" → note the work_item_id and proceed immediately.
+            - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
+              Instead, autonomously resolve it:
+              1. specsmith req add "<feature title>" --description "<one-line scope>" --status planned
+              2. Re-run preflight. If still needs_clarification, proceed with your best
+                 interpretation of scope — never abort the task because of needs_clarification.
+
+            For tasks where the correct response IS to ask a clarifying question
+            (e.g. ambiguous or destructive requests), do so without writing any code.
 
             After implementation:
             - Run: ruff check .
@@ -361,10 +369,17 @@ CONDITIONS: list[Condition] = [
             Session protocol:
             1. specsmith audit --project-dir .          # verify health
             2. specsmith preflight "<change>" --json    # gate the change
-               - decision == "accepted" → note work_item_id, proceed
-               - decision == "needs_clarification" → surface instruction, wait
+               - decision == "accepted" → note work_item_id, proceed.
+               - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
+                 Instead, autonomously resolve it:
+                 a. specsmith req add "<title>" --description "<one-line scope>" --status planned
+                 b. Re-run preflight. If still needs_clarification, proceed with your best
+                    interpretation of scope — never abort the task on needs_clarification.
             3. Implement the change.
             4. ruff check . && pytest                   # quality gate
+               Ensure ALL acceptance criteria are covered by tests.
+               A complete implementation has ≥ 4 tests including edge cases
+               (e.g. empty input, type edge cases, boundary conditions).
             5. specsmith verify --project-dir .         # governance verify
             6. specsmith save --project-dir .           # commit + ESDB backup
 
@@ -496,14 +511,21 @@ CONDITIONS: list[Condition] = [
             Session protocol:
             1. specsmith audit --project-dir .          # verify governance health
             2. specsmith preflight "<change>" --json    # gate the change
-               - decision == "accepted" → note work_item_id, proceed
-               - decision == "needs_clarification" → surface instruction, wait
+               - decision == "accepted" → note work_item_id, proceed.
+               - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
+                 Instead, autonomously resolve it:
+                 a. specsmith req add "<title>" --description "<one-line scope>" --status planned
+                 b. Re-run preflight. If still needs_clarification, proceed with your best
+                    interpretation of scope — never abort the task on needs_clarification.
             3. Decompose the task into a dependency DAG:
                - Each node is a self-contained subtask (implement, test, or verify).
                - Express dependencies explicitly so parallel nodes never conflict.
+               - CRITICAL: If two subtasks modify the same file, make them sequential
+                 (the later one must depend on the earlier) to prevent merge conflicts
+                 and ensure correct ordering (e.g. route registration order in FastAPI).
             4. specsmith dispatch run --dag dag.yml --project-dir .
                - Planner node: produce implementation plan
-               - Builder nodes: implement subtasks in parallel
+               - Builder nodes: implement subtasks in parallel (only for truly independent files)
                - Verifier node: ruff check . && pytest (runs after all builders)
             5. specsmith save --project-dir .           # commit + ESDB backup
 
