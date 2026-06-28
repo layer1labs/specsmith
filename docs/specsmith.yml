@@ -12,7 +12,7 @@ platforms:
 - linux
 - windows
 - macos
-spec_version: 0.19.1
+spec_version: 0.19.2
 aee_phase: release
 description: Applied Epistemic Engineering toolkit for AI-assisted development. Governance
   backend for the Kairos terminal (BitConcepts/kairos).

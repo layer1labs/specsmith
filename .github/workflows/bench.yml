@@ -22,7 +22,7 @@ on:
       reps:
         description: "Repetitions per cell (2 = cost run; 5 = publication)"
         required: false
-        default: "2"
+        default: "5"
       tiers:
         description: "Tiers to run (comma-separated: nano,mini,mid,frontier). Blank = all."
         required: false
@@ -68,23 +68,37 @@ jobs:
       - name: Verify task registry loads
         run: python scripts/govern_bench/run_bench.py --list
 
-      - name: Dry-run benchmark (T6, T7, T10, T11, T13 — 2 reps, all conditions including DISPATCH)
+      - name: Dry-run benchmark — OpenAI (T6, T7, T10, T11, T13)
         env:
           BENCH_DRY_RUN: "1"
         run: |
           python scripts/govern_bench/run_bench.py \
             --task T6 --task T7 --task T10 --task T11 --task T13 \
+            --provider openai --model gpt-4o-mini \
             --reps 2 \
-            --output /tmp/bench-smoke.md \
-            --json-output /tmp/bench-smoke.json
+            --output /tmp/bench-smoke-openai.md \
+            --json-output /tmp/bench-smoke-openai.json
+
+      - name: Dry-run benchmark — HuggingFace (T6, T7)
+        env:
+          BENCH_DRY_RUN: "1"
+        run: |
+          python scripts/govern_bench/run_bench.py \
+            --task T6 --task T7 \
+            --provider huggingface --model Qwen/Qwen2.5-7B-Instruct \
+            --reps 2 \
+            --output /tmp/bench-smoke-hf.md \
+            --json-output /tmp/bench-smoke-hf.json
 
       - name: Upload smoke report
         uses: actions/upload-artifact@v4
         with:
           name: bench-smoke-report
           path: |
-            /tmp/bench-smoke.md
-            /tmp/bench-smoke.json
+            /tmp/bench-smoke-openai.md
+            /tmp/bench-smoke-openai.json
+            /tmp/bench-smoke-hf.md
+            /tmp/bench-smoke-hf.json
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────────────────

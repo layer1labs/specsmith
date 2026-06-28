@@ -516,3 +516,43 @@
   requirement_id: REQ-432
   type: unit
   verification_method: PYTHONPATH=src pytest tests/test_audit_governance.py::test_check_governance_yaml_content_passes_m001_content_blob
+- id: TEST-453
+  title: Datasource adapter retrieval contract and citation normalization is validated
+    by integration test
+  requirement_id: REQ-437
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-454
+  title: GUI governance parity with CLI is verified by functional test
+  requirement_id: REQ-438
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-455
+  title: IDE integration adapter uniform capability contract is verified by adapter
+    unit tests
+  requirement_id: REQ-439
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-456
+  title: Plugin management lifecycle install/list/remove/validate is verified by CLI
+    tests
+  requirement_id: REQ-440
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-457
+  title: specsmith plugin CLI list and validate commands verified by CLI integration
+    test
+  requirement_id: REQ-441
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-458
+  title: specsmith pr CLI governed PR creation and status verified by CLI integration
+    test
+  requirement_id: REQ-442
+  type: manual
+  verification_method: manual review of implementation
+- id: TEST-459
+  title: specsmith ps CLI process state listing verified by unit test
+  requirement_id: REQ-443
+  type: manual
+  verification_method: manual review of implementation

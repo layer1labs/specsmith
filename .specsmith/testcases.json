@@ -4882,5 +4882,89 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-453",
+    "version": 1,
+    "title": "Datasource adapter retrieval contract and citation normalization is validated by integration test",
+    "description": "",
+    "requirement_id": "REQ-437",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-454",
+    "version": 1,
+    "title": "GUI governance parity with CLI is verified by functional test",
+    "description": "",
+    "requirement_id": "REQ-438",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-455",
+    "version": 1,
+    "title": "IDE integration adapter uniform capability contract is verified by adapter unit tests",
+    "description": "",
+    "requirement_id": "REQ-439",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-456",
+    "version": 1,
+    "title": "Plugin management lifecycle install/list/remove/validate is verified by CLI tests",
+    "description": "",
+    "requirement_id": "REQ-440",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-457",
+    "version": 1,
+    "title": "specsmith plugin CLI list and validate commands verified by CLI integration test",
+    "description": "",
+    "requirement_id": "REQ-441",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-458",
+    "version": 1,
+    "title": "specsmith pr CLI governed PR creation and status verified by CLI integration test",
+    "description": "",
+    "requirement_id": "REQ-442",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-459",
+    "version": 1,
+    "title": "specsmith ps CLI process state listing verified by unit test",
+    "description": "",
+    "requirement_id": "REQ-443",
+    "type": "manual",
+    "verification_method": "manual review of implementation",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

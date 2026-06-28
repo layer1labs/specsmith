@@ -364,3 +364,59 @@
     via write_token_metric (runner.py:614). Add flush_session_metrics helper that
     reads the most recent ESDB token_metric record and appends a populated MetricsRecord
     to session_metrics.jsonl after write_token_metric is called.
+- id: REQ-437
+  title: Datasource adapters must define retrieval contracts, resilience behavior,
+    and citation normalization guarantees
+  status: planned
+  description: The datasources module (src/specsmith/datasources/) provides patent,
+    publication, and citation adapters. Each adapter must declare a typed retrieval
+    contract, handle transient failures with retry/backoff, and normalize citation
+    output to a canonical schema. Absence of these guarantees makes adapter output
+    unpredictable for governance evidence packs.
+- id: REQ-438
+  title: GUI commands and views must provide governed parity with core CLI state and
+    error semantics
+  status: planned
+  description: The GUI surface (src/specsmith/gui/) exposes governance state visually.
+    Every GUI action that maps to a CLI command must produce identical governance
+    outcomes (preflight, audit, sync). GUI error messages must be derived from the
+    same error taxonomy as the CLI. No silent failures.
+- id: REQ-439
+  title: IDE integration adapters must implement a uniform capability and error-handling
+    contract
+  status: planned
+  description: 'Integration adapters (src/specsmith/integrations/: aider, copilot,
+    cursor, gemini, windsurf, claude) must each declare supported operations, degrade
+    gracefully when the target tool is unavailable, and surface errors through specsmith
+    governance events rather than silent fallbacks.'
+- id: REQ-440
+  title: Plugin management must define install, list, remove, and compatibility validation
+    requirements
+  status: planned
+  description: 'The plugin lifecycle (specsmith plugin command + src/specsmith/plugins.py)
+    must: enumerate installed plugins (list), validate manifests on install, reject
+    incompatible plugin versions, and support removal without leaving orphaned state.
+    Plugin errors must not propagate to core governance commands.'
+- id: REQ-441
+  title: specsmith plugin CLI must document and enforce plugin command surface (list,
+    validate, install, remove)
+  status: planned
+  description: 'The specsmith plugin command is a CLI surface with no explicit REQ.
+    It must: list all installed entry-point and manifest plugins (plugin list), validate
+    plugin manifests before activation (plugin validate), and provide clear error
+    messages when plugins fail to load.'
+- id: REQ-442
+  title: specsmith pr CLI must cover governed pull request creation, status, and merge
+    workflows
+  status: planned
+  description: 'The specsmith pr (create-pr/governed-pr) command surface has no explicit
+    REQ. It must: create PRs with governance comment blocks, evaluate PR governance
+    status against open WIs, and block merge on policy violations when --required-check
+    is set.'
+- id: REQ-443
+  title: specsmith ps CLI must surface process and session state for all tracked agent
+    runs
+  status: planned
+  description: The specsmith ps command has no explicit REQ. It must list all tracked
+    PIDs from .specsmith/pids/, report status (running/stopped/unknown) for each,
+    and integrate with kill-session so process cleanup is auditable and idempotent.
