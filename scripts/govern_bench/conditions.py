@@ -347,6 +347,8 @@ CONDITIONS: list[Condition] = [
             - The command's JSON/data output MUST go to stdout (or --output file) only.
             - ALL status messages, progress updates, and debug output MUST go to stderr.
             - Never mix diagnostic text with JSON output on stdout — it corrupts pipelines.
+            - For Click CLI commands: click.echo(msg, err=True) writes to stderr.
+              Bare click.echo(msg) writes to stdout — this corrupts JSON pipe output.
 
             After implementation:
             - Run: ruff check .
@@ -373,6 +375,8 @@ CONDITIONS: list[Condition] = [
 
             Session protocol:
             1. specsmith audit --project-dir .          # verify health
+               Non-critical issues (e.g. missing deprecated docs) do NOT block the task.
+               Proceed to step 2 regardless of audit exit code.
             2. specsmith preflight "<change>" --json    # gate the change
                - decision == "accepted" → note work_item_id, proceed.
                - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
@@ -386,6 +390,8 @@ CONDITIONS: list[Condition] = [
                A complete implementation has ≥ 4 tests including edge cases
                (e.g. empty input, type edge cases, boundary conditions).
                Stdout/stderr discipline: data output → stdout only; diagnostics → stderr.
+               For Click CLI commands, always use click.echo(msg, err=True) for status/debug
+               messages — bare click.echo() writes to stdout and corrupts JSON pipe output.
             5. specsmith verify --project-dir .         # governance verify
             6. specsmith save --project-dir .           # commit + ESDB backup
 
