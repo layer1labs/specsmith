@@ -4870,5 +4870,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-452",
+    "version": 1,
+    "title": "check_governance_yaml_content accepts m001 content-blob format (content+kind keys)",
+    "description": "",
+    "requirement_id": "REQ-432",
+    "type": "unit",
+    "verification_method": "PYTHONPATH=src pytest tests/test_audit_governance.py::test_check_governance_yaml_content_passes_m001_content_blob",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
