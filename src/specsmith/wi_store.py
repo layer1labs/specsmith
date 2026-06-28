@@ -351,6 +351,21 @@ class WorkItemStore:
         self._sync_to_esdb(item)
         return item
 
+    def add_test_case_ids(self, wi_id: str, test_ids: list[str]) -> WorkItem | None:
+        """Append *test_ids* to the WI's test_case_ids list (deduplicating)."""
+        item = self.get(wi_id)
+        if item is None:
+            return None
+        existing = set(item.test_case_ids)
+        for tid in test_ids:
+            if tid not in existing:
+                item.test_case_ids.append(tid)
+                existing.add(tid)
+        item.updated_at = _now_iso()
+        self.upsert(item)
+        self._sync_to_esdb(item)
+        return item
+
     def promote_to_req(self, wi_id: str, req_id: str) -> WorkItem:
         """Record that *wi_id* has been promoted to *req_id*.
 

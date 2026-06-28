@@ -9289,6 +9289,30 @@ def wi_show_cmd(wi_id: str, project_dir: str, as_json: bool) -> None:
         console.print(f"  Reason    : {item.closed_reason}")
 
 
+@wi_group.command(name="link-test")
+@click.argument("wi_id")
+@click.option(
+    "--test",
+    "test_ids",
+    multiple=True,
+    required=True,
+    metavar="TEST-NNN",
+    help="Test case ID to link (repeatable).",
+)
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def wi_link_test_cmd(wi_id: str, test_ids: tuple[str, ...], project_dir: str) -> None:
+    """Link one or more test case IDs to a work item."""
+    from specsmith.wi_store import WorkItemStore
+
+    root = Path(project_dir).resolve()
+    store = WorkItemStore(root)
+    item = store.add_test_case_ids(wi_id.upper(), list(test_ids))
+    if item is None:
+        console.print(f"[red]Work item {wi_id!r} not found.[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]\u2713[/green] {item.id} linked tests: {', '.join(test_ids)}")
+
+
 @wi_group.command(name="close")
 @click.argument("wi_id")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")

@@ -476,3 +476,37 @@
     assert d['decision']=='accepted','got '+d['decision']"
   description: 'CLI: specsmith preflight ''update release.yml'' --req REQ-051 must
     return accepted because REQ-051 is injected and picked up by scope-matching'
+- id: TEST-446
+  title: check_governance_yaml_content validates YAML file structure and rejects empty/fallback
+    entries
+  requirement_id: REQ-432
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_audit_governance.py
+- id: TEST-447
+  title: sync warns when REQUIREMENTS.md/TESTS.md IDs are absent from YAML source
+  requirement_id: REQ-433
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_sync_reconcile.py
+- id: TEST-448
+  title: rebuild_workitems.py encodes unicode correctly with ensure_ascii=False
+  requirement_id: REQ-433
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_sync_reconcile.py
+- id: TEST-449
+  title: verify_cmd is wired to run_verify; approve_cmd sets human_review_status;
+    files_touched persisted
+  requirement_id: REQ-434
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_wi_lifecycle_extended.py
+- id: TEST-450
+  title: broker infer_scope applies min_score=0.15 threshold and rejects low-confidence
+    scope
+  requirement_id: REQ-435
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_broker_scope.py
+- id: TEST-451
+  title: flush_session_metrics writes token usage to session_metrics.jsonl after run
+    completion
+  requirement_id: REQ-436
+  type: unit
+  verification_method: PYTHONPATH=src pytest tests/test_metrics_flush.py
