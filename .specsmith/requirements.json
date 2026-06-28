@@ -4345,5 +4345,82 @@
     "test_ids": [
       "TEST-451"
     ]
+  },
+  {
+    "id": "REQ-437",
+    "version": 1,
+    "title": "Datasource adapters must define retrieval contracts, resilience behavior, and citation normalization guarantees",
+    "description": "The datasources module (src/specsmith/datasources/) provides patent, publication, and citation adapters. Each adapter must declare a typed retrieval contract, handle transient failures with retry/backoff, and normalize citation output to a canonical schema. Absence of these guarantees makes adapter output unpredictable for governance evidence packs.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-453"
+    ]
+  },
+  {
+    "id": "REQ-438",
+    "version": 1,
+    "title": "GUI commands and views must provide governed parity with core CLI state and error semantics",
+    "description": "The GUI surface (src/specsmith/gui/) exposes governance state visually. Every GUI action that maps to a CLI command must produce identical governance outcomes (preflight, audit, sync). GUI error messages must be derived from the same error taxonomy as the CLI. No silent failures.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-454"
+    ]
+  },
+  {
+    "id": "REQ-439",
+    "version": 1,
+    "title": "IDE integration adapters must implement a uniform capability and error-handling contract",
+    "description": "Integration adapters (src/specsmith/integrations/: aider, copilot, cursor, gemini, windsurf, claude) must each declare supported operations, degrade gracefully when the target tool is unavailable, and surface errors through specsmith governance events rather than silent fallbacks.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-455"
+    ]
+  },
+  {
+    "id": "REQ-440",
+    "version": 1,
+    "title": "Plugin management must define install, list, remove, and compatibility validation requirements",
+    "description": "The plugin lifecycle (specsmith plugin command + src/specsmith/plugins.py) must: enumerate installed plugins (list), validate manifests on install, reject incompatible plugin versions, and support removal without leaving orphaned state. Plugin errors must not propagate to core governance commands.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-456"
+    ]
+  },
+  {
+    "id": "REQ-441",
+    "version": 1,
+    "title": "specsmith plugin CLI must document and enforce plugin command surface (list, validate, install, remove)",
+    "description": "The specsmith plugin command is a CLI surface with no explicit REQ. It must: list all installed entry-point and manifest plugins (plugin list), validate plugin manifests before activation (plugin validate), and provide clear error messages when plugins fail to load.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-457"
+    ]
+  },
+  {
+    "id": "REQ-442",
+    "version": 1,
+    "title": "specsmith pr CLI must cover governed pull request creation, status, and merge workflows",
+    "description": "The specsmith pr (create-pr/governed-pr) command surface has no explicit REQ. It must: create PRs with governance comment blocks, evaluate PR governance status against open WIs, and block merge on policy violations when --required-check is set.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-458"
+    ]
+  },
+  {
+    "id": "REQ-443",
+    "version": 1,
+    "title": "specsmith ps CLI must surface process and session state for all tracked agent runs",
+    "description": "The specsmith ps command has no explicit REQ. It must list all tracked PIDs from .specsmith/pids/, report status (running/stopped/unknown) for each, and integrate with kill-session so process cleanup is auditable and idempotent.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-459"
+    ]
   }
 ]

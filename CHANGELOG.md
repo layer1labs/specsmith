@@ -12,6 +12,44 @@ consolidated into the next published release.
 
 ---
 
+## [0.19.2] - 2026-06-28
+
+### Added
+
+- **HuggingFace provider for GovernanceBench (REQ-427)** — `provider=huggingface` in
+  `harness.py` routes agent calls through the HF Inference API
+  (`https://api-inference.huggingface.co/v1/`), which is OpenAI-compatible. Authenticated
+  via `HF_TOKEN`. Five open-source models added as a new `open_source` tier in the
+  benchmark matrix: `Qwen/Qwen2.5-7B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`,
+  `meta-llama/Llama-3.1-8B-Instruct`, `meta-llama/Llama-3.3-70B-Instruct`,
+  `mistralai/Mistral-7B-Instruct-v0.3`. `HF_TOKEN=` added to `.env.example`.
+
+- **Full multi-provider benchmark matrix — 15 models × 5 tiers × 4 providers (REQ-427)**
+  — `bench.yml` rewritten with `include:` matrix entries covering
+  `nano/mini/mid/frontier/open_source`. API key gate skips jobs gracefully when
+  a secret is not configured. `compare` job discovers all model artifacts dynamically.
+  Default `reps` bumped to **5** (publication-quality Wilson CI intervals).
+
+- **Smoke test now validates both OpenAI and HuggingFace providers** — The dry-run
+  smoke job runs two benchmark passes: OpenAI (`gpt-4o-mini`) and HuggingFace
+  (`Qwen/Qwen2.5-7B-Instruct`), both in `--dry-run` mode, catching provider-path
+  regressions on every push.
+
+- **REQ-437–443: Gap coverage for 4 feature areas + 3 CLI commands** — Added planned
+  requirements for: datasource adapter contracts (REQ-437), GUI governed parity
+  (REQ-438), IDE integration contracts (REQ-439), plugin lifecycle (REQ-440),
+  `plugin` CLI surface (REQ-441), `pr` CLI surface (REQ-442), `ps` CLI surface
+  (REQ-443). Placeholder tests TEST-453–459 added. REQ coverage now spans all
+  major module families and CLI commands identified in the gap report.
+
+### Fixed
+
+- **Closed 11 stale open WIs** — WI-51D364FC through WI-4A06F23E and WI-1C05961C
+  were all implemented but left open. All closed with test links confirmed.
+  `specsmith audit` returns **Healthy — 59 checks passed**.
+
+---
+
 ## [0.19.1] - 2026-06-28
 
 ### Fixed

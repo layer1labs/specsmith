@@ -1,0 +1,97 @@
+name: Deploy ReadTheDocs
+
+# Triggered manually AFTER:
+#   1. Benchmark results are complete
+#   2. docs/ is updated with benchmark data (model-comparison.md, hf_card.md, etc.)
+#   3. A release has already been published to PyPI
+#
+# Do NOT trigger this on every release — benchmarks must be included first.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: "Release tag to reference (e.g. v0.19.2). Informational only."
+        required: false
+        default: ""
+      build_stable:
+        description: "Build RTD 'stable' version (latest tag)"
+        required: false
+        type: boolean
+        default: true
+      build_latest:
+        description: "Build RTD 'latest' version (main branch)"
+        required: false
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  rtd-deploy:
+    name: Trigger ReadTheDocs builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log deploy intent
+        run: |
+          echo "RTD deploy triggered for: ${{ github.event.inputs.version_tag || '(no tag specified)' }}"
+          echo "Build stable: ${{ github.event.inputs.build_stable }}"
+          echo "Build latest: ${{ github.event.inputs.build_latest }}"
+
+      - name: Check RTD_TOKEN
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+        run: |
+          if [ -z "$RTD_TOKEN" ]; then
+            echo "::error::RTD_TOKEN secret not set — cannot trigger RTD."
+            exit 1
+          fi
+          echo "RTD_TOKEN present."
+
+      - name: Trigger RTD stable build
+        if: github.event.inputs.build_stable == 'true'
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+        run: |
+          STATUS=$(curl -s -o /tmp/rtd-stable.json -w "%{http_code}" -X POST \
+            -H "Authorization: Token $RTD_TOKEN" \
+            "https://readthedocs.org/api/v3/projects/specsmith/versions/stable/builds/")
+          echo "RTD stable build trigger: HTTP $STATUS"
+          cat /tmp/rtd-stable.json
+          [ "$STATUS" = "202" ] || { echo "::warning::Unexpected HTTP $STATUS from RTD stable trigger."; }
+
+      - name: Point RTD latest at main
+        if: github.event.inputs.build_latest == 'true'
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+        run: |
+          curl -s -o /tmp/rtd-patch.json -X PATCH \
+            -H "Authorization: Token $RTD_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"identifier": "main", "active": true}' \
+            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/"
+          echo "RTD latest patched to track main."
+
+      - name: Trigger RTD latest build
+        if: github.event.inputs.build_latest == 'true'
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+        run: |
+          STATUS=$(curl -s -o /tmp/rtd-latest.json -w "%{http_code}" -X POST \
+            -H "Authorization: Token $RTD_TOKEN" \
+            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/")
+          echo "RTD latest build trigger: HTTP $STATUS"
+          cat /tmp/rtd-latest.json
+          [ "$STATUS" = "202" ] || { echo "::warning::Unexpected HTTP $STATUS from RTD latest trigger."; }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## RTD Deploy Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | ${{ github.event.inputs.version_tag || 'N/A' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stable build | ${{ github.event.inputs.build_stable }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest build | ${{ github.event.inputs.build_latest }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Triggered at | $(date -u) |" >> "$GITHUB_STEP_SUMMARY"
