@@ -52,7 +52,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -91,7 +91,7 @@ jobs:
             --json-output /tmp/bench-smoke-hf.json
 
       - name: Upload smoke report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-smoke-report
           path: |
@@ -156,7 +156,7 @@ jobs:
           - { provider: huggingface, model: "mistralai/Mistral-7B-Instruct-v0.3", tier: open_source }
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -243,7 +243,7 @@ jobs:
 
       - name: Upload per-model artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.artifact_name.outputs.name }}
           path: |
@@ -262,7 +262,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -276,21 +276,21 @@ jobs:
           pip install pyyaml
 
       # One download step per matrix entry (continue-on-error for skipped jobs)
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-nano-${{ github.run_id }}",     path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4o-mini-${{ github.run_id }}",      path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-haiku-4-5-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.0-flash-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-${{ github.run_id }}",           path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-sonnet-4-5-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-flash-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-7B-Instruct-${{ github.run_id }}",          path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-72B-Instruct-${{ github.run_id }}",         path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-1-8B-Instruct-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-3-70B-Instruct-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0-3-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-nano-${{ github.run_id }}",     path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4o-mini-${{ github.run_id }}",      path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-haiku-4-5-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.0-flash-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-${{ github.run_id }}",           path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-sonnet-4-5-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.5-flash-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-7B-Instruct-${{ github.run_id }}",          path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-72B-Instruct-${{ github.run_id }}",         path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-1-8B-Instruct-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-3-70B-Instruct-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0-3-${{ github.run_id }}", path: results/}}
 
       - name: Generate unified tier comparison report
         env:
@@ -330,7 +330,7 @@ jobs:
           cat docs/site/model-comparison.md
 
       - name: Upload comparison report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bench-comparison-${{ github.run_id }}
           path: docs/site/model-comparison.md
