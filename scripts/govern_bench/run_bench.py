@@ -26,7 +26,9 @@ Environment variables:
     BENCH_JUDGE_PROVIDER  LLM judge provider: anthropic|openai (default: anthropic)
     ANTHROPIC_API_KEY     Required for Anthropic judge
     OPENAI_API_KEY        Required for OpenAI judge
-    BENCH_PROVIDER        Agent provider override (openai|anthropic|google|openai-compat)
+    BENCH_PROVIDER        Agent provider override
+                          (openai|anthropic|google|openai-compat|huggingface)
+    HF_TOKEN              Required for provider=huggingface (HuggingFace Inference API token)
     BENCH_OPENAI_BASE_URL Default base URL for provider=openai-compat
     BENCH_DRY_RUN         Set to '1' to skip actual agent calls (for CI)
 """
@@ -96,7 +98,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--provider",
         default=os.environ.get("BENCH_PROVIDER", "openai"),
-        choices=["openai", "anthropic", "google", "openai-compat"],
+        choices=["openai", "anthropic", "google", "openai-compat", "huggingface"],
         help="Model provider to use for task runs (default: openai)",
     )
     parser.add_argument(
