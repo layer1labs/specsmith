@@ -957,7 +957,7 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Hardware / Embedded:** `fpga-rtl`, `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`, `mixed-fpga-embedded`, `mixed-fpga-firmware`, `yocto-bsp`, `embedded-hardware`, `pcb-hardware`, `safety-critical`.
 
-**Documents & IP:** `spec-document`, `user-manual`, `research-paper`, `research-python`, `api-specification`, `requirements-mgmt`, `patent-application`, `patent-prosecution`.
+**Documents & IP:** `spec-document`, `user-manual`, `research-paper`, `research-python`, `api-specification`, `brief-lang`, `requirements-mgmt`, `patent-application`, `patent-prosecution`.
 
 **Business / Legal / AEE:** `business-plan`, `legal-compliance`, `monorepo`, `browser-extension`, `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
 
@@ -1021,7 +1021,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **136 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+specsmith ships **138 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
 
 ```bash
 # List all available skills
@@ -1042,9 +1042,9 @@ Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered
 
 | Domain | Count | Coverage |
 |--------|-------|----------|
-| `governance` | 20 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
+| `governance` | 21 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
 | `ai-agents` | 14 | LLM apps, MCP servers, agent orchestration, RAG, prompt engineering, fine-tuning, MLOps |
-| `software-engineering` | 13 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
+| `software-engineering` | 14 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
 | `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
 | `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
 | `embedded` | 11 | Zephyr, Yocto, FreeRTOS, bare-metal C, NuttX, Buildroot, Azure RTOS |
