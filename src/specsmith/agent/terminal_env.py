@@ -21,6 +21,7 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import asdict, dataclass
+from typing import TextIO
 
 # ---------------------------------------------------------------------------
 # Known CLI-agent env-var signals.
@@ -93,7 +94,7 @@ def detect_terminal(env: dict[str, str] | None = None) -> TerminalInfo:
 # ---------------------------------------------------------------------------
 
 
-def emit_warp_notification(message: str, *, stream=None) -> None:
+def emit_warp_notification(message: str, *, stream: TextIO | None = None) -> None:
     """Emit an OSC 9 terminal notification that Warp (and compatible terminals)
     surfaces as a desktop notification.
 
