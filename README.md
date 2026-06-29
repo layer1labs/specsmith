@@ -279,6 +279,20 @@ specsmith audit                          # full governance health check
 > Every utterance is preflighted automatically. Use `/why` to see the governance trace.
 > For the multi-agent DAG dispatcher, see `specsmith dispatch run "<task>"`.
 
+### Standalone CLI (no AI agent)
+
+All governance commands work without any AI agent or IDE integration:
+
+```bash
+specsmith audit                     # governance health check
+specsmith preflight "<intent>" --json  # gate a change
+specsmith verify                    # check equilibrium after changes
+specsmith save                      # ESDB backup + commit + push
+specsmith kill-session              # clean shutdown
+```
+
+For the full standalone session workflow, Nexus REPL usage, multi-agent dispatcher, and CI integration: **[Standalone CLI docs →](https://specsmith.readthedocs.io/en/stable/standalone-cli/)**
+
 ---
 
 ## Machine State Sync + YAML Governance
@@ -1074,6 +1088,121 @@ Three skills document specsmith itself:
 ```bash
 oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save my work"
 ```
+
+---
+
+## Agent Integrations
+
+Run `specsmith integrate <tool>` once in your project root — specsmith writes the governance file your AI client reads automatically.
+
+| Tool | Command | Generated file | MCP support |
+|---|---|---|---|
+| **Warp** | `specsmith integrate warp` | `.warp/specsmith-mcp.json` + `.warp/launch_configs/` | ✓ Native |
+| **Claude Code** | `specsmith integrate claude-code` | `CLAUDE.md` | ✓ via `.mcp.json` |
+| **Cursor** | `specsmith integrate cursor` | `.cursor/rules/governance.mdc` | ✓ via `.cursor/mcp.json` |
+| **Windsurf** | `specsmith integrate windsurf` | `.windsurfrules` | ✓ via Settings → MCP |
+| **Gemini CLI** | `specsmith integrate gemini` | `GEMINI.md` | — |
+| **Aider** | `specsmith integrate aider` | `.aider.conf.yml` | — |
+| **Copilot** | `specsmith integrate copilot` | `.github/copilot-instructions.md` | — |
+
+All generated files embed the same core content: governance rules, the mandatory session protocol, preflight requirements, and AGENTS.md as the primary governance source.
+
+### Mandatory session protocol (all tools)
+
+```bash
+# Session start
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .   # output GOVERNANCE ANCHOR verbatim
+
+# Before every code change
+specsmith preflight "<describe the change>" --json
+# decision == "accepted"           → proceed with work_item_id in scope
+# decision == "needs_clarification" → surface instruction to user first
+
+# Every 8–10 turns
+specsmith checkpoint --project-dir .
+
+# Session end
+specsmith save && specsmith kill-session
+```
+
+### Claude Code
+
+```bash
+specsmith integrate claude-code   # writes CLAUDE.md
+```
+
+To enable native MCP tool calls, add to `.mcp.json` (project root) or `~/.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "specsmith-governance": {
+      "command": "specsmith",
+      "args": ["mcp", "serve", "--project-dir", "."]
+    }
+  }
+}
+```
+
+Or run `specsmith mcp install-claude-code` to print the snippet. With MCP configured, Claude calls governance tools natively — no shell roundtrip.
+
+### Cursor
+
+```bash
+specsmith integrate cursor   # writes .cursor/rules/governance.mdc
+```
+
+Add to `.cursor/mcp.json` to enable MCP:
+
+```json
+{
+  "specsmith-governance": {
+    "command": "specsmith",
+    "args": ["mcp", "serve", "--project-dir", "${workspaceFolder}"]
+  }
+}
+```
+
+### Windsurf
+
+```bash
+specsmith integrate windsurf   # writes .windsurfrules
+```
+
+MCP: **Settings → MCP Servers** → `{ "specsmith-governance": { "command": "specsmith", "args": ["mcp", "serve"] } }`
+
+### Gemini CLI
+
+```bash
+specsmith integrate gemini   # writes GEMINI.md (read automatically by the gemini CLI)
+```
+
+### Aider
+
+```bash
+specsmith integrate aider   # writes .aider.conf.yml
+```
+
+For full governance, use `--no-auto-commits` and commit via `specsmith save`:
+
+```bash
+aider --no-auto-commits --read AGENTS.md --read .agents/skills/specsmith-session-governance/SKILL.md
+```
+
+Run `specsmith preflight` in a separate terminal before each change; run `specsmith save` after aider finishes.
+
+### GitHub Copilot
+
+```bash
+specsmith integrate copilot   # writes .github/copilot-instructions.md
+```
+
+Copilot reads `.github/copilot-instructions.md` for all workspace interactions. MCP not yet natively supported; governance is enforced through the instructions file and `AGENTS.md`.
+
+Full per-tool setup: **[Agent Integrations docs →](https://specsmith.readthedocs.io/en/stable/agent-integrations/)**
 
 ---
 
