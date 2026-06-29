@@ -12,6 +12,25 @@ consolidated into the next published release.
 
 ---
 
+## [0.20.1] - 2026-06-29
+Docs + packaging-metadata refresh. No changes to `src/specsmith/` runtime behavior
+from 0.20.0 — this release exists primarily to refresh the README rendered on the
+PyPI project page and to clear a CI deprecation warning.
+### Changed
+- **README refreshed for v0.20.0** — documents native Warp integration
+  (`specsmith integrate warp` + Warp-aware REPL, REQ-444), VRAM-aware
+  `specsmith local-model recommend` (REQ-445), corrected built-in skill count
+  (138 across 16 domains) and the requirement domain-files table, and added the
+  missing `brief-lang` project type to the grouped listing.
+- **release-pilot skill** now documents the PR-merge flow for the protected `main`
+  branch (tags point at the main merge commit) instead of a fast-forward push.
+### Fixed
+- **`release.yml` pypi-publish input** — renamed the deprecated `skip_existing`
+  input to kebab-case `skip-existing` for `pypa/gh-action-pypi-publish`, clearing
+  the deprecation warning on every tagged release.
+
+---
+
 ## [0.20.0] - 2026-06-29
 
 ### Added
@@ -873,7 +892,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.20.0...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.20.1...HEAD
+[0.20.1]: https://github.com/layer1labs/specsmith/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/layer1labs/specsmith/compare/v0.19.2...v0.20.0
 [0.17.1]: https://github.com/layer1labs/specsmith/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/layer1labs/specsmith/compare/v0.16.5...v0.17.0
