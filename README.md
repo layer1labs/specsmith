@@ -48,15 +48,17 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.16.5** — published `COMMERCIAL-LICENSE.md` (ChronoMemory commercial ESDB terms only) and clarified ESDB licensing links/scope; Codity AI Review remains opt-in via `specsmith integrate codity`.
+**v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
 
-**v0.16.3** — docs navigation patch release: keeps Material tabs enabled while regrouping top-level docs navigation to reduce overflow, and aligns MkDocs scaffold defaults plus the MkDocs skill example with the grouped-tab layout.
+**v0.19.x** — `specsmith wi link-test`, the governance-YAML content auditor and sync markdown-reconcile warnings, and a HuggingFace provider + 15-model multi-provider benchmark matrix for GovernanceBench.
 
-**v0.16.1** — governance efficiency benchmark suite (12 conditions, 3 tasks, gpt-4o-mini + gpt-5.5 comparison); cross-model comparison report; real OpenAI agent harness; CI matrix job. Also includes the v0.16.0 stabilisation milestone: 20+ CLI commands, ESDB SQLite backend, chronomemory 0.2.0, Python 3.10–3.13 × Ubuntu + Windows green, 1 607 tests passing.
+**v0.18.0** — ESDB-first dual-write architecture (every governance event is written to ESDB alongside the append-only `LEDGER.md`), the `specsmith inspect` session-start governance block, and a token-pricing / cost-of-pass module.
+
+**v0.17.x** — Canonical `docs/SPECSMITH.yml` scaffold path adopted across every CLI command, with CodeQL alerts driven to zero.
 
 specsmith ships a full compliance and auditability layer aligned to the EU AI Act (2024/1689) and the NIST AI Risk Management Framework 1.0. Every agent action is cryptographically sealed, every AI-generated output is disclosed, context windows are GPU-aware, and compliance settings are configurable per-session and per-project.
 
-### Selected v0.16 CLI highlights
+### Selected CLI highlights
 
 ```bash
 specsmith governance-serve --port 7700     # governance REST API
@@ -65,6 +67,8 @@ specsmith generate docs                     # regenerate REQUIREMENTS.md + TESTS
 specsmith validate --strict                 # dup IDs, orphans, coverage gaps
 specsmith agent permissions-check git_push  # tool permission gate (REQ-012)
 specsmith ollama gpu                        # detect GPU VRAM, recommend context size
+specsmith local-model recommend            # VRAM-aware model lineup (fits/tight/spills)
+specsmith integrate warp                    # scaffold Warp-native governance (MCP + launch config)
 specsmith export                            # generate full compliance report
 
 # Update channels
@@ -313,7 +317,9 @@ be overwritten by the next sync.
 | `docs/requirements/yaml_governance.yml` | REQ-300..312 | YAML governance layer |
 | `docs/requirements/multiagent_compliance.yml` | REQ-313..320 | Multi-agent governance traceability |
 | `docs/requirements/dispatch.yml` | REQ-321..334 | Multi-agent DAG dispatcher |
-| `docs/requirements/overflow.yml` | REQ-335..356 | VCS ops, skills catalog, ESDB namespace, session governance, modern web types, Codity.ai integration |
+| `docs/requirements/esdb_full_coverage.yml` | REQ-395..402 | ESDB coverage gap-fill |
+| `docs/requirements/esdb_first.yml` | REQ-403..422 | ESDB-first dual-write architecture |
+| `docs/requirements/overflow.yml` | REQ-050, REQ-335..445 | VCS ops, skills catalog, session governance, Codity.ai, native Warp integration (REQ-444), VRAM-aware local-model recommendations (REQ-445) |
 
 **Migration from Markdown-primary:**
 `scripts/migrate_governance_to_yaml.py` once to convert an existing project.
@@ -407,7 +413,7 @@ Every preflight response includes a mandatory `ai_disclosure` block:
     "governance_gated": true,
     "provider": "ollama",
     "model": "qwen2.5:14b",
-    "spec_version": "0.16.2"
+    "spec_version": "0.20.0"
   }
 }
 ```
@@ -861,6 +867,12 @@ specsmith ollama list                  # show installed models
 GPU-aware context sizing: 4K/8K/16K/32K tokens based on detected VRAM.
 Override via `SPECSMITH_OLLAMA_CONTEXT_LENGTH` env var or `ollama.context_length` in `.specsmith/config.yml`.
 
+**VRAM-aware model lineup (REQ-445):** `specsmith local-model recommend` prints a per-role
+lineup — default / fast / harder pass / general — keyed to your detected VRAM, with a fit
+assessment (`fits` / `tight` / `spills`) so you can see which models run fully on the GPU
+before pulling. `specsmith local-model detect` and `specsmith local-model setup` pick and
+install a single hardware-appropriate Qwen2.5-Coder model.
+
 ---
 
 ## FPGA / HDL Projects
@@ -903,9 +915,11 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Ollama:** `ollama list/available/gpu/pull/suggest`
 
+**Local Model:** `local-model detect/recommend/setup`
+
 **Workspace:** `workspace init/audit/export`
 
-**Integrations:** `integrate codity` `integrate claude-code` `integrate cursor` `integrate copilot` `integrate aider` `integrate gemini` `integrate windsurf` `integrate agent-skill`
+**Integrations:** `integrate warp` `integrate codity` `integrate claude-code` `integrate cursor` `integrate copilot` `integrate aider` `integrate gemini` `integrate windsurf` `integrate agent-skill`
 
 **VCS:** `commit` `push` `pull` `save` `load` `sync` `branch` `pr` `status` `checkpoint`
 
@@ -943,7 +957,7 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 
 **Hardware / Embedded:** `fpga-rtl`, `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`, `mixed-fpga-embedded`, `mixed-fpga-firmware`, `yocto-bsp`, `embedded-hardware`, `pcb-hardware`, `safety-critical`.
 
-**Documents & IP:** `spec-document`, `user-manual`, `research-paper`, `research-python`, `api-specification`, `requirements-mgmt`, `patent-application`, `patent-prosecution`.
+**Documents & IP:** `spec-document`, `user-manual`, `research-paper`, `research-python`, `api-specification`, `brief-lang`, `requirements-mgmt`, `patent-application`, `patent-prosecution`.
 
 **Business / Legal / AEE:** `business-plan`, `legal-compliance`, `monorepo`, `browser-extension`, `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
 
@@ -1007,7 +1021,7 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **136 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+specsmith ships **138 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
 
 ```bash
 # List all available skills
@@ -1028,9 +1042,9 @@ Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered
 
 | Domain | Count | Coverage |
 |--------|-------|----------|
-| `governance` | 20 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
+| `governance` | 21 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
 | `ai-agents` | 14 | LLM apps, MCP servers, agent orchestration, RAG, prompt engineering, fine-tuning, MLOps |
-| `software-engineering` | 13 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
+| `software-engineering` | 14 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
 | `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
 | `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
 | `embedded` | 11 | Zephyr, Yocto, FreeRTOS, bare-metal C, NuttX, Buildroot, Azure RTOS |
@@ -1063,10 +1077,31 @@ oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save 
 
 ---
 
-## Warp Terminal Integration (v0.13.0)
+## Warp Terminal Integration
 
-specsmith ships native integration with [Warp](https://www.warp.dev) terminal — both as
-an MCP server and as repository workflows.
+specsmith ships first-class integration with [Warp](https://www.warp.dev) terminal: a
+one-command `specsmith integrate warp` setup, a governance MCP server, a Warp-aware
+agentic REPL, and repository workflows.
+
+### One-command setup — `specsmith integrate warp`
+
+```bash
+specsmith integrate warp        # scaffold Warp-native governance into the repo
+```
+
+The `warp` adapter (first-class as of v0.20.0 — no longer a legacy alias to `agent-skill`)
+writes:
+
+- `.warp/specsmith-mcp.json` — the governance MCP server config (identical to `specsmith mcp install-warp`)
+- `.warp/launch_configs/specsmith-governed.yaml` — a Warp launch configuration that opens a governed `specsmith run` session
+- `.agents/skills/SKILL.md` — the auto-discovered governance skill
+
+### Warp-aware REPL
+
+When you start `specsmith run` inside Warp, specsmith detects the host terminal (via
+`TERM_PROGRAM` / `WARP_*` env vars) and shows a `terminal: Warp … — native integration
+active` banner; the JSON `ready` frame carries a matching `terminal` field. Behavior is
+unchanged outside Warp.
 
 ### Native MCP Governance Server
 
