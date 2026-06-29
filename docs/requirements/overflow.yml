@@ -420,3 +420,21 @@
   description: The specsmith ps command has no explicit REQ. It must list all tracked
     PIDs from .specsmith/pids/, report status (running/stopped/unknown) for each,
     and integrate with kill-session so process cleanup is auditable and idempotent.
+- id: REQ-444
+  title: Native Warp integration
+  status: planned
+  description: 'specsmith provides a first-class Warp integration: a ''warp'' integration
+    adapter (specsmith integrate warp) that generates Warp-native artifacts (MCP governance
+    server config, a Tab Config for a governed session, and a governance skill) so
+    Warp''s agent is governed by specsmith; and the ''specsmith run'' REPL detects
+    when it runs inside Warp (TERM_PROGRAM/WARP_*) and adapts its banner/ready frame
+    accordingly.'
+- id: REQ-445
+  title: VRAM-aware local model recommendations
+  status: planned
+  description: 'First-class Ollama model recommendation engine: a model catalog with
+    approximate Q4 VRAM footprints and a recommend_models(vram_gb)/recommend_for_hardware()
+    API that selects a role lineup (default/coding, fast scratch, harder pass/reasoning,
+    general) keyed by the detected GPU VRAM tier, with per-model fit assessment (fits/tight/spills-to-RAM).
+    Exposed via ''specsmith local-model recommend'' (+ --json). Must not change existing
+    detect_local_model/detect_local_models behavior.'

@@ -5625,12 +5625,14 @@ def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
     what belief artifacts this tool provides evidence for, what its
     uncertainty bounds are, and what failure modes it might introduce.
     """
+    from specsmith.paths import find_requirements, find_scaffold
+
     root = Path(project_dir).resolve()
-    req_path = root / "docs" / "REQUIREMENTS.md"
+    req_path = find_requirements(root)
 
     console.print(f"[bold]Epistemic Impact Analysis[/bold]: {tool_name}\n")
 
-    if req_path.exists():
+    if req_path is not None:
         from specsmith.epistemic.belief import parse_requirements_as_beliefs
 
         artifacts = parse_requirements_as_beliefs(req_path)
@@ -5669,19 +5671,23 @@ def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
         from specsmith.integrations import get_adapter
 
         adapter = get_adapter(tool_name)
-        scaffold_path = root / "scaffold.yml"
-        if scaffold_path.exists():
+        scaffold_file = find_scaffold(root)
+        if scaffold_file is not None:
             import yaml
 
-            with open(scaffold_path) as f:
+            from specsmith.config import _normalize_scaffold_raw
+
+            with open(scaffold_file) as f:
                 raw = yaml.safe_load(f)
-            config = ProjectConfig(**raw)
+            config = ProjectConfig(**_normalize_scaffold_raw(raw or {}))
             created = adapter.generate(config, root)
             for path in created:
                 console.print(f"  [green]✓[/green] {path.relative_to(root)}")
             console.print(f"\n[bold green]{len(created)} adapter file(s) generated.[/bold green]")
         else:
-            console.print("[yellow]No scaffold.yml found. Run specsmith import first.[/yellow]")
+            console.print(
+                "[yellow]No docs/SPECSMITH.yml found. Run specsmith import first.[/yellow]"
+            )
     except ValueError:
         console.print(
             f"[yellow]No built-in adapter for '{tool_name}'.[/yellow] "
@@ -10592,41 +10598,10 @@ def mcp_install_warp_cmd(as_json: bool) -> None:
     to ``oz agent run --mcp '<json>'`` for a one-off cloud agent run.
     """
     import json as _json
-    import shutil
-    import sys
 
-    # Env vars the server needs regardless of how it is invoked.
-    # SPECSMITH_ALLOW_NON_PIPX=1  — prevents the pipx-enforcement gate from
-    #   exiting before the MCP handshake when Warp starts the server directly.
-    # SPECSMITH_NO_AUTO_UPDATE / SPECSMITH_PYPI_CHECKED  — suppress network
-    #   calls on startup so the server responds immediately.
-    server_env = {
-        "SPECSMITH_ALLOW_NON_PIPX": "1",
-        "SPECSMITH_NO_AUTO_UPDATE": "1",
-        "SPECSMITH_PYPI_CHECKED": "1",
-    }
+    from specsmith.mcp_server import build_warp_mcp_config
 
-    # Executable detection strategy (in priority order):
-    # 1. specsmith (or specsmith.exe) on PATH — covers pipx shims and system installs.
-    # 2. python -m specsmith via the current interpreter — reliable fallback
-    #    for editable dev installs and venvs where the console script wrapper
-    #    is absent or resolves incorrectly (e.g. some Windows pipx setups).
-    specsmith_exe = shutil.which("specsmith") or shutil.which("specsmith.exe")
-    if specsmith_exe:
-        cmd = specsmith_exe
-        args: list[str] = ["mcp", "serve"]
-    else:
-        # Fall back to `python -m specsmith` using the current interpreter.
-        cmd = sys.executable
-        args = ["-m", "specsmith", "mcp", "serve"]
-
-    config = {
-        "specsmith-governance": {
-            "command": cmd,
-            "args": args,
-            "env": server_env,
-        }
-    }
+    config = build_warp_mcp_config()
 
     if as_json:
         click.echo(_json.dumps(config, indent=2))
@@ -14149,6 +14124,55 @@ def local_model_detect_cmd(as_json: bool) -> None:
     console.print(f"[bold]To pull:[/bold]   [cyan]{info.pull_cmd}[/cyan]")
     console.print(
         "\n[dim]Run [bold]specsmith local-model setup[/bold] to download the model.[/dim]"
+    )
+
+
+@local_model_group.command(name="recommend")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Emit result as JSON.")
+def local_model_recommend_cmd(as_json: bool) -> None:
+    """Recommend a full local model lineup based on detected GPU VRAM (REQ-445).
+
+    Detects the host GPU and prints a VRAM-aware role lineup (default / fast /
+    harder pass / general) with a per-model fit assessment so you can see which
+    models run fully on the GPU and which would spill to system RAM.
+    """
+    import json as _json
+
+    from specsmith.local_model import recommend_for_hardware
+
+    lineup = recommend_for_hardware()
+
+    if as_json:
+        click.echo(
+            _json.dumps(
+                lineup.as_dict()
+                if lineup is not None
+                else {"hardware": None, "reason": "cpu-only or insufficient VRAM", "models": []}
+            )
+        )
+        return
+
+    if lineup is None:
+        console.print(
+            "[yellow]\u2014[/yellow] No GPU / insufficient VRAM detected. "
+            "Local model recommendations skipped (CPU-only would be too slow)."
+        )
+        return
+
+    console.print(
+        f"[bold]Hardware:[/bold] {lineup.hardware}  ([bold]{lineup.vram_gb:.1f} GB[/bold] VRAM)\n"
+    )
+    _fit_color = {"fits": "green", "tight": "yellow", "spills": "red"}
+    for rec in lineup.models:
+        color = _fit_color.get(rec.fit.value, "white")
+        console.print(
+            f"  [bold]{rec.slot:<8}[/bold] [green]{rec.model:<22}[/green] "
+            f"~{rec.footprint_gb:.1f} GB  [{color}]{rec.fit_note}[/{color}]"
+        )
+        console.print(f"           [dim]{rec.summary}[/dim]")
+    console.print(
+        "\n[dim]Pull all with [bold]specsmith local-model setup[/bold], or pull one with "
+        "[bold]ollama pull <model>[/bold].[/dim]"
     )
 
 

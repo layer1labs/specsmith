@@ -15,12 +15,11 @@ ADAPTER_REGISTRY: dict[str, type[AgentAdapter]] = {}
 # canonical name. Lookups for legacy keys still succeed (backward compat for
 # existing scaffold.yml files) but only the canonical names are returned by
 # ``list_adapters()``.
-LEGACY_ALIASES: dict[str, str] = {
-    # Pre-0.5.0 the agent-skill adapter shipped under the name ``warp`` and
-    # wrote to ``.warp/skills/SKILL.md``. New scaffolds use ``agent-skill``
-    # and ``.agents/skills/SKILL.md``.
-    "warp": "agent-skill",
-}
+#
+# Note: ``warp`` is no longer an alias — it now resolves to the dedicated
+# :class:`~specsmith.integrations.warp.WarpAdapter`, which still emits the
+# governance skill (via ``AgentSkillAdapter``) plus Warp-native artifacts.
+LEGACY_ALIASES: dict[str, str] = {}
 
 
 def _load_adapters() -> None:
@@ -32,6 +31,7 @@ def _load_adapters() -> None:
     from specsmith.integrations.copilot import CopilotAdapter
     from specsmith.integrations.cursor import CursorAdapter
     from specsmith.integrations.gemini import GeminiAdapter
+    from specsmith.integrations.warp import WarpAdapter
     from specsmith.integrations.windsurf import WindsurfAdapter
 
     for cls in (
@@ -43,6 +43,7 @@ def _load_adapters() -> None:
         GeminiAdapter,
         WindsurfAdapter,
         AiderAdapter,
+        WarpAdapter,
     ):
         ADAPTER_REGISTRY[cls().name] = cls
 

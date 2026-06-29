@@ -34,17 +34,20 @@ class TestAdapterRegistry:
         assert "claude-code" in adapters
         assert "cursor" in adapters
         assert "copilot" in adapters
-        # Legacy aliases are not surfaced as canonical names.
-        assert "warp" not in adapters
+        # `warp` is now a first-class adapter (REQ-444), not a legacy alias.
+        assert "warp" in adapters
 
     def test_get_adapter(self) -> None:
         adapter = get_adapter("agent-skill")
         assert isinstance(adapter, AgentSkillAdapter)
 
-    def test_get_adapter_legacy_alias(self) -> None:
-        # Existing scaffold.yml configs that still say `warp` keep working.
+    def test_get_adapter_warp(self) -> None:
+        # `warp` now resolves to the dedicated WarpAdapter (was an alias to
+        # agent-skill pre-REQ-444).
+        from specsmith.integrations.warp import WarpAdapter
+
         adapter = get_adapter("warp")
-        assert isinstance(adapter, AgentSkillAdapter)
+        assert isinstance(adapter, WarpAdapter)
 
     def test_get_unknown_adapter(self) -> None:
         with pytest.raises(ValueError, match="Unknown integration"):

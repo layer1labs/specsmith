@@ -76,6 +76,9 @@ _REASON_14B = "deepseek-r1:14b"
 _REASON_8B = "deepseek-r1:8b"
 _REASON_7B = "deepseek-r1:7b"
 
+# ── Heavier coder for the "harder pass" slot (deepseek-coder-v2, MoE) ───────
+_DEEPSEEK_CODER_V2 = "deepseek-coder-v2:16b"
+
 
 @dataclass
 class LocalModelInfo:
@@ -394,6 +397,209 @@ def detect_local_model() -> LocalModelInfo | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# VRAM-aware recommendation engine (REQ-445)
+# ---------------------------------------------------------------------------
+#
+# ``recommend_models`` turns a detected VRAM figure into a complete, first-class
+# role lineup with per-model fit assessment, so recommendations always follow
+# the GPU that was actually detected. ``recommend_for_hardware`` is the
+# top-level entry point: it detects the host GPU (Apple Silicon or NVIDIA) and
+# applies the same VRAM tiering used by ``detect_local_models``.
+
+# Approximate on-GPU footprint (GB) for each model at its default Ollama
+# quantization (Q4_K_M for dense models; MoE active-params for deepseek-coder-v2).
+# Used purely to assess fit against detected VRAM — not an exact figure.
+_MODEL_FOOTPRINT_GB: dict[str, float] = {
+    _MODEL_7B: 4.7,
+    _MODEL_14B: 9.0,
+    _MODEL_32B: 20.0,
+    _GEN_7B: 4.7,
+    _GEN_14B: 9.0,
+    _GEN_32B: 20.0,
+    _REASON_7B: 4.7,
+    _REASON_8B: 5.2,
+    _REASON_14B: 9.0,
+    _DEEPSEEK_CODER_V2: 8.9,
+}
+
+# Headroom (GB) reserved above a model's footprint for the KV cache / context.
+_FIT_HEADROOM_GB = 2.0
+
+
+class ModelFit(str, Enum):
+    """How well a model fits the detected VRAM."""
+
+    fits = "fits"  # footprint + headroom <= VRAM → fully on GPU
+    tight = "tight"  # footprint <= VRAM < footprint + headroom
+    spills = "spills"  # footprint > VRAM → partial CPU offload (slow)
+
+
+_FIT_NOTE: dict[ModelFit, str] = {
+    ModelFit.fits: "fits fully on GPU",
+    ModelFit.tight: "fits but tight — reduce context if slow",
+    ModelFit.spills: "exceeds VRAM — partial CPU offload, expect slowdown",
+}
+
+
+def assess_fit(model: str, vram_gb: float) -> ModelFit:
+    """Assess how *model* fits in *vram_gb* of VRAM (REQ-445).
+
+    Unknown models are treated optimistically as ``fits`` so a missing
+    footprint entry never blocks a recommendation.
+    """
+    footprint = _MODEL_FOOTPRINT_GB.get(model)
+    if footprint is None:
+        return ModelFit.fits
+    if footprint + _FIT_HEADROOM_GB <= vram_gb:
+        return ModelFit.fits
+    if footprint <= vram_gb:
+        return ModelFit.tight
+    return ModelFit.spills
+
+
+@dataclass
+class RecommendedModel:
+    """A single VRAM-aware model recommendation for one usage slot (REQ-445)."""
+
+    slot: str
+    """Usage slot: ``default`` | ``fast`` | ``harder`` | ``general``."""
+
+    role: ModelRole
+    """Router role this slot maps to (coding/general/reasoning)."""
+
+    model: str
+    """Ollama model tag."""
+
+    footprint_gb: float
+    """Approximate on-GPU footprint in GB."""
+
+    fit: ModelFit
+    """Fit against the detected VRAM."""
+
+    summary: str
+    """What this slot is for."""
+
+    @property
+    def pull_cmd(self) -> str:
+        return f"ollama pull {self.model}"
+
+    @property
+    def fit_note(self) -> str:
+        return _FIT_NOTE[self.fit]
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "slot": self.slot,
+            "role": self.role.value,
+            "model": self.model,
+            "footprint_gb": self.footprint_gb,
+            "fit": self.fit.value,
+            "fit_note": self.fit_note,
+            "summary": self.summary,
+            "pull_cmd": self.pull_cmd,
+        }
+
+
+@dataclass
+class RecommendedLineup:
+    """A complete VRAM-aware lineup recommendation (REQ-445)."""
+
+    hardware: str
+    vram_gb: float
+    models: list[RecommendedModel]
+
+    def role_config(self) -> dict[str, str]:
+        """Return the role→tag mapping for ``.specsmith/local-models.yml``.
+
+        Maps the router's three roles to lineup slots:
+        ``coding`` → default, ``general`` → general, ``reasoning`` → harder.
+        """
+        by_role: dict[str, str] = {}
+        for rec in self.models:
+            # First write wins per role (slots are emitted in priority order).
+            by_role.setdefault(rec.role.value, rec.model)
+        return by_role
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "hardware": self.hardware,
+            "vram_gb": self.vram_gb,
+            "models": [m.as_dict() for m in self.models],
+        }
+
+
+def _tiered_tag(vram_gb: float, *, tag_32b: str, tag_14b: str, tag_7b: str) -> str:
+    """Select a dense-model tag for *vram_gb* using the NVIDIA VRAM tiers."""
+    if vram_gb >= _TIER_32B_GB:
+        return tag_32b
+    if vram_gb >= _TIER_14B_GB:
+        return tag_14b
+    return tag_7b
+
+
+def recommend_models(vram_gb: float, hardware: str = "") -> RecommendedLineup | None:
+    """Recommend a full role lineup for *vram_gb* of VRAM (REQ-445).
+
+    Returns ``None`` below the minimum tier (``< _TIER_7B_GB``), where local
+    inference would be unusably slow. The lineup always follows the supplied
+    VRAM: the default/general slots scale with the VRAM tier (7b/14b/32b) while
+    the ``fast`` and ``harder`` slots are fixed picks whose fit is reported
+    relative to *vram_gb* so the caller can warn about CPU spillover.
+    """
+    if vram_gb < _TIER_7B_GB:
+        return None
+
+    default_tag = _tiered_tag(vram_gb, tag_32b=_MODEL_32B, tag_14b=_MODEL_14B, tag_7b=_MODEL_7B)
+    general_tag = _tiered_tag(vram_gb, tag_32b=_GEN_32B, tag_14b=_GEN_14B, tag_7b=_GEN_7B)
+
+    specs: list[tuple[str, ModelRole, str, str]] = [
+        ("default", ModelRole.coding, default_tag, "Default daily driver — balanced coding model."),
+        (
+            "fast",
+            ModelRole.coding,
+            _MODEL_7B,
+            "Fast scratch model — quick edits, big context headroom.",
+        ),
+        (
+            "harder",
+            ModelRole.reasoning,
+            _DEEPSEEK_CODER_V2,
+            "Harder C/Python pass — heavier reasoning-capable coder.",
+        ),
+        ("general", ModelRole.general, general_tag, "General chat / project management."),
+    ]
+
+    models = [
+        RecommendedModel(
+            slot=slot,
+            role=role,
+            model=tag,
+            footprint_gb=_MODEL_FOOTPRINT_GB.get(tag, 0.0),
+            fit=assess_fit(tag, vram_gb),
+            summary=summary,
+        )
+        for slot, role, tag, summary in specs
+    ]
+    return RecommendedLineup(hardware=hardware or "unknown", vram_gb=vram_gb, models=models)
+
+
+def recommend_for_hardware() -> RecommendedLineup | None:
+    """Detect the host GPU and recommend a VRAM-aware lineup (REQ-445).
+
+    Mirrors the detection order of :func:`detect_local_models` (Apple Silicon
+    first, then NVIDIA) and applies the same VRAM tiering. Returns ``None`` on
+    CPU-only machines or when the detected VRAM is below the minimum tier.
+    """
+    as_gb = _detect_apple_silicon_gb()
+    if as_gb is not None:
+        return recommend_models(as_gb, hardware=f"apple-silicon-{int(as_gb)}gb")
+    nv_gb = _detect_nvidia_vram_gb()
+    if nv_gb is not None:
+        return recommend_models(nv_gb, hardware=f"nvidia-{int(nv_gb)}gb")
+    return None
+
+
 def ensure_local_model(model_tag: str) -> bool:
     """Pull *model_tag* via Ollama if it is not already present.
 
@@ -426,10 +632,16 @@ def ensure_local_model(model_tag: str) -> bool:
 
 __all__ = [
     "LocalModelInfo",
+    "ModelFit",
     "ModelRole",
+    "RecommendedLineup",
+    "RecommendedModel",
+    "assess_fit",
     "detect_local_model",
     "detect_local_models",
     "ensure_local_model",
     "load_local_models_config",
+    "recommend_for_hardware",
+    "recommend_models",
     "save_local_models_config",
 ]
