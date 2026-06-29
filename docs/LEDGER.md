@@ -294,3 +294,9 @@
 - **Type**: wi_close
 - **Status**: complete
 - **Chain hash**: `6705d87a2a6a2059...`
+
+## 2026-06-29T14:07 — specsmith migration: 0.19.2 → 0.20.1
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `087ee05e1059ce80...`

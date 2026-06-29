@@ -199,6 +199,54 @@ The `specsmith-session-governance` skill is the most important for AI sessions �
 
 ---
 
+## Third-party CLI agent toolbar
+
+Warp shows its coding agent toolbelt automatically for natively supported agents (claude, codex, gemini, cursor). For **specsmith** and **aider** — which are not yet natively supported — add the following regex once in **Warp → Settings → Agents → Third party CLI agents → Commands that enable the toolbar**:
+
+```
+specsmith\s+run|aider
+```
+
+Once saved, the toolbelt appears whenever `specsmith run` or `aider` is active in any pane, giving you:
+
+| Feature | Available |
+|---|---|
+| Rich Input editor (`Ctrl+G`) | ✓ |
+| Attach code as context | ✓ |
+| File Explorer | ✓ |
+| Tab Configs | ✓ |
+| Remote Control | ✓ |
+| Agent notifications | via OSC 9 (see below) |
+
+### Desktop notifications
+
+`specsmith run` emits OSC 9 notifications directly from the REPL — no plugin required. Warp (and iTerm2, Windows Terminal) intercepts the escape sequence and surfaces it as a desktop popup. The notification fires once on session start:
+
+```
+specsmith run | <project> | governance active
+```
+
+### REPL detection
+
+When `specsmith run` starts, it sets `SPECSMITH_RUN_ACTIVE=1` in the environment. Any child `specsmith` command (audit, preflight, checkpoint) can detect this and know it is running inside the Nexus REPL. Detection table for all supported REPLs:
+
+| REPL | Toolbar | Detection signal |
+|---|---|---|
+| `specsmith run` | Custom regex | `SPECSMITH_RUN_ACTIVE=1` |
+| `aider` | Custom regex | `AIDER_MODEL` / `AIDER_CONFIG` |
+| `claude` | Native | `CLAUDE_CODE_ENTRYPOINT` |
+| `codex` | Native | `CODEX_CLI_SESSION` |
+| `gemini` | Native | `GEMINI_CLI` |
+| `cursor` | Native | `CURSOR_TRACE_ID` |
+
+To regenerate `.warp/SETUP.md` with the full setup guide:
+
+```bash
+specsmith integrate warp
+```
+
+---
+
 ## Troubleshooting
 
 **`specsmith mcp serve` not found in Warp MCP servers list**

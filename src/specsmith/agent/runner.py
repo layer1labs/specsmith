@@ -306,6 +306,13 @@ class AgentRunner:
 
         # Host-terminal detection (REQ-444): when running inside Warp the
         # banner/ready frame advertises native integration. Read-only.
+        # Set SPECSMITH_RUN_ACTIVE so any child specsmith command (audit,
+        # preflight, checkpoint, etc.) can detect they are running inside
+        # the Nexus REPL and report context-aware governance notifications.
+        import os as _os_init
+
+        _os_init.environ.setdefault("SPECSMITH_RUN_ACTIVE", "1")
+
         from specsmith.agent.terminal_env import detect_terminal
 
         self.terminal = detect_terminal()
@@ -395,6 +402,11 @@ class AgentRunner:
             if self.terminal.is_warp:
                 ver = f" {self.terminal.version}" if self.terminal.version else ""
                 lines.insert(3, f"  terminal: Warp{ver} \u2014 native integration active")
+                # Emit OSC 9 desktop notification so Warp surfaces a popup.
+                from specsmith.agent.terminal_env import emit_warp_notification
+
+                proj = Path(self.project_dir).name
+                emit_warp_notification(f"specsmith run | {proj} | governance active")
             for s in statuses:
                 if s.available:
                     lines.append(
