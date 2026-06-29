@@ -10,6 +10,10 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+---
+
+## [0.20.0] - 2026-06-29
+
 ### Added
 
 - **VRAM-aware local model recommendations (REQ-445)** — New first-class
@@ -44,6 +48,10 @@ consolidated into the next published release.
   via `find_scaffold()`/`find_requirements()` (canonical `docs/SPECSMITH.yml` /
   `docs/REQUIREMENTS.md` with legacy fallback) and normalizes legacy keys, instead of
   hardcoding `scaffold.yml` / `docs/REQUIREMENTS.md`.
+
+- **Benchmark CI workflow on Node 24** — `bench.yml` bumped `actions/checkout@v6→v7`,
+  `actions/upload-artifact@v4→v7`, and `actions/download-artifact@v4→v8` to clear the
+  Node 20 deprecation warnings and align with the rest of the repo's workflows.
 
 ---
 
@@ -865,7 +873,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/layer1labs/specsmith/compare/v0.19.2...v0.20.0
 [0.17.1]: https://github.com/layer1labs/specsmith/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/layer1labs/specsmith/compare/v0.16.5...v0.17.0
 [0.16.5]: https://github.com/layer1labs/specsmith/compare/v0.16.4...v0.16.5
