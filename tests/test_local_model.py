@@ -395,6 +395,182 @@ class TestDetectLocalModels:
         assert roles == {}
 
 
+# ---------------------------------------------------------------------------
+# REQ-445 — VRAM-aware recommendation engine
+# ---------------------------------------------------------------------------
+
+
+class TestAssessFit:
+    def test_fits_with_headroom(self) -> None:
+        from specsmith.local_model import ModelFit, assess_fit
+
+        # qwen2.5-coder:14b ~9 GB; 9 + 2 headroom <= 12 → fits.
+        assert assess_fit("qwen2.5-coder:14b", 12.0) is ModelFit.fits
+
+    def test_tight_without_headroom(self) -> None:
+        from specsmith.local_model import ModelFit, assess_fit
+
+        # 9 GB footprint, 10 GB VRAM: fits but < footprint + 2 headroom.
+        assert assess_fit("qwen2.5-coder:14b", 10.0) is ModelFit.tight
+
+    def test_spills_when_too_big(self) -> None:
+        from specsmith.local_model import ModelFit, assess_fit
+
+        # deepseek-coder-v2:16b ~8.9 GB > 8 GB VRAM → spills to CPU.
+        assert assess_fit("deepseek-coder-v2:16b", 8.0) is ModelFit.spills
+
+    def test_unknown_model_treated_as_fits(self) -> None:
+        from specsmith.local_model import ModelFit, assess_fit
+
+        assert assess_fit("some-unknown:model", 8.0) is ModelFit.fits
+
+
+class TestRecommendModels:
+    """Recommendations must follow the supplied VRAM tier (TEST-461)."""
+
+    def test_below_minimum_returns_none(self) -> None:
+        from specsmith.local_model import recommend_models
+
+        assert recommend_models(5.0) is None
+
+    def test_24gb_uses_32b_tier(self) -> None:
+        from specsmith.local_model import recommend_models
+
+        lineup = recommend_models(24.0, hardware="nvidia-24gb")
+        assert lineup is not None
+        by_slot = {m.slot: m for m in lineup.models}
+        assert by_slot["default"].model == "qwen2.5-coder:32b"
+        assert by_slot["general"].model == "qwen2.5:32b"
+        assert by_slot["fast"].model == "qwen2.5-coder:7b"
+        assert by_slot["harder"].model == "deepseek-coder-v2:16b"
+
+    def test_12gb_rtx4070super_uses_14b_tier_all_fit(self) -> None:
+        from specsmith.local_model import ModelFit, recommend_models
+
+        lineup = recommend_models(12.0, hardware="nvidia-12gb")
+        assert lineup is not None
+        by_slot = {m.slot: m for m in lineup.models}
+        assert by_slot["default"].model == "qwen2.5-coder:14b"
+        assert by_slot["general"].model == "qwen2.5:14b"
+        # On 12 GB the whole lineup runs fully on the GPU.
+        assert all(m.fit is ModelFit.fits for m in lineup.models)
+
+    def test_8gb_uses_7b_tier_and_harder_spills(self) -> None:
+        from specsmith.local_model import ModelFit, recommend_models
+
+        lineup = recommend_models(8.0, hardware="nvidia-8gb")
+        assert lineup is not None
+        by_slot = {m.slot: m for m in lineup.models}
+        assert by_slot["default"].model == "qwen2.5-coder:7b"
+        assert by_slot["general"].model == "qwen2.5:7b"
+        # The heavier "harder pass" model does not fit in 8 GB.
+        assert by_slot["harder"].fit is ModelFit.spills
+
+    def test_role_config_maps_three_roles(self) -> None:
+        from specsmith.local_model import recommend_models
+
+        lineup = recommend_models(12.0)
+        assert lineup is not None
+        cfg = lineup.role_config()
+        assert cfg["coding"] == "qwen2.5-coder:14b"
+        assert cfg["general"] == "qwen2.5:14b"
+        assert cfg["reasoning"] == "deepseek-coder-v2:16b"
+
+
+class TestRecommendForHardware:
+    def test_follows_detected_nvidia_vram(self) -> None:
+        from specsmith.local_model import recommend_for_hardware
+
+        with (
+            patch("specsmith.local_model._detect_apple_silicon_gb", return_value=None),
+            patch("specsmith.local_model._detect_nvidia_vram_gb", return_value=12.0),
+        ):
+            lineup = recommend_for_hardware()
+
+        assert lineup is not None
+        assert lineup.vram_gb == 12.0
+        assert "nvidia" in lineup.hardware
+        assert {m.slot for m in lineup.models} == {"default", "fast", "harder", "general"}
+
+    def test_apple_silicon_detected_first(self) -> None:
+        from specsmith.local_model import recommend_for_hardware
+
+        with (
+            patch("specsmith.local_model._detect_apple_silicon_gb", return_value=24.0),
+            patch("specsmith.local_model._detect_nvidia_vram_gb", return_value=12.0),
+        ):
+            lineup = recommend_for_hardware()
+
+        assert lineup is not None
+        assert "apple-silicon" in lineup.hardware
+        assert lineup.vram_gb == 24.0
+
+    def test_cpu_only_returns_none(self) -> None:
+        from specsmith.local_model import recommend_for_hardware
+
+        with (
+            patch("specsmith.local_model._detect_apple_silicon_gb", return_value=None),
+            patch("specsmith.local_model._detect_nvidia_vram_gb", return_value=None),
+        ):
+            assert recommend_for_hardware() is None
+
+
+class TestLocalModelRecommendCLI:
+    def test_recommend_subcommand_registered(self) -> None:
+        from specsmith.cli import main
+
+        lm = main.commands["local-model"]  # type: ignore[attr-defined]
+        assert "recommend" in lm.commands  # type: ignore[attr-defined]
+
+    def test_recommend_human_output(self) -> None:
+        from click.testing import CliRunner
+
+        from specsmith.cli import main
+        from specsmith.local_model import recommend_models
+
+        lineup = recommend_models(12.0, hardware="nvidia-12gb")
+        runner = CliRunner()
+        with patch("specsmith.local_model.recommend_for_hardware", return_value=lineup):
+            result = runner.invoke(main, ["local-model", "recommend"])
+
+        assert result.exit_code == 0
+        assert "nvidia-12gb" in result.output
+        assert "qwen2.5-coder:14b" in result.output
+        assert "deepseek-coder-v2:16b" in result.output
+
+    def test_recommend_json_output_parseable(self) -> None:
+        from click.testing import CliRunner
+
+        from specsmith.cli import main
+        from specsmith.local_model import recommend_models
+
+        lineup = recommend_models(12.0, hardware="nvidia-12gb")
+        runner = CliRunner()
+        with patch("specsmith.local_model.recommend_for_hardware", return_value=lineup):
+            result = runner.invoke(main, ["local-model", "recommend", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["hardware"] == "nvidia-12gb"
+        assert data["vram_gb"] == 12.0
+        slots = {m["slot"] for m in data["models"]}
+        assert slots == {"default", "fast", "harder", "general"}
+
+    def test_recommend_json_none_for_cpu_only(self) -> None:
+        from click.testing import CliRunner
+
+        from specsmith.cli import main
+
+        runner = CliRunner()
+        with patch("specsmith.local_model.recommend_for_hardware", return_value=None):
+            result = runner.invoke(main, ["local-model", "recommend", "--json"])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["hardware"] is None
+        assert data["models"] == []
+
+
 class TestLocalModelsConfig:
     """Config persistence round-trip (TEST-395, REQ-391)."""
 

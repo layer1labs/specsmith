@@ -4966,5 +4966,29 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-460",
+    "version": 1,
+    "title": "Warp adapter generates .warp artifacts and detect_terminal flags Warp",
+    "description": "Covered by tests/test_integrations_warp.py and tests/test_terminal_env.py: WarpAdapter.generate() writes .warp/specsmith-mcp.json, .warp/launch_configs/specsmith-governed.yaml, and .agents/skills/SKILL.md; detect_terminal() identifies Warp via TERM_PROGRAM/WARP_* and AgentRunner surfaces it.",
+    "requirement_id": "REQ-444",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-461",
+    "version": 1,
+    "title": "recommend_models/recommend_for_hardware follow detected GPU VRAM tier with fit assessment",
+    "description": "Covered by tests/test_local_model.py (TestAssessFit, TestRecommendModels, TestRecommendForHardware, TestLocalModelRecommendCLI): recommend_models(vram_gb) selects 7b/14b/32b tiers by VRAM, includes deepseek-coder-v2:16b harder slot, assess_fit returns fits/tight/spills, recommend_for_hardware detects Apple Silicon then NVIDIA, and 'specsmith local-model recommend' emits human + --json output.",
+    "requirement_id": "REQ-445",
+    "type": "unit",
+    "verification_method": "pytest",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

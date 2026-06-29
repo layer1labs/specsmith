@@ -304,6 +304,12 @@ class AgentRunner:
         self.endpoint_id = (endpoint_id or "").strip() or None
         self.profile_id = (profile_id or "").strip() or None
 
+        # Host-terminal detection (REQ-444): when running inside Warp the
+        # banner/ready frame advertises native integration. Read-only.
+        from specsmith.agent.terminal_env import detect_terminal
+
+        self.terminal = detect_terminal()
+
         # Use a plain-text emitter in interactive mode so LLM tokens render
         # as readable prose instead of raw JSONL frames on the terminal.
         if emitter is not None:
@@ -374,6 +380,7 @@ class AgentRunner:
                 profile_id=self.profile_id or "",
                 capabilities=_capabilities(),
                 endpoint_id=self.endpoint_id or "",
+                terminal=self.terminal.as_dict(),
             )
         else:
             statuses = check_providers()
@@ -385,6 +392,9 @@ class AgentRunner:
                 "",
                 "  LLM providers:",
             ]
+            if self.terminal.is_warp:
+                ver = f" {self.terminal.version}" if self.terminal.version else ""
+                lines.insert(3, f"  terminal: Warp{ver} \u2014 native integration active")
             for s in statuses:
                 if s.available:
                     lines.append(

@@ -12,6 +12,49 @@ consolidated into the next published release.
 
 ---
 
+## [0.20.0] - 2026-06-29
+
+### Added
+
+- **VRAM-aware local model recommendations (REQ-445)** — New first-class
+  recommendation engine in `local_model.py`: `recommend_models(vram_gb)` and
+  `recommend_for_hardware()` produce a complete role lineup (default / fast /
+  harder pass / general) keyed by the detected GPU VRAM tier, with a per-model
+  fit assessment (`fits` / `tight` / `spills`) computed against an approximate
+  Q4 footprint catalog so CPU-spillover is flagged before you pull. The lineup
+  includes `deepseek-coder-v2:16b` for the heavier "harder C/Python pass" slot.
+  Surfaced via the new `specsmith local-model recommend` command (+ `--json`).
+  Existing `detect_local_model` / `detect_local_models` behavior is unchanged.
+
+- **Native Warp integration (REQ-444)** — New `warp` integration adapter:
+  `specsmith integrate warp` generates `.warp/specsmith-mcp.json` (governance MCP
+  config, identical to `specsmith mcp install-warp`),
+  `.warp/launch_configs/specsmith-governed.yaml` (a Warp launch configuration that
+  opens a governed `specsmith run` session), and the shared `.agents/skills/SKILL.md`.
+  The MCP-config JSON is now produced by a shared `build_warp_mcp_config()` helper in
+  `mcp_server.py` consumed by both `mcp install-warp` and the adapter. The `warp`
+  name is now a first-class adapter (previously a legacy alias to `agent-skill`).
+  Added `.agents/skills/warp-integration/SKILL.md`.
+
+- **Warp-aware REPL (REQ-444)** — New `specsmith.agent.terminal_env.detect_terminal()`
+  detects when `specsmith run` is hosted inside Warp (via `TERM_PROGRAM` / `WARP_*`
+  env vars). The interactive banner shows a `terminal: Warp … — native integration
+  active` line and the JSON `ready` frame carries a `terminal` field. Behavior is
+  unchanged outside Warp.
+
+### Fixed
+
+- **`specsmith integrate` scaffold lookup** — `integrate` now locates project config
+  via `find_scaffold()`/`find_requirements()` (canonical `docs/SPECSMITH.yml` /
+  `docs/REQUIREMENTS.md` with legacy fallback) and normalizes legacy keys, instead of
+  hardcoding `scaffold.yml` / `docs/REQUIREMENTS.md`.
+
+- **Benchmark CI workflow on Node 24** — `bench.yml` bumped `actions/checkout@v6→v7`,
+  `actions/upload-artifact@v4→v7`, and `actions/download-artifact@v4→v8` to clear the
+  Node 20 deprecation warnings and align with the rest of the repo's workflows.
+
+---
+
 ## [0.19.2] - 2026-06-28
 
 ### Added
@@ -830,7 +873,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/layer1labs/specsmith/compare/v0.19.2...v0.20.0
 [0.17.1]: https://github.com/layer1labs/specsmith/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/layer1labs/specsmith/compare/v0.16.5...v0.17.0
 [0.16.5]: https://github.com/layer1labs/specsmith/compare/v0.16.4...v0.16.5

@@ -4422,5 +4422,27 @@
     "test_ids": [
       "TEST-459"
     ]
+  },
+  {
+    "id": "REQ-444",
+    "version": 1,
+    "title": "Native Warp integration",
+    "description": "specsmith provides a first-class Warp integration: a 'warp' integration adapter (specsmith integrate warp) that generates Warp-native artifacts (MCP governance server config, a Tab Config for a governed session, and a governance skill) so Warp's agent is governed by specsmith; and the 'specsmith run' REPL detects when it runs inside Warp (TERM_PROGRAM/WARP_*) and adapts its banner/ready frame accordingly.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-460"
+    ]
+  },
+  {
+    "id": "REQ-445",
+    "version": 1,
+    "title": "VRAM-aware local model recommendations",
+    "description": "First-class Ollama model recommendation engine: a model catalog with approximate Q4 VRAM footprints and a recommend_models(vram_gb)/recommend_for_hardware() API that selects a role lineup (default/coding, fast scratch, harder pass/reasoning, general) keyed by the detected GPU VRAM tier, with per-model fit assessment (fits/tight/spills-to-RAM). Exposed via 'specsmith local-model recommend' (+ --json). Must not change existing detect_local_model/detect_local_models behavior.",
+    "source": "docs/requirements/",
+    "status": "planned",
+    "test_ids": [
+      "TEST-461"
+    ]
   }
 ]

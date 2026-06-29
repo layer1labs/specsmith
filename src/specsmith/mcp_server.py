@@ -122,6 +122,47 @@ def unregister_project(path: str = ".") -> bool:
     return True
 
 
+def build_warp_mcp_config() -> dict[str, Any]:
+    """Build the Warp MCP server config snippet for the governance server.
+
+    Shared by ``specsmith mcp install-warp`` and the ``warp`` integration
+    adapter (REQ-444) so both emit an identical, registry-aware config.
+
+    Executable detection (in priority order):
+      1. ``specsmith`` / ``specsmith.exe`` on PATH — covers pipx shims and
+         system installs.
+      2. ``python -m specsmith`` via the current interpreter — reliable
+         fallback for editable dev installs and venvs where the console-script
+         wrapper is absent or resolves incorrectly (e.g. some Windows pipx setups).
+
+    The env vars keep the server starting cleanly when Warp launches it directly:
+    ``SPECSMITH_ALLOW_NON_PIPX`` prevents the pipx-enforcement gate from exiting
+    before the MCP handshake; ``SPECSMITH_NO_AUTO_UPDATE`` / ``SPECSMITH_PYPI_CHECKED``
+    suppress startup network calls so the server responds immediately.
+    """
+    import shutil
+
+    server_env = {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1",
+    }
+    specsmith_exe = shutil.which("specsmith") or shutil.which("specsmith.exe")
+    if specsmith_exe:
+        cmd = specsmith_exe
+        args: list[str] = ["mcp", "serve"]
+    else:
+        cmd = sys.executable
+        args = ["-m", "specsmith", "mcp", "serve"]
+    return {
+        "specsmith-governance": {
+            "command": cmd,
+            "args": args,
+            "env": server_env,
+        }
+    }
+
+
 _TOOLS: list[dict[str, Any]] = [
     {
         "name": "governance_project_list",
