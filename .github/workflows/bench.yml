@@ -197,9 +197,9 @@ jobs:
         if: steps.key_check.outputs.ok == '0' && github.event.inputs.dry_run != 'true'
         run: |
           echo "::warning::Skipping ${{ matrix.provider }}/${{ matrix.model }} — secret not set."
-          exit 0
 
       - name: Build task arguments
+        if: steps.key_check.outputs.ok == '1' || github.event.inputs.dry_run == 'true'
         id: build-args
         run: |
           TASK_ARGS=""
@@ -211,6 +211,7 @@ jobs:
           echo "task_args=$TASK_ARGS" >> "$GITHUB_OUTPUT"
 
       - name: "Run benchmark — ${{ matrix.tier }} / ${{ matrix.provider }} / ${{ matrix.model }}"
+        if: steps.key_check.outputs.ok == '1' || github.event.inputs.dry_run == 'true'
         env:
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -221,8 +222,8 @@ jobs:
         run: |
           DRY_FLAG=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_FLAG="--dry-run"
-          # Filesystem-safe slug: openai_gpt-4o-mini
-          SLUG="${{ matrix.provider }}_$(echo '${{ matrix.model }}' | tr '.' '-')"
+          # Filesystem-safe slug: replace dots, slashes, and spaces with dashes
+          SLUG="${{ matrix.provider }}_$(echo '${{ matrix.model }}' | tr './ ' '-')"
 
           python scripts/govern_bench/run_bench.py \
             ${{ steps.build-args.outputs.task_args }} \
@@ -233,11 +234,18 @@ jobs:
             --json-output bench-results-${SLUG}.json \
             $DRY_FLAG
 
+      - name: Set safe artifact name
+        id: artifact_name
+        if: always()
+        run: |
+          SAFE_MODEL=$(echo '${{ matrix.model }}' | tr './ ' '-')
+          echo "name=bench-${{ matrix.provider }}-${SAFE_MODEL}-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+
       - name: Upload per-model artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bench-${{ matrix.provider }}-${{ matrix.model }}-${{ github.run_id }}
+          name: ${{ steps.artifact_name.outputs.name }}
           path: |
             bench-report-*.md
             bench-results-*.json
@@ -278,13 +286,15 @@ jobs:
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
       - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2.5-7B-Instruct-${{ github.run_id }}",          path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2.5-72B-Instruct-${{ github.run_id }}",         path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3.1-8B-Instruct-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3.3-70B-Instruct-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0.3-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-7B-Instruct-${{ github.run_id }}",          path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-72B-Instruct-${{ github.run_id }}",         path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-1-8B-Instruct-${{ github.run_id }}",  path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-3-70B-Instruct-${{ github.run_id }}", path: results/}}
+      - {uses: actions/download-artifact@v4, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0-3-${{ github.run_id }}", path: results/}}
 
       - name: Generate unified tier comparison report
+        env:
+          PYTHONPATH: scripts
         run: |
           INPUTS=""
           for f in results/bench-results-*.json; do
