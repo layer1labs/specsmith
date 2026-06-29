@@ -118,7 +118,7 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          skip_existing: true
+          skip-existing: true
 
   cleanup-dev-releases:
     # After a stable release lands on PyPI, scrub all .devN pre-release builds
