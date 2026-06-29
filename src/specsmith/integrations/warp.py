@@ -62,7 +62,102 @@ class WarpAdapter(AgentAdapter):
         # 3. Governance skill (reuse the agent-skill adapter; .agents/skills/SKILL.md).
         created.extend(AgentSkillAdapter().generate(config, target))
 
+        # 4. Third-party CLI agent toolbar setup guide.
+        setup_path = warp_dir / "SETUP.md"
+        setup_path.write_text(self._render_setup_guide(config), encoding="utf-8")
+        created.append(setup_path)
+
+        # Print the single most-important instruction so it appears immediately
+        # after `specsmith integrate warp` completes.
+        import sys
+
+        print(
+            "\n  ↳ Warp toolbar (one-time, per machine):\n"
+            "    Settings → Agents → Third party CLI agents\n"
+            "    Commands that enable the toolbar → add regex:\n"
+            "      specsmith\\s+run|aider\n"
+            "    (claude, codex, gemini, cursor — already natively supported)\n"
+            "\n"
+            "    Full setup guide: .warp/SETUP.md",
+            file=sys.stdout,
+            flush=True,
+        )
+
         return created
+
+    def _render_setup_guide(self, config: ProjectConfig) -> str:  # noqa: ARG002
+        """Render the .warp/SETUP.md toolbar + notification setup guide."""
+        return """\
+# Warp — specsmith governance integration
+
+## Third-party CLI agent toolbar (one-time setup per machine)
+
+Warp natively supports the toolbar for: **claude**, **codex**, **gemini**, **cursor**.
+For **specsmith** and **aider** (not yet natively supported), add the following
+regex to Warp → Settings → Agents → Third party CLI agents → Commands that enable the toolbar:
+
+```
+specsmith\\s+run|aider
+```
+
+Once saved, the Warp toolbelt appears automatically when either `specsmith run` or
+`aider` is active in any pane, providing Rich Input (Ctrl+G), attach code as context,
+File Explorer, Tab Configs, and Remote Control.
+
+## Desktop notifications
+
+`specsmith run` emits OSC 9 desktop notifications when running inside Warp
+(or any OSC-9-compatible terminal such as iTerm2 or Windows Terminal).
+No extra setup is needed — Warp intercepts the escape sequence automatically.
+
+Notification events:
+- Session start: `specsmith run | <project> | governance active`
+
+## MCP governance server
+
+Add `.warp/specsmith-mcp.json` to Warp → Settings → Agents → MCP servers so
+Warp's Oz agent can call governance tools natively (preflight, audit, checkpoint,
+req_list, phase, trace_seal) without shell roundtrips.
+
+Paste the contents of `.warp/specsmith-mcp.json` or run:
+```bash
+specsmith mcp install-warp
+```
+
+## Launch configuration
+
+`.warp/launch_configs/specsmith-governed.yaml` opens a governed `specsmith run`
+session. Copy it to your Warp launch configurations directory:
+- macOS/Linux: `~/.warp/launch_configurations/`
+- Windows: `%APPDATA%/warp/Warp/data/launch_configurations/`
+
+## Supported REPLs and their Warp status
+
+| REPL | Toolbar | How |
+|---|---|---|
+| `specsmith run` | Custom regex | Add `specsmith\\s+run` to toolbar regex |
+| `aider` | Custom regex | Add `aider` to toolbar regex |
+| `claude` | Native | Built into Warp — no setup needed |
+| `codex` | Native | Built into Warp — no setup needed |
+| `gemini` | Native | Built into Warp — no setup needed |
+| `cursor` | Native | Built into Warp — no setup needed |
+
+## Session protocol (all REPLs)
+
+```bash
+# Session start
+specsmith kill-session 2>/dev/null || true
+specsmith audit --project-dir .
+specsmith sync  --project-dir .
+specsmith checkpoint --project-dir .   # output GOVERNANCE ANCHOR verbatim
+
+# Before every code change
+specsmith preflight "<describe the change>" --json
+
+# Session end
+specsmith save && specsmith kill-session
+```
+"""
 
     def _render_launch_config(self, config: ProjectConfig, target: Path) -> str:
         cwd = str(target).replace("\\", "/")

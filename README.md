@@ -1263,6 +1263,20 @@ oz agent run --mcp '{"specsmith-governance": {"command": "specsmith", "args": ["
 | `governance_req_list` | All requirements with status + test coverage, filterable |
 | `governance_trace_seal` | Create a cryptographic trace vault seal |
 
+### Third-party CLI agent toolbar
+
+For **specsmith** and **aider** (not yet natively supported by Warp), add this regex once in **Warp → Settings → Agents → Third party CLI agents → Commands that enable the toolbar**:
+
+```
+specsmith\s+run|aider
+```
+
+`claude`, `codex`, `gemini`, and `cursor` are already natively supported — no regex needed.
+
+Once set, the toolbelt (Rich Input, attach code, File Explorer, Tab Configs, Remote Control) appears whenever `specsmith run` or `aider` is running. `specsmith run` also emits an OSC 9 desktop notification on session start — intercepted automatically by Warp, iTerm2, and Windows Terminal.
+
+Run `specsmith integrate warp` to regenerate `.warp/SETUP.md` with the full per-REPL setup guide.
+
 ### Repository Workflows (Ctrl+Shift+R)
 
 Clone this repo and open it in Warp — seven governance workflows appear automatically in

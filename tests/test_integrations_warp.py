@@ -79,6 +79,30 @@ class TestWarpAdapterGenerate:
         assert "test-project" in content
         assert "AGENTS.md" in content
 
+    def test_generates_setup_md(self, config: ProjectConfig, tmp_path: Path) -> None:
+        WarpAdapter().generate(config, tmp_path)
+        setup = tmp_path / ".warp" / "SETUP.md"
+        assert setup.exists()
+        content = setup.read_text(encoding="utf-8")
+        # Must document the toolbar regex for non-native REPLs.
+        assert "specsmith" in content
+        assert "aider" in content
+        # Must distinguish natively supported agents.
+        assert "claude" in content
+        assert "Native" in content
+
+    def test_setup_md_contains_toolbar_regex(self, config: ProjectConfig, tmp_path: Path) -> None:
+        WarpAdapter().generate(config, tmp_path)
+        setup = tmp_path / ".warp" / "SETUP.md"
+        content = setup.read_text(encoding="utf-8")
+        # The regex the user must paste into Warp settings.
+        assert r"specsmith\s+run|aider" in content
+
+    def test_generated_files_includes_setup_md(self, config: ProjectConfig, tmp_path: Path) -> None:
+        files = WarpAdapter().generate(config, tmp_path)
+        rel = {p.relative_to(tmp_path).as_posix() for p in files}
+        assert ".warp/SETUP.md" in rel
+
     def test_idempotent(self, config: ProjectConfig, tmp_path: Path) -> None:
         first = WarpAdapter().generate(config, tmp_path)
         first_contents = {p: p.read_text(encoding="utf-8") for p in first}
