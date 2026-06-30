@@ -91,6 +91,29 @@ GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons
 Use these as comparison tiers, not fixed coverage requirements. Final model lists should be
 recorded in run metadata and report headers.
 
+### Running open models without HuggingFace credits
+
+The four open tiers can run through the HuggingFace Inference Providers router
+(`groups=open`) **or** through any direct OpenAI-compatible host
+(`groups=open-direct`), which avoids the HF credit pool entirely. The
+`open-direct` registry entries default to OpenRouter slugs. To run them, set:
+
+- repo **variable** `BENCH_OPENAI_BASE_URL` — base URL of the host (defaults to
+  `https://openrouter.ai/api/v1` when unset)
+- repo **secret** `BENCH_OPENAI_COMPAT_API_KEY` — that host's API key
+
+```bash
+# Local example (OpenRouter):
+export BENCH_OPENAI_BASE_URL=https://openrouter.ai/api/v1
+export BENCH_OPENAI_COMPAT_API_KEY=sk-or-...
+python -m govern_bench.run_bench \
+  --provider openai-compat --model meta-llama/llama-3.1-8b-instruct \
+  --task T1 --reps 1
+```
+
+Swap `BENCH_OPENAI_BASE_URL` and the `open-direct` model ids to target a
+different OpenAI-compatible provider (DeepInfra, Together, Groq, etc.).
+
 ---
 
 ## Metrics and Statistical Methodology

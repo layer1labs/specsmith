@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       groups:
-        description: "Model groups to run (comma-separated: open,openai,anthropic,google). Default: open."
+        description: "Model groups to run (comma-separated: open,open-direct,openai,anthropic,google). Default: open."
         required: false
         default: "open"
       providers:
@@ -80,8 +80,10 @@ jobs:
       - name: Verify task registry loads
         run: python scripts/govern_bench/run_bench.py --list
 
-      - name: Verify model selector (open group)
-        run: python scripts/govern_bench/select_models.py --groups open --pretty
+      - name: Verify model selector (open + open-direct groups)
+        run: |
+          python scripts/govern_bench/select_models.py --groups open --pretty
+          python scripts/govern_bench/select_models.py --groups open-direct --pretty
 
       - name: Verify demo-dependency provisioning + test collection
         run: |
@@ -206,10 +208,11 @@ jobs:
       - name: Install provider SDK
         run: |
           case "${{ matrix.provider }}" in
-            openai)       pip install openai ;;
-            anthropic)    pip install anthropic ;;
-            google)       pip install google-generativeai ;;
-            huggingface)  pip install openai ;;  # HF router is OpenAI-compatible
+            openai)        pip install openai ;;
+            openai-compat) pip install openai ;;  # direct OpenAI-compatible host (e.g. OpenRouter)
+            anthropic)     pip install anthropic ;;
+            google)        pip install google-generativeai ;;
+            huggingface)   pip install openai ;;  # HF router is OpenAI-compatible
           esac
 
       - name: Install demo-project dependencies (grader integrity)
@@ -237,13 +240,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
           HF_TOKEN:          ${{ secrets.HF_TOKEN }}
+          BENCH_OPENAI_COMPAT_API_KEY: ${{ secrets.BENCH_OPENAI_COMPAT_API_KEY }}
         run: |
           case "${{ matrix.provider }}" in
-            openai)       KEY="$OPENAI_API_KEY" ;;
-            anthropic)    KEY="$ANTHROPIC_API_KEY" ;;
-            google)       KEY="$GOOGLE_API_KEY" ;;
-            huggingface)  KEY="$HF_TOKEN" ;;
-            *)            KEY="" ;;
+            openai)        KEY="$OPENAI_API_KEY" ;;
+            openai-compat) KEY="$BENCH_OPENAI_COMPAT_API_KEY" ;;
+            anthropic)     KEY="$ANTHROPIC_API_KEY" ;;
+            google)        KEY="$GOOGLE_API_KEY" ;;
+            huggingface)   KEY="$HF_TOKEN" ;;
+            *)             KEY="" ;;
           esac
           if [ -z "$KEY" ]; then
             if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
@@ -276,6 +281,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GOOGLE_API_KEY:    ${{ secrets.GOOGLE_API_KEY }}
           HF_TOKEN:          ${{ secrets.HF_TOKEN }}
+          BENCH_OPENAI_COMPAT_API_KEY: ${{ secrets.BENCH_OPENAI_COMPAT_API_KEY }}
+          BENCH_OPENAI_BASE_URL:       ${{ vars.BENCH_OPENAI_BASE_URL || 'https://openrouter.ai/api/v1' }}
           BENCH_DRY_RUN:     ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
           BENCH_MAX_TURNS:   "12"
         run: |
