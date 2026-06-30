@@ -344,6 +344,8 @@ def main() -> int:
                 "task": r.task_id,
                 "condition": r.condition_id,
                 "rep": r.rep,
+                "model": r.model,
+                "provider": args.provider,
                 "tokens": r.total_tokens,
                 "cost_usd": round(r.api_cost_usd, 6),
                 "passed": r.passed,
@@ -351,6 +353,8 @@ def main() -> int:
                 "rework_turns": r.rework_turns,
                 "lint_passed": r.lint_passed,
                 "tests_passed": r.tests_passed,
+                "skipped": r.skipped,
+                "error": r.error,
             }
             for r in report.runs
         ]
@@ -399,6 +403,34 @@ def main() -> int:
     print()
     print("CoP = cost-of-pass (USD to get one correct answer) | vs-Base = ratio vs UNGOVERNED")
     print("$/mo@20 = estimated monthly spend at 20 tasks/day, 22 working days")
+
+    # Loud-fail accounting: a benchmark run that silently skips every cell is
+    # worthless. Surface the passed/skipped/errored tally and fail the process
+    # when a real (non-dry-run) model produced zero usable results.
+    total = len(report.runs)
+    skipped = sum(1 for r in report.runs if r.skipped)
+    errored = sum(1 for r in report.runs if r.error)
+    passed = sum(1 for r in report.runs if r.passed)
+    non_skipped = total - skipped
+    print()
+    print(
+        f"Run accounting [{args.provider}/{args.model}]: "
+        f"{total} total, {passed} passed, {non_skipped} non-skipped, "
+        f"{skipped} skipped, {errored} errored"
+    )
+    if errored:
+        first_errors = [r.error for r in report.runs if r.error][:3]
+        for err in first_errors:
+            print(f"  error: {err}", file=sys.stderr)
+
+    if not args.dry_run and non_skipped == 0:
+        print(
+            f"\n[FATAL] Model {args.model!r} (provider={args.provider}) produced "
+            f"zero non-skipped results across {total} runs — every cell errored or "
+            f"was skipped. Failing loudly instead of publishing empty results.",
+            file=sys.stderr,
+        )
+        return 1
 
     return 0
 

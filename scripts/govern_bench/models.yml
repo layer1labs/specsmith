@@ -1,0 +1,90 @@
+# govern_bench model registry — single source of truth for the benchmark matrix.
+#
+# select_models.py reads this file and emits a GitHub Actions matrix
+# ({"include": [...]}) filtered by --groups / --providers / --tiers / --models.
+# bench.yml feeds that matrix into the run job, so adding or toggling a model
+# is a data edit here — no workflow code changes required.
+#
+# Fields (all required):
+#   label     short slug used for artifact names (bench-results-<label>.json)
+#             and matrix display names — keep it filesystem/URL safe.
+#   provider  one of: openai | anthropic | google | openai-compat | huggingface
+#   model     EXACT model id passed to run_bench.py --model. For huggingface
+#             this is the full HF repo id; it must match metrics.py pricing keys.
+#   group     toggle bucket: open | openai | anthropic | google
+#   tier      size/price tier. Open spread: open-small < open-mid < open-large
+#             < open-xl. Closed tiers reuse: nano < mini < mid < frontier.
+models:
+  # ── Open models — size tier spread (smallest → largest) ────────────────
+  # Run now with: groups=open
+  - label: llama-3.1-8b
+    provider: huggingface
+    model: meta-llama/Llama-3.1-8B-Instruct
+    group: open
+    tier: open-small
+  - label: qwen3-coder-30b
+    provider: huggingface
+    model: Qwen/Qwen3-Coder-30B-A3B-Instruct
+    group: open
+    tier: open-mid
+  - label: llama-3.3-70b
+    provider: huggingface
+    model: meta-llama/Llama-3.3-70B-Instruct
+    group: open
+    tier: open-large
+  - label: gpt-oss-120b
+    provider: huggingface
+    model: openai/gpt-oss-120b
+    group: open
+    tier: open-xl
+
+  # ── OpenAI frontier — toggle on later with groups=openai ───────────────
+  - label: gpt-4o-mini
+    provider: openai
+    model: gpt-4o-mini
+    group: openai
+    tier: mini
+  - label: gpt-4o
+    provider: openai
+    model: gpt-4o
+    group: openai
+    tier: mid
+  - label: gpt-5.5
+    provider: openai
+    model: gpt-5.5
+    group: openai
+    tier: mid
+  - label: gpt-5
+    provider: openai
+    model: gpt-5
+    group: openai
+    tier: frontier
+
+  # ── Anthropic — toggle on later with groups=anthropic ──────────────────
+  - label: claude-haiku-4-5
+    provider: anthropic
+    model: claude-haiku-4-5
+    group: anthropic
+    tier: nano
+  - label: claude-sonnet-4-5
+    provider: anthropic
+    model: claude-sonnet-4-5
+    group: anthropic
+    tier: mid
+  - label: claude-opus-4-5
+    provider: anthropic
+    model: claude-opus-4-5
+    group: anthropic
+    tier: frontier
+
+  # ── Google — toggle on later with groups=google ────────────────────────
+  - label: gemini-3.5-flash
+    provider: google
+    model: gemini-3.5-flash
+    group: google
+    tier: nano
+  - label: gemini-3.1-pro
+    provider: google
+    model: gemini-3.1-pro
+    group: google
+    tier: mid

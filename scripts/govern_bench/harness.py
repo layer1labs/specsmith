@@ -62,8 +62,11 @@ MAX_TURNS_DEFAULT = 12
 MAX_FILE_BYTES = 32_000  # truncate very large files when reading
 SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat", "huggingface")
 
-# HuggingFace Inference API — OpenAI-compatible endpoint
-_HF_INFERENCE_BASE_URL = "https://api-inference.huggingface.co/v1/"
+# HuggingFace Inference Providers — OpenAI-compatible router endpoint.
+# The legacy https://api-inference.huggingface.co/v1/ host no longer serves
+# chat/completions for these models; the router multiplexes live third-party
+# inference providers and returns real token usage. Auth via HF_TOKEN.
+_HF_INFERENCE_BASE_URL = "https://router.huggingface.co/v1"
 RUN_COMMAND_ALLOWLIST = ("ruff check .", "pytest", "ruff check . && pytest")
 
 

@@ -77,7 +77,19 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "qwen2.5-coder-72b": (0.90, 0.90),
     "DeepSeek-Coder-V3": (0.70, 0.70),
     "deepseek-coder-v3": (0.70, 0.70),
-    # ── Fallback ─────────────────────────────────────────────────────────
+    # ── HuggingFace Inference Providers — open-model tier spread ──────
+    # Seed estimates from the HF Inference Providers router; probe_models.py
+    # reconciles these against live per-provider pricing before a full run.
+    # Keyed by exact repo id AND lowercased alias (estimate_cost is
+    # case-sensitive; model ids passed via --model are full HF repo ids).
+    "meta-llama/Llama-3.1-8B-Instruct": (0.05, 0.08),
+    "meta-llama/llama-3.1-8b-instruct": (0.05, 0.08),
+    "Qwen/Qwen3-Coder-30B-A3B-Instruct": (0.10, 0.30),
+    "qwen/qwen3-coder-30b-a3b-instruct": (0.10, 0.30),
+    "meta-llama/Llama-3.3-70B-Instruct": (0.60, 0.70),
+    "meta-llama/llama-3.3-70b-instruct": (0.60, 0.70),
+    "openai/gpt-oss-120b": (0.15, 0.60),
+    # ── Fallback ──────────────────────────────────────────
     "unknown": (3.00, 15.00),
 }
 
@@ -102,9 +114,15 @@ _MODEL_TIER_OVERRIDES: dict[str, str] = {
     "llama-3.1-70b": "open-source",
     "qwen2.5-coder-72b": "open-source",
     "deepseek-coder-v3": "open-source",
+    # Open-model tier spread (smallest → largest) for the open-only benchmark.
+    # Keys are lowercased repo ids; model_tier() lowercases before lookup.
+    "meta-llama/llama-3.1-8b-instruct": "open-small",
+    "qwen/qwen3-coder-30b-a3b-instruct": "open-mid",
+    "meta-llama/llama-3.3-70b-instruct": "open-large",
+    "openai/gpt-oss-120b": "open-xl",
 }
 
-_OPEN_SOURCE_MARKERS = ("llama", "qwen", "deepseek", "mistral")
+_OPEN_SOURCE_MARKERS = ("llama", "qwen", "deepseek", "mistral", "gpt-oss")
 
 
 def _tier_from_price(input_usd_per_1m: float, output_usd_per_1m: float) -> str:
@@ -132,14 +150,14 @@ def model_tier(model: str) -> str:
     return _tier_from_price(*prices)
 
 
-MODEL_TIER: dict[str, str] = {
-    model: model_tier(model) for model in MODEL_PRICING_PER_1M
-}
-MODEL_TIER.update({
-    "Llama-3.1-70B": "open-source",
-    "Qwen2.5-Coder-72B": "open-source",
-    "DeepSeek-Coder-V3": "open-source",
-})
+MODEL_TIER: dict[str, str] = {model: model_tier(model) for model in MODEL_PRICING_PER_1M}
+MODEL_TIER.update(
+    {
+        "Llama-3.1-70B": "open-source",
+        "Qwen2.5-Coder-72B": "open-source",
+        "DeepSeek-Coder-V3": "open-source",
+    }
+)
 
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
@@ -240,14 +258,10 @@ def wilson_pass_rate_ci(successes: int, trials: int) -> tuple[float, float]:
         return (0.0, 0.0)
 
     p = successes / trials
-    z2 = _WILSON_Z_95 ** 2
+    z2 = _WILSON_Z_95**2
     denom = 1.0 + z2 / trials
     center = (p + z2 / (2.0 * trials)) / denom
-    margin = (
-        _WILSON_Z_95
-        * math.sqrt((p * (1.0 - p) + z2 / (4.0 * trials)) / trials)
-        / denom
-    )
+    margin = _WILSON_Z_95 * math.sqrt((p * (1.0 - p) + z2 / (4.0 * trials)) / trials) / denom
     low = max(0.0, center - margin)
     high = min(1.0, center + margin)
     return (low, high)
@@ -357,11 +371,7 @@ class SliceStats:
 
         valid = [r for r in runs if not r.skipped]
         models = {r.model for r in valid if r.model}
-        model = (
-            models.pop()
-            if len(models) == 1
-            else ("mixed" if models else runs[0].model)
-        )
+        model = models.pop() if len(models) == 1 else ("mixed" if models else runs[0].model)
         if not valid:
             return cls(
                 task_id=task_id,
@@ -378,9 +388,7 @@ class SliceStats:
         first_pass_rate = sum(1 for r in valid if r.rework_turns <= 1) / len(valid)
         pass_values = [1.0 if r.passed else 0.0 for r in valid]
         consistency_score = (
-            1.0
-            if len(pass_values) < 2
-            else max(0.0, 1.0 - statistics.pstdev(pass_values))
+            1.0 if len(pass_values) < 2 else max(0.0, 1.0 - statistics.pstdev(pass_values))
         )
 
         cost_of_pass = (mean_cost / pass_rate) if pass_rate > 0 else float("inf")
@@ -438,13 +446,10 @@ class BenchReport:
 
         sorted_runs = sorted(self.runs, key=_run_key)
         slices = [
-            SliceStats.from_runs(list(group))
-            for _, group in groupby(sorted_runs, key=_run_key)
+            SliceStats.from_runs(list(group)) for _, group in groupby(sorted_runs, key=_run_key)
         ]
         baseline_by_task_model: dict[tuple[str, str], float] = {
-            (s.task_id, s.model): s.pass_rate
-            for s in slices
-            if s.condition_id == "UNGOVERNED"
+            (s.task_id, s.model): s.pass_rate for s in slices if s.condition_id == "UNGOVERNED"
         }
         for s in slices:
             baseline = baseline_by_task_model.get((s.task_id, s.model))
@@ -464,27 +469,23 @@ class BenchReport:
 
         rows: list[dict[str, float | str | None]] = []
         for (model, condition), grouped_slices in grouped.items():
-            finite_cop = [
-                s.cost_of_pass for s in grouped_slices if s.cost_of_pass < float("inf")
-            ]
+            finite_cop = [s.cost_of_pass for s in grouped_slices if s.cost_of_pass < float("inf")]
             mean_cop = statistics.mean(finite_cop) if finite_cop else float("inf")
-            lifts = [
-                s.scaffold_lift
-                for s in grouped_slices
-                if s.scaffold_lift is not None
-            ]
-            rows.append({
-                "model": model,
-                "condition": condition,
-                "model_tier": model_tier(model),
-                "mean_pass_rate": statistics.mean(s.pass_rate for s in grouped_slices),
-                "mean_quality_score": statistics.mean(
-                    s.mean_quality_score for s in grouped_slices
-                ),
-                "mean_cost_of_pass": mean_cop,
-                "mean_scaffold_lift": statistics.mean(lifts) if lifts else None,
-                "n_tasks": len(grouped_slices),
-            })
+            lifts = [s.scaffold_lift for s in grouped_slices if s.scaffold_lift is not None]
+            rows.append(
+                {
+                    "model": model,
+                    "condition": condition,
+                    "model_tier": model_tier(model),
+                    "mean_pass_rate": statistics.mean(s.pass_rate for s in grouped_slices),
+                    "mean_quality_score": statistics.mean(
+                        s.mean_quality_score for s in grouped_slices
+                    ),
+                    "mean_cost_of_pass": mean_cop,
+                    "mean_scaffold_lift": statistics.mean(lifts) if lifts else None,
+                    "n_tasks": len(grouped_slices),
+                }
+            )
         return rows
 
     def democratization_table(self) -> list[dict[str, float | str | None]]:
@@ -509,9 +510,9 @@ class BenchReport:
         )
         frontier_cop = float(frontier_best["mean_cost_of_pass"])
         frontier_model = str(frontier_best["model"])
-        conditions = sorted({
-            str(r["condition"]) for r in rows if str(r["condition"]) != "UNGOVERNED"
-        })
+        conditions = sorted(
+            {str(r["condition"]) for r in rows if str(r["condition"]) != "UNGOVERNED"}
+        )
 
         table: list[dict[str, float | str | None]] = []
         for condition in conditions:
@@ -525,34 +526,38 @@ class BenchReport:
                 )
             ]
             if not candidates:
-                table.append({
-                    "scaffold": condition,
-                    "frontier_model": frontier_model,
-                    "frontier_cop_usd": frontier_cop,
-                    "cheapest_model": None,
-                    "cheapest_model_tier": None,
-                    "cheapest_cop_usd": None,
-                    "cost_multiplier_vs_frontier": None,
-                    "democratization_score": None,
-                })
+                table.append(
+                    {
+                        "scaffold": condition,
+                        "frontier_model": frontier_model,
+                        "frontier_cop_usd": frontier_cop,
+                        "cheapest_model": None,
+                        "cheapest_model_tier": None,
+                        "cheapest_cop_usd": None,
+                        "cost_multiplier_vs_frontier": None,
+                        "democratization_score": None,
+                    }
+                )
                 continue
 
             winner = min(candidates, key=lambda row: float(row["mean_cost_of_pass"]))
             winner_cop = float(winner["mean_cost_of_pass"])
-            table.append({
-                "scaffold": condition,
-                "frontier_model": frontier_model,
-                "frontier_cop_usd": frontier_cop,
-                "cheapest_model": str(winner["model"]),
-                "cheapest_model_tier": str(winner["model_tier"]),
-                "cheapest_cop_usd": winner_cop,
-                "cost_multiplier_vs_frontier": (
-                    frontier_cop / winner_cop if winner_cop > 0 else None
-                ),
-                "democratization_score": (
-                    winner_cop / frontier_cop if frontier_cop > 0 else None
-                ),
-            })
+            table.append(
+                {
+                    "scaffold": condition,
+                    "frontier_model": frontier_model,
+                    "frontier_cop_usd": frontier_cop,
+                    "cheapest_model": str(winner["model"]),
+                    "cheapest_model_tier": str(winner["model_tier"]),
+                    "cheapest_cop_usd": winner_cop,
+                    "cost_multiplier_vs_frontier": (
+                        frontier_cop / winner_cop if winner_cop > 0 else None
+                    ),
+                    "democratization_score": (
+                        winner_cop / frontier_cop if frontier_cop > 0 else None
+                    ),
+                }
+            )
         return table
 
     def pareto_frontier_data(self) -> list[dict[str, float | str | None]]:
@@ -578,23 +583,22 @@ class BenchReport:
                 if (
                     candidate_cost <= point_cost
                     and candidate_quality >= point_quality
-                    and (
-                        candidate_cost < point_cost
-                        or candidate_quality > point_quality
-                    )
+                    and (candidate_cost < point_cost or candidate_quality > point_quality)
                 ):
                     dominated = True
                     break
             if not dominated:
-                frontier.append({
-                    "model": point["model"],
-                    "condition": point["condition"],
-                    "model_tier": point["model_tier"],
-                    "pass_rate": point["mean_pass_rate"],
-                    "quality_score": point["mean_quality_score"],
-                    "cost_of_pass_usd": point["mean_cost_of_pass"],
-                    "scaffold_lift": point["mean_scaffold_lift"],
-                })
+                frontier.append(
+                    {
+                        "model": point["model"],
+                        "condition": point["condition"],
+                        "model_tier": point["model_tier"],
+                        "pass_rate": point["mean_pass_rate"],
+                        "quality_score": point["mean_quality_score"],
+                        "cost_of_pass_usd": point["mean_cost_of_pass"],
+                        "scaffold_lift": point["mean_scaffold_lift"],
+                    }
+                )
         frontier.sort(
             key=lambda row: (
                 float(row["cost_of_pass_usd"]),
@@ -621,20 +625,22 @@ class BenchReport:
         leaderboard: list[dict[str, float | str | int | None]] = []
         for rank, row in enumerate(rows, start=1):
             cop = float(row["mean_cost_of_pass"])
-            leaderboard.append({
-                "rank": rank,
-                "model": str(row["model"]),
-                "scaffold": str(row["condition"]),
-                "task_suite": task_suite,
-                "pass_rate": round(float(row["mean_pass_rate"]), 6),
-                "cop_usd": None if cop == float("inf") else round(cop, 6),
-                "scaffold_lift": (
-                    round(float(row["mean_scaffold_lift"]), 6)
-                    if row["mean_scaffold_lift"] is not None
-                    else None
-                ),
-                "model_tier": str(row["model_tier"]),
-            })
+            leaderboard.append(
+                {
+                    "rank": rank,
+                    "model": str(row["model"]),
+                    "scaffold": str(row["condition"]),
+                    "task_suite": task_suite,
+                    "pass_rate": round(float(row["mean_pass_rate"]), 6),
+                    "cop_usd": None if cop == float("inf") else round(cop, 6),
+                    "scaffold_lift": (
+                        round(float(row["mean_scaffold_lift"]), 6)
+                        if row["mean_scaffold_lift"] is not None
+                        else None
+                    ),
+                    "model_tier": str(row["model_tier"]),
+                }
+            )
         return leaderboard
 
     def condition_summary(self) -> dict[str, dict]:
@@ -652,63 +658,29 @@ class BenchReport:
         for cid, slices in per_condition.items():
             finite_cop = [s.cost_of_pass for s in slices if s.cost_of_pass < float("inf")]
             mean_cop = statistics.mean(finite_cop) if finite_cop else float("inf")
-            scaffold_lifts = [
-                s.scaffold_lift for s in slices if s.scaffold_lift is not None
-            ]
-            finite_cop_lows = [
-                s.ci_cop_low for s in slices if s.ci_cop_low < float("inf")
-            ]
-            finite_cop_highs = [
-                s.ci_cop_high for s in slices if s.ci_cop_high < float("inf")
-            ]
+            scaffold_lifts = [s.scaffold_lift for s in slices if s.scaffold_lift is not None]
+            finite_cop_lows = [s.ci_cop_low for s in slices if s.ci_cop_low < float("inf")]
+            finite_cop_highs = [s.ci_cop_high for s in slices if s.ci_cop_high < float("inf")]
             summary[cid] = {
                 "mean_pass_rate": statistics.mean(s.pass_rate for s in slices),
-                "ci_pass_rate_low": statistics.mean(
-                    s.ci_pass_rate_low for s in slices
-                ),
-                "ci_pass_rate_high": statistics.mean(
-                    s.ci_pass_rate_high for s in slices
-                ),
-                "mean_input_tokens": statistics.mean(
-                    s.mean_input_tokens for s in slices
-                ),
-                "mean_output_tokens": statistics.mean(
-                    s.mean_output_tokens for s in slices
-                ),
-                "mean_total_tokens": statistics.mean(
-                    s.mean_total_tokens for s in slices
-                ),
-                "mean_input_cost_usd": statistics.mean(
-                    s.mean_input_cost_usd for s in slices
-                ),
-                "mean_output_cost_usd": statistics.mean(
-                    s.mean_output_cost_usd for s in slices
-                ),
-                "mean_api_cost_usd": statistics.mean(
-                    s.mean_api_cost_usd for s in slices
-                ),
-                "mean_quality_score": statistics.mean(
-                    s.mean_quality_score for s in slices
-                ),
-                "mean_first_pass_rate": statistics.mean(
-                    s.first_pass_rate for s in slices
-                ),
-                "mean_consistency_score": statistics.mean(
-                    s.consistency_score for s in slices
-                ),
-                "mean_scaffold_lift": (
-                    statistics.mean(scaffold_lifts) if scaffold_lifts else None
-                ),
+                "ci_pass_rate_low": statistics.mean(s.ci_pass_rate_low for s in slices),
+                "ci_pass_rate_high": statistics.mean(s.ci_pass_rate_high for s in slices),
+                "mean_input_tokens": statistics.mean(s.mean_input_tokens for s in slices),
+                "mean_output_tokens": statistics.mean(s.mean_output_tokens for s in slices),
+                "mean_total_tokens": statistics.mean(s.mean_total_tokens for s in slices),
+                "mean_input_cost_usd": statistics.mean(s.mean_input_cost_usd for s in slices),
+                "mean_output_cost_usd": statistics.mean(s.mean_output_cost_usd for s in slices),
+                "mean_api_cost_usd": statistics.mean(s.mean_api_cost_usd for s in slices),
+                "mean_quality_score": statistics.mean(s.mean_quality_score for s in slices),
+                "mean_first_pass_rate": statistics.mean(s.first_pass_rate for s in slices),
+                "mean_consistency_score": statistics.mean(s.consistency_score for s in slices),
+                "mean_scaffold_lift": (statistics.mean(scaffold_lifts) if scaffold_lifts else None),
                 "mean_cost_of_pass": mean_cop,
                 "ci_cop_low": (
-                    statistics.mean(finite_cop_lows)
-                    if finite_cop_lows
-                    else float("inf")
+                    statistics.mean(finite_cop_lows) if finite_cop_lows else float("inf")
                 ),
                 "ci_cop_high": (
-                    statistics.mean(finite_cop_highs)
-                    if finite_cop_highs
-                    else float("inf")
+                    statistics.mean(finite_cop_highs) if finite_cop_highs else float("inf")
                 ),
                 # will be filled below once baseline is known
                 "cost_delta_vs_ungoverned": None,

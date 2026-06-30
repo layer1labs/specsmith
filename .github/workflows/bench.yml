@@ -11,22 +11,34 @@ on:
       - "scripts/govern_bench/**"
   workflow_dispatch:
     inputs:
+      groups:
+        description: "Model groups to run (comma-separated: open,openai,anthropic,google). Default: open."
+        required: false
+        default: "open"
+      providers:
+        description: "Restrict to providers (comma-separated). Blank = all in the selected groups."
+        required: false
+        default: ""
+      tiers:
+        description: "Restrict to size tiers (e.g. open-small,open-xl). Blank = all."
+        required: false
+        default: ""
+      models:
+        description: "Restrict to specific models by label or exact id (comma-separated). Blank = all."
+        required: false
+        default: ""
       tasks:
-        description: "Task IDs to run (comma-separated, e.g. T1,T2,T6,T7). Leave blank for all."
+        description: "Task IDs (comma-separated). Blank = all."
         required: false
         default: "T1,T2,T6,T7,T10,T11,T13"
       conditions:
-        description: "Condition IDs (comma-separated). Blank = all 13. Key: UNGOVERNED,SPECSMITH_LIGHT,SPECSMITH_FULL,SPECSMITH_DISPATCH."
+        description: "Condition IDs (comma-separated). Blank = all 13."
         required: false
         default: ""
       reps:
         description: "Repetitions per cell (2 = cost run; 5 = publication)"
         required: false
         default: "5"
-      tiers:
-        description: "Tiers to run (comma-separated: nano,mini,mid,frontier). Blank = all."
-        required: false
-        default: ""
       dry_run:
         description: "Dry-run mode — no real API calls, deterministic dummy data"
         required: false
@@ -42,8 +54,8 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────────────────────────────────
-  # smoke — always runs on push/PR in dry-run mode
-  # Validates harness structure loads and --list works.
+  # smoke — always runs on push/PR in dry-run mode.
+  # Validates the harness loads, the selector works, and --list works.
   # ──────────────────────────────────────────────────────────────────────────
   smoke:
     name: Benchmark smoke test (dry-run)
@@ -68,6 +80,23 @@ jobs:
       - name: Verify task registry loads
         run: python scripts/govern_bench/run_bench.py --list
 
+      - name: Verify model selector (open group)
+        run: python scripts/govern_bench/select_models.py --groups open --pretty
+
+      - name: Verify demo-dependency provisioning + test collection
+        run: |
+          python scripts/govern_bench/install_demo_deps.py
+          for d in scripts/govern_bench/projects/*/; do
+            set +e
+            python -m pytest --collect-only -q "$d"
+            rc=$?
+            set -e
+            if [ "$rc" -ne 0 ] && [ "$rc" -ne 5 ]; then
+              echo "::error::pytest collection failed in $d (rc=$rc)"
+              exit 1
+            fi
+          done
+
       - name: Dry-run benchmark — OpenAI (T6, T7, T10, T11, T13)
         env:
           BENCH_DRY_RUN: "1"
@@ -85,7 +114,7 @@ jobs:
         run: |
           python scripts/govern_bench/run_bench.py \
             --task T6 --task T7 \
-            --provider huggingface --model Qwen/Qwen2.5-7B-Instruct \
+            --provider huggingface --model Qwen/Qwen3-Coder-30B-A3B-Instruct \
             --reps 2 \
             --output /tmp/bench-smoke-hf.md \
             --json-output /tmp/bench-smoke-hf.json
@@ -102,59 +131,62 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────────────────
-  # bench-matrix — full tier × provider matrix
-  #
-  # Tier breakdown (15 models, 4 providers):
-  #   nano        : gpt-4.1-nano                        (openai)
-  #   mini        : gpt-4o-mini                         (openai)
-  #                 claude-haiku-4-5                    (anthropic)
-  #                 gemini-2.0-flash                    (google)
-  #   mid         : gpt-4.1                             (openai)
-  #                 claude-sonnet-4-5                   (anthropic)
-  #                 gemini-2.5-flash                    (google)
-  #   frontier    : gpt-5.5                             (openai)
-  #                 claude-opus-4-5                     (anthropic)
-  #                 gemini-2.5-pro                      (google)
-  #   open_source : Qwen2.5-7B-Instruct                 (huggingface)
-  #                 Qwen2.5-72B-Instruct                (huggingface)
-  #                 Llama-3.1-8B-Instruct               (huggingface)
-  #                 Llama-3.3-70B-Instruct              (huggingface)
-  #                 Mistral-7B-Instruct-v0.3            (huggingface)
-  #
-  # Jobs that lack an API key secret skip gracefully (continue-on-error).
+  # setup — build the run matrix from models.yml (toggleable groups/tiers) and
+  # gate the run behind a live-provider probe (HF models only).
   # ──────────────────────────────────────────────────────────────────────────
-  bench-matrix:
-    name: "Bench [${{ matrix.tier }}] ${{ matrix.provider }}/${{ matrix.model }}"
+  setup:
+    name: Select models + probe availability
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
-    continue-on-error: true
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install selector dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Generate run matrix from models.yml
+        id: gen
+        run: |
+          MATRIX=$(python scripts/govern_bench/select_models.py \
+            --groups "${{ github.event.inputs.groups }}" \
+            --providers "${{ github.event.inputs.providers }}" \
+            --tiers "${{ github.event.inputs.tiers }}" \
+            --models "${{ github.event.inputs.models }}")
+          echo "Selected matrix: $MATRIX"
+          echo "$MATRIX" > matrix.json
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Probe live provider availability (HuggingFace models)
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/govern_bench/probe_models.py --matrix matrix.json
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # bench-matrix — one job per selected model. No continue-on-error: a model
+  # that errors every cell (or lacks its secret) fails loudly.
+  # ──────────────────────────────────────────────────────────────────────────
+  bench-matrix:
+    name: "Bench [${{ matrix.tier }}] ${{ matrix.label }}"
+    runs-on: ubuntu-latest
+    needs: setup
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # ── nano ──────────────────────────────────────────────────────────
-          - { provider: openai,     model: gpt-4.1-nano,       tier: nano     }
-          # ── mini ──────────────────────────────────────────────────────────
-          - { provider: openai,     model: gpt-4o-mini,        tier: mini     }
-          - { provider: anthropic,  model: claude-haiku-4-5,   tier: mini     }
-          - { provider: google,     model: gemini-2.0-flash,   tier: mini     }
-          # ── mid ───────────────────────────────────────────────────────────
-          - { provider: openai,     model: gpt-4.1,            tier: mid      }
-          - { provider: anthropic,  model: claude-sonnet-4-5,  tier: mid      }
-          - { provider: google,     model: gemini-2.5-flash,   tier: mid      }
-          # ── frontier ──────────────────────────────────────────────────────────
-          - { provider: openai,     model: gpt-5.5,            tier: frontier    }
-          - { provider: anthropic,  model: claude-opus-4-5,    tier: frontier    }
-          - { provider: google,     model: gemini-2.5-pro,     tier: frontier    }
-          # ── open_source (via HuggingFace Inference API) ───────────────────────
-          - { provider: huggingface, model: "Qwen/Qwen2.5-7B-Instruct",          tier: open_source }
-          - { provider: huggingface, model: "Qwen/Qwen2.5-72B-Instruct",         tier: open_source }
-          - { provider: huggingface, model: "meta-llama/Llama-3.1-8B-Instruct",  tier: open_source }
-          - { provider: huggingface, model: "meta-llama/Llama-3.3-70B-Instruct", tier: open_source }
-          - { provider: huggingface, model: "mistralai/Mistral-7B-Instruct-v0.3", tier: open_source }
-
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -175,8 +207,24 @@ jobs:
             openai)       pip install openai ;;
             anthropic)    pip install anthropic ;;
             google)       pip install google-generativeai ;;
-            huggingface)  pip install openai ;;  # HF Inference API is OpenAI-compatible
+            huggingface)  pip install openai ;;  # HF router is OpenAI-compatible
           esac
+
+      - name: Install demo-project dependencies (grader integrity)
+        run: python scripts/govern_bench/install_demo_deps.py
+
+      - name: Sanity-check demo test collection
+        run: |
+          for d in scripts/govern_bench/projects/*/; do
+            set +e
+            python -m pytest --collect-only -q "$d"
+            rc=$?
+            set -e
+            if [ "$rc" -ne 0 ] && [ "$rc" -ne 5 ]; then
+              echo "::error::pytest collection failed in $d (rc=$rc)"
+              exit 1
+            fi
+          done
 
       - name: Check API key available
         id: key_check
@@ -187,31 +235,38 @@ jobs:
           HF_TOKEN:          ${{ secrets.HF_TOKEN }}
         run: |
           case "${{ matrix.provider }}" in
-            openai)       [ -n "$OPENAI_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
-            anthropic)    [ -n "$ANTHROPIC_API_KEY" ] && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
-            google)       [ -n "$GOOGLE_API_KEY" ]    && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
-            huggingface)  [ -n "$HF_TOKEN" ]          && echo "ok=1" >> "$GITHUB_OUTPUT" || echo "ok=0" >> "$GITHUB_OUTPUT" ;;
+            openai)       KEY="$OPENAI_API_KEY" ;;
+            anthropic)    KEY="$ANTHROPIC_API_KEY" ;;
+            google)       KEY="$GOOGLE_API_KEY" ;;
+            huggingface)  KEY="$HF_TOKEN" ;;
+            *)            KEY="" ;;
           esac
+          if [ -z "$KEY" ]; then
+            if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+              echo "Dry-run: missing secret for ${{ matrix.provider }} is acceptable."
+            else
+              echo "::error::Missing secret for ${{ matrix.provider }} (${{ matrix.model }}); configure it or deselect this group."
+              exit 1
+            fi
+          fi
 
-      - name: Skip — no API key configured
-        if: steps.key_check.outputs.ok == '0' && github.event.inputs.dry_run != 'true'
-        run: |
-          echo "::warning::Skipping ${{ matrix.provider }}/${{ matrix.model }} — secret not set."
-
-      - name: Build task arguments
-        if: steps.key_check.outputs.ok == '1' || github.event.inputs.dry_run == 'true'
+      - name: Build task/condition arguments
         id: build-args
         run: |
-          TASK_ARGS=""
+          ARGS=""
           IFS=',' read -ra TASKS <<< "${{ github.event.inputs.tasks }}"
           for t in "${TASKS[@]}"; do
             t=$(echo "$t" | xargs)
-            [ -n "$t" ] && TASK_ARGS="$TASK_ARGS --task $t"
+            [ -n "$t" ] && ARGS="$ARGS --task $t"
           done
-          echo "task_args=$TASK_ARGS" >> "$GITHUB_OUTPUT"
+          IFS=',' read -ra CONDS <<< "${{ github.event.inputs.conditions }}"
+          for c in "${CONDS[@]}"; do
+            c=$(echo "$c" | xargs)
+            [ -n "$c" ] && ARGS="$ARGS --condition $c"
+          done
+          echo "args=$ARGS" >> "$GITHUB_OUTPUT"
 
-      - name: "Run benchmark — ${{ matrix.tier }} / ${{ matrix.provider }} / ${{ matrix.model }}"
-        if: steps.key_check.outputs.ok == '1' || github.event.inputs.dry_run == 'true'
+      - name: "Run benchmark — ${{ matrix.label }} (${{ matrix.provider }}/${{ matrix.model }})"
         env:
           OPENAI_API_KEY:    ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -222,40 +277,32 @@ jobs:
         run: |
           DRY_FLAG=""
           [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_FLAG="--dry-run"
-          # Filesystem-safe slug: replace dots, slashes, and spaces with dashes
-          SLUG="${{ matrix.provider }}_$(echo '${{ matrix.model }}' | tr './ ' '-')"
-
           python scripts/govern_bench/run_bench.py \
-            ${{ steps.build-args.outputs.task_args }} \
-            --reps ${{ github.event.inputs.reps || '2' }} \
+            ${{ steps.build-args.outputs.args }} \
+            --reps ${{ github.event.inputs.reps || '5' }} \
             --provider ${{ matrix.provider }} \
-            --model    ${{ matrix.model }} \
-            --output   bench-report-${SLUG}.md \
-            --json-output bench-results-${SLUG}.json \
+            --model "${{ matrix.model }}" \
+            --output   "bench-report-${{ matrix.label }}.md" \
+            --json-output "bench-results-${{ matrix.label }}.json" \
             $DRY_FLAG
-
-      - name: Set safe artifact name
-        id: artifact_name
-        if: always()
-        run: |
-          SAFE_MODEL=$(echo '${{ matrix.model }}' | tr './ ' '-')
-          echo "name=bench-${{ matrix.provider }}-${SAFE_MODEL}-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
 
       - name: Upload per-model artifact
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.artifact_name.outputs.name }}
+          name: bench-${{ matrix.label }}-${{ github.run_id }}
           path: |
-            bench-report-*.md
-            bench-results-*.json
+            bench-report-${{ matrix.label }}.md
+            bench-results-${{ matrix.label }}.json
           retention-days: 30
+          if-no-files-found: ignore
 
   # ──────────────────────────────────────────────────────────────────────────
-  # compare — downloads ALL model artifacts, generates unified tier report
+  # compare — collect every per-model artifact and build a unified report.
+  # Model labels are read from each JSON's "model" field, so no name mangling.
   # ──────────────────────────────────────────────────────────────────────────
   compare:
-    name: Cross-model comparison (all tiers)
+    name: Cross-model comparison
     runs-on: ubuntu-latest
     needs: bench-matrix
     if: always() && github.event_name == 'workflow_dispatch'
@@ -275,57 +322,26 @@ jobs:
           pip install -e ".[dev]"
           pip install pyyaml
 
-      # One download step per matrix entry (continue-on-error for skipped jobs)
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-nano-${{ github.run_id }}",     path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4o-mini-${{ github.run_id }}",      path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-haiku-4-5-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.0-flash-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-4.1-${{ github.run_id }}",           path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-sonnet-4-5-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.5-flash-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-openai-gpt-5.5-${{ github.run_id }}",           path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-anthropic-claude-opus-4-5-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-google-gemini-2.5-pro-${{ github.run_id }}",    path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-7B-Instruct-${{ github.run_id }}",          path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-Qwen-Qwen2-5-72B-Instruct-${{ github.run_id }}",         path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-1-8B-Instruct-${{ github.run_id }}",  path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-meta-llama-Llama-3-3-70B-Instruct-${{ github.run_id }}", path: results/}}
-      - {uses: actions/download-artifact@v8, continue-on-error: true, with: {name: "bench-huggingface-mistralai-Mistral-7B-Instruct-v0-3-${{ github.run_id }}", path: results/}}
+      - name: Download all per-model artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bench-*-${{ github.run_id }}
+          merge-multiple: true
+          path: results/
 
-      - name: Generate unified tier comparison report
+      - name: Generate unified comparison report
         env:
           PYTHONPATH: scripts
         run: |
-          INPUTS=""
-          for f in results/bench-results-*.json; do
-            [ -f "$f" ] || continue
-            # Slug format: bench-results-<provider>_<model-with-dashes>.json
-            # Reconstruct label as provider/model
-            SLUG=$(basename "$f" .json | sed 's/bench-results-//')
-            PROVIDER=$(echo "$SLUG" | cut -d_ -f1)
-            MODEL_SLUG=$(echo "$SLUG" | cut -d_ -f2-)
-            # Re-expand known dot-version model names
-            MODEL=$(echo "$MODEL_SLUG" | sed \
-              -e 's/gpt-4o-mini/gpt-4o-mini/' \
-              -e 's/gpt-4-1-nano/gpt-4.1-nano/' \
-              -e 's/gpt-4-1/gpt-4.1/' \
-              -e 's/gpt-5-5/gpt-5.5/' \
-              -e 's/claude-haiku-4-5/claude-haiku-4-5/' \
-              -e 's/claude-sonnet-4-5/claude-sonnet-4-5/' \
-              -e 's/claude-opus-4-5/claude-opus-4-5/' \
-              -e 's/gemini-2-0-flash/gemini-2.0-flash/' \
-              -e 's/gemini-2-5-flash/gemini-2.5-flash/' \
-              -e 's/gemini-2-5-pro/gemini-2.5-pro/')
-            LABEL="${PROVIDER}/${MODEL}"
-            INPUTS="$INPUTS $f:$LABEL"
-          done
-          if [ -z "$INPUTS" ]; then
-            echo "No result files found — all provider jobs may have been skipped."
+          shopt -s nullglob
+          FILES=(results/bench-results-*.json)
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "No result files found — all model jobs may have failed or been skipped."
             exit 0
           fi
-          echo "Comparing:$INPUTS"
+          echo "Comparing ${#FILES[@]} result file(s): ${FILES[*]}"
           python scripts/govern_bench/compare_runs.py \
-            $INPUTS \
+            "${FILES[@]}" \
             --output docs/site/model-comparison.md
           cat docs/site/model-comparison.md
 
@@ -335,19 +351,19 @@ jobs:
           name: bench-comparison-${{ github.run_id }}
           path: docs/site/model-comparison.md
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Post summary
         if: always()
         run: |
-          echo "## GovernanceBench — Multi-Tier Model Comparison" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tasks | ${{ github.event.inputs.tasks || 'T1,T2,T6,T7,T10,T11,T13' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Reps  | ${{ github.event.inputs.reps || '2' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tiers | nano · mini · mid · frontier · open_source |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Models (15) | gpt-4.1-nano · gpt-4o-mini · gpt-4.1 · gpt-5.5 · claude-haiku-4-5 · claude-sonnet-4-5 · claude-opus-4-5 · gemini-2.0-flash · gemini-2.5-flash · gemini-2.5-pro · Qwen2.5-7B · Qwen2.5-72B · Llama-3.1-8B · Llama-3.3-70B · Mistral-7B |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## GovernanceBench — Model Comparison"
+            echo ""
+            echo "- Groups: ${{ github.event.inputs.groups || 'open' }}"
+            echo "- Tasks: ${{ github.event.inputs.tasks || 'T1,T2,T6,T7,T10,T11,T13' }}"
+            echo "- Reps: ${{ github.event.inputs.reps || '5' }}"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
           if [ -f docs/site/model-comparison.md ]; then
             python -c "import re,pathlib; c=pathlib.Path('docs/site/model-comparison.md').read_text(); m=re.search(r'## Headline findings.*',c,re.DOTALL); print(m.group()[:3000] if m else '')" >> "$GITHUB_STEP_SUMMARY"
           fi

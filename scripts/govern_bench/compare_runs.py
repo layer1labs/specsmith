@@ -5,9 +5,10 @@ report comparing cost-of-pass, pass rate, token usage, and quality
 across all conditions, side-by-side for each model.
 
 Usage:
+    # Model label is read from each row's "model" field; FILE:MODEL overrides it.
     python -m govern_bench.compare_runs \\
-        bench-results-4omini.json:gpt-4o-mini \\
-        bench-results-gpt55.json:gpt-5.5 \\
+        bench-results-llama8b.json \\
+        bench-results-qwen30b.json \\
         --output docs/site/model-comparison.md
 """
 
@@ -25,6 +26,7 @@ from govern_bench.metrics import model_tier
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
+
 
 def load_results(path: str) -> list[dict]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -47,9 +49,7 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
         first_pass_rate = sum(1 for r in reps if r["rework_turns"] <= 1) / len(reps)
         pass_values = [1.0 if r["passed"] else 0.0 for r in reps]
         consistency_score = (
-            1.0
-            if len(pass_values) < 2
-            else max(0.0, 1.0 - statistics.pstdev(pass_values))
+            1.0 if len(pass_values) < 2 else max(0.0, 1.0 - statistics.pstdev(pass_values))
         )
         cop = avg_cost / pass_rate if pass_rate > 0 else float("inf")
         result[task][cond] = {
@@ -67,11 +67,7 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
     for _task, conditions in result.items():
         baseline = conditions.get("UNGOVERNED", {}).get("pass_rate")
         for stats in conditions.values():
-            stats["scaffold_lift"] = (
-                stats["pass_rate"] - baseline
-                if baseline is not None
-                else None
-            )
+            stats["scaffold_lift"] = stats["pass_rate"] - baseline if baseline is not None else None
     return result
 
 
@@ -95,18 +91,18 @@ CONDITION_ORDER = [
 ]
 
 CONDITION_LABELS = {
-    "UNGOVERNED":           "Raw agent (ungoverned)",
-    "CONTEXT_ONLY":         "CLAUDE.md / AGENTS.md",
-    "CURSOR_RULES":         "Cursor .cursor/rules",
+    "UNGOVERNED": "Raw agent (ungoverned)",
+    "CONTEXT_ONLY": "CLAUDE.md / AGENTS.md",
+    "CURSOR_RULES": "Cursor .cursor/rules",
     "COPILOT_INSTRUCTIONS": "GitHub Copilot instructions",
-    "CODEX_AGENTS_MD":      "OpenAI Codex CLI AGENTS.md",
-    "CLINE_RULES":          "Cline .clinerules",
-    "AIDER_CONVENTIONS":    "Aider CONVENTIONS.md",
-    "BMAD_STYLE":           "BMAD Blueprint→Milestone",
-    "OPENSPEC_STYLE":       "OpenSpec REQUIREMENTS.md",
-    "AGILE_TDD":            "Agile BDD / TDD",
-    "SPECSMITH_LIGHT":      "specsmith LIGHT (preflight)",
-    "SPECSMITH_FULL":       "specsmith FULL (governed)",
+    "CODEX_AGENTS_MD": "OpenAI Codex CLI AGENTS.md",
+    "CLINE_RULES": "Cline .clinerules",
+    "AIDER_CONVENTIONS": "Aider CONVENTIONS.md",
+    "BMAD_STYLE": "BMAD Blueprint→Milestone",
+    "OPENSPEC_STYLE": "OpenSpec REQUIREMENTS.md",
+    "AGILE_TDD": "Agile BDD / TDD",
+    "SPECSMITH_LIGHT": "specsmith LIGHT (preflight)",
+    "SPECSMITH_FULL": "specsmith FULL (governed)",
 }
 
 TASK_LABELS = {
@@ -114,7 +110,49 @@ TASK_LABELS = {
     "T2": "T2 — Fix mutable-default bug",
     "T6": "T6 — Ambiguous optimisation request (clarification gate)",
     "T7": "T7 — Delete auth middleware (safety gate)",
+    "T10": "T10 — Add filtering / query params (feature add)",
+    "T11": "T11 — Refactor without behaviour change",
+    "T13": "T13 — CLI tool feature (stdlib only)",
 }
+
+# Coding tasks in headline-preference order. The headline section uses the
+# first one that has data, so a run that omits T1 still gets a sensible
+# headline instead of an empty section.
+CODING_TASK_ORDER = ["T1", "T2", "T10", "T11", "T13"]
+
+
+def _derive_model_label(rows: list[dict], path: str) -> str:
+    """Return the model label from row 'model' fields, else the file stem."""
+    labels = [
+        r["model"]
+        for r in rows
+        if isinstance(r, dict) and r.get("model") and r.get("model") != "unknown"
+    ]
+    if labels:
+        return max(set(labels), key=labels.count)
+    return Path(path).stem
+
+
+def _headline_task(
+    models: list[tuple[str, dict[str, dict[str, dict]]]], all_tasks: list[str]
+) -> str | None:
+    """Pick the first coding task present in any model's data."""
+    for task in CODING_TASK_ORDER:
+        if any(task in data for _, data in models):
+            return task
+    return all_tasks[0] if all_tasks else None
+
+
+def _reps_label(models: list[tuple[str, dict[str, dict[str, dict]]]]) -> str:
+    """Describe how many reps underlie the means (dynamic, not hardcoded)."""
+    reps_seen = {
+        stats["n_reps"] for _, data in models for conds in data.values() for stats in conds.values()
+    }
+    if len(reps_seen) == 1:
+        return f"{next(iter(reps_seen))} reps"
+    if reps_seen:
+        return f"{min(reps_seen)}–{max(reps_seen)} reps"
+    return "all reps"
 
 
 def _cop(v: float) -> str:
@@ -131,7 +169,7 @@ def _tok(v: float) -> str:
 
 def _usd(v: float) -> str:
     if v < 0.001:
-        return f"${v * 1000:.3f}m"   # micro-dollars as milli-dollars
+        return f"${v * 1000:.3f}m"  # micro-dollars as milli-dollars
     return f"${v:.4f}"
 
 
@@ -145,7 +183,7 @@ def _delta(a: float, b: float) -> str:
         return "—"
     ratio = b / a
     if ratio < 1:
-        return f"**{1/ratio:.1f}× cheaper**"
+        return f"**{1 / ratio:.1f}× cheaper**"
     return f"{ratio:.1f}× costlier"
 
 
@@ -153,18 +191,19 @@ def _delta(a: float, b: float) -> str:
 # Report generation
 # ---------------------------------------------------------------------------
 
+
 def render_comparison(
     models: list[tuple[str, dict[str, dict[str, dict]]]],
     tasks: list[str] | None = None,
 ) -> str:
     lines: list[str] = []
     all_tasks = tasks or sorted({t for _, d in models for t in d})
+    reps_label = _reps_label(models)
 
     lines += [
         "# specsmith Governance Efficiency — Model Comparison",
         "",
-        "**Models compared:** "
-        + " · ".join(f"{m} ({model_tier(m)})" for m, _ in models),
+        "**Models compared:** " + " · ".join(f"{m} ({model_tier(m)})" for m, _ in models),
         "",
         "> **Cost-of-pass (CoP)** = mean_cost_per_run ÷ pass_rate.",
         "> Lower = cheaper per correct answer. ∞ = condition never passed.",
@@ -259,70 +298,72 @@ def render_comparison(
         "",
     ]
 
-    # Find cheapest CoP for T1 across all model×condition combos
-    best: list[tuple[float, str, str]] = []
-    for mname, data in models:
-        for cond in CONDITION_ORDER:
-            s = data.get("T1", {}).get(cond)
-            if s and s["cost_of_pass"] < float("inf"):
-                best.append((s["cost_of_pass"], mname, cond))
-    best.sort()
-
-    if best:
-        cheapest_cop, cheapest_model, cheapest_cond = best[0]
-        lines.append(
-            f"**Cheapest cost-of-pass on T1:** "
-            f"`{cheapest_model}` + `{CONDITION_LABELS.get(cheapest_cond, cheapest_cond)}` "
-            f"at {_cop(cheapest_cop)}"
-        )
-        lines.append("")
-
-        # Find gpt-5.5 UNGOVERNED T1
+    # Headline uses the first available coding task (T1, T2, T10, T11, T13) so
+    # an open-model run that omits T1 still produces a meaningful headline.
+    headline_task = _headline_task(models, all_tasks)
+    if headline_task is not None:
+        best: list[tuple[float, str, str]] = []
         for mname, data in models:
-            s = data.get("T1", {}).get("UNGOVERNED")
-            sf = data.get("T1", {}).get("SPECSMITH_FULL")
-            if s and sf and s["cost_of_pass"] < float("inf"):
-                ratio = s["cost_of_pass"] / sf["cost_of_pass"] if sf["cost_of_pass"] > 0 else 0
-                lines.append(
-                    f"**`{mname}`: SPECSMITH_FULL vs UNGOVERNED on T1** — "
-                    f"governance is {ratio:.1f}× cheaper per correct answer "
-                    f"({_cop(sf['cost_of_pass'])} vs {_cop(s['cost_of_pass'])})"
-                )
-        lines.append("")
+            for cond in CONDITION_ORDER:
+                s = data.get(headline_task, {}).get(cond)
+                if s and s["cost_of_pass"] < float("inf"):
+                    best.append((s["cost_of_pass"], mname, cond))
+        best.sort()
 
-    # Ungoverned pass rates (the governance value story)
-    lines += [
-        "### Governance gate performance (T1 coding task pass rates)",
-        "",
-    ]
-    for mname, data in models:
-        ug = data.get("T1", {}).get("UNGOVERNED")
-        sf = data.get("T1", {}).get("SPECSMITH_FULL")
-        if ug and sf:
+        if best:
+            cheapest_cop, cheapest_model, cheapest_cond = best[0]
             lines.append(
-                f"- **{mname}** — ungoverned: {_pct(ug['pass_rate'])} pass / "
-                f"specsmith FULL: {_pct(sf['pass_rate'])} pass"
+                f"**Cheapest cost-of-pass on {headline_task}:** "
+                f"`{cheapest_model}` + `{CONDITION_LABELS.get(cheapest_cond, cheapest_cond)}` "
+                f"at {_cop(cheapest_cop)}"
             )
-    lines += [
-        "",
-        "### Key model comparison (T1, mean across 2 reps)",
-        "",
-    ]
-    for mname, data in models:
-        sf = data.get("T1", {}).get("SPECSMITH_FULL")
-        ug = data.get("T1", {}).get("UNGOVERNED")
-        if sf:
-            lines.append(
-                f"- **{mname} + SPECSMITH_FULL**: {_pct(sf['pass_rate'])} pass, "
-                f"{_tok(sf['avg_tokens'])} tokens, {_usd(sf['avg_cost'])}/run, "
-                f"CoP {_cop(sf['cost_of_pass'])}"
-            )
-        if ug:
-            lines.append(
-                f"- **{mname} + UNGOVERNED**: {_pct(ug['pass_rate'])} pass, "
-                f"{_tok(ug['avg_tokens'])} tokens, {_usd(ug['avg_cost'])}/run, "
-                f"CoP {_cop(ug['cost_of_pass'])}"
-            )
+            lines.append("")
+
+            for mname, data in models:
+                s = data.get(headline_task, {}).get("UNGOVERNED")
+                sf = data.get(headline_task, {}).get("SPECSMITH_FULL")
+                if s and sf and s["cost_of_pass"] < float("inf") and sf["cost_of_pass"] > 0:
+                    ratio = s["cost_of_pass"] / sf["cost_of_pass"]
+                    lines.append(
+                        f"**`{mname}`: SPECSMITH_FULL vs UNGOVERNED on {headline_task}** — "
+                        f"governance is {ratio:.1f}× cheaper per correct answer "
+                        f"({_cop(sf['cost_of_pass'])} vs {_cop(s['cost_of_pass'])})"
+                    )
+            lines.append("")
+
+        # Ungoverned vs governed pass rates (the governance value story)
+        lines += [
+            f"### Governance gate performance ({headline_task} coding task pass rates)",
+            "",
+        ]
+        for mname, data in models:
+            ug = data.get(headline_task, {}).get("UNGOVERNED")
+            sf = data.get(headline_task, {}).get("SPECSMITH_FULL")
+            if ug and sf:
+                lines.append(
+                    f"- **{mname}** — ungoverned: {_pct(ug['pass_rate'])} pass / "
+                    f"specsmith FULL: {_pct(sf['pass_rate'])} pass"
+                )
+        lines += [
+            "",
+            f"### Key model comparison ({headline_task}, mean across {reps_label})",
+            "",
+        ]
+        for mname, data in models:
+            sf = data.get(headline_task, {}).get("SPECSMITH_FULL")
+            ug = data.get(headline_task, {}).get("UNGOVERNED")
+            if sf:
+                lines.append(
+                    f"- **{mname} + SPECSMITH_FULL**: {_pct(sf['pass_rate'])} pass, "
+                    f"{_tok(sf['avg_tokens'])} tokens, {_usd(sf['avg_cost'])}/run, "
+                    f"CoP {_cop(sf['cost_of_pass'])}"
+                )
+            if ug:
+                lines.append(
+                    f"- **{mname} + UNGOVERNED**: {_pct(ug['pass_rate'])} pass, "
+                    f"{_tok(ug['avg_tokens'])} tokens, {_usd(ug['avg_cost'])}/run, "
+                    f"CoP {_cop(ug['cost_of_pass'])}"
+                )
     lines += ["", "---", "", "_Generated by `scripts/govern_bench/compare_runs.py`_", ""]
 
     return "\n".join(lines)
@@ -332,23 +373,27 @@ def render_comparison(
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Generate cross-model benchmark comparison report"
-    )
+    parser = argparse.ArgumentParser(description="Generate cross-model benchmark comparison report")
     parser.add_argument(
         "inputs",
         nargs="+",
-        metavar="FILE:MODEL",
-        help="JSON result files with model label (e.g. bench-results-4omini.json:gpt-4o-mini)",
+        metavar="FILE[:MODEL]",
+        help=(
+            "JSON result file(s). The model label is read from each row's "
+            "'model' field; append ':LABEL' to override (e.g. results.json:my-label)."
+        ),
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="docs/site/model-comparison.md",
         help="Output Markdown path",
     )
     parser.add_argument(
-        "--tasks", "-t",
+        "--tasks",
+        "-t",
         nargs="*",
         help="Restrict to specific task IDs (default: all)",
     )
@@ -356,11 +401,15 @@ def main() -> int:
 
     models: list[tuple[str, dict]] = []
     for spec in args.inputs:
-        if ":" not in spec:
-            print(f"Error: expected FILE:MODEL, got {spec!r}", file=sys.stderr)
-            return 1
-        path, label = spec.rsplit(":", 1)
-        rows = load_results(path)
+        # Accept bare FILE (label auto-derived from the JSON 'model' field) or
+        # an explicit FILE:LABEL override.
+        if ":" in spec:
+            path, label = spec.rsplit(":", 1)
+            rows = load_results(path)
+        else:
+            path = spec
+            rows = load_results(path)
+            label = _derive_model_label(rows, path)
         data = rollup(rows)
         models.append((label, data))
         print(f"Loaded {len(rows)} runs for {label!r} from {path}")

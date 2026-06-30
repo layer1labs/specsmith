@@ -1,0 +1,21 @@
+# specsmith test cases — govern_bench (governance efficiency benchmark harness)
+# CANONICAL SOURCE: edit this file, not docs/TESTS.md
+# docs/TESTS.md is regenerated from these YAML files.
+#
+# Schema: id, title, description, requirement_id, type,
+#         verification_method, input, expected_behavior, confidence
+# Required fields: id, title, requirement_id
+- id: TEST-460
+  title: Governance Efficiency Benchmark Harness Integrity
+  description: The govern_bench harness MUST call live provider endpoints (HuggingFace
+    Inference Providers router), surface per-cell errors and missing keys loudly in
+    JSON output and exit status, attribute per-model cost and a size-based tier
+    spread keyed by the exact model id, expose toggleable model groups via workflow
+    inputs, install demo-project dependencies and verify pytest collection, and probe
+    each selected model for a live provider before a full run.
+  requirement_id: REQ-444
+  type: integration
+  verification_method: evaluator
+  input: {}
+  expected_behavior: {}
+  confidence: 1.0
