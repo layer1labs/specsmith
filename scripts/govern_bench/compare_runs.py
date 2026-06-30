@@ -21,7 +21,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from govern_bench.metrics import model_tier
+from govern_bench.metrics import model_tier, strip_provider_route
 
 # ---------------------------------------------------------------------------
 # Data loading
@@ -124,7 +124,7 @@ CODING_TASK_ORDER = ["T1", "T2", "T10", "T11", "T13"]
 def _derive_model_label(rows: list[dict], path: str) -> str:
     """Return the model label from row 'model' fields, else the file stem."""
     labels = [
-        r["model"]
+        strip_provider_route(r["model"])
         for r in rows
         if isinstance(r, dict) and r.get("model") and r.get("model") != "unknown"
     ]

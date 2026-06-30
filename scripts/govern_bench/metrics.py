@@ -125,6 +125,20 @@ _MODEL_TIER_OVERRIDES: dict[str, str] = {
 _OPEN_SOURCE_MARKERS = ("llama", "qwen", "deepseek", "mistral", "gpt-oss")
 
 
+def strip_provider_route(model: str) -> str:
+    """Drop an HF Inference Providers ``:<provider>`` route suffix.
+
+    The HF router accepts ``org/repo:provider`` to pin one inference provider
+    (e.g. ``meta-llama/Llama-3.1-8B-Instruct:deepinfra``). Pricing and tier
+    tables are keyed by the bare repo id, so normalise before lookup. Repo ids
+    contain ``/`` and never ``:``; a provider slug never contains ``/``.
+    """
+    base, sep, route = model.rpartition(":")
+    if sep and route and "/" not in route:
+        return base
+    return model
+
+
 def _tier_from_price(input_usd_per_1m: float, output_usd_per_1m: float) -> str:
     blended_price = (input_usd_per_1m + output_usd_per_1m) / 2.0
     if blended_price < 1.0:
@@ -138,13 +152,14 @@ def _tier_from_price(input_usd_per_1m: float, output_usd_per_1m: float) -> str:
 
 def model_tier(model: str) -> str:
     """Return the benchmark tier label for a model."""
-    key = model.strip().lower()
+    base = strip_provider_route(model)
+    key = base.strip().lower()
     if key in _MODEL_TIER_OVERRIDES:
         return _MODEL_TIER_OVERRIDES[key]
     if any(marker in key for marker in _OPEN_SOURCE_MARKERS):
         return "open-source"
 
-    prices = MODEL_PRICING_PER_1M.get(model)
+    prices = MODEL_PRICING_PER_1M.get(base)
     if prices is None:
         return "unknown"
     return _tier_from_price(*prices)
@@ -162,7 +177,8 @@ MODEL_TIER.update(
 
 def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     """Return estimated API cost in USD."""
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(model, MODEL_PRICING_PER_1M["unknown"])
+    base = strip_provider_route(model)
+    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"])
     return (input_tokens / 1_000_000 * inp_per_m) + (output_tokens / 1_000_000 * out_per_m)
 
 
@@ -170,7 +186,8 @@ def estimate_cost_breakdown(
     model: str, input_tokens: int, output_tokens: int
 ) -> tuple[float, float, float]:
     """Return (input_cost_usd, output_cost_usd, total_cost_usd)."""
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(model, MODEL_PRICING_PER_1M["unknown"])
+    base = strip_provider_route(model)
+    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"])
     inp_cost = input_tokens / 1_000_000 * inp_per_m
     out_cost = output_tokens / 1_000_000 * out_per_m
     return inp_cost, out_cost, inp_cost + out_cost

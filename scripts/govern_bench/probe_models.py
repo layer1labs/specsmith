@@ -42,9 +42,57 @@ _ROUTER_MODEL_URL = "https://router.huggingface.co/v1/models/"
 _HF_PROVIDER = "huggingface"
 
 
+def _split_route(model_id: str) -> tuple[str, str | None]:
+    """Split an ``org/repo:provider`` id into (repo_id, pinned_provider|None).
+
+    The HF router accepts a ``:<provider>`` suffix to pin one inference
+    provider. The model-metadata endpoint is keyed by the bare repo id, so we
+    strip the suffix for the lookup and validate the pin separately. Repo ids
+    contain ``/`` and never ``:``; a provider slug never contains ``/``.
+    """
+    base, sep, route = model_id.rpartition(":")
+    if sep and route and "/" not in route:
+        return base, route
+    return model_id, None
+
+
+def _pinned_result(model_id: str, pinned: str, providers: list[dict]) -> dict:
+    """Validate a pinned provider is offered, live, and tool-capable.
+
+    A pinned provider that is missing, not live, or lacks tool support is a hard
+    failure: the run-time tools/tool_choice params 422 with
+    UNSUPPORTED_OPENAI_PARAMS, which is exactly what pinning is meant to avoid.
+    """
+    match = next(
+        (p for p in providers if str(p.get("provider", "")).lower() == pinned.lower()),
+        None,
+    )
+    if match is None:
+        error: str | None = f"pinned provider '{pinned}' not offered"
+    elif str(match.get("status", "")).lower() != "live":
+        error = f"pinned provider '{pinned}' is not live"
+    elif match.get("supports_tools") is not True:
+        error = f"pinned provider '{pinned}' does not support tools"
+    else:
+        error = None
+    return {
+        "model": model_id,
+        "ok": error is None,
+        "n_providers": len(providers),
+        "live": [match] if (error is None and match is not None) else [],
+        "error": error,
+    }
+
+
 def _probe_one(model_id: str, token: str | None, timeout: float) -> dict:
-    """Query the router for a single model id; return a structured result."""
-    url = _ROUTER_MODEL_URL + model_id  # repo ids contain '/', kept as a path
+    """Query the router for a single model id; return a structured result.
+
+    When ``model_id`` pins a provider (``org/repo:provider``), that provider
+    must exist, be live, AND advertise tool support. Unpinned ids pass as long
+    as any provider is live.
+    """
+    repo_id, pinned = _split_route(model_id)
+    url = _ROUTER_MODEL_URL + repo_id  # repo ids contain '/', kept as a path
     headers = {"Accept": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
@@ -63,6 +111,10 @@ def _probe_one(model_id: str, token: str | None, timeout: float) -> dict:
     body = payload.get("data", payload) if isinstance(payload, dict) else {}
     providers = body.get("providers") or []
     live = [p for p in providers if str(p.get("status", "")).lower() == "live"]
+
+    if pinned is not None:
+        return _pinned_result(model_id, pinned, providers)
+
     return {
         "model": model_id,
         "ok": bool(live),
