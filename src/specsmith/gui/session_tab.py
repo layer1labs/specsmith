@@ -157,7 +157,7 @@ class SessionTab(QWidget):
         self._chat.append_system(
             f"AEE Workbench — {proj_name} | "
             f"Provider: {self._provider_name} | "
-            "Type a message or click a tool on the left."
+            "Type a message or click a tool on the left.",
         )
 
     # ── Signal connections ────────────────────────────────────────────────────

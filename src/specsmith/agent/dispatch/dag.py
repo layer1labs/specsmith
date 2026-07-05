@@ -145,7 +145,7 @@ class TaskDAG:
 
     def topological_sort(self) -> list[TaskNode]:
         """Kahn's algorithm — raises DAGValidationError on cycle."""
-        in_degree: dict[str, int] = {n: 0 for n in self._nodes}
+        in_degree: dict[str, int] = dict.fromkeys(self._nodes, 0)
         for node in self._nodes.values():
             for dep in node.depends_on:
                 if dep not in self._nodes:
@@ -250,7 +250,7 @@ class TaskDAGBuilder:
                     title=str(item.get("title", node_id)),
                     role=role,
                     depends_on=[str(d) for d in item.get("depends_on", [])],
-                )
+                ),
             )
 
         # Validate: topological sort will raise on cycle
@@ -275,10 +275,10 @@ class TaskDAGBuilder:
                 depth -= 1
                 if depth == 0:
                     try:
-                        return cast(list[dict[str, Any]], json.loads(text[start : i + 1]))
+                        return cast("list[dict[str, Any]]", json.loads(text[start : i + 1]))
                     except json.JSONDecodeError as exc:
                         raise DAGValidationError(
-                            f"Malformed JSON in planner output: {exc}"
+                            f"Malformed JSON in planner output: {exc}",
                         ) from exc
         raise DAGValidationError("Planner output JSON array is not closed.")
 

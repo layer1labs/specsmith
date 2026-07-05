@@ -29,6 +29,7 @@ References
 AEE Recovery Operator (R): https://appliedepistemicengineering.com/
 Axiom 4 (Reconstructability): Every failed belief yields a reconstructed
 belief that satisfies Observability and Falsifiability.
+
 """
 
 from __future__ import annotations
@@ -127,7 +128,9 @@ class RecoveryOperator:
         return proposals
 
     def _propose_for_failure(
-        self, artifact: BeliefArtifact, fm: FailureMode
+        self,
+        artifact: BeliefArtifact,
+        fm: FailureMode,
     ) -> list[RecoveryProposal]:
         """Generate recovery proposals for a single failure mode."""
         challenge = fm.challenge.lower()
@@ -152,7 +155,7 @@ class RecoveryOperator:
                         ),
                         estimated_cost="low",
                         priority=priority,
-                    )
+                    ),
                 )
             else:
                 proposals.append(
@@ -171,7 +174,7 @@ class RecoveryOperator:
                         ),
                         estimated_cost="low",
                         priority=priority,
-                    )
+                    ),
                 )
 
         elif "falsifiability" in challenge or "missing_test" in challenge or "no test" in challenge:
@@ -189,7 +192,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="low",
                     priority=priority,
-                )
+                ),
             )
 
         elif "observability" in challenge or "boundary" in challenge:
@@ -207,7 +210,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="low",
                     priority=priority,
-                )
+                ),
             )
             if not artifact.propositions:
                 proposals.append(
@@ -224,7 +227,7 @@ class RecoveryOperator:
                         ),
                         estimated_cost="low",
                         priority=1,  # Always highest for empty artifacts
-                    )
+                    ),
                 )
 
         elif "irreducibility" in challenge or "compound" in challenge:
@@ -245,7 +248,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="medium",
                     priority=priority,
-                )
+                ),
             )
 
         elif "confidence" in challenge and "p1" in challenge.lower():
@@ -265,7 +268,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="medium",
                     priority=1,
-                )
+                ),
             )
 
         return proposals
@@ -294,7 +297,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="low",
                     priority=1,
-                )
+                ),
             )
         else:
             proposals.append(
@@ -312,7 +315,7 @@ class RecoveryOperator:
                     ),
                     estimated_cost="medium",
                     priority=1,
-                )
+                ),
             )
         return proposals
 
@@ -330,7 +333,7 @@ class RecoveryOperator:
 
         for i, p in enumerate(proposals, 1):
             lines.append(
-                f"{i}. [{p.strategy.value.upper()}] {p.artifact_id} (cost: {p.estimated_cost})"
+                f"{i}. [{p.strategy.value.upper()}] {p.artifact_id} (cost: {p.estimated_cost})",
             )
             lines.append(f"   Problem: {p.failure_mode_challenge}")
             lines.append(f"   Action:  {p.description}")

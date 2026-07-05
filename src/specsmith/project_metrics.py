@@ -188,6 +188,7 @@ class MetricsStore:
         Args:
             since: ISO-8601 date string (inclusive), e.g. ``"2026-01-01"``.
             until: ISO-8601 date string (inclusive), e.g. ``"2026-06-30"``.
+
         """
         if not self._path.exists():
             return []
@@ -377,7 +378,8 @@ def flush_session_metrics(
     command: str = "chat",
 ) -> None:
     """Append a MetricsRecord from LLM usage data captured in runner.py (REQ-436).
-    Best-effort: never raises."""
+    Best-effort: never raises.
+    """
     try:
         store = MetricsStore(root)
         rec = MetricsRecord.new(

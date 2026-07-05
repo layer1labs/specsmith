@@ -36,6 +36,7 @@ References
 ----------
 CERTUS/DCI methodology: https://github.com/AionSystem/VERITAS
 AEE Convergence Axiom (5): Systematic S+R application converges to E.
+
 """
 
 from __future__ import annotations
@@ -118,7 +119,7 @@ class CertaintyReport:
             lines.append("Artifacts below threshold:")
             for s in sorted(low, key=lambda x: x.propagated_score):
                 lines.append(
-                    f"  ✗ {s.artifact_id:25s}  score={s.propagated_score:.2f}  [{s.label}]"
+                    f"  ✗ {s.artifact_id:25s}  score={s.propagated_score:.2f}  [{s.label}]",
                 )
                 for note in s.notes[:2]:
                     lines.append(f"     {note}")
@@ -247,6 +248,6 @@ class CertaintyEngine:
                             ac.propagated_score = upstream
                             ac.above_threshold = upstream >= self.threshold
                             ac.notes.append(
-                                f"Propagated from {link}: score reduced to {upstream:.2f}"
+                                f"Propagated from {link}: score reduced to {upstream:.2f}",
                             )
                             changed = True

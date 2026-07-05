@@ -77,6 +77,7 @@ class Migration(ABC):
 
         Returns:
             MigrationResult with details of what was done.
+
         """
 
     def rollback(self, root: Path) -> MigrationResult:

@@ -30,7 +30,7 @@ def main():
         "Agents ready. Type plain English to use the natural-language broker, "
         "or use slash commands (/plan, /ask, /fix, /why, /exit). "
         "Use /specsmith <args> to run any specsmith CLI command directly. "
-        "Toggle governance details with /why."
+        "Toggle governance details with /why.",
     )
 
     project_dir = Path(os.getcwd())

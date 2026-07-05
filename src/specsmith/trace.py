@@ -36,6 +36,7 @@ References
 ----------
 VERITAS/STP: https://github.com/AionSystem/VERITAS
 ARE audit chain: https://github.com/organvm-i-theoria/auto-revision-epistemic-engine
+
 """
 
 from __future__ import annotations
@@ -290,14 +291,14 @@ class TraceVault:
             expected_entry = _sha256(f"{rec.content_hash}:{rec.prev_hash}")
             if rec.entry_hash != expected_entry:
                 errors.append(
-                    f"{rec.seal_id}: entry_hash invalid — record may have been tampered with"
+                    f"{rec.seal_id}: entry_hash invalid — record may have been tampered with",
                 )
 
             # Verify chain link
             if rec.prev_hash != prev_hash:
                 errors.append(
                     f"{rec.seal_id}: prev_hash mismatch "
-                    f"(expected {prev_hash[:16]}..., got {rec.prev_hash[:16]}...)"
+                    f"(expected {prev_hash[:16]}..., got {rec.prev_hash[:16]}...)",
                 )
 
             prev_hash = rec.entry_hash
@@ -336,7 +337,7 @@ class TraceVault:
         ]
         for rec in records:
             lines.append(
-                f"  {rec.seal_id}  [{rec.seal_type:12s}]  {rec.timestamp[:19]}Z  {rec.author}"
+                f"  {rec.seal_id}  [{rec.seal_type:12s}]  {rec.timestamp[:19]}Z  {rec.author}",
             )
             lines.append(f"    {rec.description[:100]}")
             if rec.artifact_ids:

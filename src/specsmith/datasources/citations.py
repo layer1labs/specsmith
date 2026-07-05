@@ -55,7 +55,7 @@ class CitationsClient:
         """Search citations via Solr/Lucene query syntax."""
         fl = BALANCED_FIELDS if detail in ("balanced", "complete") else MINIMAL_FIELDS
         params = urllib.parse.urlencode(
-            {"criteria": query or "*:*", "start": offset, "rows": min(limit, 200), "fl": fl}
+            {"criteria": query or "*:*", "start": offset, "rows": min(limit, 200), "fl": fl},
         )
         data = http_get(f"{BASE_URL}?{params}")
         resp = data.get("response", {})
@@ -74,10 +74,13 @@ class CitationsClient:
         docs = data.get("response", {}).get("docs", [])
         if not docs:
             raise DataSourceError(f"Citation {citation_id} not found")
-        return cast(dict[str, Any], docs[0])
+        return cast("dict[str, Any]", docs[0])
 
     def search_by_application(self, app_number: str, **kwargs: Any) -> dict[str, Any]:
         """Get all citations for an application."""
         return self.search(
-            f"patentApplicationNumber:{app_number}", detail="balanced", limit=100, **kwargs
+            f"patentApplicationNumber:{app_number}",
+            detail="balanced",
+            limit=100,
+            **kwargs,
         )

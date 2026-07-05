@@ -7,7 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def scan_project_structure(root: Path) -> dict[str, object]:  # noqa: C901
+def scan_project_structure(root: Path) -> dict[str, object]:
     """Scan a project and extract architecture-relevant information.
 
     Returns a dict with modules, entry_points, languages, dependencies,
@@ -548,7 +548,9 @@ def _save_interview_state(root: Path, dims: list[ArchitecturalDimension]) -> Non
 
 
 def _render_architecture_md(
-    root: Path, dims: list[ArchitecturalDimension], project_name: str
+    root: Path,
+    dims: list[ArchitecturalDimension],
+    project_name: str,
 ) -> str:
     """Render docs/ARCHITECTURE.md from interview dimensions."""
     lines = [
@@ -587,7 +589,7 @@ def _render_proposed_reqs(dims: list[ArchitecturalDimension]) -> str:
         lines.append(f"  title: {dim.key.replace('_', ' ').title()} Requirement")
         lines.append(
             f"  description: >-\n"
-            f"    Derived from architect interview ({dim.key}): {dim.answer[:200]}"
+            f"    Derived from architect interview ({dim.key}): {dim.answer[:200]}",
         )
         lines.append("  status: proposed")
         lines.append(f"  confidence: {conf:.2f}")
@@ -682,7 +684,9 @@ def _run_non_interactive_interview(root: Path) -> dict[str, object]:
 
 
 def _finalise_interview(
-    root: Path, dims: list[ArchitecturalDimension], project_name: str
+    root: Path,
+    dims: list[ArchitecturalDimension],
+    project_name: str,
 ) -> dict[str, object]:
     """Write ARCHITECTURE.md and proposed.yml, return summary dict."""
     arch_md = _render_architecture_md(root, dims, project_name)
@@ -755,7 +759,7 @@ def run_gap_analysis(root: Path) -> dict[str, object]:
 
     # Unified diff for detecting changed content
     diff_lines = list(
-        difflib.unified_diff(snapshot.splitlines(), current.splitlines(), lineterm="")
+        difflib.unified_diff(snapshot.splitlines(), current.splitlines(), lineterm=""),
     )
     changed_sections: list[str] = []
     for line in diff_lines:
@@ -777,7 +781,7 @@ def run_gap_analysis(root: Path) -> dict[str, object]:
                     f"New architectural component '{section}' identified via gap analysis."
                 ),
                 "status": "proposed",
-            }
+            },
         )
 
     # Flag stale REQs for removed/changed sections
@@ -796,7 +800,7 @@ def run_gap_analysis(root: Path) -> dict[str, object]:
                             {
                                 "id": str(req.get("id", "")),
                                 "reason": f"Architecture section '{section}' removed/changed",
-                            }
+                            },
                         )
                         break
     except Exception:  # noqa: BLE001
@@ -814,7 +818,7 @@ def run_gap_analysis(root: Path) -> dict[str, object]:
                 "requirement_id": req["id"],
                 "type": "integration",
                 "status": "proposed",
-            }
+            },
         )
 
     # Write gap files

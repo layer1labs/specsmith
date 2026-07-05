@@ -41,7 +41,8 @@ class _ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class _EventBus:
     """Thread-safe event bus — the agent thread pushes events, SSE
-    clients consume them.  Supports multiple concurrent SSE listeners."""
+    clients consume them.  Supports multiple concurrent SSE listeners.
+    """
 
     def __init__(self) -> None:
         self._listeners: list[queue.Queue[dict[str, Any] | None]] = []
@@ -177,7 +178,7 @@ class _Handler(BaseHTTPRequestHandler):
         header = self.headers.get("Authorization", "")
         return header == f"Bearer {token}"
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         if not self._authorize():
             self._json_response({"error": "unauthorized"}, code=401)
             return
@@ -209,7 +210,7 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         if not self._authorize():
             self._json_response({"error": "unauthorized"}, code=401)
             return
@@ -238,7 +239,7 @@ class _Handler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def do_DELETE(self) -> None:  # noqa: N802
+    def do_DELETE(self) -> None:
         if not self._authorize():
             self._json_response({"error": "unauthorized"}, code=401)
             return
@@ -377,7 +378,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "nodes": node_status,
                     "completed": done,
                     "failed": failed,
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
@@ -481,7 +482,7 @@ class _Handler(BaseHTTPRequestHandler):
                     {
                         "ok": False,
                         "error": f"Node {node_id!r} is already completed",
-                    }
+                    },
                 )
                 return
             # Build a single-node retry DAG
@@ -510,7 +511,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "dag_id": retry_dag_id,
                     "node_id": node_id,
                     "status": "running",
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
@@ -539,14 +540,14 @@ class _Handler(BaseHTTPRequestHandler):
                     "dag_id": dag_id,
                     "node_id": node_id,
                     "status": "abort signalled",
-                }
+                },
             )
         else:
             self._json_response(
                 {
                     "ok": False,
                     "error": f"Node {node_id!r} not found in dag {dag_id!r}",
-                }
+                },
             )
 
     def _read_json(self) -> dict[str, Any] | None:
@@ -578,7 +579,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "ok": True,
                     "summary": reporter._summary_dict(),
                     "regulations": [r.to_dict() for r in results],
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
@@ -623,7 +624,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "session_context": ctx_dict or {},
                     "history": history,
                     "turn_count": len(history),
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc), "history": []})
@@ -650,7 +651,7 @@ class _Handler(BaseHTTPRequestHandler):
                         {"name": r.name, "passed": r.passed, "message": r.message}
                         for r in report.results
                     ],
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc)})
@@ -672,7 +673,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "seed_turns": len(seed),
                     "seed": seed,
                     "project_dir": str(root),
-                }
+                },
             )
         except Exception as exc:  # noqa: BLE001
             self._json_response({"ok": False, "error": str(exc), "seed": []})

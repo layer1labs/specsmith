@@ -149,7 +149,7 @@ class StressTester:
                         breakpoint=f"Proposition '{prop[:80]}' contains imprecise language.",
                         severity=FailureSeverity.MEDIUM,
                         recovery_hint="Replace vague terms with specific, measurable criteria.",
-                    )
+                    ),
                 )
             if _VAGUE_QUANTITY.search(prop):
                 fms.append(
@@ -159,7 +159,7 @@ class StressTester:
                         breakpoint=f"Proposition '{prop[:80]}' uses an unquantified quantity.",
                         severity=FailureSeverity.LOW,
                         recovery_hint="Replace with a specific numeric bound or threshold.",
-                    )
+                    ),
                 )
         return fms
 
@@ -178,7 +178,7 @@ class StressTester:
                 ),
                 severity=FailureSeverity.HIGH,
                 recovery_hint="Add a test entry that covers this requirement.",
-            )
+            ),
         ]
 
     def _challenge_missing_boundary(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -200,7 +200,7 @@ class StressTester:
                 ),
                 severity=FailureSeverity.LOW,
                 recovery_hint="Add an explicit epistemic boundary declaring scope and assumptions.",
-            )
+            ),
         ]
 
     def _challenge_compound_claim(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -215,7 +215,7 @@ class StressTester:
                     ),
                     severity=FailureSeverity.LOW,
                     recovery_hint="Split into multiple, independently testable beliefs.",
-                )
+                ),
             ]
         for prop in artifact.propositions:
             if _COMPOUND_INDICATORS.search(prop):
@@ -226,7 +226,7 @@ class StressTester:
                         breakpoint=f"Proposition '{prop[:80]}' contains multiple claims.",
                         severity=FailureSeverity.LOW,
                         recovery_hint="Decompose into separate propositions.",
-                    )
+                    ),
                 ]
         return []
 
@@ -243,7 +243,7 @@ class StressTester:
                 ),
                 severity=FailureSeverity.CRITICAL,
                 recovery_hint="Add a description or explicit propositions.",
-            )
+            ),
         ]
 
     def _challenge_p1_confidence(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -261,11 +261,13 @@ class StressTester:
                 ),
                 severity=FailureSeverity.CRITICAL,
                 recovery_hint="Stress-test, add evidence, or lower the priority.",
-            )
+            ),
         ]
 
     def _challenge_circular_links(
-        self, artifact: BeliefArtifact, id_set: set[str]
+        self,
+        artifact: BeliefArtifact,
+        id_set: set[str],
     ) -> list[FailureMode]:
         fms = []
         for link in artifact.inferential_links:
@@ -277,7 +279,7 @@ class StressTester:
                         breakpoint=f"{artifact.artifact_id} references '{link}' which does not exist.",  # noqa: E501
                         severity=FailureSeverity.MEDIUM,
                         recovery_hint=f"Remove or correct the link to '{link}'.",
-                    )
+                    ),
                 )
         return fms
 
@@ -293,7 +295,7 @@ class StressTester:
                         a.artifact_id,
                         seen[a.artifact_id],
                         "Duplicate belief ID — two accepted beliefs share the same identifier.",
-                    )
+                    ),
                 )
             seen[a.artifact_id] = a.artifact_id
 
@@ -312,7 +314,7 @@ class StressTester:
                                 a1.artifact_id,
                                 a2.artifact_id,
                                 f"Negation conflict in '{comp}': contradictory MUST/MUST NOT claims.",  # noqa: E501
-                            )
+                            ),
                         )
         return knots
 
@@ -352,4 +354,4 @@ def _extract_covered_reqs(test_path: Path) -> set[str]:
     return set(pattern.findall(content))
 
 
-__all__ = ["StressTester", "StressTestResult"]
+__all__ = ["StressTestResult", "StressTester"]

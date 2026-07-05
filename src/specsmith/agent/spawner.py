@@ -128,7 +128,7 @@ class SubAgentSpawner:
         except ImportError as exc:
             raise ImportError(
                 "ag2 (autogen) is required for spawn_worker(). "
-                "Install via `pip install ag2[ollama]`."
+                "Install via `pip install ag2[ollama]`.",
             ) from exc
 
         from specsmith.agent.tools import AVAILABLE_TOOLS

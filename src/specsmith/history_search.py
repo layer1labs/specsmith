@@ -106,7 +106,7 @@ def _keyword_search(query: str, project_dir: Path, *, limit: int) -> list[Histor
                     role=str(turn.get("role", "")),
                     text=text,
                     score=score,
-                )
+                ),
             )
     hits.sort(key=lambda h: -h.score)
     return hits[:limit]
@@ -120,7 +120,7 @@ def _semantic_search(query: str, project_dir: Path, *, limit: int) -> list[Histo
     """
     try:
         from sentence_transformers import SentenceTransformer
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise ImportError("sentence-transformers not installed") from exc
 
     turns = _iter_turns(project_dir)
@@ -151,7 +151,7 @@ def _semantic_search(query: str, project_dir: Path, *, limit: int) -> list[Histo
                 role=str(turn.get("role", "")),
                 text=text,
                 score=float(scores[i]),
-            )
+            ),
         )
     return out
 

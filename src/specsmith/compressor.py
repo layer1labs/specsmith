@@ -80,6 +80,7 @@ def run_compress(
 
     Returns:
         CompressResult with details of the operation.
+
     """
     from specsmith.paths import find_ledger
 

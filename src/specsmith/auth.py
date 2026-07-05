@@ -131,7 +131,7 @@ def list_configured() -> list[dict[str, str]]:
                     "source": source,
                     "masked": masked,
                     "description": info["description"],
-                }
+                },
             )
         else:
             result.append(
@@ -141,7 +141,7 @@ def list_configured() -> list[dict[str, str]]:
                     "source": "",
                     "masked": "",
                     "description": info["description"],
-                }
+                },
             )
     return result
 

@@ -147,11 +147,11 @@ def run_export(root: Path) -> str:
     sections.append("### Risk Classification")
     sections.append(
         "- **EU AI Act tier**: GPAI"
-        " (general-purpose; systemic risk assessment required if >10^25 FLOP)"
+        " (general-purpose; systemic risk assessment required if >10^25 FLOP)",
     )
     sections.append("- **NIST AI RMF**: GOVERN + MAP + MEASURE + MANAGE controls applied")
     sections.append(
-        "- **Use-case scope**: software development governance; not Annex III high-risk"
+        "- **Use-case scope**: software development governance; not Annex III high-risk",
     )
     sections.append("")
     sections.append("### Human Oversight Controls")
@@ -159,11 +159,11 @@ def run_export(root: Path) -> str:
     sections.append("- Kill-switch: `specsmith kill-session` halts all active agent sessions")
     sections.append(
         "- Escalation: `specsmith preflight --escalate-threshold <float>`"
-        " gates low-confidence actions"
+        " gates low-confidence actions",
     )
     sections.append(
         "- Retry budget: `agents_max_iterations` in docs/SPECSMITH.yml"
-        " bounds self-improvement loops"
+        " bounds self-improvement loops",
     )
     sections.append("")
     # --- Governance file inventory ---

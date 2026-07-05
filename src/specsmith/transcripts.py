@@ -87,7 +87,7 @@ def normalize_action(raw: dict[str, Any], work_item_id: str) -> NormalizedAgentA
     requires_human_approval = bool(
         raw.get("requires_human_approval")
         or raw.get("human_approval")
-        or action_type == "human_approval"
+        or action_type == "human_approval",
     )
     success = raw.get("success")
     if success is None:

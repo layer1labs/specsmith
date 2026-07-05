@@ -73,7 +73,7 @@ class GitHubPlatform(VCSPlatform):
                 status.details.append("Could not parse CI status")
 
         alerts = self.run_command(
-            ["api", "repos/{owner}/{repo}/dependabot/alerts", "--jq", "length"]
+            ["api", "repos/{owner}/{repo}/dependabot/alerts", "--jq", "length"],
         )
         if alerts.success and alerts.output.strip().isdigit():
             status.open_alerts = int(alerts.output.strip())
@@ -96,7 +96,7 @@ class GitHubPlatform(VCSPlatform):
                 "repos/{owner}/{repo}/dependabot/alerts",
                 "--jq",
                 '.[] | "\\(.security_advisory.summary) [\\(.state)]"',
-            ]
+            ],
         )
 
     def list_secret_scanning(self) -> CommandResult:
@@ -322,7 +322,7 @@ jobs:
             '    directory: "/"\n'
             "    schedule:\n"
             '      interval: "weekly"\n'
-            "    open-pull-requests-limit: 5\n"
+            "    open-pull-requests-limit: 5\n",
         ]
         lang_eco = _LANG_ECOSYSTEM.get(config.language)
         if lang_eco:

@@ -47,20 +47,20 @@ __all__ = [
 ]
 
 # Re-export all public names so __all__ is satisfied and star-imports work.
-from specsmith.compliance._compat import (  # noqa: E402
+from specsmith.compliance._compat import (
     ComplianceSummary,
     get_compliance_summary,
     get_governance_rules_status,
 )
-from specsmith.compliance.checker import (  # noqa: E402
+from specsmith.compliance.checker import (
     ComplianceChecker as ComplianceChecker,
 )
 from specsmith.compliance.checker import (
     ComplianceResult as ComplianceResult,
 )
-from specsmith.compliance.evidence import EvidenceCollector as EvidenceCollector  # noqa: E402
-from specsmith.compliance.regulations import REGULATIONS as REGULATIONS  # noqa: E402
-from specsmith.compliance.reporter import ComplianceReporter as ComplianceReporter  # noqa: E402
+from specsmith.compliance.evidence import EvidenceCollector as EvidenceCollector
+from specsmith.compliance.regulations import REGULATIONS as REGULATIONS
+from specsmith.compliance.reporter import ComplianceReporter as ComplianceReporter
 
 
 def get_regulation(regulation_id: str) -> Regulation:

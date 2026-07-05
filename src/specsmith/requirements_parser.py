@@ -6,8 +6,7 @@ from pathlib import Path
 
 
 def parse_architecture_requirements(project_dir: Path) -> list[dict[str, str]]:
-    """
-    Scans ARCHITECTURE.md for discernible requirements.
+    """Scans ARCHITECTURE.md for discernible requirements.
     Requirements are identified by markdown headings (H2 or H3)
     within "Components" or "Features" sections, followed by bullet points
     describing purpose, interfaces, dependencies, or other specific functionalities.
@@ -54,7 +53,7 @@ def parse_architecture_requirements(project_dir: Path) -> list[dict[str, str]]:
                                     "description": req_desc,
                                     "status": "Draft",
                                     "priority": "Medium",
-                                }
+                                },
                             )
                             req_counter += 1
                         i += 1
@@ -67,8 +66,7 @@ def parse_architecture_requirements(project_dir: Path) -> list[dict[str, str]]:
 
 
 def define_test_cases(requirements: list[dict[str, str]]) -> list[dict[str, str]]:
-    """
-    Defines simple test cases based on a list of requirements.
+    """Defines simple test cases based on a list of requirements.
     Each requirement typically gets at least one test case.
     """
     test_cases: list[dict[str, str]] = []
@@ -82,7 +80,7 @@ def define_test_cases(requirements: list[dict[str, str]]) -> list[dict[str, str]
                 "description": f"Verify {req['description'].lower()}",
                 "type": "Unit",
                 "status": "Pending",
-            }
+            },
         )
         test_counter += 1
     return test_cases

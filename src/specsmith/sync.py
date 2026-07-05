@@ -167,7 +167,8 @@ def parse_tests_md(text: str) -> list[dict[str, Any]]:
             "requirement_id": r.get("requirement id", r.get("requirement_id", "")),
             "type": r.get("type", "unit"),
             "verification_method": r.get(
-                "verification method", r.get("verification_method", "evaluator")
+                "verification method",
+                r.get("verification_method", "evaluator"),
             ),
             "input": {},
             "expected_behavior": {},
@@ -223,7 +224,7 @@ _ESDB_GITIGNORE_FORBIDDEN = frozenset(
     {
         ".specsmith/",
         ".chronomemory/",
-    }
+    },
 )
 
 # Paths that MUST be tracked in git — never emit a bare ignore rule for these.
@@ -430,6 +431,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
 
     Returns:
         A :class:`SyncResult` describing what changed.
+
     """
     from specsmith.governance_yaml import (
         is_yaml_mode,
@@ -520,8 +522,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                         message=(
                             f"{req_id} found in docs/REQUIREMENTS.md but missing from "
                             "docs/requirements/*.yml — add it to a YAML file and re-run sync."
-                        )
-                    )
+                        ),
+                    ),
                 )
         if tests_md_path.exists():
             tests_md_ids = {
@@ -535,8 +537,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
                         message=(
                             f"{test_id} found in docs/TESTS.md but missing from "
                             "docs/tests/*.yml — add it to a YAML file and re-run sync."
-                        )
-                    )
+                        ),
+                    ),
                 )
     else:
         # ── Legacy Markdown mode (DEPRECATED — REQ-373) ──────────────────────
@@ -617,7 +619,8 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     tests_before = len(old_tests)
     reqs_changed = json.dumps(new_reqs_obj, sort_keys=True) != json.dumps(old_reqs, sort_keys=True)
     tests_changed = json.dumps(new_tests_obj, sort_keys=True) != json.dumps(
-        old_tests, sort_keys=True
+        old_tests,
+        sort_keys=True,
     )
 
     if not dry_run:
@@ -721,7 +724,7 @@ def _sync_esdb(root: Path, state_dir: Path) -> None:
                         source_type="observed",
                         evidence=[f"synced from {filename.name}"],
                         data=item,
-                    )
+                    ),
                 )
         store.close()
     except Exception:  # noqa: BLE001 — ESDB sync is always best-effort
@@ -774,14 +777,14 @@ def auto_migrate_if_needed(root: Path) -> dict[str, int]:
 
     class _MigratableStore(Protocol):
         def record_count(self) -> int:
-            pass  # noqa: E704
+            pass
 
         def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
-            pass  # noqa: E704
+            pass
 
     try:
         with open_default_store(root, warn=False) as store:
-            typed_store = cast(_MigratableStore, store)
+            typed_store = cast("_MigratableStore", store)
             if not _should_auto_migrate(typed_store, specsmith_dir):
                 return {}
             counts = typed_store.migrate_from_json(specsmith_dir)

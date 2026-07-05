@@ -58,30 +58,38 @@ class AdvancedCodeAnalyzer:
                     if hasattr(node, "body"):
                         lines = node.body
                         if len(lines) > 20:  # Arbitrary threshold for long functions
-                            description = (f"Function '{node.name}' has {len(lines)} lines - "
-                                           "consider refactoring")
-                            suggestions.append(RefactoringSuggestion(
-                                file_path=str(file_path),
-                                line_number=node.lineno,
-                                suggestion_type="function_length",
-                                description=description,
-                                severity="medium",
-                                confidence=0.7,
-                            ))
+                            description = (
+                                f"Function '{node.name}' has {len(lines)} lines - "
+                                "consider refactoring"
+                            )
+                            suggestions.append(
+                                RefactoringSuggestion(
+                                    file_path=str(file_path),
+                                    line_number=node.lineno,
+                                    suggestion_type="function_length",
+                                    description=description,
+                                    severity="medium",
+                                    confidence=0.7,
+                                )
+                            )
 
                     # Check for complex conditionals
                     complex_conditions = self._find_complex_conditions(node)
                     for condition in complex_conditions:
-                        description = (f"Complex conditional at line {condition['line']} - "
-                                       "consider simplification")
-                        suggestions.append(RefactoringSuggestion(
-                            file_path=str(file_path),
-                            line_number=condition["line"],
-                            suggestion_type="conditional_complexity",
-                            description=description,
-                            severity="high",
-                            confidence=0.8,
-                        ))
+                        description = (
+                            f"Complex conditional at line {condition['line']} - "
+                            "consider simplification"
+                        )
+                        suggestions.append(
+                            RefactoringSuggestion(
+                                file_path=str(file_path),
+                                line_number=condition["line"],
+                                suggestion_type="conditional_complexity",
+                                description=description,
+                                severity="high",
+                                confidence=0.8,
+                            )
+                        )
 
         except Exception:
             # Silently ignore parsing errors for now
@@ -97,11 +105,13 @@ class AdvancedCodeAnalyzer:
             # Count the number of operations in boolean expressions
             bool_op = node.test
             if len(bool_op.values) > 3:  # More than 3 operands is complex
-                    conditions.append({
+                conditions.append(
+                    {
                         "line": node.lineno,
                         "type": "boolean_expression",
                         "complexity": len(bool_op.values),
-                    })
+                    }
+                )
         return conditions
 
     def analyze_codebase_for_ai_assistance(self, root: Path) -> dict[str, AIAssistedAnalysis]:
@@ -152,14 +162,18 @@ class AdvancedCodeAnalyzer:
                 if isinstance(node, ast.FunctionDef):
                     complexity = self._calculate_complexity(node)
                     if complexity > self.complexity_threshold:
-                        reports.append(ComplexityReport(
-                            file_path=str(file_path),
-                            function_name=node.name,
-                            complexity=complexity,
-                            line_number=node.lineno,
-                            message=(f"Function '{node.name}' has cyclomatic complexity of "
-                                     f"{complexity}"),
-                        ))
+                        reports.append(
+                            ComplexityReport(
+                                file_path=str(file_path),
+                                function_name=node.name,
+                                complexity=complexity,
+                                line_number=node.lineno,
+                                message=(
+                                    f"Function '{node.name}' has cyclomatic complexity of "
+                                    f"{complexity}"
+                                ),
+                            )
+                        )
         except Exception:
             pass
 
@@ -185,8 +199,9 @@ class AdvancedCodeAnalyzer:
 
         return complexity
 
-    def _calculate_quality_score(self, complexity_reports: list[ComplexityReport],
-                               suggestions: list[RefactoringSuggestion]) -> float:
+    def _calculate_quality_score(
+        self, complexity_reports: list[ComplexityReport], suggestions: list[RefactoringSuggestion]
+    ) -> float:
         """Calculate overall code quality score."""
         # Base score is 100
         score = 100.0
@@ -265,23 +280,28 @@ def check_ai_compliance(root: Path) -> list[AuditResult]:
     try:
         analysis = get_ai_assisted_analysis(root)
         if analysis:
-            issues.append(AuditResult(
-                name="ai-assisted-analysis",
-                passed=True,
-                message="AI-assisted code analysis capabilities are available",
-            ))
+            issues.append(
+                AuditResult(
+                    name="ai-assisted-analysis",
+                    passed=True,
+                    message="AI-assisted code analysis capabilities are available",
+                )
+            )
         else:
-            issues.append(AuditResult(
+            issues.append(
+                AuditResult(
+                    name="ai-assisted-analysis",
+                    passed=False,
+                    message="AI-assisted code analysis capabilities are not available",
+                )
+            )
+    except Exception as e:
+        issues.append(
+            AuditResult(
                 name="ai-assisted-analysis",
                 passed=False,
-                message="AI-assisted code analysis capabilities are not available",
-            ))
-    except Exception as e:
-        issues.append(AuditResult(
-            name="ai-assisted-analysis",
-            passed=False,
-            message=f"Error checking AI compliance: {e!s}",
-        ))
+                message=f"Error checking AI compliance: {e!s}",
+            )
+        )
 
     return issues
-

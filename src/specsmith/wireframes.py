@@ -36,7 +36,7 @@ def list_wireframes(root: Path) -> list[dict[str, str]]:
                 "id": match.group(1) if match else fp.stem,
                 "file": str(fp.relative_to(root)),
                 "refs": ", ".join(refs.get(fp.name, [])),
-            }
+            },
         )
     return items
 

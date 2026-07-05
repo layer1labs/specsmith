@@ -31,6 +31,7 @@ References
 ----------
 AEE Stress-Test Operator: https://appliedepistemicengineering.com/
 Failure-Mode Graph (G): stress-test → breakpoint relations
+
 """
 
 from __future__ import annotations
@@ -164,7 +165,7 @@ class StressTester:
                         ),
                         severity=FailureSeverity.MEDIUM,
                         recovery_hint="Replace vague terms with specific, measurable criteria.",
-                    )
+                    ),
                 )
             if _VAGUE_QUANTITY.search(prop):
                 fms.append(
@@ -174,7 +175,7 @@ class StressTester:
                         breakpoint=(f"Proposition '{prop[:80]}' uses an unquantified quantity."),
                         severity=FailureSeverity.LOW,
                         recovery_hint="Replace with a specific numeric bound or threshold.",
-                    )
+                    ),
                 )
         return fms
 
@@ -195,7 +196,7 @@ class StressTester:
                 ),
                 severity=FailureSeverity.HIGH,
                 recovery_hint=("Add a TEST entry in docs/TESTS.md that covers this requirement."),
-            )
+            ),
         ]
 
     def _challenge_missing_boundary(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -222,7 +223,7 @@ class StressTester:
                     "Add a '**Platform:**' or '**Boundary:**' field declaring the scope "
                     "and assumptions for this requirement."
                 ),
-            )
+            ),
         ]
 
     def _challenge_compound_claim(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -241,7 +242,7 @@ class StressTester:
                     recovery_hint=(
                         "Split this requirement into multiple, independently testable REQs."
                     ),
-                )
+                ),
             ]
         for prop in artifact.propositions:
             if _COMPOUND_INDICATORS.search(prop):
@@ -256,7 +257,7 @@ class StressTester:
                         ),
                         severity=FailureSeverity.LOW,
                         recovery_hint="Decompose into separate propositions or requirements.",
-                    )
+                    ),
                 ]
         return []
 
@@ -275,7 +276,7 @@ class StressTester:
                 ),
                 severity=FailureSeverity.CRITICAL,
                 recovery_hint="Add a description or decompose into explicit propositions.",
-            )
+            ),
         ]
 
     def _challenge_p1_confidence(self, artifact: BeliefArtifact) -> list[FailureMode]:
@@ -299,11 +300,13 @@ class StressTester:
                     "Elevate confidence by stress-testing, adding evidence, or "
                     "lowering the priority if the requirement is not truly critical."
                 ),
-            )
+            ),
         ]
 
     def _challenge_circular_links(
-        self, artifact: BeliefArtifact, id_set: set[str]
+        self,
+        artifact: BeliefArtifact,
+        id_set: set[str],
     ) -> list[FailureMode]:
         """Challenge: Do inferential links reference non-existent artifacts?"""
         fms = []
@@ -320,7 +323,7 @@ class StressTester:
                         ),
                         severity=FailureSeverity.MEDIUM,
                         recovery_hint=f"Remove or correct the link to '{link}'.",
-                    )
+                    ),
                 )
         return fms
 
@@ -344,7 +347,7 @@ class StressTester:
                         a.artifact_id,
                         seen[a.artifact_id],
                         "Duplicate requirement ID — two accepted beliefs share the same identifier.",  # noqa: E501
-                    )
+                    ),
                 )
             seen[a.artifact_id] = a.artifact_id
 
@@ -366,7 +369,7 @@ class StressTester:
                                 f"Negation conflict in component '{comp}': "
                                 f"'{a1.artifact_id}' and '{a2.artifact_id}' appear to "
                                 "make contradictory MUST/MUST NOT claims on the same subject.",
-                            )
+                            ),
                         )
         return knots
 

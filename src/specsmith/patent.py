@@ -126,6 +126,7 @@ def search_patents(
 
     Returns:
         List of PatentResult objects.
+
     """
     key = api_key or _get_api_key()
 
@@ -151,7 +152,7 @@ def search_patents(
     except urllib.error.HTTPError as e:
         if e.code == 403:
             raise RuntimeError(
-                "USPTO API key required. Set USPTO_API_KEY or run: specsmith auth set uspto"
+                "USPTO API key required. Set USPTO_API_KEY or run: specsmith auth set uspto",
             ) from e
         raise RuntimeError(f"USPTO API error: HTTP {e.code}") from e
     except urllib.error.URLError as e:
@@ -181,7 +182,7 @@ def search_patents(
                 inventors=inventors[:5],
                 assignee=str(doc.get("assigneeEntityName", "")),
                 url=f"https://patents.google.com/patent/US{pn}" if pn else "",
-            )
+            ),
         )
 
     return results

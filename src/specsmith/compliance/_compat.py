@@ -182,7 +182,7 @@ def get_compliance_summary(project_dir: str | Path = ".") -> ComplianceSummary:
                 "status": req.get("status", ""),
                 "tests": linked_tests,
                 "covered": len(linked_tests) > 0,
-            }
+            },
         )
 
     return ComplianceSummary(

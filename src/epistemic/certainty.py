@@ -78,7 +78,7 @@ class CertaintyReport:
             lines.append("Artifacts below threshold:")
             for s in sorted(low, key=lambda x: x.propagated_score):
                 lines.append(
-                    f"  ✗ {s.artifact_id:25s}  score={s.propagated_score:.2f}  [{s.label}]"
+                    f"  ✗ {s.artifact_id:25s}  score={s.propagated_score:.2f}  [{s.label}]",
                 )
                 for note in s.notes[:2]:
                     lines.append(f"     {note}")
@@ -196,4 +196,4 @@ class CertaintyEngine:
                             changed = True
 
 
-__all__ = ["CertaintyEngine", "CertaintyReport", "ArtifactCertainty"]
+__all__ = ["ArtifactCertainty", "CertaintyEngine", "CertaintyReport"]

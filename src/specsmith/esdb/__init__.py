@@ -66,9 +66,9 @@ try:
         RustRecord,
         WalEvent,
         invalidate,
-        metrics,  # noqa: F401 — module re-export
+        metrics,
         open_store,
-        query,  # noqa: F401 — module re-export
+        query,
     )
 
     CHRONO_AVAILABLE: bool = True
@@ -99,8 +99,8 @@ except ImportError:
         """Stub module reference so 'from specsmith.esdb import query, metrics' works."""
 
         def __getattr__(self, name: str) -> "_Stub":
-            raise AttributeError(  # noqa: TRY301
-                f"'{name}' is unavailable: {_INSTALL_HINT}"
+            raise AttributeError(
+                f"'{name}' is unavailable: {_INSTALL_HINT}",
             )
 
     query = _StubModule()  # type: ignore[assignment]
@@ -210,7 +210,7 @@ def _maybe_promote_sqlite_to_chrono(root: "object", chrono: "object") -> None:
                 answer = (
                     input(
                         f"specsmith ESDB: Migrate {sqlite_count} records "
-                        "from SQLite \u2192 ChronoStore? [Y/n] "
+                        "from SQLite \u2192 ChronoStore? [Y/n] ",
                     )
                     .strip()
                     .lower()

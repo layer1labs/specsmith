@@ -54,6 +54,7 @@ class PPUBSClient:
             query: USPTO search syntax (e.g., TTL/"neural network").
             source_type: "USPAT" for grants, "US-PGPUB" for applications.
             sort: Sort order (default: "date_publ desc").
+
         """
         payload = {
             "searchText": query,
@@ -97,7 +98,7 @@ class PPUBSClient:
         result = self.search(patent_number, limit=1, detail="complete")
         if not result["results"]:
             raise DataSourceError(f"Patent {patent_number} not found in PPUBS")
-        return cast(dict[str, Any], result["results"][0])
+        return cast("dict[str, Any]", result["results"][0])
 
     def search_applications(
         self,

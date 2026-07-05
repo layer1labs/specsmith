@@ -211,7 +211,13 @@ class MistralProvider(LLMProvider):
     default_model = "mistral-small-latest"
 
     def chat(
-        self, messages, *, json_mode=False, json_schema=None, max_tokens=2000, temperature=0.3
+        self,
+        messages,
+        *,
+        json_mode=False,
+        json_schema=None,
+        max_tokens=2000,
+        temperature=0.3,
     ):
         import os  # noqa: PLC0415
 
@@ -240,7 +246,13 @@ class OpenAIProvider(LLMProvider):
     default_model = "gpt-4o-mini"
 
     def chat(
-        self, messages, *, json_mode=False, json_schema=None, max_tokens=2000, temperature=0.3
+        self,
+        messages,
+        *,
+        json_mode=False,
+        json_schema=None,
+        max_tokens=2000,
+        temperature=0.3,
     ):
         import os  # noqa: PLC0415
 
@@ -282,7 +294,13 @@ class GoogleProvider(LLMProvider):
     default_model = "gemini-2.0-flash"
 
     def chat(
-        self, messages, *, json_mode=False, json_schema=None, max_tokens=2000, temperature=0.3
+        self,
+        messages,
+        *,
+        json_mode=False,
+        json_schema=None,
+        max_tokens=2000,
+        temperature=0.3,
     ):
         import os  # noqa: PLC0415
 
@@ -337,7 +355,13 @@ class OllamaProvider(LLMProvider):
             return False
 
     def chat(
-        self, messages, *, json_mode=False, json_schema=None, max_tokens=2000, temperature=0.3
+        self,
+        messages,
+        *,
+        json_mode=False,
+        json_schema=None,
+        max_tokens=2000,
+        temperature=0.3,
     ):
         body: dict[str, Any] = {
             "model": self.model,
@@ -382,7 +406,13 @@ class MockProvider(LLMProvider):
         return True
 
     def chat(
-        self, messages, *, json_mode=False, json_schema=None, max_tokens=2000, temperature=0.3
+        self,
+        messages,
+        *,
+        json_mode=False,
+        json_schema=None,
+        max_tokens=2000,
+        temperature=0.3,
     ):
         text = self._producer(messages)
         return LLMResult(provider=self.name, model=self.model, text=text, raw={})
@@ -532,11 +562,12 @@ def dispatch_byoe(
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode(errors="replace")[:500]
         raise LLMError(f"BYOE endpoint HTTP {exc.code}: {raw}") from exc
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise LLMError(f"BYOE request failed: {exc}") from exc
 
 
 __all__ = [
+    "GoogleProvider",
     "LLMClient",
     "LLMError",
     "LLMProvider",
@@ -545,6 +576,5 @@ __all__ = [
     "MockProvider",
     "OllamaProvider",
     "OpenAIProvider",
-    "GoogleProvider",
     "dispatch_byoe",
 ]

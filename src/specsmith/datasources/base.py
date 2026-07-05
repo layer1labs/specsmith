@@ -63,6 +63,7 @@ class DataSource(Protocol):
 
         Returns:
             ``{"results": [...], "total": N, "detail": "minimal", ...}``
+
         """
         ...
 
@@ -98,7 +99,7 @@ def http_get(
         data = json.loads(body)
         if isinstance(data, dict):
             data["_latency_ms"] = latency_ms
-        return cast(dict[str, Any], data)
+        return cast("dict[str, Any]", data)
     except urllib.error.HTTPError as exc:
         raise DataSourceError(f"HTTP {exc.code}: {exc.reason} — {url}") from exc
     except urllib.error.URLError as exc:
@@ -132,7 +133,7 @@ def http_post(
         data = json.loads(resp_body)
         if isinstance(data, dict):
             data["_latency_ms"] = latency_ms
-        return cast(dict[str, Any], data)
+        return cast("dict[str, Any]", data)
     except urllib.error.HTTPError as exc:
         raise DataSourceError(f"HTTP {exc.code}: {exc.reason} — {url}") from exc
     except urllib.error.URLError as exc:

@@ -598,7 +598,8 @@ def sync_from_huggingface_blocking(
         return {"synced": 0, "errors": 0, "message": "Sync already in progress"}
     try:
         return _sync_inner(
-            scores_path=scores_path or _DEFAULT_SCORES_PATH, force_static=force_static
+            scores_path=scores_path or _DEFAULT_SCORES_PATH,
+            force_static=force_static,
         )
     finally:
         _sync_lock.release()
@@ -699,7 +700,8 @@ def _sync_inner(*, scores_path: Path, force_static: bool) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         if synced > 0:
             _log.info(
-                "HF sync stopped after %d models (partial), continuing with partial data", synced
+                "HF sync stopped after %d models (partial), continuing with partial data",
+                synced,
             )
         else:
             _log.warning("HF leaderboard sync failed: %s", exc)

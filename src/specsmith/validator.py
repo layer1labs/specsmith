@@ -97,7 +97,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                 name="scaffold-yml",
                 passed=True,
                 message="No scaffold config found (project may not have been created by specsmith)",
-            )
+            ),
         )
         return results
 
@@ -113,7 +113,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                     name="scaffold-yml",
                     passed=False,
                     message=f"{cfg_name} is not a valid YAML mapping",
-                )
+                ),
             )
         else:
             data = _normalize_scaffold_raw(data)
@@ -123,7 +123,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                         name="scaffold-yml",
                         passed=False,
                         message=f"{cfg_name} missing required fields: name, type",
-                    )
+                    ),
                 )
             else:
                 results.append(
@@ -131,7 +131,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                         name="scaffold-yml",
                         passed=True,
                         message=f"{cfg_name} valid: project={data['name']}, type={data['type']}",
-                    )
+                    ),
                 )
     except Exception as e:  # noqa: BLE001
         results.append(
@@ -139,7 +139,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                 name="scaffold-yml",
                 passed=False,
                 message=f"{cfg_name} parse error: {e}",
-            )
+            ),
         )
 
     return results
@@ -168,7 +168,7 @@ def _check_agents_md_refs(root: Path) -> list[ValidationResult]:
                     name=f"agents-ref:{ref}",
                     passed=False,
                     message=f"AGENTS.md references {ref} but file does not exist",
-                )
+                ),
             )
 
     if not results:
@@ -177,7 +177,7 @@ def _check_agents_md_refs(root: Path) -> list[ValidationResult]:
                 name="agents-refs",
                 passed=True,
                 message="All AGENTS.md local references resolve",
-            )
+            ),
         )
 
     return results
@@ -202,7 +202,7 @@ def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
     _ID_FIELD = re.compile(r"\*\*ID:\*\*\s*(REQ-(?:[A-Z]+-)*\d+)")
     id_field_matches = _ID_FIELD.findall(text)
     # Fall back to full scan if the markdown has no **ID:** fields (legacy format).
-    req_ids = id_field_matches if id_field_matches else _REQ_PATTERN.findall(text)
+    req_ids = id_field_matches or _REQ_PATTERN.findall(text)
 
     seen: dict[str, int] = {}
     for rid in req_ids:
@@ -216,7 +216,7 @@ def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
                 name="req-unique",
                 passed=False,
                 message=f"Duplicate requirement IDs: {dup_str}",
-            )
+            ),
         )
     else:
         results.append(
@@ -224,7 +224,7 @@ def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
                 name="req-unique",
                 passed=True,
                 message=f"{len(seen)} unique requirement IDs found",
-            )
+            ),
         )
 
     return results
@@ -271,7 +271,7 @@ def _check_architecture_reqs(root: Path) -> list[ValidationResult]:
                 message=(
                     f"architecture.md references no REQ IDs, but REQUIREMENTS.md has {len(req_ids)}"
                 ),
-            )
+            ),
         )
     else:
         msg = (
@@ -284,7 +284,7 @@ def _check_architecture_reqs(root: Path) -> list[ValidationResult]:
                 name="arch-req-refs",
                 passed=True,
                 message=msg,
-            )
+            ),
         )
 
     return results
@@ -344,7 +344,7 @@ def _check_blocking_loops(root: Path) -> list[ValidationResult]:
                         "(H11 violation). Add an explicit deadline, iteration cap, and "
                         "fallback exit path."
                     ),
-                )
+                ),
             )
     else:
         results.append(
@@ -352,7 +352,7 @@ def _check_blocking_loops(root: Path) -> list[ValidationResult]:
                 name="blocking-loops",
                 passed=True,
                 message=f"{len(candidates)} script file(s) checked — no unbounded loops found",
-            )
+            ),
         )
 
     return results
@@ -416,7 +416,7 @@ def _check_bare_sleep(root: Path) -> list[ValidationResult]:
                         "Replace with a retry loop that has a max iteration count and "
                         "non-zero exit on timeout."
                     ),
-                )
+                ),
             )
     else:
         results.append(
@@ -424,7 +424,7 @@ def _check_bare_sleep(root: Path) -> list[ValidationResult]:
                 name="bare-sleep",
                 passed=True,
                 message=f"{len(candidates)} script file(s) checked — no bare sleep delays found",
-            )
+            ),
         )
 
     return results

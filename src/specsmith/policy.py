@@ -88,7 +88,9 @@ def load_policy(root: Path) -> tuple[GovernancePolicy, list[str]]:
 
 
 def simulate_policy_for_work_item(
-    root: Path, work_item: Any, diff_text: str = ""
+    root: Path,
+    work_item: Any,
+    diff_text: str = "",
 ) -> dict[str, Any]:
     policy, policy_errors = load_policy(root)
     risk = assess_work_item_risk(work_item)

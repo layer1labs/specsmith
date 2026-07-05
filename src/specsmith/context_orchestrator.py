@@ -82,6 +82,7 @@ class ContextOrchestrator:
 
         Returns:
             OptimizeResultEx with actions taken and (possibly trimmed) history.
+
         """
         result = OptimizeResultEx(history=list(history or []))
 
@@ -107,6 +108,7 @@ class ContextOrchestrator:
 
         Returns:
             OptimizeResultEx with all actions.
+
         """
         result = OptimizeResultEx(history=[])
 
@@ -138,7 +140,7 @@ class ContextOrchestrator:
                 result.tokens_freed_estimate += freed
                 result.actions.append(
                     f"Tier 1: archived {compress_result.archived_entries} ledger entries "
-                    f"(~{freed} tokens freed)"
+                    f"(~{freed} tokens freed)",
                 )
             else:
                 result.actions.append(f"Tier 1: {compress_result.message}")
@@ -162,12 +164,13 @@ class ContextOrchestrator:
             freed = sum(len(t.get("content", "")) for t in dropped) // 4  # ~4 chars/token
             result.tokens_freed_estimate += freed
             result.actions.append(
-                f"Tier 2: summarized {len(dropped)} history turns into 1 (~{freed} tokens freed)"
+                f"Tier 2: summarized {len(dropped)} history turns into 1 (~{freed} tokens freed)",
             )
 
         # Evict low-confidence / synthetic ESDB records from in-context representation
         evicted = self._evict_low_confidence_records(
-            min_confidence=0.5, source_type_exclude=["synthetic"]
+            min_confidence=0.5,
+            source_type_exclude=["synthetic"],
         )
         if evicted > 0:
             freed_esdb = evicted * 80  # ~80 tokens per record summary
@@ -175,7 +178,7 @@ class ContextOrchestrator:
             result.records_evicted += evicted
             result.actions.append(
                 f"Tier 2: evicted {evicted} low-confidence ESDB records from context "
-                f"(~{freed_esdb} tokens freed)"
+                f"(~{freed_esdb} tokens freed)",
             )
 
     def _run_tier3(self, result: OptimizeResultEx) -> None:
@@ -194,11 +197,11 @@ class ContextOrchestrator:
                         f"[EMERGENCY COMPRESSION: {dropped} turns dropped. "
                         "Critical ESDB records and last 5 ledger entries preserved.]"
                     ),
-                }
+                },
             ] + kept
             result.tokens_freed_estimate += freed
             result.actions.append(
-                f"Tier 3: emergency-dropped {dropped} history turns (~{freed} tokens freed)"
+                f"Tier 3: emergency-dropped {dropped} history turns (~{freed} tokens freed)",
             )
 
         # Count critical records protected
@@ -207,7 +210,7 @@ class ContextOrchestrator:
         if protected > 0:
             result.actions.append(
                 f"Tier 3: {protected} critical ESDB records protected "
-                f"(confidence ≥ {CRITICAL_CONFIDENCE}, status=active)"
+                f"(confidence ≥ {CRITICAL_CONFIDENCE}, status=active)",
             )
 
         # Evict everything below CRITICAL_CONFIDENCE from in-context
@@ -215,7 +218,7 @@ class ContextOrchestrator:
         if evicted > 0:
             result.records_evicted += evicted
             result.actions.append(
-                f"Tier 3: evicted {evicted} non-critical ESDB records from context"
+                f"Tier 3: evicted {evicted} non-critical ESDB records from context",
             )
 
     # ------------------------------------------------------------------
@@ -308,7 +311,7 @@ class ContextOrchestrator:
                 "skill_run",
                 "efficiency_metric",
                 "context_usage",
-            }
+            },
         )
 
         # --- Try ChronoStore first (commercial backend) ----------------------

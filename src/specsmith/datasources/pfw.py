@@ -53,7 +53,7 @@ class PFWClient:
     ) -> dict[str, Any]:
         """Search patent applications."""
         params = urllib.parse.urlencode(
-            {"searchText": query, "start": offset, "rows": min(limit, 100)}
+            {"searchText": query, "start": offset, "rows": min(limit, 100)},
         )
         data = http_get(f"{BASE_URL}/applications?{params}", headers=self._headers())
         results = data.get("patentFileWrapperDataBag", data.get("results", []))
@@ -72,7 +72,11 @@ class PFWClient:
         return http_get(f"{BASE_URL}/applications/{app_number}", headers=self._headers())
 
     def get_documents(
-        self, app_number: str, *, document_code: str = "", limit: int = 50
+        self,
+        app_number: str,
+        *,
+        document_code: str = "",
+        limit: int = 50,
     ) -> dict[str, Any]:
         """Get prosecution document metadata for an application."""
         url = f"{BASE_URL}/applications/{app_number}/documents"

@@ -88,7 +88,7 @@ class SkillSpec:
                 "",
                 "## Tools Used",
                 "",
-            ]
+            ],
         )
         for tool in self.tools_used:
             lines.append(f"- {tool}")
@@ -137,7 +137,7 @@ def _build_skill_with_llm(description: str, tags: list[str]) -> SkillSpec | None
     has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
     has_openai = bool(os.environ.get("OPENAI_API_KEY"))
     has_ollama = bool(
-        os.environ.get("OLLAMA_HOST") or os.environ.get("SPECSMITH_PROVIDER") == "ollama"
+        os.environ.get("OLLAMA_HOST") or os.environ.get("SPECSMITH_PROVIDER") == "ollama",
     )
 
     if not (has_anthropic or has_openai or has_ollama):
@@ -247,7 +247,7 @@ def list_skills(project_dir: str = ".") -> list[SkillSpec]:
                         tools_used=raw.get("tools_used", []),
                         tags=raw.get("tags", []),
                         active=raw.get("active", False),
-                    )
+                    ),
                 )
             except (OSError, ValueError):
                 continue

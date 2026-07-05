@@ -71,7 +71,9 @@ class RecoveryOperator:
         return proposals
 
     def _propose_for_failure(
-        self, artifact: BeliefArtifact, fm: FailureMode
+        self,
+        artifact: BeliefArtifact,
+        fm: FailureMode,
     ) -> list[RecoveryProposal]:
         challenge = fm.challenge.lower()
         priority = _severity_priority(fm.severity)
@@ -90,9 +92,9 @@ class RecoveryOperator:
                     strategy=strategy,
                     description=f"Replace imprecise language in {artifact.artifact_id}.",
                     suggested_change=fm.recovery_hint
-                    or "Replace vague terms with measurable criteria.",  # noqa: E501
+                    or "Replace vague terms with measurable criteria.",
                     priority=priority,
-                )
+                ),
             )
         elif "falsifiability" in challenge or "no test" in challenge:
             proposals.append(
@@ -103,7 +105,7 @@ class RecoveryOperator:
                     description=f"Add a test for {artifact.artifact_id}.",
                     suggested_change=f"Add a test entry that covers: {artifact.source_text[:80]}",
                     priority=priority,
-                )
+                ),
             )
         elif "observability" in challenge or "boundary" in challenge:
             proposals.append(
@@ -114,7 +116,7 @@ class RecoveryOperator:
                     description=f"Add epistemic boundary to {artifact.artifact_id}.",
                     suggested_change="Declare scope, assumptions, and platform constraints.",
                     priority=priority,
-                )
+                ),
             )
             if not artifact.propositions:
                 proposals.append(
@@ -125,7 +127,7 @@ class RecoveryOperator:
                         description=f"Add propositions to {artifact.artifact_id} — currently empty.",  # noqa: E501
                         suggested_change="Add a description as a testable claim.",
                         priority=1,
-                    )
+                    ),
                 )
         elif "irreducibility" in challenge or "compound" in challenge:
             proposals.append(
@@ -137,7 +139,7 @@ class RecoveryOperator:
                     suggested_change="Split into separate beliefs, each with a single proposition.",
                     estimated_cost="medium",
                     priority=priority,
-                )
+                ),
             )
         elif "confidence" in challenge:
             proposals.append(
@@ -149,7 +151,7 @@ class RecoveryOperator:
                     suggested_change="Add test coverage, evidence citations, and mark as stress-tested.",  # noqa: E501
                     estimated_cost="medium",
                     priority=1,
-                )
+                ),
             )
 
         return proposals
@@ -171,7 +173,7 @@ class RecoveryOperator:
                     description=f"Resolve duplicate ID conflict between {id1} and {id2}.",
                     suggested_change="Merge or rename one with a unique ID.",
                     priority=1,
-                )
+                ),
             ]
         return [
             RecoveryProposal(
@@ -187,7 +189,7 @@ class RecoveryOperator:
                 ),
                 estimated_cost="medium",
                 priority=1,
-            )
+            ),
         ]
 
     def format_proposals(self, proposals: list[RecoveryProposal]) -> str:
@@ -202,8 +204,8 @@ class RecoveryOperator:
         ]
         for i, p in enumerate(proposals, 1):
             lines.append(
-                f"{i}. [{p.strategy.value.upper()}] {p.artifact_id} (cost: {p.estimated_cost})"
-            )  # noqa: E501
+                f"{i}. [{p.strategy.value.upper()}] {p.artifact_id} (cost: {p.estimated_cost})",
+            )
             lines.append(f"   Problem: {p.failure_mode_challenge}")
             lines.append(f"   Action:  {p.description}")
             lines.append(f"   Change:  {p.suggested_change[:200]}")

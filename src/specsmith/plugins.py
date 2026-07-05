@@ -100,7 +100,7 @@ def validate_plugin_manifest(path: str | Path) -> list[str]:
         errors.append(
             "specsmith version "
             f"{__version__} does not satisfy plugin requirement "
-            f"{manifest.specsmith_version}"
+            f"{manifest.specsmith_version}",
         )
     if ":" not in manifest.entrypoint:
         errors.append("entrypoint must use module:function syntax")

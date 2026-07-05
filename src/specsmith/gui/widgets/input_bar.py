@@ -68,7 +68,7 @@ class InputBar(QFrame):
 
         self._input = _InputEdit()
         self._input.setPlaceholderText(
-            "Message the AEE agent… (Ctrl+Enter to send, drag files here)"
+            "Message the AEE agent… (Ctrl+Enter to send, drag files here)",
         )
         self._input.setMaximumHeight(100)
         self._input.setMinimumHeight(48)
@@ -211,7 +211,7 @@ class InputBar(QFrame):
         if not api_key:
             current = self._input.toPlainText()
             self._input.setPlainText(
-                f"[File: {p.name} — OCR requires MISTRAL_API_KEY]\n\n" + current
+                f"[File: {p.name} — OCR requires MISTRAL_API_KEY]\n\n" + current,
             )
             return
         try:

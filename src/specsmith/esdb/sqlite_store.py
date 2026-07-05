@@ -81,7 +81,7 @@ ON CONFLICT(id) DO UPDATE SET
 class SqliteRecord:
     """A single record in SqliteStore — mirrors EsdbRecord / ChronoRecord."""
 
-    __slots__ = ("id", "kind", "status", "label", "confidence", "data", "source_ids")
+    __slots__ = ("confidence", "data", "id", "kind", "label", "source_ids", "status")
 
     def __init__(
         self,
@@ -246,6 +246,7 @@ class SqliteStore:
             status:         Filter by status; pass ``""`` or ``None`` for all statuses.
             rag_filter:     If True apply ``confidence >= 0.6`` threshold (H18).
             min_confidence: Additional minimum confidence threshold.
+
         """
         conn = self._require_open()
         clauses: list[str] = []
@@ -347,7 +348,7 @@ class SqliteStore:
         payload_json = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         payload_hash = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
         prev_row = conn.execute(
-            "SELECT current_hash FROM audit_events ORDER BY rowid DESC LIMIT 1"
+            "SELECT current_hash FROM audit_events ORDER BY rowid DESC LIMIT 1",
         ).fetchone()
         prev_hash = str(prev_row["current_hash"]) if prev_row else "0" * 64
         event_id = f"EVT-{uuid.uuid4().hex[:16].upper()}"
@@ -391,7 +392,7 @@ class SqliteStore:
             if prev_hash != expected_prev:
                 errors.append(
                     f"{event_id}: prev_hash mismatch "
-                    f"(expected {expected_prev[:12]}..., got {prev_hash[:12]}...)"
+                    f"(expected {expected_prev[:12]}..., got {prev_hash[:12]}...)",
                 )
             material = (
                 f"{event_id}|{row['timestamp']}|{row['prev_hash']}|{row['actor']}|"
@@ -402,7 +403,7 @@ class SqliteStore:
             if current_hash != calc_hash:
                 errors.append(
                     f"{event_id}: current_hash mismatch "
-                    f"(expected {calc_hash[:12]}..., got {current_hash[:12]}...)"
+                    f"(expected {calc_hash[:12]}..., got {current_hash[:12]}...)",
                 )
             expected_prev = current_hash
         return {"ok": len(errors) == 0, "errors": errors, "event_count": len(rows)}
@@ -445,7 +446,7 @@ class SqliteStore:
                             label=str(r.get("title", r.get("id", ""))),
                             confidence=float(r.get("confidence", 0.7)),
                             data=r,
-                        )
+                        ),
                     )
                     counts["requirements"] += 1
             except (OSError, ValueError):
@@ -469,7 +470,7 @@ class SqliteStore:
                             label=str(t.get("title", t.get("id", ""))),
                             confidence=float(t.get("confidence", 1.0)),
                             data=t,
-                        )
+                        ),
                     )
                     counts["testcases"] += 1
             except (OSError, ValueError):

@@ -38,6 +38,7 @@ def save_session(
         root: Project root (or home dir for global sessions).
         ctx_dict: SessionContext.to_dict() output.
         history: List of {role, content} conversation turn dicts.
+
     """
     specsmith_dir = root / ".specsmith"
     specsmith_dir.mkdir(parents=True, exist_ok=True)
@@ -63,6 +64,7 @@ def load_session(
 
     Returns:
         (ctx_dict | None, history_turns)
+
     """
     specsmith_dir = root / ".specsmith"
 

@@ -45,6 +45,7 @@ References
 - ARE framework: https://github.com/organvm-i-theoria/auto-revision-epistemic-engine
 - VERITAS/CERTUS: https://github.com/AionSystem/VERITAS
 - AI as Epistemic Technology (Springer): https://doi.org/10.1007/s11948-023-00451-3
+
 """
 
 from __future__ import annotations
@@ -151,6 +152,7 @@ class BeliefArtifact:
             confidence=ConfidenceLevel.LOW,
             status=BeliefStatus.ACCEPTED,
         )
+
     """
 
     artifact_id: str
@@ -359,6 +361,6 @@ __all__ = [
     "ConfidenceLevel",
     "FailureMode",
     "FailureSeverity",
-    "parse_requirements_as_beliefs",
     "beliefs_from_dicts",
+    "parse_requirements_as_beliefs",
 ]

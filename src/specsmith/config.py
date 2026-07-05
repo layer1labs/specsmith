@@ -202,7 +202,8 @@ class ProjectConfig(BaseModel):
     # Import detection (populated by specsmith import)
     detected_build_system: str = Field(default="", description="Build system detected by import")
     detected_test_framework: str = Field(
-        default="", description="Test framework detected by import"
+        default="",
+        description="Test framework detected by import",
     )
 
     # License
@@ -254,10 +255,12 @@ class ProjectConfig(BaseModel):
 
     # IP prosecution fields (used when type == 'patent-prosecution')
     provisional_app_number: str = Field(
-        default="", description="USPTO provisional application number (e.g. '63/980,251')"
+        default="",
+        description="USPTO provisional application number (e.g. '63/980,251')",
     )
     provisional_filed_date: str = Field(
-        default="", description="Date the provisional was filed (YYYY-MM-DD)"
+        default="",
+        description="Date the provisional was filed (YYYY-MM-DD)",
     )
     non_provisional_deadline: str = Field(
         default="",

@@ -32,7 +32,7 @@ def build_dashboard(root: Path, out_dir: Path) -> Path:
             "verification_status": _verification_status(items),
             "compliance_evidence_status": _compliance_evidence_status(root),
             "traceability_score": traceability_score,
-        }
+        },
     )
     target = out_dir / "index.html"
     target.write_text(html_doc, encoding="utf-8")

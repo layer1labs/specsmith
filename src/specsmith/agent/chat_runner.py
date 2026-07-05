@@ -133,7 +133,10 @@ def run_chat(
         if endpoint is not None:
             try:
                 full_text, usage = _run_openai_compat(
-                    messages, emitter, msg_block, endpoint=endpoint
+                    messages,
+                    emitter,
+                    msg_block,
+                    endpoint=endpoint,
                 )
             except Exception:  # noqa: BLE001 - degrade to auto-detect
                 full_text, usage = None, _UsageDelta()
@@ -458,7 +461,7 @@ def _run_openai_compat(
             # Many vLLM/llama.cpp builds honour OpenAI's stream_options;
             # the request is harmless if they don't.
             "stream_options": {"include_usage": True},
-        }
+        },
     ).encode("utf-8")
     req = Request(url, data=body, headers=headers, method="POST")  # noqa: S310 - user-supplied
 
@@ -535,12 +538,12 @@ def _run_gemini(
     meta = getattr(last_chunk, "usage_metadata", None) if last_chunk else None
     if meta is not None:
         usage.tokens_in = int(
-            getattr(meta, "prompt_token_count", 0) or getattr(meta, "input_token_count", 0) or 0
+            getattr(meta, "prompt_token_count", 0) or getattr(meta, "input_token_count", 0) or 0,
         )
         usage.tokens_out = int(
             getattr(meta, "candidates_token_count", 0)
             or getattr(meta, "output_token_count", 0)
-            or 0
+            or 0,
         )
     return ("".join(pieces) if pieces else None), usage
 

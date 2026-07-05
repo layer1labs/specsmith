@@ -315,7 +315,10 @@ def main() -> None:
     help="Path to scaffold.yml config file (skips interactive prompts).",
 )
 @click.option(
-    "--output-dir", type=click.Path(), default=".", help="Parent directory for the new project.",
+    "--output-dir",
+    type=click.Path(),
+    default=".",
+    help="Parent directory for the new project.",
 )
 @click.option("--no-git", is_flag=True, default=False, help="Skip git repository initialization.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture definition.")
@@ -1369,8 +1372,7 @@ def validate(project_dir: str, strict_mode: bool, as_json: bool) -> None:
             "std_failed": report.failed,
             "ok": std_ok,
             "std_results": [
-                {"name": r.name, "passed": r.passed, "message": r.message}
-                for r in report.results
+                {"name": r.name, "passed": r.passed, "message": r.message} for r in report.results
             ],
         }
         click.echo(_json.dumps(result, indent=2))
@@ -1650,7 +1652,11 @@ def status(project_dir: str) -> None:
     help="Project root directory.",
 )
 @click.option(
-    "--html", "html_output", type=click.Path(), default=None, help="Generate HTML diff report.",
+    "--html",
+    "html_output",
+    type=click.Path(),
+    default=None,
+    help="Generate HTML diff report.",
 )
 def diff(project_dir: str, html_output: str | None) -> None:
     """Compare governance files against spec templates."""
@@ -1930,7 +1936,10 @@ def export(project_dir: str, output: str | None) -> None:
 @click.option("--force", is_flag=True, default=False, help="Overwrite existing governance files.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture after import.")
 @click.option(
-    "--dry-run", is_flag=True, default=False, help="Show what would be done without writing.",
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show what would be done without writing.",
 )
 @click.option(
     "--yes",
@@ -1941,7 +1950,11 @@ def export(project_dir: str, output: str | None) -> None:
     help="Skip confirmation prompt (non-interactive / CI mode).",
 )
 def import_project(
-    project_dir: str, force: bool, guided: bool, dry_run: bool, auto_yes: bool,
+    project_dir: str,
+    force: bool,
+    guided: bool,
+    dry_run: bool,
+    auto_yes: bool,
 ) -> None:
     """Import an existing project and generate governance overlay."""
     from specsmith.importer import detect_project, generate_import_config, generate_overlay
@@ -2017,7 +2030,8 @@ def import_project(
         for k, v in PROJECT_TYPE_LABELS.items():
             console.print(f"  {k}. {v}")
         type_choice = click.prompt(
-            "Select type", type=click.Choice(list(PROJECT_TYPE_LABELS.keys())),
+            "Select type",
+            type=click.Choice(list(PROJECT_TYPE_LABELS.keys())),
         )
         result.inferred_type = PROJECT_TYPE_CHOICES[type_choice]
         result.primary_language = click.prompt("Primary language", default=result.primary_language)
@@ -2193,7 +2207,11 @@ def architect_group(ctx: click.Context, project_dir: str, non_interactive: bool)
         deployment = click.prompt("Deployment notes", default="")
 
     path = generate_architecture(
-        root, components=components, data_flow=data_flow, deployment=deployment, scan=scan,
+        root,
+        components=components,
+        data_flow=data_flow,
+        deployment=deployment,
+        scan=scan,
     )
     rel = path.relative_to(root)
     console.print(f"\n[green]\u2713[/green] Generated {rel}")
@@ -2602,7 +2620,11 @@ def ledger_add(project_dir: str, entry_type: str, author: str, reqs: str, descri
 
     root = Path(project_dir).resolve()
     entry = add_entry(
-        root, description=description, entry_type=entry_type, author=author, reqs=reqs,
+        root,
+        description=description,
+        entry_type=entry_type,
+        author=author,
+        reqs=reqs,
     )
     console.print(f"[green]Added:[/green] {entry.splitlines()[0]}")
 
@@ -3028,7 +3050,9 @@ def migrate(new_type: str, project_dir: str) -> None:
     from specsmith.ledger import add_entry
 
     add_entry(
-        root, description=f"Migrated type: {old_type} \u2192 {new_type}", entry_type="migration",
+        root,
+        description=f"Migrated type: {old_type} \u2192 {new_type}",
+        entry_type="migration",
     )
     console.print(f"\n[bold green]Migrated to {config.type_label}.[/bold green]")
 
@@ -3104,7 +3128,8 @@ def verify_release() -> None:
     # RTD
     try:
         resp = urllib.request.urlopen(
-            "https://specsmith.readthedocs.io/en/latest/", timeout=10,
+            "https://specsmith.readthedocs.io/en/latest/",
+            timeout=10,
         )
         if resp.status == 200:
             console.print("  [green]\u2713[/green] RTD: site is live")
@@ -3956,7 +3981,8 @@ def session_clear_cmd(project_dir: str, yes: bool) -> None:
         return
 
     if not yes and not click.confirm(
-        f"Clear {len(existing)} session file(s) in {specsmith_dir}?", default=False,
+        f"Clear {len(existing)} session file(s) in {specsmith_dir}?",
+        default=False,
     ):
         return
 
@@ -4355,7 +4381,9 @@ def credits_analyze(project_dir: str) -> None:
 @click.option("--cap", type=float, default=None, help="Monthly cap in USD (0=unlimited).")
 @click.option("--alert-pct", type=int, default=None, help="Alert at this % of cap.")
 @click.option(
-    "--watermarks", default=None, help="Comma-separated USD watermark alerts (e.g. 5,10,25,50).",
+    "--watermarks",
+    default=None,
+    help="Comma-separated USD watermark alerts (e.g. 5,10,25,50).",
 )
 @click.option(
     "--enforcement",
@@ -4786,7 +4814,11 @@ def _auto_detect_and_save_local_models(project_dir: str) -> None:
     help="Model capability tier (default: balanced).",
 )
 @click.option(
-    "--no-stream", "no_stream", is_flag=True, default=False, help="Disable streaming output.",
+    "--no-stream",
+    "no_stream",
+    is_flag=True,
+    default=False,
+    help="Disable streaming output.",
 )
 @click.option(
     "--optimize",
@@ -5110,7 +5142,10 @@ def agent_permissions_cmd(project_dir: str, as_json: bool) -> None:
     help="Do not write a ledger entry when the tool is denied (e.g. for dry-run checks).",
 )
 def agent_permissions_check_cmd(
-    tool_name: str, project_dir: str, as_json: bool, skip_log: bool,
+    tool_name: str,
+    project_dir: str,
+    as_json: bool,
+    skip_log: bool,
 ) -> None:
     """Check whether TOOL_NAME is permitted under the active permission profile (REG-012).
 
@@ -6417,7 +6452,8 @@ def optimize_cmd(project_dir: str, provider_name: str, model: str) -> None:
         )
         est["total_savings_usd"] = round(est["total_savings_usd"] + prompt_cache_savings, 2)
         est["savings_pct"] = min(
-            95, round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1),
+            95,
+            round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1),
         )
 
     console.print()
@@ -7550,7 +7586,10 @@ def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
 @click.option("--id", "endpoint_id", required=True, help="Stable identifier (no whitespace).")
 @click.option("--name", default="", help="Human-readable display name (defaults to id).")
 @click.option(
-    "--base-url", "base_url", required=True, help="OpenAI-v1 base URL, e.g. http://10.0.0.4:8000/v1",
+    "--base-url",
+    "base_url",
+    required=True,
+    help="OpenAI-v1 base URL, e.g. http://10.0.0.4:8000/v1",
 )
 @click.option("--default-model", default="", help="Optional default model id.")
 @click.option(
@@ -7568,10 +7607,14 @@ def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
 @click.option("--token", default="", help="Inline bearer token (only with --auth bearer-inline).")
 @click.option("--token-env", default="", help="Env var name (only with --auth bearer-env).")
 @click.option(
-    "--keyring-service", default="", help="Override the keyring service (default: 'specsmith').",
+    "--keyring-service",
+    default="",
+    help="Override the keyring service (default: 'specsmith').",
 )
 @click.option(
-    "--keyring-user", default="", help="Override the keyring user (default: 'endpoint:<id>').",
+    "--keyring-user",
+    default="",
+    help="Override the keyring user (default: 'endpoint:<id>').",
 )
 @click.option(
     "--no-verify-tls",
@@ -11201,7 +11244,11 @@ def dispatch_run_cmd(
 
                 pool = AgentPool(orch.llm_config, max_workers=max_workers)
                 dispatcher = AgentDispatcher(
-                    dag, pool, emitter, project_root=root, max_workers=max_workers,
+                    dag,
+                    pool,
+                    emitter,
+                    project_root=root,
+                    max_workers=max_workers,
                 )
                 dispatcher.run()
                 done_flag.set()
@@ -11358,7 +11405,11 @@ def dispatch_list_cmd(project_dir: str) -> None:
 @click.option("--endpoint", default="http://localhost:8000/v1")
 @click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8")
 def dispatch_retry_cmd(
-    node_id: str, dag_id: str, project_dir: str, endpoint: str, model: str,
+    node_id: str,
+    dag_id: str,
+    project_dir: str,
+    endpoint: str,
+    model: str,
 ) -> None:
     """Re-run a single FAILED or BLOCKED node from a saved DAG run (REQ-330)."""
     from pathlib import Path
@@ -12196,10 +12247,12 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     specsmith_dir = root / ".specsmith"
     specsmith_dir.mkdir(parents=True, exist_ok=True)
     (specsmith_dir / "requirements.json").write_text(
-        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8",
+        _json.dumps(reqs, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
     (specsmith_dir / "testcases.json").write_text(
-        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8",
+        _json.dumps(tests, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
 
     from specsmith.esdb import open_default_store
@@ -12374,10 +12427,12 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
     specsmith_dir = root / ".specsmith"
     specsmith_dir.mkdir(parents=True, exist_ok=True)
     (specsmith_dir / "requirements.json").write_text(
-        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8",
+        _json.dumps(reqs, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
     (specsmith_dir / "testcases.json").write_text(
-        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8",
+        _json.dumps(tests, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
     sqlite_store2 = SqliteStore(root)
     with sqlite_store2 as s:
@@ -13241,9 +13296,7 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
         console.print(f"[yellow]\u26a0[/yellow] {result.error}")
         return
 
-    status_color = (
-        "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
-    )
+    status_color = "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
     icon = "\u25cf"
     console.print(f"  [{status_color}]{icon}[/{status_color}] CI: {result.last_run_status}")
     if result.last_run_name:
@@ -13280,7 +13333,11 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
 )
 @click.option("--json", "as_json", is_flag=True, default=False)
 def ci_watch_cmd(
-    project_dir: str, run_id: str | None, timeout: int, interval: int, as_json: bool,
+    project_dir: str,
+    run_id: str | None,
+    timeout: int,
+    interval: int,
+    as_json: bool,
 ) -> None:
     """Block until the current CI run completes and report the result.
 
@@ -13319,7 +13376,10 @@ def ci_watch_cmd(
         sys.stdout.flush()
 
     result = manager.watch(
-        run_id=run_id, timeout=timeout, poll_interval=interval, on_event=_on_event,
+        run_id=run_id,
+        timeout=timeout,
+        poll_interval=interval,
+        on_event=_on_event,
     )
 
     if as_json:
@@ -13528,7 +13588,10 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     help="Regulation ID to report, or 'all' (default).",
 )
 def compliance_report_cmd(
-    project_dir: str, output_format: str, output: str, regulation: str,
+    project_dir: str,
+    output_format: str,
+    output: str,
+    regulation: str,
 ) -> None:
     """Generate an AI compliance report (Markdown, JSON, or HTML).
 
@@ -13771,7 +13834,11 @@ def metrics_group() -> None:
 @click.option("--output-tokens", "output_tokens", type=int, default=0)
 @click.option("--cost-usd", "cost_usd", type=float, default=0.0)
 @click.option(
-    "--quality-score", "quality_score", type=float, default=0.0, help="0.0–1.0 judge score.",
+    "--quality-score",
+    "quality_score",
+    type=float,
+    default=0.0,
+    help="0.0–1.0 judge score.",
 )
 @click.option("--passed/--failed", default=False, help="Whether the session work item passed.")
 @click.option("--rework-turns", "rework_turns", type=int, default=1)
@@ -14324,9 +14391,7 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                 quality_score = (
                     f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100"
                 )
-                complexity_trend = (
-                    f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}"
-                )
+                complexity_trend = f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}"
                 improvement_potential = (
                     f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}"
                 )
@@ -14343,8 +14408,10 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                             "high": "orange",
                             "critical": "red",
                         }.get(suggestion.severity, "white")
-                        console.print(f"    [{severity_color}]\u2713[/] {suggestion.description} "
-                                   f"(line {suggestion.line_number}, {suggestion.severity})")
+                        console.print(
+                            f"    [{severity_color}]\u2713[/] {suggestion.description} "
+                            f"(line {suggestion.line_number}, {suggestion.severity})"
+                        )
                 console.print()
 
             console.print("[bold]Refactoring Suggestions[/bold]")
@@ -14360,8 +14427,10 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                             "high": "orange",
                             "critical": "red",
                         }.get(suggestion.severity, "white")
-                        console.print(f"  [{severity_color}]\u2713[/] {suggestion.description} "
-                                   f"(line {suggestion.line_number})")
+                        console.print(
+                            f"  [{severity_color}]\u2713[/] {suggestion.description} "
+                            f"(line {suggestion.line_number})"
+                        )
                     console.print()
 
             console.print("[bold]Compliance Check[/bold]")

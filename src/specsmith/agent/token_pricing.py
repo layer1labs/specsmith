@@ -132,6 +132,7 @@ def cost_for_tokens(
         0.15
         >>> cost_for_tokens("anthropic", "claude-haiku-4-5", 0, 1_000_000)
         1.25
+
     """
     if not provider and not model:
         return 0.0
@@ -176,6 +177,7 @@ def tokens_per_correct_answer(
     Returns:
         Mean total tokens among passing records, or ``None`` if no passing
         records exist.
+
     """
     passing = [r for r in records if getattr(r, passed_attr, False)]
     if not passing:

@@ -193,7 +193,7 @@ def _import_from_kind(
                     "description": f"Imported from {src.name}",
                     "source": str(src.relative_to(root)),
                     "status": "imported",
-                }
+                },
             )
         if not test_ids and req_ids:
             test_ids = [f"TEST-{kind.upper().replace('-', '_')}-{test_counter:03d}"]
@@ -214,7 +214,7 @@ def _import_from_kind(
                     "input": {},
                     "expected_behavior": {},
                     "confidence": 1.0,
-                }
+                },
             )
 
     state_dir = root / ".specsmith"
@@ -398,7 +398,7 @@ def _calculate_trace_score(root: Path) -> dict[str, Any]:
         recommendations.append("Review stale requirements that remain in defined/draft state.")
     if not recommendations:
         recommendations.append(
-            "Traceability coverage is healthy. Maintain current mapping discipline."
+            "Traceability coverage is healthy. Maintain current mapping discipline.",
         )
     return {
         "score": score,
@@ -552,11 +552,11 @@ def quickstart_cmd(
     run_sync(root)
     click.echo(
         f"quickstart complete: mode={chosen_mode}, project_type={chosen_project_type}, "
-        f"files={len(created)}"
+        f"files={len(created)}",
     )
 
     main_cmd = ctx.find_root().command
-    doctor_cmd = main_cmd.commands.get("doctor") if isinstance(main_cmd, click.Group) else None  # noqa: E501
+    doctor_cmd = main_cmd.commands.get("doctor") if isinstance(main_cmd, click.Group) else None
     if doctor_cmd is not None and doctor_cmd.callback is not None:
         click.echo("Running doctor automatically...")
         doctor_cmd.callback(project_dir=str(root), onboarding=False, as_json=False)
@@ -611,7 +611,7 @@ def verify_integrations_cmd(project_dir: str, as_json: bool) -> None:
             "path": str(mcp_path),
             "exists": mcp_ok,
             "error": mcp_error,
-        }
+        },
     )
 
     failing = [row for row in checks if not row["exists"]]

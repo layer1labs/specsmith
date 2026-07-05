@@ -356,7 +356,7 @@ def ai_enhance_report(title: str, body: str) -> tuple[str, str]:
                 "prompt": prompt,
                 "stream": False,
                 "options": {"num_predict": 500},
-            }
+            },
         ).encode()
         req = urllib.request.Request(
             "http://127.0.0.1:11434/api/generate",

@@ -113,15 +113,14 @@ def run_self_update(
             cmd = ["pipx", "install", f"specsmith=={target_version}", "--force"]
         else:
             cmd = ["pipx", "upgrade", "specsmith"]
+    elif target_version:
+        cmd = ["pip", "install", f"specsmith=={target_version}"]
     else:
-        if target_version:
-            cmd = ["pip", "install", f"specsmith=={target_version}"]
-        else:
-            if not channel:
-                channel = get_update_channel()
-            cmd = ["pip", "install", "--upgrade", "specsmith"]
-            if channel == "dev":
-                cmd.insert(2, "--pre")
+        if not channel:
+            channel = get_update_channel()
+        cmd = ["pip", "install", "--upgrade", "specsmith"]
+        if channel == "dev":
+            cmd.insert(2, "--pre")
 
     try:
         result = subprocess.run(
@@ -179,7 +178,7 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     scaffold_path = find_scaffold(root)
     if scaffold_path is None:
         return [
-            "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml) — nothing to migrate"
+            "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml) — nothing to migrate",
         ]
 
     with open(scaffold_path) as f:
@@ -204,7 +203,7 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
         return [
             f"ERROR: Backward migration is not supported. "
             f"Project spec_version is {old_version!r} but installed specsmith is "
-            f"{__version__!r} (older). Upgrade specsmith first: pipx upgrade specsmith"
+            f"{__version__!r} (older). Upgrade specsmith first: pipx upgrade specsmith",
         ]
 
     actions.append(f"Migrate spec_version: {old_version} → {__version__}")

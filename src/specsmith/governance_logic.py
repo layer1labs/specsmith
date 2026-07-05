@@ -64,6 +64,7 @@ def run_preflight(
         JSON-serialisable dict matching the PreflightDecision schema:
         ``decision``, ``work_item_id``, ``requirement_ids``, ``test_case_ids``,
         ``confidence_target``, ``instruction``, ``intent``, ``ai_disclosure``.
+
     """
     import json as _json
     import re as _re
@@ -242,22 +243,21 @@ def run_preflight(
                 "unchanged so specsmith can map this to an existing requirement."
             )
             confidence_target = 0.85
-    else:  # CHANGE
-        # Accept if scope matched via token overlap OR explicit IDs were found (#166)
-        if scope.is_known or requirement_ids:
-            decision_str = "accepted"
-            instruction = (
-                "Change request matched existing governance scope. "
-                "Proceed under Specsmith verification."
-            )
-            confidence_target = max(0.7, scope.confidence) if scope.is_known else 0.8
-        else:
-            decision_str = "needs_clarification"
-            instruction = (
-                "This change does not match an existing requirement. "
-                "Could you say in one sentence which behavior you expect?"
-            )
-            confidence_target = 0.7
+    # Accept if scope matched via token overlap OR explicit IDs were found (#166)
+    elif scope.is_known or requirement_ids:
+        decision_str = "accepted"
+        instruction = (
+            "Change request matched existing governance scope. "
+            "Proceed under Specsmith verification."
+        )
+        confidence_target = max(0.7, scope.confidence) if scope.is_known else 0.8
+    else:
+        decision_str = "needs_clarification"
+        instruction = (
+            "This change does not match an existing requirement. "
+            "Could you say in one sentence which behavior you expect?"
+        )
+        confidence_target = 0.7
 
     # Config floor (REQ-098) — pass _root_str so the helper never receives
     # a tainted Path object derived from project_dir.
@@ -348,6 +348,7 @@ def run_verify(
         JSON-serialisable dict matching the VerifyResult schema:
         ``equilibrium``, ``confidence``, ``summary``, ``files_changed``,
         ``test_results``, ``retry_strategy``, ``work_item_id``.
+
     """
     from specsmith.agent.broker import (
         DEFAULT_RETRY_BUDGET,
@@ -461,7 +462,7 @@ def _build_openai_response(
                 "index": 0,
                 "message": {"role": role, "content": content},
                 "finish_reason": finish_reason,
-            }
+            },
         ],
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
     }
@@ -547,7 +548,7 @@ def run_chat_proxy(
                 "model": effective_model,
                 "messages": messages,
                 "stream": False,
-            }
+            },
         ).encode()
         headers = {
             "Content-Type": "application/json",
@@ -563,7 +564,7 @@ def run_chat_proxy(
             method="POST",
         )
         with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310
-            ai_response: dict[str, Any] = cast(dict[str, Any], _json.loads(resp.read()))
+            ai_response: dict[str, Any] = cast("dict[str, Any]", _json.loads(resp.read()))
     except Exception as exc:  # noqa: BLE001
         # Forward failure — return governance-accepted stub with error note.
         error_stub = (
@@ -641,7 +642,7 @@ class GovernanceHTTPServer:
             allow_reuse_address = True
 
         class _Handler(BaseHTTPRequestHandler):
-            def log_message(self, fmt: str, *args: object) -> None:  # noqa: A002
+            def log_message(self, fmt: str, *args: object) -> None:
                 pass  # suppress default stderr access log
 
             def _json_ok(self, data: dict[str, Any]) -> None:
@@ -672,11 +673,11 @@ class GovernanceHTTPServer:
                 if not length:
                     return {}
                 try:
-                    return cast(dict[str, Any], json.loads(self.rfile.read(length)))
+                    return cast("dict[str, Any]", json.loads(self.rfile.read(length)))
                 except (ValueError, OSError):
                     return {}
 
-            def do_GET(self) -> None:  # noqa: N802
+            def do_GET(self) -> None:
                 from specsmith import __version__
 
                 if self.path in ("/health", "/api/health"):
@@ -707,7 +708,7 @@ class GovernanceHTTPServer:
 
                         s = get_compliance_summary(project_dir)
                         self._json_ok(
-                            {"uncovered": s.uncovered_requirements, "orphaned": s.orphaned_tests}
+                            {"uncovered": s.uncovered_requirements, "orphaned": s.orphaned_tests},
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
@@ -741,7 +742,7 @@ class GovernanceHTTPServer:
                                 "label": phase.label,
                                 "emoji": phase.emoji,
                                 "readiness_pct": phase_progress_pct(phase, root),
-                            }
+                            },
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
@@ -765,7 +766,7 @@ class GovernanceHTTPServer:
                                     }
                                     for r in report.results
                                 ],
-                            }
+                            },
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_ok({"ok": False, "error": str(exc)})
@@ -782,7 +783,7 @@ class GovernanceHTTPServer:
                                 "seed_turns": len(seed),
                                 "seed": seed,
                                 "project_dir": str(root),
-                            }
+                            },
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_ok({"ok": False, "error": str(exc), "seed": []})
@@ -816,7 +817,7 @@ class GovernanceHTTPServer:
                             {
                                 "profiles": [p.to_dict() for p in store.profiles],
                                 "default": store.default().id,
-                            }
+                            },
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
@@ -837,7 +838,7 @@ class GovernanceHTTPServer:
                         models = list(BASELINE_SCORES.keys())
                         ranked = rank_models_for_role(role, models)
                         self._json_ok(
-                            {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]}
+                            {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]},
                         )
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
@@ -884,7 +885,7 @@ class GovernanceHTTPServer:
 
                 # ── Model Intelligence ─────────────────────────────────
                 elif self.path == "/api/model-intel/scores" or self.path.startswith(
-                    "/api/model-intel/scores?"
+                    "/api/model-intel/scores?",
                 ):
                     try:
                         import urllib.parse as _up  # noqa: PLC0415
@@ -908,13 +909,13 @@ class GovernanceHTTPServer:
                     except Exception as exc:  # noqa: BLE001
                         self._json_err(str(exc), code=500)
                 elif self.path == "/api/model-intel/recommendations" or self.path.startswith(
-                    "/api/model-intel/recommendations?"
+                    "/api/model-intel/recommendations?",
                 ):
                     try:
                         import urllib.parse as _up  # noqa: PLC0415
 
                         from specsmith.agent.hf_leaderboard import (
-                            get_recommendations,  # noqa: PLC0415
+                            get_recommendations,
                         )
 
                         qs = _up.urlparse(self.path).query
@@ -962,7 +963,7 @@ class GovernanceHTTPServer:
                 else:
                     self.send_error(404)
 
-            def do_POST(self) -> None:  # noqa: N802
+            def do_POST(self) -> None:
                 body = self._read_json()
                 if self.path == "/preflight":
                     try:
@@ -1047,7 +1048,7 @@ class GovernanceHTTPServer:
                 else:
                     self.send_error(404)
 
-            def do_OPTIONS(self) -> None:  # noqa: N802
+            def do_OPTIONS(self) -> None:
                 """CORS preflight."""
                 self.send_response(200)
                 self.send_header("Access-Control-Allow-Origin", "*")

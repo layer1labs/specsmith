@@ -115,6 +115,7 @@ def run_sweep(
 
     Returns:
         :class:`SweepResult` with counts and any non-fatal errors.
+
     """
     result = SweepResult()
     root_path = Path(root)
@@ -148,7 +149,7 @@ def run_sweep(
                             r.data.get("timestamp")
                             or r.data.get("computed_at")
                             or r.data.get("created_at")
-                            or ""
+                            or "",
                         )
                         if ts_str and ts_str < cutoff_iso:
                             if not dry_run:

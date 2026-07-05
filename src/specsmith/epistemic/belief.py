@@ -32,6 +32,7 @@ References
 - Applied Epistemic Engineering: https://appliedepistemicengineering.com/
 - ARE framework: https://github.com/organvm-i-theoria/auto-revision-epistemic-engine
 - VERITAS/CERTUS: https://github.com/AionSystem/VERITAS
+
 """
 
 from __future__ import annotations
@@ -216,6 +217,7 @@ def _component_from_id(req_id: str) -> str:
       ``REQ-001``     → ``""``
       ``REQ-CLI-001`` → ``"CLI"``
       ``REG-012``     → ``""``  (REG ids have no component in this scheme)
+
     """
     parts = req_id.split("-")
     # REQ-NNN → ["REQ", "NNN"]            → no component

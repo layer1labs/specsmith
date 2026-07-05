@@ -150,7 +150,7 @@ def compute_diff(old_content: str, new_content: str, filename: str = "file") -> 
             fromfile=f"a/{filename}",
             tofile=f"b/{filename}",
             lineterm="\n",
-        )
+        ),
     )
 
 

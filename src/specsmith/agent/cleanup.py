@@ -272,12 +272,15 @@ def _remove_legacy_files(root: Path) -> list[str]:
     legacy_files = [
         root / "docs" / "REQUIREMENTS.md",
         root / "docs" / "TESTS.md",
-        root / "docs" / "SPECSMITH.yml",  # This is now in .specsmith/
+        root / "docs" / "SPECSMITH.yml",  # This is now in .specmith/
         root / "REQUIREMENTS.md",
         root / "TESTS.md",
     ]
 
     for file_path in legacy_files:
+        # Skip protected files
+        if file_path.name in PROTECTED_PATHS:
+            continue
         if file_path.exists():
             try:
                 file_path.unlink()

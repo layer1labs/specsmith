@@ -192,14 +192,14 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/SPECSMITH.yml exists",
                 lambda root: bool(
-                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root)
+                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root),
                 ),
             ),
             PhaseCheck("AGENTS.md exists", _file_exists("AGENTS.md")),
             PhaseCheck(
                 "docs/LEDGER.md exists",
                 lambda root: bool(
-                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root)
+                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root),
                 ),
             ),
             PhaseCheck("Project type is set", _scaffold_field("type")),
@@ -217,7 +217,7 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/SPECSMITH.yml exists",
                 lambda root: bool(
-                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root)
+                    __import__("specsmith.paths", fromlist=["find_scaffold"]).find_scaffold(root),
                 ),
             ),
             PhaseCheck("ARCHITECTURE.md exists", _file_exists("docs/ARCHITECTURE.md")),
@@ -245,8 +245,8 @@ PHASES: list[Phase] = [
                 "docs/REQUIREMENTS.md exists",
                 lambda root: bool(
                     __import__("specsmith.paths", fromlist=["find_requirements"]).find_requirements(
-                        root
-                    )
+                        root,
+                    ),
                 ),
             ),
             PhaseCheck("At least 5 requirements defined", _req_count(5)),
@@ -257,7 +257,8 @@ PHASES: list[Phase] = [
                 lambda root: (
                     (
                         p := __import__(
-                            "specsmith.paths", fromlist=["find_requirements"]
+                            "specsmith.paths",
+                            fromlist=["find_requirements"],
                         ).find_requirements(root)
                     )
                     is not None
@@ -290,7 +291,7 @@ PHASES: list[Phase] = [
             PhaseCheck(
                 "docs/LEDGER.md exists",
                 lambda root: bool(
-                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root)
+                    __import__("specsmith.paths", fromlist=["find_ledger"]).find_ledger(root),
                 ),
             ),
         ],

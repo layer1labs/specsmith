@@ -159,7 +159,7 @@ def build_warp_mcp_config() -> dict[str, Any]:
             "command": cmd,
             "args": args,
             "env": server_env,
-        }
+        },
     }
 
 
@@ -189,7 +189,7 @@ _TOOLS: list[dict[str, Any]] = [
                 "project_dir": {
                     "type": "string",
                     "description": "Absolute or relative path to the project root. Defaults to '.'.",
-                }
+                },
             },
             "required": [],
         },
@@ -207,7 +207,7 @@ _TOOLS: list[dict[str, Any]] = [
                 "project_dir": {
                     "type": "string",
                     "description": "Absolute or relative path to the project root. Defaults to '.'.",
-                }
+                },
             },
             "required": [],
         },
@@ -248,7 +248,7 @@ _TOOLS: list[dict[str, Any]] = [
                 "project_dir": {
                     "type": "string",
                     "description": "Absolute or relative path to the project root. Defaults to '.'.",
-                }
+                },
             },
             "required": [],
         },
@@ -588,7 +588,7 @@ def _handle_governance_req_list(args: dict[str, Any]) -> dict[str, Any]:
                         "title": str(r.get("title", r.get("description", ""))),
                         "status": status,
                         "covered": rid in covered,
-                    }
+                    },
                 )
         else:
             # ── Legacy Markdown mode: use JSON cache ──────────────────────────
@@ -627,7 +627,7 @@ def _handle_governance_req_list(args: dict[str, Any]) -> dict[str, Any]:
                         "title": str(r.get("title", r.get("description", ""))),
                         "status": status,
                         "covered": rid in covered,
-                    }
+                    },
                 )
 
         return {
@@ -838,13 +838,13 @@ def run_server(
 
 
 __all__ = [
-    "run_server",
-    "read_registry",
-    "write_registry",
-    "register_project",
-    "unregister_project",
     "SERVER_NAME",
     "SERVER_VERSION",
-    "_TOOLS",
     "_HANDLERS",
+    "_TOOLS",
+    "read_registry",
+    "register_project",
+    "run_server",
+    "unregister_project",
+    "write_registry",
 ]

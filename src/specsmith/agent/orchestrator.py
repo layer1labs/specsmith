@@ -71,7 +71,7 @@ class Orchestrator:
         if autogen is None:
             raise ImportError(
                 "ag2 (autogen) is not installed. Please install it via "
-                "`pip install ag2[ollama]` or `pip install pyautogen`."
+                "`pip install ag2[ollama]` or `pip install pyautogen`.",
             )
 
         self.llm_config = {
@@ -80,7 +80,7 @@ class Orchestrator:
                     "model": model,
                     "api_key": api_key,
                     "base_url": endpoint,
-                }
+                },
             ],
             "temperature": 0.0,
         }

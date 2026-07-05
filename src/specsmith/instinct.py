@@ -266,7 +266,7 @@ class InstinctStore:
                 f"**Content:** {r.content}  \n"
                 f"**Confidence:** {r.confidence:.2f}  "
                 f"**Used:** {r.use_count}×  "
-                f"**Created:** {r.created}\n"
+                f"**Created:** {r.created}\n",
             )
         return "\n".join(lines)
 
@@ -330,7 +330,7 @@ def extract_candidate_instincts(
                 {
                     "trigger_pattern": f"run {cmd}",
                     "content": f"Run `{cmd}` when this situation arises.",
-                }
+                },
             )
 
     return candidates[:10]  # Cap at 10 candidates per session

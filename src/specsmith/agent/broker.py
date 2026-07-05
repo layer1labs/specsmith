@@ -270,9 +270,7 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
             seen_ids.add(current_id)
             out.append(
                 RequirementSummary(
-                    req_id=current_id,
-                    title=current_title,
-                    description=current_desc
+                    req_id=current_id, title=current_title, description=current_desc
                 ),
             )
 
@@ -450,7 +448,11 @@ def run_preflight(
     ]
     if runner is None:
         proc = subprocess.run(  # noqa: S603 - argv is a list, never shell
-            cmd, capture_output=True, text=True, timeout=60, check=False,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
         )
     else:
         proc = runner(cmd)

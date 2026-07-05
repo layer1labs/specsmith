@@ -217,7 +217,7 @@ class ProviderEntry:
         if self.provider_type not in VALID_PROVIDER_TYPES:
             raise ProviderError(
                 f"provider_type {self.provider_type!r} invalid; "
-                f"expected one of {VALID_PROVIDER_TYPES}"
+                f"expected one of {VALID_PROVIDER_TYPES}",
             )
         if self.provider_type != "ollama" and not self.base_url:
             # Ollama can auto-detect
@@ -325,14 +325,14 @@ def probe_openai_compatible(
                             if isinstance(ctx, (int, float)) and ctx
                             else 0,
                             "description": str(
-                                entry.get("description") or entry.get("summary") or ""
+                                entry.get("description") or entry.get("summary") or "",
                             ),
-                        }
+                        },
                     )
             elif isinstance(entry, str):
                 models.append(entry)
                 models_detail.append(
-                    {"id": entry, "owner": "", "context_length": 0, "description": ""}
+                    {"id": entry, "owner": "", "context_length": 0, "description": ""},
                 )
         return {
             "valid": True,
@@ -590,7 +590,7 @@ def suggest_profiles(
                         f"You have a {prov.title()} API key configured. "
                         f"{model} is the recommended model for the {bucket} bucket."
                     ),
-                }
+                },
             )
 
     # 2. Ollama installed models
@@ -631,7 +631,7 @@ def suggest_profiles(
                         f"You have Ollama installed with {model}. "
                         f"Using it locally for {bucket} tasks saves cloud API costs."
                     ),
-                }
+                },
             )
 
     # 3. Saved BYOE endpoints
@@ -654,7 +654,7 @@ def suggest_profiles(
                         f"Custom endpoint \u2018{entry.name}\u2019 is enabled. "
                         "Using it for conversational tasks avoids cloud dependency."
                     ),
-                }
+                },
             )
     except Exception:  # noqa: BLE001
         pass

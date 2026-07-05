@@ -86,7 +86,7 @@ class FailureModeGraph:
                             artifact.artifact_id,
                             link,
                             "depends-on",
-                        )
+                        ),
                     )
                     self._nodes[link].children.append(artifact.artifact_id)
 
@@ -138,7 +138,7 @@ class FailureModeGraph:
         lines.append(
             f"Equilibrium: {'✓ YES' if eq else '✗ NO'} | "
             f"Nodes: {len(self._nodes)} | "
-            f"Logic Knots: {len(knots)}"
+            f"Logic Knots: {len(knots)}",
         )
         lines.append("")
 

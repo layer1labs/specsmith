@@ -354,7 +354,7 @@ class AgentDispatcher:
             decision = run_preflight(node.title, self._project_root)
             if getattr(decision, "decision", "accepted") not in ("accepted",):
                 raise _GovernanceBlockedError(
-                    getattr(decision, "instruction", "governance rejected")
+                    getattr(decision, "instruction", "governance rejected"),
                 )
         except _GovernanceBlockedError:
             raise

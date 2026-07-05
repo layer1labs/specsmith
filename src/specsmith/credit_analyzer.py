@@ -45,7 +45,7 @@ def analyze_spend(root: Path) -> AnalysisReport:
                 recommendation=(
                     "Record usage with `specsmith credits record` or integrate with your AI agent."
                 ),
-            )
+            ),
         )
         return report
 
@@ -74,7 +74,7 @@ def analyze_spend(root: Path) -> AnalysisReport:
                         f"Reserve {most_expensive} for complex architecture/design work."
                     ),
                     estimated_savings_pct=30.0,
-                )
+                ),
             )
 
     # --- Analysis 2: Token waste (high input, low output) ---
@@ -95,7 +95,7 @@ def analyze_spend(root: Path) -> AnalysisReport:
                         "Use targeted reads (line ranges) and grep over full file reads."
                     ),
                     estimated_savings_pct=20.0,
-                )
+                ),
             )
             break  # One example is enough
 
@@ -118,7 +118,7 @@ def analyze_spend(root: Path) -> AnalysisReport:
                     "should load at session start. Others on demand."
                 ),
                 estimated_savings_pct=15.0,
-            )
+            ),
         )
 
     # --- Analysis 4: Cost trend ---
@@ -139,7 +139,7 @@ def analyze_spend(root: Path) -> AnalysisReport:
                         "related changes into fewer sessions."
                     ),
                     estimated_savings_pct=10.0,
-                )
+                ),
             )
         elif avg_second < avg_first * 0.8:
             report.cost_trend = "decreasing"
@@ -148,7 +148,8 @@ def analyze_spend(root: Path) -> AnalysisReport:
 
     # Estimate optimized cost
     total_savings_pct = sum(i.estimated_savings_pct for i in report.insights) / max(
-        len(report.insights), 1
+        len(report.insights),
+        1,
     )
     report.estimated_optimized_cost = report.total_cost * (1 - total_savings_pct / 100)
 

@@ -908,7 +908,7 @@ def _detect_content_issues(text: str) -> list[str]:
             warnings.append(f"  Line {i}: unresolved merge conflict marker")
     if diff_marker_count > 0:
         warnings.append(
-            f"  {diff_marker_count} line(s) with git diff markers (|-, |+) — auto-stripped"
+            f"  {diff_marker_count} line(s) with git diff markers (|-, |+) — auto-stripped",
         )
     return warnings
 
@@ -1403,7 +1403,7 @@ def generate_overlay(
 
     # docs/REQUIREMENTS.md — skip if project already has one (anywhere under docs/)
     existing_reqs = list(target.glob("docs/**/REQUIREMENTS*")) + list(
-        target.glob("docs/**/requirements*")
+        target.glob("docs/**/requirements*"),
     )
     if not (existing_reqs and not force):
         reqs = "# Requirements\n\nRequirements auto-generated from project detection.\n\n"
@@ -1426,7 +1426,7 @@ def generate_overlay(
 
     # docs/TESTS.md — skip if project already has one
     existing_tests = list(target.glob("docs/**/TEST_SPEC*")) + list(
-        target.glob("docs/**/test_spec*")
+        target.glob("docs/**/test_spec*"),
     )
     if not (existing_tests and not force):
         tests = "# Test Specification\n\nTests auto-generated from project detection.\n\n"
@@ -1452,7 +1452,7 @@ def generate_overlay(
 
     # docs/architecture.md — skip if project has architecture doc anywhere under docs/
     existing_arch = list(target.glob("docs/**/ARCHITECTURE*")) + list(
-        target.glob("docs/**/architecture*")
+        target.glob("docs/**/architecture*"),
     )
     if not (existing_arch and not force):
         arch = (

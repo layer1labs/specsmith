@@ -318,7 +318,7 @@ def classify_rate_limit_error(error: object) -> RateLimitErrorDetails:
         status_code == 429
         or code in {"rate_limit_exceeded", "rate_limited"}
         or "rate limit" in message_lower
-        or "too many requests" in message_lower
+        or "too many requests" in message_lower,
     )
 
     return RateLimitErrorDetails(
@@ -394,6 +394,7 @@ class RateLimitScheduler:
                     Used to look up per-bucket concurrency caps (#120).
             thinking_budget: Estimated thinking/reasoning tokens for this request.
                     Used to compute realistic TPM consumption for reasoning models (#117).
+
         """
         profile = self._resolve_profile(provider, model)
         state = self._get_state(profile)
@@ -426,7 +427,7 @@ class RateLimitScheduler:
                 timestamp=now,
                 tokens=estimated_total_tokens,
                 reservation_id=reservation.reservation_id,
-            )
+            ),
         )
         state.active_reservations.add(reservation.reservation_id)
         state.in_flight += 1
@@ -448,7 +449,8 @@ class RateLimitScheduler:
         actual_total_tokens = reservation.estimated_total_tokens
         if actual_input_tokens is not None or actual_output_tokens is not None:
             actual_total_tokens = max(0, actual_input_tokens or 0) + max(
-                0, actual_output_tokens or 0
+                0,
+                actual_output_tokens or 0,
             )
             self._update_token_event(state, reservation.reservation_id, actual_total_tokens)
 
@@ -597,7 +599,7 @@ class RateLimitScheduler:
     def _get_state(self, profile: ModelRateLimitProfile) -> _ModelRuntimeState:
         if profile.key not in self._states:
             self._states[profile.key] = _ModelRuntimeState(
-                current_concurrency_cap=profile.concurrency_cap
+                current_concurrency_cap=profile.concurrency_cap,
             )
         return self._states[profile.key]
 
@@ -758,7 +760,7 @@ class RateLimitScheduler:
                             timestamp=float(raw_event["timestamp"]),
                             tokens=int(raw_event["tokens"]),
                             reservation_id=str(raw_event["reservation_id"]),
-                        )
+                        ),
                     )
                 self._states[str(key)] = _ModelRuntimeState(
                     request_timestamps=deque(

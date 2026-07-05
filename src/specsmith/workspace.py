@@ -72,7 +72,7 @@ def load_workspace(root: Path) -> WorkspaceConfig:
                     path=p.get("path", ""),
                     name=p.get("name", ""),
                     overrides=p.get("overrides", {}),
-                )
+                ),
             )
 
     return WorkspaceConfig(
@@ -122,7 +122,7 @@ def audit_workspace(root: Path) -> list[WorkspaceAuditResult]:
                     failed=1,
                     fixable=0,
                     error=f"Directory not found: {proj_root}",
-                )
+                ),
             )
             continue
 
@@ -140,7 +140,7 @@ def audit_workspace(root: Path) -> list[WorkspaceAuditResult]:
                     failed=report.failed,
                     fixable=report.fixable,
                     issues=issues[:5],  # Show up to 5 issues
-                )
+                ),
             )
         except Exception as e:  # noqa: BLE001
             results.append(
@@ -152,7 +152,7 @@ def audit_workspace(root: Path) -> list[WorkspaceAuditResult]:
                     failed=1,
                     fixable=0,
                     error=str(e),
-                )
+                ),
             )
 
     return results
@@ -178,7 +178,7 @@ def export_workspace(root: Path) -> str:
             lines.append(f"\n_Error: {result.error}_\n")
             continue
         lines.append(
-            f"\n- Passed: {result.passed} | Failed: {result.failed} | Fixable: {result.fixable}"
+            f"\n- Passed: {result.passed} | Failed: {result.failed} | Fixable: {result.fixable}",
         )
         if result.issues:
             lines.append("\n**Issues:**")

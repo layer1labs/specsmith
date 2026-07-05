@@ -400,7 +400,7 @@ def add_requirement(
     """
     if not is_yaml_mode(root):
         raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
-    new_id = req_id if req_id else next_req_id(root)
+    new_id = req_id or next_req_id(root)
     entry: dict[str, Any] = {"id": new_id, "title": title, "status": status}
     if description:
         entry["description"] = description
@@ -427,7 +427,7 @@ def add_test(
     """
     if not is_yaml_mode(root):
         raise RuntimeError("Not in YAML-first mode (.specsmith/governance-mode != yaml)")
-    new_id = test_id if test_id else next_test_id(root)
+    new_id = test_id or next_test_id(root)
     entry: dict[str, Any] = {"id": new_id, "title": title, "requirement_id": requirement_id}
     if test_type:
         entry["type"] = test_type

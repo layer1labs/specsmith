@@ -19,7 +19,7 @@ _FLEX_TEST = r"TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[a-z]*"
 _REQ_PATTERN = re.compile(r"\b(" + _FLEX_REQ + r")\b")
 _TEST_COVERS_PATTERN = re.compile(
     r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
-    r"(" + _FLEX_REQ + r"(?:\s*,\s*" + _FLEX_REQ + r")*)"
+    r"(" + _FLEX_REQ + r"(?:\s*,\s*" + _FLEX_REQ + r")*)",
 )
 _TEST_ID_PATTERN = re.compile(r"\b(" + _FLEX_TEST + r")\b")
 
@@ -188,7 +188,7 @@ def trace_reqs(root: Path) -> list[dict[str, object]]:
 
 def get_gaps(root: Path) -> list[str]:
     """Return REQ IDs that have no test coverage."""
-    return [cast(str, t["req"]) for t in trace_reqs(root) if not t["covered"]]
+    return [cast("str", t["req"]) for t in trace_reqs(root) if not t["covered"]]
 
 
 def get_orphan_tests(root: Path) -> list[str]:

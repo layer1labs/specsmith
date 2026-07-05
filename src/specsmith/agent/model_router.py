@@ -83,7 +83,7 @@ _CODING_KEYWORDS: frozenset[str] = frozenset(
         "hint",
         "annotation",
         "dataclass",
-    }
+    },
 )
 
 # Keywords that indicate the user wants analysis, architecture, or deep reasoning.
@@ -124,7 +124,7 @@ _REASONING_KEYWORDS: frozenset[str] = frozenset(
         "bottleneck",
         "complexity",
         "scalability",
-    }
+    },
 )
 
 
@@ -174,6 +174,7 @@ class ModelRouter:
         to Ollama model tag.  Missing roles fall back to ``"general"``; if
         ``"general"`` is also missing the router returns ``(None, False)``
         and the caller uses whatever model was already set.
+
     """
 
     def __init__(self, roles: dict[str, str | None]) -> None:
@@ -194,6 +195,7 @@ class ModelRouter:
             when no role→model mapping is configured.
             *switched* is ``True`` when the model changed from the previous
             turn (useful for emitting a switch notification).
+
         """
         if not self._roles:
             return None, False

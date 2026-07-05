@@ -262,7 +262,11 @@ def run_sync(root: Path) -> GitResult:
 
 
 def create_branch(
-    root: Path, name: str, *, strategy: str = "gitflow", main_branch: str = "main"
+    root: Path,
+    name: str,
+    *,
+    strategy: str = "gitflow",
+    main_branch: str = "main",
 ) -> GitResult:
     """Create a branch following the branching strategy."""
     develop_branch = "develop"
@@ -320,7 +324,7 @@ def list_branches(root: Path) -> list[dict[str, str]]:
                 "name": name,
                 "role": role,
                 "current": "yes" if name == current else "",
-            }
+            },
         )
 
     return branches

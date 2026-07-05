@@ -95,6 +95,7 @@ class SkillEntry:
         (surfaced by ``specsmith doctor`` if missing).
     body:
         Markdown SKILL.md content written to disk by ``install()``.
+
     """
 
     slug: str
@@ -192,6 +193,7 @@ def search(query: str, *, domain: SkillDomain | None = None) -> list[SkillEntry]
         Search string (empty = return all entries, or filtered by domain).
     domain:
         Optional :class:`SkillDomain` to restrict results.
+
     """
     catalog = _get_catalog()
     needle = query.strip().lower()
@@ -253,6 +255,7 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
         Unknown slug.
     FileExistsError
         Already installed and ``force=False``.
+
     """
     entry = get(slug)
     if entry is None:
@@ -276,7 +279,7 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
 # We populate it lazily on first module access via __getattr__.
 
 
-def __getattr__(name: str) -> object:  # noqa: N807
+def __getattr__(name: str) -> object:
     if name == "CATALOG":
         return _get_catalog()
     raise AttributeError(name)

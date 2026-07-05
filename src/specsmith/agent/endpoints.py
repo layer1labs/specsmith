@@ -143,13 +143,13 @@ class Endpoint:
             raise EndpointError(f"endpoint id {self.id!r} must not contain whitespace")
         if not self.base_url.startswith(("http://", "https://")):
             raise EndpointError(
-                f"endpoint base_url {self.base_url!r} must start with http:// or https://"
+                f"endpoint base_url {self.base_url!r} must start with http:// or https://",
             )
         if self.auth.kind == "bearer-env" and not self.auth.token_env:
             raise EndpointError("auth.kind == 'bearer-env' requires a non-empty token_env")
         if self.auth.kind == "bearer-keyring" and not self.auth.keyring_user:
             raise EndpointError(
-                "auth.kind == 'bearer-keyring' requires a keyring_user (defaults to endpoint:<id>)"
+                "auth.kind == 'bearer-keyring' requires a keyring_user (defaults to endpoint:<id>)",
             )
 
     # ── Token resolution ───────────────────────────────────────────────────
@@ -171,27 +171,28 @@ class Endpoint:
             if not value:
                 raise EndpointError(
                     f"endpoint {self.id!r} expects token in env var "
-                    f"{self.auth.token_env!r}, but it is unset"
+                    f"{self.auth.token_env!r}, but it is unset",
                 )
             return value
         if kind == "bearer-keyring":
             try:
                 import keyring
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise EndpointError(
                     "keyring is not available — install python-keyring or "
-                    "switch the endpoint to --auth bearer-env"
+                    "switch the endpoint to --auth bearer-env",
                 ) from exc
             try:
                 kring_token: str | None = keyring.get_password(
-                    self.auth.keyring_service, self.auth.keyring_user
+                    self.auth.keyring_service,
+                    self.auth.keyring_user,
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 raise EndpointError(f"keyring lookup failed: {exc}") from exc
             if not kring_token:
                 raise EndpointError(
                     f"endpoint {self.id!r} has no token stored in keyring "
-                    f"({self.auth.keyring_service}/{self.auth.keyring_user})"
+                    f"({self.auth.keyring_service}/{self.auth.keyring_user})",
                 )
             return kring_token
         raise EndpointError(f"unknown auth kind {kind!r}")
@@ -214,7 +215,11 @@ class Endpoint:
             token = self.resolve_token()
         except EndpointError as exc:
             return EndpointHealth(
-                ok=False, latency_ms=0.0, models=[], error=str(exc), status_code=None
+                ok=False,
+                latency_ms=0.0,
+                models=[],
+                error=str(exc),
+                status_code=None,
             )
         if token:
             req.add_header("Authorization", f"Bearer {token}")
@@ -228,7 +233,9 @@ class Endpoint:
                 ctx.check_hostname = False
                 ctx.verify_mode = ssl.CERT_NONE
             with urllib.request.urlopen(  # noqa: S310 - user-supplied
-                req, timeout=timeout, context=ctx
+                req,
+                timeout=timeout,
+                context=ctx,
             ) as resp:
                 latency_ms = (time.perf_counter() - start) * 1000.0
                 payload = json.loads(resp.read().decode("utf-8"))
@@ -374,7 +381,7 @@ class EndpointStore:
         except json.JSONDecodeError as exc:
             raise EndpointError(
                 f"endpoints store at {target} is corrupted: {exc}. "
-                "Move it aside or fix the JSON to continue."
+                "Move it aside or fix the JSON to continue.",
             ) from exc
         if not isinstance(raw, dict):
             raise EndpointError(f"endpoints store at {target} must be a JSON object")
@@ -382,7 +389,7 @@ class EndpointStore:
         if version != SCHEMA_VERSION:
             raise EndpointError(
                 f"endpoints store at {target} uses schema_version={version}; "
-                f"this build of specsmith only understands {SCHEMA_VERSION}."
+                f"this build of specsmith only understands {SCHEMA_VERSION}.",
             )
         endpoints_raw = raw.get("endpoints") or []
         if not isinstance(endpoints_raw, list):
@@ -419,7 +426,7 @@ class EndpointStore:
         if existing is not None:
             if not replace:
                 raise EndpointError(
-                    f"endpoint {endpoint.id!r} already exists. Use --replace to overwrite."
+                    f"endpoint {endpoint.id!r} already exists. Use --replace to overwrite.",
                 )
             self.endpoints[existing] = endpoint
         else:
@@ -469,7 +476,7 @@ class EndpointStore:
         if default is None:
             raise EndpointError(
                 "no endpoint specified and no default is set. "
-                "Run `specsmith endpoints add ...` to register one."
+                "Run `specsmith endpoints add ...` to register one.",
             )
         return default
 
@@ -484,12 +491,12 @@ class EndpointStore:
 
 __all__ = [
     "DEFAULT_KEYRING_SERVICE",
+    "SCHEMA_VERSION",
+    "VALID_AUTH_KINDS",
     "Endpoint",
     "EndpointAuth",
     "EndpointError",
     "EndpointHealth",
     "EndpointStore",
-    "SCHEMA_VERSION",
-    "VALID_AUTH_KINDS",
     "default_store_path",
 ]

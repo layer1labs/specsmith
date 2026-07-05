@@ -188,7 +188,7 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
             [
                 ("scripts/exec.cmd.j2", "scripts/exec.cmd"),
                 ("scripts/exec.sh.j2", "scripts/exec.sh"),
-            ]
+            ],
         )
 
     # Community / compliance files
@@ -248,7 +248,7 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
                 ("governance/belief-registry.md.j2", "docs/governance/BELIEF-REGISTRY.md"),
                 ("governance/failure-modes.md.j2", "docs/governance/FAILURE-MODES.md"),
                 ("governance/uncertainty-map.md.j2", "docs/governance/UNCERTAINTY-MAP.md"),
-            ]
+            ],
         )
 
     # ReadTheDocs for AEE research/knowledge projects (they produce docs)
@@ -268,7 +268,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
             [
                 target / f"src/{config.package_name}/commands",
                 target / f"src/{config.package_name}/utils",
-            ]
+            ],
         )
     elif config.type == ProjectType.LIBRARY_PYTHON:
         dirs.extend([target / "examples"])
@@ -281,7 +281,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "ip_cores",
                 target / "simulation",
                 target / ".work",
-            ]
+            ],
         )
     elif config.type == ProjectType.YOCTO_BSP:
         dirs.extend(
@@ -290,7 +290,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / f"meta-{config.package_name}/conf",
                 target / "kas",
                 target / "configs",
-            ]
+            ],
         )
     elif config.type == ProjectType.PCB_HARDWARE:
         dirs.extend(
@@ -300,7 +300,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "bom",
                 target / "fabrication",
                 target / "3d-models",
-            ]
+            ],
         )
     elif config.type == ProjectType.EMBEDDED_HARDWARE:
         dirs.extend(
@@ -309,11 +309,11 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "firmware/include",
                 target / "firmware/drivers",
                 target / "tools",
-            ]
+            ],
         )
     elif config.type == ProjectType.WEB_FRONTEND:
         dirs.extend(
-            [target / "src/components", target / "src/pages", target / "public", target / "tests"]
+            [target / "src/components", target / "src/pages", target / "public", target / "tests"],
         )
     elif config.type == ProjectType.FULLSTACK_JS:
         dirs.extend(
@@ -323,7 +323,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "shared",
                 target / "tests/client",
                 target / "tests/server",
-            ]
+            ],
         )
     elif config.type in (ProjectType.CLI_RUST, ProjectType.LIBRARY_RUST):
         dirs.extend([target / "src", target / "tests", target / "benches"])
@@ -336,7 +336,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src",  # .bv source files
                 target / "lib",  # imported .bv library modules
                 target / "tests",  # contract test .bv files
-            ]
+            ],
         )
     elif config.type in (ProjectType.CLI_GO,):
         dirs.extend([target / "cmd", target / "internal", target / "pkg", target / "tests"])
@@ -347,7 +347,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "include",
                 target / "tests",
                 target / "build",
-            ]
+            ],
         )
     elif config.type == ProjectType.DOTNET_APP:
         dirs.extend([target / "src", target / "tests", target / "Properties"])
@@ -359,7 +359,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "android",
                 target / "tests",
                 target / "assets",
-            ]
+            ],
         )
     elif config.type == ProjectType.DEVOPS_IAC:
         dirs.extend(
@@ -369,7 +369,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "environments/staging",
                 target / "environments/prod",
                 target / "tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.DATA_ML:
         dirs.extend(
@@ -380,7 +380,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src/models",
                 target / "src/pipelines",
                 target / "tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.MICROSERVICES:
         dirs.extend(
@@ -389,7 +389,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "shared/proto",
                 target / "deploy",
                 target / "tests/integration",
-            ]
+            ],
         )
     # --- Document / Knowledge ---
     elif config.type == ProjectType.SPEC_DOCUMENT:
@@ -400,7 +400,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "figures",
                 target / "references",
                 target / "published",
-            ]
+            ],
         )
     elif config.type == ProjectType.USER_MANUAL:
         dirs.extend(
@@ -409,7 +409,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "images",
                 target / "api-ref",
                 target / "build",
-            ]
+            ],
         )
     elif config.type == ProjectType.RESEARCH_PAPER:
         dirs.extend(
@@ -419,7 +419,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "figures",
                 target / "references",
                 target / "supplementary",
-            ]
+            ],
         )
     # --- Business / Legal ---
     elif config.type == ProjectType.BUSINESS_PLAN:
@@ -429,7 +429,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "financials",
                 target / "market-research",
                 target / "appendices",
-            ]
+            ],
         )
     elif config.type == ProjectType.PATENT_APPLICATION:
         dirs.extend(
@@ -439,7 +439,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "figures",
                 target / "prior-art",
                 target / "correspondence",
-            ]
+            ],
         )
     elif config.type == ProjectType.LEGAL_COMPLIANCE:
         dirs.extend(
@@ -449,7 +449,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "templates",
                 target / "evidence",
                 target / "audit-trail",
-            ]
+            ],
         )
     # --- Project management ---
     elif config.type == ProjectType.REQUIREMENTS_MGMT:
@@ -459,7 +459,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "traces",
                 target / "reports",
                 target / "baselines",
-            ]
+            ],
         )
     elif config.type == ProjectType.API_SPECIFICATION:
         dirs.extend(
@@ -468,7 +468,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "schemas",
                 target / "examples",
                 target / "generated",
-            ]
+            ],
         )
     # --- More software ---
     elif config.type == ProjectType.MONOREPO:
@@ -479,7 +479,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "shared",
                 target / "tools",
                 target / "deploy",
-            ]
+            ],
         )
     elif config.type == ProjectType.BROWSER_EXTENSION:
         dirs.extend(
@@ -487,7 +487,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src",
                 target / "icons",
                 target / "tests",
-            ]
+            ],
         )
     # --- AI / LLM / Agents ---
     elif config.type == ProjectType.LLM_APP:
@@ -498,7 +498,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src" / config.package_name / "tools",
                 target / "src" / config.package_name / "prompts",
                 target / "tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.AGENT_ORCHESTRATION:
         dirs.extend(
@@ -509,7 +509,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src" / config.package_name / "memory",
                 target / "tests",
                 target / "examples",
-            ]
+            ],
         )
     elif config.type == ProjectType.MCP_SERVER:
         dirs.extend(
@@ -518,7 +518,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src" / config.package_name / "tools",
                 target / "src" / config.package_name / "resources",
                 target / "tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.RAG_PIPELINE:
         dirs.extend(
@@ -529,7 +529,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src" / config.package_name / "generation",
                 target / "data",
                 target / "tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.MLOPS_PLATFORM:
         dirs.extend(
@@ -540,7 +540,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "experiments",
                 target / "serving",
                 target / "tests",
-            ]
+            ],
         )
     # --- JVM ---
     elif config.type == ProjectType.JAVA_SPRING:
@@ -550,7 +550,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src/main/resources",
                 target / "src/test/java",
                 target / "src/test/resources",
-            ]
+            ],
         )
     elif config.type == ProjectType.JAVA_LIBRARY:
         dirs.extend(
@@ -558,7 +558,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src/main/java",
                 target / "src/test/java",
                 target / "examples",
-            ]
+            ],
         )
     # --- Cloud / Infrastructure ---
     elif config.type == ProjectType.SERVERLESS:
@@ -568,7 +568,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "shared",
                 target / "tests",
                 target / "infrastructure",
-            ]
+            ],
         )
     elif config.type == ProjectType.KUBERNETES_OPERATOR:
         dirs.extend(
@@ -580,7 +580,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "config/rbac",
                 target / "config/manager",
                 target / "tests/e2e",
-            ]
+            ],
         )
     elif config.type == ProjectType.STREAMING_PIPELINE:
         dirs.extend(
@@ -590,7 +590,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src" / config.package_name / "sinks",
                 target / "tests",
                 target / "deploy",
-            ]
+            ],
         )
     elif config.type == ProjectType.DATA_WAREHOUSE:
         dirs.extend(
@@ -603,7 +603,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "tests",
                 target / "seeds",
                 target / "analyses",
-            ]
+            ],
         )
     # --- Game development ---
     elif config.type == ProjectType.GAME_UNITY:
@@ -615,7 +615,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "Assets/Materials",
                 target / "Assets/Audio",
                 target / "Assets/Tests",
-            ]
+            ],
         )
     elif config.type == ProjectType.GAME_GODOT:
         dirs.extend(
@@ -625,7 +625,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "assets/sprites",
                 target / "assets/audio",
                 target / "tests",
-            ]
+            ],
         )
     # --- Web3 ---
     elif config.type == ProjectType.SMART_CONTRACT:
@@ -636,7 +636,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "scripts",
                 target / "test",
                 target / "deployments",
-            ]
+            ],
         )
     # --- Desktop ---
     elif config.type == ProjectType.DESKTOP_ELECTRON:
@@ -647,7 +647,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src/shared",
                 target / "tests",
                 target / "build",
-            ]
+            ],
         )
     elif config.type == ProjectType.DESKTOP_TAURI:
         dirs.extend(
@@ -656,7 +656,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "src-tauri/src",
                 target / "src-tauri/icons",
                 target / "tests",
-            ]
+            ],
         )
     # --- AEE / Epistemic project types ---
     elif config.type == ProjectType.EPISTEMIC_PIPELINE:
@@ -667,7 +667,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "evidence",
                 target / "reports",
                 target / ".epistemic",
-            ]
+            ],
         )
     elif config.type == ProjectType.KNOWLEDGE_ENGINEERING:
         dirs.extend(
@@ -677,7 +677,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "evidence",
                 target / "queries",
                 target / "reports",
-            ]
+            ],
         )
     elif config.type == ProjectType.AEE_RESEARCH:
         dirs.extend(
@@ -687,7 +687,7 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "experiments",
                 target / "reports",
                 target / ".epistemic",
-            ]
+            ],
         )
 
     return dirs
@@ -728,7 +728,7 @@ def _build_community_files(config: ProjectConfig) -> list[tuple[str, str]]:
             [
                 ("community/bug_report.md.j2", ".github/ISSUE_TEMPLATE/bug_report.md"),
                 ("community/feature_request.md.j2", ".github/ISSUE_TEMPLATE/feature_request.md"),
-            ]
+            ],
         )
 
     return files

@@ -123,4 +123,4 @@ def listing(drive_dir: Path | None = None) -> dict[str, dict[str, list[str]]]:
     return out
 
 
-__all__ = ["DriveResult", "KINDS", "default_drive_dir", "listing", "pull", "push"]
+__all__ = ["KINDS", "DriveResult", "default_drive_dir", "listing", "pull", "push"]

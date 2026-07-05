@@ -275,6 +275,7 @@ def recommend_models(vram_gb: float = 0.0, task: str = "") -> list[CatalogEntry]
         vram_gb: Available GPU VRAM in GB. 0 = unlimited (CPU mode).
         task:    Task keyword matching TASK_TAGS keys (e.g. ``'code'``).
                  Empty string returns all fitting models sorted by tier.
+
     """
     budget = vram_gb * 0.90 if vram_gb > 0 else 999.0
     tags = TASK_TAGS.get(task.lower(), [])
@@ -350,7 +351,7 @@ def check_ollama_update() -> tuple[str | None, str | None]:
     installed = get_ollama_version()
     latest: str | None = None
     try:
-        req = urllib.request.Request(  # noqa: S310
+        req = urllib.request.Request(
             "https://api.github.com/repos/ollama/ollama/releases/latest",
             headers={"Accept": "application/vnd.github+json", "User-Agent": "specsmith"},
         )

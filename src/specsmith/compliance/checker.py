@@ -205,7 +205,7 @@ class ComplianceChecker:
                         if article.specsmith_controls
                         else "Review regulation requirements and implement governance controls."
                     ),
-                )
+                ),
             )
             return ArticleResult(
                 article_id=article.id,
@@ -230,7 +230,7 @@ class ComplianceChecker:
                     severity="gap",
                     message=f"Missing: {ev.description}",
                     recommendation=f"Enable: {ev.source}",
-                )
+                ),
             )
 
         # Determine status
@@ -245,7 +245,7 @@ class ComplianceChecker:
                         severity="partial",
                         message=f"{len(present)}/{len(relevant)} evidence items present",
                         recommendation=(f"Complete: {', '.join(e.source for e in absent[:2])}"),
-                    )
+                    ),
                 )
         else:
             status = "gap"

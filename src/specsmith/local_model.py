@@ -28,11 +28,6 @@ import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
-
 
 # ---------------------------------------------------------------------------
 # Model roles (REQ-387)
@@ -120,7 +115,7 @@ def _detect_apple_silicon_gb() -> float | None:
     if platform.system() != "Darwin" or platform.processor() != "arm":
         return None
     try:
-        out = subprocess.check_output(  # noqa: S603
+        out = subprocess.check_output(
             ["sysctl", "-n", "hw.memsize"],  # noqa: S607
             text=True,
             timeout=5,
@@ -135,7 +130,7 @@ def _detect_nvidia_vram_gb() -> float | None:
     if not shutil.which("nvidia-smi"):
         return None
     try:
-        out = subprocess.check_output(  # noqa: S603
+        out = subprocess.check_output(
             [  # noqa: S607
                 "nvidia-smi",
                 "--query-gpu=memory.total",
@@ -178,7 +173,10 @@ def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
     as_gb = _detect_apple_silicon_gb()
     if as_gb is not None:
         coding_model = _pick_model(
-            as_gb, tier_32b=_AS_TIER_32B_GB, tier_14b=_AS_TIER_14B_GB, tier_7b=_AS_TIER_7B_GB
+            as_gb,
+            tier_32b=_AS_TIER_32B_GB,
+            tier_14b=_AS_TIER_14B_GB,
+            tier_7b=_AS_TIER_7B_GB,
         )
         if coding_model is None:
             return {}
@@ -199,7 +197,10 @@ def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
     nv_gb = _detect_nvidia_vram_gb()
     if nv_gb is not None:
         coding_model = _pick_model(
-            nv_gb, tier_32b=_TIER_32B_GB, tier_14b=_TIER_14B_GB, tier_7b=_TIER_7B_GB
+            nv_gb,
+            tier_32b=_TIER_32B_GB,
+            tier_14b=_TIER_14B_GB,
+            tier_7b=_TIER_7B_GB,
         )
         if coding_model is None:
             return {}
@@ -363,7 +364,10 @@ def detect_local_model() -> LocalModelInfo | None:
     as_gb = _detect_apple_silicon_gb()
     if as_gb is not None:
         model = _pick_model(
-            as_gb, tier_32b=_AS_TIER_32B_GB, tier_14b=_AS_TIER_14B_GB, tier_7b=_AS_TIER_7B_GB
+            as_gb,
+            tier_32b=_AS_TIER_32B_GB,
+            tier_14b=_AS_TIER_14B_GB,
+            tier_7b=_AS_TIER_7B_GB,
         )
         if model is None:
             return None
@@ -380,7 +384,10 @@ def detect_local_model() -> LocalModelInfo | None:
     nv_gb = _detect_nvidia_vram_gb()
     if nv_gb is not None:
         model = _pick_model(
-            nv_gb, tier_32b=_TIER_32B_GB, tier_14b=_TIER_14B_GB, tier_7b=_TIER_7B_GB
+            nv_gb,
+            tier_32b=_TIER_32B_GB,
+            tier_14b=_TIER_14B_GB,
+            tier_7b=_TIER_7B_GB,
         )
         if model is None:
             return None

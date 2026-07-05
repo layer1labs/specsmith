@@ -87,7 +87,10 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
             temp_diff_path = f.name
 
         result = subprocess.run(
-            ["patch", "-p0", "-i", temp_diff_path], cwd=p.parent, capture_output=True, text=True
+            ["patch", "-p0", "-i", temp_diff_path],
+            cwd=p.parent,
+            capture_output=True,
+            text=True,
         )
         os.unlink(temp_diff_path)
 
@@ -627,7 +630,7 @@ _SPECSMITH_VERB_SHORTCUTS: frozenset[str] = frozenset(
         "sync",
         "validate",
         "watch",
-    ]
+    ],
 )
 
 

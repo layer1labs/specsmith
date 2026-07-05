@@ -44,7 +44,7 @@ class FPDClient:
     ) -> dict[str, Any]:
         """Search petition decisions."""
         params = urllib.parse.urlencode(
-            {"criteria": query or "*:*", "start": offset, "rows": min(limit, 200)}
+            {"criteria": query or "*:*", "start": offset, "rows": min(limit, 200)},
         )
         data = http_get(f"{BASE_URL}?{params}")
         resp = data.get("response", {})
@@ -63,10 +63,13 @@ class FPDClient:
         docs = data.get("response", {}).get("docs", [])
         if not docs:
             raise DataSourceError(f"Petition {petition_id} not found")
-        return cast(dict[str, Any], docs[0])
+        return cast("dict[str, Any]", docs[0])
 
     def search_by_application(self, app_number: str, **kwargs: Any) -> dict[str, Any]:
         """Get all petitions for an application."""
         return self.search(
-            f"applicationNumberText:{app_number}", detail="balanced", limit=50, **kwargs
+            f"applicationNumberText:{app_number}",
+            detail="balanced",
+            limit=50,
+            **kwargs,
         )

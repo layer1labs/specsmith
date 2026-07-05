@@ -174,7 +174,7 @@ def run_doctor(root: Path) -> DoctorReport:
 def _check_tool(name: str, category: str, root: Path | None = None) -> ToolCheck:
     """Check if a tool is available on PATH or in the project's .venv."""
     # Handle compound tool names (cargo clippy → cargo)
-    exe = name.split()[0] if " " in name else name
+    exe = name.split(maxsplit=1)[0] if " " in name else name
 
     # Some tools are subcommands (dotnet format → dotnet)
     if exe in ("dotnet", "cargo", "go", "flutter", "nx", "turbo"):

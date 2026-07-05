@@ -51,7 +51,7 @@ class ChatView(QWidget):
             f"""<div class="msg user">
               <div class="bubble user-bubble">{safe}</div>
               <div class="meta">{ts}</div>
-            </div>"""
+            </div>""",
         )
 
     def append_assistant(self, text: str) -> None:
@@ -63,7 +63,7 @@ class ChatView(QWidget):
               <div class="role-tag">🧠 AEE Agent</div>
               <div class="bubble asst-bubble">{safe}</div>
               <div class="meta">{ts}</div>
-            </div>"""
+            </div>""",
         )
 
     def append_assistant_chunk(self, text: str) -> None:
@@ -91,7 +91,7 @@ class ChatView(QWidget):
                 <span class="tool-name">{html.escape(name)}</span>
               </div>
               <div class="tool-result">{result_safe}</div>
-            </div>"""
+            </div>""",
         )
 
     def append_system(self, text: str) -> None:

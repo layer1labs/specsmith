@@ -486,9 +486,9 @@ def trim_history(
 
 
 __all__ = [
-    "ModelProfile",
     "_DEFAULT",
     "_PROFILES",
+    "ModelProfile",
     "get_profile",
     "trim_history",
 ]

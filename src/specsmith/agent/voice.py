@@ -100,7 +100,7 @@ def transcribe(path: Path) -> TranscribeResult:
 
     try:
         import whisper_cpp_python
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise VoiceUnavailableError(
             "Voice transcription requires whisper-cpp-python.\n"
             "Install it:\n"
@@ -109,7 +109,7 @@ def transcribe(path: Path) -> TranscribeResult:
             "Then download a model:\n"
             f"  mkdir -p {default_model_dir()}\n"
             "  curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
-            "ggml-tiny.en.bin -o ~/.specsmith/voice/ggml-tiny.en.bin"
+            "ggml-tiny.en.bin -o ~/.specsmith/voice/ggml-tiny.en.bin",
         ) from exc
 
     model_path = _resolve_model_path()
@@ -119,7 +119,7 @@ def transcribe(path: Path) -> TranscribeResult:
             "Download a model (replace tiny.en with base/small/medium as needed):\n"
             "  curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/"
             "ggml-tiny.en.bin -o ~/.specsmith/voice/ggml-tiny.en.bin\n"
-            "Or set SPECSMITH_VOICE_MODEL=/path/to/model.bin"
+            "Or set SPECSMITH_VOICE_MODEL=/path/to/model.bin",
         )
 
     start = _time.perf_counter()

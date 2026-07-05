@@ -155,7 +155,7 @@ def _check_required_files(root: Path) -> list[AuditResult]:
                 name=f"file-exists:{f}",
                 passed=found,
                 message=f"Required file {f} {'exists' if found else 'MISSING'}",
-            )
+            ),
         )
 
     return results
@@ -183,7 +183,7 @@ def _check_modular_governance(root: Path) -> list[AuditResult]:
                         f"Governance file {f} {'exists' if path.exists() else 'MISSING'}"
                         f" (AGENTS.md is {agents_lines} lines — modular split required)"
                     ),
-                )
+                ),
             )
     else:
         # Recommended but not required
@@ -195,7 +195,7 @@ def _check_modular_governance(root: Path) -> list[AuditResult]:
                         name=f"file-exists:{f}",
                         passed=True,
                         message=f"Governance file {f} exists",
-                    )
+                    ),
                 )
 
     return results
@@ -238,7 +238,7 @@ def _check_recommended_files(root: Path) -> list[AuditResult]:
             found = (
                 bool(
                     list((root / "docs").glob("**/architecture*"))
-                    + list((root / "docs").glob("**/ARCHITECTURE*"))
+                    + list((root / "docs").glob("**/ARCHITECTURE*")),
                 )
                 if (root / "docs").is_dir()
                 else False
@@ -254,7 +254,7 @@ def _check_recommended_files(root: Path) -> list[AuditResult]:
                     name=f"recommended:{f}",
                     passed=True,
                     message="LICENSE: proprietary project — no open-source license file required",
-                )
+                ),
             )
             continue
         results.append(
@@ -263,7 +263,7 @@ def _check_recommended_files(root: Path) -> list[AuditResult]:
                 passed=found,
                 message=f"Recommended file {f} {'exists' if found else 'missing'}",
                 fixable=not found,
-            )
+            ),
         )
 
     return results
@@ -296,7 +296,7 @@ def _check_no_root_copies(root: Path) -> list[AuditResult]:
                         f"Delete the root copy — {canonical_rel} is canonical."
                     ),
                     fixable=True,
-                )
+                ),
             )
 
     return results
@@ -330,7 +330,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                     else "docs/requirements/ missing or empty — run: specsmith migrate run"
                 ),
                 fixable=not req_yaml_ok,
-            )
+            ),
         )
         results.append(
             AuditResult(
@@ -342,7 +342,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                     else "docs/tests/ missing or empty — run: specsmith migrate run"
                 ),
                 fixable=not test_yaml_ok,
-            )
+            ),
         )
     else:
         # Legacy markdown-mode: pass both checks (migration is optional)
@@ -355,7 +355,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                     if req_yaml_ok
                     else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
                 ),
-            )
+            ),
         )
         results.append(
             AuditResult(
@@ -366,7 +366,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                     if test_yaml_ok
                     else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
                 ),
-            )
+            ),
         )
 
     return results
@@ -392,7 +392,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                     name=check_name,
                     passed=False,
                     message=f"{yaml_path.name} failed to parse as YAML: {exc}",
-                )
+                ),
             )
             continue
 
@@ -404,7 +404,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                     name=check_name,
                     passed=True,
                     message=f"{yaml_path.name} valid (m001 content-blob, kind={stem})",
-                )
+                ),
             )
             continue
 
@@ -415,7 +415,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                     name=check_name,
                     passed=False,
                     message=(f"{yaml_path.name} missing expected top-level list key '{stem}'"),
-                )
+                ),
             )
             continue
 
@@ -425,7 +425,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                     name=check_name,
                     passed=False,
                     message=f"{yaml_path.name} has an empty '{stem}' list",
-                )
+                ),
             )
             continue
 
@@ -439,7 +439,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                     name=check_name,
                     passed=False,
                     message=(f"{yaml_path.name} only contains migration fallback note (m001)"),
-                )
+                ),
             )
             continue
 
@@ -448,7 +448,7 @@ def check_governance_yaml_content(root: Path) -> list[AuditResult]:
                 name=check_name,
                 passed=True,
                 message=f"{yaml_path.name} contains structured '{stem}' entries",
-            )
+            ),
         )
 
     return results
@@ -467,7 +467,7 @@ _REQ_PATTERN = re.compile(r"\b(REQ-(?:[A-Z]+-)*\d+)\b")
 # Also handles numeric-only IDs (REQ-001) via the updated _REQ_PATTERN.
 _TEST_COVERS_PATTERN = re.compile(
     r"(?:Covers|\*\*Requirement(?:\s+ID)?:?\*\*|Requirement(?:\s+ID)?):?\s*"
-    r"(REQ-(?:[A-Z]+-)*\d+(?:\s*,\s*REQ-(?:[A-Z]+-)*\d+)*)"
+    r"(REQ-(?:[A-Z]+-)*\d+(?:\s*,\s*REQ-(?:[A-Z]+-)*\d+)*)",
 )
 
 
@@ -504,7 +504,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                 name="req-test-consistency",
                 passed=True,
                 message="Skipped: REQUIREMENTS.md or requirements.json not found",
-            )
+            ),
         )
         return results
     if test_path is None and not _tests_json.is_file():
@@ -513,7 +513,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                 name="req-test-consistency",
                 passed=True,
                 message="Skipped: test spec file and testcases.json not found",
-            )
+            ),
         )
         return results
 
@@ -569,7 +569,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                 message=(
                     f"{len(uncovered)} REQ(s) without test coverage: {', '.join(sorted(uncovered))}"
                 ),
-            )
+            ),
         )
     elif draft_req_ids and not req_ids:
         # All requirements are Draft — coverage is not yet required
@@ -580,7 +580,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                 message=(
                     f"{len(all_req_ids)} REQ(s) are Draft (coverage not required until accepted)"
                 ),
-            )
+            ),
         )
     else:
         results.append(
@@ -588,7 +588,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                 name="req-test-coverage",
                 passed=True,
                 message=f"All {len(req_ids)} accepted REQ(s) have test coverage",
-            )
+            ),
         )
 
     # Orphaned tests: use all_req_ids so tests covering Draft requirements
@@ -603,7 +603,7 @@ def check_req_test_consistency(root: Path) -> list[AuditResult]:
                     f"{len(orphaned)} TEST(s) reference non-existent REQ(s): "
                     f"{', '.join(sorted(orphaned))}"
                 ),
-            )
+            ),
         )
 
     return results
@@ -629,7 +629,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
                     name="ledger-exists",
                     passed=False,
                     message="LEDGER.md not found",
-                )
+                ),
             )
             return results
 
@@ -649,7 +649,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
                     f"Consider `specsmith compress`."
                 ),
                 fixable=True,
-            )
+            ),
         )
     else:
         results.append(
@@ -657,7 +657,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
                 name="ledger-size",
                 passed=True,
                 message=f"LEDGER.md has {line_count} lines (within {threshold} threshold)",
-            )
+            ),
         )
 
     # Open TODOs — only count lines where the checklist marker is at the
@@ -671,7 +671,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
                 name="ledger-open-todos",
                 passed=False,
                 message=f"{open_todos} open TODOs in ledger (may indicate stale items)",
-            )
+            ),
         )
     else:
         results.append(
@@ -679,7 +679,7 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
                 name="ledger-open-todos",
                 passed=True,
                 message=f"{open_todos} open, {closed_todos} closed TODOs",
-            )
+            ),
         )
 
     return results
@@ -831,7 +831,7 @@ def check_context_size(root: Path) -> list[AuditResult]:
                     f"{rel_path}: {line_count} lines"
                     + ("" if ok else f" (exceeds {max_lines} threshold)")
                 ),
-            )
+            ),
         )
 
     return results
@@ -881,7 +881,7 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
                 name="tool-ci-config",
                 passed=True,
                 message="No CI config found — tool verification skipped",
-            )
+            ),
         )
         return results
 
@@ -910,7 +910,7 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
                 name="tool-ci-config",
                 passed=False,
                 message=f"CI config missing expected tools: {', '.join(all_missing)}",
-            )
+            ),
         )
     elif lint_missing:
         # Only lint missing — fixable warning (test tool is present; lint is advisory)
@@ -923,7 +923,7 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
                     f"test tool is present. Consider adding {lint_missing[0].split(':')[1]}."
                 ),
                 fixable=True,
-            )
+            ),
         )
     else:
         results.append(
@@ -931,7 +931,7 @@ def check_tool_configuration(root: Path) -> list[AuditResult]:
                 name="tool-ci-config",
                 passed=True,
                 message=f"CI config references expected verification tools for {config.type}",
-            )
+            ),
         )
 
     return results
@@ -972,7 +972,7 @@ _EXPLICIT_ONLY_TYPES: frozenset[str] = frozenset(
         "game-godot",
         # Data warehouse: dbt + SQL projects have no primary-language file bias.
         "data-warehouse",
-    ]
+    ],
 )
 
 
@@ -1009,7 +1009,7 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
                         f"Project type {config.type} is explicitly overridden; "
                         f"auto-detection skipped"
                     ),
-                )
+                ),
             )
             return results
 
@@ -1023,7 +1023,7 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
                     message=(
                         f"Project type {config.type!r} is a custom type; auto-detection skipped"
                     ),
-                )
+                ),
             )
             return results
 
@@ -1036,7 +1036,7 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
                     message=(
                         f"Project type {config.type} is explicitly set; auto-detection skipped"
                     ),
-                )
+                ),
             )
             return results
 
@@ -1050,7 +1050,7 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
                         f"scaffold.yml type is {config.type} but detected "
                         f"{detected.inferred_type.value} from project files"
                     ),
-                )
+                ),
             )
         else:
             results.append(
@@ -1058,7 +1058,7 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
                     name="type-mismatch",
                     passed=True,
                     message=f"Project type {config.type} matches detected structure",
-                )
+                ),
             )
     except Exception:  # noqa: BLE001
         pass
@@ -1090,16 +1090,15 @@ def check_trace_chain_integrity(root: Path) -> list[AuditResult]:
                     name="trace-chain-integrity",
                     passed=True,
                     message=f"Trace vault intact ({vault.count()} seals)",
-                )
+                ),
             ]
-        else:
-            return [
-                AuditResult(
-                    name="trace-chain-integrity",
-                    passed=False,
-                    message=f"Trace vault integrity failure: {'; '.join(errors[:2])}",
-                )
-            ]
+        return [
+            AuditResult(
+                name="trace-chain-integrity",
+                passed=False,
+                message=f"Trace vault integrity failure: {'; '.join(errors[:2])}",
+            ),
+        ]
     except ImportError:
         return []  # epistemic package not installed
     except Exception:  # noqa: BLE001
@@ -1133,7 +1132,7 @@ def check_phase_readiness(root: Path) -> list[AuditResult]:
                     f"Phase {phase.emoji} {phase.label}: {pct}% ready "
                     f"({len(failed)} check(s) remaining: {', '.join(failed[:3])})"
                 ),
-            )
+            ),
         )
     else:
         msg = f"Phase {phase.emoji} {phase.label}: 100% ready"
@@ -1196,7 +1195,7 @@ def check_supplementary_rules(root: Path) -> list[AuditResult]:
                     )
                 ),
                 fixable=True,
-            )
+            ),
         )
     else:
         results.append(
@@ -1204,7 +1203,7 @@ def check_supplementary_rules(root: Path) -> list[AuditResult]:
                 name="supplementary-rules",
                 passed=True,
                 message=f"All {len(rule_files)} supplementary rule file(s) referenced in AGENTS.md",
-            )
+            ),
         )
 
     return results
@@ -1231,7 +1230,7 @@ def check_hardware_gated_tests(root: Path) -> list[AuditResult]:
         return results
     # Count hardware-gated Pending tests
     _HW_GATED_RE = re.compile(
-        r"(?i)" + re.escape(attr.replace("_", "[_-]").lower()) + r"[:\s]*true"
+        r"(?i)" + re.escape(attr.replace("_", "[_-]").lower()) + r"[:\s]*true",
     )
     _PENDING_RE = re.compile(r"(?i)\bpending\b")
     gated_count = 0
@@ -1251,7 +1250,7 @@ def check_hardware_gated_tests(root: Path) -> list[AuditResult]:
                     f"{gated_count} hardware-gated test(s) found; "
                     f"{pending_gated} Pending (awaiting hardware session — not counted as drift)"
                 ),
-            )
+            ),
         )
     return results
 
@@ -1303,7 +1302,7 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
                                 f"never_commit: true. Run `git rm --cached {path_rel}` and "
                                 "add it to .gitignore."
                             ),
-                        )
+                        ),
                     )
             except Exception:  # noqa: BLE001
                 pass
@@ -1321,7 +1320,7 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
                         f"so new developers know which secrets are required."
                     ),
                     fixable=True,
-                )
+                ),
             )
         else:
             results.append(
@@ -1329,7 +1328,7 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
                     name=f"secrets-example:{path_rel}",
                     passed=True,
                     message=f"Secrets template {path_rel}.example exists",
-                )
+                ),
             )
         # Check 3: .gitignore covers the secrets file?
         if never_commit and path_rel not in gitignore_content:
@@ -1342,7 +1341,7 @@ def check_secrets_templates(root: Path) -> list[AuditResult]:
                         "Add it to .gitignore to prevent accidental commits."
                     ),
                     fixable=True,
-                )
+                ),
             )
     return results
 
@@ -1417,7 +1416,7 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
                     + ", ".join(str(f.name) for f in undeclared[:5])
                     + ". Add them to industrial_artifacts.canopen_eds for traceability."
                 ),
-            )
+            ),
         )
     else:
         results.append(
@@ -1425,7 +1424,7 @@ def check_industrial_artifacts(root: Path) -> list[AuditResult]:
                 name="industrial-artifacts",
                 passed=True,
                 message=f"{len(found_eds)} industrial artifact(s) declared in scaffold.yml",
-            )
+            ),
         )
     return results
 
@@ -1478,7 +1477,7 @@ def check_derived_artifacts(root: Path) -> list[AuditResult]:
                             + ", ".join(outputs_changed[:3])
                             + f". These files are generated by: {entry.get('generator', 'unknown')}"
                         ),
-                    )
+                    ),
                 )
         except Exception:  # noqa: BLE001
             pass  # git not available or other error — skip silently
@@ -1513,7 +1512,7 @@ def check_cross_repo_dependencies(root: Path) -> list[AuditResult]:
                 name="cross-repo-dependencies",
                 passed=True,
                 message="Cross-repo dependencies declared: " + "; ".join(msgs),
-            )
+            ),
         )
     return results
 
@@ -1530,7 +1529,7 @@ def check_policy_validation(root: Path) -> list[AuditResult]:
                     name="policy-validation",
                     passed=False,
                     message=f"policy.yml invalid: {err}",
-                )
+                ),
             )
         return results
     if (root / ".specsmith" / "policy.yml").is_file():
@@ -1539,7 +1538,7 @@ def check_policy_validation(root: Path) -> list[AuditResult]:
                 name="policy-validation",
                 passed=True,
                 message=f"policy.yml valid (risk_threshold={policy.risk_threshold})",
-            )
+            ),
         )
     return results
 
@@ -1581,7 +1580,7 @@ def check_work_item_risk_gates(root: Path) -> list[AuditResult]:
                         f"{wi_id} risk={risk.level} missing gates: {', '.join(missing_gates)}"
                         + (f" (override: {risk.override_reason})" if risk.overridden else "")
                     ),
-                )
+                ),
             )
         else:
             results.append(
@@ -1589,7 +1588,7 @@ def check_work_item_risk_gates(root: Path) -> list[AuditResult]:
                     name=f"risk-gates:{wi_id}",
                     passed=True,
                     message=f"{wi_id} risk={risk.level} gates satisfied",
-                )
+                ),
             )
     return results
 
@@ -1686,7 +1685,7 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
                         platform.generate_all(config, root)
                         fixed.append(
                             f"Generated {config.vcs_platform} CI config "
-                            f"with tools for {config.type}"
+                            f"with tools for {config.type}",
                         )
                 except Exception:  # noqa: BLE001
                     pass  # Best-effort

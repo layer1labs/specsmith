@@ -33,7 +33,7 @@ from specsmith.agent.events import EventEmitter, PlainTextEmitter
 # dependency (e.g. ``ag2``) doesn't keep the bridge from emitting ``ready``.
 # The import itself happens on the first call that actually needs the
 # orchestrator group chat.
-__all__ = ["AgentRunner", "ProviderStatus", "check_providers", "_capabilities"]
+__all__ = ["AgentRunner", "ProviderStatus", "_capabilities", "check_providers"]
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ __all__ = ["AgentRunner", "ProviderStatus", "check_providers", "_capabilities"]
 # ---------------------------------------------------------------------------
 
 
-from dataclasses import dataclass  # noqa: E402 — after __all__
+from dataclasses import dataclass
 
 
 @dataclass
@@ -109,11 +109,11 @@ def check_providers() -> list[ProviderStatus]:
                     model=model,
                     note=note,
                     model_count=len(installed),
-                )
+                ),
             )
         except Exception as exc:  # noqa: BLE001
             results.append(
-                ProviderStatus(name="ollama", available=False, note=f"error reading tags: {exc}")
+                ProviderStatus(name="ollama", available=False, note=f"error reading tags: {exc}"),
             )
     else:
         results.append(
@@ -121,14 +121,14 @@ def check_providers() -> list[ProviderStatus]:
                 name="ollama",
                 available=False,
                 note=f"not running at {host} — start with: ollama serve",
-            )
+            ),
         )
 
     # ── Anthropic ────────────────────────────────────────────────────────
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not key:
         results.append(
-            ProviderStatus(name="anthropic", available=False, note="no ANTHROPIC_API_KEY")
+            ProviderStatus(name="anthropic", available=False, note="no ANTHROPIC_API_KEY"),
         )
     elif importlib.util.find_spec("anthropic") is None:
         results.append(
@@ -136,12 +136,12 @@ def check_providers() -> list[ProviderStatus]:
                 name="anthropic",
                 available=False,
                 note="key set but SDK missing — run: pipx inject specsmith anthropic",
-            )
+            ),
         )
     else:
         model = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
         results.append(
-            ProviderStatus(name="anthropic", available=True, model=model, note="key configured")
+            ProviderStatus(name="anthropic", available=True, model=model, note="key configured"),
         )
 
     # ── OpenAI ───────────────────────────────────────────────────────────
@@ -154,12 +154,12 @@ def check_providers() -> list[ProviderStatus]:
                 name="openai",
                 available=False,
                 note="key set but SDK missing — run: pipx inject specsmith openai",
-            )
+            ),
         )
     else:
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         results.append(
-            ProviderStatus(name="openai", available=True, model=model, note="key configured")
+            ProviderStatus(name="openai", available=True, model=model, note="key configured"),
         )
 
     # ── Gemini ───────────────────────────────────────────────────────────
@@ -172,12 +172,12 @@ def check_providers() -> list[ProviderStatus]:
                 name="gemini",
                 available=False,
                 note="key set but SDK missing — run: pipx inject specsmith google-genai",
-            )
+            ),
         )
     else:
         model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         results.append(
-            ProviderStatus(name="gemini", available=True, model=model, note="key configured")
+            ProviderStatus(name="gemini", available=True, model=model, note="key configured"),
         )
 
     return results
@@ -410,14 +410,14 @@ class AgentRunner:
             for s in statuses:
                 if s.available:
                     lines.append(
-                        f"    {s.icon} {s.name:<10} \u2713 ready   model: {s.model}  ({s.note})"
+                        f"    {s.icon} {s.name:<10} \u2713 ready   model: {s.model}  ({s.note})",
                     )
                 else:
                     lines.append(f"    {s.icon} {s.name:<10} \u2717 {s.note}")
             lines.append("")
             if active_count == 0:
                 lines.append(
-                    "  \u26a0  No provider available \u2014 commands will return no response."
+                    "  \u26a0  No provider available \u2014 commands will return no response.",
                 )
             else:
                 # Show multi-model routing if the router is configured (REQ-389).
@@ -425,7 +425,7 @@ class AgentRunner:
                     lines.append(self._model_router.table())
                     lines.append("")
                 lines.append(
-                    "  Type plain English, or use /plan /ask /fix /test /commit /pr /models /exit"
+                    "  Type plain English, or use /plan /ask /fix /test /commit /pr /models /exit",
                 )
             print("\n".join(lines), flush=True)
 

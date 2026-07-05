@@ -57,7 +57,7 @@ class GUIAgentRunner(AgentRunner):
 
         provider: Any = self._provider
         # Always use non-streaming for GUI (avoids lost tool_calls)
-        response = cast(CompletionResponse, provider.complete(messages, tools=self._tools))
+        response = cast("CompletionResponse", provider.complete(messages, tools=self._tools))
 
         if response.content and not silent:
             self._gui_signals.llm_chunk.emit(response.content)
@@ -85,7 +85,7 @@ class GUIAgentRunner(AgentRunner):
         final_response = ""
         for _iteration in range(self._max_iterations):
             messages_with_system = [
-                Message(role=Role.SYSTEM, content=self._system_prompt)
+                Message(role=Role.SYSTEM, content=self._system_prompt),
             ] + self._state.messages
 
             try:
@@ -108,11 +108,11 @@ class GUIAgentRunner(AgentRunner):
                     role=Role.ASSISTANT,
                     content=response.content or "",
                     tool_calls=response.tool_calls,
-                )
+                ),
             )
             for tr in tool_results:
                 self._state.messages.append(
-                    Message(role=Role.TOOL, content=tr.content, tool_call_id=tr.tool_call_id)
+                    Message(role=Role.TOOL, content=tr.content, tool_call_id=tr.tool_call_id),
                 )
 
         return final_response
@@ -120,7 +120,9 @@ class GUIAgentRunner(AgentRunner):
     # ── Emit structured tool signals ──────────────────────────────────────────
 
     def _execute_tool_calls(
-        self, tool_calls: list[dict[str, Any]], silent: bool = False
+        self,
+        tool_calls: list[dict[str, Any]],
+        silent: bool = False,
     ) -> list[ToolResult]:
         results: list[ToolResult] = []
         for tc in tool_calls:
@@ -151,7 +153,7 @@ class GUIAgentRunner(AgentRunner):
                         tool_call_id=call_id,
                         content=result_text,
                         error=True,
-                    )
+                    ),
                 )
                 continue
 
@@ -221,7 +223,8 @@ class AgentWorker(QThread):
                 from specsmith.agent.runner import build_system_prompt
 
                 self._runner._system_prompt = build_system_prompt(
-                    self._runner.project_dir, self._runner._skills
+                    self._runner.project_dir,
+                    self._runner._skills,
                 )
             self._runner._agent_turn(self._user_input, silent=True)
             self._runner._gui_signals.turn_done.emit()

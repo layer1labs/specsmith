@@ -49,11 +49,11 @@ def run_session_end(root: Path) -> SessionReport:
                 name="uncommitted",
                 status="action",
                 message="Uncommitted changes — run: specsmith commit",
-            )
+            ),
         )
     else:
         report.checks.append(
-            SessionCheck(name="uncommitted", status="ok", message="Working tree clean")
+            SessionCheck(name="uncommitted", status="ok", message="Working tree clean"),
         )
 
     # Unpushed commits
@@ -63,11 +63,11 @@ def run_session_end(root: Path) -> SessionReport:
                 name="unpushed",
                 status="action",
                 message="Unpushed commits — run: specsmith push",
-            )
+            ),
         )
     else:
         report.checks.append(
-            SessionCheck(name="unpushed", status="ok", message="All commits pushed")
+            SessionCheck(name="unpushed", status="ok", message="All commits pushed"),
         )
 
     # Branch check
@@ -78,11 +78,11 @@ def run_session_end(root: Path) -> SessionReport:
                 name="branch",
                 status="warn",
                 message=f"On {branch} — switch to a feature branch for next session",
-            )
+            ),
         )
     elif branch:
         report.checks.append(
-            SessionCheck(name="branch", status="ok", message=f"On branch: {branch}")
+            SessionCheck(name="branch", status="ok", message=f"On branch: {branch}"),
         )
 
     # Ledger TODOs
@@ -96,7 +96,7 @@ def run_session_end(root: Path) -> SessionReport:
                     name="todos",
                     status="warn",
                     message=f"{open_todos} open TODO(s) in ledger",
-                )
+                ),
             )
         else:
             report.checks.append(SessionCheck(name="todos", status="ok", message="No open TODOs"))
@@ -112,7 +112,7 @@ def run_session_end(root: Path) -> SessionReport:
                     name="audit",
                     status="ok",
                     message=f"Audit healthy ({audit.passed} checks passed)",
-                )
+                ),
             )
         else:
             report.checks.append(
@@ -120,11 +120,11 @@ def run_session_end(root: Path) -> SessionReport:
                     name="audit",
                     status="warn",
                     message=f"Audit: {audit.failed} issue(s) found",
-                )
+                ),
             )
     except Exception:  # noqa: BLE001
         report.checks.append(
-            SessionCheck(name="audit", status="warn", message="Could not run audit")
+            SessionCheck(name="audit", status="warn", message="Could not run audit"),
         )
 
     # Credit spend summary for this session
@@ -140,11 +140,11 @@ def run_session_end(root: Path) -> SessionReport:
                     message=(
                         f"Credits: ${cs.total_cost_usd:.4f} total, {cs.session_count} session(s)"
                     ),
-                )
+                ),
             )
             for alert in cs.alerts:
                 report.checks.append(
-                    SessionCheck(name="credit-alert", status="warn", message=alert)
+                    SessionCheck(name="credit-alert", status="warn", message=alert),
                 )
     except Exception:  # noqa: BLE001
         pass  # Credits not configured — skip silently

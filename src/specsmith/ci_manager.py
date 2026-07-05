@@ -145,6 +145,7 @@ class CiManager:
 
         Returns:
             List of file paths created or updated.
+
         """
         from specsmith.config import ProjectConfig
         from specsmith.paths import find_scaffold
@@ -152,7 +153,7 @@ class CiManager:
         scaffold_path = find_scaffold(self.root)
         if not scaffold_path or not scaffold_path.exists():
             raise RuntimeError(
-                "No scaffold.yml found. Run 'specsmith init' or 'specsmith import' first."
+                "No scaffold.yml found. Run 'specsmith init' or 'specsmith import' first.",
             )
 
         import yaml
@@ -181,7 +182,7 @@ class CiManager:
             bool(
                 list((self.root / ".github" / "workflows").glob("*.yml"))
                 if (self.root / ".github" / "workflows").is_dir()
-                else []
+                else [],
             )
             or (self.root / ".gitlab-ci.yml").exists()
             or (self.root / "bitbucket-pipelines.yml").exists()
@@ -251,7 +252,7 @@ class CiManager:
             # Try to get the last run URL for GitHub
             if self.platform_name == "github":
                 run_info = platform_obj.run_command(
-                    ["run", "list", "--limit", "1", "--json", "url,name,status,conclusion"]
+                    ["run", "list", "--limit", "1", "--json", "url,name,status,conclusion"],
                 )
                 if run_info.success and run_info.output:
                     try:
@@ -269,7 +270,7 @@ class CiManager:
                         "repos/{owner}/{repo}/code-scanning/alerts",
                         "--jq",
                         '[.[] | select(.state=="open")] | length',
-                    ]
+                    ],
                 )
                 if sec.success and sec.output.strip().isdigit():
                     result.open_security_alerts = int(sec.output.strip())
@@ -304,6 +305,7 @@ class CiManager:
 
         Returns:
             Final CiRunResult.
+
         """
         if self.platform_name == "github":
             return self._watch_github(run_id=run_id, timeout=timeout, on_event=on_event)
@@ -328,7 +330,7 @@ class CiManager:
             try:
                 platform_obj = _get_platform_instance("github")
                 r = platform_obj.run_command(
-                    ["run", "list", "--limit", "1", "--json", "databaseId,status"]
+                    ["run", "list", "--limit", "1", "--json", "databaseId,status"],
                 )
                 if r.success and r.output:
                     runs = json.loads(r.output)
@@ -357,7 +359,7 @@ class CiManager:
                     "status": result.last_run_status,
                     "passing": result.ci_passing,
                     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                }
+                },
             )
         return result
 
@@ -390,7 +392,7 @@ class CiManager:
                         "dep_alerts": result.open_dep_alerts,
                         "security_alerts": result.open_security_alerts,
                         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                    }
+                    },
                 )
 
             if result.last_run_status in ("success", "failure"):
@@ -412,7 +414,6 @@ class CiManager:
 
 def _write_codeql_workflow(config: Any, root: Path) -> Path | None:
     """Write a CodeQL workflow if one doesn't already exist."""
-
     wf_dir = root / ".github" / "workflows"
     wf_dir.mkdir(parents=True, exist_ok=True)
     codeql_path = wf_dir / "codeql.yml"
@@ -495,7 +496,7 @@ def get_ci_automation_status(root: Path) -> tuple[bool, str]:
     try:
         data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
         return bool(data.get("ci_automation_enabled", False)), str(
-            data.get("ci_platform", "github")
+            data.get("ci_platform", "github"),
         )
     except Exception:  # noqa: BLE001
         return False, "github"

@@ -234,12 +234,12 @@ def get_summary(
         pct = (month_cost / budget.monthly_cap_usd) * 100 if budget.monthly_cap_usd else 0
         if pct >= 100:
             summary.alerts.append(
-                f"BUDGET EXCEEDED: ${month_cost:.2f} / ${budget.monthly_cap_usd:.2f} ({pct:.0f}%)"
+                f"BUDGET EXCEEDED: ${month_cost:.2f} / ${budget.monthly_cap_usd:.2f} ({pct:.0f}%)",
             )
         elif pct >= budget.alert_threshold_pct:
             summary.alerts.append(
                 f"Budget warning: ${month_cost:.2f} / ${budget.monthly_cap_usd:.2f} "
-                f"({pct:.0f}%) — approaching cap"
+                f"({pct:.0f}%) — approaching cap",
             )
 
         # Watermark alerts

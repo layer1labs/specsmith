@@ -111,7 +111,7 @@ def run_with_fallback(
             continue
         try:
             value = invoke(kind, ident, model)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             attempt = FallbackAttempt(target=target, ok=False, error=str(exc))
             result.attempts.append(attempt)
             if on_attempt:
@@ -134,9 +134,9 @@ def run_with_fallback(
 
 
 __all__ = [
+    "TRANSIENT_EXCEPTIONS",
     "FallbackAttempt",
     "FallbackResult",
-    "TRANSIENT_EXCEPTIONS",
     "parse_target",
     "run_with_fallback",
 ]

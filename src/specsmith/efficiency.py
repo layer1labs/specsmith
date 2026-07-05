@@ -286,8 +286,8 @@ def _band_emoji(score: float) -> str:
 
 
 __all__ = [
-    "compute_epistemic_quality",
-    "compute_and_upsert_efficiency",
-    "_band_label",
     "_band_emoji",
+    "_band_label",
+    "compute_and_upsert_efficiency",
+    "compute_epistemic_quality",
 ]

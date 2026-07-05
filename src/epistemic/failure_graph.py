@@ -89,7 +89,7 @@ class FailureModeGraph:
         lines.append("=" * 50)
         lines.append(
             f"Equilibrium: {'✓ YES' if eq else '✗ NO'} | "
-            f"Nodes: {len(self._nodes)} | Logic Knots: {len(knots)}"
+            f"Nodes: {len(self._nodes)} | Logic Knots: {len(knots)}",
         )
 
         if knots:
@@ -128,8 +128,8 @@ class FailureModeGraph:
                 lines.append(f"  style {_sid(node.artifact_id)} fill:#ff4444,color:#fff")
             elif node.failure_count > 0:
                 lines.append(
-                    f'  {_sid(node.artifact_id)}["{label}\\n{node.failure_count} failures"]'
-                )  # noqa: E501
+                    f'  {_sid(node.artifact_id)}["{label}\\n{node.failure_count} failures"]',
+                )
                 lines.append(f"  style {_sid(node.artifact_id)} fill:#ff9900,color:#000")
             else:
                 lines.append(f'  {_sid(node.artifact_id)}["{label}"]')

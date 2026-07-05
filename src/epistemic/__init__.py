@@ -124,6 +124,7 @@ References
 - ARE:    https://github.com/organvm-i-theoria/auto-revision-epistemic-engine
 - VERITAS: https://github.com/AionSystem/VERITAS
 - Springer: https://doi.org/10.1007/s11948-023-00451-3
+
 """
 
 from __future__ import annotations

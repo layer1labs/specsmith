@@ -142,13 +142,13 @@ class TraceVault:
             expected_content_hash = _sha256(expected_content)
             if rec.content_hash != expected_content_hash:
                 errors.append(
-                    f"{rec.seal_id}: content_hash invalid — description or metadata tampered"
+                    f"{rec.seal_id}: content_hash invalid — description or metadata tampered",
                 )
             # Verify entry_hash
             expected_entry = _sha256(f"{rec.content_hash}:{rec.prev_hash}")
             if rec.entry_hash != expected_entry:
                 errors.append(
-                    f"{rec.seal_id}: entry_hash invalid — record may have been tampered with"
+                    f"{rec.seal_id}: entry_hash invalid — record may have been tampered with",
                 )
             # Verify chain link
             if rec.prev_hash != prev_hash:
@@ -206,4 +206,4 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-__all__ = ["TraceVault", "SealRecord", "SealType"]
+__all__ = ["SealRecord", "SealType", "TraceVault"]

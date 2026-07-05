@@ -134,7 +134,7 @@ def _probe_command(cmd: str | list[str]) -> str | None:
 
     # Plain command name — search PATH
     found = shutil.which(executable)
-    return found if found else None
+    return found or None
 
 
 def _platform_candidates() -> list[tuple[str, str | list[str]]]:
@@ -160,6 +160,7 @@ def list_detected_editors() -> list[EditorCandidate]:
 
     Returns:
         Ordered list of :class:`EditorCandidate`, best-first.
+
     """
     seen_commands: set[str] = set()
     result: list[EditorCandidate] = []
@@ -180,7 +181,7 @@ def list_detected_editors() -> list[EditorCandidate]:
                     name=display_name,
                     command=cmd_key,
                     path=resolved if resolved != cmd_key else None,
-                )
+                ),
             )
 
     return result
@@ -197,6 +198,7 @@ def resolve_editor() -> str | None:
     Returns:
         The command string (e.g. ``"code"``, ``"notepad++"``, ``"nvim"``),
         or ``None`` if nothing was found.
+
     """
     # Priority 1: $EDITOR env var
     env_editor = os.environ.get("EDITOR", "").strip()
@@ -223,6 +225,7 @@ def set_editor_preference(command: str) -> Path:
 
     Returns:
         The path of the written config file.
+
     """
     config_path = _global_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)

@@ -148,7 +148,7 @@ class GovernanceStore:
                     "name": match.group(2).strip(),
                     "description": match.group(3).strip()[:300],
                     "source": "md",
-                }
+                },
             )
         return rules
 

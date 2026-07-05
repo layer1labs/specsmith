@@ -437,7 +437,7 @@ class ProfileStore:
         except json.JSONDecodeError as exc:
             raise ProfileError(
                 f"agents store at {target} is corrupted: {exc}. "
-                "Move it aside or fix the JSON to continue."
+                "Move it aside or fix the JSON to continue.",
             ) from exc
         if not isinstance(raw, dict):
             raise ProfileError(f"agents store at {target} must be a JSON object")
@@ -479,7 +479,7 @@ class ProfileStore:
         if version and version != SCHEMA_VERSION:
             raise ProfileError(
                 f"agents store at {path} uses schema_version={version}; "
-                f"this build of specsmith only understands {SCHEMA_VERSION}."
+                f"this build of specsmith only understands {SCHEMA_VERSION}.",
             )
         profiles_raw = raw.get("profiles") or []
         if not isinstance(profiles_raw, list):
@@ -517,7 +517,7 @@ class ProfileStore:
         if existing is not None:
             if not replace:
                 raise ProfileError(
-                    f"profile {profile.id!r} already exists. Use --replace to overwrite."
+                    f"profile {profile.id!r} already exists. Use --replace to overwrite.",
                 )
             self.profiles[existing] = profile
         else:
@@ -609,7 +609,7 @@ class ProfileStore:
                             f"shares the {lf!r} family with "
                             f"{lp.id} ({lp.role}, {lp.provider}/{lp.model}); "
                             "diversity is recommended so the reviewer can catch "
-                            "the coder's blind spots."
+                            "the coder's blind spots.",
                         )
         return warnings
 
@@ -657,7 +657,7 @@ def apply_preset(name: str, *, path: Path | None = None) -> ProfileStore:
     """
     if name not in DEFAULT_PRESETS:
         raise ProfileError(
-            f"unknown preset {name!r}. Available: {', '.join(sorted(DEFAULT_PRESETS))}"
+            f"unknown preset {name!r}. Available: {', '.join(sorted(DEFAULT_PRESETS))}",
         )
     target = path or default_store_path()
     blob = DEFAULT_PRESETS[name]
@@ -679,11 +679,11 @@ def apply_preset(name: str, *, path: Path | None = None) -> ProfileStore:
 __all__ = [
     "DEFAULT_PRESETS",
     "PROVIDER_FAMILIES",
+    "SCHEMA_VERSION",
+    "VALID_ROLES",
     "Profile",
     "ProfileError",
     "ProfileStore",
-    "SCHEMA_VERSION",
-    "VALID_ROLES",
     "apply_preset",
     "default_store_path",
     "project_store_path",

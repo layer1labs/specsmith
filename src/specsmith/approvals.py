@@ -54,7 +54,7 @@ def load_approvals(root: Path) -> list[ApprovalRecord]:
                     scope=str(row.get("scope", "")),
                     rationale=str(row.get("rationale", "")),
                     requirement_ids=list(row.get("requirement_ids", []) or []),
-                )
+                ),
             )
     return out
 

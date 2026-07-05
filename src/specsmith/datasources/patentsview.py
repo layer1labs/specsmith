@@ -113,6 +113,7 @@ class PatentsViewClient:
             limit: Max results (max 1000).
             offset: Pagination offset.
             search_type: "any" (OR), "all" (AND), or "phrase" (exact).
+
         """
         fields = _field_set(detail)
 
@@ -167,7 +168,7 @@ class PatentsViewClient:
         patents = data.get("patents", [])
         if not patents:
             raise DataSourceError(f"Patent {patent_id} not found")
-        return cast(dict[str, Any], patents[0])
+        return cast("dict[str, Any]", patents[0])
 
     def get_claims(self, patent_id: str) -> dict[str, Any]:
         """Get all claims text for a patent."""

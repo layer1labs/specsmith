@@ -52,7 +52,7 @@ class PTABClient:
         results = data.get("results", [])
         if not results:
             raise DataSourceError(f"Trial {trial_number} not found")
-        return cast(dict[str, Any], results[0])
+        return cast("dict[str, Any]", results[0])
 
     def search_trials(
         self,

@@ -43,7 +43,7 @@ _RAG_EXCLUDE_KINDS = frozenset(
         "skill_run",
         "efficiency_metric",
         "context_usage",
-    }
+    },
 )
 
 
@@ -80,7 +80,7 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
                                 "content": content,
                                 "source_type": rec.source_type,
                                 "confidence": str(rec.confidence),
-                            }
+                            },
                         )
         except Exception:  # noqa: BLE001
             pass  # ChronoStore read failure is non-fatal for RAG
@@ -107,7 +107,7 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
                                 "content": content,
                                 "source_type": str(rec.data.get("source_type", "observed")),
                                 "confidence": str(rec.confidence),
-                            }
+                            },
                         )
             except Exception:  # noqa: BLE001
                 pass  # SQLite read failure is non-fatal for RAG
@@ -154,7 +154,7 @@ def build_index(root: Path, *, include_ledger: bool = False, external: str = "")
             {
                 "path": str(fp.relative_to(root)) if fp.is_relative_to(root) else str(fp),
                 "content": text[:12000],
-            }
+            },
         )
 
     index_path = root / _INDEX_PATH

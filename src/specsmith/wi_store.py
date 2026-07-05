@@ -314,7 +314,7 @@ class WorkItemStore:
         if not force and not item.can_transition_to(new_status):
             raise WorkItemError(
                 f"Cannot transition {wi_id} from {item.status!r} to {new_status!r}. "
-                f"Allowed: {sorted(WI_TRANSITIONS.get(item.status, frozenset()))}"
+                f"Allowed: {sorted(WI_TRANSITIONS.get(item.status, frozenset()))}",
             )
         ts = _now_iso()
         item.status = new_status
@@ -378,7 +378,7 @@ class WorkItemStore:
             if item.status == "promoted":
                 return item  # idempotent
             raise WorkItemError(
-                f"Cannot promote {wi_id}: currently in terminal state {item.status!r}."
+                f"Cannot promote {wi_id}: currently in terminal state {item.status!r}.",
             )
         ts = _now_iso()
         item.status = "promoted"

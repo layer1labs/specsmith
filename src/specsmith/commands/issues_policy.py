@@ -57,7 +57,11 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
     @click.option("--project-dir", type=click.Path(exists=True), default=".")
     @click.option("--json", "as_json", is_flag=True, default=False)
     def transcript_import_cmd(
-        from_path: str, fmt: str, work_item_id: str, project_dir: str, as_json: bool
+        from_path: str,
+        fmt: str,
+        work_item_id: str,
+        project_dir: str,
+        as_json: bool,
     ) -> None:
         _ = fmt
         root = Path(project_dir).resolve()
@@ -73,7 +77,7 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
             click.echo(json.dumps(payload, indent=2))
         else:
             console.print(
-                f"[green]✓[/green] Imported {len(actions)} transcript actions for {wi_id}"
+                f"[green]✓[/green] Imported {len(actions)} transcript actions for {wi_id}",
             )
 
     @main.command(name="approve")
@@ -134,12 +138,11 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
         }
         if as_json:
             click.echo(json.dumps(payload, indent=2))
+        elif errors:
+            for err in errors:
+                console.print(f"[red]✗[/red] {err}")
         else:
-            if errors:
-                for err in errors:
-                    console.print(f"[red]✗[/red] {err}")
-            else:
-                console.print("[green]✓[/green] policy.yml is valid")
+            console.print("[green]✓[/green] policy.yml is valid")
         if errors:
             raise SystemExit(1)
 
@@ -164,7 +167,7 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
         else:
             console.print(
                 f"Policy simulation for [bold]{result['work_item_id']}[/bold] "
-                f"(risk={result['risk_level']})"
+                f"(risk={result['risk_level']})",
             )
             for issue in result["blocking_issues"]:
                 console.print(f"  [red]✗[/red] {issue}")
@@ -197,7 +200,7 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
             icon = "[green]✓[/green]" if not errors else "[red]✗[/red]"
             console.print(
                 f"  {icon} manifest {manifest.name} ({manifest.plugin_type}) at {path}"
-                + (f" — {errors[0]}" if errors else "")
+                + (f" — {errors[0]}" if errors else ""),
             )
 
     @plugin_group.command(name="validate")
@@ -208,12 +211,11 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
         payload = {"valid": len(errors) == 0, "errors": errors, "path": manifest_path}
         if as_json:
             click.echo(json.dumps(payload, indent=2))
+        elif errors:
+            for err in errors:
+                console.print(f"[red]✗[/red] {err}")
         else:
-            if errors:
-                for err in errors:
-                    console.print(f"[red]✗[/red] {err}")
-            else:
-                console.print(f"[green]✓[/green] {manifest_path} is valid")
+            console.print(f"[green]✓[/green] {manifest_path} is valid")
         if errors:
             raise SystemExit(1)
 
@@ -224,7 +226,11 @@ def register_issue_policy_commands(main: click.Group, console: Any) -> None:
     @click.option("--test-results", "test_results", type=click.Path(exists=True), default="")
     @click.option("--json", "as_json", is_flag=True, default=False)
     def recover_cmd(
-        project_dir: str, work_item_id: str, git_diff: bool, test_results: str, as_json: bool
+        project_dir: str,
+        work_item_id: str,
+        git_diff: bool,
+        test_results: str,
+        as_json: bool,
     ) -> None:
         root = Path(project_dir).resolve()
         diff_text = click.get_text_stream("stdin").read() if git_diff else ""

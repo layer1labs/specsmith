@@ -157,7 +157,7 @@ class SessionGovernanceMigration(Migration):
         if dry_run:
             messages.append(
                 "Would inject Session Governance Protocol section into AGENTS.md "
-                "and back up to .specsmith/agents.md.m006.bak."
+                "and back up to .specsmith/agents.md.m006.bak.",
             )
             result.files_created.append(".specsmith/agents.md.m006.bak")
             result.files_modified.append("AGENTS.md")
@@ -202,7 +202,7 @@ class SessionGovernanceMigration(Migration):
         result.files_modified.append("AGENTS.md")
         messages.append(
             "Injected Session Governance Protocol section into AGENTS.md "
-            "(original backed up to .specsmith/agents.md.m006.bak)."
+            "(original backed up to .specsmith/agents.md.m006.bak).",
         )
 
         result.message = "  ".join(messages)
@@ -219,7 +219,8 @@ class SessionGovernanceMigration(Migration):
 
         if bak.exists():
             agents_md.write_text(
-                bak.read_text(encoding="utf-8", errors="replace"), encoding="utf-8"
+                bak.read_text(encoding="utf-8", errors="replace"),
+                encoding="utf-8",
             )
             messages.append("Restored AGENTS.md from .specsmith/agents.md.m006.bak.")
             result.files_modified.append("AGENTS.md")

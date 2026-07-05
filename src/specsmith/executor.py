@@ -98,10 +98,9 @@ def _is_process_alive(pid: int) -> bool:
                 timeout=5,
             )
             return str(pid) in result.stdout
-        else:
-            # POSIX: signal 0 checks existence without killing
-            os.kill(pid, 0)
-            return True
+        # POSIX: signal 0 checks existence without killing
+        os.kill(pid, 0)
+        return True
     except (OSError, subprocess.TimeoutExpired):
         return False
 

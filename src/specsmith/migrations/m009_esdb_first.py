@@ -54,7 +54,7 @@ class EsdbFirstMigration(Migration):
         "no data is deleted.  Runs automatically via specsmith migrate run."
     )
 
-    def run(self, root: Path, *, dry_run: bool = False) -> MigrationResult:  # noqa: C901
+    def run(self, root: Path, *, dry_run: bool = False) -> MigrationResult:
         result = MigrationResult(version=self.version, title=self.title, dry_run=dry_run)
         marker = root / _MARKER_FILE
 

@@ -195,7 +195,7 @@ class PostEsdbCleanupMigration(Migration):
                 )
         elif backups_dir.is_dir() and not esdb_first_ok:
             blocked.append(
-                ".specsmith/migration-backups/* (guard failed: M009 backfill not confirmed)"
+                ".specsmith/migration-backups/* (guard failed: M009 backfill not confirmed)",
             )
 
         # ── Marker ────────────────────────────────────────────────────────────

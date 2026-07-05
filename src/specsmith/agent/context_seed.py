@@ -79,6 +79,7 @@ def build_context_seed(
     Returns:
         List of ``{role: str, content: str}`` dicts, oldest first.
         Empty list if no prior context is available.
+
     """
     root = Path(project_dir).resolve()
     session_id = uuid.uuid4().hex[:16].upper()
@@ -120,7 +121,7 @@ def build_context_seed(
             {
                 "role": "system",
                 "content": f"[Recent LEDGER entries — last {max_ledger} lines]\n{ledger_block}",
-            }
+            },
         )
         used += len(ledger_block)
 
@@ -154,7 +155,7 @@ def build_context_seed(
                     "[ESDB governance context — active preflight"
                     f" decisions, verify results, work items]\n{esdb_block}"
                 ),
-            }
+            },
         )
         used += len(esdb_block)
 

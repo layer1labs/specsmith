@@ -36,7 +36,7 @@ READ_ONLY_TOOLS: frozenset[str] = frozenset(
         "grep",
         "git_status",
         "git_diff",
-    ]
+    ],
 )
 
 #: Filesystem-modifying tools — require explicit allow.
@@ -45,7 +45,7 @@ WRITE_TOOLS: frozenset[str] = frozenset(
         "write_file",
         "patch_file",
         "remember_project_fact",
-    ]
+    ],
 )
 
 #: Shell execution — may run arbitrary commands; gated by safety middleware.
@@ -57,7 +57,7 @@ HIGH_PRIVILEGE_TOOLS: frozenset[str] = frozenset(
         "git_commit",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
         "git_push",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
         "git_create_pr",  # REG-012: explicit declaration; not yet in AVAILABLE_TOOLS
-    ]
+    ],
 )
 
 #: External network tools — blocked by default; must be explicitly allowed.
@@ -125,7 +125,7 @@ class AgentPermissions:
                 f"  agent:\n"
                 f"    permissions:\n"
                 f"      allow: [{tool_name}]\n"
-                f"Or switch to a broader profile (extended, admin)."
+                f"Or switch to a broader profile (extended, admin).",
             )
 
     def check_and_log(
@@ -146,6 +146,7 @@ class AgentPermissions:
             root: Project root directory (used to locate the ledger).
             log_denied: If ``True`` (default), write a ledger entry when the
                 tool is denied so denials are auditable.
+
         """
         allowed = self.is_allowed(tool_name)
         if allowed:
@@ -213,7 +214,7 @@ AgentPermissions.EXTENDED = AgentPermissions(
 
 AgentPermissions.ADMIN = AgentPermissions(
     allow=frozenset(
-        READ_ONLY_TOOLS | WRITE_TOOLS | SHELL_TOOLS | HIGH_PRIVILEGE_TOOLS | NETWORK_TOOLS
+        READ_ONLY_TOOLS | WRITE_TOOLS | SHELL_TOOLS | HIGH_PRIVILEGE_TOOLS | NETWORK_TOOLS,
     ),
     deny=frozenset(),
     label="admin",

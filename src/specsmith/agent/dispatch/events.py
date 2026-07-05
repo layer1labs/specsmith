@@ -34,7 +34,7 @@ def _validate_dag_id(dag_id: str) -> None:
     if not _VALID_DAG_ID_RE.match(dag_id):
         raise ValueError(
             f"Invalid dag_id {dag_id!r}: must match "
-            r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
+            r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
         )
 
 
@@ -67,7 +67,7 @@ ALL_EVENT_TYPES = frozenset(
         EVENT_NODE_FAILED,
         EVENT_NODE_BLOCKED,
         EVENT_DAG_DONE,
-    ]
+    ],
 )
 
 
@@ -163,7 +163,7 @@ class EventEmitter:
                 event_type=EVENT_NODE_STARTED,
                 node_id=node_id,
                 payload={"role": role, "depends_on": depends_on or []},
-            )
+            ),
         )
 
     def node_completed(self, node_id: str, esdb_record_id: str | None, summary: str) -> None:
@@ -173,7 +173,7 @@ class EventEmitter:
                 event_type=EVENT_NODE_COMPLETED,
                 node_id=node_id,
                 payload={"esdb_record_id": esdb_record_id, "summary": summary},
-            )
+            ),
         )
 
     def node_failed(self, node_id: str, error: str) -> None:
@@ -183,7 +183,7 @@ class EventEmitter:
                 event_type=EVENT_NODE_FAILED,
                 node_id=node_id,
                 payload={"error": error},
-            )
+            ),
         )
 
     def node_blocked(self, node_id: str, because_of: str) -> None:
@@ -193,7 +193,7 @@ class EventEmitter:
                 event_type=EVENT_NODE_BLOCKED,
                 node_id=node_id,
                 payload={"because_of": because_of},
-            )
+            ),
         )
 
     def dag_done(self, summary: dict[str, Any]) -> None:
@@ -203,7 +203,7 @@ class EventEmitter:
                 event_type=EVENT_DAG_DONE,
                 node_id="",
                 payload=summary,
-            )
+            ),
         )
 
     # -- SSE subscription --------------------------------------------------
@@ -267,11 +267,11 @@ class EventEmitter:
 
 __all__ = [
     "ALL_EVENT_TYPES",
-    "DispatchEvent",
-    "EventEmitter",
     "EVENT_DAG_DONE",
     "EVENT_NODE_BLOCKED",
     "EVENT_NODE_COMPLETED",
     "EVENT_NODE_FAILED",
     "EVENT_NODE_STARTED",
+    "DispatchEvent",
+    "EventEmitter",
 ]

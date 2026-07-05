@@ -93,18 +93,18 @@ class ComplianceReporter:
             "> **DISCLAIMER:** This report is provided on a best-effort basis and does "
             "NOT constitute legal advice or a guarantee of compliance. Laws change "
             "frequently. Verify actual compliance with qualified legal counsel. "
-            "File issues at https://github.com/layer1labs/specsmith/issues\n"
+            "File issues at https://github.com/layer1labs/specsmith/issues\n",
         )
         lines.append(
             f"**Overall status:** "
             f"{_STATUS_EMOJI.get(summary['overall_status'], '?')} "
-            f"{summary['overall_status'].upper()}"
+            f"{summary['overall_status'].upper()}",
         )
         lines.append(
             f"**Regulations checked:** {summary['total_regulations']}  "
             f"Compliant: {summary['compliant']} | "
             f"Partial: {summary['partial']} | "
-            f"Gaps: {summary['gaps']}\n"
+            f"Gaps: {summary['gaps']}\n",
         )
 
         lines.append("---\n")
@@ -115,7 +115,7 @@ class ComplianceReporter:
             lines.append(
                 f"**Status:** {result.overall_status}  "
                 f"**Confidence:** {result.overall_confidence:.0%}  "
-                f"**Checked:** {result.checked_at}"
+                f"**Checked:** {result.checked_at}",
             )
             if result.notes:
                 lines.append(f"\n> {result.notes}\n")
@@ -127,7 +127,7 @@ class ComplianceReporter:
                 lines.append(
                     f"| `{ar.article_id}` | {ar.title} | "
                     f"{a_icon} {ar.status} | "
-                    f"{ar.confidence:.0%} |"
+                    f"{ar.confidence:.0%} |",
                 )
 
             # Findings

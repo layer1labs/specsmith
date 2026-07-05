@@ -111,7 +111,7 @@ class AgentRunToolMigration(Migration):
         if dry_run:
             messages.append(
                 "Would write .specsmith/agent-tools.json "
-                "(primary_governance_command=specsmith_run)."
+                "(primary_governance_command=specsmith_run).",
             )
             result.files_created.append(".specsmith/agent-tools.json")
         else:
@@ -131,12 +131,12 @@ class AgentRunToolMigration(Migration):
             current = agents_md.read_text(encoding="utf-8", errors="replace")
             if "/specsmith" in current:
                 messages.append(
-                    "AGENTS.md already documents /specsmith — skipping documentation patch."
+                    "AGENTS.md already documents /specsmith — skipping documentation patch.",
                 )
             elif dry_run:
                 messages.append(
                     "Would append /specsmith governance commands section to AGENTS.md "
-                    "and back up to .specsmith/agents.md.m005.bak."
+                    "and back up to .specsmith/agents.md.m005.bak.",
                 )
                 result.files_created.append(".specsmith/agents.md.m005.bak")
                 result.files_modified.append("AGENTS.md")
@@ -155,7 +155,7 @@ class AgentRunToolMigration(Migration):
                 result.files_modified.append("AGENTS.md")
                 messages.append(
                     "Appended /specsmith governance commands section to AGENTS.md "
-                    "(original backed up to .specsmith/agents.md.m005.bak)."
+                    "(original backed up to .specsmith/agents.md.m005.bak).",
                 )
 
         result.message = "  ".join(messages)

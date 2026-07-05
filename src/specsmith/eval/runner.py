@@ -145,6 +145,7 @@ def run_suite(
         stub: If True, use stub runner. If False, auto-detect a live LLM
               and run each case for real; silently falls back to stub when
               no provider is reachable.
+
     """
     # Auto-detect provider when real mode is requested
     live_provider: str | None = None

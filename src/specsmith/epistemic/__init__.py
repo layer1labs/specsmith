@@ -14,8 +14,8 @@ This module re-exports everything for backward compatibility.
 
 from __future__ import annotations
 
-# Re-export the entire epistemic public API  # noqa: I001
-from epistemic import (  # noqa: F401
+# Re-export the entire epistemic public API
+from epistemic import (
     AEEResult,
     AEESession,
     ArtifactCertainty,
@@ -40,23 +40,23 @@ from epistemic import (  # noqa: F401
 # AEEResult and AEESession already imported via `from epistemic import (...)` above
 
 __all__ = [
-    "AEESession",
     "AEEResult",
+    "AEESession",
+    "ArtifactCertainty",
     "BeliefArtifact",
     "BeliefStatus",
+    "CertaintyEngine",
+    "CertaintyReport",
     "ConfidenceLevel",
     "FailureMode",
-    "FailureSeverity",
-    "StressTester",
-    "StressTestResult",
     "FailureModeGraph",
+    "FailureSeverity",
     "GraphNode",
     "RecoveryOperator",
     "RecoveryProposal",
     "RecoveryStrategy",
-    "CertaintyEngine",
-    "CertaintyReport",
-    "ArtifactCertainty",
-    "parse_requirements_as_beliefs",
+    "StressTestResult",
+    "StressTester",
     "beliefs_from_dicts",
+    "parse_requirements_as_beliefs",
 ]

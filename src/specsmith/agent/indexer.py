@@ -19,7 +19,11 @@ def generate_index(cwd: str | None = None) -> None:
     try:
         # Try ripgrep first
         result = subprocess.run(
-            ["rg", "--files"], cwd=cwd, capture_output=True, text=True, check=True
+            ["rg", "--files"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            check=True,
         )
         files = result.stdout.splitlines()
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -47,7 +51,10 @@ def generate_index(cwd: str | None = None) -> None:
     # 3. test_commands.json (pytest collect-only)
     try:
         result = subprocess.run(
-            ["pytest", "--collect-only", "-q"], cwd=cwd, capture_output=True, text=True
+            ["pytest", "--collect-only", "-q"],
+            cwd=cwd,
+            capture_output=True,
+            text=True,
         )
         test_commands = result.stdout.splitlines()
         tests_path = index_dir / "test_commands.json"

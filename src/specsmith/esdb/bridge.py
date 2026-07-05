@@ -33,7 +33,7 @@ try:
     )
 except ImportError:  # pragma: no cover
 
-    class _Stub:  # noqa: F811
+    class _Stub:
         """Placeholder that raises a clear error on instantiation or call."""
 
         def __init__(self, *_: object, **__: object) -> None:
@@ -42,24 +42,24 @@ except ImportError:  # pragma: no cover
         def __call__(self, *_: object, **__: object) -> "_Stub":
             raise ImportError(_INSTALL_HINT)
 
-    class _StubModule:  # noqa: F811
+    class _StubModule:
         def __getattr__(self, name: str) -> "_Stub":
-            raise AttributeError(  # noqa: TRY301
-                f"'{name}' is unavailable: {_INSTALL_HINT}"
+            raise AttributeError(
+                f"'{name}' is unavailable: {_INSTALL_HINT}",
             )
 
-    EsdbBridge = EsdbRecord = EsdbStatus = ContextPackCompiler = DepGraph = _Stub  # noqa: F811
-    query = _StubModule()  # noqa: F811
-    metrics = _StubModule()  # noqa: F811
-    RUST_BACKEND = False  # noqa: F811
+    EsdbBridge = EsdbRecord = EsdbStatus = ContextPackCompiler = DepGraph = _Stub
+    query = _StubModule()
+    metrics = _StubModule()
+    RUST_BACKEND = False
 
 __all__ = [
+    "RUST_BACKEND",
+    "ContextPackCompiler",
+    "DepGraph",
     "EsdbBridge",
     "EsdbRecord",
     "EsdbStatus",
-    "ContextPackCompiler",
-    "DepGraph",
-    "RUST_BACKEND",
-    "query",
     "metrics",
+    "query",
 ]

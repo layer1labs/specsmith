@@ -34,11 +34,7 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass  # avoid circular imports at runtime
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -412,6 +408,7 @@ def write_seal_record(
         record_dict:  ``SealRecord.to_dict()`` output.
 
     Returns True on success, False on any error.
+
     """
     try:
         from specsmith.esdb import open_default_store
@@ -452,6 +449,7 @@ def write_session_metric(
         record_dict:  ``MetricsRecord.to_dict()`` output.
 
     Returns True on success, False on any error.
+
     """
     try:
         from specsmith.esdb import open_default_store
@@ -482,11 +480,11 @@ def write_session_metric(
 
 
 __all__ = [
-    "write_preflight_record",
-    "write_verify_record",
-    "write_work_item_record",
-    "write_token_metric",
     "write_ledger_event",
+    "write_preflight_record",
     "write_seal_record",
     "write_session_metric",
+    "write_token_metric",
+    "write_verify_record",
+    "write_work_item_record",
 ]

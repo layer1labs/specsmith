@@ -124,7 +124,7 @@ class MCPSession:
                     description=str(entry.get("description", "")),
                     input_schema=schema if isinstance(schema, dict) else {},
                     server_name=self.spec.name,
-                )
+                ),
             )
         return list(self._tools)
 
@@ -339,7 +339,7 @@ def _read_specs(project_dir: Path) -> list[MCPServerSpec]:
                 command=command,
                 args=[str(a) for a in args_raw if isinstance(a, (str, int, float))],
                 env={str(k): str(v) for k, v in env_raw.items()},
-            )
+            ),
         )
     return out
 

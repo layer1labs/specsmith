@@ -146,7 +146,7 @@ class EvidenceCollector:
                 detail=f"WAL chain valid: {self.esdb_chain_valid()}"
                 if wal.exists()
                 else "WAL not initialized",
-            )
+            ),
         )
 
         # Ledger JSONL
@@ -160,7 +160,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.9 if ledger_jsonl.exists() else 0.0,
                 present=ledger_jsonl.exists(),
-            )
+            ),
         )
 
         # Trace vault (REQ-420: seals are ESDB ``seal_record`` entries, no
@@ -178,7 +178,7 @@ class EvidenceCollector:
                 confidence=0.9 if seal_count > 0 else 0.1,
                 present=seal_count > 0,
                 detail=f"{seal_count} seal(s) in ESDB",
-            )
+            ),
         )
 
         # LEDGER.md (human-readable view)
@@ -196,7 +196,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.8 if ledger_md.exists() else 0.0,
                 present=ledger_md.exists(),
-            )
+            ),
         )
 
         return items
@@ -215,7 +215,7 @@ class EvidenceCollector:
                 source_type="cli_output",
                 confidence=0.9,
                 present=True,  # Always available as a CLI command
-            )
+            ),
         )
 
         # Config: escalation threshold
@@ -242,7 +242,7 @@ class EvidenceCollector:
                 detail="epistemic.confidence_threshold is set"
                 if has_escalation
                 else "not configured",
-            )
+            ),
         )
 
         # Permission profiles
@@ -255,7 +255,7 @@ class EvidenceCollector:
                 source_type="cli_output",
                 confidence=0.9,
                 present=True,
-            )
+            ),
         )
 
         # Preflight gate
@@ -268,7 +268,7 @@ class EvidenceCollector:
                 source_type="cli_output",
                 confidence=0.95,
                 present=True,
-            )
+            ),
         )
 
         return items
@@ -294,7 +294,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.85 if req_path.exists() else 0.0,
                 present=req_path.exists(),
-            )
+            ),
         )
 
         # Governance rules
@@ -317,7 +317,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.9 if has_rules else 0.0,
                 present=has_rules,
-            )
+            ),
         )
 
         # ESDB confidence scoring
@@ -334,7 +334,7 @@ class EvidenceCollector:
                 detail=f"{esdb_count} records"
                 if esdb_count > 0
                 else "0 records (run: specsmith esdb migrate)",
-            )
+            ),
         )
 
         # scaffold.yml / SPECSMITH.yml
@@ -350,7 +350,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.9 if scaffold_present else 0.0,
                 present=scaffold_present,
-            )
+            ),
         )
 
         return items
@@ -369,7 +369,7 @@ class EvidenceCollector:
                 source_type="cli_output",
                 confidence=0.95,
                 present=True,
-            )
+            ),
         )
 
         # AGENTS.md governance hub
@@ -383,7 +383,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.85 if agents_md.exists() else 0.0,
                 present=agents_md.exists(),
-            )
+            ),
         )
 
         # Architecture doc
@@ -397,7 +397,7 @@ class EvidenceCollector:
                 source_type="file",
                 confidence=0.85 if arch.exists() else 0.0,
                 present=arch.exists(),
-            )
+            ),
         )
 
         return items
@@ -421,7 +421,7 @@ class EvidenceCollector:
                     if self.esdb_available()
                     else "ESDB not initialized — run: specsmith esdb migrate"
                 ),
-            )
+            ),
         )
 
         # Validate strict runs in CI
@@ -446,7 +446,7 @@ class EvidenceCollector:
                 source_type="config",
                 confidence=0.9 if ci_has_validate else 0.3,
                 present=ci_has_validate,
-            )
+            ),
         )
 
         return items
@@ -477,7 +477,7 @@ class EvidenceCollector:
                 source_type="config",
                 confidence=0.9 if has_security_scan else 0.2,
                 present=has_security_scan,
-            )
+            ),
         )
 
         # Trace chain integrity
@@ -495,7 +495,7 @@ class EvidenceCollector:
                     if self.esdb_available()
                     else "ESDB not initialized"
                 ),
-            )
+            ),
         )
 
         return items

@@ -113,7 +113,7 @@ class EventEmitter:
                 "message": message,
                 "recoverable": bool(recoverable),
                 **extra,
-            }
+            },
         )
 
     # ── Block helpers ────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ class EventEmitter:
                 "agent": agent,
                 "timestamp": _now_iso(),
                 "payload": payload,
-            }
+            },
         )
         return block_id
 
@@ -140,7 +140,7 @@ class EventEmitter:
                 "block_id": block_id,
                 "timestamp": _now_iso(),
                 "payload": payload,
-            }
+            },
         )
 
     def token(self, block_id: str, text: str) -> None:
@@ -149,7 +149,7 @@ class EventEmitter:
                 "type": "token",
                 "block_id": block_id,
                 "text": text,
-            }
+            },
         )
 
     def tool_call(self, block_id: str, name: str, args: dict[str, Any]) -> None:
@@ -159,7 +159,7 @@ class EventEmitter:
                 "block_id": block_id,
                 "name": name,
                 "args": args,
-            }
+            },
         )
 
     def tool_request(self, block_id: str, name: str, args: dict[str, Any]) -> None:
@@ -169,7 +169,7 @@ class EventEmitter:
                 "block_id": block_id,
                 "name": name,
                 "args": args,
-            }
+            },
         )
 
     def tool_result(self, block_id: str, name: str, ok: bool, output: str) -> None:
@@ -180,7 +180,7 @@ class EventEmitter:
                 "name": name,
                 "ok": ok,
                 "output": output,
-            }
+            },
         )
 
     def plan(self, steps: list[dict[str, Any]]) -> str:
@@ -201,7 +201,7 @@ class EventEmitter:
                 "status": status,
                 "timestamp": _now_iso(),
                 "payload": payload,
-            }
+            },
         )
 
     def diff(self, path: str, body: str) -> str:
@@ -227,7 +227,7 @@ class EventEmitter:
                 "profile": profile,
                 "comments": comments or [],
                 **extra,
-            }
+            },
         )
 
 

@@ -58,7 +58,7 @@ def prompt_for_approval(action_desc: str) -> bool:
         response = input("Do you approve this action? [y/N]: ").strip().lower()
         if response in ["y", "yes"]:
             return True
-        elif response in ["n", "no", ""]:
+        if response in ["n", "no", ""]:
             return False
 
 
@@ -85,7 +85,7 @@ def safe_shell_command(func: Callable[..., Any]) -> Callable[..., Any]:
             action_desc = f"Executing potentially unsafe command: `{command}`"
             if not prompt_for_approval(action_desc):
                 raise SafetyViolationError(
-                    f"Command '{command}' blocked by safety policy and user denied approval."
+                    f"Command '{command}' blocked by safety policy and user denied approval.",
                 )
         return func(command, *args, **kwargs)
 

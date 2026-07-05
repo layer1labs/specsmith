@@ -63,7 +63,7 @@ class ContextFullError(RuntimeError):
         self.pct = pct
         super().__init__(
             f"Context window hard ceiling reached: {pct:.1f}% full "
-            f"({used}/{limit} tokens). Emergency compression required (REQ-231)."
+            f"({used}/{limit} tokens). Emergency compression required (REQ-231).",
         )
 
 
@@ -89,7 +89,7 @@ def _run_silent(cmd: list[str]) -> str:
 def _detect_nvidia_vram() -> float:
     """Return total NVIDIA VRAM in GB, or 0.0 if nvidia-smi is unavailable."""
     output = _run_silent(
-        ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"]
+        ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
     )
     total_mib = 0
     for line in output.splitlines():
@@ -194,6 +194,7 @@ class ContextFillTracker:
         tightened.  Defaults to :data:`MIN_FREE_TOKENS` (2048).
 
     Satisfies REQ-229 (fill tracking + JSONL events) and REQ-231 (hard ceiling).
+
     """
 
     limit: int
@@ -249,6 +250,7 @@ class ContextFillTracker:
         ContextFullError
             When :attr:`fill_pct` reaches or exceeds
             :attr:`effective_ceiling_pct`.
+
         """
         effective_limit = limit if limit is not None else self.limit
         self._used = used

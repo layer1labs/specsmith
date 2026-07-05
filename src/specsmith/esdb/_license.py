@@ -28,10 +28,7 @@ import json
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Embedded public key (Ed25519, raw 32-byte, base64-encoded)
@@ -59,7 +56,7 @@ def _canonical_payload(data: dict[str, str]) -> bytes:
             data.get("product", ""),
             data.get("issued_at", ""),
             data.get("expires_at", ""),
-        ]
+        ],
     ).encode("utf-8")
 
 
@@ -122,6 +119,7 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
         :class:`LicenseStatus` — ``.valid`` is True only when the file exists,
         is well-formed, has a valid signature, is for the correct product, and
         has not expired.
+
     """
     p = Path(path).expanduser()
 
@@ -159,7 +157,8 @@ def verify_license_file(path: str | Path) -> LicenseStatus:
             )
     except ValueError:
         return LicenseStatus(
-            False, "license has invalid expires_at date format (expected YYYY-MM-DD)"
+            False,
+            "license has invalid expires_at date format (expected YYYY-MM-DD)",
         )
 
     # Cryptography import check
