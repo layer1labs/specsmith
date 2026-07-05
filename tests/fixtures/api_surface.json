@@ -118,7 +118,8 @@
     "wi",
     "wireframes",
     "workflow",
-    "workspace"
+    "workspace",
+    "zoo-code"
   ],
   "event_types": [
     "block_start",
