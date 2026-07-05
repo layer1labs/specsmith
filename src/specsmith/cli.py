@@ -14224,5 +14224,145 @@ def local_model_setup_cmd() -> None:
 main.add_command(local_model_group)
 
 
+@main.command(name="ai-analyze")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit results as JSON.",
+)
+def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
+    """AI-assisted code analysis for production readiness (REQ-450).
+
+    Performs advanced code analysis using AI techniques to identify
+    refactoring opportunities, complexity trends, and quality improvements.
+    """
+    import json as _json
+    from pathlib import Path
+
+    from specsmith.advanced_code_analysis import (
+        create_ai_assisted_code_report,
+        generate_refactoring_report,
+        get_ai_assisted_analysis,
+        check_ai_compliance
+    )
+
+    root = Path(project_dir).resolve()
+
+    if not as_json:
+        console.print(f"[bold]AI-assisted code analysis[/bold] for {root}\n")
+
+    # Run AI-assisted analysis
+    try:
+        ai_report = create_ai_assisted_code_report(root)
+        refactoring_report = generate_refactoring_report(root)
+        compliance_issues = check_ai_compliance(root)
+
+        if as_json:
+            # Create JSON output
+            result = {
+                "ai_analysis": {
+                    file_path: {
+                        "file_path": analysis.file_path,
+                        "suggestions": [
+                            {
+                                "file_path": s.file_path,
+                                "line_number": s.line_number,
+                                "suggestion_type": s.suggestion_type,
+                                "description": s.description,
+                                "severity": s.severity,
+                                "confidence": s.confidence
+                            }
+                            for s in analysis.suggestions
+                        ],
+                        "code_quality_score": analysis.code_quality_score,
+                        "complexity_trend": analysis.complexity_trend,
+                        "improvement_potential": analysis.improvement_potential
+                    }
+                    for file_path, analysis in ai_report.items()
+                },
+                "refactoring_suggestions": {
+                    file_path: [
+                        {
+                            "file_path": s.file_path,
+                            "line_number": s.line_number,
+                            "suggestion_type": s.suggestion_type,
+                            "description": s.description,
+                            "severity": s.severity,
+                            "confidence": s.confidence
+                        }
+                        for s in suggestions
+                    ]
+                    for file_path, suggestions in refactoring_report.items()
+                },
+                "compliance": [
+                    {
+                        "name": issue.name,
+                        "passed": issue.passed,
+                        "message": issue.message
+                    }
+                    for issue in compliance_issues
+                ]
+            }
+            click.echo(_json.dumps(result, indent=2))
+        else:
+            # Print human-readable output
+            console.print("[bold]AI Analysis Results[/bold]")
+            console.print("-" * 40)
+
+            for file_path, analysis in ai_report.items():
+                console.print(f"[cyan]File:[/cyan] {analysis.file_path}")
+                console.print(f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100")
+                console.print(f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}")
+                console.print(f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}")
+
+                if analysis.suggestions:
+                    console.print("  [bold]Suggestions:[/bold]")
+                    for suggestion in analysis.suggestions:
+                        severity_color = {
+                            'low': 'green',
+                            'medium': 'yellow',
+                            'high': 'orange',
+                            'critical': 'red'
+                        }.get(suggestion.severity, 'white')
+                        console.print(f"    [{severity_color}]\u2713[/] {suggestion.description} "
+                                   f"(line {suggestion.line_number}, {suggestion.severity})")
+                console.print()
+
+            console.print("[bold]Refactoring Suggestions[/bold]")
+            console.print("-" * 40)
+
+            for file_path, suggestions in refactoring_report.items():
+                if suggestions:
+                    console.print(f"[cyan]File:[/cyan] {file_path}")
+                    for suggestion in suggestions:
+                        severity_color = {
+                            'low': 'green',
+                            'medium': 'yellow',
+                            'high': 'orange',
+                            'critical': 'red'
+                        }.get(suggestion.severity, 'white')
+                        console.print(f"  [{severity_color}]\u2713[/] {suggestion.description} "
+                                   f"(line {suggestion.line_number})")
+                    console.print()
+
+            console.print("[bold]Compliance Check[/bold]")
+            console.print("-" * 40)
+            for issue in compliance_issues:
+                status = "[green]\u2713[/green]" if issue.passed else "[red]\u2717[/red]"
+                console.print(f"  {status} {issue.message}")
+
+    except Exception as e:
+        console.print(f"[red]\u2717[/red] Error during AI analysis: {str(e)}")
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     main()

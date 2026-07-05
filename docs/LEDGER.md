@@ -300,3 +300,10 @@
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `087ee05e1059ce80...`
+
+## 2026-07-05T11:18 — specsmith cleanup --apply removed 7 target(s), 2495138 bytes reclaimed.
+- **Author**: specsmith
+- **Type**: cleanup
+- **REQs affected**: REQ-374
+- **Status**: complete
+- **Chain hash**: `1c1c68ddafb6b809...`

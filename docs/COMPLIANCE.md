@@ -1,6 +1,6 @@
 # Compliance Report — specsmith
 
-**Generated:** 2026-06-26
+**Generated:** 2026-07-05
 
 ## Project Summary
 
@@ -8,7 +8,7 @@
 - **Type**: CLI tool (Python)
 - **Language**: python
 - **VCS Platform**: github
-- **Spec Version**: 0.17.1
+- **Spec Version**: 0.20.1
 
 ## Verification Tools
 
@@ -21,7 +21,7 @@
 
 ## Audit Summary
 
-- **Passed**: 38
+- **Passed**: 35
 - **Failed**: 0
 - **Fixable**: 0
 - **Status**: Healthy
@@ -41,8 +41,16 @@
 - ✓ Recommended file LICENSE exists
 - ✓ docs/requirements/*.yml exists
 - ✓ docs/tests/*.yml exists
-- ✓ Skipped: test spec file not found
-- ✓ LEDGER.md has 242 lines (within 500 threshold)
+- ✓ axioms.yaml valid (m001 content-blob, kind=axioms)
+- ✓ context-budget.yaml valid (m001 content-blob, kind=context-budget)
+- ✓ drift-metrics.yaml valid (m001 content-blob, kind=drift-metrics)
+- ✓ lifecycle.yaml valid (m001 content-blob, kind=lifecycle)
+- ✓ roles.yaml valid (m001 content-blob, kind=roles)
+- ✓ rules.yaml contains structured 'rules' entries
+- ✓ session-protocol.yaml valid (m001 content-blob, kind=session-protocol)
+- ✓ verification.yaml valid (m001 content-blob, kind=verification)
+- ✓ All 403 accepted REQ(s) have test coverage
+- ✓ LEDGER.md has 309 lines (within 500 threshold)
 - ✓ 0 open, 0 closed TODOs
 - ✓ AGENTS.md: 191 lines
 - ✓ docs/governance/RULES.md: 243 lines
@@ -52,34 +60,23 @@
 - ✓ docs/governance/CONTEXT-BUDGET.md: 62 lines
 - ✓ docs/governance/VERIFICATION.md: 43 lines
 - ✓ docs/governance/DRIFT-METRICS.md: 54 lines
-- ✓ Trace vault intact (2 seals)
 - ✓ Phase 🚀 Release: 100% ready
-- ✓ WI-6E21B031 risk=low gates satisfied
-- ✓ WI-F78E9240 risk=low gates satisfied
-- ✓ WI-9E6EA158 risk=low gates satisfied
-- ✓ WI-05066482 risk=low gates satisfied
-- ✓ WI-36FDC6DF risk=low gates satisfied
-- ✓ WI-F3BD9283 risk=low gates satisfied
-- ✓ WI-34CD3DC6 risk=low gates satisfied
-- ✓ WI-325BC150 risk=low gates satisfied
-- ✓ WI-0003C960 risk=low gates satisfied
-- ✓ WI-6DC614CC risk=low gates satisfied
 
 ## Recent Activity
 
-- `739ae80 chore: update project files`
-- `c317ec9 fix(tests): update test_canonical_tests_md_exists for YAML-first mode`
-- `ddb96c7 fix(compliance): fall back to JSON cache for YAML-first projects`
-- `3b23b30 fix(audit): raise AGENTS.md default threshold 200→250 (template now 202 lines)`
-- `11b0666 feat(bench): add SPECSMITH_DISPATCH multi-agent DAG condition (WI-AB55D02A)`
-- `813bb12 merge: fix/agent-run-no-response → develop (silent no-response fix + provider visibility)`
-- `0238e00 chore: update project files`
-- `1e8f27e docs: update CHANGELOG [Unreleased], commands.md, index.md, esdb/changelog.md for post-0.17.1 features`
-- `3eb53b9 chore: update project files`
-- `fda6012 feat: m010 post-ESDB cleanup migration (WI-9F1AE964)`
+- `c4c3d8a chore: sync develop to main (v0.20.1 + Warp integration + docs)`
+- `8492ad8 wi_close WI-0CB81412: done`
+- `3668ecf wi_close WI-0CB81412: done`
+- `dca6269 wi_close WI-0CB81412: done`
+- `633373d wi_close WI-0CB81412: done`
+- `2168489 chore(governance): link TEST-051 to release WI-81102448 (v0.20.1)`
+- `38b477b Merge pull request #272 from layer1labs/develop`
+- `86da788 release: v0.20.1`
+- `592f0b5 Merge pull request #271 from layer1labs/develop`
+- `75f8741 docs(readme): correct skill count to 138 and add brief-lang project type`
 
 **Contributors:**
-- 604	Tristen Pierson
+- 655	Tristen Pierson
 - 4	dependabot[bot]
 - 1	Aqil Aziz
 

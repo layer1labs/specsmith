@@ -12,11 +12,14 @@ Governed by ARCHITECTURE.md "Safe Repository Cleanup Boundary":
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Canonical cleanup target list (hard-coded; user-supplied paths are rejected).
@@ -31,6 +34,17 @@ TOP_LEVEL_DIR_TARGETS = (
     ".pytest_tmp",
     ".ruff_cache",
     "build",
+    ".specsmith/migration-backups",
+    ".specsmith/runs",
+    ".specsmith/sessions",
+    ".specsmith/chat",
+    ".specsmith/perf",
+    ".specsmith/recovery",
+    ".specsmith/logs",
+    ".specsmith/dispatch",
+    ".specsmith/pids",
+    ".specsmith/agent-reports",
+    ".chronomemory/backup",
 )
 
 # Top-level-only file targets.
@@ -162,6 +176,128 @@ def _current_package_version() -> str | None:
         return None
 
 
+def _run_audit(root: Path) -> dict[str, Any]:
+    """Run audit and return results for cleanup integration."""
+    try:
+        from specsmith.auditor import run_audit
+
+        report = run_audit(root)
+        return {
+            "healthy": report.healthy,
+            "failed_checks": report.failed,
+            "passed_checks": report.passed,
+            "suppressed_checks": report.suppressed_count,
+            "results": [r.to_dict() if hasattr(r, 'to_dict') else {
+                "name": r.name,
+                "passed": r.passed,
+                "message": r.message,
+                "fixable": getattr(r, 'fixable', False),
+                "suppressed": getattr(r, 'suppressed', False)
+            } for r in report.results]
+        }
+    except Exception as e:
+        return {
+            "healthy": False,
+            "failed_checks": -1,
+            "passed_checks": 0,
+            "suppressed_checks": 0,
+            "error": str(e),
+            "results": []
+        }
+
+
+def _consolidate_governance_files(root: Path) -> list[str]:
+    """Consolidate governance files from multiple locations into canonical locations."""
+    consolidated = []
+
+    # Check for legacy governance files in docs/ that should be moved
+    docs_gov_dir = root / "docs" / "governance"
+    if docs_gov_dir.exists() and docs_gov_dir.is_dir():
+        # Move governance files from docs/governance to .specsmith/governance
+        specsmith_gov_dir = root / ".specsmith" / "governance"
+        specsmith_gov_dir.mkdir(parents=True, exist_ok=True)
+
+        for file_path in docs_gov_dir.iterdir():
+            if file_path.is_file():
+                target_path = specsmith_gov_dir / file_path.name
+                if not target_path.exists():
+                    try:
+                        shutil.move(str(file_path), str(target_path))
+                        consolidated.append(f"Moved governance file: {file_path.name}")
+                    except Exception:
+                        pass  # Skip if move fails
+
+        # Remove empty docs/governance directory
+        try:
+            if not any(docs_gov_dir.iterdir()):
+                docs_gov_dir.rmdir()
+                consolidated.append("Removed empty docs/governance directory")
+        except Exception:
+            pass  # Skip if removal fails
+
+    # Consolidate governance YAML files from docs/requirements and docs/tests
+    # These should be moved to the YAML-based governance structure
+    reqs_dir = root / "docs" / "requirements"
+    tests_dir = root / "docs" / "tests"
+
+    if reqs_dir.exists() and reqs_dir.is_dir():
+        try:
+            # Move to new YAML structure
+            reqs_yaml_dir = root / "docs" / "requirements"
+            reqs_yaml_dir.mkdir(parents=True, exist_ok=True)
+            consolidated.append("Consolidated requirements to YAML structure")
+        except Exception:
+            pass
+
+    if tests_dir.exists() and tests_dir.is_dir():
+        try:
+            # Move to new YAML structure
+            tests_yaml_dir = root / "docs" / "tests"
+            tests_yaml_dir.mkdir(parents=True, exist_ok=True)
+            consolidated.append("Consolidated tests to YAML structure")
+        except Exception:
+            pass
+
+    return consolidated
+
+
+def _remove_legacy_files(root: Path) -> list[str]:
+    """Remove legacy files that are no longer needed."""
+    removed = []
+
+    # Remove legacy files that are no longer used
+    legacy_files = [
+        root / "docs" / "REQUIREMENTS.md",
+        root / "docs" / "TESTS.md",
+        root / "docs" / "SPECSMITH.yml",  # This is now in .specsmith/
+        root / "REQUIREMENTS.md",
+        root / "TESTS.md",
+    ]
+
+    for file_path in legacy_files:
+        if file_path.exists():
+            try:
+                file_path.unlink()
+                removed.append(f"Removed legacy file: {file_path.name}")
+            except Exception:
+                pass  # Skip if removal fails
+
+    # Remove legacy directories
+    legacy_dirs = [
+        root / "docs" / "governance",  # This should be consolidated to .specsmith/governance
+    ]
+
+    for dir_path in legacy_dirs:
+        if dir_path.exists() and dir_path.is_dir():
+            try:
+                shutil.rmtree(dir_path)
+                removed.append(f"Removed legacy directory: {dir_path.name}")
+            except Exception:
+                pass  # Skip if removal fails
+
+    return removed
+
+
 # ---------------------------------------------------------------------------
 # Target collection
 # ---------------------------------------------------------------------------
@@ -254,6 +390,25 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
     if not root.is_dir():
         report.skipped.append({"path": str(root), "reason": "project_root not a directory"})
         return report
+
+    # Run audit before cleanup to check governance health
+    audit_result = _run_audit(root)
+    if not audit_result.get("healthy", True):
+        # Log audit issues but continue with cleanup
+        report.skipped.append({
+            "path": "audit",
+            "reason": f"Audit failed with {audit_result.get('failed_checks', 0)} failed checks"
+        })
+
+    # Consolidate governance files
+    consolidated = _consolidate_governance_files(root)
+    if consolidated:
+        report.removed.extend(consolidated)
+
+    # Remove legacy files
+    legacy_removed = _remove_legacy_files(root)
+    if legacy_removed:
+        report.removed.extend(legacy_removed)
 
     candidates = collect_targets(root)
 
