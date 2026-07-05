@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List, Any
 
 import click
 
@@ -633,6 +632,7 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
         click.echo(f"Description: {description}")
         click.echo()
         click.echo("Metrics:")
+        # type: ignore
         for metric, value in test_result["metrics"].items():
             if isinstance(value, float):
                 click.echo(f"  {metric}: {value:.4f}")
@@ -640,6 +640,7 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
                 click.echo(f"  {metric}: {value}")
         click.echo()
         click.echo("Baseline Comparison:")
+        # type: ignore
         for scenario, metrics in test_result["baseline_comparison"].items():
             click.echo(f"  {scenario}:")
             click.echo(f"    TPCA: {metrics['tpca']:.1f}")
