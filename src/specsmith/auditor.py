@@ -122,6 +122,28 @@ def check_governance_files(root: Path) -> list[AuditResult]:
     """Check that all required governance files exist."""
     results: list[AuditResult] = []
 
+    # Check required files
+    results.extend(_check_required_files(root))
+
+    # Check modular governance files
+    results.extend(_check_modular_governance(root))
+
+    # Check recommended files
+    results.extend(_check_recommended_files(root))
+
+    # Check for root copies of canonical files
+    results.extend(_check_no_root_copies(root))
+
+    # Check YAML governance directories
+    results.extend(_check_yaml_governance(root))
+
+    return results
+
+
+def _check_required_files(root: Path) -> list[AuditResult]:
+    """Check required governance files exist."""
+    results: list[AuditResult] = []
+
     for f in REQUIRED_FILES:
         path = root / f
         found = path.exists()
@@ -135,6 +157,13 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 message=f"Required file {f} {'exists' if found else 'MISSING'}",
             )
         )
+
+    return results
+
+
+def _check_modular_governance(root: Path) -> list[AuditResult]:
+    """Check modular governance file requirements based on AGENTS.md length."""
+    results: list[AuditResult] = []
 
     # Modular governance: either all exist or AGENTS.md is self-contained (>200 lines)
     agents_path = root / "AGENTS.md"
@@ -169,7 +198,11 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                     )
                 )
 
-    # Read scaffold.yml once for LICENSE exception logic
+    return results
+
+
+def _check_proprietary_license(root: Path) -> bool:
+    """Check if project has a proprietary license."""
     _proprietary_license = False
     _scaffold_path = root / "scaffold.yml"
     if not _scaffold_path.exists():
@@ -187,6 +220,15 @@ def check_governance_files(root: Path) -> list[AuditResult]:
             )
         except Exception:  # noqa: BLE001
             pass
+    return _proprietary_license
+
+
+def _check_recommended_files(root: Path) -> list[AuditResult]:
+    """Check recommended governance files exist."""
+    results: list[AuditResult] = []
+
+    # Read scaffold.yml once for LICENSE exception logic
+    _proprietary_license = _check_proprietary_license(root)
 
     for f in RECOMMENDED_FILES:
         path = root / f
@@ -224,6 +266,13 @@ def check_governance_files(root: Path) -> list[AuditResult]:
             )
         )
 
+    return results
+
+
+def _check_no_root_copies(root: Path) -> list[AuditResult]:
+    """Check for root-level copies of canonical governance files."""
+    results: list[AuditResult] = []
+
     # Enforcement: flag root-level governance files ONLY when a canonical docs/ copy
     # also exists (true duplicate). Legacy projects with only a root copy are not
     # flagged here — they should migrate when ready.
@@ -249,6 +298,13 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                     fixable=True,
                 )
             )
+
+    return results
+
+
+def _check_yaml_governance(root: Path) -> list[AuditResult]:
+    """Check YAML governance source directories."""
+    results: list[AuditResult] = []
 
     # ── YAML governance source dirs (replaces deprecated REQUIREMENTS.md/TESTS.md) ──
     # These checks are only enforced for projects in YAML-first mode.
@@ -1501,6 +1557,9 @@ def check_work_item_risk_gates(root: Path) -> list[AuditResult]:
     for wi_id, risk in assess_all_work_items(root):
         item = items.get(wi_id)
         if item is None:
+            continue
+        # Skip archived work items from risk gate checks (REQ-421)
+        if item.status == "archived":
             continue
         approvals = {a.approval_type for a in approvals_by_work_item(root, wi_id)}
         missing_gates: list[str] = []

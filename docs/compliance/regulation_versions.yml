@@ -35,6 +35,12 @@
 # constitute legal advice or a guarantee of compliance.  Regulations change
 # frequently; always verify with qualified legal counsel.
 
+# VS CODE INTEGRATION NOTE
+# ------------------------
+# Specsmith now includes VS Code integration for enhanced developer experience.
+# The integration provides real-time compliance monitoring, project initialization,
+# and code analysis capabilities directly within the IDE.
+
 regulations:
 
   - id: eu-ai-act
