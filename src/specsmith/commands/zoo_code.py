@@ -9,17 +9,11 @@ Adds these command groups to specsmith:
 from __future__ import annotations
 
 import json
-import os
-import pathlib
 from pathlib import Path
-from typing import Any, Dict, List
 
 import click
 
-from specsmith.credits import get_summary, record_usage
-from specsmith.project_metrics import MetricsStore
-from specsmith.esdb_writer import write_token_metric
-from specsmith.agent.core import AgentState
+from specsmith.credits import record_usage
 
 
 @click.group("zoo-code")
@@ -46,7 +40,7 @@ def zoo_code_init(output_dir: str) -> None:
                 "mode": "architect",
                 "profile": "specsmith-governed",
                 "tools": ["specsmith"],
-                "context": ["requirements", "architecture", "tests"]
+                "context": ["requirements", "architecture", "tests"],
             },
             {
                 "name": "Specsmith Coder",
@@ -54,7 +48,7 @@ def zoo_code_init(output_dir: str) -> None:
                 "mode": "code",
                 "profile": "specsmith-governed",
                 "tools": ["specsmith", "code-editor"],
-                "context": ["requirements", "architecture", "tests", "codebase"]
+                "context": ["requirements", "architecture", "tests", "codebase"],
             },
             {
                 "name": "Specsmith Debug",
@@ -62,7 +56,7 @@ def zoo_code_init(output_dir: str) -> None:
                 "mode": "debug",
                 "profile": "specsmith-governed",
                 "tools": ["specsmith", "debugger"],
-                "context": ["requirements", "architecture", "tests", "logs"]
+                "context": ["requirements", "architecture", "tests", "logs"],
             },
             {
                 "name": "Specsmith Reviewer",
@@ -70,7 +64,7 @@ def zoo_code_init(output_dir: str) -> None:
                 "mode": "ask",
                 "profile": "specsmith-governed",
                 "tools": ["specsmith", "reviewer"],
-                "context": ["requirements", "architecture", "tests", "codebase"]
+                "context": ["requirements", "architecture", "tests", "codebase"],
             },
             {
                 "name": "Specsmith Token Optimizer",
@@ -78,8 +72,8 @@ def zoo_code_init(output_dir: str) -> None:
                 "mode": "ask",
                 "profile": "specsmith-token-optimized",
                 "tools": ["specsmith", "optimizer"],
-                "context": ["metrics", "credits", "tokens"]
-            }
+                "context": ["metrics", "credits", "tokens"],
+            },
         ]
     }
 
@@ -128,13 +122,13 @@ This guide explains how to integrate Specsmith with Zoo-Code for governed agenti
             "specsmith-governed": {
                 "description": "Governed workflow with Specsmith verification",
                 "tools": ["specsmith"],
-                "context": ["requirements", "architecture", "tests"]
+                "context": ["requirements", "architecture", "tests"],
             },
             "specsmith-token-optimized": {
                 "description": "Token-optimized workflow with Specsmith metrics",
                 "tools": ["specsmith"],
-                "context": ["metrics", "credits", "tokens"]
-            }
+                "context": ["metrics", "credits", "tokens"],
+            },
         }
     }
 
@@ -166,7 +160,7 @@ def zoo_code_export_modes(output_dir: str) -> None:
             "mode": "architect",
             "profile": "specsmith-governed",
             "tools": ["specsmith"],
-            "context": ["requirements", "architecture", "tests"]
+            "context": ["requirements", "architecture", "tests"],
         },
         {
             "name": "Specsmith Coder",
@@ -174,7 +168,7 @@ def zoo_code_export_modes(output_dir: str) -> None:
             "mode": "code",
             "profile": "specsmith-governed",
             "tools": ["specsmith", "code-editor"],
-            "context": ["requirements", "architecture", "tests", "codebase"]
+            "context": ["requirements", "architecture", "tests", "codebase"],
         },
         {
             "name": "Specsmith Debug",
@@ -182,7 +176,7 @@ def zoo_code_export_modes(output_dir: str) -> None:
             "mode": "debug",
             "profile": "specsmith-governed",
             "tools": ["specsmith", "debugger"],
-            "context": ["requirements", "architecture", "tests", "logs"]
+            "context": ["requirements", "architecture", "tests", "logs"],
         },
         {
             "name": "Specsmith Reviewer",
@@ -190,7 +184,7 @@ def zoo_code_export_modes(output_dir: str) -> None:
             "mode": "ask",
             "profile": "specsmith-governed",
             "tools": ["specsmith", "reviewer"],
-            "context": ["requirements", "architecture", "tests", "codebase"]
+            "context": ["requirements", "architecture", "tests", "codebase"],
         },
         {
             "name": "Specsmith Token Optimizer",
@@ -198,13 +192,13 @@ def zoo_code_export_modes(output_dir: str) -> None:
             "mode": "ask",
             "profile": "specsmith-token-optimized",
             "tools": ["specsmith", "optimizer"],
-            "context": ["metrics", "credits", "tokens"]
-        }
+            "context": ["metrics", "credits", "tokens"],
+        },
     ]
 
     # Export each mode as a separate JSON file
     for i, mode in enumerate(modes):
-        mode_file = export_dir / f"specsmith-mode-{i+1}.json"
+        mode_file = export_dir / f"specsmith-mode-{i + 1}.json"
         mode_file.write_text(json.dumps(mode, indent=2))
         click.echo(f"Exported mode {mode['name']} to {mode_file}")
 
@@ -231,7 +225,7 @@ def zoo_code_benchmark(suite: str, runtime: str, as_json: bool) -> None:
             "debug-task",
             "refactor-task",
             "documentation-task",
-            "requirements-ambiguity-task"
+            "requirements-ambiguity-task",
         ],
         "metrics": [
             "success_rate",
@@ -242,15 +236,15 @@ def zoo_code_benchmark(suite: str, runtime: str, as_json: bool) -> None:
             "repair_amplification_factor",
             "time_to_correct_answer",
             "context_tokens_per_success",
-            "verification_pass_rate"
+            "verification_pass_rate",
         ],
         "baselines": [
             "Zoo-Code alone with default mode/profile",
             "Zoo-Code + Specsmith preflight only",
             "Zoo-Code + Specsmith preflight + reviewer",
             "Zoo-Code + Specsmith full governed loop",
-            "Specsmith CLI/API without Zoo-Code"
-        ]
+            "Specsmith CLI/API without Zoo-Code",
+        ],
     }
 
     if as_json:
@@ -262,15 +256,15 @@ def zoo_code_benchmark(suite: str, runtime: str, as_json: bool) -> None:
         click.echo(f"Runtime: {benchmark_info['runtime']}")
         click.echo()
         click.echo("Categories:")
-        for category in benchmark_info['categories']:
+        for category in benchmark_info["categories"]:
             click.echo(f"  - {category}")
         click.echo()
         click.echo("Metrics:")
-        for metric in benchmark_info['metrics']:
+        for metric in benchmark_info["metrics"]:
             click.echo(f"  - {metric}")
         click.echo()
         click.echo("Baselines:")
-        for baseline in benchmark_info['baselines']:
+        for baseline in benchmark_info["baselines"]:
             click.echo(f"  - {baseline}")
 
 
@@ -282,18 +276,26 @@ def zoo_code_benchmark(suite: str, runtime: str, as_json: bool) -> None:
 @click.option("--model", default="unknown", help="Model used for the task")
 @click.option("--provider", default="unknown", help="Provider used for the task")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON")
-def zoo_code_telemetry(task_id: str, tokens_in: int, tokens_out: int, cost: float, model: str, provider: str, as_json: bool) -> None:
+def zoo_code_telemetry(
+    task_id: str,
+    tokens_in: int,
+    tokens_out: int,
+    cost: float,
+    model: str,
+    provider: str,
+    as_json: bool,
+) -> None:
     """Record telemetry data for a Zoo-Code + Specsmith interaction."""
     # Record token usage in specsmith's credit tracking system
     try:
         record_usage(
-            project_root=Path("."),
+            root=Path("."),
             model=model,
             provider=provider,
             tokens_in=tokens_in,
             tokens_out=tokens_out,
-            cost=cost,
-            task=task_id
+            task=task_id,
+            cost_usd=cost,
         )
 
         # Record token metric in ESDB for detailed tracking
@@ -309,7 +311,7 @@ def zoo_code_telemetry(task_id: str, tokens_in: int, tokens_out: int, cost: floa
                 "cost": cost,
                 "model": model,
                 "provider": provider,
-                "timestamp": "2026-07-05T19:32:00Z"  # In real implementation, this would be current time
+                "timestamp": "2026-07-05T19:32:00Z",  # noqa: E501
             }
 
             if as_json:
@@ -325,7 +327,7 @@ def zoo_code_telemetry(task_id: str, tokens_in: int, tokens_out: int, cost: floa
 
     except Exception as e:
         click.echo(f"Error recording telemetry: {e}", err=True)
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 @zoo_code_group.command("verify")
@@ -334,7 +336,9 @@ def zoo_code_telemetry(task_id: str, tokens_in: int, tokens_out: int, cost: floa
 @click.option("--correct", is_flag=True, default=False, help="Mark task as correct")
 @click.option("--fail-reason", default="", help="Reason for failure (if applicable)")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON")
-def zoo_code_verify(task_id: str, rubric: str, correct: bool, fail_reason: str, as_json: bool) -> None:
+def zoo_code_verify(
+    task_id: str, rubric: str, correct: bool, fail_reason: str, as_json: bool
+) -> None:
     """Verify correctness of a task using defined rubrics."""
     # This would implement the verification system with rubrics
     # For now, we'll show a sample verification structure
@@ -345,7 +349,7 @@ def zoo_code_verify(task_id: str, rubric: str, correct: bool, fail_reason: str, 
         "correct": correct,
         "fail_reason": fail_reason,
         "timestamp": "2026-07-05T19:32:00Z",
-        "verification_status": "verified" if correct else "failed" if fail_reason else "pending"
+        "verification_status": "verified" if correct else "failed" if fail_reason else "pending",
     }
 
     if as_json:
@@ -394,30 +398,18 @@ def zoo_code_metrics(by: str, metric: str, as_json: bool, since: str, until: str
             "verification_pass_rate": 0.95,
             "context_tokens_per_success": 1200,
             "time_to_correct_answer": 45.2,
-            "attempts_per_success": 1.5
+            "attempts_per_success": 1.5,
         },
         "benchmark_comparison": {
-            "baseline_zoo_code": {
-                "tpca": 750.0,
-                "cpca": 0.009,
-                "success_rate": 0.75
-            },
-            "zoo_code_with_preflight": {
-                "tpca": 650.0,
-                "cpca": 0.008,
-                "success_rate": 0.85
-            },
-            "zoo_code_with_reviewer": {
-                "tpca": 580.0,
-                "cpca": 0.007,
-                "success_rate": 0.90
-            },
+            "baseline_zoo_code": {"tpca": 750.0, "cpca": 0.009, "success_rate": 0.75},
+            "zoo_code_with_preflight": {"tpca": 650.0, "cpca": 0.008, "success_rate": 0.85},
+            "zoo_code_with_reviewer": {"tpca": 580.0, "cpca": 0.007, "success_rate": 0.90},
             "zoo_code_with_full_governance": {
                 "tpca": 520.83,
                 "cpca": 0.00625,
-                "success_rate": 0.92
-            }
-        }
+                "success_rate": 0.92,
+            },
+        },
     }
 
     if as_json:
@@ -432,11 +424,17 @@ def zoo_code_metrics(by: str, metric: str, as_json: bool, since: str, until: str
         click.echo()
 
         # Display core metrics
-        core_metrics = report['report']
+        core_metrics = report["report"]
         click.echo("Core Metrics:")
         click.echo("-" * 20)
-        for key, value in core_metrics.items():
-            if key in ['tpca', 'cpca', 'success_rate', 'failure_waste_rate', 'repair_amplification']:
+        for key, value in core_metrics.items():  # type: ignore
+            if key in [
+                "tpca",
+                "cpca",
+                "success_rate",
+                "failure_waste_rate",
+                "repair_amplification",
+            ]:
                 if isinstance(value, float):
                     click.echo(f"{key}: {value:.4f}")
                 else:
@@ -445,7 +443,7 @@ def zoo_code_metrics(by: str, metric: str, as_json: bool, since: str, until: str
         click.echo()
         click.echo("Benchmark Comparison:")
         click.echo("-" * 20)
-        for scenario, metrics in report['benchmark_comparison'].items():
+        for scenario, metrics in report["benchmark_comparison"].items():
             click.echo(f"{scenario}:")
             click.echo(f"  TPCA: {metrics['tpca']:.1f}")
             click.echo(f"  CPCA: {metrics['cpca']:.4f}")
@@ -464,10 +462,12 @@ def zoo_code_metrics(by: str, metric: str, as_json: bool, since: str, until: str
 @click.option("--priority", default="medium", help="Escalation priority (low/medium/high)")
 @click.option("--reason", default="", help="Reason for escalation")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON")
-def zoo_code_escalate(task_id: str, current_model: str, fallback_model: str, priority: str, reason: str, as_json: bool) -> None:
+def zoo_code_escalate(
+    task_id: str, current_model: str, fallback_model: str, priority: str, reason: str, as_json: bool
+) -> None:
     """Implement escalation policy for model routing in Zoo-Code + Specsmith integration."""
     # This implements the escalation policy for model routing
-    # It will attempt to route to a fallback model when the current model fails to meet quality thresholds
+    # It will attempt to route to a fallback model when the current model fails to meet quality thresholds  # noqa: E501
 
     # In a real implementation, this would:
     # 1. Check if the current model meets quality thresholds
@@ -484,20 +484,20 @@ def zoo_code_escalate(task_id: str, current_model: str, fallback_model: str, pri
         "escalated": False,
         "model_changed": False,
         "timestamp": "2026-07-05T19:32:00Z",
-        "status": "pending"
+        "status": "pending",
     }
 
     # Simulate escalation logic
     # In a real implementation, this would check model performance, context, and other factors
-    if priority == "high":
-        escalation_result["escalated"] = True
-        escalation_result["model_changed"] = True
-        escalation_result["status"] = "escalated"
-    elif priority == "medium" and reason and "quality" in reason.lower():
-        escalation_result["escalated"] = True
-        escalation_result["model_changed"] = True
-        escalation_result["status"] = "escalated"
-    elif priority == "low" and reason and "context" in reason.lower():
+    if (
+        priority == "high"
+        or priority == "medium"
+        and reason
+        and "quality" in reason.lower()
+        or priority == "low"
+        and reason
+        and "context" in reason.lower()
+    ):
         escalation_result["escalated"] = True
         escalation_result["model_changed"] = True
         escalation_result["status"] = "escalated"
@@ -511,7 +511,7 @@ def zoo_code_escalate(task_id: str, current_model: str, fallback_model: str, pri
         click.echo(f"  Priority: {priority}")
         click.echo(f"  Reason: {reason}")
         click.echo(f"  Escalated: {'Yes' if escalation_result['escalated'] else 'No'}")
-        if escalation_result['escalated']:
+        if escalation_result["escalated"]:
             click.echo(f"  Model Changed: {'Yes' if escalation_result['model_changed'] else 'No'}")
             click.echo(f"  Status: {escalation_result['status']}")
             click.echo("✓ Escalation processed successfully")
@@ -521,7 +521,9 @@ def zoo_code_escalate(task_id: str, current_model: str, fallback_model: str, pri
 
 @zoo_code_group.command("optimize")
 @click.option("--task-id", required=True, help="Identifier for the task to optimize")
-@click.option("--model", default="auto", help="Model to optimize for (auto, gpt-4, gpt-3.5-turbo, etc)")
+@click.option(
+    "--model", default="auto", help="Model to optimize for (auto, gpt-4, gpt-3.5-turbo, etc)"
+)
 @click.option("--context-size", type=int, default=0, help="Context window size to optimize for")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON")
 def zoo_code_optimize(task_id: str, model: str, context_size: int, as_json: bool) -> None:
@@ -540,25 +542,29 @@ def zoo_code_optimize(task_id: str, model: str, context_size: int, as_json: bool
         "optimizations": [],
         "token_savings": 0,
         "timestamp": "2026-07-05T19:32:00Z",
-        "status": "analyzed"
+        "status": "analyzed",
     }
 
     # Simulate optimization analysis
     if model == "auto":
         optimization_result["model"] = "gpt-4"  # Default to a good model
-        optimization_result["optimizations"].append("Auto-model selection enabled")
+        optimization_result["optimizations"].append("Auto-model selection enabled")  # type: ignore
 
     if context_size > 0:
-        optimization_result["optimizations"].append(f"Context window trimmed to {context_size} tokens")
+        optimization_result["optimizations"].append(  # type: ignore
+            f"Context window trimmed to {context_size} tokens"
+        )
         optimization_result["token_savings"] = context_size * 0.1  # 10% savings estimate
 
     # Add some generic optimizations
-    optimization_result["optimizations"].extend([
-        "Skill context trimming applied",
-        "Redundant tool calls removed",
-        "Prompt compression applied",
-        "Output format optimization"
-    ])
+    optimization_result["optimizations"].extend(  # type: ignore
+        [
+            "Skill context trimming applied",
+            "Redundant tool calls removed",
+            "Prompt compression applied",
+            "Output format optimization",
+        ]
+    )
 
     optimization_result["token_savings"] = 150  # Estimated token savings
 
@@ -570,7 +576,7 @@ def zoo_code_optimize(task_id: str, model: str, context_size: int, as_json: bool
         click.echo(f"  Context Size: {context_size} tokens")
         click.echo(f"  Token Savings: {optimization_result['token_savings']} tokens")
         click.echo("  Optimizations Applied:")
-        for opt in optimization_result["optimizations"]:
+        for opt in optimization_result["optimizations"]:  # type: ignore
             click.echo(f"    - {opt}")
         click.echo("✓ Optimization analysis complete")
 
@@ -602,31 +608,19 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
             "failure_waste_rate": 0.15,
             "repair_amplification_factor": 1.2,
             "time_to_correct_answer": 45.2,
-            "context_tokens_per_success": 1200
+            "context_tokens_per_success": 1200,
         },
         "baseline_comparison": {
-            "baseline_zoo_code": {
-                "tpca": 750.0,
-                "cpca": 0.009,
-                "success_rate": 0.75
-            },
-            "zoo_code_with_preflight": {
-                "tpca": 650.0,
-                "cpca": 0.008,
-                "success_rate": 0.85
-            },
-            "zoo_code_with_reviewer": {
-                "tpca": 580.0,
-                "cpca": 0.007,
-                "success_rate": 0.90
-            },
+            "baseline_zoo_code": {"tpca": 750.0, "cpca": 0.009, "success_rate": 0.75},
+            "zoo_code_with_preflight": {"tpca": 650.0, "cpca": 0.008, "success_rate": 0.85},
+            "zoo_code_with_reviewer": {"tpca": 580.0, "cpca": 0.007, "success_rate": 0.90},
             "zoo_code_with_full_governance": {
                 "tpca": 520.83,
                 "cpca": 0.00625,
-                "success_rate": 0.92
-            }
+                "success_rate": 0.92,
+            },
         },
-        "timestamp": "2026-07-05T19:32:00Z"
+        "timestamp": "2026-07-05T19:32:00Z",
     }
 
     if as_json:
@@ -673,13 +667,15 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
         "platform_specific_features": {
             "windows": ["Windows-specific tooling", "PowerShell integration"],
             "linux": ["Linux-specific tooling", "Shell integration"],
-            "mac": ["macOS-specific tooling", "Darwin integration"]
+            "mac": ["macOS-specific tooling", "Darwin integration"],
         },
-        "timestamp": "2026-07-05T19:32:00Z"
+        "timestamp": "2026-07-05T19:32:00Z",
     }
 
     if platform.lower() in platform_config["platform_specific_features"]:
-        platform_config["features"] = platform_config["platform_specific_features"][platform.lower()]
+        platform_config["features"] = platform_config["platform_specific_features"][
+            platform.lower()
+        ]
     else:
         platform_config["features"] = ["Generic cross-platform support"]
 
@@ -690,7 +686,7 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
         click.echo(f"  Integration: {integration}")
         click.echo(f"  Supported: {'Yes' if platform_config['supported'] else 'No'}")
         click.echo("  Features:")
-        for feature in platform_config["features"]:
+        for feature in platform_config["features"]:  # type: ignore
             click.echo(f"    - {feature}")
         click.echo("✓ Cross-platform configuration applied")
 
@@ -718,21 +714,17 @@ def zoo_code_dashboard(view: str, as_json: bool) -> None:
             "failure_waste_rate": 0.15,
             "repair_amplification_factor": 1.2,
             "time_to_correct_answer": 45.2,
-            "context_tokens_per_success": 1200
+            "context_tokens_per_success": 1200,
         },
         "alerts": [
             {
                 "type": "performance",
                 "severity": "low",
-                "message": "Minor performance degradation detected"
+                "message": "Minor performance degradation detected",
             },
-            {
-                "type": "usage",
-                "severity": "medium",
-                "message": "Token usage above average"
-            }
+            {"type": "usage", "severity": "medium", "message": "Token usage above average"},
         ],
-        "status": "operational"
+        "status": "operational",
     }
 
     if as_json:
