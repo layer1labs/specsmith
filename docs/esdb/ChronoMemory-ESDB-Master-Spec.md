@@ -175,7 +175,6 @@ Future bindings:
 - C ABI
 - gRPC
 - Node.js
-- direct Kairos integration
 
 ===============================================================================
 7. CORE ENGINE ARCHITECTURE

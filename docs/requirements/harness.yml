@@ -184,7 +184,7 @@
   status: implemented
 - id: REQ-160
   title: Agent Teams and Advanced Features Flag-Gated
-  description: Agent teams, worktree isolation, KAIROS daemon mode, security scanner,
+  description: Agent teams, worktree isolation, daemon mode, security scanner,
     and MCP tools MUST be flag-gated.
   source: docs/PLANNED-REQUIREMENTS.md (FLG-003)
   status: implemented

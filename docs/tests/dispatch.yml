@@ -134,19 +134,19 @@
   expected_behavior: All exit 0; --help shows expected subcommands and options
   confidence: 1.0
 - id: TEST-332
-  title: Kairos Live DAG Graph Panel
+  title: Live DAG Graph Panel
   description: DispatchApp renders a DAG graph panel subscribed to the SSE stream.
     Nodes are coloured by status. A node click opens a side panel with role, summary,
     ESDB record ID.
   requirement_id: REQ-332
   type: integration
   verification_method: evaluator
-  input: Kairos DispatchApp with mock SSE events for each NodeStatus variant
+  input: DispatchApp with mock SSE events for each NodeStatus variant
   expected_behavior: Each node rendered in correct colour; side panel opens on click
     showing node metadata
   confidence: 0.85
 - id: TEST-333
-  title: Kairos Gantt Timeline Strip
+  title: Gantt Timeline Strip
   description: GanttStrip renders one row per node with a time-proportional bar.
     Nodes with overlapping started_at/finished_at ranges show visual concurrency.
   requirement_id: REQ-333
@@ -157,7 +157,7 @@
     overlap visible
   confidence: 0.85
 - id: TEST-334
-  title: Kairos Per-Node Retry and Abort Controls
+  title: Per-Node Retry and Abort Controls
   description: ControlsPanel Retry button is enabled for FAILED/BLOCKED nodes and
     disabled for others. Abort button is enabled only for RUNNING nodes. Clicking
     calls the correct POST endpoint.

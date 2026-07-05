@@ -465,8 +465,8 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-106
-  title: Kairos Governance Page Surfaces Preflight/Verify/Trace
-  description: The Kairos Governance settings page shows the governance-serve health
+  title: Governance Page Surfaces Preflight/Verify/Trace
+  description: The Governance settings page shows the governance-serve health
     status, the BYOE endpoint URL, and the specsmith updater.
   requirement_id: REQ-106
   type: integration
@@ -478,7 +478,7 @@
   title: ARCHITECTURE.md Has Current State Section
   description: '`ARCHITECTURE.md` contains a heading whose text begins with ''Current
     State'' and whose body references the broker, retry strategies, CI baseline, VS
-    Kairos parity, live-smoke evidence, and documentation surface.'
+    parity, live-smoke evidence, and documentation surface.'
   requirement_id: REQ-107
   type: unit
   verification_method: pytest
@@ -595,8 +595,8 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-118
-  title: Kairos BYOE Proxy Consumes Chat Stream
-  description: The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions`
+  title: BYOE Proxy Consumes Chat Stream
+  description: The governance proxy at `http://127.0.0.1:7700/v1/chat/completions`
     accepts agent requests and forwards them through specsmith preflight/verify. *The
     legacy openChat command test has been retired.*
   requirement_id: REQ-118
@@ -706,7 +706,7 @@
   title: API Stability Doc Enumerates Frozen Surface
   description: '`docs/site/api-stability.md` exists and enumerates: CLI subcommands,
     exit codes, JSON payload schemas, broker module API, ledger event schemas, VS
-    Kairos CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is
+    CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is
     `Production/Stable`.'
   requirement_id: REQ-129
   type: unit

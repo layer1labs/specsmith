@@ -78,41 +78,41 @@
   source: ARCHITECTURE.md [Agent Ask Dispatcher]
   status: implemented
 - id: REQ-258
-  title: Kairos ESDB Settings Page
-  description: The Kairos settings sidebar MUST include an ESDB page under the Specsmith
+  title: ESDB Settings Page
+  description: The settings sidebar MUST include an ESDB page under the Specsmith
     umbrella group. The page MUST display current ESDB status (record count, backend,
     chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup,
     Rollback, and Compact.
-  source: ARCHITECTURE.md [Kairos Settings Extensions]
+  source: ARCHITECTURE.md [Settings Extensions]
   status: implemented
 - id: REQ-259
-  title: Kairos Skills Settings Page
-  description: The Kairos settings sidebar MUST include a Skills page under the Specsmith
+  title: Skills Settings Page
+  description: The settings sidebar MUST include a Skills page under the Specsmith
     umbrella group. The page MUST display a description of the Skills system and instructions
     for using specsmith skills build and related commands.
-  source: ARCHITECTURE.md [Kairos Settings Extensions]
+  source: ARCHITECTURE.md [Settings Extensions]
   status: implemented
 - id: REQ-260
-  title: Kairos Eval Settings Page
-  description: The Kairos settings sidebar MUST include an Eval page under the Specsmith
+  title: Eval Settings Page
+  description: The settings sidebar MUST include an Eval page under the Specsmith
     umbrella group. The page MUST describe the evaluation tracking system and direct
     users to specsmith eval run for generating reports.
-  source: ARCHITECTURE.md [Kairos Settings Extensions]
+  source: ARCHITECTURE.md [Settings Extensions]
   status: implemented
 - id: REQ-261
-  title: Kairos AI Providers Table Without Column Overflow
-  description: 'The Kairos Agents > Providers settings page MUST display AI models
+  title: AI Providers Table Without Column Overflow
+  description: 'The Agents > Providers settings page MUST display AI models
     in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px,
     Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as
     o4-mini-deep-research MUST NOT overflow into adjacent columns.'
-  source: ARCHITECTURE.md [Kairos Settings Extensions]
+  source: ARCHITECTURE.md [Settings Extensions]
   status: implemented
 - id: REQ-262
-  title: Kairos MCP AI Builder Card
-  description: The Kairos Agents > MCP servers list page MUST include a collapsible
+  title: MCP AI Builder Card
+  description: The Agents > MCP servers list page MUST include a collapsible
     AI Builder card that accepts a natural-language server description, calls specsmith
     mcp generate <description> --json, displays the generated JSON stub, and offers
     an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP
     config file.
-  source: ARCHITECTURE.md [Kairos Settings Extensions]
+  source: ARCHITECTURE.md [Settings Extensions]
   status: implemented

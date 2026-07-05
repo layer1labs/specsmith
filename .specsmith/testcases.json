@@ -3086,8 +3086,8 @@
   {
     "id": "TEST-281",
     "version": 1,
-    "title": "Kairos AI Providers Bucket Score Section Compiles",
-    "description": "The updated `ai_providers_page.rs` in Kairos compiles without errors under `cargo check --package kairos`. The file must contain `model_intel` function call or `bucket_score` field rendering code.",
+    "title": "AI Providers Bucket Score Section Compiles",
+    "description": "The updated `ai_providers_page.rs` compiles without errors under `cargo check`. The file must contain `model_intel` function call or `bucket_score` field rendering code.",
     "requirement_id": "REQ-281",
     "type": "build",
     "verification_method": "cargo check",

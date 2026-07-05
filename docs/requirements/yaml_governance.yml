@@ -264,8 +264,8 @@
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
   status: implemented
 - id: REQ-332
-  title: Kairos Live DAG Graph Panel
-  description: Kairos MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events
+  title: Live DAG Graph Panel
+  description: MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events
     SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey,
     running=blue, completed=green, failed=red, blocked=amber) and directed edges showing
     dependencies. A node click MUST open a side panel with role, summary, files changed,
@@ -273,15 +273,15 @@
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
   status: implemented
 - id: REQ-333
-  title: Kairos Gantt Timeline Strip
-  description: Kairos MUST render a GanttStrip alongside the DAG graph showing a horizontal
+  title: Gantt Timeline Strip
+  description: MUST render a GanttStrip alongside the DAG graph showing a horizontal
     timeline bar per node, filled as the node transitions from pending to running
     to completed, visually indicating parallel execution overlap.
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
   status: implemented
 - id: REQ-334
-  title: Kairos Per-Node Retry and Abort Controls
-  description: Kairos MUST provide a Retry button on FAILED and BLOCKED nodes (calls
+  title: Per-Node Retry and Abort Controls
+  description: MUST provide a Retry button on FAILED and BLOCKED nodes (calls
     POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort).
     Retry and Abort MUST be disabled when not applicable to the node status.
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher

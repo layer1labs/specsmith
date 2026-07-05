@@ -148,8 +148,8 @@
   source: ARCHITECTURE.md §27 [SGP-001]
   status: implemented
 - id: REQ-281
-  title: Kairos AI Settings Bucket Score Display
-  description: The Kairos Agents > Providers settings page MUST display bucket scores
+  title: AI Settings Bucket Score Display
+  description: The Agents > Providers settings page MUST display bucket scores
     (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}`
     for each configured provider. Scores MUST be shown as compact numeric badges.
     A Sync button MUST call `POST /api/model-intel/sync`.

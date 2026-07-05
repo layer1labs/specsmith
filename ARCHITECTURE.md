@@ -265,26 +265,3 @@ Legacy Markdown mode (steps 1–4 only, MD → JSON).
 3. Exports JSON → grouped YAML files
 4. Writes `.specsmith/governance-mode = yaml`
 
-## Kairos Integration
-
-Kairos (layer1labs/kairos) is the Rust terminal that consumes
-`specsmith serve` as its governance backend via HTTP/WebSocket.
-See `specsmith.governance_logic.GovernanceHTTPServer`.
-
-### Kairos Settings Extensions (v0.11.x)
-
-The Kairos settings view now includes Specsmith-specific pages grouped
-under a **Specsmith** umbrella in the sidebar:
-
-- **ESDB** — database status, export/import/backup/rollback/compact actions.
-- **Skills** — skills listing and management instructions.
-- **Eval** — evaluation suite tracking and report access.
-
-The **Agents → Providers** subpage shows a fixed-width model table
-(Name | Model ID | Context | Output columns) with `ConstrainedBox` +
-`Clipped` cells to prevent text overflow on long model names such as
-`o4-mini-deep-research`.
-
-The **Agents → MCP servers** list page includes a collapsible
-**AI Builder** card that invokes `specsmith mcp generate <description>`
-and offers one-click append to `~/.specsmith/mcp.json`.

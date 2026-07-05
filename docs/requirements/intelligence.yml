@@ -164,8 +164,8 @@
   source: docs/PLANNED-REQUIREMENTS.md (SRV-004)
   status: implemented
 - id: REQ-190
-  title: Kairos Terminal Connects via HTTP/WebSocket
-  description: The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket
+  title: Terminal Connects via HTTP/WebSocket
+  description: The terminal MUST connect to `specsmith serve` over HTTP/WebSocket
     for all governance operations.
   source: docs/PLANNED-REQUIREMENTS.md (SRV-005)
   status: implemented

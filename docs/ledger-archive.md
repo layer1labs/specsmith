@@ -260,7 +260,6 @@ Extensive research and gap analysis session to bring specsmith architecture to f
 - Team spawning uses tmux panes + filesystem mailbox (`.claude/teams/{team}/mailbox/{agent}.json`). No message broker needed.
 - Agent Teams (Feb 2026, Opus 4.6): peer-to-peer via `SendMessage`; ~7x token cost.
 - 44 feature flags gate tool schema visibility — model cannot call gated tools it has never seen.
-- KAIROS daemon mode: monitors GitHub webhooks, runs tasks from queue, uses worktree isolation.
 - Subagents are for research (read-only); implementation stays in the parent session.
 
 **Theia AI (Jan 2026, Theia 1.68+):**
@@ -862,34 +861,34 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **Author**: oz-agent
 - **Type**: feature
 - **REQs affected**: REQ-263,REQ-264,REQ-265,REQ-266,REQ-267,REQ-268,REQ-269,REQ-270,REQ-271,REQ-272,REQ-273,REQ-274,REQ-275,REQ-276,REQ-277,REQ-278,REQ-279,REQ-280,REQ-281
-- **Description**: Ported 7 AI intelligence systems from glossa-lab: HF Open LLM Leaderboard sync with paginated fetch, bucket scoring (reasoning/conversational/longform), static fallback, and CLI (`model-intel scores/sync/recommendations/connection`); 40+ model capability profiles with context-aware history trimming; LLMClient with O-series parameter translation, vLLM guided-JSON, and provider fallback; EMA-based rate limit scheduler with adaptive concurrency; endpoint preset registry (10+ presets) with `/api/model-intel/*` REST endpoints; `agent suggest-profiles` and `agent endpoint-presets` CLI commands; Kairos AI Providers page bucket score columns and Sync Scores button. ARCHITECTURE.md §21-27 added. 280 REQs, 258 TESTs. All CI green.
+- **Description**: Ported 7 AI intelligence systems from glossa-lab: HF Open LLM Leaderboard sync with paginated fetch, bucket scoring (reasoning/conversational/longform), static fallback, and CLI (`model-intel scores/sync/recommendations/connection`); 40+ model capability profiles with context-aware history trimming; LLMClient with O-series parameter translation, vLLM guided-JSON, and provider fallback; EMA-based rate limit scheduler with adaptive concurrency; endpoint preset registry (10+ presets) with `/api/model-intel/*` REST endpoints; `agent suggest-profiles` and `agent endpoint-presets` CLI commands; AI Providers page bucket score columns and Sync Scores button. ARCHITECTURE.md §21-27 added. 280 REQs, 258 TESTs. All CI green.
 - **Status**: complete
 - **Chain hash**: auto
 
 
 
-## 2026-05-14T16:00 --- WI-0514c: Phase 2 Token/Context UX — kairos REQ-020/021/022
+## 2026-05-14T16:00 --- WI-0514c: Phase 2 Token/Context UX — REQ-020/021/022
 - **Author**: oz-agent
 - **Type**: feature
-- **REQs affected**: kairos REQ-020, REQ-021, REQ-022
-- **Description**: Phase 2 Token/Context UX landed in kairos. New `ContextFillState`
-  singleton (`kairos_context_fill.rs`) tracks fill % and num_ctx; registered in
-  `initialize_app()`. New Settings → Token Usage page (`token_usage_page.rs`) fetches
+- **REQs affected**: REQ-020, REQ-021, REQ-022
+- **Description**: Phase 2 Token/Context UX landed in specsmith. New `ContextFillState`
+  singleton (`context_fill_state.py`) tracks fill % and num_ctx; registered in
+  `initialize_app()`. New Settings → Token Usage page (`token_usage_page.py`) fetches
   `specsmith credits summary --json` and displays tokens, cost, per-model breakdown,
   budget. Governance page enhanced with Context Window card: real-time fill dot from
   `ContextFillState`, editable num_ctx input saved via `specsmith config set
-  ollama.num_ctx`. Docs: REQ-019..022 and TEST-019..022 added to kairos governance
-  artifacts. kairos commit: 1025ed5.
+  ollama.num_ctx`. Docs: REQ-019..022 and TEST-019..022 added to specsmith governance
+  artifacts. commit: 1025ed5.
 - **Status**: complete
 - **Chain hash**: auto
 
 
 
-## 2026-05-14T12:42 --- WI-0514b: specsmith issue group + kairos bug report page (REQ-303, REQ-304)
+## 2026-05-14T12:42 --- WI-0514b: specsmith issue group + bug report page (REQ-303, REQ-304)
 - **Author**: oz-agent
 - **Type**: feature
 - **REQs affected**: REQ-303,REQ-304
-- **Description**: Added duplicate-guarded GitHub issue filing. `src/specsmith/issue_reporter.py`: `search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report` (Jaccard similarity, `gh` CLI + unauthenticated REST fallback). `specsmith issue` CLI group (check/file/search, all with --json). 32 passing tests. api_surface.json updated. CHANGELOG [0.11.3-post1] added. kairos `bug_report_page.rs` added: in-app form with repo selector, title/description inputs, Check Duplicates, File Report; `SettingsSection::BugReport` wired into settings infrastructure; Help menu updated. kairos FTL strings, REQ-019/TEST-019 added.
+- **Description**: Added duplicate-guarded GitHub issue filing. `src/specsmith/issue_reporter.py`: `search_issues`, `check_duplicate`, `file_issue`, `ai_enhance_report` (Jaccard similarity, `gh` CLI + unauthenticated REST fallback). `specsmith issue` CLI group (check/file/search, all with --json). 32 passing tests. api_surface.json updated. CHANGELOG [0.11.3-post1] added. specsmith `bug_report_page.py` added: in-app form with repo selector, title/description inputs, Check Duplicates, File Report; `SettingsSection::BugReport` wired into settings infrastructure; Help menu updated. FTL strings, REQ-019/TEST-019 added.
 - **Status**: complete
 - **Chain hash**: auto
 
@@ -953,10 +952,10 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **Chain hash**: auto
 - **Description**: Major infrastructure sprint across 9 workstreams:
 
-  **Phase A — CI/CD fixes**: Fixed all GitHub Actions version references in specsmith and kairos CIs
+  **Phase A — CI/CD fixes**: Fixed all GitHub Actions version references in specsmith CIs
   (checkout@v6→v4, setup-python@v6→v5, cache@v5→v4, upload-artifact@v7→v4, download-artifact@v8→v4).
-  Added `.github/dependabot.yml` to both repos. Added CodeQL workflow to specsmith. Added
-  `cargo audit` job to kairos CI. Added `specsmith ci enable/status/watch` commands via
+  Added `.github/dependabot.yml` to specsmith repo. Added CodeQL workflow to specsmith. Added
+  `cargo audit` job to specsmith CI. Added `specsmith ci enable/status/watch` commands via
   `src/specsmith/ci_manager.py`. Added `GET /api/ci/status` to serve.py. Updated
   `vcs/github.py` CI generator to emit correct action versions.
 
@@ -998,7 +997,7 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
   model assumptions (H21), cross-platform CI enforcement (H22).
   Documentation updated across: `docs/governance/RULES.md`, `docs/site/governance.md`,
   `docs/site/index.md`, `docs/governance/EPISTEMIC-AXIOMS.md`, `docs/ARCHITECTURE.md §28`,
-  `README.md`. Kairos compliance page header range updated to H1–H22.
+  `README.md`. specsmith compliance page header range updated to H1–H22.
   OEA paper cited as external empirical validation of the five AEE axioms via
   axiom↔OEA control mechanism correspondence table in `EPISTEMIC-AXIOMS.md`.
 
@@ -1013,7 +1012,7 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **Chain hash**: auto
 
 
-## 2026-05-17T15:45 — Implemented multi-agent DAG dispatcher (REQ-321..REQ-334): dispatch/ package with TaskDAG/AgentDispatcher/EventEmitter, orchestrator.run_dispatch(), spawner.spawn_worker(), CLI dispatch group, serve.py SSE+REST dispatch endpoints, Kairos Rust dispatch panel (DispatchPanelView, GanttStrip, controls). Added compiler/tool support: run_gcc, run_arm_gcc, run_aarch64_gcc, run_iar_compiler, run_intel_compiler, run_clang_format, run_clang_tidy, run_vsg.
+## 2026-05-17T15:45 — Implemented multi-agent DAG dispatcher (REQ-321..REQ-334): dispatch/ package with TaskDAG/AgentDispatcher/EventEmitter, orchestrator.run_dispatch(), spawner.spawn_worker(), CLI dispatch group, serve.py SSE+REST dispatch endpoints. Added compiler/tool support: run_gcc, run_arm_gcc, run_aarch64_gcc, run_iar_compiler, run_intel_compiler, run_clang_format, run_clang_tidy, run_vsg.
 - **Author**: oz-agent
 - **Type**: feature
 - **Status**: complete
@@ -1027,21 +1026,21 @@ Phase 4: feature flags, instinct/learning, eval harness, agent memory, multi-age
 - **Chain hash**: `e519c3f3fc417915...`
 
 
-## 2026-05-17T16:12 — Final gap sweep: added apply_diff/search_web/search_repo tool stubs to close ROLE_TOOLS vs AVAILABLE_TOOLS mismatch (23 tools total, no refs missing); added Dispatch to README 50+ CLI Commands section; restored yaml_governance.yml row in ARCHITECTURE.md domain table (REQ-300..312); fixed Kairos post_action to spawn background thread (no UI-thread blocking on retry/abort POST).
+## 2026-05-17T16:12 — Final gap sweep: added apply_diff/search_web/search_repo tool stubs to close ROLE_TOOLS vs AVAILABLE_TOOLS mismatch (23 tools total, no refs missing); added Dispatch to README 50+ CLI Commands section; restored yaml_governance.yml row in ARCHITECTURE.md domain table (REQ-300..312); fixed post_action to spawn background thread (no UI-thread blocking on retry/abort POST).
 - **Author**: oz-agent
 - **Type**: fix
 - **Status**: complete
 - **Chain hash**: `9a0d63f844078d5a...`
 
 
-## 2026-05-17T16:31 — Resolved all deferred items: (1) abort mid-LLM-call via _invoke_worker_monitored sub-thread with 0.5s abort polling; (2) CLI dispatch run uses Orchestrator._call_planner when AG2 available (Path A/B fallback); (3) Kairos topological DAG layout with depends_on payload, compute_levels(), bezier edge drawing; (4) REQ-313..320 compliance plan 5939f743 implemented and tested.
+## 2026-05-17T16:31 — Resolved all deferred items: (1) abort mid-LLM-call via _invoke_worker_monitored sub-thread with 0.5s abort polling; (2) CLI dispatch run uses Orchestrator._call_planner when AG2 available (Path A/B fallback); (3) topological DAG layout with depends_on payload, compute_levels(), bezier edge drawing; (4) REQ-313..320 compliance plan 5939f743 implemented and tested.
 - **Author**: oz-agent
 - **Type**: feature
 - **Status**: complete
 - **Chain hash**: `f91cae2487897572...`
 
 
-## 2026-05-17T16:53 — Removed all specsmith-vscode / VS Code extension references across specsmith and Kairos docs. Deleted docs/site/vscode-extension.md. Updated mkdocs.yml nav (Kairos Client page). Fixed index.md, quickstart.md, commands.md, getting-started.md, troubleshooting.md, endpoints.md, PRIVACY.md, runner.py, core.py, events.py, suggester.py, languages.py, cli.py, agent.yml REQs/TESTs, README.md. Kairos is now the sole documented client.
+## 2026-05-17T16:53 — Removed all specsmith-vscode / VS Code extension references across specsmith docs. Deleted docs/site/vscode-extension.md. Updated mkdocs.yml nav. Fixed index.md, quickstart.md, commands.md, getting-started.md, troubleshooting.md, endpoints.md, PRIVACY.md, runner.py, core.py, events.py, suggester.py, languages.py, cli.py, agent.yml REQs/TESTs, README.md. The specsmith client is now the sole documented client.
 - **Author**: oz-agent
 - **Type**: fix
 - **Status**: complete

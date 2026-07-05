@@ -452,18 +452,6 @@ GroupChat round-robin with a governed, dependency-aware DAG scheduler.
 - `GET  /api/dispatch/list` — saved run IDs
 - `POST /api/dispatch/retry` / `POST /api/dispatch/abort`
 
-**Kairos UI** (`app/` — Rust, egui/eframe):
-- `dispatch_panel/mod.rs` — `DispatchApp` SSE subscriber; DAG graph with nodes coloured by status
-- `dispatch_panel/gantt.rs` — `GanttStrip` timeline showing parallelism
-- `dispatch_panel/controls.rs` — Retry (FAILED/BLOCKED) and Abort (RUNNING) buttons
-
-**Architecture invariants for Phase 2**:
-- The Orchestrator is the sole dispatch entry point; workers MUST NOT spawn further dispatches
-- DAG validation (cycle detection) MUST happen before any worker is started
-- `max_workers` ceiling MUST be enforced by `AgentPool`
-- Completed node output MUST flow to successors via ESDB, not in-memory sharing
-- Every state transition MUST be emitted as a persisted `DispatchEvent` before any SSE fan-out
-
 ### Phase 3 — Service and IDE
 
 Planned modules:
@@ -623,18 +611,6 @@ Auto-scaffolds Model Context Protocol servers from natural-language tool descrip
 
 REST endpoint: `GET /api/mcp/servers`.
 
-## 22. Kairos UX Integration
-
-Kairos Settings pages that expose specsmith features via the governance REST API:
-
-- **Governance page** — specsmith health, BYOE endpoint, project context, updater, bug report links
-- **Compliance page** — requirement coverage, test coverage, gaps, traceability matrix
-- **ESDB page** — ChronoMemory status, record counts, backend type, refresh
-- Skills, Eval, Teams pages consume `GET /api/skills`, `GET /api/eval/suites`, `GET /api/teams`
-
-All pages use async health polling via `GovernanceClient.get_json()` and follow the monolith SettingsWidget pattern.
-
-## 23. HuggingFace Open LLM Leaderboard Integration
 
 Source: `src/specsmith/agent/hf_leaderboard.py`
 
@@ -785,7 +761,7 @@ primary levers for suppressing hallucination rates across model families:
 3. **Retrieval filtering** (H18) — relevance threshold before RAG injection
 4. **Recursion guarding** (H16) — chain depth limit
 
-Statusof H15–H22 is surfaced in the Kairos Compliance page
+Statusof H15–H22 is surfaced in the Compliance page
 (Settings → Compliance → Governance Hard Rules H1–H22) alongside H1–H14.
 
 **Architecture invariant (I9):** The compliance rule set MUST cover all four OEA control

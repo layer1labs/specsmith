@@ -57,7 +57,7 @@
 
 - FLG-001: specsmith MUST implement a feature-flag system controlling which tool schemas are sent to the LLM.
 - FLG-002: Feature flags MUST be configurable via environment variables and `scaffold.yml` under `agent.flags`.
-- FLG-003: Agent teams, worktree isolation, KAIROS daemon mode, security scanner, and MCP tools MUST be flag-gated.
+- FLG-003: Agent teams, worktree isolation, daemon mode, security scanner, and MCP tools MUST be flag-gated.
 
 ## LRN — Instinct / Continuous Learning System
 
@@ -133,9 +133,8 @@
 
 ## PRX — Praxis Terminal Integration (NEW)
 
-- PRX-001: `specsmith serve` MUST be the sole interface between the Praxis Rust terminal and the Python governance stack.
+- PRX-001: `specsmith serve` MUST be the sole interface between the Praxis terminal and the Python governance stack.
 - PRX-002: Praxis MUST spawn `specsmith serve` as a managed child process at terminal startup.
 - PRX-003: Praxis MUST call `specsmith preflight` via the REST API before executing any governance-gated action.
 - PRX-004: Praxis MUST call `specsmith verify` via the REST API after changes and display confidence scores in the terminal UI.
 - PRX-005: Praxis settings and governance dashboard MUST be implemented as a WebView panel for Playwright testability.
-- PRX-006: The Praxis terminal MUST be based on Kairos (layer1labs/kairos), the open-source terminal with BYOE endpoint support.

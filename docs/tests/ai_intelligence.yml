@@ -196,7 +196,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-280
-  title: Kairos Model Intel Governance Endpoint
+  title: Model Intel Governance Endpoint
   description: 'The specsmith governance HTTP server (GovernanceHTTPServer) exposes
     `GET /api/model-intel/scores` returning `{"scores": [...]}` and `GET /api/model-intel/recommendations`
     returning `{"recommendations": [...], "bucket": "reasoning"}`.'
@@ -207,9 +207,9 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-281
-  title: Kairos AI Providers Bucket Score Section Compiles
-  description: The updated `ai_providers_page.rs` in Kairos compiles without errors
-    under `cargo check --package kairos`. The file must contain `model_intel` function
+  title: AI Providers Bucket Score Section Compiles
+  description: The updated `ai_providers_page.py` in specsmith compiles without errors
+    under `python -m py_compile`. The file must contain `model_intel` function
     call or `bucket_score` field rendering code.
   requirement_id: REQ-281
   type: build

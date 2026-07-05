@@ -349,16 +349,16 @@
   source: .specsmith/runs/WI-NEXUS-011/logs.txt, scripts/nexus_smoke.py
   status: implemented
 - id: REQ-106
-  title: Kairos Must Surface Governance Commands
-  description: 'The Kairos terminal client must provide UI access to the three primary
+  title: Must Surface Governance Commands
+  description: 'The terminal client must provide UI access to the three primary
     governance operations: preflight gate, verify, and governance trace (`/why`).
     These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`.'
-  source: app/src/settings_view/governance_page.rs, kairos_governance crate
+  source: src/specsmith/agent/settings_view/governance_page.py
   status: implemented
 - id: REQ-107
   title: ARCHITECTURE.md Must Reflect Current State
   description: '`ARCHITECTURE.md` must contain a ''Current State'' section listing
-    the realized broker, harness, retry strategies, CI baseline, Kairos governance
+    the realized broker, harness, retry strategies, CI baseline, governance
     integration, live-smoke evidence note, and documentation surface. The section
     is the source of truth for ''the system as built'' and must be updated each time
     a release is cut.'
@@ -448,10 +448,10 @@
   source: src/specsmith/cli.py
   status: implemented
 - id: REQ-118
-  title: Kairos Must Surface specsmith chat Stream
-  description: The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith
+  title: Must Surface specsmith chat Stream
+  description: The governance proxy (`/v1/chat/completions`) consumes the `specsmith
     chat --json-events` JSONL stream and exposes it to the agent session.
-  source: app/src/settings_view/governance_page.rs, kairos_governance crate
+  source: src/specsmith/agent/settings_view/governance_page.py
   status: implemented
 - id: REQ-119
   title: Project Rules Must Auto-Inject Into the System Prompt
@@ -517,16 +517,16 @@
   status: implemented
 - id: REQ-128
   title: Cross-Repo Security Sweep
-  description: The specsmith and kairos repos both run `pip-audit` / `cargo audit`
+  description: The specsmith repos both run `pip-audit` / `cargo audit`
     in CI and fail on high-or-critical findings. Dependabot manifests in both repos
     are reviewed and any open alert at 1.0 release time is documented.
-  source: .github/workflows/ci.yml, layer1labs/kairos/.github/workflows/ci.yml
+  source: .github/workflows/ci.yml
   status: implemented
 - id: REQ-129
   title: 1.0 API Stability Commitment
   description: '`docs/site/api-stability.md` enumerates the public surfaces frozen
     at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify
-    / chat events, broker module API, ledger event schemas, Kairos CLI API surface).
+    / chat events, broker module API, ledger event schemas, CLI API surface).
     The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable`
     and `pyproject.toml` to `1.0.0`.'
   source: docs/site/api-stability.md, pyproject.toml
