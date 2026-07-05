@@ -12,11 +12,9 @@ Governed by ARCHITECTURE.md "Safe Repository Cleanup Boundary":
 
 from __future__ import annotations
 
-import contextlib
 import os
 import re
 import shutil
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -103,7 +101,7 @@ PROTECTED_PATHS = frozenset(
         "tests",
         "docs",
         "scripts",
-    }
+    },
 )
 
 
@@ -187,13 +185,18 @@ def _run_audit(root: Path) -> dict[str, Any]:
             "failed_checks": report.failed,
             "passed_checks": report.passed,
             "suppressed_checks": report.suppressed_count,
-            "results": [r.to_dict() if hasattr(r, 'to_dict') else {
-                "name": r.name,
-                "passed": r.passed,
-                "message": r.message,
-                "fixable": getattr(r, 'fixable', False),
-                "suppressed": getattr(r, 'suppressed', False)
-            } for r in report.results]
+            "results": [
+                r.to_dict()
+                if hasattr(r, "to_dict")
+                else {
+                    "name": r.name,
+                    "passed": r.passed,
+                    "message": r.message,
+                    "fixable": getattr(r, "fixable", False),
+                    "suppressed": getattr(r, "suppressed", False),
+                }
+                for r in report.results
+            ],
         }
     except Exception as e:
         return {
@@ -202,7 +205,7 @@ def _run_audit(root: Path) -> dict[str, Any]:
             "passed_checks": 0,
             "suppressed_checks": 0,
             "error": str(e),
-            "results": []
+            "results": [],
         }
 
 
@@ -383,6 +386,7 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
     apply: bool
         If False (default), perform a dry-run only and return a report listing
         what would be removed (REQ-077). If True, actually remove the targets.
+
     """
     root = Path(project_root).resolve()
     report = CleanupReport(dry_run=not apply, project_root=str(root))
@@ -395,10 +399,12 @@ def clean_repo(project_root: str | os.PathLike[str], apply: bool = False) -> Cle
     audit_result = _run_audit(root)
     if not audit_result.get("healthy", True):
         # Log audit issues but continue with cleanup
-        report.skipped.append({
-            "path": "audit",
-            "reason": f"Audit failed with {audit_result.get('failed_checks', 0)} failed checks"
-        })
+        report.skipped.append(
+            {
+                "path": "audit",
+                "reason": f"Audit failed with {audit_result.get('failed_checks', 0)} failed checks",
+            }
+        )
 
     # Consolidate governance files
     consolidated = _consolidate_governance_files(root)
