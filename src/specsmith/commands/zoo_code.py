@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -595,7 +596,8 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
     # 3. Compare against baselines
     # 4. Generate detailed reports
 
-    test_result = {
+
+    test_result: dict[str, Any] = {
         "test_name": test_name,
         "suite": suite,
         "description": description,
@@ -660,7 +662,8 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
     # 2. Handle platform-specific tooling
     # 3. Ensure compatibility across platforms
 
-    platform_config = {
+
+    platform_config: dict[str, Any] = {
         "platform": platform,
         "integration": integration,
         "supported": True,
@@ -703,7 +706,8 @@ def zoo_code_dashboard(view: str, as_json: bool) -> None:
     # 3. Display alerts and notifications
     # 4. Provide interactive dashboards
 
-    dashboard_data = {
+
+    dashboard_data: dict[str, Any] = {
         "view": view,
         "timestamp": "2026-07-05T19:32:00Z",
         "metrics": {
@@ -736,14 +740,14 @@ def zoo_code_dashboard(view: str, as_json: bool) -> None:
         click.echo(f"Status: {dashboard_data['status']}")
         click.echo()
         click.echo("Metrics:")
-        for metric, value in dashboard_data["metrics"].items():  # type: ignore
+        for metric, value in dashboard_data["metrics"].items():
             if isinstance(value, float):
                 click.echo(f"  {metric}: {value:.4f}")
             else:
                 click.echo(f"  {metric}: {value}")
         click.echo()
         click.echo("Alerts:")
-        for alert in dashboard_data["alerts"]:  # type: ignore
+        for alert in dashboard_data["alerts"]:
             click.echo(f"  [{alert['severity'].upper()}] {alert['message']}")
         click.echo()
         click.echo("✓ Dashboard data retrieved successfully")
