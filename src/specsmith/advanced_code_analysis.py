@@ -70,7 +70,8 @@ class AdvancedCodeAnalyzer:
                     # Check for complex conditionals
                     complex_conditions = self._find_complex_conditions(node)
                     for condition in complex_conditions:
-                        description = f"Complex conditional at line {condition['line']} - consider simplification"
+                        description = (f"Complex conditional at line {condition['line']} - "
+                                       "consider simplification")
                         suggestions.append(RefactoringSuggestion(
                             file_path=str(file_path),
                             line_number=condition['line'],
@@ -155,7 +156,8 @@ class AdvancedCodeAnalyzer:
                             function_name=node.name,
                             complexity=complexity,
                             line_number=node.lineno,
-                            message=f"Function '{node.name}' has cyclomatic complexity of {complexity}"
+                            message=(f"Function '{node.name}' has cyclomatic complexity of "
+                                     f"{complexity}")
                         ))
         except Exception:
             pass
@@ -282,3 +284,4 @@ def check_ai_compliance(root: Path) -> list[AuditResult]:
         ))
 
     return issues
+

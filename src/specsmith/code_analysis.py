@@ -96,10 +96,12 @@ def analyze_code_quality(root: Path) -> CodeQualityReport:
         # Find functions with complexity > 10 (E-range)
         high_complexity = [r for r in complexity_reports if r.complexity > 10]
         if high_complexity:
+            message = (f"Found {len(high_complexity)} functions with high cyclomatic complexity "
+                       "(>10)")
             issues.append(AuditResult(
                 name="high-complexity-functions",
                 passed=False,
-                message=f"Found {len(high_complexity)} functions with high cyclomatic complexity (>10)",
+                message=message,
                 fixable=True
             ))
         else:

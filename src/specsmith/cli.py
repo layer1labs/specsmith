@@ -14316,11 +14316,14 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
             console.print("[bold]AI Analysis Results[/bold]")
             console.print("-" * 40)
 
-            for _file_path, analysis in ai_report.items():
+            for file_path, analysis in ai_report.items():
                 console.print(f"[cyan]File:[/cyan] {analysis.file_path}")
-                console.print(f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100")
-                console.print(f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}")
-                console.print(f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}")
+                quality_score = f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100"
+                complexity_trend = f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}"
+                improvement_potential = f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}"
+                console.print(quality_score)
+                console.print(complexity_trend)
+                console.print(improvement_potential)
 
                 if analysis.suggestions:
                     console.print("  [bold]Suggestions:[/bold]")
