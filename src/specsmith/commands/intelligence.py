@@ -151,7 +151,7 @@ def profiles_list(as_json: bool) -> None:
             types = ", ".join(p.allowed_provider_types) if p.allowed_provider_types else "all"
             click.echo(
                 f"  {'→' if p.is_default else ' '} {p.id:<15} {p.name:<20}"
-                f" types={types}{builtin}{default}"
+                f" types={types}{builtin}{default}",
             )
 
 
@@ -406,11 +406,12 @@ def session_info(project_dir: str, as_json: bool) -> None:
         click.echo(f"  Session:    {ctx.session_id}")
         if ctx.needs_import:
             click.echo(
-                "\n  \u26a0 Not a specsmith project. Run 'specsmith import' to add governance."
+                "\n  \u26a0 Not a specsmith project. Run 'specsmith import' to add governance.",
             )
         if ctx.needs_migration:
             sv = ctx.spec_version
             iv = ctx.installed_version
             click.echo(
-                f"\n  \u26a0 Spec version mismatch ({sv} vs {iv}). Run 'specsmith migrate-project'."
+                f"\n  \u26a0 Spec version mismatch ({sv} vs {iv}). "
+                f"Run 'specsmith migrate-project'.",
             )

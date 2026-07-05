@@ -14,6 +14,7 @@ from specsmith.code_analysis import ComplexityReport
 @dataclass
 class RefactoringSuggestion:
     """A suggestion for code refactoring."""
+
     file_path: str
     line_number: int
     suggestion_type: str
@@ -25,6 +26,7 @@ class RefactoringSuggestion:
 @dataclass
 class AIAssistedAnalysis:
     """AI-assisted code analysis results."""
+
     file_path: str
     suggestions: list[RefactoringSuggestion]
     code_quality_score: float
@@ -43,7 +45,7 @@ class AdvancedCodeAnalyzer:
         suggestions: list[RefactoringSuggestion] = []
 
         try:
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Parse the file with AST
@@ -53,7 +55,7 @@ class AdvancedCodeAnalyzer:
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     # Calculate function length
-                    if hasattr(node, 'body'):
+                    if hasattr(node, "body"):
                         lines = node.body
                         if len(lines) > 20:  # Arbitrary threshold for long functions
                             description = (f"Function '{node.name}' has {len(lines)} lines - "
@@ -64,7 +66,7 @@ class AdvancedCodeAnalyzer:
                                 suggestion_type="function_length",
                                 description=description,
                                 severity="medium",
-                                confidence=0.7
+                                confidence=0.7,
                             ))
 
                     # Check for complex conditionals
@@ -74,11 +76,11 @@ class AdvancedCodeAnalyzer:
                                        "consider simplification")
                         suggestions.append(RefactoringSuggestion(
                             file_path=str(file_path),
-                            line_number=condition['line'],
+                            line_number=condition["line"],
                             suggestion_type="conditional_complexity",
                             description=description,
                             severity="high",
-                            confidence=0.8
+                            confidence=0.8,
                         ))
 
         except Exception:
@@ -90,16 +92,15 @@ class AdvancedCodeAnalyzer:
     def _find_complex_conditions(self, node: ast.AST) -> list[dict[str, Any]]:
         """Find complex conditional statements."""
         conditions: list[dict[str, Any]] = []
-        if isinstance(node, ast.If):
+        if isinstance(node, ast.If) and isinstance(node.test, ast.BoolOp):
             # Check for nested if statements or complex boolean expressions
-            if isinstance(node.test, ast.BoolOp):
-                # Count the number of operations in boolean expressions
-                bool_op = node.test
-                if len(bool_op.values) > 3:  # More than 3 operands is complex
+            # Count the number of operations in boolean expressions
+            bool_op = node.test
+            if len(bool_op.values) > 3:  # More than 3 operands is complex
                     conditions.append({
-                        'line': node.lineno,
-                        'type': 'boolean_expression',
-                        'complexity': len(bool_op.values)
+                        "line": node.lineno,
+                        "type": "boolean_expression",
+                        "complexity": len(bool_op.values),
                     })
         return conditions
 
@@ -110,7 +111,7 @@ class AdvancedCodeAnalyzer:
         # Analyze Python files
         for py_file in root.rglob("*.py"):
             # Skip test files and hidden directories
-            if "test" in str(py_file) or any(part.startswith('.') for part in py_file.parts):
+            if "test" in str(py_file) or any(part.startswith(".") for part in py_file.parts):
                 continue
 
             # Get complexity report
@@ -130,7 +131,7 @@ class AdvancedCodeAnalyzer:
                 suggestions=suggestions,
                 code_quality_score=quality_score,
                 complexity_trend=complexity_trend,
-                improvement_potential=self._calculate_improvement_potential(suggestions)
+                improvement_potential=self._calculate_improvement_potential(suggestions),
             )
 
         return results
@@ -141,7 +142,7 @@ class AdvancedCodeAnalyzer:
         # For now, we'll create a simplified version
         reports = []
         try:
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -157,7 +158,7 @@ class AdvancedCodeAnalyzer:
                             complexity=complexity,
                             line_number=node.lineno,
                             message=(f"Function '{node.name}' has cyclomatic complexity of "
-                                     f"{complexity}")
+                                     f"{complexity}"),
                         ))
         except Exception:
             pass
@@ -209,8 +210,7 @@ class AdvancedCodeAnalyzer:
         high_complexity = [r for r in complexity_reports if r.complexity > 10]
         if len(high_complexity) > 0:
             return "regressing"
-        else:
-            return "stable"
+        return "stable"
 
     def _calculate_improvement_potential(self, suggestions: list[RefactoringSuggestion]) -> float:
         """Calculate potential improvement based on suggestions."""
@@ -219,10 +219,10 @@ class AdvancedCodeAnalyzer:
 
         # Weight suggestions by severity
         severity_weights = {
-            'low': 0.2,
-            'medium': 0.5,
-            'high': 0.8,
-            'critical': 1.0
+            "low": 0.2,
+            "medium": 0.5,
+            "high": 0.8,
+            "critical": 1.0,
         }
 
         total_weight = sum(severity_weights.get(s.suggestion_type, 0.5) for s in suggestions)
@@ -243,7 +243,7 @@ def generate_refactoring_report(root: Path) -> dict[str, list[RefactoringSuggest
     # Analyze Python files
     for py_file in root.rglob("*.py"):
         # Skip test files and hidden directories
-        if "test" in str(py_file) or any(part.startswith('.') for part in py_file.parts):
+        if "test" in str(py_file) or any(part.startswith(".") for part in py_file.parts):
             continue
 
         suggestions = analyzer.analyze_file_for_refactoring(py_file)
@@ -268,19 +268,19 @@ def check_ai_compliance(root: Path) -> list[AuditResult]:
             issues.append(AuditResult(
                 name="ai-assisted-analysis",
                 passed=True,
-                message="AI-assisted code analysis capabilities are available"
+                message="AI-assisted code analysis capabilities are available",
             ))
         else:
             issues.append(AuditResult(
                 name="ai-assisted-analysis",
                 passed=False,
-                message="AI-assisted code analysis capabilities are not available"
+                message="AI-assisted code analysis capabilities are not available",
             ))
     except Exception as e:
         issues.append(AuditResult(
             name="ai-assisted-analysis",
             passed=False,
-            message=f"Error checking AI compliance: {str(e)}"
+            message=f"Error checking AI compliance: {e!s}",
         ))
 
     return issues

@@ -109,6 +109,7 @@ def run_upgrade(
 
     Returns:
         UpgradeResult with details of the operation.
+
     """
     from specsmith.paths import find_scaffold
 
@@ -119,7 +120,7 @@ def run_upgrade(
             message=(
                 "No scaffold config found (docs/SPECSMITH.yml or scaffold.yml)."
                 " Cannot determine project configuration for upgrade."
-            )
+            ),
         )
 
     with open(scaffold_path) as f:
@@ -177,7 +178,8 @@ def run_upgrade(
             tests_m = counts.get("testcases", 0)
             if reqs_m + tests_m > 0:
                 result.updated_files.append(
-                    f".chronomemory/events.wal (migrated {reqs_m} reqs + {tests_m} tests from JSON)"
+                    f".chronomemory/events.wal "
+                    f"(migrated {reqs_m} reqs + {tests_m} tests from JSON)",
                 )
         except Exception:  # noqa: BLE001
             pass  # Non-fatal — JSON fallback still works
@@ -368,7 +370,7 @@ def _sync_full(
         # Check subdirectories (e.g. docs/architecture/CPSC-RE-ARCHITECTURE.md)
         has_arch = bool(
             list((root / "docs").glob("**/architecture*"))
-            + list((root / "docs").glob("**/ARCHITECTURE*"))
+            + list((root / "docs").glob("**/ARCHITECTURE*")),
         )
     if not has_arch:
         try:
@@ -431,7 +433,7 @@ def _migrate_test_spec_filename(root: Path, result: UpgradeResult) -> None:
             if updated != text:
                 ref_path.write_text(updated, encoding="utf-8")
                 result.updated_files.append(
-                    f"{ref_path.relative_to(root)} (updated TEST_SPEC.md references)"
+                    f"{ref_path.relative_to(root)} (updated TEST_SPEC.md references)",
                 )
         except OSError:  # File not accessible — skip silently
             pass

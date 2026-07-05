@@ -72,7 +72,7 @@ PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
 PROJECT_TYPE_LABELS = {
     str(i + 1): label
     for i, (t, label) in enumerate(
-        __import__("specsmith.config", fromlist=["_TYPE_LABELS"])._TYPE_LABELS.items()
+        __import__("specsmith.config", fromlist=["_TYPE_LABELS"])._TYPE_LABELS.items(),
     )
 }
 
@@ -164,7 +164,7 @@ def _maybe_prompt_project_update() -> None:
         return tuple(int(x) for x in m.groups() if x is not None)
 
     # Look for scaffold config in CWD (canonical: docs/specsmith.yml)
-    scaffold_path = find_scaffold(Path("."))
+    scaffold_path = find_scaffold(Path())
     if scaffold_path is None:
         return  # Not a specsmith project — skip silently
 
@@ -204,7 +204,7 @@ def _maybe_prompt_project_update() -> None:
         from specsmith.updater import run_migration
 
         console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {__version__}...[/cyan]")
-        actions = run_migration(Path("."))
+        actions = run_migration(Path())
         for a in actions:
             if a.startswith("ERROR:"):
                 console.print(f"  [red]\u2717[/red] {a}", err=True)
@@ -269,7 +269,7 @@ def _maybe_notify_pypi_update() -> None:
         import json as _json  # noqa: PLC0415
         from urllib.request import urlopen  # noqa: PLC0415
 
-        resp = urlopen("https://pypi.org/pypi/specsmith/json", timeout=3)  # noqa: S310
+        resp = urlopen("https://pypi.org/pypi/specsmith/json", timeout=3)
         data = _json.loads(resp.read())
         latest = data.get("info", {}).get("version", "")
         if not latest:
@@ -294,7 +294,7 @@ def _maybe_notify_pypi_update() -> None:
                 f"  [dim]specsmith [bold]{latest}[/bold] available "
                 f"(you have {__version__}). "
                 f"Run [bold]specsmith self-update[/bold] or "
-                f"[bold]pipx upgrade specsmith[/bold].[/dim]"
+                f"[bold]pipx upgrade specsmith[/bold].[/dim]",
             )
     except Exception:  # noqa: BLE001
         pass  # Never block the CLI on network errors
@@ -303,7 +303,7 @@ def _maybe_notify_pypi_update() -> None:
 @click.group(cls=_AutoUpdateGroup)
 @click.version_option(version=__version__, prog_name="specsmith")
 def main() -> None:
-    """specsmith — AEE toolkit. Forge epistemically-governed project scaffolds."""
+    """Specsmith — AEE toolkit. Forge epistemically-governed project scaffolds."""
 
 
 @main.command()
@@ -315,7 +315,7 @@ def main() -> None:
     help="Path to scaffold.yml config file (skips interactive prompts).",
 )
 @click.option(
-    "--output-dir", type=click.Path(), default=".", help="Parent directory for the new project."
+    "--output-dir", type=click.Path(), default=".", help="Parent directory for the new project.",
 )
 @click.option("--no-git", is_flag=True, default=False, help="Skip git repository initialization.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture definition.")
@@ -362,7 +362,7 @@ def init(
                 _json.dumps(
                     {"ok": False, "error": f"Directory {target} already exists and is not empty."},
                     indent=2,
-                )
+                ),
             )
         else:
             console.print(f"[red]Error:[/red] Directory {target} already exists and is not empty.")
@@ -380,7 +380,7 @@ def init(
                         "planned_files": planned,
                     },
                     indent=2,
-                )
+                ),
             )
         else:
             console.print(f"[bold]init dry-run[/bold] mode={init_mode} target={target}\n")
@@ -409,7 +409,7 @@ def init(
         created_files.extend(guided_files)
     if not quiet and not as_json:
         console.print(
-            f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
+            f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}",
         )
 
     # Save config as docs/SPECSMITH.yml (canonical location — uppercase like peer governance files)
@@ -434,7 +434,7 @@ def init(
         if register_project(str(target)) and not quiet and not as_json:
             console.print(
                 "  [dim]\u2713 Registered with MCP server "
-                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]",
             )
     important = _important_init_files(target)
     next_commands = [
@@ -454,7 +454,7 @@ def init(
                     "next_commands": next_commands,
                 },
                 indent=2,
-            )
+            ),
         )
         return
     if not quiet:
@@ -504,7 +504,7 @@ def _planned_init_outputs(
                 "docs/governance/REVIEW-CHECKPOINTS.md",
                 ".specsmith/gate-config.yml",
                 ".specsmith/esdb.enabled",
-            }
+            },
         )
     if init_mode == "lite":
         keep_prefixes = ("AGENTS.md", "docs/REQUIREMENTS.md", "docs/TESTS.md", ".specsmith/")
@@ -662,7 +662,7 @@ def audit(fix: bool, project_dir: str) -> None:
             "  [cyan]⟳[/cyan] ESDB auto-migrate: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
-            f"({auto_counts.get('skipped', 0)} skipped)"
+            f"({auto_counts.get('skipped', 0)} skipped)",
         )
     console.print(f"[bold]Auditing[/bold] {root}\n")
     report = run_audit(root)
@@ -674,7 +674,7 @@ def audit(fix: bool, project_dir: str) -> None:
             if hasattr(store, "verify_audit_chain"):
                 chain_report = store.verify_audit_chain()
                 chain_broken = bool(
-                    isinstance(chain_report, dict) and not chain_report.get("ok", True)
+                    isinstance(chain_report, dict) and not chain_report.get("ok", True),
                 )
 
     for r in report.results:
@@ -695,7 +695,7 @@ def audit(fix: bool, project_dir: str) -> None:
     else:
         console.print(
             f"[bold red]{report.failed} issue(s)[/bold red] found "
-            f"({report.fixable} fixable). {report.passed} checks passed."
+            f"({report.fixable} fixable). {report.passed} checks passed.",
         )
         if fix:
             from specsmith.auditor import run_auto_fix
@@ -706,7 +706,7 @@ def audit(fix: bool, project_dir: str) -> None:
                     console.print(f"  [cyan]⟳[/cyan] {msg}")
                 console.print(
                     f"\n[bold cyan]{len(fixed)} issue(s) auto-fixed.[/bold cyan] "
-                    f"Re-run audit to verify."
+                    f"Re-run audit to verify.",
                 )
             else:
                 console.print("[yellow]No auto-fixable issues found.[/yellow]")
@@ -1092,7 +1092,7 @@ def verify_cmd(
         if tests_path and Path(tests_path).is_file():
             try:
                 payload_in["test_results"] = _json.loads(
-                    Path(tests_path).read_text(encoding="utf-8")
+                    Path(tests_path).read_text(encoding="utf-8"),
                 )
             except ValueError:
                 payload_in["test_results"] = {"raw": Path(tests_path).read_text(encoding="utf-8")}
@@ -1245,7 +1245,7 @@ def clean_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
         verb = "reclaimed" if apply_flag else "would reclaim"
         console.print(
             f"\n[bold green]\u2713[/bold green] {len(report.removed)} target(s); "
-            f"{verb} {mb:.2f} MB."
+            f"{verb} {mb:.2f} MB.",
         )
         if not apply_flag:
             console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
@@ -1355,38 +1355,37 @@ def validate(project_dir: str, strict_mode: bool, as_json: bool) -> None:
             if std_ok and sv.ok:
                 console.print(
                     f"[bold green]Valid.[/bold green] {report.passed} std + "
-                    f"{strict_warnings} warnings (strict)."
+                    f"{strict_warnings} warnings (strict).",
                 )
             else:
                 console.print(
                     f"[bold red]{report.failed} std issue(s), "
                     f"{strict_errors} strict error(s), "
-                    f"{strict_warnings} warning(s).[/bold red]"
+                    f"{strict_warnings} warning(s).[/bold red]",
                 )
+    elif as_json:
+        result = {
+            "std_passed": report.passed,
+            "std_failed": report.failed,
+            "ok": std_ok,
+            "std_results": [
+                {"name": r.name, "passed": r.passed, "message": r.message}
+                for r in report.results
+            ],
+        }
+        click.echo(_json.dumps(result, indent=2))
     else:
-        if as_json:
-            result = {
-                "std_passed": report.passed,
-                "std_failed": report.failed,
-                "ok": std_ok,
-                "std_results": [
-                    {"name": r.name, "passed": r.passed, "message": r.message}
-                    for r in report.results
-                ],
-            }
-            click.echo(_json.dumps(result, indent=2))
+        for r in report.results:
+            icon = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
+            console.print(f"  {icon} {r.message}")
+        console.print()
+        if std_ok:
+            console.print(f"[bold green]Valid.[/bold green] {report.passed} checks passed.")
         else:
-            for r in report.results:
-                icon = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
-                console.print(f"  {icon} {r.message}")
-            console.print()
-            if std_ok:
-                console.print(f"[bold green]Valid.[/bold green] {report.passed} checks passed.")
-            else:
-                console.print(
-                    f"[bold red]{report.failed} issue(s)[/bold red] found. "
-                    f"{report.passed} checks passed."
-                )
+            console.print(
+                f"[bold red]{report.failed} issue(s)[/bold red] found. "
+                f"{report.passed} checks passed.",
+            )
 
     if not std_ok or (strict_mode and strict_errors > 0):
         raise SystemExit(1)
@@ -1448,13 +1447,13 @@ def generate_docs_cmd(project_dir: str, check_only: bool, as_json: bool) -> None
                 _json.dumps(
                     {"ok": False, "error": "Not in YAML mode. Run the migration script first."},
                     indent=2,
-                )
+                ),
             )
         else:
             console.print(
                 "[yellow]\u26a0[/yellow] Not in YAML mode. "
                 "Run scripts/migrate_governance_to_yaml.py first, "
-                "or set .specsmith/governance-mode = yaml."
+                "or set .specsmith/governance-mode = yaml.",
             )
         raise SystemExit(1)
 
@@ -1629,7 +1628,7 @@ def status(project_dir: str) -> None:
 
     if not platform.is_cli_available():
         console.print(
-            f"[red]{platform.cli_name} CLI not found.[/red] Install it to use status checks."
+            f"[red]{platform.cli_name} CLI not found.[/red] Install it to use status checks.",
         )
         raise SystemExit(1)
 
@@ -1651,7 +1650,7 @@ def status(project_dir: str) -> None:
     help="Project root directory.",
 )
 @click.option(
-    "--html", "html_output", type=click.Path(), default=None, help="Generate HTML diff report."
+    "--html", "html_output", type=click.Path(), default=None, help="Generate HTML diff report.",
 )
 def diff(project_dir: str, html_output: str | None) -> None:
     """Compare governance files against spec templates."""
@@ -1708,7 +1707,6 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     confirms scaffold.yml, governance files, agent provider setup, optional
     Nexus broker availability, and prints next-step commands (REQ-127).
     """
-
     root = Path(project_dir).resolve()
 
     if onboarding:
@@ -1720,7 +1718,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
                 "scaffold.yml present",
                 (root / "scaffold.yml").is_file(),
                 "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold].",
-            )
+            ),
         )
         steps.append(
             (
@@ -1728,21 +1726,21 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
                 (root / "REQUIREMENTS.md").is_file()
                 or (root / "docs" / "REQUIREMENTS.md").is_file(),
                 "Add at least one REQ entry (REQ-001).",
-            )
+            ),
         )
         steps.append(
             (
                 "AGENTS.md present",
                 (root / "AGENTS.md").is_file(),
                 "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
-            )
+            ),
         )
         steps.append(
             (
                 "LEDGER.md present",
                 (root / "LEDGER.md").is_file(),
                 "Create LEDGER.md (specsmith init seeds one).",
-            )
+            ),
         )
         steps.append(
             (
@@ -1751,17 +1749,17 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
                     __import__("os").environ.get("ANTHROPIC_API_KEY")
                     or __import__("os").environ.get("OPENAI_API_KEY")
                     or __import__("os").environ.get("GOOGLE_API_KEY")
-                    or (root / ".specsmith" / "nexus.yml").is_file()
+                    or (root / ".specsmith" / "nexus.yml").is_file(),
                 ),
                 "Set ANTHROPIC_API_KEY / OPENAI_API_KEY or run [bold]specsmith nexus init[/bold].",
-            )
+            ),
         )
         steps.append(
             (
                 "docs/governance/ structure present",
                 (root / "docs" / "governance").is_dir(),
                 "Run [bold]specsmith upgrade --full[/bold] to regenerate.",
-            )
+            ),
         )
         ok_count = 0
         for label, passed, hint in steps:
@@ -1774,12 +1772,12 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         if ok_count == len(steps):
             console.print(
                 "[bold green]All onboarding checks passed.[/bold green] "
-                'Try [bold]specsmith preflight "add hello world"[/bold].'
+                'Try [bold]specsmith preflight "add hello world"[/bold].',
             )
         else:
             console.print(
                 f"[bold yellow]{len(steps) - ok_count} step(s) remaining.[/bold yellow] "
-                "See docs/site/getting-started.md."
+                "See docs/site/getting-started.md.",
             )
         return
 
@@ -1932,7 +1930,7 @@ def export(project_dir: str, output: str | None) -> None:
 @click.option("--force", is_flag=True, default=False, help="Overwrite existing governance files.")
 @click.option("--guided", is_flag=True, default=False, help="Run guided architecture after import.")
 @click.option(
-    "--dry-run", is_flag=True, default=False, help="Show what would be done without writing."
+    "--dry-run", is_flag=True, default=False, help="Show what would be done without writing.",
 )
 @click.option(
     "--yes",
@@ -1943,7 +1941,7 @@ def export(project_dir: str, output: str | None) -> None:
     help="Skip confirmation prompt (non-interactive / CI mode).",
 )
 def import_project(
-    project_dir: str, force: bool, guided: bool, dry_run: bool, auto_yes: bool
+    project_dir: str, force: bool, guided: bool, dry_run: bool, auto_yes: bool,
 ) -> None:
     """Import an existing project and generate governance overlay."""
     from specsmith.importer import detect_project, generate_import_config, generate_overlay
@@ -2019,7 +2017,7 @@ def import_project(
         for k, v in PROJECT_TYPE_LABELS.items():
             console.print(f"  {k}. {v}")
         type_choice = click.prompt(
-            "Select type", type=click.Choice(list(PROJECT_TYPE_LABELS.keys()))
+            "Select type", type=click.Choice(list(PROJECT_TYPE_LABELS.keys())),
         )
         result.inferred_type = PROJECT_TYPE_CHOICES[type_choice]
         result.primary_language = click.prompt("Primary language", default=result.primary_language)
@@ -2061,7 +2059,7 @@ def import_project(
         if register_project(str(root)):
             console.print(
                 "  [dim]\u2713 Registered with MCP server "
-                "([bold]specsmith mcp projects[/bold] to view)[/dim]"
+                "([bold]specsmith mcp projects[/bold] to view)[/dim]",
             )
 
 
@@ -2165,7 +2163,7 @@ def architect_group(ctx: click.Context, project_dir: str, non_interactive: bool)
     modules: list[str] = list(scan.get("modules", []) or [])  # type: ignore[call-overload]
     deps_list: list[str] = list(scan.get("dependencies", []) or [])  # type: ignore[call-overload]
     eps_list: list[str] = list(scan.get("entry_points", []) or [])  # type: ignore[call-overload]
-    existing: list[str] = list(scan.get("existing_arch_docs", []) or [])  # type: ignore[call-overload]  # noqa: E501
+    existing: list[str] = list(scan.get("existing_arch_docs", []) or [])  # type: ignore[call-overload]
 
     console.print(f"  Languages: {scan.get('primary_language', '?')}")
     console.print(f"  Modules: {', '.join(modules) or 'none'}")
@@ -2195,14 +2193,14 @@ def architect_group(ctx: click.Context, project_dir: str, non_interactive: bool)
         deployment = click.prompt("Deployment notes", default="")
 
     path = generate_architecture(
-        root, components=components, data_flow=data_flow, deployment=deployment, scan=scan
+        root, components=components, data_flow=data_flow, deployment=deployment, scan=scan,
     )
     rel = path.relative_to(root)
     console.print(f"\n[green]\u2713[/green] Generated {rel}")
     if existing:
         console.print(
             f"  [yellow]Note:[/yellow] Existing docs at {', '.join(existing)} "
-            "are referenced but not merged. Review manually."
+            "are referenced but not merged. Review manually.",
         )
     console.print('  [dim]Run "specsmith audit --project-dir ." to verify governance health.[/dim]')
 
@@ -2240,7 +2238,7 @@ def architect_interview_cmd(project_dir: str, non_interactive: bool) -> None:
     console.print(
         "This interview helps specsmith build an ARCHITECTURE.md grounded in "
         "your actual requirements.\n"
-        "Type [bold]done[/bold] at any prompt to finish early.\n"
+        "Type [bold]done[/bold] at any prompt to finish early.\n",
     )
 
     result = run_interview(root, non_interactive=non_interactive)
@@ -2262,7 +2260,7 @@ def architect_interview_cmd(project_dir: str, non_interactive: bool) -> None:
     if not all_confident:
         console.print(
             "\n[yellow]Some dimensions below 75%.[/yellow] "
-            "Re-run [bold]specsmith architect interview[/bold] to continue."
+            "Re-run [bold]specsmith architect interview[/bold] to continue.",
         )
     else:
         console.print("\n[green]All dimensions confident! \u2714[/green]")
@@ -2389,7 +2387,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
     """
     import json as _json
     import shutil
-    import subprocess as _sub  # noqa: S404 — gh CLI is trusted
+    import subprocess as _sub
 
     from specsmith.architect import run_feature_gap_analysis
 
@@ -2404,7 +2402,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
 
     if not gaps:
         console.print(
-            "[green]\u2714 No specsmith feature gaps detected for this project type.[/green]"
+            "[green]\u2714 No specsmith feature gaps detected for this project type.[/green]",
         )
         return
 
@@ -2417,7 +2415,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
 
     if not do_create:
         console.print(
-            "[dim]Run with [bold]--create[/bold] to open GitHub issues for each gap.[/dim]"
+            "[dim]Run with [bold]--create[/bold] to open GitHub issues for each gap.[/dim]",
         )
         return
 
@@ -2429,7 +2427,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
     target_repo = repo
     if not target_repo:
         try:
-            result = _sub.run(  # noqa: S603, S607
+            result = _sub.run(
                 ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
                 capture_output=True,
                 text=True,
@@ -2455,7 +2453,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
         for lbl in gap.labels:
             label_args += ["--label", lbl]
         try:
-            proc = _sub.run(  # noqa: S603, S607
+            proc = _sub.run(  # noqa: S603
                 [
                     "gh",
                     "issue",
@@ -2483,7 +2481,7 @@ def architect_issues_cmd(project_dir: str, do_create: bool, repo: str, as_json: 
 
     console.print(
         f"\n[bold green]\u2714[/bold green] {created}/{len(gaps)} issue(s) "
-        f"created on {target_repo}."
+        f"created on {target_repo}.",
     )
 
 
@@ -2577,7 +2575,7 @@ def generate_tests_cmd(project_dir: str, reqs_file: str | None, output: str | No
     else:
         for tc in test_cases:
             console.print(
-                f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}"
+                f"  [green]{tc['id']}[/green] (REQ: {tc['requirement_id']}): {tc['description']}",
             )
         console.print(f"\n[bold green]Generated {len(test_cases)} test cases.[/bold green]")
 
@@ -2604,7 +2602,7 @@ def ledger_add(project_dir: str, entry_type: str, author: str, reqs: str, descri
 
     root = Path(project_dir).resolve()
     entry = add_entry(
-        root, description=description, entry_type=entry_type, author=author, reqs=reqs
+        root, description=description, entry_type=entry_type, author=author, reqs=reqs,
     )
     console.print(f"[green]Added:[/green] {entry.splitlines()[0]}")
 
@@ -2707,7 +2705,7 @@ def ledger_export(
                             "reqs": str(r.data.get("reqs") or ""),
                             "status": str(r.data.get("status") or ""),
                             "source": "esdb",
-                        }
+                        },
                     )
         except Exception as exc:  # noqa: BLE001
             console.print(f"[yellow]ESDB read failed: {exc}[/yellow]")
@@ -2947,7 +2945,7 @@ def test_add(
         console.print(
             "[red]test add requires YAML-first mode.[/red] "
             "Run `specsmith migrate-project --yaml` (or `scripts/migrate_governance_to_yaml.py "
-            f"--project-dir {project_dir}`) to migrate this project to YAML-first governance."
+            f"--project-dir {project_dir}`) to migrate this project to YAML-first governance.",
         )
         raise SystemExit(1)
 
@@ -3030,7 +3028,7 @@ def migrate(new_type: str, project_dir: str) -> None:
     from specsmith.ledger import add_entry
 
     add_entry(
-        root, description=f"Migrated type: {old_type} \u2192 {new_type}", entry_type="migration"
+        root, description=f"Migrated type: {old_type} \u2192 {new_type}", entry_type="migration",
     )
     console.print(f"\n[bold green]Migrated to {config.type_label}.[/bold green]")
 
@@ -3069,7 +3067,7 @@ def release(version: str, project_dir: str) -> None:
         f"  2. git add -A && git commit -m 'release: v{version}'\n"
         f"  3. git checkout main && git merge develop --no-edit\n"
         f"  4. git tag -a v{version} -m 'v{version}'\n"
-        f"  5. git push origin main develop --tags"
+        f"  5. git push origin main develop --tags",
     )
 
 
@@ -3105,8 +3103,8 @@ def verify_release() -> None:
 
     # RTD
     try:
-        resp = urllib.request.urlopen(  # noqa: S310
-            "https://specsmith.readthedocs.io/en/latest/", timeout=10
+        resp = urllib.request.urlopen(
+            "https://specsmith.readthedocs.io/en/latest/", timeout=10,
         )
         if resp.status == 200:
             console.print("  [green]\u2713[/green] RTD: site is live")
@@ -3120,7 +3118,7 @@ def verify_release() -> None:
 
     # GitHub release
     try:
-        result = subprocess.run(  # noqa: S603, S607 — argv is a fixed, trusted CLI invocation
+        result = subprocess.run(  # noqa: S603 — argv is a fixed, trusted CLI invocation
             ["gh", "release", "view", f"v{__version__}", "--json", "tagName"],
             capture_output=True,
             text=True,
@@ -3141,7 +3139,7 @@ def verify_release() -> None:
         console.print(f"[bold green]All {checks_passed} checks passed.[/bold green]")
     else:
         console.print(
-            f"[bold red]{checks_failed} check(s) failed.[/bold red] {checks_passed} passed."
+            f"[bold red]{checks_failed} check(s) failed.[/bold red] {checks_passed} passed.",
         )
 
 
@@ -3285,7 +3283,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                 "step": "gitignore_policy",
                 "ok": True,
                 "note": "normalized legacy ESDB policy" if changed else "already compliant",
-            }
+            },
         )
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "gitignore_policy", "ok": False, "error": str(exc)})
@@ -3302,7 +3300,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                         "ok": True,
                         "path": str(backup_path),
                         "backend": esdb_mod.ESDB_BACKEND,
-                    }
+                    },
                 )
             else:
                 steps.append(
@@ -3310,7 +3308,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                         "step": "esdb_backup",
                         "ok": True,
                         "note": f"{esdb_mod.ESDB_BACKEND} backend has no native backup method",
-                    }
+                    },
                 )
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
@@ -3321,7 +3319,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
     else:
         commit_result = run_commit(root, message=message, auto_push=False)
         steps.append(
-            {"step": "commit", "ok": commit_result.success, "message": commit_result.message}
+            {"step": "commit", "ok": commit_result.success, "message": commit_result.message},
         )
 
     # 3. Push
@@ -3344,7 +3342,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                         f"{len(remaining)} file(s) still uncommitted after save. Run: git status"
                     ),
                     "dirty_files": remaining,
-                }
+                },
             )
 
     ok = all(s["ok"] for s in steps)
@@ -3371,7 +3369,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
                 files_str = ", ".join(step.get("dirty_files", [])[:5])
                 extra = " ..." if len(step.get("dirty_files", [])) > 5 else ""
                 console.print(
-                    f"  [yellow]\u26a0[/yellow]  {step['note']}  [dim]({files_str}{extra})[/dim]"
+                    f"  [yellow]\u26a0[/yellow]  {step['note']}  [dim]({files_str}{extra})[/dim]",
                 )
                 continue
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
@@ -3460,7 +3458,7 @@ def inspect_cmd(project_dir: str, as_json: bool) -> None:
             tok_str = f"{tpc:.0f}" if tpc else "n/a"
             deg_str = "  ⚠ DEGRADED" if degraded else ""
             lines.append(
-                f"  Efficiency : tokens/pass={tok_str}  ctx_fill={ctx_eff or 'n/a'}{deg_str}"
+                f"  Efficiency : tokens/pass={tok_str}  ctx_fill={ctx_eff or 'n/a'}{deg_str}",
             )
             lines.append(f"  Epistemic  : score={eq_score:.2f} ({_band(eq_score)})")
             # 5-dim breakdown
@@ -3542,7 +3540,7 @@ def load_cmd(project_dir: str, from_backup: str | None, do_pull: bool, as_json: 
     if do_pull or not from_backup:
         sync_result = run_sync(root)
         steps.append(
-            {"step": "git_pull", "ok": sync_result.success, "message": sync_result.message}
+            {"step": "git_pull", "ok": sync_result.success, "message": sync_result.message},
         )
 
     # 2. Restore ESDB from backup if a path was supplied.
@@ -3555,7 +3553,7 @@ def load_cmd(project_dir: str, from_backup: str | None, do_pull: bool, as_json: 
                     "step": "esdb_restore",
                     "ok": False,
                     "error": f"Backup not found: {backup_path}",
-                }
+                },
             )
         else:
             try:
@@ -3577,7 +3575,7 @@ def load_cmd(project_dir: str, from_backup: str | None, do_pull: bool, as_json: 
                 "backend": status.backend,
                 "records": status.record_count,
                 "chain_valid": status.chain_valid,
-            }
+            },
         )
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_status", "ok": False, "error": str(exc)})
@@ -3743,12 +3741,12 @@ def channel_get_cmd(as_json: bool) -> None:
 
     channel_color = "cyan" if channel == "dev" else "green"
     console.print(
-        f"  Channel: [{channel_color}]{channel}[/{channel_color}]  [dim]({source_label})[/dim]"
+        f"  Channel: [{channel_color}]{channel}[/{channel_color}]  [dim]({source_label})[/dim]",
     )
     if source == "version":
         console.print(
             "  [dim]Run [bold]specsmith channel set stable[/bold] or"
-            " [bold]specsmith channel set dev[/bold] to pin a preference.[/dim]"
+            " [bold]specsmith channel set dev[/bold] to pin a preference.[/dim]",
         )
 
 
@@ -3771,7 +3769,7 @@ def channel_set_cmd(channel: str) -> None:
     console.print(
         f"[green]\u2713[/green] Channel set to"
         f" [{channel_color}]{channel}[/{channel_color}]."
-        f" Saved to [dim]~/.specsmith/channel[/dim]."
+        f" Saved to [dim]~/.specsmith/channel[/dim].",
     )
     if channel == "dev":
         console.print("  [dim]specsmith self-update will now target pre-release builds.[/dim]")
@@ -3788,7 +3786,7 @@ def channel_clear_cmd() -> None:
     channel, source = effective_channel_with_source()
     console.print(
         f"[green]\u2713[/green] Channel preference cleared."
-        f" Effective channel: [bold]{channel}[/bold] (from {source})."
+        f" Effective channel: [bold]{channel}[/bold] (from {source}).",
     )
 
 
@@ -3871,7 +3869,7 @@ def self_update_cmd(channel: str | None, target_version: str) -> None:
             return
         if current == latest:
             console.print(
-                f"[green]\u2713[/green] specsmith {current} is up to date ({effective_channel})."
+                f"[green]\u2713[/green] specsmith {current} is up to date ({effective_channel}).",
             )
             return
         console.print(f"  Current: {current} ({current_channel})")
@@ -3958,7 +3956,7 @@ def session_clear_cmd(project_dir: str, yes: bool) -> None:
         return
 
     if not yes and not click.confirm(
-        f"Clear {len(existing)} session file(s) in {specsmith_dir}?", default=False
+        f"Clear {len(existing)} session file(s) in {specsmith_dir}?", default=False,
     ):
         return
 
@@ -4197,7 +4195,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
     console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
     console.print(
         "[dim]Include this block verbatim in any context summary "
-        r"(\`specsmith checkpoint\` re-generates it).[/dim]"
+        r"(\`specsmith checkpoint\` re-generates it).[/dim]",
     )
 
 
@@ -4222,7 +4220,7 @@ def session_end_cmd(project_dir: str) -> None:
     console.print()
     if report.action_count > 0:
         console.print(
-            f"[bold red]{report.action_count} action(s) needed before ending session.[/bold red]"
+            f"[bold red]{report.action_count} action(s) needed before ending session.[/bold red]",
         )
     elif report.warn_count > 0:
         console.print(f"[bold yellow]{report.warn_count} warning(s).[/bold yellow]")
@@ -4321,7 +4319,7 @@ def credits_record(
     console.print(
         f"[green]\u2713[/green] Recorded: {entry.model} "
         f"{entry.tokens_in:,}+{entry.tokens_out:,} tokens "
-        f"(${entry.estimated_cost_usd:.4f})"
+        f"(${entry.estimated_cost_usd:.4f})",
     )
 
 
@@ -4357,7 +4355,7 @@ def credits_analyze(project_dir: str) -> None:
 @click.option("--cap", type=float, default=None, help="Monthly cap in USD (0=unlimited).")
 @click.option("--alert-pct", type=int, default=None, help="Alert at this % of cap.")
 @click.option(
-    "--watermarks", default=None, help="Comma-separated USD watermark alerts (e.g. 5,10,25,50)."
+    "--watermarks", default=None, help="Comma-separated USD watermark alerts (e.g. 5,10,25,50).",
 )
 @click.option(
     "--enforcement",
@@ -4430,7 +4428,7 @@ def credits_limits_list(project_dir: str) -> None:
             f"{profile.provider}/{profile.model} "
             f"RPM={profile.rpm_limit} TPM={profile.tpm_limit} "
             f"target={profile.utilization_target:.2f} "
-            f"concurrency={profile.concurrency_cap}"
+            f"concurrency={profile.concurrency_cap}",
         )
 
 
@@ -4476,7 +4474,7 @@ def credits_limits_set(
         f"Saved {updated_profile.provider}/{updated_profile.model} "
         f"(RPM={updated_profile.rpm_limit}, TPM={updated_profile.tpm_limit}, "
         f"target={updated_profile.utilization_target:.2f}, "
-        f"concurrency={updated_profile.concurrency_cap})"
+        f"concurrency={updated_profile.concurrency_cap})",
     )
 
 
@@ -4501,29 +4499,29 @@ def credits_limits_status(project_dir: str, provider: str, model: str) -> None:
     except KeyError:
         console.print(
             f"[red]No profile found for {provider}/{model}.[/red] "
-            "Use 'specsmith credits limits set' to configure one."
+            "Use 'specsmith credits limits set' to configure one.",
         )
         raise SystemExit(1) from None
 
     console.print(f"[bold]{snap.provider}/{snap.model}[/bold]")
     console.print(
         f"  RPM: {snap.rolling_request_count} / {snap.effective_rpm_limit} "
-        f"(limit {snap.rpm_limit}, target {snap.effective_rpm_limit})"
+        f"(limit {snap.rpm_limit}, target {snap.effective_rpm_limit})",
     )
     console.print(
         f"  TPM: {snap.rolling_token_count:,} / {snap.effective_tpm_limit:,} "
-        f"(limit {snap.tpm_limit:,})"
+        f"(limit {snap.tpm_limit:,})",
     )
     console.print(
-        f"  Utilization: RPM {snap.request_utilization:.1%}  TPM {snap.token_utilization:.1%}"
+        f"  Utilization: RPM {snap.request_utilization:.1%}  TPM {snap.token_utilization:.1%}",
     )
     console.print(
         f"  Concurrency: {snap.in_flight} in-flight / {snap.current_concurrency_cap} cap "
-        f"(base {snap.base_concurrency_cap})"
+        f"(base {snap.base_concurrency_cap})",
     )
     console.print(
         f"  Moving avg:  {snap.moving_average_requests:.1f} req/window  "
-        f"{snap.moving_average_tokens:,.0f} tok/window"
+        f"{snap.moving_average_tokens:,.0f} tok/window",
     )
 
 
@@ -4549,7 +4547,7 @@ def credits_limits_defaults(project_dir: str, install: bool) -> None:
         console.print(
             f"  {profile.provider}/{profile.model:25s} "
             f"RPM={profile.rpm_limit:<6} TPM={profile.tpm_limit:>12,} "
-            f"target={profile.utilization_target:.2f}"
+            f"target={profile.utilization_target:.2f}",
         )
 
     if install:
@@ -4562,7 +4560,7 @@ def credits_limits_defaults(project_dir: str, install: bool) -> None:
         added = len(merged) - len(existing)
         console.print(
             f"\n[green]\u2713[/green] Installed {added} new default(s) to "
-            ".specsmith/model-rate-limits.json (existing profiles preserved)."
+            ".specsmith/model-rate-limits.json (existing profiles preserved).",
         )
 
 
@@ -4585,7 +4583,7 @@ def plugin_list() -> None:
         console.print(
             "\nPlugins register via pyproject.toml entry points:"
             "\n  [project.entry-points.'specsmith.types']\n"
-            "  my-type = 'my_plugin:register_type'"
+            "  my-type = 'my_plugin:register_type'",
         )
         return
 
@@ -4724,7 +4722,7 @@ def _print_ollama_setup_guidance(console_obj: object) -> None:
             "  2. Pull recommended models (auto-detected for your hardware):\n"
             "       specsmith local-model setup\n\n"
             "  3. Run specsmith again:\n"
-            "       specsmith run\n"
+            "       specsmith run\n",
         )
     else:
         # Ollama is not installed at all.
@@ -4737,13 +4735,13 @@ def _print_ollama_setup_guidance(console_obj: object) -> None:
             "  3. Pull recommended models (auto-detected for your hardware):\n"
             "       specsmith local-model setup\n\n"
             "  4. Run specsmith again:\n"
-            "       specsmith run\n"
+            "       specsmith run\n",
         )
         console_obj.print(
             "[bold]Option B — Cloud AI (requires an API key):[/bold]\n\n"
             "  ANTHROPIC_API_KEY=sk-ant-...   then   specsmith run   # Claude\n"
             "  OPENAI_API_KEY=sk-...          then   specsmith run   # GPT\n"
-            "  GOOGLE_API_KEY=...             then   specsmith run   # Gemini\n"
+            "  GOOGLE_API_KEY=...             then   specsmith run   # Gemini\n",
         )
 
 
@@ -4788,7 +4786,7 @@ def _auto_detect_and_save_local_models(project_dir: str) -> None:
     help="Model capability tier (default: balanced).",
 )
 @click.option(
-    "--no-stream", "no_stream", is_flag=True, default=False, help="Disable streaming output."
+    "--no-stream", "no_stream", is_flag=True, default=False, help="Disable streaming output.",
 )
 @click.option(
     "--optimize",
@@ -4861,7 +4859,7 @@ def run_cmd(
             if s.available:
                 console.print(
                     f"  [green]\u2713[/green] {s.name:<10} "
-                    f"model: [bold]{s.model}[/bold]  ({s.note})"
+                    f"model: [bold]{s.model}[/bold]  ({s.note})",
                 )
             else:
                 console.print(f"  [red]\u2717[/red] {s.name:<10} {s.note}")
@@ -4869,11 +4867,11 @@ def run_cmd(
         if any_ok:
             active = next(s for s in statuses if s.available)
             console.print(
-                f"[bold green]Ready.[/bold green] Primary provider: {active.name} / {active.model}"
+                f"[bold green]Ready.[/bold green] Primary provider: {active.name} / {active.model}",
             )
         else:
             console.print(
-                "[bold red]No provider available.[/bold red] Start Ollama or set an API key."
+                "[bold red]No provider available.[/bold red] Start Ollama or set an API key.",
             )
             raise SystemExit(1)
         return
@@ -4927,7 +4925,7 @@ def run_cmd(
             "  pipx inject specsmith anthropic             # Claude\n"
             "  pipx inject specsmith openai               # GPT\n"
             "  pipx inject specsmith google-generativeai  # Gemini\n"
-            "  # Ollama: install locally from https://ollama.ai"
+            "  # Ollama: install locally from https://ollama.ai",
         )
         raise SystemExit(1) from None
 
@@ -4981,6 +4979,7 @@ def serve_cmd(
     Example:
       specsmith serve --port 8421 --provider ollama --model qwen2.5:14b \
         --auth-token $(specsmith auth get serve)
+
     """
     import os
 
@@ -5003,7 +5002,7 @@ def serve_cmd(
         except Exception as exc:  # noqa: BLE001
             console.print(
                 f"[yellow]Warning:[/yellow] could not resolve endpoint "
-                f"{endpoint_id!r}: {exc}. Falling back to --provider {provider}."
+                f"{endpoint_id!r}: {exc}. Falling back to --provider {provider}.",
             )
 
     run_server(
@@ -5111,7 +5110,7 @@ def agent_permissions_cmd(project_dir: str, as_json: bool) -> None:
     help="Do not write a ledger entry when the tool is denied (e.g. for dry-run checks).",
 )
 def agent_permissions_check_cmd(
-    tool_name: str, project_dir: str, as_json: bool, skip_log: bool
+    tool_name: str, project_dir: str, as_json: bool, skip_log: bool,
 ) -> None:
     """Check whether TOOL_NAME is permitted under the active permission profile (REG-012).
 
@@ -5138,20 +5137,19 @@ def agent_permissions_check_cmd(
 
     if as_json:
         click.echo(_json.dumps(result, indent=2))
+    elif allowed:
+        console.print(
+            f"[green]\u2713[/green] [bold]{tool_name}[/bold] is "
+            f"[green]allowed[/green] under profile '[cyan]{perms.label}[/cyan]'.",
+        )
     else:
-        if allowed:
-            console.print(
-                f"[green]\u2713[/green] [bold]{tool_name}[/bold] is "
-                f"[green]allowed[/green] under profile '[cyan]{perms.label}[/cyan]'."
-            )
-        else:
-            console.print(
-                f"[red]\u2717[/red] [bold]{tool_name}[/bold] is "
-                f"[red]denied[/red] under profile '[cyan]{perms.label}[/cyan]'."
-            )
-            console.print(f"  [dim]{reason.splitlines()[0]}[/dim]")
-            if not skip_log:
-                console.print("  [dim]Denial recorded in ledger (REG-012 audit trail).[/dim]")
+        console.print(
+            f"[red]\u2717[/red] [bold]{tool_name}[/bold] is "
+            f"[red]denied[/red] under profile '[cyan]{perms.label}[/cyan]'.",
+        )
+        console.print(f"  [dim]{reason.splitlines()[0]}[/dim]")
+        if not skip_log:
+            console.print("  [dim]Denial recorded in ledger (REG-012 audit trail).[/dim]")
 
     if not allowed:
         raise SystemExit(3)
@@ -5415,7 +5413,7 @@ def belief_graph_cmd(project_dir: str, output_format: str, component: str) -> No
                 icon = "[green]✓[/green]" if (sc and sc.above_threshold) else "[red]✗[/red]"
                 console.print(
                     f"    {icon} {a.artifact_id:25s} [{a.status.value:15s}] "
-                    f"C={score_str}  {a.source_text[:50]}"
+                    f"C={score_str}  {a.source_text[:50]}",
                 )
         console.print()
         console.print(f"  Overall certainty: {report.overall_score:.2f}")
@@ -5494,8 +5492,8 @@ def epistemic_audit_cmd(project_dir: str, threshold: float, emit_mermaid: bool) 
     console.print(f"  Failure modes:      {result.total_failures}")
     console.print(f"  Critical failures:  {result.critical_count}")
     console.print(f"  Logic knots:        {len(result.logic_knots)}")
-    console.print(  # noqa: E501
-        f"  Overall certainty:  {certainty.overall_score:.2f} (threshold {threshold:.2f})"
+    console.print(
+        f"  Overall certainty:  {certainty.overall_score:.2f} (threshold {threshold:.2f})",
     )
     console.print(f"  Below threshold:    {len(certainty.below_threshold)}")
     console.print()
@@ -5536,7 +5534,7 @@ def trace_group() -> None:
 @click.argument(
     "seal_type",
     type=click.Choice(
-        ["decision", "milestone", "audit-gate", "logic-knot", "stress-test", "epistemic"]
+        ["decision", "milestone", "audit-gate", "logic-knot", "stress-test", "epistemic"],
     ),
 )
 @click.argument("description")
@@ -5650,7 +5648,7 @@ def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
         else:
             console.print("  No directly linked belief artifacts found.")
             console.print(
-                "  [dim]Tip: Add requirements that reference this tool to docs/REQUIREMENTS.md.[/dim]"  # noqa: E501
+                "  [dim]Tip: Add requirements that reference this tool to docs/REQUIREMENTS.md.[/dim]",  # noqa: E501
             )
 
     console.print()
@@ -5686,12 +5684,12 @@ def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
             console.print(f"\n[bold green]{len(created)} adapter file(s) generated.[/bold green]")
         else:
             console.print(
-                "[yellow]No docs/SPECSMITH.yml found. Run specsmith import first.[/yellow]"
+                "[yellow]No docs/SPECSMITH.yml found. Run specsmith import first.[/yellow]",
             )
     except ValueError:
         console.print(
             f"[yellow]No built-in adapter for '{tool_name}'.[/yellow] "
-            "You can create a custom adapter by implementing BaseAdapter."
+            "You can create a custom adapter by implementing BaseAdapter.",
         )
 
 
@@ -5745,7 +5743,7 @@ def auth_list() -> None:
         if e["status"] == "configured":
             console.print(
                 f"  [green]\u2713[/green] {e['platform']:14s} {e['masked']:20s} "
-                f"[dim]{e['source']}[/dim]"
+                f"[dim]{e['source']}[/dim]",
             )
         else:
             console.print(f"  [dim]\u2014[/dim] {e['platform']:14s} [dim]not set[/dim]")
@@ -5804,8 +5802,8 @@ def auth_check(project_dir: str) -> None:
     if all_ok:
         console.print("[bold green]All required tokens configured.[/bold green]")
     else:
-        console.print(  # noqa: E501
-            "[yellow]Some tokens missing. Run [bold]specsmith auth set <platform>[/bold].[/yellow]"
+        console.print(
+            "[yellow]Some tokens missing. Run [bold]specsmith auth set <platform>[/bold].[/yellow]",
         )
 
 
@@ -5929,7 +5927,7 @@ def watch_cmd(project_dir: str, interval: int, no_notify: bool) -> None:
 
     # Check if watchdog is available (optional dep)
     try:
-        import importlib.util as _iutil  # noqa: F401
+        import importlib.util as _iutil
 
         _has_watchdog = _iutil.find_spec("watchdog") is not None
     except Exception:  # noqa: BLE001
@@ -5942,7 +5940,7 @@ def watch_cmd(project_dir: str, interval: int, no_notify: bool) -> None:
             "project's dev extras:[/dim]\n"
             "  [dim]  pip install watchdog[/dim]\n"
             "  [dim]  or add to pyproject.toml: "
-            '[bold][project.optional-dependencies] dev = ["watchdog>=4.0"][/bold][/dim]\n'
+            '[bold][project.optional-dependencies] dev = ["watchdog>=4.0"][/bold][/dim]\n',
         )
 
     from specsmith.auditor import run_audit
@@ -5964,8 +5962,7 @@ def watch_cmd(project_dir: str, interval: int, no_notify: bool) -> None:
             if src_dir.exists():
                 for f in src_dir.rglob("*.py"):
                     mt = f.stat().st_mtime
-                    if mt > code_mtime:
-                        code_mtime = mt
+                    code_mtime = max(code_mtime, mt)
 
         current_ledger_mtime = ledger_path.stat().st_mtime if ledger_path.exists() else 0.0
         if code_mtime > current_ledger_mtime and code_mtime > 0:
@@ -6111,14 +6108,14 @@ def ollama_list_cmd() -> None:
 
     if not is_running():
         console.print(
-            "[red]\u2717[/red] Ollama is not running. Start it with: [bold]ollama serve[/bold]"
+            "[red]\u2717[/red] Ollama is not running. Start it with: [bold]ollama serve[/bold]",
         )
         raise SystemExit(1)
 
     models = get_installed_models()
     if not models:
         console.print(
-            "[yellow]No models installed.[/yellow] Pull one with: specsmith ollama pull <model>"
+            "[yellow]No models installed.[/yellow] Pull one with: specsmith ollama pull <model>",
         )
         return
 
@@ -6176,7 +6173,7 @@ def ollama_gpu_cmd() -> None:
     vram = get_vram_gb()
     if vram > 0:
         console.print(
-            f"[green]\u2713[/green] GPU detected \u2014 [bold]{vram:.1f} GB[/bold] VRAM available"
+            f"[green]\u2713[/green] GPU detected \u2014 [bold]{vram:.1f} GB[/bold] VRAM available",
         )
         # Tier suggestions
         if vram >= 20:
@@ -6209,7 +6206,7 @@ def ollama_pull_cmd(model_id: str) -> None:
         console.print(
             "[red]\u2717[/red] Ollama is not running.\n"
             "  Start it: [bold]ollama serve[/bold]\n"
-            "  Or open the Ollama desktop app."
+            "  Or open the Ollama desktop app.",
         )
         raise SystemExit(1)
 
@@ -6271,13 +6268,13 @@ def ollama_suggest_cmd(task: str) -> None:
         for e in not_inst[:3]:
             console.print(
                 f"  [dim]\u21d3[/dim] {e.name:28s} "
-                f"{e.size_gb}GB \u2014 specsmith ollama pull {e.id}"
+                f"{e.size_gb}GB \u2014 specsmith ollama pull {e.id}",
             )
 
     if not inst_recs and not not_inst:
         console.print("[yellow]No matching models found.[/yellow]")
         console.print(
-            f"  Run [bold]specsmith ollama available --task {task}[/bold] to see options."
+            f"  Run [bold]specsmith ollama available --task {task}[/bold] to see options.",
         )
 
 
@@ -6318,10 +6315,10 @@ def credits_check_cmd(project_dir: str) -> None:
             console.print(
                 f"\n[bold red]HARD CAP EXCEEDED[/bold red] — "
                 f"${summary.total_cost_usd:.4f} / ${cap:.2f}. "
-                f"New agent sessions blocked. Raise cap or reset billing period."
+                f"New agent sessions blocked. Raise cap or reset billing period.",
             )
             raise SystemExit(2)
-        elif pct >= budget.alert_threshold_pct:
+        if pct >= budget.alert_threshold_pct:
             pct_threshold = budget.alert_threshold_pct
             console.print(f"\n[yellow]\u26a0 Alert threshold ({pct_threshold}%) reached.[/yellow]")
         else:
@@ -6404,27 +6401,29 @@ def optimize_cmd(project_dir: str, provider_name: str, model: str) -> None:
     console.print()
     console.print("  [bold]Projected savings:[/bold]")
     console.print(
-        f"    Response caching (30%+ hit rate):  [green]+${est['cache_savings_usd']:.2f}/mo[/green]"
+        f"    Response caching (30%+ hit rate):  "
+        f"[green]+${est['cache_savings_usd']:.2f}/mo[/green]",
     )
     routing_val = est["routing_savings_usd"]
     console.print(f"    Model routing (40% FAST tasks):    [green]+${routing_val:.2f}/mo[/green]")
     console.print(
-        f"    Context trimming (~20% reduction): [green]+${est['trim_savings_usd']:.2f}/mo[/green]"
+        f"    Context trimming (~20% reduction): [green]+${est['trim_savings_usd']:.2f}/mo[/green]",
     )
     if provider_name == "anthropic":
         prompt_cache_savings = est["baseline_usd"] * 0.45  # 90% on cached reads, ~50% of calls
         console.print(
-            f"    Anthropic prompt caching (90%):    [green]+${prompt_cache_savings:.2f}/mo[/green]"
+            f"    Anthropic prompt caching (90%):    "
+            f"[green]+${prompt_cache_savings:.2f}/mo[/green]",
         )
         est["total_savings_usd"] = round(est["total_savings_usd"] + prompt_cache_savings, 2)
         est["savings_pct"] = min(
-            95, round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1)
+            95, round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1),
         )
 
     console.print()
     console.print(
         f"  [bold green]Total estimated saving:  "
-        f"${est['total_savings_usd']:.2f}/mo ({est['savings_pct']:.0f}%)[/bold green]"
+        f"${est['total_savings_usd']:.2f}/mo ({est['savings_pct']:.0f}%)[/bold green]",
     )
 
     # Recommendations
@@ -6433,15 +6432,15 @@ def optimize_cmd(project_dir: str, provider_name: str, model: str) -> None:
     console.print("  2. Anthropic users get 90% discount on cached system prompts (auto-enabled).")
     console.print(
         "  3. Use [bold]specsmith run --provider anthropic --model claude-haiku-4-5[/bold]"
-        " for simple governance queries."
+        " for simple governance queries.",
     )
     console.print(
         "  4. Run [bold]/clear[/bold] every 20-30 turns to reset context and avoid "
-        "compounding history costs."
+        "compounding history costs.",
     )
     console.print(
         "  5. Batch tool calls where possible — one audit + validate + doctor costs less"
-        " than three separate calls."
+        " than three separate calls.",
     )
 
 
@@ -6474,7 +6473,7 @@ def gui_cmd(project_dir: str, provider_name: str | None, model: str | None) -> N
     except ImportError:
         console.print(
             "[red]PySide6 is required for the GUI.[/red]\n"
-            "Install it: [bold]pip install specsmith[gui][/bold]"
+            "Install it: [bold]pip install specsmith[gui][/bold]",
         )
         raise SystemExit(1) from None
 
@@ -6540,7 +6539,7 @@ def phase_show(project_dir: str, as_json: bool) -> None:
                     "failed": list(p_failed),
                     "next_phase": p.next_phase,
                     "is_active": (key == phase_key),
-                }
+                },
             )
         click.echo(
             _json.dumps(
@@ -6550,7 +6549,7 @@ def phase_show(project_dir: str, as_json: bool) -> None:
                     "phases": phases_payload,
                 },
                 indent=2,
-            )
+            ),
         )
         return
 
@@ -6573,12 +6572,12 @@ def phase_show(project_dir: str, as_json: bool) -> None:
     if phase.next_phase and not failed:
         console.print(
             f"\n  [green]\u2713 Ready to advance[/green] — "
-            f"run [bold]specsmith phase next[/bold] to move to [bold]{phase.next_phase}[/bold]."
+            f"run [bold]specsmith phase next[/bold] to move to [bold]{phase.next_phase}[/bold].",
         )
     elif phase.next_phase and failed:
         console.print(
             f"\n  [yellow]\u26a0 {len(failed)} check(s) remaining[/yellow] before advancing to"
-            f" [bold]{phase.next_phase}[/bold]."
+            f" [bold]{phase.next_phase}[/bold].",
         )
     console.print()
 
@@ -6611,19 +6610,19 @@ def phase_set(phase_key: str, project_dir: str, force: bool) -> None:
 
     if failed and not force:
         console.print(
-            f"[yellow]\u26a0 {len(failed)} check(s) not yet passing for {phase.label}:[/yellow]"
+            f"[yellow]\u26a0 {len(failed)} check(s) not yet passing for {phase.label}:[/yellow]",
         )
         for desc in failed:
             console.print(f"  [dim]\u2717 {desc}[/dim]")
         console.print(
-            "\n  Use [bold]--force[/bold] to set the phase anyway, or fix the checks first."
+            "\n  Use [bold]--force[/bold] to set the phase anyway, or fix the checks first.",
         )
         raise SystemExit(1)
 
     write_phase(root, phase_key)
     console.print(
         f"[green]\u2713[/green] Phase set to "
-        f"[bold]{phase.emoji} {phase.label}[/bold] for {root.name}."
+        f"[bold]{phase.emoji} {phase.label}[/bold] for {root.name}.",
     )
 
 
@@ -6652,7 +6651,7 @@ def phase_next(project_dir: str, force: bool) -> None:
     if failed and not force:
         console.print(
             f"[yellow]\u26a0 {len(failed)} check(s) must pass before advancing "
-            f"from {phase.label}:[/yellow]"
+            f"from {phase.label}:[/yellow]",
         )
         for desc in failed:
             console.print(f"  [dim]\u2717 {desc}[/dim]")
@@ -6662,7 +6661,7 @@ def phase_next(project_dir: str, force: bool) -> None:
     if not phase.next_phase:
         console.print(
             f"[bold]{phase.emoji} {phase.label}[/bold] is the final phase. "
-            "After release, the cycle restarts with [bold]inception[/bold] for the next version."
+            "After release, the cycle restarts with [bold]inception[/bold] for the next version.",
         )
         return
 
@@ -6691,7 +6690,7 @@ def phase_next(project_dir: str, force: bool) -> None:
     if not target_key:
         console.print(
             f"[bold]{phase.emoji} {phase.label}[/bold] is the effective final phase "
-            "(all remaining phases are suppressed)."
+            "(all remaining phases are suppressed).",
         )
         if skipped:
             console.print(f"  [dim]Suppressed: {', '.join(skipped)}[/dim]")
@@ -6701,7 +6700,7 @@ def phase_next(project_dir: str, force: bool) -> None:
     next_phase = PHASE_MAP[target_key]
     console.print(
         f"[green]\u2713[/green] Advanced from [bold]{phase.label}[/bold] "
-        f"to [bold]{next_phase.emoji} {next_phase.label}[/bold]."
+        f"to [bold]{next_phase.emoji} {next_phase.label}[/bold].",
     )
     if skipped:
         console.print(f"  [dim]Skipped suppressed phase(s): {', '.join(skipped)}[/dim]")
@@ -6765,7 +6764,7 @@ def phase_list(project_dir: str) -> None:
     console.print("[bold]AEE Project Lifecycle[/bold]\n")
     console.print(
         "  inception \u2192 architecture \u2192 requirements \u2192 test_spec "
-        "\u2192 implementation \u2192 verification \u2192 release\n"
+        "\u2192 implementation \u2192 verification \u2192 release\n",
     )
     for i, p in enumerate(PHASES, 1):
         is_cur = p.key == current
@@ -6816,7 +6815,7 @@ def info_cmd(as_json: bool, section: str) -> None:
             if lang_key not in seen_langs:
                 seen_langs.add(lang_key)
                 cats.setdefault(cat, []).append(
-                    {"key": lang_key, "name": display, "extensions": sorted(exts)}
+                    {"key": lang_key, "name": display, "extensions": sorted(exts)},
                 )
         result["languages"] = cats
         if not as_json:
@@ -6893,7 +6892,7 @@ def info_cmd(as_json: bool, section: str) -> None:
             console.print("[bold]Ollama Model Catalog[/bold]  (GPU-aware)\n")
             for e in OLLAMA_CATALOG:
                 console.print(
-                    f"  {e.name:<32s} {e.vram_gb:4.1f}GB  [dim]{', '.join(e.best_for[:2])}[/dim]"
+                    f"  {e.name:<32s} {e.vram_gb:4.1f}GB  [dim]{', '.join(e.best_for[:2])}[/dim]",
                 )
             console.print()
 
@@ -7010,7 +7009,7 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                     "auto_migrate_counts": auto_counts,
                 },
                 indent=2,
-            )
+            ),
         )
     else:
         if result.changed:
@@ -7026,7 +7025,7 @@ def sync_cmd(project_dir: str, check_only: bool, as_json: bool) -> None:
                 "  [cyan]⟳[/cyan] ESDB auto-migrate: "
                 f"{auto_counts.get('requirements', 0)} requirements + "
                 f"{auto_counts.get('testcases', 0)} testcases "
-                f"({auto_counts.get('skipped', 0)} skipped)"
+                f"({auto_counts.get('skipped', 0)} skipped)",
             )
 
     if check_only and result.changed:
@@ -7076,7 +7075,7 @@ def governance_serve_cmd(project_dir: str, port: int, host: str) -> None:
     if host not in ("127.0.0.1", "localhost", "::1"):
         console.print(
             f"[red]Error:[/red] host must be localhost (got {host!r}). "
-            "Architecture invariant I2 prohibits external governance endpoints."
+            "Architecture invariant I2 prohibits external governance endpoints.",
         )
         raise SystemExit(1)
 
@@ -7132,7 +7131,7 @@ def instinct_list(project_dir: str, as_json: bool) -> None:
             f"[bold]{r.id}[/bold]{scope}\n"
             f"    Trigger: {r.trigger_pattern}\n"
             f"    Content: {r.content[:80]}{'...' if len(r.content) > 80 else ''}\n"
-            f"    Used: {r.use_count}\u00d7  Created: {r.created}"
+            f"    Used: {r.use_count}\u00d7  Created: {r.created}",
         )
         console.print()
 
@@ -7165,6 +7164,7 @@ def instinct_learn(
       specsmith instinct learn \\
         "when adding a CLI command" \\
         "Always update docs/site/commands.md and README.md in the same PR."
+
     """
     from specsmith.instinct import InstinctStore
 
@@ -7179,7 +7179,7 @@ def instinct_learn(
     )
     console.print(
         f"[green]\u2713[/green] Learned instinct [bold]{rec.id}[/bold] "
-        f"(confidence: {rec.confidence:.0%})"
+        f"(confidence: {rec.confidence:.0%})",
     )
 
 
@@ -7318,7 +7318,7 @@ def config_editor_cmd(
         saved_path = set_editor_preference(target)
         console.print(
             f"[green]\u2713[/green] Saved editor preference: [bold]{target}[/bold]\n"
-            f"  Config: {saved_path}"
+            f"  Config: {saved_path}",
         )
         return
 
@@ -7327,7 +7327,7 @@ def config_editor_cmd(
         if not candidates:
             console.print("[yellow]No editors detected on this machine.[/yellow]")
             console.print(
-                "  Install VS Code, Neovim, or another editor and re-run, or set $EDITOR manually."
+                "  Install VS Code, Neovim, or another editor and re-run, or set $EDITOR manually.",
             )
             return
         console.print("[bold]Detected editors:[/bold]\n")
@@ -7355,7 +7355,7 @@ def config_editor_cmd(
     console.print()
     console.print(
         "  [dim]Override: set $EDITOR, or run "
-        "'specsmith config editor --set <cmd>' to persist.[/dim]"
+        "'specsmith config editor --set <cmd>' to persist.[/dim]",
     )
     console.print("  [dim]List available editors: 'specsmith config editor --list'[/dim]")
 
@@ -7520,7 +7520,7 @@ def voice_status_cmd() -> None:
         console.print("[yellow]\u2014[/yellow] voice unavailable")
         console.print(
             "  Install: [bold]pipx inject specsmith whisper-cpp-python[/bold] "
-            "and place a model under ~/.specsmith/voice/."
+            "and place a model under ~/.specsmith/voice/.",
         )
         raise SystemExit(2)
 
@@ -7550,7 +7550,7 @@ def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
 @click.option("--id", "endpoint_id", required=True, help="Stable identifier (no whitespace).")
 @click.option("--name", default="", help="Human-readable display name (defaults to id).")
 @click.option(
-    "--base-url", "base_url", required=True, help="OpenAI-v1 base URL, e.g. http://10.0.0.4:8000/v1"
+    "--base-url", "base_url", required=True, help="OpenAI-v1 base URL, e.g. http://10.0.0.4:8000/v1",
 )
 @click.option("--default-model", default="", help="Optional default model id.")
 @click.option(
@@ -7558,8 +7558,8 @@ def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
     "auth_kind",
     type=click.Choice(
         list(
-            __import__("specsmith.agent.endpoints", fromlist=["VALID_AUTH_KINDS"]).VALID_AUTH_KINDS
-        )
+            __import__("specsmith.agent.endpoints", fromlist=["VALID_AUTH_KINDS"]).VALID_AUTH_KINDS,
+        ),
     ),
     default="none",
     show_default=True,
@@ -7568,10 +7568,10 @@ def _resolve_keyring_user(endpoint_id: str, override: str) -> str:
 @click.option("--token", default="", help="Inline bearer token (only with --auth bearer-inline).")
 @click.option("--token-env", default="", help="Env var name (only with --auth bearer-env).")
 @click.option(
-    "--keyring-service", default="", help="Override the keyring service (default: 'specsmith')."
+    "--keyring-service", default="", help="Override the keyring service (default: 'specsmith').",
 )
 @click.option(
-    "--keyring-user", default="", help="Override the keyring user (default: 'endpoint:<id>')."
+    "--keyring-user", default="", help="Override the keyring user (default: 'endpoint:<id>').",
 )
 @click.option(
     "--no-verify-tls",
@@ -7675,7 +7675,7 @@ def endpoints_add(
         except Exception as exc:  # noqa: BLE001
             console.print(
                 f"[yellow]Warning:[/yellow] keyring write failed ({exc}). "
-                "Endpoint metadata saved, but the token was not stored."
+                "Endpoint metadata saved, but the token was not stored.",
             )
 
     if set_default:
@@ -7688,12 +7688,12 @@ def endpoints_add(
             _json.dumps(
                 {"endpoint": public, "default": store.default_endpoint_id},
                 indent=2,
-            )
+            ),
         )
         return
     console.print(
         f"[green]\u2713[/green] saved endpoint [bold]{endpoint.id}[/bold] "
-        f"({endpoint.base_url}, auth={auth_kind})"
+        f"({endpoint.base_url}, auth={auth_kind})",
     )
     if store.default_endpoint_id == endpoint.id:
         console.print("  [dim]marked as default.[/dim]")
@@ -7720,7 +7720,7 @@ def endpoints_list(as_json: bool) -> None:
         marker = "*" if item["id"] == store.default_endpoint_id else " "
         console.print(
             f"{marker} [bold]{item['id']}[/bold]  {item['base_url']}  "
-            f"[dim]auth={item['auth']['kind']}, model={item['default_model'] or '-'}[/dim]"
+            f"[dim]auth={item['auth']['kind']}, model={item['default_model'] or '-'}[/dim]",
         )
 
 
@@ -7758,7 +7758,7 @@ def endpoints_remove(endpoint_id: str, purge_keyring: bool, as_json: bool) -> No
             _json.dumps(
                 {"removed": endpoint_id, "default_endpoint_id": store.default_endpoint_id},
                 indent=2,
-            )
+            ),
         )
         return
     console.print(f"[green]\u2713[/green] removed endpoint {endpoint_id!r}")
@@ -7799,18 +7799,17 @@ def endpoints_test(endpoint_id: str, timeout: float, as_json: bool) -> None:
     health = endpoint.health(timeout=timeout)
     if as_json:
         click.echo(_json.dumps({"id": endpoint.id, **health.to_dict()}, indent=2))
+    elif health.ok:
+        console.print(
+            f"[green]\u2713[/green] {endpoint.id} ok in "
+            f"{int(health.latency_ms)} ms ({len(health.models)} models)",
+        )
+        for model in health.models[:5]:
+            console.print(f"    [dim]\u2022 {model}[/dim]")
+        if len(health.models) > 5:
+            console.print(f"    [dim]... +{len(health.models) - 5} more[/dim]")
     else:
-        if health.ok:
-            console.print(
-                f"[green]\u2713[/green] {endpoint.id} ok in "
-                f"{int(health.latency_ms)} ms ({len(health.models)} models)"
-            )
-            for model in health.models[:5]:
-                console.print(f"    [dim]\u2022 {model}[/dim]")
-            if len(health.models) > 5:
-                console.print(f"    [dim]... +{len(health.models) - 5} more[/dim]")
-        else:
-            console.print(f"[red]\u2717[/red] {endpoint.id} failed: {health.error}")
+        console.print(f"[red]\u2717[/red] {endpoint.id} failed: {health.error}")
     if not health.ok:
         raise SystemExit(1)
 
@@ -7990,7 +7989,7 @@ def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
                     "build_system": result.build_system,
                 },
                 indent=2,
-            )
+            ),
         )
         return
 
@@ -8060,7 +8059,7 @@ def ollama_remove_cmd(model_id: str, yes: bool) -> None:
         console.print(f"[green]\u2713[/green] {model_id} removed.")
     else:
         console.print(
-            f"[red]\u2717[/red] Could not remove {model_id} (not installed or API error)."
+            f"[red]\u2717[/red] Could not remove {model_id} (not installed or API error).",
         )
         raise SystemExit(1)
 
@@ -8131,7 +8130,7 @@ def ollama_version_cmd() -> None:
             console.print(f"  Latest    : [green]{latest}[/green]  ← update available")
             console.print(
                 f"\n  Upgrade: [bold]{upgrade_ollama_cmd()}[/bold]\n"
-                "  Or: [bold]specsmith ollama upgrade[/bold]"
+                "  Or: [bold]specsmith ollama upgrade[/bold]",
             )
         elif installed:
             console.print(f"  Latest    : {latest}  [green]\u2713 up to date[/green]")
@@ -8168,7 +8167,7 @@ def ollama_check_updates_cmd() -> None:
 
     console.print(
         "\n[dim]Ollama tags are not versioned like Docker — re-pulling is the update check.\n"
-        "  Run: [bold]specsmith ollama update --all[/bold] to pull latest digests.[/dim]"
+        "  Run: [bold]specsmith ollama update --all[/bold] to pull latest digests.[/dim]",
     )
 
 
@@ -8194,7 +8193,7 @@ def ollama_upgrade_cmd(yes: bool) -> None:
         console.print(f"[bold]Upgrade command:[/bold] {cmd}")
         console.print(
             "\n  Run it directly or use [bold]specsmith ollama upgrade --yes[/bold] "
-            "to execute automatically."
+            "to execute automatically.",
         )
 
 
@@ -8274,7 +8273,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                             "category": chk.category,
                             "installed": chk.installed,
                             "version": chk.version,
-                        }
+                        },
                     )
         except Exception as e:  # noqa: BLE001
             if not as_json:
@@ -8316,7 +8315,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                 version = ""
                 if path_found:
                     try:
-                        r = subprocess.run(  # noqa: S603, S607 — exe comes from a trusted hardcoded map
+                        r = subprocess.run(  # noqa: S603 — exe comes from a trusted hardcoded map
                             [exe, "--version"],
                             capture_output=True,
                             text=True,
@@ -8335,7 +8334,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                         "category": "fpga",
                         "installed": bool(path_found),
                         "version": version,
-                    }
+                    },
                 )
         except Exception as e:  # noqa: BLE001
             if not as_json:
@@ -8347,14 +8346,14 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
 
     if not checks:
         console.print(
-            "[yellow]No tools found. Does docs/SPECSMITH.yml (or scaffold.yml) exist?[/yellow]"
+            "[yellow]No tools found. Does docs/SPECSMITH.yml (or scaffold.yml) exist?[/yellow]",
         )
         return
 
     installed_count = sum(1 for c in checks if c["installed"])
     console.print(
         f"[bold]Tool Scan[/bold] — {root.name}  "
-        f"[green]{installed_count}[/green]/[dim]{len(checks)}[/dim] installed\n"
+        f"[green]{installed_count}[/green]/[dim]{len(checks)}[/dim] installed\n",
     )
 
     # Group by category
@@ -8373,7 +8372,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
         missing = [c["name"] for c in checks if not c["installed"]]
         console.print(
             f"  [yellow]Missing:[/yellow] {', '.join(missing[:8])}"
-            + (" and more..." if len(missing) > 8 else "")
+            + (" and more..." if len(missing) > 8 else ""),
         )
 
 
@@ -8432,7 +8431,7 @@ def tools_install_cmd(tool: str, list_all: bool, category: str, dry_run: bool, y
                 console.print(f"    [dim]{t.key:<25s}[/dim]  {t.display_name}")
         console.print()
         console.print(
-            "  Run [bold]specsmith tools install <key>[/bold] to get the install command."
+            "  Run [bold]specsmith tools install <key>[/bold] to get the install command.",
         )
         return
 
@@ -8442,13 +8441,13 @@ def tools_install_cmd(tool: str, list_all: bool, category: str, dry_run: bool, y
         matches = [k for k in KNOWN_TOOLS if tool.lower() in k.lower()]
         if matches:
             console.print(
-                f"[yellow]Unknown tool '{tool}'. Did you mean: {', '.join(matches[:5])}?[/yellow]"
+                f"[yellow]Unknown tool '{tool}'. Did you mean: {', '.join(matches[:5])}?[/yellow]",
             )
         else:
             console.print(
                 f"[red]Unknown tool '{tool}'.[/red] "
                 "Run [bold]specsmith tools install --list[/bold] "
-                "to see available tools."
+                "to see available tools.",
             )
         raise SystemExit(1)
 
@@ -8456,7 +8455,8 @@ def tools_install_cmd(tool: str, list_all: bool, category: str, dry_run: bool, y
     if cmd is None:
         if info.manual:
             console.print(
-                f"[yellow]No automatic install for '{info.display_name}' on this platform.[/yellow]"
+                f"[yellow]No automatic install for "
+                f"'{info.display_name}' on this platform.[/yellow]",
             )
             console.print(f"  Manual install: {info.manual}")
         else:
@@ -8519,7 +8519,8 @@ def tools_rules_cmd(project_dir: str, tool_key: str, list_all: bool) -> None:
             matches = [k for k in TOOL_RULES if tool_key.lower() in k.lower()]
             if matches:
                 console.print(
-                    f"[yellow]No rules for '{tool_key}'. Similar: {', '.join(matches[:5])}[/yellow]"
+                    f"[yellow]No rules for '{tool_key}'. "
+                    f"Similar: {', '.join(matches[:5])}[/yellow]",
                 )
             else:
                 console.print(f"[red]No rules for '{tool_key}'.[/red]")
@@ -8535,7 +8536,7 @@ def tools_rules_cmd(project_dir: str, tool_key: str, list_all: bool) -> None:
     if not scaffold_path.exists():
         console.print(
             "[yellow]No scaffold.yml found. "
-            "Run specsmith init or use --tool to view a specific tool.[/yellow]"
+            "Run specsmith init or use --tool to view a specific tool.[/yellow]",
         )
         raise SystemExit(1)
 
@@ -8547,7 +8548,7 @@ def tools_rules_cmd(project_dir: str, tool_key: str, list_all: bool) -> None:
     rules = get_rules_for_project(project_type, fpga_tools, max_chars=20000)
     if not rules:
         console.print(
-            f"[yellow]No tool rules configured for project type '{project_type}'.[/yellow]"
+            f"[yellow]No tool rules configured for project type '{project_type}'.[/yellow]",
         )
         return
 
@@ -8650,7 +8651,7 @@ def index_build_cmd(project_dir: str, include_ledger: bool, external: str) -> No
     console.print(f"[green]✓[/green] {result}")
     console.print(
         "\n  Agent tool: [bold]retrieve_context[/bold] now available in this project.\n"
-        "  Usage example: ask the agent 'search for requirements about authentication'."
+        "  Usage example: ask the agent 'search for requirements about authentication'.",
     )
 
 
@@ -9139,7 +9140,7 @@ def notebook_record(slug: str, project_dir: str, work_item_id: str, session_id: 
     if not captured_any:
         sections.append(
             "\n_No artifacts captured. Pass `--work-item-id <WI>` or "
-            "`--session-id <id>` to populate this notebook._\n"
+            "`--session-id <id>` to populate this notebook._\n",
         )
     target.write_text("\n".join(sections), encoding="utf-8")
     console.print(f"[green]\u2713[/green] Notebook recorded at {target.relative_to(root)}")
@@ -9253,7 +9254,7 @@ def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
             f"[{color}]{item.status:12s}[/{color}]  "
             f"[dim]{item.kind:9s}[/dim]  "
             f"{item.intent[:60]}"
-            f"[dim]{req_tag}{promoted_tag}[/dim]"
+            f"[dim]{req_tag}{promoted_tag}[/dim]",
         )
 
 
@@ -9399,12 +9400,12 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
     to regenerate REQUIREMENTS.md.
 
     Example:
-
     \b
       # WI introduced new retry logic not covered by any existing REQ
       specsmith wi promote WI-3A9F1C02 \\
           --title "Exporter must retry on transient HTTP failures" \\
           --domain overflow
+
     """
     import json as _json
 
@@ -9419,7 +9420,7 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
         raise SystemExit(1)
     if item.is_terminal() and item.status != "implemented":
         console.print(
-            f"[red]Cannot promote {wi_id}: already in terminal state {item.status!r}.[/red]"
+            f"[red]Cannot promote {wi_id}: already in terminal state {item.status!r}.[/red]",
         )
         raise SystemExit(1)
 
@@ -9497,7 +9498,7 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
                     "req_file": str(yaml_path.relative_to(root)),
                 },
                 indent=2,
-            )
+            ),
         )
         return
 
@@ -9505,7 +9506,7 @@ def wi_promote_cmd(wi_id: str, project_dir: str, title: str, domain: str, as_jso
         f"[green]\u2713[/green] {item.id} → [bold green]{new_req_id}[/bold green]\n"
         f"  Title : {req_title}\n"
         f"  File  : {yaml_path.relative_to(root)}\n"
-        f"  Next  : run [bold]specsmith sync[/bold] to regenerate REQUIREMENTS.md"
+        f"  Next  : run [bold]specsmith sync[/bold] to regenerate REQUIREMENTS.md",
     )
 
 
@@ -9654,7 +9655,7 @@ def workflow_list(project_dir: str, as_json: bool) -> None:
                 "description": data.get("description", ""),
                 "command": data.get("command", ""),
                 "params": list(data.get("params", [])),
-            }
+            },
         )
     if as_json:
         click.echo(_json.dumps(items, indent=2))
@@ -9976,7 +9977,7 @@ def drive_pull(kind: str, project_dir: str, force: bool) -> None:
             pulled += 1
     console.print(
         f"[green]\u2713[/green] Pulled {pulled} file(s) into {target_root}; "
-        f"skipped {skipped} (use --force to overwrite)."
+        f"skipped {skipped} (use --force to overwrite).",
     )
 
 
@@ -10024,7 +10025,7 @@ def skill_search(query: str, as_json: bool) -> None:
                     for m in matches
                 ],
                 indent=2,
-            )
+            ),
         )
         return
     if not matches:
@@ -10096,7 +10097,7 @@ def skill_install(slug: str, project_dir: str, force: bool) -> None:
         console.print(f"[yellow]{exc}[/yellow]")
         raise SystemExit(2) from None
     console.print(
-        f"[green]\u2713[/green] Installed [bold]{slug}[/bold] at {target.relative_to(root)}"
+        f"[green]\u2713[/green] Installed [bold]{slug}[/bold] at {target.relative_to(root)}",
     )
 
 
@@ -10180,7 +10181,7 @@ def agents_list(project_dir: str, capability: str, as_json: bool) -> None:
         chain = " \u2192 ".join(p.fallback_chain) if p.fallback_chain else "(no fallback)"
         endpoint = f" endpoint={p.endpoint_id}" if p.endpoint_id else ""
         console.print(
-            f"{marker} [bold]{p.id}[/bold]  role={p.role}  {p.provider}/{p.model}{endpoint}"
+            f"{marker} [bold]{p.id}[/bold]  role={p.role}  {p.provider}/{p.model}{endpoint}",
         )
         console.print(f"  [dim]fallback: {chain}[/dim]")
 
@@ -10244,7 +10245,7 @@ def agents_add(
             _json.dumps(
                 {"profile": profile.to_dict(), "diversity_warnings": diversity},
                 indent=2,
-            )
+            ),
         )
         return
     console.print(f"[green]\u2713[/green] saved profile [bold]{profile.id}[/bold]")
@@ -10328,7 +10329,7 @@ def agents_test(profile_id: str, as_json: bool) -> None:
         if latency is not None:
             console.print(
                 f"[green]\u2713[/green] {profile.id} ok in {int(float(latency))} ms "
-                f"({len(models)} models)"
+                f"({len(models)} models)",
             )
         else:
             _ident = f"{profile.provider}/{profile.model}"
@@ -10388,13 +10389,13 @@ def agents_route_show(project_dir: str, as_json: bool) -> None:
             _json.dumps(
                 {"default_profile_id": store.default_profile_id, "routes": dict(store.routes)},
                 indent=2,
-            )
+            ),
         )
         return
     if not store.routes:
         console.print(
             "[dim]No routes configured. "
-            "Run `specsmith agents preset apply default` to install the recommended set.[/dim]"
+            "Run `specsmith agents preset apply default` to install the recommended set.[/dim]",
         )
         return
     for activity, profile_id in sorted(store.routes.items()):
@@ -10420,7 +10421,7 @@ def agents_preset_apply(name: str) -> None:
         raise SystemExit(1) from exc
     console.print(
         f"[green]\u2713[/green] applied preset [bold]{name}[/bold] \u2014 "
-        f"{len(store.profiles)} profiles, {len(store.routes)} routes"
+        f"{len(store.profiles)} profiles, {len(store.routes)} routes",
     )
 
 
@@ -10435,7 +10436,7 @@ def agents_preset_list() -> None:
             f"  [bold]{name}[/bold]  "
             f"profiles={len(blob.get('profiles', []))}, "
             f"routes={len(blob.get('routes', {}))}, "
-            f"default={blob.get('default_profile_id', '')}"
+            f"default={blob.get('default_profile_id', '')}",
         )
 
 
@@ -10518,7 +10519,7 @@ def mcp_list_cmd(project_dir: str, as_json: bool) -> None:
                                 "args": list(item.get("args", [])),
                                 "transport": str(item.get("transport", "stdio")),
                                 "description": str(item.get("description", "")),
-                            }
+                            },
                         )
             source = str(path)
             break
@@ -10610,18 +10611,18 @@ def mcp_install_warp_cmd(as_json: bool) -> None:
     console.print("[bold green]specsmith Governance MCP Server[/bold green]\n")
     console.print(
         "Add the following to [bold]Warp Settings → Agents → MCP servers[/bold],\n"
-        "or pass inline to [bold]oz agent run --mcp '<json>'[/bold]:\n"
+        "or pass inline to [bold]oz agent run --mcp '<json>'[/bold]:\n",
     )
     console.print(_json.dumps(config, indent=2))
     console.print(
-        "\n[dim][bold]One-time setup[/bold] — paste this config into Warp once,"  # noqa: E501
+        "\n[dim][bold]One-time setup[/bold] — paste this config into Warp once,"
         " then never touch it again.\n"
         "\nTo add each project, run this inside the project directory:\n"
         "  [bold]specsmith mcp register[/bold]\n"
         "\nThe server reads [bold]~/.specsmith/mcp-projects.json[/bold] at startup\n"
         "and serves all registered projects automatically.\n"
         "\nView registered projects: [bold]specsmith mcp projects[/bold]\n"
-        "\nVerify server: specsmith mcp serve (then send an initialize message).[/dim]"
+        "\nVerify server: specsmith mcp serve (then send an initialize message).[/dim]",
     )
 
 
@@ -10653,13 +10654,13 @@ def mcp_register_cmd(path: str) -> None:
         if not (root / ".specsmith").exists():
             console.print(
                 "  [yellow]\u26a0[/yellow] No .specsmith/ found. "
-                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold] first."
+                "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold] first.",
             )
     else:
         console.print(f"[dim]Already registered: {root}[/dim]")
     console.print(
         "  [dim]specsmith mcp projects  ← view all registered[/dim]\n"
-        "  [dim]specsmith mcp serve      ← start the server[/dim]"
+        "  [dim]specsmith mcp serve      ← start the server[/dim]",
     )
 
 
@@ -10711,12 +10712,12 @@ def mcp_projects_cmd(as_json: bool) -> None:
     if not projects:
         console.print("[yellow]No projects registered.[/yellow]")
         console.print(
-            "[dim]Run [bold]specsmith mcp register[/bold] inside a project to add it.[/dim]"
+            "[dim]Run [bold]specsmith mcp register[/bold] inside a project to add it.[/dim]",
         )
         return
 
     console.print(
-        f"[bold]Registered MCP projects[/bold] ({len(projects)})  [dim]{reg_path}[/dim]\n"
+        f"[bold]Registered MCP projects[/bold] ({len(projects)})  [dim]{reg_path}[/dim]\n",
     )
     for i, p in enumerate(projects):
         exists = Path(p).exists()
@@ -10729,7 +10730,7 @@ def mcp_projects_cmd(as_json: bool) -> None:
     console.print(
         "\n[dim]  specsmith mcp register [path]    ← add a project"
         "\n  specsmith mcp unregister [path]  ← remove a project"
-        "\n  specsmith mcp serve              ← start the server[/dim]"
+        "\n  specsmith mcp serve              ← start the server[/dim]",
     )
 
 
@@ -10793,7 +10794,7 @@ def rules_list_cmd(project_dir: str, as_json: bool) -> None:
                     "path": str(p),
                     "title": title or p.stem,
                     "last_modified": int(p.stat().st_mtime) if p.exists() else 0,
-                }
+                },
             )
 
     if as_json:
@@ -11022,7 +11023,7 @@ def eval_run_cmd(suite_id: str, as_json: bool, use_real: bool, project_dir: str)
 
     mode_label = "[cyan]real[/cyan]" if use_real else "[dim]stub[/dim]"
     console.print(
-        f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n"
+        f"Running [bold]{suite_id}[/bold] ({len(suite.cases)} cases, mode={mode_label})\n",
     )
 
     report = run_suite(suite, stub=not use_real)
@@ -11035,7 +11036,7 @@ def eval_run_cmd(suite_id: str, as_json: bool, use_real: bool, project_dir: str)
         f"{icon} [bold]{suite_id}[/bold]  "
         f"{report.passed}/{report.total} passed  "
         f"avg score {report.avg_score:.0%}  "
-        f"avg latency {report.avg_latency_ms:.0f}ms"
+        f"avg latency {report.avg_latency_ms:.0f}ms",
     )
     for r in report.results:
         ri = "[green]\u2713[/green]" if r.passed else "[red]\u2717[/red]"
@@ -11112,7 +11113,7 @@ def teams_run_cmd(team_id: str, task: str) -> None:
         console.print(f"  \u2192 {m.role} ({'required' if m.required else 'optional'})")
     console.print(f"[dim]Task: {task}[/dim]")
     console.print(
-        "[yellow]\u26a0[/yellow] Team execution is in stub mode (no real agents spawned)."
+        "[yellow]\u26a0[/yellow] Team execution is in stub mode (no real agents spawned).",
     )
 
 
@@ -11176,7 +11177,7 @@ def dispatch_run_cmd(
 
     if no_dag:
         console.print(
-            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run)."
+            "[yellow]--no-dag[/yellow]: falling back to flat GroupChat (use specsmith run).",
         )
         raise SystemExit(0)
 
@@ -11200,7 +11201,7 @@ def dispatch_run_cmd(
 
                 pool = AgentPool(orch.llm_config, max_workers=max_workers)
                 dispatcher = AgentDispatcher(
-                    dag, pool, emitter, project_root=root, max_workers=max_workers
+                    dag, pool, emitter, project_root=root, max_workers=max_workers,
                 )
                 dispatcher.run()
                 done_flag.set()
@@ -11220,10 +11221,10 @@ def dispatch_run_cmd(
             console.print(
                 f"\n[bold green]Done.[/bold green]  "
                 f"{len(summary.completed)} completed  "
-                f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+                f"{len(summary.failed)} failed  {len(summary.blocked)} blocked",
             )
             console.print(
-                f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}"
+                f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}",
             )
             console.print(f"  dag={summary.dag_id}")
         return
@@ -11234,7 +11235,7 @@ def dispatch_run_cmd(
             "  Install full multi-agent support:\n"
             "    [bold]pip install ag2\\[ollama][/bold]  (local Ollama)\n"
             "    [bold]pip install ag2\\[anthropic][/bold]  (Anthropic Claude)\n"
-            "  Then re-run for parallel multi-agent dispatch."
+            "  Then re-run for parallel multi-agent dispatch.",
         )
     except Exception as exc:  # noqa: BLE001
         console.print(f"[yellow]Orchestrator unavailable ({exc}), using manual dispatch.[/yellow]")
@@ -11280,7 +11281,7 @@ def dispatch_run_cmd(
         summary = dispatcher.run()
         console.print(
             f"\n[bold green]Done.[/bold green]  {len(summary.completed)} completed  "
-            f"{len(summary.failed)} failed  {len(summary.blocked)} blocked"
+            f"{len(summary.failed)} failed  {len(summary.blocked)} blocked",
         )
         console.print(f"  equilibrium={summary.equilibrium}  confidence={summary.confidence:.2f}")
         console.print(f"  events → .specsmith/dispatch/{dag.dag_id}/events.jsonl")
@@ -11291,7 +11292,6 @@ def dispatch_run_cmd(
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 def dispatch_status_cmd(dag_id: str, project_dir: str) -> None:
     """Print per-node status for a DAG run."""
-
     from specsmith.agent.dispatch.events import EventEmitter
 
     root = Path(project_dir).resolve()
@@ -11358,7 +11358,7 @@ def dispatch_list_cmd(project_dir: str) -> None:
 @click.option("--endpoint", default="http://localhost:8000/v1")
 @click.option("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct-GPTQ-Int8")
 def dispatch_retry_cmd(
-    node_id: str, dag_id: str, project_dir: str, endpoint: str, model: str
+    node_id: str, dag_id: str, project_dir: str, endpoint: str, model: str,
 ) -> None:
     """Re-run a single FAILED or BLOCKED node from a saved DAG run (REQ-330)."""
     from pathlib import Path
@@ -11405,7 +11405,7 @@ def dispatch_retry_cmd(
             id=node_id,
             title=node_id,
             role=node_roles.get(node_id, "coder"),
-        )
+        ),
     )
 
     llm_config = {
@@ -11591,39 +11591,39 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
     if not sys.modules["specsmith.esdb"].CHRONO_AVAILABLE:
         markup_lines.append(
             "  [dim]chronomemory not installed \u2014 run "
-            "'pip install specsmith[esdb]' for ChronoStore[/dim]"
+            "'pip install specsmith[esdb]' for ChronoStore[/dim]",
         )
         plain_lines.append(
-            "  chronomemory not installed - run 'pip install specsmith[esdb]' for ChronoStore"
+            "  chronomemory not installed - run 'pip install specsmith[esdb]' for ChronoStore",
         )
     elif lic_status and lic_status.valid:
         markup_lines.append(
             f"  [green]\u2714[/green] License: {lic_status.customer} "
-            f"(expires {lic_status.expires_at})"
+            f"(expires {lic_status.expires_at})",
         )
         plain_lines.append(f"  License: {lic_status.customer} (expires {lic_status.expires_at})")
     else:
         reason = lic_status.reason if lic_status else "no license file"
         markup_lines.append(f"  [yellow]\u26a0[/yellow]  ESDB license: {reason}")
         markup_lines.append(
-            "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]"
+            "  [dim]Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.[/dim]",
         )
         plain_lines.append(f"  ESDB license: {reason}")
         plain_lines.append(
-            "  Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore."
+            "  Use 'specsmith esdb enable --key-file <path>' to activate ChronoStore.",
         )
     if auto_counts:
         markup_lines.append(
             "  [cyan]\u27f3[/cyan] Auto-migrated from legacy JSON: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
-            f"({auto_counts.get('skipped', 0)} skipped)"
+            f"({auto_counts.get('skipped', 0)} skipped)",
         )
         plain_lines.append(
             "  Auto-migrated from legacy JSON: "
             f"{auto_counts.get('requirements', 0)} requirements + "
             f"{auto_counts.get('testcases', 0)} testcases "
-            f"({auto_counts.get('skipped', 0)} skipped)"
+            f"({auto_counts.get('skipped', 0)} skipped)",
         )
 
     def _emit_plain() -> None:
@@ -11632,7 +11632,7 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
         try:
             sys.stdout.write(plain_text + "\n")
             sys.stdout.flush()
-        except Exception as out_exc:  # noqa: BLE001
+        except Exception as out_exc:
             try:
                 sys.stderr.write(
                     _json.dumps(
@@ -11642,9 +11642,9 @@ def esdb_status_cmd(project_dir: str, as_json: bool) -> None:
                             "reason": str(out_exc),
                             "backend": active_backend,
                             "record_count": record_count,
-                        }
+                        },
                     )
-                    + "\n"
+                    + "\n",
                 )
                 sys.stderr.flush()
             except Exception:  # noqa: BLE001
@@ -11687,7 +11687,7 @@ def esdb_verify_chain_subcmd(project_dir: str, as_json: bool) -> None:
     if payload.get("ok", False):
         console.print(
             "[bold green]Audit chain OK.[/bold green] "
-            f"{payload.get('event_count', 0)} event(s) verified."
+            f"{payload.get('event_count', 0)} event(s) verified.",
         )
         return
     console.print("[bold red]Audit chain FAILED.[/bold red]")
@@ -11745,8 +11745,8 @@ def esdb_enable_cmd(key_file: str, as_json: bool) -> None:
                     "customer": status.customer,
                     "expires_at": status.expires_at,
                     "installed_at": str(dest),
-                }
-            )
+                },
+            ),
         )
         return
 
@@ -11800,8 +11800,8 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     for r in reqs:
         if not r.id:
             issues.append(
-                {"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"}
-            )  # noqa: E501
+                {"kind": "req-missing-id", "detail": f"Record with label '{r.label}' has no ID"},
+            )
             continue
         req_id_counts[r.id] = req_id_counts.get(r.id, 0) + 1
         req_ids.add(r.id)
@@ -11810,15 +11810,15 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     for rid, count in req_id_counts.items():
         if count > 1:
             issues.append(
-                {"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"}
-            )  # noqa: E501
+                {"kind": "dup-req-id", "detail": f"Duplicate REQ ID: {rid} ({count} times)"},
+            )
 
     # Validate testcases
     test_id_counts: dict[str, int] = {}
     for t in tests:
         if not t.id:
-            issues.append(  # noqa: E501
-                {"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"}
+            issues.append(
+                {"kind": "test-missing-id", "detail": f"Testcase with label '{t.label}' has no ID"},
             )
             continue
         test_id_counts[t.id] = test_id_counts.get(t.id, 0) + 1
@@ -11827,12 +11827,12 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
         req_ref = t.data.get("requirement_id", "")
         if req_ref and req_ref not in req_ids:
             issues.append(
-                {"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"}
+                {"kind": "orphan-test", "detail": f"{t.id} references non-existent {req_ref}"},
             )
     for tid, count in test_id_counts.items():
         if count > 1:
             issues.append(
-                {"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"}
+                {"kind": "dup-test-id", "detail": f"Duplicate TEST ID: {tid} ({count} times)"},
             )
 
     errors = [i for i in issues if i["kind"] not in ("req-missing-title", "test-missing-title")]
@@ -11906,7 +11906,7 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
         skip_m = migrate_counts.get("skipped", 0)
         console.print(
             f"  [green]\u2714[/green] ChronoStore WAL: "
-            f"{reqs_m} reqs + {tests_m} tests migrated ({skip_m} skipped)"
+            f"{reqs_m} reqs + {tests_m} tests migrated ({skip_m} skipped)",
         )
         console.print(f"  DB path: {root / '.chronomemory'}")
     console.print(f"\n  Manifest written: {manifest_path.relative_to(root)}")
@@ -12069,7 +12069,7 @@ def esdb_import_cmd(source: str, project_dir: str, as_json: bool) -> None:
         click.echo(_json.dumps(result, indent=2))
     else:
         console.print(
-            f"[green]\u2714[/green] Imported {len(reqs)} requirements, {len(tests)} test cases."
+            f"[green]\u2714[/green] Imported {len(reqs)} requirements, {len(tests)} test cases.",
         )
         console.print("  Wrote .specsmith/requirements.json and .specsmith/testcases.json")
 
@@ -12196,10 +12196,10 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
     specsmith_dir = root / ".specsmith"
     specsmith_dir.mkdir(parents=True, exist_ok=True)
     (specsmith_dir / "requirements.json").write_text(
-        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8"
+        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8",
     )
     (specsmith_dir / "testcases.json").write_text(
-        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
+        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8",
     )
 
     from specsmith.esdb import open_default_store
@@ -12219,7 +12219,7 @@ def esdb_rollback_cmd(project_dir: str, steps: int, as_json: bool) -> None:
         click.echo(_json.dumps(result, indent=2))
     else:
         console.print(
-            f"[green]\u2714[/green] Restored from backup: [bold]{backup_path.name}[/bold]"
+            f"[green]\u2714[/green] Restored from backup: [bold]{backup_path.name}[/bold]",
         )
         console.print(f"  Requirements: {len(reqs)}  \u00b7  Test cases: {len(tests)}")
 
@@ -12288,7 +12288,7 @@ def esdb_compact_cmd(project_dir: str, as_json: bool) -> None:
         total_removed = removed_reqs + removed_tests
         console.print(
             f"[green]\u2714[/green] Compact complete on {ESDB_BACKEND}  "
-            f"({records_after} records, {total_removed} duplicates removed)"
+            f"({records_after} records, {total_removed} duplicates removed)",
         )
 
 
@@ -12328,14 +12328,14 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
     if target_backend == "chronomemory":
         if not CHRONO_AVAILABLE:
             console.print(
-                "[red]\u2717[/red] chronomemory is not installed. Run: pip install specsmith[esdb]"
+                "[red]\u2717[/red] chronomemory is not installed. Run: pip install specsmith[esdb]",
             )
             raise SystemExit(1)
         lic = check_license(warn=False)
         if not lic.valid:
             console.print(
                 f"[red]\u2717[/red] No valid ESDB license: {lic.reason}\n"
-                "  Run: specsmith esdb enable --key-file /path/to/your.esdb.key"
+                "  Run: specsmith esdb enable --key-file /path/to/your.esdb.key",
             )
             raise SystemExit(1)
         # Count SQLite records
@@ -12352,7 +12352,7 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
         migrated = sum(counts.values()) if isinstance(counts, dict) else 0
         console.print(
             f"[green]\u2714[/green] Migrated [bold]{migrated}[/bold] records "
-            "from SQLite \u2192 ChronoStore."
+            "from SQLite \u2192 ChronoStore.",
         )
         return
 
@@ -12362,7 +12362,7 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
             "[bold red]WARNING:[/bold red] Migrating to SQLite loses ChronoStore WAL "
             "history and epistemic chain integrity.\n"
             "  The ChronoStore WAL is NOT deleted automatically.\n"
-            "  Re-run with [bold]--confirm-data-loss[/bold] to proceed."
+            "  Re-run with [bold]--confirm-data-loss[/bold] to proceed.",
         )
         raise SystemExit(1)
 
@@ -12374,10 +12374,10 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
     specsmith_dir = root / ".specsmith"
     specsmith_dir.mkdir(parents=True, exist_ok=True)
     (specsmith_dir / "requirements.json").write_text(
-        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8"
+        _json.dumps(reqs, indent=2, ensure_ascii=False), encoding="utf-8",
     )
     (specsmith_dir / "testcases.json").write_text(
-        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8"
+        _json.dumps(tests, indent=2, ensure_ascii=False), encoding="utf-8",
     )
     sqlite_store2 = SqliteStore(root)
     with sqlite_store2 as s:
@@ -12385,7 +12385,7 @@ def esdb_switch_backend_cmd(project_dir: str, target_backend: str, confirm_data_
         final_count = s.record_count()
     console.print(
         f"[green]\u2714[/green] Exported [bold]{final_count}[/bold] records to SQLite. "
-        "ChronoStore WAL preserved (not deleted)."
+        "ChronoStore WAL preserved (not deleted).",
     )
 
 
@@ -12444,14 +12444,14 @@ def esdb_sweep_cmd(
                     "dry_run": dry_run,
                 },
                 indent=2,
-            )
+            ),
         )
     else:
         mode = "[dim](dry-run)[/dim]" if dry_run else ""
         console.print(f"[bold]specsmith esdb sweep[/bold] {mode} \u2014 {root}\n")
         if result.tombstoned:
             console.print(
-                f"  [green]\u2713[/green] Tombstoned {result.tombstoned} expired record(s):"
+                f"  [green]\u2713[/green] Tombstoned {result.tombstoned} expired record(s):",
             )
             for kind, n in result.kinds_swept.items():
                 console.print(f"    {kind}: {n}")
@@ -12459,7 +12459,7 @@ def esdb_sweep_cmd(
             console.print("  [dim]No expired records to sweep.[/dim]")
         if result.orphans_flagged:
             console.print(
-                f"  [green]\u2713[/green] Flagged {result.orphans_flagged} orphan record(s)."
+                f"  [green]\u2713[/green] Flagged {result.orphans_flagged} orphan record(s).",
             )
         if result.efficiency_refreshed:
             console.print("  [green]\u2713[/green] EFF-CURRENT refreshed.")
@@ -12612,7 +12612,7 @@ def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
                     "bytes_reclaimed": total_bytes,
                 },
                 indent=2,
-            )
+            ),
         )
     else:
         mode = "APPLY" if apply_flag else "DRY-RUN"
@@ -12622,7 +12622,7 @@ def cleanup_cmd(project_dir: str, apply_flag: bool, as_json: bool) -> None:
             console.print(f"  {icon} {p.relative_to(root)}")
         verb = "reclaimed" if apply_flag else "would reclaim"
         console.print(
-            f"\n[bold green]\u2713[/bold green] {len(targets)} target(s); {verb} {mb:.2f} MB."
+            f"\n[bold green]\u2713[/bold green] {len(targets)} target(s); {verb} {mb:.2f} MB.",
         )
         if not apply_flag:
             console.print("  [dim]Run again with [bold]--apply[/bold] to actually delete.[/dim]")
@@ -12751,7 +12751,7 @@ def test_ran_cmd(test_id: str, result: str, project_dir: str, as_json: bool) -> 
         icon = "[green]\u2714[/green]" if result == "passed" else "[yellow]\u26a0[/yellow]"
         console.print(
             f"{icon} [bold]{test_id_upper}[/bold] → {result}"
-            + (f"  (status: {old_status} → {new_status})" if old_status != new_status else "")
+            + (f"  (status: {old_status} → {new_status})" if old_status != new_status else ""),
         )
 
 
@@ -12768,7 +12768,11 @@ def model_intel_group() -> None:
 @model_intel_group.command(name="sync")
 @click.option("--json", "as_json", is_flag=True, default=False)
 @click.option(
-    "--static", "force_static", is_flag=True, default=False, help="Use built-in static scores only."
+    "--static",
+    "force_static",
+    is_flag=True,
+    default=False,
+    help="Use built-in static scores only.",
 )
 def model_intel_sync_cmd(as_json: bool, force_static: bool) -> None:
     """Sync model scores from HuggingFace Open LLM Leaderboard.
@@ -12803,18 +12807,17 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
         row = get_score(model)
         if as_json:
             click.echo(_json.dumps({"score": row}, indent=2))
+        elif row:
+            console.print(f"[bold]{row['model_name']}[/bold]")
+            console.print(f"  Reasoning:     {row.get('reasoning_score', 0):.2f}")
+            console.print(f"  Coding:        {row.get('coding_score', 0):.2f}")
+            console.print(f"  Conversational:{row.get('conversational_score', 0):.2f}")
+            console.print(f"  Requirements:  {row.get('requirements_score', 0):.2f}")
+            console.print(f"  Architecture:  {row.get('architecture_score', 0):.2f}")
+            console.print(f"  Debugging:     {row.get('debugging_score', 0):.2f}")
+            console.print(f"  Longform:      {row.get('longform_score', 0):.2f}")
         else:
-            if row:
-                console.print(f"[bold]{row['model_name']}[/bold]")
-                console.print(f"  Reasoning:     {row.get('reasoning_score', 0):.2f}")
-                console.print(f"  Coding:        {row.get('coding_score', 0):.2f}")
-                console.print(f"  Conversational:{row.get('conversational_score', 0):.2f}")
-                console.print(f"  Requirements:  {row.get('requirements_score', 0):.2f}")
-                console.print(f"  Architecture:  {row.get('architecture_score', 0):.2f}")
-                console.print(f"  Debugging:     {row.get('debugging_score', 0):.2f}")
-                console.print(f"  Longform:      {row.get('longform_score', 0):.2f}")
-            else:
-                console.print(f"[yellow]No scores found for '{model}'[/yellow]")
+            console.print(f"[yellow]No scores found for '{model}'[/yellow]")
         return
 
     rows = list_scores(source=source or None)
@@ -12831,7 +12834,7 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
                 f"Rq:{r.get('requirements_score', 0):5.1f}  "
                 f"Ar:{r.get('architecture_score', 0):5.1f}  "
                 f"Db:{r.get('debugging_score', 0):5.1f}  "
-                f"Lf:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]"
+                f"Lf:{r.get('longform_score', 0):5.1f}  [{r.get('source', '')}]",
             )
         if len(rows) > 20:
             console.print(f"  ... {len(rows) - 20} more (use --json for full list)")
@@ -12850,7 +12853,7 @@ def model_intel_scores_cmd(model: str, source: str, as_json: bool) -> None:
             "architecture",
             "debugging",
             "longform",
-        ]
+        ],
     ),
     show_default=True,
 )
@@ -12918,18 +12921,18 @@ def agent_suggest_profiles_cmd(as_json: bool) -> None:
             console.print(
                 "[yellow]No backends detected.[/yellow] "
                 "Set OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY / MISTRAL_API_KEY, "
-                "install Ollama models, or add a BYOE endpoint."
+                "install Ollama models, or add a BYOE endpoint.",
             )
             return
         console.print(f"[bold]Suggested profiles[/bold] ({len(suggestions)})\n")
         for s in suggestions:
             console.print(
-                f"  [cyan]{s['bucket']:<14s}[/cyan]  {s['name']:<35s}  [{s['provider_type']}]"
+                f"  [cyan]{s['bucket']:<14s}[/cyan]  {s['name']:<35s}  [{s['provider_type']}]",
             )
             console.print(f"  [dim]{s['rationale'][:90]}[/dim]")
         console.print(
             "\n[dim]Use [bold]specsmith agent providers add[/bold] "
-            "to persist the ones you want.[/dim]"
+            "to persist the ones you want.[/dim]",
         )
 
 
@@ -12951,7 +12954,7 @@ def agent_endpoint_presets_cmd(as_json: bool) -> None:
             )
             url_base = p.get("base_url", "")
             console.print(
-                f"  [cyan]{p['id']:<15s}[/cyan]  {p['label']:<25s}  {url_base:<40s}  {key_note}"
+                f"  [cyan]{p['id']:<15s}[/cyan]  {p['label']:<25s}  {url_base:<40s}  {key_note}",
             )
 
 
@@ -13005,23 +13008,23 @@ def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
     if result.duplicates:
         console.print(
             f"[red]\u26a0  {len(result.duplicates)} likely duplicate(s) found"
-            f" — filing blocked (use --force to override)[/red]"
+            f" — filing blocked (use --force to override)[/red]",
         )
         for d in result.duplicates:
             console.print(
                 f"  [bold]#{d['number']}[/bold]  {d['title']}  "
-                f"[dim](similarity {d['similarity']:.0%})[/dim]"
+                f"[dim](similarity {d['similarity']:.0%})[/dim]",
             )
             console.print(f"  [blue]{d['html_url']}[/blue]")
     elif result.similar:
         console.print(
             f"[yellow]\u26a0  {len(result.similar)} similar issue(s) found "
-            f"(below duplicate threshold — filing allowed)[/yellow]"
+            f"(below duplicate threshold — filing allowed)[/yellow]",
         )
         for s in result.similar:
             console.print(
                 f"  [bold]#{s['number']}[/bold]  {s['title']}  "
-                f"[dim](similarity {s['similarity']:.0%})[/dim]"
+                f"[dim](similarity {s['similarity']:.0%})[/dim]",
             )
             console.print(f"  [blue]{s['html_url']}[/blue]")
     else:
@@ -13093,7 +13096,7 @@ def issue_file_cmd(
                 _json.dumps(
                     {"ok": False, "error": str(exc), **exc.result.to_dict()},
                     indent=2,
-                )
+                ),
             )
         else:
             console.print(f"[red]\u26a0  Blocked:[/red] {exc}")
@@ -13109,7 +13112,7 @@ def issue_file_cmd(
     if result.ok:
         console.print(
             f"[green]\u2714  Filed:[/green] [bold]#{result.number}[/bold] "
-            f"{result.title}\n  [blue]{result.html_url}[/blue]"
+            f"{result.title}\n  [blue]{result.html_url}[/blue]",
         )
     else:
         console.print(f"[red]Error filing issue:[/red] {result.error}")
@@ -13208,8 +13211,8 @@ def ci_enable_cmd(project_dir: str, platform: str | None, force: bool, as_json: 
             for f in created:
                 console.print(f"  [green]\u2713[/green] {f}")
             if not created:
-                console.print(  # noqa: E501
-                    "  [dim]All configs already up to date. Use --force to regenerate.[/dim]"
+                console.print(
+                    "  [dim]All configs already up to date. Use --force to regenerate.[/dim]",
                 )
     except RuntimeError as exc:
         if as_json:
@@ -13238,7 +13241,7 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
         console.print(f"[yellow]\u26a0[/yellow] {result.error}")
         return
 
-    status_color = (  # noqa: E501
+    status_color = (
         "green" if result.ci_passing else "red" if result.ci_passing is False else "dim"
     )
     icon = "\u25cf"
@@ -13277,7 +13280,7 @@ def ci_status_cmd(project_dir: str, as_json: bool) -> None:
 )
 @click.option("--json", "as_json", is_flag=True, default=False)
 def ci_watch_cmd(
-    project_dir: str, run_id: str | None, timeout: int, interval: int, as_json: bool
+    project_dir: str, run_id: str | None, timeout: int, interval: int, as_json: bool,
 ) -> None:
     """Block until the current CI run completes and report the result.
 
@@ -13303,7 +13306,7 @@ def ci_watch_cmd(
             console.print(f"[bold]Watching CI[/bold] via gh run watch (timeout={timeout}s) …")
         else:
             console.print(
-                f"[bold]Watching CI[/bold] ({platform}, poll={interval}s, timeout={timeout}s) …"
+                f"[bold]Watching CI[/bold] ({platform}, poll={interval}s, timeout={timeout}s) …",
             )
 
     def _on_event(event: dict) -> None:
@@ -13316,7 +13319,7 @@ def ci_watch_cmd(
         sys.stdout.flush()
 
     result = manager.watch(
-        run_id=run_id, timeout=timeout, poll_interval=interval, on_event=_on_event
+        run_id=run_id, timeout=timeout, poll_interval=interval, on_event=_on_event,
     )
 
     if as_json:
@@ -13426,7 +13429,7 @@ def compliance_list_cmd() -> None:
     for reg in REGULATIONS.values():
         console.print(
             f"  [cyan]{reg.id:25s}[/cyan]  [{reg.jurisdiction}] "
-            f"{reg.name}  [dim](effective {reg.effective})[/dim]"
+            f"{reg.name}  [dim](effective {reg.effective})[/dim]",
         )
 
 
@@ -13457,7 +13460,8 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     else:
         if regulation not in REGULATIONS:
             console.print(
-                f"[red]Unknown regulation '{regulation}'.[/red] Valid IDs: {', '.join(REGULATIONS)}"
+                f"[red]Unknown regulation '{regulation}'.[/red] "
+                f"Valid IDs: {', '.join(REGULATIONS)}",
             )
             raise SystemExit(1)
         results = [checker.check_regulation(regulation)]
@@ -13477,7 +13481,7 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     console.print(
         "[dim]\u26a0  DISCLAIMER: Results are best-effort only. specsmith does not guarantee "
         "compliance. Laws change \u2014 verify with qualified counsel. "
-        "File issues at https://github.com/layer1labs/specsmith/issues[/dim]\n"
+        "File issues at https://github.com/layer1labs/specsmith/issues[/dim]\n",
     )
 
     _STATUS_ICON = {
@@ -13493,7 +13497,7 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
             f"  {icon} [bold]{result.regulation_name}[/bold]  "
             f"[dim]{result.jurisdiction}[/dim]  "
             f"confidence={result.overall_confidence:.0%}  "
-            f"gaps={result.gap_count}"
+            f"gaps={result.gap_count}",
         )
         for ar in result.article_results:
             a_icon = _STATUS_ICON.get(ar.status, "?")
@@ -13503,8 +13507,8 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     if gap_total == 0:
         console.print("\n[bold green]All regulations: compliant or partial.[/bold green]")
     else:
-        console.print(  # noqa: E501
-            f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report"
+        console.print(
+            f"\n[bold red]{gap_total} gap(s) found.[/bold red] Run: specsmith compliance report",
         )
 
 
@@ -13524,7 +13528,7 @@ def compliance_check_cmd(project_dir: str, regulation: str, as_json: bool) -> No
     help="Regulation ID to report, or 'all' (default).",
 )
 def compliance_report_cmd(
-    project_dir: str, output_format: str, output: str, regulation: str
+    project_dir: str, output_format: str, output: str, regulation: str,
 ) -> None:
     """Generate an AI compliance report (Markdown, JSON, or HTML).
 
@@ -13586,8 +13590,8 @@ def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
     summary["esdb_records_written"] = written
 
     if as_json:
-        click.echo(  # noqa: E501
-            _json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2)
+        click.echo(
+            _json.dumps({"results": [r.to_dict() for r in results], "summary": summary}, indent=2),
         )
     else:
         _STATUS_ICON = {
@@ -13597,13 +13601,13 @@ def compliance_audit_cmd(project_dir: str, as_json: bool) -> None:
             "n_a": "[dim]\u2014[/dim]",
         }
         icon = _STATUS_ICON.get(summary["overall_status"], "?")
-        console.print(  # noqa: E501
-            f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}"
+        console.print(
+            f"\n{icon} [bold]Compliance audit[/bold]  Status: {summary['overall_status']}",
         )
         console.print(
             f"  Compliant: {summary['compliant']}  "
             f"Partial: {summary['partial']}  "
-            f"Gaps: {summary['gaps']}"
+            f"Gaps: {summary['gaps']}",
         )
         if written > 0:
             console.print(f"  [green]\u2713[/green] {written} result(s) stored to ESDB")
@@ -13650,7 +13654,7 @@ def migrate_list_cmd(project_dir: str) -> None:
     for m in all_migrations:
         status = (
             "[green]\u2713 applied[/green]" if m.version in applied else "[yellow]pending[/yellow]"
-        )  # noqa: E501
+        )
         console.print(f"  v{m.version:03d}  {status}  {m.title}")
 
 
@@ -13685,14 +13689,13 @@ def migrate_run_cmd(
         payload = {"needs_migration": bool(pending_versions), "pending_versions": pending_versions}
         if as_json:
             click.echo(_json.dumps(payload, indent=2))
+        elif pending_versions:
+            console.print(
+                "[yellow]Migration needed:[/yellow] "
+                + ", ".join(f"v{v:03d}" for v in pending_versions),
+            )
         else:
-            if pending_versions:
-                console.print(
-                    "[yellow]Migration needed:[/yellow] "
-                    + ", ".join(f"v{v:03d}" for v in pending_versions)
-                )
-            else:
-                console.print("[green]No migration needed.[/green]")
+            console.print("[green]No migration needed.[/green]")
         if pending_versions:
             raise SystemExit(1)
         return
@@ -13768,7 +13771,7 @@ def metrics_group() -> None:
 @click.option("--output-tokens", "output_tokens", type=int, default=0)
 @click.option("--cost-usd", "cost_usd", type=float, default=0.0)
 @click.option(
-    "--quality-score", "quality_score", type=float, default=0.0, help="0.0–1.0 judge score."
+    "--quality-score", "quality_score", type=float, default=0.0, help="0.0–1.0 judge score.",
 )
 @click.option("--passed/--failed", default=False, help="Whether the session work item passed.")
 @click.option("--rework-turns", "rework_turns", type=int, default=1)
@@ -13841,7 +13844,7 @@ def metrics_report_cmd(
     n = data.get("n_sessions", 0)
     if n == 0:
         console.print(
-            "[dim]No metrics recorded yet. Use `specsmith save` or `specsmith metrics add`.[/dim]"
+            "[dim]No metrics recorded yet. Use `specsmith save` or `specsmith metrics add`.[/dim]",
         )
         return
 
@@ -13879,7 +13882,7 @@ def metrics_report_cmd(
         for r in top:
             console.print(
                 f"  {r['session_id']}  {r.get('work_item_id') or '—':30s}  "
-                f"rework={r['rework_turns']}  {r['timestamp'][:10]}"
+                f"rework={r['rework_turns']}  {r['timestamp'][:10]}",
             )
 
 
@@ -14039,7 +14042,7 @@ def resume_cmd(
         chain_color = "green" if status.chain_valid else "red"
         console.print(
             f"  [{chain_color}]{chain_icon}[/{chain_color}] ESDB: {status.backend} "
-            f"({status.record_count} records, chain {chain_icon})"
+            f"({status.record_count} records, chain {chain_icon})",
         )
 
     # --- Step 4: start interactive agent session ---
@@ -14052,7 +14055,7 @@ def resume_cmd(
             tier=ModelTier.parse(tier, default=ModelTier.BALANCED),
         )
         runner.run_interactive()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         console.print(f"[red]{e}[/red]")
         raise SystemExit(1) from e
 
@@ -14093,7 +14096,7 @@ def local_model_detect_cmd(as_json: bool) -> None:
     if as_json:
         if info is None:
             click.echo(
-                _json.dumps({"recommended": None, "reason": "cpu-only or insufficient VRAM"})
+                _json.dumps({"recommended": None, "reason": "cpu-only or insufficient VRAM"}),
             )
         else:
             click.echo(
@@ -14105,15 +14108,15 @@ def local_model_detect_cmd(as_json: bool) -> None:
                         "vram_gb": info.vram_gb,
                         "hf_repo": info.hf_repo,
                         "pull_cmd": info.pull_cmd,
-                    }
-                )
+                    },
+                ),
             )
         return
 
     if info is None:
         console.print(
             "[yellow]\u2014[/yellow] No GPU / insufficient VRAM detected. "
-            "Local model skipped (CPU-only would be too slow)."
+            "Local model skipped (CPU-only would be too slow).",
         )
         console.print("  Install Ollama + get a GPU to enable local fallback AI.")
         return
@@ -14123,7 +14126,7 @@ def local_model_detect_cmd(as_json: bool) -> None:
     console.print(f"[bold]HF repo:[/bold]   {info.hf_repo}")
     console.print(f"[bold]To pull:[/bold]   [cyan]{info.pull_cmd}[/cyan]")
     console.print(
-        "\n[dim]Run [bold]specsmith local-model setup[/bold] to download the model.[/dim]"
+        "\n[dim]Run [bold]specsmith local-model setup[/bold] to download the model.[/dim]",
     )
 
 
@@ -14147,32 +14150,32 @@ def local_model_recommend_cmd(as_json: bool) -> None:
             _json.dumps(
                 lineup.as_dict()
                 if lineup is not None
-                else {"hardware": None, "reason": "cpu-only or insufficient VRAM", "models": []}
-            )
+                else {"hardware": None, "reason": "cpu-only or insufficient VRAM", "models": []},
+            ),
         )
         return
 
     if lineup is None:
         console.print(
             "[yellow]\u2014[/yellow] No GPU / insufficient VRAM detected. "
-            "Local model recommendations skipped (CPU-only would be too slow)."
+            "Local model recommendations skipped (CPU-only would be too slow).",
         )
         return
 
     console.print(
-        f"[bold]Hardware:[/bold] {lineup.hardware}  ([bold]{lineup.vram_gb:.1f} GB[/bold] VRAM)\n"
+        f"[bold]Hardware:[/bold] {lineup.hardware}  ([bold]{lineup.vram_gb:.1f} GB[/bold] VRAM)\n",
     )
     _fit_color = {"fits": "green", "tight": "yellow", "spills": "red"}
     for rec in lineup.models:
         color = _fit_color.get(rec.fit.value, "white")
         console.print(
             f"  [bold]{rec.slot:<8}[/bold] [green]{rec.model:<22}[/green] "
-            f"~{rec.footprint_gb:.1f} GB  [{color}]{rec.fit_note}[/{color}]"
+            f"~{rec.footprint_gb:.1f} GB  [{color}]{rec.fit_note}[/{color}]",
         )
         console.print(f"           [dim]{rec.summary}[/dim]")
     console.print(
         "\n[dim]Pull all with [bold]specsmith local-model setup[/bold], or pull one with "
-        "[bold]ollama pull <model>[/bold].[/dim]"
+        "[bold]ollama pull <model>[/bold].[/dim]",
     )
 
 
@@ -14190,7 +14193,7 @@ def local_model_setup_cmd() -> None:
     if not shutil.which("ollama"):
         console.print(
             "[red]\u2717[/red] Ollama is not installed. "
-            "Install from https://ollama.com then re-run."
+            "Install from https://ollama.com then re-run.",
         )
         raise SystemExit(1)
 
@@ -14198,25 +14201,25 @@ def local_model_setup_cmd() -> None:
     if info is None:
         console.print(
             "[yellow]\u2014[/yellow] No GPU detected — skipping local model setup. "
-            "Local inference on CPU would be unusably slow."
+            "Local inference on CPU would be unusably slow.",
         )
         return
 
     console.print(
         f"[bold]Pulling[/bold] [green]{info.model}[/green] "
         f"for {info.hardware}  ({info.vram_gb:.1f} GB)...\n"
-        "This may take several minutes depending on your connection."
+        "This may take several minutes depending on your connection.",
     )
     ok = ensure_local_model(info.model)
     if ok:
         console.print(f"[green]\u2714[/green] {info.model} is ready.")
         console.print(
-            f"Start a session: [cyan]specsmith run --provider ollama --model {info.model}[/cyan]"
+            f"Start a session: [cyan]specsmith run --provider ollama --model {info.model}[/cyan]",
         )
     else:
         console.print(
             f"[red]\u2717[/red] Failed to pull {info.model}. "
-            "Make sure Ollama is running (ollama serve) and try again."
+            "Make sure Ollama is running (ollama serve) and try again.",
         )
         raise SystemExit(1)
 
@@ -14277,13 +14280,13 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                                 "suggestion_type": s.suggestion_type,
                                 "description": s.description,
                                 "severity": s.severity,
-                                "confidence": s.confidence
+                                "confidence": s.confidence,
                             }
                             for s in analysis.suggestions
                         ],
                         "code_quality_score": analysis.code_quality_score,
                         "complexity_trend": analysis.complexity_trend,
-                        "improvement_potential": analysis.improvement_potential
+                        "improvement_potential": analysis.improvement_potential,
                     }
                     for file_path, analysis in ai_report.items()
                 },
@@ -14295,7 +14298,7 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                             "suggestion_type": s.suggestion_type,
                             "description": s.description,
                             "severity": s.severity,
-                            "confidence": s.confidence
+                            "confidence": s.confidence,
                         }
                         for s in suggestions
                     ]
@@ -14305,10 +14308,10 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                     {
                         "name": issue.name,
                         "passed": issue.passed,
-                        "message": issue.message
+                        "message": issue.message,
                     }
                     for issue in compliance_issues
-                ]
+                ],
             }
             click.echo(_json.dumps(result, indent=2))
         else:
@@ -14316,11 +14319,17 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
             console.print("[bold]AI Analysis Results[/bold]")
             console.print("-" * 40)
 
-            for file_path, analysis in ai_report.items():
+            for _file_path, analysis in ai_report.items():
                 console.print(f"[cyan]File:[/cyan] {analysis.file_path}")
-                quality_score = f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100"
-                complexity_trend = f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}"
-                improvement_potential = f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}"
+                quality_score = (
+                    f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100"
+                )
+                complexity_trend = (
+                    f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}"
+                )
+                improvement_potential = (
+                    f"  [bold]Improvement Potential:[/bold] {analysis.improvement_potential:.1f}"
+                )
                 console.print(quality_score)
                 console.print(complexity_trend)
                 console.print(improvement_potential)
@@ -14329,11 +14338,11 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                     console.print("  [bold]Suggestions:[/bold]")
                     for suggestion in analysis.suggestions:
                         severity_color = {
-                            'low': 'green',
-                            'medium': 'yellow',
-                            'high': 'orange',
-                            'critical': 'red'
-                        }.get(suggestion.severity, 'white')
+                            "low": "green",
+                            "medium": "yellow",
+                            "high": "orange",
+                            "critical": "red",
+                        }.get(suggestion.severity, "white")
                         console.print(f"    [{severity_color}]\u2713[/] {suggestion.description} "
                                    f"(line {suggestion.line_number}, {suggestion.severity})")
                 console.print()
@@ -14346,11 +14355,11 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                     console.print(f"[cyan]File:[/cyan] {file_path}")
                     for suggestion in suggestions:
                         severity_color = {
-                            'low': 'green',
-                            'medium': 'yellow',
-                            'high': 'orange',
-                            'critical': 'red'
-                        }.get(suggestion.severity, 'white')
+                            "low": "green",
+                            "medium": "yellow",
+                            "high": "orange",
+                            "critical": "red",
+                        }.get(suggestion.severity, "white")
                         console.print(f"  [{severity_color}]\u2713[/] {suggestion.description} "
                                    f"(line {suggestion.line_number})")
                     console.print()
@@ -14362,7 +14371,7 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
                 console.print(f"  {status} {issue.message}")
 
     except Exception as e:
-        console.print(f"[red]\u2717[/red] Error during AI analysis: {str(e)}")
+        console.print(f"[red]\u2717[/red] Error during AI analysis: {e!s}")
         raise SystemExit(1) from e
 
 

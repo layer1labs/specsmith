@@ -204,7 +204,7 @@ _STOPWORDS = frozenset(
         "with",
         "you",
         "your",
-    }
+    },
 )
 
 
@@ -269,7 +269,11 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
         if current_id and current_id not in seen_ids:
             seen_ids.add(current_id)
             out.append(
-                RequirementSummary(req_id=current_id, title=current_title, description=current_desc)
+                RequirementSummary(
+                    req_id=current_id,
+                    title=current_title,
+                    description=current_desc
+                ),
             )
 
     for line in lines:
@@ -307,7 +311,7 @@ def parse_requirements(req_md_path: Path) -> list[RequirementSummary]:
                 req_id=m_id.group(1),
                 title=title,
                 description=m_desc.group(1).strip() if m_desc else "",
-            )
+            ),
         )
     return out
 
@@ -446,7 +450,7 @@ def run_preflight(
     ]
     if runner is None:
         proc = subprocess.run(  # noqa: S603 - argv is a list, never shell
-            cmd, capture_output=True, text=True, timeout=60, check=False
+            cmd, capture_output=True, text=True, timeout=60, check=False,
         )
     else:
         proc = runner(cmd)
@@ -478,7 +482,7 @@ def run_preflight(
 
 # Extended to handle project-prefixed IDs (e.g. REQ-NN-001, TEST-NN-002a) and WI tokens
 _GOVERNANCE_ID = re.compile(
-    r"\b(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+|TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[A-Za-z]*|WI-[A-Z0-9-]+)\b"
+    r"\b(REQ-(?:[A-Z][A-Z0-9_]*-)?\d+|TEST-(?:[A-Z][A-Z0-9_]*-)?\d+[A-Za-z]*|WI-[A-Z0-9-]+)\b",
 )
 
 
@@ -506,7 +510,7 @@ def narrate_plan(
         lines.append("Release request \u2014 will require explicit confirmation before publishing.")
     elif intent == Intent.DESTRUCTIVE:
         lines.append(
-            "Destructive request \u2014 will require explicit confirmation before running."
+            "Destructive request \u2014 will require explicit confirmation before running.",
         )
     else:
         lines.append("Change request \u2014 will run under Specsmith governance.")
@@ -651,8 +655,7 @@ def execute_with_governance(
     clarifying question instead of looping. The ``RunResult`` carries a
     canonical ``strategy`` label (REQ-096) when retries are exhausted.
     """
-    if retry_budget < 1:
-        retry_budget = 1
+    retry_budget = max(retry_budget, 1)
 
     last_summary = ""
     last_confidence = 0.0
