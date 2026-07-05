@@ -51,6 +51,7 @@ nav:
       - Multi-Agent Profiles: agents.md
       - Standalone CLI: standalone-cli.md
       - Agent Integrations: agent-integrations.md
+      - Local Agent Defaults: local-agents.md
       - Warp Integration: warp-integration.md
       - BYOE Endpoints: endpoints.md
       - Kairos Terminal: kairos-terminal.md
