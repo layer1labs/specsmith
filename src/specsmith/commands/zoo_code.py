@@ -596,7 +596,6 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
     # 3. Compare against baselines
     # 4. Generate detailed reports
 
-
     test_result: dict[str, Any] = {
         "test_name": test_name,
         "suite": suite,
@@ -662,7 +661,6 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
     # 2. Handle platform-specific tooling
     # 3. Ensure compatibility across platforms
 
-
     platform_config: dict[str, Any] = {
         "platform": platform,
         "integration": integration,
@@ -705,7 +703,6 @@ def zoo_code_dashboard(view: str, as_json: bool) -> None:
     # 2. Show metrics and performance data
     # 3. Display alerts and notifications
     # 4. Provide interactive dashboards
-
 
     dashboard_data: dict[str, Any] = {
         "view": view,
