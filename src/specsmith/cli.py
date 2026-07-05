@@ -13,6 +13,7 @@ import yaml
 
 from specsmith import __version__
 from specsmith.commands.issues_policy import register_issue_policy_commands
+from specsmith.commands.zoo_code import zoo_code_group
 from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
@@ -14292,6 +14293,7 @@ def local_model_setup_cmd() -> None:
 
 
 main.add_command(local_model_group)
+main.add_command(zoo_code_group)
 
 
 @main.command(name="ai-analyze")

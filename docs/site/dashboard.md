@@ -1,6 +1,15 @@
-# Dashboard Build
-Generate a static governance dashboard:
-```bash
-specsmith dashboard build --out .specsmith/dashboard
-```
-This writes a self-contained `index.html` with open work items, risk levels, traceability score, audit health, requirements coverage, verification status, and compliance evidence status.
+# Dashboard
+
+The Specsmith Dashboard provides real-time monitoring and analytics for your governed development projects. It displays key metrics, performance indicators, and system status information.
+
+## Features
+
+- Real-time metrics visualization
+- Performance monitoring
+- Resource usage tracking
+- Alert system
+- Historical data analysis
+
+## Accessing the Dashboard
+
+The dashboard can be accessed through the `specsmith zoo-code dashboard` command or via the web interface when available.

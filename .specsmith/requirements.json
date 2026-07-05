@@ -1157,9 +1157,9 @@
   {
     "id": "REQ-106",
     "version": 1,
-    "title": "Kairos Must Surface Governance Commands",
-    "description": "The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`.",
-    "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
+    "title": "Must Surface Governance Commands",
+    "description": "The terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`.",
+    "source": "src/specsmith/agent/settings_view/governance_page.py",
     "status": "implemented",
     "test_ids": [
       "TEST-106"
@@ -1169,7 +1169,7 @@
     "id": "REQ-107",
     "version": 1,
     "title": "ARCHITECTURE.md Must Reflect Current State",
-    "description": "`ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, Kairos governance integration, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.",
+    "description": "`ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, governance integration, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.",
     "source": "ARCHITECTURE.md",
     "status": "implemented",
     "test_ids": [
@@ -1289,9 +1289,9 @@
   {
     "id": "REQ-118",
     "version": 1,
-    "title": "Kairos Must Surface specsmith chat Stream",
-    "description": "The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session.",
-    "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
+    "title": "Must Surface specsmith chat Stream",
+    "description": "The governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session.",
+    "source": "src/specsmith/agent/settings_view/governance_page.py",
     "status": "implemented",
     "test_ids": [
       "TEST-118"
@@ -1389,8 +1389,8 @@
     "id": "REQ-128",
     "version": 1,
     "title": "Cross-Repo Security Sweep",
-    "description": "The specsmith and kairos repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.",
-    "source": ".github/workflows/ci.yml, layer1labs/kairos/.github/workflows/ci.yml",
+    "description": "The specsmith repos both run `pip-audit` / `cargo audit` in CI and fail on high-or-critical findings. Dependabot manifests in both repos are reviewed and any open alert at 1.0 release time is documented.",
+    "source": ".github/workflows/ci.yml",
     "status": "implemented",
     "test_ids": [
       "TEST-128"
@@ -1400,7 +1400,7 @@
     "id": "REQ-129",
     "version": 1,
     "title": "1.0 API Stability Commitment",
-    "description": "`docs/site/api-stability.md` enumerates the public surfaces frozen at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify / chat events, broker module API, ledger event schemas, Kairos CLI API surface). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable` and `pyproject.toml` to `1.0.0`.",
+    "description": "`docs/site/api-stability.md` enumerates the public surfaces frozen at 1.0 (CLI subcommands and exit codes, JSON payload schemas for preflight / verify / chat events, broker module API, ledger event schemas, CLI API surface). The PyPI classifier is bumped to `Development Status :: 5 - Production/Stable` and `pyproject.toml` to `1.0.0`.",
     "source": "docs/site/api-stability.md, pyproject.toml",
     "status": "implemented",
     "test_ids": [
@@ -1741,7 +1741,7 @@
     "id": "REQ-160",
     "version": 1,
     "title": "Agent Teams and Advanced Features Flag-Gated",
-    "description": "Agent teams, worktree isolation, KAIROS daemon mode, security scanner, and MCP tools MUST be flag-gated.",
+    "description": "Agent teams, worktree isolation, daemon mode, security scanner, and MCP tools MUST be flag-gated.",
     "source": "docs/PLANNED-REQUIREMENTS.md (FLG-003)",
     "status": "implemented",
     "test_ids": [
@@ -2070,8 +2070,8 @@
   {
     "id": "REQ-190",
     "version": 1,
-    "title": "Kairos Terminal Connects via HTTP/WebSocket",
-    "description": "The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
+    "title": "Terminal Connects via HTTP/WebSocket",
+    "description": "The terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
     "source": "docs/PLANNED-REQUIREMENTS.md (SRV-005)",
     "status": "implemented",
     "test_ids": [
@@ -2566,9 +2566,9 @@
   {
     "id": "REQ-258",
     "version": 1,
-    "title": "Kairos ESDB Settings Page",
-    "description": "The Kairos settings sidebar MUST include an ESDB page under the Specsmith umbrella group. The page MUST display current ESDB status (record count, backend, chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup, Rollback, and Compact.",
-    "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+    "title": "ESDB Settings Page",
+    "description": "The settings sidebar MUST include an ESDB page under the Specsmith umbrella group. The page MUST display current ESDB status (record count, backend, chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup, Rollback, and Compact.",
+    "source": "ARCHITECTURE.md [Settings Extensions]",
     "status": "implemented",
     "test_ids": [
       "TEST-258"
@@ -2577,9 +2577,9 @@
   {
     "id": "REQ-259",
     "version": 1,
-    "title": "Kairos Skills Settings Page",
-    "description": "The Kairos settings sidebar MUST include a Skills page under the Specsmith umbrella group. The page MUST display a description of the Skills system and instructions for using specsmith skills build and related commands.",
-    "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+    "title": "Skills Settings Page",
+    "description": "The settings sidebar MUST include a Skills page under the Specsmith umbrella group. The page MUST display a description of the Skills system and instructions for using specsmith skills build and related commands.",
+    "source": "ARCHITECTURE.md [Settings Extensions]",
     "status": "implemented",
     "test_ids": [
       "TEST-259"
@@ -2588,9 +2588,9 @@
   {
     "id": "REQ-260",
     "version": 1,
-    "title": "Kairos Eval Settings Page",
-    "description": "The Kairos settings sidebar MUST include an Eval page under the Specsmith umbrella group. The page MUST describe the evaluation tracking system and direct users to specsmith eval run for generating reports.",
-    "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+    "title": "Eval Settings Page",
+    "description": "The settings sidebar MUST include an Eval page under the Specsmith umbrella group. The page MUST describe the evaluation tracking system and direct users to specsmith eval run for generating reports.",
+    "source": "ARCHITECTURE.md [Settings Extensions]",
     "status": "implemented",
     "test_ids": [
       "TEST-260"
@@ -2599,9 +2599,9 @@
   {
     "id": "REQ-261",
     "version": 1,
-    "title": "Kairos AI Providers Table Without Column Overflow",
-    "description": "The Kairos Agents > Providers settings page MUST display AI models in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research MUST NOT overflow into adjacent columns.",
-    "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+    "title": "AI Providers Table Without Column Overflow",
+    "description": "The Agents > Providers settings page MUST display AI models in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research MUST NOT overflow into adjacent columns.",
+    "source": "ARCHITECTURE.md [Settings Extensions]",
     "status": "implemented",
     "test_ids": [
       "TEST-261"
@@ -2610,9 +2610,9 @@
   {
     "id": "REQ-262",
     "version": 1,
-    "title": "Kairos MCP AI Builder Card",
-    "description": "The Kairos Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.",
-    "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+    "title": "MCP AI Builder Card",
+    "description": "The Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.",
+    "source": "ARCHITECTURE.md [Settings Extensions]",
     "status": "implemented",
     "test_ids": [
       "TEST-262"
@@ -2821,8 +2821,8 @@
   {
     "id": "REQ-281",
     "version": 1,
-    "title": "Kairos AI Settings Bucket Score Display",
-    "description": "The Kairos Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.",
+    "title": "AI Settings Bucket Score Display",
+    "description": "The Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.",
     "source": "ARCHITECTURE.md §20–21 [KAI-001]",
     "status": "implemented",
     "test_ids": [
@@ -3184,8 +3184,8 @@
   {
     "id": "REQ-332",
     "version": 1,
-    "title": "Kairos Live DAG Graph Panel",
-    "description": "Kairos MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
+    "title": "Live DAG Graph Panel",
+    "description": "MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
     "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
     "status": "implemented",
     "test_ids": [
@@ -3195,8 +3195,8 @@
   {
     "id": "REQ-333",
     "version": 1,
-    "title": "Kairos Gantt Timeline Strip",
-    "description": "Kairos MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
+    "title": "Gantt Timeline Strip",
+    "description": "MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
     "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
     "status": "implemented",
     "test_ids": [
@@ -3206,8 +3206,8 @@
   {
     "id": "REQ-334",
     "version": 1,
-    "title": "Kairos Per-Node Retry and Abort Controls",
-    "description": "Kairos MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
+    "title": "Per-Node Retry and Abort Controls",
+    "description": "MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
     "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
     "status": "implemented",
     "test_ids": [

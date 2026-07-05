@@ -1,39 +1,38 @@
-# Compatibility Matrix
-This matrix summarizes specsmith compatibility status across runtimes, platforms, AI clients, and model backends.
+# Compatibility
 
-## Python runtimes
-- Python 3.10 — **supported** (tested in CI)
-- Python 3.11 — **supported** (tested in CI)
-- Python 3.12 — **supported** (tested in CI)
-- Python 3.13 — **experimental** (ongoing validation)
+Specsmith is designed to work across multiple platforms and environments. This document outlines compatibility considerations for different systems and tools.
 
-## Operating systems
-- Windows (PowerShell 7+) — **supported** (active contributor workflows)
-- Linux — **supported** (primary CI target)
-- macOS — **supported** (validated in CI matrix)
+## Supported Platforms
 
-## CI and automation
-- GitHub Actions — **supported** (first-party CI workflows)
+- **Windows**: Full support with PowerShell integration
+- **Linux**: Full support with shell integration
+- **macOS**: Full support with Darwin integration
 
-## Agent clients and IDE integrations
-- Claude Code — **supported** (documented integration path)
-- Cursor — **supported** (documented integration path)
-- Windsurf — **experimental** (integration guidance available)
-- Aider — **supported** (documented integration path)
-- GitHub Copilot / Copilot Chat — **experimental** (governance workflow docs in progress)
-- Warp / Oz — **supported** (first-party MCP + workflow integration)
+## Browser Support
 
-## MCP ecosystem
-- MCP clients (generic stdio/http clients) — **supported** via `specsmith mcp serve`
-- MCP server hosting in AI clients — **supported** with client-specific setup steps
+- Chrome (latest version)
+- Firefox (latest version)
+- Safari (latest version)
+- Edge (latest version)
 
-## Model backends
-- Ollama / local models — **supported** (local-first workflows)
-- OpenAI-compatible endpoints (BYOE) — **supported** (endpoint profiles)
-- Cloud hosted frontier models — **supported** with provider SDK availability
+## Tool Compatibility
 
-## Lifecycle states
-- **supported**: actively maintained and tested
-- **experimental**: usable with caveats; interfaces may change
-- **planned**: intended roadmap target, not yet shipped
-- **deprecated**: maintained only for migration windows; avoid for new projects
+Specsmith integrates with various development tools and environments:
+
+- VS Code with Zoo-Code extension
+- Cursor editor
+- Command-line environments
+- CI/CD systems
+
+## Version Compatibility
+
+Specsmith maintains backward compatibility for:
+- CLI interface
+- API endpoints
+- Configuration formats
+- Governance models
+
+## Known Issues
+
+- Some older versions of Windows may require additional configuration
+- Certain proxy configurations may affect network connectivity

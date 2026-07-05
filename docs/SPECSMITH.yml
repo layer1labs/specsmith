@@ -8,6 +8,7 @@ description: |
   It provides a framework for epistemically-safe development practices
   through governance, traceability, and automated compliance checking.
 
+type: python
 version: 0.20.1
 license: MIT
 author: Layer1 Labs

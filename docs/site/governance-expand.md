@@ -1,37 +1,39 @@
-# Governance expansion
+# Governance Expansion
 
-`specsmith quickstart` now supports a **Lite** governance mode that generates only the minimum set of governance files needed to start work quickly:
+Specsmith's governance model can be expanded and customized to meet specific project requirements. This document outlines how to extend and modify governance rules.
 
-- `AGENTS.md`
-- `LEDGER.md`
-- `docs/REQUIREMENTS.md`
-- `docs/TESTS.md`
-- `docs/ARCHITECTURE.md`
+## Extending Governance Rules
 
-Use Lite mode when you want low setup overhead while iterating on early project requirements.
+Governance rules can be extended through:
 
-## Expanding governance
+- Custom requirement definitions
+- Additional test cases
+- Modified compliance policies
+- Enhanced verification rubrics
 
-As project complexity or compliance scope grows, expand governance in-place:
+## Custom Policies
 
-```bash
-specsmith expand --to team
-specsmith expand --to regulated
-```
+Organizations can define custom policies that align with their specific compliance needs:
 
-### `--to team`
-Adds team-collaboration governance documents under `docs/governance/`:
+- Security policies
+- Data protection requirements
+- Audit procedures
+- Quality standards
 
-- `RULES.md`
-- `SESSION-PROTOCOL.md`
-- `LIFECYCLE.md`
-- `ROLES.md`
+## Policy Integration
 
-### `--to regulated`
-Includes all Team files plus additional compliance-oriented governance docs:
+Custom policies can be integrated through:
 
-- `CONTEXT-BUDGET.md`
-- `VERIFICATION.md`
-- `DRIFT-METRICS.md`
+- YAML-based policy definitions
+- API endpoints for policy management
+- CLI commands for policy application
+- Web interface for policy configuration
 
-This lets projects start small and progressively adopt stricter governance controls without re-initializing the repo.
+## Compliance Monitoring
+
+Extended governance includes:
+
+- Real-time compliance checking
+- Automated policy enforcement
+- Compliance reporting
+- Audit trail generation
