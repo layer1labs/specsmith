@@ -1,23 +1,24 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Hardware-aware local model selector for the fallback REPL AI (REQ-385–391).
+"""Hardware-aware local model selector for the fallback REPL AI (REQ-385-391).
 
 Detects the host GPU/unified-memory tier and returns the best Ollama model tag
-to use as a local fallback when no cloud API key is configured.
+to use as a local fallback when no cloud API key is configured. When no usable
+GPU is detected, Specsmith now falls back to a minimal CPU-safe model instead of
+returning no recommendation.
 
 Model roles (REQ-387)
 ---------------------
-* ``general``  — *Qwen2.5* (versatile; project management, Q&A, conversation).
-* ``coding``   — *Qwen2.5-Coder* (top coding benchmarks at every size tier).
-* ``reasoning``— *DeepSeek-R1* (deep analysis, architecture, debugging chains).
+* ``general``   - *Qwen2.5* (project management, Q&A, conversation).
+* ``coding``    - *Qwen2.5-Coder* (code editing, patching, debugging).
+* ``reasoning`` - *DeepSeek-R1* / DeepSeek Coder (harder debug/review pass).
 
 Hardware detection
 ------------------
 * Apple Silicon: ``platform.processor() == "arm"`` on macOS; unified memory via
   ``sysctl hw.memsize``.
 * NVIDIA: ``nvidia-smi --query-gpu=memory.total`` (MiB).
-* CPU-only / < 8 GB: returns empty dict — do not load a model that would be
-  unusably slow.
+* CPU-only / low-memory GPU: returns a minimal CPU fallback lineup.
 """
 
 from __future__ import annotations
@@ -28,10 +29,6 @@ import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
 # ---------------------------------------------------------------------------
@@ -50,33 +47,39 @@ class ModelRole(str, Enum):
 # ---------------------------------------------------------------------------
 # Tier thresholds (GB)
 # ---------------------------------------------------------------------------
-_TIER_32B_GB = 20.0  # ≥ 20 GB VRAM → 32B Q4
-_TIER_14B_GB = 10.0  # ≥ 10 GB VRAM → 14B Q4
-_TIER_7B_GB = 7.0  # ≥  7 GB VRAM →  7B Q8
-# Below _TIER_7B_GB → None (skip)
+_TIER_32B_GB = 20.0  # >= 20 GB VRAM -> 32B Q4
+_TIER_14B_GB = 10.0  # >= 10 GB VRAM -> 14B Q4
+_TIER_7B_GB = 7.0  # >=  7 GB VRAM ->  7B Q8
 
 # Apple Silicon thresholds are higher because the model shares unified memory
-# with the OS.  Leave ~4 GB headroom.
+# with the OS. Leave ~4 GB headroom.
 _AS_TIER_32B_GB = 32.0
 _AS_TIER_14B_GB = 16.0
 _AS_TIER_7B_GB = 8.0
 
-# ── Coding models (qwen2.5-coder) ──────────────────────────────────────────
+# CPU/minimal fallback tier. These are intentionally small so first-run local
+# installs can proceed even when no GPU is detected.
+_CPU_FALLBACK_GB = 0.0
+
+# Coding models (qwen2.5-coder)
 _MODEL_32B = "qwen2.5-coder:32b"
 _MODEL_14B = "qwen2.5-coder:14b"
 _MODEL_7B = "qwen2.5-coder:7b"
+_MODEL_CPU = "qwen2.5-coder:1.5b"
 
-# ── General-purpose models (qwen2.5) ───────────────────────────────────────
+# General-purpose models (qwen2.5)
 _GEN_32B = "qwen2.5:32b"
 _GEN_14B = "qwen2.5:14b"
 _GEN_7B = "qwen2.5:7b"
+_GEN_CPU = "qwen2.5:1.5b"
 
-# ── Reasoning models (deepseek-r1) ─────────────────────────────────────────
+# Reasoning models (deepseek-r1)
 _REASON_14B = "deepseek-r1:14b"
 _REASON_8B = "deepseek-r1:8b"
 _REASON_7B = "deepseek-r1:7b"
+_REASON_CPU = "deepseek-r1:1.5b"
 
-# ── Heavier coder for the "harder pass" slot (deepseek-coder-v2, MoE) ───────
+# Heavier coder for the "harder pass" slot (deepseek-coder-v2, MoE)
 _DEEPSEEK_CODER_V2 = "deepseek-coder-v2:16b"
 
 
@@ -94,7 +97,7 @@ class LocalModelInfo:
     """Human-readable hardware description, e.g. ``"apple-silicon-24gb"``."""
 
     vram_gb: float
-    """Detected VRAM / unified memory in GB."""
+    """Detected VRAM / unified memory in GB; ``0.0`` for CPU fallback."""
 
     pull_cmd: str
     """Shell command to pull the model: ``"ollama pull <model>"``."""
@@ -103,6 +106,7 @@ class LocalModelInfo:
     def hf_repo(self) -> str:
         """Canonical HuggingFace repo for the selected model."""
         _hf = {
+            _MODEL_CPU: "Qwen/Qwen2.5-Coder-1.5B-Instruct",
             _MODEL_7B: "Qwen/Qwen2.5-Coder-7B-Instruct",
             _MODEL_14B: "Qwen/Qwen2.5-Coder-14B-Instruct",
             _MODEL_32B: "Qwen/Qwen2.5-Coder-32B-Instruct",
@@ -136,7 +140,7 @@ def _detect_nvidia_vram_gb() -> float | None:
         return None
     try:
         out = subprocess.check_output(  # noqa: S603
-            [  # noqa: S607
+            [
                 "nvidia-smi",
                 "--query-gpu=memory.total",
                 "--format=csv,noheader,nounits",
@@ -152,7 +156,7 @@ def _detect_nvidia_vram_gb() -> float | None:
 
 
 def _pick_model(gb: float, *, tier_32b: float, tier_14b: float, tier_7b: float) -> str | None:
-    """Pick a model tag based on memory, or None when below the minimum tier."""
+    """Pick a model tag based on memory, or None when below the 7B tier."""
     if gb >= tier_32b:
         return _MODEL_32B
     if gb >= tier_14b:
@@ -160,63 +164,6 @@ def _pick_model(gb: float, *, tier_32b: float, tier_14b: float, tier_7b: float) 
     if gb >= tier_7b:
         return _MODEL_7B
     return None
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-
-def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
-    """Detect hardware and return recommended models for all three roles (REQ-387).
-
-    Returns an empty dict on CPU-only hardware or when no GPU is detected.
-    The three roles are ``general``, ``coding``, and ``reasoning``, each
-    selecting the best-fitting model for the detected VRAM tier.
-    """
-    # 1. Apple Silicon
-    as_gb = _detect_apple_silicon_gb()
-    if as_gb is not None:
-        coding_model = _pick_model(
-            as_gb, tier_32b=_AS_TIER_32B_GB, tier_14b=_AS_TIER_14B_GB, tier_7b=_AS_TIER_7B_GB
-        )
-        if coding_model is None:
-            return {}
-        hw = f"apple-silicon-{int(as_gb)}gb"
-        gen_model = _pick_from(
-            as_gb,
-            tier_32b=_AS_TIER_32B_GB,
-            tier_14b=_AS_TIER_14B_GB,
-            tier_7b=_AS_TIER_7B_GB,
-            tag_32b=_GEN_32B,
-            tag_14b=_GEN_14B,
-            tag_7b=_GEN_7B,
-        )
-        reason_model = _pick_reasoning(as_gb, apple=True)
-        return _build_role_dict(hw, as_gb, coding_model, gen_model, reason_model)
-
-    # 2. NVIDIA
-    nv_gb = _detect_nvidia_vram_gb()
-    if nv_gb is not None:
-        coding_model = _pick_model(
-            nv_gb, tier_32b=_TIER_32B_GB, tier_14b=_TIER_14B_GB, tier_7b=_TIER_7B_GB
-        )
-        if coding_model is None:
-            return {}
-        hw = f"nvidia-{int(nv_gb)}gb"
-        gen_model = _pick_from(
-            nv_gb,
-            tier_32b=_TIER_32B_GB,
-            tier_14b=_TIER_14B_GB,
-            tier_7b=_TIER_7B_GB,
-            tag_32b=_GEN_32B,
-            tag_14b=_GEN_14B,
-            tag_7b=_GEN_7B,
-        )
-        reason_model = _pick_reasoning(nv_gb, apple=False)
-        return _build_role_dict(hw, nv_gb, coding_model, gen_model, reason_model)
-
-    return {}
 
 
 def _pick_from(
@@ -284,6 +231,76 @@ def _build_role_dict(
     return roles
 
 
+def _cpu_fallback_roles(hardware: str = "cpu-only") -> dict[ModelRole, LocalModelInfo]:
+    """Return the minimal local role lineup for CPU-only / no-GPU hosts."""
+    return _build_role_dict(
+        hardware,
+        _CPU_FALLBACK_GB,
+        _MODEL_CPU,
+        _GEN_CPU,
+        _REASON_CPU,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
+    """Detect hardware and return recommended models for all three roles.
+
+    The three roles are ``general``, ``coding``, and ``reasoning``. GPU-backed
+    systems get the best-fitting 7B/14B/32B tier. CPU-only, unrecognised, or
+    below-minimum-GPU systems get a minimal CPU-safe local lineup instead of an
+    empty mapping.
+    """
+    # 1. Apple Silicon
+    as_gb = _detect_apple_silicon_gb()
+    if as_gb is not None:
+        coding_model = _pick_model(
+            as_gb, tier_32b=_AS_TIER_32B_GB, tier_14b=_AS_TIER_14B_GB, tier_7b=_AS_TIER_7B_GB
+        )
+        if coding_model is None:
+            return _cpu_fallback_roles(f"apple-silicon-{int(as_gb)}gb-cpu-fallback")
+        hw = f"apple-silicon-{int(as_gb)}gb"
+        gen_model = _pick_from(
+            as_gb,
+            tier_32b=_AS_TIER_32B_GB,
+            tier_14b=_AS_TIER_14B_GB,
+            tier_7b=_AS_TIER_7B_GB,
+            tag_32b=_GEN_32B,
+            tag_14b=_GEN_14B,
+            tag_7b=_GEN_7B,
+        )
+        reason_model = _pick_reasoning(as_gb, apple=True)
+        return _build_role_dict(hw, as_gb, coding_model, gen_model, reason_model)
+
+    # 2. NVIDIA
+    nv_gb = _detect_nvidia_vram_gb()
+    if nv_gb is not None:
+        coding_model = _pick_model(
+            nv_gb, tier_32b=_TIER_32B_GB, tier_14b=_TIER_14B_GB, tier_7b=_TIER_7B_GB
+        )
+        if coding_model is None:
+            return _cpu_fallback_roles(f"nvidia-{int(nv_gb)}gb-cpu-fallback")
+        hw = f"nvidia-{int(nv_gb)}gb"
+        gen_model = _pick_from(
+            nv_gb,
+            tier_32b=_TIER_32B_GB,
+            tier_14b=_TIER_14B_GB,
+            tier_7b=_TIER_7B_GB,
+            tag_32b=_GEN_32B,
+            tag_14b=_GEN_14B,
+            tag_7b=_GEN_7B,
+        )
+        reason_model = _pick_reasoning(nv_gb, apple=False)
+        return _build_role_dict(hw, nv_gb, coding_model, gen_model, reason_model)
+
+    # 3. CPU-only or unrecognised host
+    return _cpu_fallback_roles("cpu-only")
+
+
 # ---------------------------------------------------------------------------
 # Config persistence (REQ-391)
 # ---------------------------------------------------------------------------
@@ -292,7 +309,7 @@ _CONFIG_FILENAME = "local-models.yml"
 
 
 def load_local_models_config(project_dir: str | Path) -> dict[str, str]:
-    """Load persisted role→model mapping from ``.specsmith/local-models.yml``.
+    """Load persisted role->model mapping from ``.specsmith/local-models.yml``.
 
     Returns an empty dict when the file does not exist or cannot be parsed.
     Keys are role names (``"general"``, ``"coding"``, ``"reasoning"``);
@@ -303,7 +320,7 @@ def load_local_models_config(project_dir: str | Path) -> dict[str, str]:
         return {}
     try:
         text = cfg_path.read_text(encoding="utf-8")
-        # Minimal YAML parser — we only need the ``models:`` sub-dict.
+        # Minimal YAML parser - we only need the ``models:`` sub-dict.
         # Using a hand-rolled parser keeps the stdlib-only guarantee.
         import re as _re
 
@@ -332,7 +349,7 @@ def save_local_models_config(
     *,
     hardware: str = "",
 ) -> None:
-    """Persist role→model mapping to ``.specsmith/local-models.yml`` (REQ-391)."""
+    """Persist role->model mapping to ``.specsmith/local-models.yml``."""
     import datetime
 
     spec_dir = Path(project_dir) / ".specsmith"
@@ -340,7 +357,7 @@ def save_local_models_config(
     cfg_path = spec_dir / _CONFIG_FILENAME
     _now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [
-        "# specsmith local model routing config — auto-generated, do not edit manually",
+        "# specsmith local model routing config - auto-generated, do not edit manually",
         f"# detected_at: {_now}",
         f"hardware: {hardware or (next(iter(roles.values())).hardware if roles else 'unknown')}",
         "provider: ollama",
@@ -353,70 +370,30 @@ def save_local_models_config(
 
 
 def detect_local_model() -> LocalModelInfo | None:
-    """Detect hardware and return the best Ollama model, or ``None`` to skip.
+    """Detect hardware and return the best Ollama coding model.
 
-    Returns ``None`` when the machine is CPU-only or has < 7 GB VRAM, since
-    running a large language model in that environment would be unusably slow
-    (REQ-385).
+    CPU-only and unrecognised hosts return the minimal CPU-safe coding model.
+    ``None`` is retained only as a defensive fallback if role construction fails.
     """
-    # 1. Apple Silicon (Metal backend in Ollama)
-    as_gb = _detect_apple_silicon_gb()
-    if as_gb is not None:
-        model = _pick_model(
-            as_gb, tier_32b=_AS_TIER_32B_GB, tier_14b=_AS_TIER_14B_GB, tier_7b=_AS_TIER_7B_GB
-        )
-        if model is None:
-            return None
-        hw = f"apple-silicon-{int(as_gb)}gb"
-        return LocalModelInfo(
-            model=model,
-            runtime="ollama",
-            hardware=hw,
-            vram_gb=as_gb,
-            pull_cmd=f"ollama pull {model}",
-        )
-
-    # 2. NVIDIA (CUDA backend in Ollama)
-    nv_gb = _detect_nvidia_vram_gb()
-    if nv_gb is not None:
-        model = _pick_model(
-            nv_gb, tier_32b=_TIER_32B_GB, tier_14b=_TIER_14B_GB, tier_7b=_TIER_7B_GB
-        )
-        if model is None:
-            return None
-        hw = f"nvidia-{int(nv_gb)}gb"
-        return LocalModelInfo(
-            model=model,
-            runtime="ollama",
-            hardware=hw,
-            vram_gb=nv_gb,
-            pull_cmd=f"ollama pull {model}",
-        )
-
-    # 3. CPU-only or unrecognised → skip
-    return None
+    return detect_local_models().get(ModelRole.coding)
 
 
 # ---------------------------------------------------------------------------
 # VRAM-aware recommendation engine (REQ-445)
 # ---------------------------------------------------------------------------
-#
-# ``recommend_models`` turns a detected VRAM figure into a complete, first-class
-# role lineup with per-model fit assessment, so recommendations always follow
-# the GPU that was actually detected. ``recommend_for_hardware`` is the
-# top-level entry point: it detects the host GPU (Apple Silicon or NVIDIA) and
-# applies the same VRAM tiering used by ``detect_local_models``.
 
 # Approximate on-GPU footprint (GB) for each model at its default Ollama
-# quantization (Q4_K_M for dense models; MoE active-params for deepseek-coder-v2).
-# Used purely to assess fit against detected VRAM — not an exact figure.
+# quantization. Used purely to assess fit against detected VRAM.
 _MODEL_FOOTPRINT_GB: dict[str, float] = {
+    _MODEL_CPU: 1.2,
     _MODEL_7B: 4.7,
     _MODEL_14B: 9.0,
     _MODEL_32B: 20.0,
+    _GEN_CPU: 1.2,
     _GEN_7B: 4.7,
     _GEN_14B: 9.0,
     _GEN_32B: 20.0,
+    _REASON_CPU: 1.2,
     _REASON_7B: 4.7,
     _REASON_8B: 5.2,
     _REASON_14B: 9.0,
@@ -430,24 +407,20 @@ _FIT_HEADROOM_GB = 2.0
 class ModelFit(str, Enum):
     """How well a model fits the detected VRAM."""
 
-    fits = "fits"  # footprint + headroom <= VRAM → fully on GPU
+    fits = "fits"  # footprint + headroom <= VRAM -> fully on GPU
     tight = "tight"  # footprint <= VRAM < footprint + headroom
-    spills = "spills"  # footprint > VRAM → partial CPU offload (slow)
+    spills = "spills"  # footprint > VRAM -> CPU execution/offload (slow)
 
 
 _FIT_NOTE: dict[ModelFit, str] = {
     ModelFit.fits: "fits fully on GPU",
-    ModelFit.tight: "fits but tight — reduce context if slow",
-    ModelFit.spills: "exceeds VRAM — partial CPU offload, expect slowdown",
+    ModelFit.tight: "fits but tight - reduce context if slow",
+    ModelFit.spills: "CPU fallback/offload - expect slowdown; keep context small",
 }
 
 
 def assess_fit(model: str, vram_gb: float) -> ModelFit:
-    """Assess how *model* fits in *vram_gb* of VRAM (REQ-445).
-
-    Unknown models are treated optimistically as ``fits`` so a missing
-    footprint entry never blocks a recommendation.
-    """
+    """Assess how *model* fits in *vram_gb* of VRAM."""
     footprint = _MODEL_FOOTPRINT_GB.get(model)
     if footprint is None:
         return ModelFit.fits
@@ -460,7 +433,7 @@ def assess_fit(model: str, vram_gb: float) -> ModelFit:
 
 @dataclass
 class RecommendedModel:
-    """A single VRAM-aware model recommendation for one usage slot (REQ-445)."""
+    """A single VRAM-aware model recommendation for one usage slot."""
 
     slot: str
     """Usage slot: ``default`` | ``fast`` | ``harder`` | ``general``."""
@@ -503,17 +476,17 @@ class RecommendedModel:
 
 @dataclass
 class RecommendedLineup:
-    """A complete VRAM-aware lineup recommendation (REQ-445)."""
+    """A complete hardware-aware lineup recommendation."""
 
     hardware: str
     vram_gb: float
     models: list[RecommendedModel]
 
     def role_config(self) -> dict[str, str]:
-        """Return the role→tag mapping for ``.specsmith/local-models.yml``.
+        """Return the role->tag mapping for ``.specsmith/local-models.yml``.
 
         Maps the router's three roles to lineup slots:
-        ``coding`` → default, ``general`` → general, ``reasoning`` → harder.
+        ``coding`` -> default, ``general`` -> general, ``reasoning`` -> harder.
         """
         by_role: dict[str, str] = {}
         for rec in self.models:
@@ -538,37 +511,47 @@ def _tiered_tag(vram_gb: float, *, tag_32b: str, tag_14b: str, tag_7b: str) -> s
     return tag_7b
 
 
-def recommend_models(vram_gb: float, hardware: str = "") -> RecommendedLineup | None:
-    """Recommend a full role lineup for *vram_gb* of VRAM (REQ-445).
+def _minimal_specs() -> list[tuple[str, ModelRole, str, str]]:
+    """Return the CPU/minimal slots used below the 7B tier."""
+    return [
+        ("default", ModelRole.coding, _MODEL_CPU, "Minimal CPU-safe coding model - bounded edits only."),
+        ("fast", ModelRole.coding, _MODEL_CPU, "Same tiny model for quick CPU fallback tasks."),
+        ("harder", ModelRole.reasoning, _REASON_CPU, "Tiny reasoning pass - use only for small checks."),
+        ("general", ModelRole.general, _GEN_CPU, "Minimal general chat / project notes."),
+    ]
 
-    Returns ``None`` below the minimum tier (``< _TIER_7B_GB``), where local
-    inference would be unusably slow. The lineup always follows the supplied
-    VRAM: the default/general slots scale with the VRAM tier (7b/14b/32b) while
-    the ``fast`` and ``harder`` slots are fixed picks whose fit is reported
-    relative to *vram_gb* so the caller can warn about CPU spillover.
+
+def recommend_models(vram_gb: float, hardware: str = "") -> RecommendedLineup:
+    """Recommend a full role lineup for the supplied hardware memory figure.
+
+    Below the 7B GPU tier, Specsmith now returns a minimal CPU-safe lineup rather
+    than ``None``. This allows first-run installs on CPU-only or unrecognised
+    systems to proceed with a tiny local model while clearly warning that the fit
+    spills to CPU and context must stay small.
     """
     if vram_gb < _TIER_7B_GB:
-        return None
-
-    default_tag = _tiered_tag(vram_gb, tag_32b=_MODEL_32B, tag_14b=_MODEL_14B, tag_7b=_MODEL_7B)
-    general_tag = _tiered_tag(vram_gb, tag_32b=_GEN_32B, tag_14b=_GEN_14B, tag_7b=_GEN_7B)
-
-    specs: list[tuple[str, ModelRole, str, str]] = [
-        ("default", ModelRole.coding, default_tag, "Default daily driver — balanced coding model."),
-        (
-            "fast",
-            ModelRole.coding,
-            _MODEL_7B,
-            "Fast scratch model — quick edits, big context headroom.",
-        ),
-        (
-            "harder",
-            ModelRole.reasoning,
-            _DEEPSEEK_CODER_V2,
-            "Harder C/Python pass — heavier reasoning-capable coder.",
-        ),
-        ("general", ModelRole.general, general_tag, "General chat / project management."),
-    ]
+        specs = _minimal_specs()
+        hw = hardware or ("cpu-only" if vram_gb <= 0 else f"low-vram-{vram_gb:g}gb-cpu-fallback")
+    else:
+        default_tag = _tiered_tag(vram_gb, tag_32b=_MODEL_32B, tag_14b=_MODEL_14B, tag_7b=_MODEL_7B)
+        general_tag = _tiered_tag(vram_gb, tag_32b=_GEN_32B, tag_14b=_GEN_14B, tag_7b=_GEN_7B)
+        specs = [
+            ("default", ModelRole.coding, default_tag, "Default daily driver - balanced coding model."),
+            (
+                "fast",
+                ModelRole.coding,
+                _MODEL_7B,
+                "Fast scratch model - quick edits, big context headroom.",
+            ),
+            (
+                "harder",
+                ModelRole.reasoning,
+                _DEEPSEEK_CODER_V2,
+                "Harder C/Python pass - heavier reasoning-capable coder.",
+            ),
+            ("general", ModelRole.general, general_tag, "General chat / project management."),
+        ]
+        hw = hardware or "unknown"
 
     models = [
         RecommendedModel(
@@ -581,15 +564,14 @@ def recommend_models(vram_gb: float, hardware: str = "") -> RecommendedLineup | 
         )
         for slot, role, tag, summary in specs
     ]
-    return RecommendedLineup(hardware=hardware or "unknown", vram_gb=vram_gb, models=models)
+    return RecommendedLineup(hardware=hw, vram_gb=vram_gb, models=models)
 
 
-def recommend_for_hardware() -> RecommendedLineup | None:
-    """Detect the host GPU and recommend a VRAM-aware lineup (REQ-445).
+def recommend_for_hardware() -> RecommendedLineup:
+    """Detect host hardware and recommend a lineup.
 
-    Mirrors the detection order of :func:`detect_local_models` (Apple Silicon
-    first, then NVIDIA) and applies the same VRAM tiering. Returns ``None`` on
-    CPU-only machines or when the detected VRAM is below the minimum tier.
+    Apple Silicon is checked first, then NVIDIA. CPU-only/unrecognised machines
+    return the minimal CPU-safe lineup.
     """
     as_gb = _detect_apple_silicon_gb()
     if as_gb is not None:
@@ -597,7 +579,7 @@ def recommend_for_hardware() -> RecommendedLineup | None:
     nv_gb = _detect_nvidia_vram_gb()
     if nv_gb is not None:
         return recommend_models(nv_gb, hardware=f"nvidia-{int(nv_gb)}gb")
-    return None
+    return recommend_models(_CPU_FALLBACK_GB, hardware="cpu-only")
 
 
 def ensure_local_model(model_tag: str) -> bool:
@@ -610,7 +592,7 @@ def ensure_local_model(model_tag: str) -> bool:
     if not shutil.which("ollama"):
         return False
     try:
-        # Check if model is already local (non-zero output = present)
+        # Check if model is already local (zero returncode = present)
         result = subprocess.run(  # noqa: S603
             ["ollama", "show", model_tag],  # noqa: S607
             capture_output=True,
@@ -619,7 +601,7 @@ def ensure_local_model(model_tag: str) -> bool:
         )
         if result.returncode == 0:
             return True
-        # Model not present — pull it
+        # Model not present - pull it
         pull = subprocess.run(  # noqa: S603
             ["ollama", "pull", model_tag],  # noqa: S607
             timeout=600,
