@@ -632,7 +632,6 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
         click.echo(f"Description: {description}")
         click.echo()
         click.echo("Metrics:")
-        # type: ignore
         for metric, value in test_result["metrics"].items():
             if isinstance(value, float):
                 click.echo(f"  {metric}: {value:.4f}")
@@ -640,7 +639,6 @@ def zoo_code_benchmark_test(test_name: str, suite: str, description: str, as_jso
                 click.echo(f"  {metric}: {value}")
         click.echo()
         click.echo("Baseline Comparison:")
-        # type: ignore
         for scenario, metrics in test_result["baseline_comparison"].items():
             click.echo(f"  {scenario}:")
             click.echo(f"    TPCA: {metrics['tpca']:.1f}")
@@ -674,10 +672,8 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
         "timestamp": "2026-07-05T19:32:00Z",
     }
 
-    # type: ignore
-    # type: ignore
-    if platform.lower() in platform_config["platform_specific_features"]:  # type: ignore
-        platform_config["features"] = platform_config["platform_specific_features"][  # type: ignore
+    if platform.lower() in platform_config["platform_specific_features"]:
+        platform_config["features"] = platform_config["platform_specific_features"][
             platform.lower()
         ]
     else:
@@ -690,7 +686,7 @@ def zoo_code_cross_platform(platform: str, integration: str, as_json: bool) -> N
         click.echo(f"  Integration: {integration}")
         click.echo(f"  Supported: {'Yes' if platform_config['supported'] else 'No'}")
         click.echo("  Features:")
-        for feature in platform_config["features"]:  # type: ignore
+        for feature in platform_config["features"]:
             click.echo(f"    - {feature}")
         click.echo("✓ Cross-platform configuration applied")
 
