@@ -443,7 +443,7 @@ def zoo_code_metrics(by: str, metric: str, as_json: bool, since: str, until: str
         click.echo()
         click.echo("Benchmark Comparison:")
         click.echo("-" * 20)
-        for scenario, metrics in report["benchmark_comparison"].items():
+        for scenario, metrics in report["benchmark_comparison"].items():  # type: ignore
             click.echo(f"{scenario}:")
             click.echo(f"  TPCA: {metrics['tpca']:.1f}")
             click.echo(f"  CPCA: {metrics['cpca']:.4f}")
