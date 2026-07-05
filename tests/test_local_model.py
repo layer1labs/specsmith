@@ -371,8 +371,8 @@ class TestDetectLocalModels:
         assert roles[ModelRole.coding].model == "qwen2.5-coder:14b"
         assert roles[ModelRole.general].model == "qwen2.5:14b"
 
-    def test_cpu_only_returns_empty_dict(self) -> None:
-        from specsmith.local_model import detect_local_models
+    def test_cpu_only_returns_cpu_fallback_models(self) -> None:
+        from specsmith.local_model import ModelRole, detect_local_models
 
         with (
             patch("specsmith.local_model._detect_apple_silicon_gb", return_value=None),
@@ -380,11 +380,17 @@ class TestDetectLocalModels:
         ):
             roles = detect_local_models()
 
-        assert roles == {}
+        assert len(roles) == 3
+        assert ModelRole.coding in roles
+        assert ModelRole.general in roles
+        assert ModelRole.reasoning in roles
+        assert roles[ModelRole.coding].model == "qwen2.5-coder:1.5b"
+        assert roles[ModelRole.general].model == "qwen2.5:1.5b"
+        assert roles[ModelRole.reasoning].model == "deepseek-r1:1.5b"
 
-    def test_nvidia_4gb_returns_empty_dict(self) -> None:
-        """Below minimum threshold — empty dict, not an error."""
-        from specsmith.local_model import detect_local_models
+    def test_nvidia_4gb_returns_cpu_fallback_models(self) -> None:
+        """Below minimum threshold — return CPU fallback models."""
+        from specsmith.local_model import ModelRole, detect_local_models
 
         with (
             patch("specsmith.local_model._detect_apple_silicon_gb", return_value=None),
@@ -392,7 +398,13 @@ class TestDetectLocalModels:
         ):
             roles = detect_local_models()
 
-        assert roles == {}
+        assert len(roles) == 3
+        assert ModelRole.coding in roles
+        assert ModelRole.general in roles
+        assert ModelRole.reasoning in roles
+        assert roles[ModelRole.coding].model == "qwen2.5-coder:1.5b"
+        assert roles[ModelRole.general].model == "qwen2.5:1.5b"
+        assert roles[ModelRole.reasoning].model == "deepseek-r1:1.5b"
 
 
 # ---------------------------------------------------------------------------

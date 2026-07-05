@@ -74,6 +74,12 @@ _REASON_7B = "deepseek-r1:7b"
 # ── Heavier coder for the "harder pass" slot (deepseek-coder-v2, MoE) ───────
 _DEEPSEEK_CODER_V2 = "deepseek-coder-v2:16b"
 
+# ── CPU fallback models ────────────────────────────────────────────────────
+_MODEL_CPU = "qwen2.5-coder:1.5b"
+_GEN_CPU = "qwen2.5:1.5b"
+_REASON_CPU = "deepseek-r1:1.5b"
+_CPU_FALLBACK_GB = 0.0
+
 
 @dataclass
 class LocalModelInfo:
@@ -165,7 +171,7 @@ def _pick_model(gb: float, *, tier_32b: float, tier_14b: float, tier_7b: float) 
 def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
     """Detect hardware and return recommended models for all three roles (REQ-387).
 
-    Returns an empty dict on CPU-only hardware or when no GPU is detected.
+    Returns CPU fallback models on CPU-only hardware or when no GPU is detected.
     The three roles are ``general``, ``coding``, and ``reasoning``, each
     selecting the best-fitting model for the detected VRAM tier.
     """
@@ -179,7 +185,7 @@ def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
             tier_7b=_AS_TIER_7B_GB,
         )
         if coding_model is None:
-            return {}
+            return _cpu_fallback_roles("apple-silicon-cpu-fallback")
         hw = f"apple-silicon-{int(as_gb)}gb"
         gen_model = _pick_from(
             as_gb,
@@ -203,7 +209,7 @@ def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
             tier_7b=_TIER_7B_GB,
         )
         if coding_model is None:
-            return {}
+            return _cpu_fallback_roles("nvidia-cpu-fallback")
         hw = f"nvidia-{int(nv_gb)}gb"
         gen_model = _pick_from(
             nv_gb,
@@ -217,7 +223,8 @@ def detect_local_models() -> dict[ModelRole, LocalModelInfo]:
         reason_model = _pick_reasoning(nv_gb, apple=False)
         return _build_role_dict(hw, nv_gb, coding_model, gen_model, reason_model)
 
-    return {}
+    # 3. No GPU detected - return CPU fallback models
+    return _cpu_fallback_roles("cpu-only")
 
 
 def _pick_from(
@@ -283,6 +290,17 @@ def _build_role_dict(
             pull_cmd=f"ollama pull {reason_model}",
         )
     return roles
+
+
+def _cpu_fallback_roles(hardware: str = "cpu-only") -> dict[ModelRole, LocalModelInfo]:
+    """Return minimal CPU-safe model roles for fallback when no GPU is detected."""
+    return _build_role_dict(
+        hardware,
+        _CPU_FALLBACK_GB,
+        _MODEL_CPU,
+        _GEN_CPU,
+        _REASON_CPU,
+    )
 
 
 # ---------------------------------------------------------------------------
