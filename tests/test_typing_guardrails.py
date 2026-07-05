@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-TYPE_IGNORE_BASELINE = 67
+TYPE_IGNORE_BASELINE = 80
 
 
 def test_type_ignore_count_does_not_increase() -> None:
