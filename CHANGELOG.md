@@ -9,6 +9,23 @@ Only versions published to PyPI are listed. Intermediate development versions ar
 consolidated into the next published release.
 
 ## [Unreleased]
+### Added
+- ESDB-first dual-write architecture (REQ-403..416) - Every governance event now writes to ESDB alongside the append-only LEDGER.md
+- `specsmith inspect` command (REQ-409) - Session-start command that emits a bordered governance block with audit health, active work items, ESDB EFF-CURRENT efficiency stats, and epistemic quality breakdown
+- M010 post-ESDB cleanup migration - Removes legacy files superseded by YAML+ESDB governance
+- 49 new ESDB tests covering dual-write correctness, sweep runner, EFF-CURRENT computation, epistemic quality dimensions, audit chain validation, and ChronoStore compatibility paths
+- 142 new agent/REPL/benchmark tests
+
+### Changed
+- Markdown governance mode deprecated - Running `specsmith sync` in markdown mode now emits a DeprecationWarning and auto-triggers m007 migration
+- Auditor YAML dir checks are mode-aware - The yaml-requirements-dir and yaml-tests-dir audit checks now only fail for projects in YAML-first mode
+- `specsmith architect` is now a group command - `specsmith architect` (without a subcommand) retains its original behavior, new subcommands `interview`, `gap`, and `update` are added
+- Req-test coverage check uses testcases.json - In YAML-first mode, the auditor now also uses `requirement_id` from `testcases.json` and `test_ids` from `requirements.json` to determine test coverage
+
+### Fixed
+- Issue #263 - `esdb status --json` emitted bare "Aborted!" on Windows when Click's _winconsole stream detection raised a KeyboardInterrupt
+- Issue #264 - `specsmith save` false positive dirty-tree warning - Post-commit _get_dirty_files() check now correctly ignores untracked files
+- CI matrix: Python 3.10-3.13 fully green - _read_project_name in quality_report.py now uses tomllib → tomli → regex fallback chain so pyproject.toml is parsed correctly on Python 3.10
 
 ---
 
