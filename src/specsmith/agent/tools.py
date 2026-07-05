@@ -37,8 +37,10 @@ def run_shell(command: str, cwd: str | None = None, timeout: int = 60) -> str:
         return f"Error executing command: {e}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
     except subprocess.TimeoutExpired:
         return f"Command timed out after {timeout} seconds."
-    except Exception as e:
-        return f"Exception occurred: {e}"
+    except subprocess.SubprocessError as e:
+        return f"Subprocess error occurred: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error occurred: {e}"
 
 
 @validate_json_args
@@ -49,8 +51,10 @@ def read_file(path: str, cwd: str | None = None) -> str:
         return f"Error: File '{path}' does not exist."
     try:
         return p.read_text(encoding="utf-8")
-    except Exception as e:
-        return f"Error reading file: {e}"
+    except OSError as e:
+        return f"OS error reading file: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error reading file: {e}"
 
 
 @validate_json_args
@@ -61,8 +65,10 @@ def write_file(path: str, content: str, cwd: str | None = None) -> str:
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         return f"Successfully wrote to '{path}'."
-    except Exception as e:
-        return f"Error writing file: {e}"
+    except OSError as e:
+        return f"OS error writing file: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error writing file: {e}"
 
 
 @validate_json_args
@@ -88,8 +94,10 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
         if result.returncode == 0:
             return f"Successfully patched '{path}'."
         return f"Failed to patch '{path}': {result.stderr or result.stdout}"
-    except Exception as e:
-        return f"Error patching file: {e}"
+    except OSError as e:
+        return f"OS error patching file: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error patching file: {e}"
 
 
 @validate_json_args
@@ -108,8 +116,10 @@ def list_files(path: str = ".", pattern: str = "**/*", cwd: str | None = None) -
             cwd = os.getcwd()
         rel_files = [os.path.relpath(f, cwd) for f in files if os.path.isfile(f)]
         return "\n".join(rel_files) if rel_files else "No files found."
-    except Exception as e:
-        return f"Error listing files: {e}"
+    except OSError as e:
+        return f"OS error listing files: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error listing files: {e}"
 
 
 @validate_json_args
@@ -143,8 +153,10 @@ def open_url(url: str) -> str:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as response:
             return response.read().decode("utf-8")
-    except Exception as e:
-        return f"Error fetching URL: {e}"
+    except urllib.error.URLError as e:
+        return f"URL error fetching: {e}"
+    except Exception as e:  # noqa: BLE001
+        return f"Unexpected error fetching URL: {e}"
 
 
 @validate_json_args

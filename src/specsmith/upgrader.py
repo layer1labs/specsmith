@@ -130,7 +130,7 @@ def run_upgrade(
     raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return UpgradeResult(message=f"Invalid scaffold config: {e}")
 
     new_version = target_version or __version__

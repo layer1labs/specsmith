@@ -39,8 +39,8 @@ def run_diff(root: Path) -> list[tuple[str, str]]:
     raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
-    except Exception:
-        return [(scaffold_path.name, "invalid")]
+    except Exception as e:  # noqa: BLE001
+        return [(scaffold_path.name, f"invalid: {e}")]
 
     env = Environment(
         loader=PackageLoader("specsmith", "templates"),
@@ -131,8 +131,8 @@ def run_diff_html(root: Path) -> str:
     raw = _normalize_scaffold_raw(raw or {})
     try:
         config = ProjectConfig(**raw)
-    except Exception:
-        return "<html><body><p>Invalid scaffold config.</p></body></html>"
+    except Exception as e:  # noqa: BLE001
+        return f"<html><body><p>Invalid scaffold config: {e}.</p></body></html>"
 
     from specsmith.tools import get_tools
 

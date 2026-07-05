@@ -133,7 +133,7 @@ def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
                         message=f"{cfg_name} valid: project={data['name']}, type={data['type']}",
                     )
                 )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         results.append(
             ValidationResult(
                 name="scaffold-yml",
