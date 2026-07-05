@@ -3,15 +3,12 @@
 """Advanced code analysis framework for specsmith with AI-assisted features."""
 
 import ast
-import inspect
-import os
-import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional, Set, Tuple, Dict, Union
+from typing import Any
 
 from specsmith.auditor import AuditResult
-from specsmith.code_analysis import ComplexityReport, CodeQualityReport, analyze_code_quality, check_complexity_compliance
+from specsmith.code_analysis import ComplexityReport
 
 
 @dataclass
@@ -29,7 +26,7 @@ class RefactoringSuggestion:
 class AIAssistedAnalysis:
     """AI-assisted code analysis results."""
     file_path: str
-    suggestions: List[RefactoringSuggestion]
+    suggestions: list[RefactoringSuggestion]
     code_quality_score: float
     complexity_trend: str  # 'improving', 'stable', 'regressing'
     improvement_potential: float  # 0.0 to 1.0
@@ -38,15 +35,15 @@ class AIAssistedAnalysis:
 class AdvancedCodeAnalyzer:
     """Advanced code analysis engine with AI-assisted features."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.complexity_threshold = 10  # A-range complexity threshold
 
-    def analyze_file_for_refactoring(self, file_path: Path) -> List[RefactoringSuggestion]:
+    def analyze_file_for_refactoring(self, file_path: Path) -> list[RefactoringSuggestion]:
         """Analyze a file for potential refactoring opportunities."""
-        suggestions = []
+        suggestions: list[RefactoringSuggestion] = []
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 content = f.read()
 
             # Parse the file with AST
@@ -59,11 +56,13 @@ class AdvancedCodeAnalyzer:
                     if hasattr(node, 'body'):
                         lines = node.body
                         if len(lines) > 20:  # Arbitrary threshold for long functions
+                            description = (f"Function '{node.name}' has {len(lines)} lines - "
+                                           "consider refactoring")
                             suggestions.append(RefactoringSuggestion(
                                 file_path=str(file_path),
                                 line_number=node.lineno,
                                 suggestion_type="function_length",
-                                description=f"Function '{node.name}' has {len(lines)} lines - consider refactoring",
+                                description=description,
                                 severity="medium",
                                 confidence=0.7
                             ))
@@ -71,24 +70,25 @@ class AdvancedCodeAnalyzer:
                     # Check for complex conditionals
                     complex_conditions = self._find_complex_conditions(node)
                     for condition in complex_conditions:
+                        description = f"Complex conditional at line {condition['line']} - consider simplification"
                         suggestions.append(RefactoringSuggestion(
                             file_path=str(file_path),
                             line_number=condition['line'],
                             suggestion_type="conditional_complexity",
-                            description=f"Complex conditional at line {condition['line']} - consider simplification",
+                            description=description,
                             severity="high",
                             confidence=0.8
                         ))
 
-        except Exception as e:
+        except Exception:
             # Silently ignore parsing errors for now
             pass
 
         return suggestions
 
-    def _find_complex_conditions(self, node: ast.AST) -> List[Dict[str, Any]]:
+    def _find_complex_conditions(self, node: ast.AST) -> list[dict[str, Any]]:
         """Find complex conditional statements."""
-        conditions = []
+        conditions: list[dict[str, Any]] = []
         if isinstance(node, ast.If):
             # Check for nested if statements or complex boolean expressions
             if isinstance(node.test, ast.BoolOp):
@@ -102,7 +102,7 @@ class AdvancedCodeAnalyzer:
                     })
         return conditions
 
-    def analyze_codebase_for_ai_assistance(self, root: Path) -> Dict[str, AIAssistedAnalysis]:
+    def analyze_codebase_for_ai_assistance(self, root: Path) -> dict[str, AIAssistedAnalysis]:
         """Analyze entire codebase for AI-assisted insights."""
         results = {}
 
@@ -134,13 +134,13 @@ class AdvancedCodeAnalyzer:
 
         return results
 
-    def _analyze_file_complexity(self, file_path: Path) -> List[ComplexityReport]:
+    def _analyze_file_complexity(self, file_path: Path) -> list[ComplexityReport]:
         """Analyze complexity of a single file."""
         # This would use the existing functionality from code_analysis.py
         # For now, we'll create a simplified version
         reports = []
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, encoding='utf-8') as f:
                 content = f.read()
 
             tree = ast.parse(content)
@@ -182,8 +182,8 @@ class AdvancedCodeAnalyzer:
 
         return complexity
 
-    def _calculate_quality_score(self, complexity_reports: List[ComplexityReport],
-                               suggestions: List[RefactoringSuggestion]) -> float:
+    def _calculate_quality_score(self, complexity_reports: list[ComplexityReport],
+                               suggestions: list[RefactoringSuggestion]) -> float:
         """Calculate overall code quality score."""
         # Base score is 100
         score = 100.0
@@ -198,7 +198,7 @@ class AdvancedCodeAnalyzer:
         # Ensure score is within bounds
         return max(0, min(100, score))
 
-    def _determine_complexity_trend(self, complexity_reports: List[ComplexityReport]) -> str:
+    def _determine_complexity_trend(self, complexity_reports: list[ComplexityReport]) -> str:
         """Determine if complexity is improving, stable, or regressing."""
         if not complexity_reports:
             return "stable"
@@ -210,7 +210,7 @@ class AdvancedCodeAnalyzer:
         else:
             return "stable"
 
-    def _calculate_improvement_potential(self, suggestions: List[RefactoringSuggestion]) -> float:
+    def _calculate_improvement_potential(self, suggestions: list[RefactoringSuggestion]) -> float:
         """Calculate potential improvement based on suggestions."""
         if not suggestions:
             return 0.0
@@ -227,13 +227,13 @@ class AdvancedCodeAnalyzer:
         return min(1.0, total_weight / len(suggestions) if suggestions else 0)
 
 
-def create_ai_assisted_code_report(root: Path) -> Dict[str, AIAssistedAnalysis]:
+def create_ai_assisted_code_report(root: Path) -> dict[str, AIAssistedAnalysis]:
     """Create an AI-assisted code quality report."""
     analyzer = AdvancedCodeAnalyzer()
     return analyzer.analyze_codebase_for_ai_assistance(root)
 
 
-def generate_refactoring_report(root: Path) -> Dict[str, List[RefactoringSuggestion]]:
+def generate_refactoring_report(root: Path) -> dict[str, list[RefactoringSuggestion]]:
     """Generate a comprehensive refactoring report."""
     analyzer = AdvancedCodeAnalyzer()
     report = {}
@@ -250,12 +250,12 @@ def generate_refactoring_report(root: Path) -> Dict[str, List[RefactoringSuggest
     return report
 
 
-def get_ai_assisted_analysis(root: Path) -> Dict[str, AIAssistedAnalysis]:
+def get_ai_assisted_analysis(root: Path) -> dict[str, AIAssistedAnalysis]:
     """Get AI-assisted analysis for all files."""
     return create_ai_assisted_code_report(root)
 
 
-def check_ai_compliance(root: Path) -> List[AuditResult]:
+def check_ai_compliance(root: Path) -> list[AuditResult]:
     """Check AI compliance based on the analysis."""
     issues = []
 

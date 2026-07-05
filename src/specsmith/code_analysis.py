@@ -3,11 +3,8 @@
 """Code analysis framework for specsmith."""
 
 import ast
-import inspect
-import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Optional, Set, Tuple
 
 from specsmith.auditor import AuditResult
 
@@ -26,17 +23,17 @@ class ComplexityReport:
 class CodeQualityReport:
     """Comprehensive code quality report."""
     file_path: str
-    complexity_reports: List[ComplexityReport]
-    issues: List[AuditResult]
+    complexity_reports: list[ComplexityReport]
+    issues: list[AuditResult]
     overall_score: float
 
 
-def analyze_file_complexity(file_path: Path) -> List[ComplexityReport]:
+def analyze_file_complexity(file_path: Path) -> list[ComplexityReport]:
     """Analyze cyclomatic complexity of functions in a Python file."""
-    reports = []
+    reports: list[ComplexityReport] = []
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             content = f.read()
 
         tree = ast.parse(content)
@@ -133,7 +130,7 @@ def analyze_code_quality(root: Path) -> CodeQualityReport:
     )
 
 
-def get_complexity_report(root: Path) -> List[ComplexityReport]:
+def get_complexity_report(root: Path) -> list[ComplexityReport]:
     """Get a comprehensive complexity report for all Python files."""
     reports = []
 
@@ -146,7 +143,7 @@ def get_complexity_report(root: Path) -> List[ComplexityReport]:
     return reports
 
 
-def check_complexity_compliance(root: Path) -> List[AuditResult]:
+def check_complexity_compliance(root: Path) -> list[AuditResult]:
     """Check if all functions comply with A-range complexity requirements."""
     issues = []
 

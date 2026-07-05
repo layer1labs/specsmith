@@ -14248,10 +14248,9 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
     from pathlib import Path
 
     from specsmith.advanced_code_analysis import (
+        check_ai_compliance,
         create_ai_assisted_code_report,
         generate_refactoring_report,
-        get_ai_assisted_analysis,
-        check_ai_compliance
     )
 
     root = Path(project_dir).resolve()
@@ -14317,7 +14316,7 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
             console.print("[bold]AI Analysis Results[/bold]")
             console.print("-" * 40)
 
-            for file_path, analysis in ai_report.items():
+            for _file_path, analysis in ai_report.items():
                 console.print(f"[cyan]File:[/cyan] {analysis.file_path}")
                 console.print(f"  [bold]Quality Score:[/bold] {analysis.code_quality_score:.1f}/100")
                 console.print(f"  [bold]Complexity Trend:[/bold] {analysis.complexity_trend}")
@@ -14361,7 +14360,7 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
 
     except Exception as e:
         console.print(f"[red]\u2717[/red] Error during AI analysis: {str(e)}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
 
 if __name__ == "__main__":
