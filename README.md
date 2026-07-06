@@ -25,6 +25,7 @@ AI Agents / IDE Clients
 
 - Use when you need governed AI development, auditable decision trails, and requirement-to-test linkage.
 - Use especially for larger projects where governance reduces token costs by 2-6x compared to ungoverned approaches (as demonstrated in our efficiency benchmarks)
+- Use with local LLMs like LMStudio, vLLM, or llama.cpp for maximum cost control and privacy
 - Avoid when rapid local prototyping is the only goal and formal governance is unnecessary.
 
 ## Comparison summary

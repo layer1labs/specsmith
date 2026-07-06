@@ -15,6 +15,7 @@ The governance CLI, Nexus REPL, and multi-agent dispatcher all work standalone w
 | You use Warp, Cursor, Claude Code, etc. | [Agent Integrations](agent-integrations.md) instead |
 | You want governance + an LLM in one command | `specsmith run` (Nexus REPL) |
 | Larger projects with token cost concerns | Governance reduces token costs by 2-6x compared to ungoverned approaches |
+| Local LLMs (LMStudio, vLLM, llama.cpp) | Bring your own endpoint support for maximum cost control and privacy |
 
 ---
 
