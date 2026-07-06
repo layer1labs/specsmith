@@ -137,18 +137,6 @@ specsmith phase list     # list all phases
 The current phase is persisted in `scaffold.yml` as `aee_phase`. Each phase has a checklist
 of file/command criteria, recommended commands, and a readiness percentage.
 
-## 1.0 release criteria status
-
-| Criterion | Status | Source |
-|---|---|---|
-| Stable CLI core contract documented | ✅ Complete | `docs/stability.md` |
-| Stable generated file schemas documented | ✅ Complete | `docs/stability.md` |
-| Stable MCP tool schemas documented | ✅ Complete | `docs/stability.md` |
-| Migration tests linked (#218) | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
-| Security threat model documented | ✅ Complete | `docs/security-threat-model.md` |
-| Docs/tutorial/glossary baseline complete | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
-| Upgrade path and changelog criteria defined | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
-| macOS CI support added | ✅ Complete | `.github/workflows/ci.yml` |
 
 ---
 
