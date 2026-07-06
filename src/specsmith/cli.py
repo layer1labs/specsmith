@@ -14448,3 +14448,76 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# Development mode and improvement tracking commands
+@main.group(name="dev", invoke_without_command=True)
+def dev_group() -> None:
+    """Development mode and improvement tracking commands."""
+    pass
+
+
+@dev_group.command(name="session-report")
+@click.option(
+    "--session-id",
+    type=str,
+    default=None,
+    help="Session ID to report on (default: latest session).",
+)
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--json",
+    "as_json",
+    is_flag=True,
+    default=False,
+    help="Emit results as JSON.",
+)
+def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bool) -> None:
+    """Generate a session report with improvement analysis."""
+    from pathlib import Path
+
+    from specsmith.improvement_tracker import ImprovementTracker
+
+    root = Path(project_dir).resolve()
+    tracker = ImprovementTracker(root)
+
+    if as_json:
+        # Return JSON output
+        import json as _json
+        if session_id:
+            analysis = tracker.get_session_analysis(session_id)
+            if analysis:
+                click.echo(_json.dumps(analysis.model_dump(), indent=2))
+            else:
+                click.echo(_json.dumps({"error": "Session not found"}, indent=2))
+        else:
+            # Get latest session
+            # For simplicity, we'll just list recent sessions
+            improvements = tracker.get_recent_improvements(10)
+            result = {
+                "recent_improvements": [imp.model_dump() for imp in improvements]
+            }
+            click.echo(_json.dumps(result, indent=2))
+    else:
+        # Return human-readable output
+        if session_id:
+            analysis = tracker.get_session_analysis(session_id)
+            if analysis:
+                report = tracker.generate_session_report(session_id)
+                click.echo(report)
+            else:
+                click.echo(f"Session {session_id} not found.")
+        else:
+            # Show recent improvements
+            improvements = tracker.get_recent_improvements(10)
+            if improvements:
+                click.echo("Recent Improvements:")
+                for imp in improvements:
+                    click.echo(f"  - {imp.description} ({imp.severity})")
+            else:
+                click.echo("No recent improvements recorded.")

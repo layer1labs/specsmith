@@ -174,7 +174,7 @@ class AdvancedCodeAnalyzer:
                                 ),
                             )
                         )
-        except Exception:
+        except Exception:  # noqa: BLE001  # intentional: fire-and-forget analysis; log is written above
             pass
 
         return reports

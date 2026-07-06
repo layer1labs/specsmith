@@ -775,6 +775,7 @@ def auto_migrate_if_needed(root: Path) -> dict[str, int]:
     if not specsmith_dir.exists():
         return {}
 
+    # pylint: disable=unused-private-member
     class _MigratableStore(Protocol):
         def record_count(self) -> int:
             pass

@@ -1,0 +1,70 @@
+# specsmith requirements — testing frameworks and tools
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+
+# Schema: id (REQ-NNN), title, description, source, status, test_coverage, approval_required
+# Required fields: id, title, status
+
+- id: REQ-101
+  title: Playwright Testing Framework
+  description: Allow specsmith projects to use Playwright for end-to-end browser testing with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-102
+  title: Testing Framework Configuration
+  description: Allow specsmith projects to configure testing frameworks including Playwright, pytest, and others with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-103
+  title: Testing Environment Isolation
+  description: Ensure testing environments are properly isolated from development environments with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-104
+  title: Testing Artifact Management
+  description: Allow specsmith projects to manage test artifacts including screenshots, videos, and logs with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-105
+  title: Testing Report Generation
+  description: Allow specsmith projects to automatically generate test reports with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-106
+  title: Testing Integration with CI/CD
+  description: Allow specsmith projects to integrate testing frameworks with CI/CD pipelines with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-107
+  title: Testing Parallel Execution
+  description: Allow specsmith projects to execute tests in parallel with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-108
+  title: Testing Coverage Reporting
+  description: Allow specsmith projects to generate and track test coverage reports with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true

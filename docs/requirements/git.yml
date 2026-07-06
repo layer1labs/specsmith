@@ -1,0 +1,86 @@
+# specsmith requirements — Git platform management
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+
+# Schema: id (REQ-NNN), title, description, source, status, test_coverage, approval_required
+# Required fields: id, title, status
+
+- id: REQ-079
+  title: Git Platform Agnostic Management
+  description: Allow specsmith to manage Git repositories across multiple platforms (GitHub, GitLab, Bitbucket, etc.) with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-080
+  title: GitHub Platform Management
+  description: Allow specsmith to manage GitHub repositories, issues, pull requests, and releases with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-081
+  title: GitLab Platform Management
+  description: Allow specsmith to manage GitLab repositories, issues, merge requests, and releases with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-082
+  title: Bitbucket Platform Management
+  description: Allow specsmith to manage Bitbucket repositories, issues, pull requests, and releases with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-083
+  title: Azure DevOps Platform Management
+  description: Allow specsmith to manage Azure DevOps repositories, issues, pull requests, and releases with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-084
+  title: Git Platform Authentication Management
+  description: Allow specsmith to manage authentication credentials for multiple Git platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-085
+  title: Git Platform Configuration Management
+  description: Allow specsmith to configure platform-specific settings and webhooks for multiple Git platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-086
+  title: Git Platform Repository Creation
+  description: Allow specsmith to create repositories on multiple Git platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-087
+  title: Git Platform Repository Deletion
+  description: Allow specsmith to delete repositories on multiple Git platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-088
+  title: Git Platform Repository Cloning
+  description: Allow specsmith to clone repositories from multiple Git platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true

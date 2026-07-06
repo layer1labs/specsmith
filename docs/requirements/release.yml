@@ -1,0 +1,102 @@
+# specsmith requirements — release management
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+
+# Schema: id (REQ-NNN), title, description, source, status, test_coverage, approval_required
+# Required fields: id, title, status
+
+- id: REQ-065
+  title: GitHub Release Creation
+  description: Allow specsmith to create GitHub releases for tagged versions with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-066
+  title: PyPI Deployment
+  description: Allow specsmith to trigger PyPI package deployment with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-067
+  title: CI Management
+  description: Allow specsmith to manage CI workflows with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-068
+  title: Pull Request Management
+  description: Allow specsmith to manage PRs, merges, and issue creation with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-071
+  title: Release Notes Generation
+  description: Allow specsmith to automatically generate release notes from commit history with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-072
+  title: Release Tag Management
+  description: Allow specsmith to manage release tags including creation, deletion, and modification with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-073
+  title: Artifact Management
+  description: Allow specsmith to manage release artifacts including uploads, downloads, and cleanup with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-074
+  title: Release Branch Management
+  description: Allow specsmith to manage release branches including creation, merging, and deletion with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-075
+  title: Release Validation
+  description: Allow specsmith to perform automated validation checks before release creation with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-076
+  title: Release Rollback
+  description: Allow specsmith to rollback to previous releases with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-077
+  title: Release Promotion
+  description: Allow specsmith to promote releases between environments (dev, staging, prod) with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-078
+  title: Release Metadata Management
+  description: Allow specsmith to manage release metadata including version, date, and author information with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true

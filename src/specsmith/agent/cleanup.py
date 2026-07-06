@@ -249,7 +249,7 @@ def _consolidate_governance_files(root: Path) -> list[str]:
             reqs_yaml_dir = root / "docs" / "requirements"
             reqs_yaml_dir.mkdir(parents=True, exist_ok=True)
             consolidated.append("Consolidated requirements to YAML structure")
-        except Exception:
+        except Exception:  # noqa: BLE001  # intentional: fire-and-forget cleanup; log is written above
             pass
 
     if tests_dir.exists() and tests_dir.is_dir():
@@ -258,7 +258,7 @@ def _consolidate_governance_files(root: Path) -> list[str]:
             tests_yaml_dir = root / "docs" / "tests"
             tests_yaml_dir.mkdir(parents=True, exist_ok=True)
             consolidated.append("Consolidated tests to YAML structure")
-        except Exception:
+        except Exception:  # noqa: BLE001  # intentional: fire-and-forget cleanup; log is written above
             pass
 
     return consolidated
