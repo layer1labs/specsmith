@@ -24,6 +24,7 @@ AI Agents / IDE Clients
 ## When to use / when not to use
 
 - Use when you need governed AI development, auditable decision trails, and requirement-to-test linkage.
+- Use especially for larger projects where governance reduces token costs by 2-6x compared to ungoverned approaches (as demonstrated in our efficiency benchmarks)
 - Avoid when rapid local prototyping is the only goal and formal governance is unnecessary.
 
 ## Comparison summary
