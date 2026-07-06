@@ -15,6 +15,7 @@ consolidated into the next published release.
 - M010 post-ESDB cleanup migration - Removes legacy files superseded by YAML+ESDB governance
 - 49 new ESDB tests covering dual-write correctness, sweep runner, EFF-CURRENT computation, epistemic quality dimensions, audit chain validation, and ChronoStore compatibility paths
 - 142 new agent/REPL/benchmark tests
+- CPU fallback for local model detection (REQ-445) - When no GPU is detected, Specsmith now falls back to a minimal CPU-safe model instead of returning no recommendation
 
 ### Changed
 - Markdown governance mode deprecated - Running `specsmith sync` in markdown mode now emits a DeprecationWarning and auto-triggers m007 migration

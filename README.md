@@ -50,6 +50,8 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
+**v0.21.0** - CPU fallback for local model detection: When no GPU is detected, Specsmith now falls back to a minimal CPU-safe model instead of returning no recommendation (REQ-445). Also includes all v0.20.0 features.
+
 **v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
 
 **v0.19.x** — `specsmith wi link-test`, the governance-YAML content auditor and sync markdown-reconcile warnings, and a HuggingFace provider + 15-model multi-provider benchmark matrix for GovernanceBench.
