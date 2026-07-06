@@ -13,3 +13,5 @@ version: 0.20.1
 license: MIT
 author: Layer1 Labs
 url: https://github.com/layer1labs/specsmith
+
+aee_phase: release

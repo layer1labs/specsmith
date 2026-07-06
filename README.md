@@ -72,6 +72,7 @@ specsmith ollama gpu                        # detect GPU VRAM, recommend context
 specsmith local-model recommend            # VRAM-aware model lineup (fits/tight/spills)
 specsmith integrate warp                    # scaffold Warp-native governance (MCP + launch config)
 specsmith export                            # generate full compliance report
+specsmith endpoints add lmstudio            # add LMStudio endpoint for BYOE support
 
 # Update channels
 specsmith channel set stable               # pin to stable releases
@@ -265,6 +266,14 @@ specsmith save                           # commit governance state + push
 specsmith phase                          # current phase + readiness %
 specsmith audit                          # full governance health check
 ```
+
+> **Session Bootstrap**: For a more streamlined session start, you can also use:
+> ```bash
+> specsmith load                           # run migrate, audit, sync, and checkpoint in sequence
+> ```
+> This command combines the essential bootstrap steps for a clean session start.
+>
+> **Note**: The `specsmith load` command is particularly useful for quickly setting up a new session with all governance checks in place.
 
 > **Agentic REPL:** run `specsmith run` to start the Nexus governance-gated LLM REPL.
 > Every utterance is preflighted automatically. Use `/why` to see the governance trace.
@@ -1301,7 +1310,6 @@ command reference, project types, tool registry, governance model, ESDB, skills 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
 - [Stability Contract](https://github.com/layer1labs/specsmith/blob/develop/docs/stability.md)
-- [1.0 Release Criteria](https://github.com/layer1labs/specsmith/blob/develop/docs/roadmap/1.0-criteria.md)
 - [Editions Matrix](https://github.com/layer1labs/specsmith/blob/develop/docs/editions.md)
 - [Changelog](https://github.com/layer1labs/specsmith/blob/develop/CHANGELOG.md)
 - [Contributing](https://github.com/layer1labs/specsmith/blob/develop/CONTRIBUTING.md)

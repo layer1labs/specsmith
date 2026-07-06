@@ -16,6 +16,7 @@ The governance CLI, Nexus REPL, and multi-agent dispatcher all work standalone w
 | You want governance + an LLM in one command | `specsmith run` (Nexus REPL) |
 | Larger projects with token cost concerns | Governance reduces token costs by 2-6x compared to ungoverned approaches |
 | Local LLMs (LMStudio, vLLM, llama.cpp) | Bring your own endpoint support for maximum cost control and privacy |
+| You want to use LMStudio or other local LLM tools | Native support for Bring-Your-Own-Endpoint (BYOE) workflows |
 
 ---
 
@@ -89,6 +90,9 @@ specsmith run --provider ollama --model qwen2.5:14b
 specsmith run --provider anthropic   # requires ANTHROPIC_API_KEY
 specsmith run --provider openai      # requires OPENAI_API_KEY
 specsmith run --provider google      # requires GOOGLE_API_KEY
+
+# Start with a local LLM via BYOE (Bring Your Own Endpoint)
+specsmith run --provider local --endpoint http://localhost:1234/v1/chat/completions
 ```
 
 Inside the REPL:
