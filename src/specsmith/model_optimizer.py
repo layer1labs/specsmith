@@ -22,7 +22,7 @@ class ModelOptimizer:
         self,
         model_name: str,
         task_type: str = "general",
-        current_parameters: dict[str, Any] | None = None
+        current_parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Get optimized parameters for a given model and task type.
@@ -49,7 +49,7 @@ class ModelOptimizer:
 
         # Apply model-specific optimizations
         if profile.recommended_temperature is not None:
-            optimized['temperature'] = profile.recommended_temperature
+            optimized["temperature"] = profile.recommended_temperature
 
         # Apply task-specific optimizations
         optimized = self._apply_task_optimizations(task_type, profile, optimized)
@@ -60,29 +60,19 @@ class ModelOptimizer:
         return optimized
 
     def _get_default_parameters(
-        self,
-        task_type: str,
-        current_parameters: dict[str, Any]
+        self, task_type: str, current_parameters: dict[str, Any]
     ) -> dict[str, Any]:
         """Get default parameters when no model profile is available."""
         optimized = current_parameters.copy()
 
         # Default temperature based on task type
-        task_temperatures = {
-            "reasoning": 0.7,
-            "coding": 0.2,
-            "summarization": 0.5,
-            "general": 0.7
-        }
+        task_temperatures = {"reasoning": 0.7, "coding": 0.2, "summarization": 0.5, "general": 0.7}
 
-        optimized['temperature'] = task_temperatures.get(task_type, 0.7)
+        optimized["temperature"] = task_temperatures.get(task_type, 0.7)
         return optimized
 
     def _apply_task_optimizations(
-        self,
-        task_type: str,
-        profile: ModelProfile,
-        parameters: dict[str, Any]
+        self, task_type: str, profile: ModelProfile, parameters: dict[str, Any]
     ) -> dict[str, Any]:
         """Apply task-specific optimizations."""
         optimized = parameters.copy()
@@ -90,20 +80,18 @@ class ModelOptimizer:
         # Adjust temperature based on task type
         if task_type == "coding" and profile.supports_function_calling:
             # Lower temperature for coding tasks
-            optimized['temperature'] = min(0.3, optimized.get('temperature', 0.7))
+            optimized["temperature"] = min(0.3, optimized.get("temperature", 0.7))
         elif task_type == "reasoning":
             # Slightly higher temperature for reasoning
-            optimized['temperature'] = min(0.8, optimized.get('temperature', 0.7))
+            optimized["temperature"] = min(0.8, optimized.get("temperature", 0.7))
         elif task_type == "summarization":
             # Moderate temperature for summarization
-            optimized['temperature'] = min(0.6, optimized.get('temperature', 0.7))
+            optimized["temperature"] = min(0.6, optimized.get("temperature", 0.7))
 
         return optimized
 
     def _apply_runtime_optimizations(
-        self,
-        profile: ModelProfile,
-        parameters: dict[str, Any]
+        self, profile: ModelProfile, parameters: dict[str, Any]
     ) -> dict[str, Any]:
         """Apply runtime-specific optimizations."""
         optimized = parameters.copy()
@@ -111,19 +99,15 @@ class ModelOptimizer:
         # Context length optimization
         if profile.context_length:
             # Set context length to a reasonable value (e.g., 80% of max)
-            optimized['max_context_length'] = int(profile.context_length * 0.8)
+            optimized["max_context_length"] = int(profile.context_length * 0.8)
 
         # Runtime-specific settings
         if profile.recommended_runtime:
-            optimized['runtime'] = profile.recommended_runtime
+            optimized["runtime"] = profile.recommended_runtime
 
         return optimized
 
-    def get_skill_recommendations(
-        self,
-        model_name: str,
-        task_type: str = "general"
-    ) -> list[str]:
+    def get_skill_recommendations(self, model_name: str, task_type: str = "general") -> list[str]:
         """
         Get recommended skills based on model characteristics and task type.
 
@@ -168,9 +152,7 @@ model_optimizer = ModelOptimizer()
 
 
 def optimize_for_model(
-    model_name: str,
-    task_type: str = "general",
-    parameters: dict[str, Any] | None = None
+    model_name: str, task_type: str = "general", parameters: dict[str, Any] | None = None
 ) -> dict[str, Any]:
     """
     Convenience function to get optimized parameters for a model and task.
@@ -186,10 +168,7 @@ def optimize_for_model(
     return model_optimizer.get_optimized_parameters(model_name, task_type, parameters)
 
 
-def get_model_recommendations(
-    model_name: str,
-    task_type: str = "general"
-) -> list[str]:
+def get_model_recommendations(model_name: str, task_type: str = "general") -> list[str]:
     """
     Get recommended skills for a given model and task type.
 

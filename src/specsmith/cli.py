@@ -14489,6 +14489,7 @@ def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bo
     if as_json:
         # Return JSON output
         import json as _json
+
         if session_id:
             analysis = tracker.get_session_analysis(session_id)
             if analysis:
@@ -14499,9 +14500,7 @@ def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bo
             # Get latest session
             # For simplicity, we'll just list recent sessions
             improvements = tracker.get_recent_improvements(10)
-            result = {
-                "recent_improvements": [imp.model_dump() for imp in improvements]
-            }
+            result = {"recent_improvements": [imp.model_dump() for imp in improvements]}
             click.echo(_json.dumps(result, indent=2))
     else:
         # Return human-readable output
