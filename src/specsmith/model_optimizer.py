@@ -6,9 +6,9 @@ and runtime environment, including temperature adjustments, context length manag
 and runtime-specific optimizations.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any
+
 from .model_registry import ModelProfile, get_model_profile
-from .skills import SkillEntry
 
 
 class ModelOptimizer:
@@ -22,8 +22,8 @@ class ModelOptimizer:
         self,
         model_name: str,
         task_type: str = "general",
-        current_parameters: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        current_parameters: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Get optimized parameters for a given model and task type.
 
@@ -62,8 +62,8 @@ class ModelOptimizer:
     def _get_default_parameters(
         self,
         task_type: str,
-        current_parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        current_parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Get default parameters when no model profile is available."""
         optimized = current_parameters.copy()
 
@@ -82,8 +82,8 @@ class ModelOptimizer:
         self,
         task_type: str,
         profile: ModelProfile,
-        parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Apply task-specific optimizations."""
         optimized = parameters.copy()
 
@@ -103,8 +103,8 @@ class ModelOptimizer:
     def _apply_runtime_optimizations(
         self,
         profile: ModelProfile,
-        parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Apply runtime-specific optimizations."""
         optimized = parameters.copy()
 
@@ -170,8 +170,8 @@ model_optimizer = ModelOptimizer()
 def optimize_for_model(
     model_name: str,
     task_type: str = "general",
-    parameters: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+    parameters: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """
     Convenience function to get optimized parameters for a model and task.
 

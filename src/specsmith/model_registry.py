@@ -7,7 +7,6 @@ recommendations for different runtime environments.
 """
 
 from dataclasses import dataclass
-from typing import Optional, Dict, List
 
 
 @dataclass
@@ -35,7 +34,7 @@ class ModelProfile:
     recommended_temperature: float
     """Recommended temperature for optimal performance"""
 
-    tags: List[str]
+    tags: list[str]
     """Tags for categorizing the model (e.g., 'large', 'reasoning', 'cost-effective')"""
 
     description: str
@@ -52,15 +51,15 @@ class ModelProfile:
     """Whether the model supports tool calling"""
 
     # Performance characteristics
-    tokens_per_second: Optional[float] = None
+    tokens_per_second: float | None = None
     """Average tokens per second for generation (if available)"""
 
-    max_concurrent_requests: Optional[int] = None
+    max_concurrent_requests: int | None = None
     """Maximum concurrent requests supported (if available)"""
 
 
 # Registry of known model profiles
-MODEL_REGISTRY: Dict[str, ModelProfile] = {
+MODEL_REGISTRY: dict[str, ModelProfile] = {
     "Qwen3.6-35B-A3B": ModelProfile(
         name="Qwen3.6-35B-A3B",
         provider="Qwen",
@@ -1061,7 +1060,7 @@ MODEL_REGISTRY: Dict[str, ModelProfile] = {
 }
 
 
-def get_model_profile(model_name: str) -> Optional[ModelProfile]:
+def get_model_profile(model_name: str) -> ModelProfile | None:
     """
     Get a model profile by name.
 
@@ -1074,7 +1073,7 @@ def get_model_profile(model_name: str) -> Optional[ModelProfile]:
     return MODEL_REGISTRY.get(model_name)
 
 
-def list_models() -> List[str]:
+def list_models() -> list[str]:
     """
     List all available model names in the registry.
 
@@ -1111,7 +1110,7 @@ def remove_model_profile(model_name: str) -> bool:
 
 
 # For backward compatibility
-def get_model_profiles() -> Dict[str, ModelProfile]:
+def get_model_profiles() -> dict[str, ModelProfile]:
     """
     Get all model profiles (alias for MODEL_REGISTRY).
 

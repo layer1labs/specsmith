@@ -2,17 +2,8 @@
 Tests for the model registry functionality.
 """
 
-import pytest
-from specsmith.model_registry import (
-    MODEL_REGISTRY,
-    get_model_profile,
-    list_models,
-    ModelProfile
-)
-from specsmith.model_optimizer import (
-    optimize_for_model,
-    get_model_recommendations
-)
+from specsmith.model_optimizer import get_model_recommendations, optimize_for_model
+from specsmith.model_registry import MODEL_REGISTRY, ModelProfile, get_model_profile, list_models
 
 
 def test_model_registry_exists():

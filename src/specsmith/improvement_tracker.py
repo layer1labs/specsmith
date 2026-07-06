@@ -4,9 +4,8 @@
 
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -19,7 +18,7 @@ class ImprovementRecord(BaseModel):
     description: str
     severity: str  # "low", "medium", "high", "critical"
     status: str  # "pending", "implemented", "rejected"
-    metrics: Optional[Dict[str, Any]] = None
+    metrics: dict[str, Any] | None = None
 
 
 class SessionAnalysis(BaseModel):
@@ -29,10 +28,10 @@ class SessionAnalysis(BaseModel):
     start_time: str
     end_time: str
     duration_seconds: int
-    work_items_completed: List[str]
+    work_items_completed: list[str]
     cost_per_correct_solution: float
-    efficiency_metrics: Dict[str, float]
-    improvements: List[ImprovementRecord]
+    efficiency_metrics: dict[str, float]
+    improvements: list[ImprovementRecord]
     session_notes: str
 
 
@@ -63,7 +62,7 @@ class ImprovementTracker:
             config_file = self.project_dir / ".specsmith" / "config.yml"
             if config_file.exists():
                 import yaml
-                with open(config_file, 'r') as f:
+                with open(config_file) as f:
                     config = yaml.safe_load(f)
                     return config.get('enable_development_mode', False)
         except Exception:
@@ -98,21 +97,21 @@ class ImprovementTracker:
         self.logger.info(f"Improvement recorded: {improvement.description}")
         self.logger.info(f"Severity: {improvement.severity}, Status: {improvement.status}")
 
-    def get_session_analysis(self, session_id: str) -> Optional[SessionAnalysis]:
+    def get_session_analysis(self, session_id: str) -> SessionAnalysis | None:
         """Retrieve session analysis by session ID."""
         session_file = self.improvements_dir / f"session_{session_id}.json"
         if session_file.exists():
-            with open(session_file, 'r') as f:
+            with open(session_file) as f:
                 data = json.load(f)
                 return SessionAnalysis(**data)
         return None
 
-    def get_recent_improvements(self, limit: int = 10) -> List[ImprovementRecord]:
+    def get_recent_improvements(self, limit: int = 10) -> list[ImprovementRecord]:
         """Get recent improvement records."""
         improvements = []
         for file_path in self.improvements_dir.glob("improvement_*.json"):
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path) as f:
                     data = json.load(f)
                     improvements.append(ImprovementRecord(**data))
             except Exception:

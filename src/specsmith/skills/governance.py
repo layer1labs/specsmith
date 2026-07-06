@@ -6,6 +6,7 @@ and ensure proper governance compliance.
 
 from specsmith.skills import SkillDomain, SkillEntry
 
+
 # preflight-gate skill implementation
 def preflight_gate():
     """
@@ -392,6 +393,131 @@ Optimize agent behavior based on model characteristics and runtime environment.
 * Select optimal prompting strategies for the model
 * Handle model-specific limitations and capabilities
 * Provide runtime-aware recommendations
+        """,
+    ),
+    SkillEntry(
+        slug="codity-ai-review",
+        name="Codity AI Review",
+        description="Perform AI code review using Codity AI integration.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "ai", "review", "codity", "ai-review", "pre-commit"],
+        body="""
+# Codity AI Review
+
+## Purpose
+Perform AI code review using Codity AI integration.
+
+## Required behavior
+* Run `codity review --staged` to review staged changes
+* Run `codity login` to authenticate with Codity
+* Run `codity init` to initialize the Codity configuration
+* Run `codity scan --staged` to scan for security issues
+* Run `codity test-gen --staged` to generate tests for staged changes
+* Run `codity doctor` to diagnose issues with the Codity setup
+* Run `specsmith integrate codity` to integrate Codity with Specsmith
+* Configure HIGH severity for critical issues
+* Configure MEDIUM severity for medium issues
+* Set up PAT for GitLab with `set-pat --provider gitlab`
+* Set up PAT for Azure with `set-pat --provider azure`
+        """,
+    ),
+    SkillEntry(
+        slug="verifier",
+        name="Verifier",
+        description="Verify code changes and ensure compliance with governance standards.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "verification", "compliance"],
+        body="""# Verifier Skill
+
+## Purpose
+Verify code changes and ensure compliance with governance standards.
+
+## Required behavior
+* Check code changes against governance rules
+* Ensure compliance with project standards
+* Validate that all requirements are met
+* Report any violations or issues
+* Provide feedback for improvements
+        """,
+    ),
+    SkillEntry(
+        slug="planner",
+        name="Planner",
+        description="Plan and organize work items and tasks for the project.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "planning", "organization"],
+        body="""
+# Planner
+
+## Purpose
+Plan and organize work items and tasks for the project.
+
+## Required behavior
+* Break down complex tasks into manageable work items
+* Prioritize tasks based on project goals
+* Estimate effort and resources needed
+* Create clear task descriptions
+* Track progress and milestones
+        """,
+    ),
+    SkillEntry(
+        slug="diff-reviewer",
+        name="Diff Reviewer",
+        description="Review code changes and provide feedback on diffs.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "review", "diff"],
+        body="""
+# Diff Reviewer
+
+## Purpose
+Review code changes and provide feedback on diffs.
+
+## Required behavior
+* Analyze code changes in context
+* Identify potential issues or improvements
+* Provide constructive feedback
+* Ensure changes align with project standards
+* Suggest refactoring opportunities
+        """,
+    ),
+    SkillEntry(
+        slug="onboarding-coach",
+        name="Onboarding Coach",
+        description="Guide new team members through the onboarding process.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "onboarding", "training"],
+        body="""
+# Onboarding Coach
+
+## Purpose
+Guide new team members through the onboarding process.
+
+## Required behavior
+* Provide orientation to project tools and processes
+* Explain governance and compliance requirements
+* Set up development environment
+* Assign initial tasks and mentorship
+* Track onboarding progress
+        """,
+    ),
+    SkillEntry(
+        slug="release-pilot",
+        name="Release Pilot",
+        description="Manage the release process and ensure successful deployments.",
+        domain=SkillDomain.GOVERNANCE,
+        tags=["governance", "release", "deployment"],
+        body="""
+# Release Pilot
+
+## Purpose
+Manage the release process and ensure successful deployments.
+
+## Required behavior
+* Coordinate release activities and timelines
+* Ensure all quality gates are met
+* Manage release artifacts and documentation
+* Handle rollback procedures if needed
+* Communicate release status to stakeholders
         """,
     ),
 ]

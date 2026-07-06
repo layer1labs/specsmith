@@ -4,9 +4,8 @@
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-from specsmith.improvement_tracker import ImprovementRecord, SessionAnalysis, ImprovementTracker
+from specsmith.improvement_tracker import ImprovementRecord, ImprovementTracker, SessionAnalysis
 
 
 def test_improvement_record_serialization():
@@ -103,7 +102,7 @@ def test_record_session_analysis():
         assert session_file.exists()
 
         # Check file content
-        with open(session_file, 'r') as f:
+        with open(session_file) as f:
             data = json.load(f)
             assert data["session_id"] == "test-session-123"
             assert data["duration_seconds"] == 3600
@@ -129,7 +128,7 @@ def test_record_improvement():
         assert improvement_file.exists()
 
         # Check file content
-        with open(improvement_file, 'r') as f:
+        with open(improvement_file) as f:
             data = json.load(f)
             assert data["description"] == "Fix memory leak in cleanup module"
             assert data["severity"] == "high"
