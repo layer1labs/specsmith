@@ -54,6 +54,8 @@ See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/effic
 
 **v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
 
+**v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
+
 **v0.19.x** — `specsmith wi link-test`, the governance-YAML content auditor and sync markdown-reconcile warnings, and a HuggingFace provider + 15-model multi-provider benchmark matrix for GovernanceBench.
 
 **v0.18.0** — ESDB-first dual-write architecture (every governance event is written to ESDB alongside the append-only `LEDGER.md`), the `specsmith inspect` session-start governance block, and a token-pricing / cost-of-pass module.
