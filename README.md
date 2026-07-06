@@ -141,13 +141,14 @@ of file/command criteria, recommended commands, and a readiness percentage.
 
 | Criterion | Status | Source |
 |---|---|---|
-| Stable CLI core contract documented | In progress | `docs/stability.md` |
-| Stable generated file schemas documented | In progress | `docs/stability.md` |
-| Stable MCP tool schemas documented | In progress | `docs/stability.md` |
-| Migration tests linked (#218) | In progress | `docs/roadmap/1.0-criteria.md` |
-| Security threat model documented | In progress | `docs/security-threat-model.md` |
-| Docs/tutorial/glossary baseline complete | In progress | `docs/roadmap/1.0-criteria.md` |
-| Upgrade path and changelog criteria defined | In progress | `docs/roadmap/1.0-criteria.md` |
+| Stable CLI core contract documented | ✅ Complete | `docs/stability.md` |
+| Stable generated file schemas documented | ✅ Complete | `docs/stability.md` |
+| Stable MCP tool schemas documented | ✅ Complete | `docs/stability.md` |
+| Migration tests linked (#218) | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
+| Security threat model documented | ✅ Complete | `docs/security-threat-model.md` |
+| Docs/tutorial/glossary baseline complete | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
+| Upgrade path and changelog criteria defined | ✅ Complete | `docs/roadmap/1.0-criteria.md` |
+| macOS CI support added | ✅ Complete | `.github/workflows/ci.yml` |
 
 ---
 
