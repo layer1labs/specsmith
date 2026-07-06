@@ -14,9 +14,9 @@ from .model_registry import ModelProfile, get_model_profile
 class ModelOptimizer:
     """Handles model-aware optimizations for Specsmith agents."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the model optimizer."""
-        self._model_profiles = {}
+        self._model_profiles: dict[str, ModelProfile] = {}
 
     def get_optimized_parameters(
         self,
@@ -135,7 +135,7 @@ class ModelOptimizer:
             List of recommended skill slugs
         """
         profile = get_model_profile(model_name)
-        recommendations = []
+        recommendations: list[str] = []
 
         if not profile:
             return recommendations

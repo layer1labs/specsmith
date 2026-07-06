@@ -64,7 +64,8 @@ class ImprovementTracker:
                 import yaml
                 with open(config_file) as f:
                     config = yaml.safe_load(f)
-                    return config.get('enable_development_mode', False)
+                    result = config.get('enable_development_mode', False)
+                    return bool(result)
         except Exception:
             pass
         return False

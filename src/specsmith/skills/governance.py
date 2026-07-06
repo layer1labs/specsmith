@@ -8,7 +8,7 @@ from specsmith.skills import SkillDomain, SkillEntry
 
 
 # preflight-gate skill implementation
-def preflight_gate():
+def preflight_gate() -> None:
     """
     Purpose:
     Force every agent to run Specsmith preflight before any write, code change,
@@ -35,7 +35,7 @@ def preflight_gate():
 
 
 # governed-agent-loop skill implementation
-def governed_agent_loop():
+def governed_agent_loop() -> None:
     """
     Purpose:
     Define the default execution loop for any agent operating inside a Specmith project.
@@ -65,7 +65,7 @@ def governed_agent_loop():
 
 
 # requirement-author skill implementation
-def requirement_author():
+def requirement_author() -> None:
     """
     Purpose:
     Convert vague user intent into atomic, testable Specsmith requirements.
@@ -83,7 +83,7 @@ def requirement_author():
 
 
 # testcase-author skill implementation
-def testcase_author():
+def testcase_author() -> None:
     """
     Purpose:
     Create test cases that trace directly to requirements.
@@ -99,7 +99,7 @@ def testcase_author():
 
 
 # traceability-auditor skill implementation
-def traceability_auditor():
+def traceability_auditor() -> None:
     """
     Purpose:
     Detect weak or broken trace chains.
@@ -118,7 +118,7 @@ def traceability_auditor():
 
 
 # context-pack-compiler skill implementation
-def context_pack_compiler():
+def context_pack_compiler() -> None:
     """
     Purpose:
     Build minimal context packs for agents from the project state, requirements,
@@ -135,7 +135,7 @@ def context_pack_compiler():
 
 
 # token-budget-auditor skill implementation
-def token_budget_auditor():
+def token_budget_auditor() -> None:
     """
     Purpose:
     Measure token efficiency by outcome, not raw usage.
