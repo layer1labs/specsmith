@@ -74,7 +74,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=150.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "meta-llama/Meta-Llama-3-70B": ModelProfile(
         name="meta-llama/Meta-Llama-3-70B",
@@ -90,7 +90,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=120.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "meta-llama/Meta-Llama-3-8B": ModelProfile(
         name="meta-llama/Meta-Llama-3-8B",
@@ -106,7 +106,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=200.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "mistralai/Mistral-7B-v0.3": ModelProfile(
         name="mistralai/Mistral-7B-v0.3",
@@ -122,7 +122,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=180.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "google/gemma-2-27b": ModelProfile(
         name="google/gemma-2-27b",
@@ -138,7 +138,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=160.0,
-        max_concurrent_requests=6
+        max_concurrent_requests=6,
     ),
     "microsoft/Phi-3-medium-128k": ModelProfile(
         name="microsoft/Phi-3-medium-128k",
@@ -154,7 +154,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=140.0,
-        max_concurrent_requests=7
+        max_concurrent_requests=7,
     ),
     # Popular Hugging Face models based on downloads
     "meta-llama/Llama-3.2-1B": ModelProfile(
@@ -171,7 +171,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=250.0,
-        max_concurrent_requests=15
+        max_concurrent_requests=15,
     ),
     "meta-llama/Llama-3.2-3B": ModelProfile(
         name="meta-llama/Llama-3.2-3B",
@@ -187,7 +187,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=220.0,
-        max_concurrent_requests=12
+        max_concurrent_requests=12,
     ),
     "meta-llama/Llama-3.1-8B": ModelProfile(
         name="meta-llama/Llama-3.1-8B",
@@ -203,7 +203,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=200.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "meta-llama/Llama-3.1-70B": ModelProfile(
         name="meta-llama/Llama-3.1-70B",
@@ -219,7 +219,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=120.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "mistralai/Mistral-7B-Instruct-v0.3": ModelProfile(
         name="mistralai/Mistral-7B-Instruct-v0.3",
@@ -235,7 +235,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=180.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "mistralai/Mistral-8x7B-v0.3": ModelProfile(
         name="mistralai/Mistral-8x7B-v0.3",
@@ -251,7 +251,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=100.0,
-        max_concurrent_requests=4
+        max_concurrent_requests=4,
     ),
     "google/gemma-2-9b": ModelProfile(
         name="google/gemma-2-9b",
@@ -267,23 +267,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=190.0,
-        max_concurrent_requests=10
-    ),
-    "google/gemma-2-27b": ModelProfile(
-        name="google/gemma-2-27b",
-        provider="Hugging Face",
-        context_length=8192,
-        cost_per_million_input_tokens=0.0,
-        cost_per_million_output_tokens=0.0,
-        recommended_runtime="vLLM",
-        recommended_temperature=0.7,
-        tags=["large", "reasoning", "open-source"],
-        description="Google Gemma 2 27B parameter model with strong reasoning capabilities.",
-        supports_function_calling=True,
-        supports_json_output=True,
-        supports_tools=True,
-        tokens_per_second=160.0,
-        max_concurrent_requests=6
+        max_concurrent_requests=10,
     ),
     "microsoft/Phi-3-mini-128k": ModelProfile(
         name="microsoft/Phi-3-mini-128k",
@@ -299,7 +283,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=240.0,
-        max_concurrent_requests=12
+        max_concurrent_requests=12,
     ),
     "microsoft/Phi-3-small-128k": ModelProfile(
         name="microsoft/Phi-3-small-128k",
@@ -315,7 +299,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=180.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "Qwen/Qwen3-7B": ModelProfile(
         name="Qwen/Qwen3-7B",
@@ -331,7 +315,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=170.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "Qwen/Qwen3-32B": ModelProfile(
         name="Qwen/Qwen3-32B",
@@ -347,7 +331,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=140.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "openai/gpt-4": ModelProfile(
         name="openai/gpt-4",
@@ -363,7 +347,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=80.0,
-        max_concurrent_requests=2
+        max_concurrent_requests=2,
     ),
     "openai/gpt-4-turbo": ModelProfile(
         name="openai/gpt-4-turbo",
@@ -379,7 +363,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=100.0,
-        max_concurrent_requests=3
+        max_concurrent_requests=3,
     ),
     "openai/gpt-3.5-turbo": ModelProfile(
         name="openai/gpt-3.5-turbo",
@@ -395,7 +379,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=150.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "anthropic/claude-3-opus": ModelProfile(
         name="anthropic/claude-3-opus",
@@ -411,7 +395,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=60.0,
-        max_concurrent_requests=2
+        max_concurrent_requests=2,
     ),
     "anthropic/claude-3-sonnet": ModelProfile(
         name="anthropic/claude-3-sonnet",
@@ -427,7 +411,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=80.0,
-        max_concurrent_requests=3
+        max_concurrent_requests=3,
     ),
     "anthropic/claude-3-haiku": ModelProfile(
         name="anthropic/claude-3-haiku",
@@ -443,7 +427,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=200.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     # Frontier models with high performance
     "google/gemini-pro": ModelProfile(
@@ -460,7 +444,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=120.0,
-        max_concurrent_requests=4
+        max_concurrent_requests=4,
     ),
     "google/gemini-1.5-pro": ModelProfile(
         name="google/gemini-1.5-pro",
@@ -476,7 +460,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=100.0,
-        max_concurrent_requests=3
+        max_concurrent_requests=3,
     ),
     "google/gemini-1.5-flash": ModelProfile(
         name="google/gemini-1.5-flash",
@@ -492,7 +476,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=250.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "meta-llama/Llama-3.3-70B": ModelProfile(
         name="meta-llama/Llama-3.3-70B",
@@ -508,7 +492,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=110.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "meta-llama/Llama-3.3-8B": ModelProfile(
         name="meta-llama/Llama-3.3-8B",
@@ -524,7 +508,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=210.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "mistralai/Mistral-Large": ModelProfile(
         name="mistralai/Mistral-Large",
@@ -540,7 +524,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=130.0,
-        max_concurrent_requests=6
+        max_concurrent_requests=6,
     ),
     "google/gemma-2-9b-it": ModelProfile(
         name="google/gemma-2-9b-it",
@@ -556,7 +540,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=190.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "microsoft/Phi-3.5-mini": ModelProfile(
         name="microsoft/Phi-3.5-mini",
@@ -572,7 +556,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=260.0,
-        max_concurrent_requests=15
+        max_concurrent_requests=15,
     ),
     "microsoft/Phi-3.5-small": ModelProfile(
         name="microsoft/Phi-3.5-small",
@@ -588,7 +572,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=190.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "Qwen/Qwen3-72B": ModelProfile(
         name="Qwen/Qwen3-72B",
@@ -604,7 +588,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=130.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "meta-llama/Llama-3.2-1B-Instruct": ModelProfile(
         name="meta-llama/Llama-3.2-1B-Instruct",
@@ -620,7 +604,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=250.0,
-        max_concurrent_requests=15
+        max_concurrent_requests=15,
     ),
     "meta-llama/Llama-3.2-3B-Instruct": ModelProfile(
         name="meta-llama/Llama-3.2-3B-Instruct",
@@ -636,7 +620,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=220.0,
-        max_concurrent_requests=12
+        max_concurrent_requests=12,
     ),
     "meta-llama/Llama-3.1-8B-Instruct": ModelProfile(
         name="meta-llama/Llama-3.1-8B-Instruct",
@@ -652,7 +636,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=200.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "mistralai/Mistral-7B-v0.3-Instruct": ModelProfile(
         name="mistralai/Mistral-7B-v0.3-Instruct",
@@ -668,7 +652,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=180.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "google/gemma-2-27b-it": ModelProfile(
         name="google/gemma-2-27b-it",
@@ -684,7 +668,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=160.0,
-        max_concurrent_requests=6
+        max_concurrent_requests=6,
     ),
     "microsoft/Phi-3.5-medium-128k": ModelProfile(
         name="microsoft/Phi-3.5-medium-128k",
@@ -700,7 +684,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=180.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "meta-llama/Llama-3.3-70B-Instruct": ModelProfile(
         name="meta-llama/Llama-3.3-70B-Instruct",
@@ -716,7 +700,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=110.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "meta-llama/Llama-3.3-8B-Instruct": ModelProfile(
         name="meta-llama/Llama-3.3-8B-Instruct",
@@ -732,7 +716,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=210.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "Qwen/Qwen3-7B-Instruct": ModelProfile(
         name="Qwen/Qwen3-7B-Instruct",
@@ -748,7 +732,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=170.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "Qwen/Qwen3-32B-Instruct": ModelProfile(
         name="Qwen/Qwen3-32B-Instruct",
@@ -764,7 +748,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=140.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "Qwen/Qwen3-72B-Instruct": ModelProfile(
         name="Qwen/Qwen3-72B-Instruct",
@@ -780,7 +764,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=130.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     # Additional popular Hugging Face models
     "meta-llama/Llama-3.2-11B-Vision": ModelProfile(
@@ -797,7 +781,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=150.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "meta-llama/Llama-3.2-90B-Vision": ModelProfile(
         name="meta-llama/Llama-3.2-90B-Vision",
@@ -813,7 +797,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=100.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     # Frontier models with high performance
     "google/gemini-2.0-flash": ModelProfile(
@@ -830,7 +814,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=300.0,
-        max_concurrent_requests=10
+        max_concurrent_requests=10,
     ),
     "google/gemini-2.0-pro": ModelProfile(
         name="google/gemini-2.0-pro",
@@ -846,7 +830,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=150.0,
-        max_concurrent_requests=5
+        max_concurrent_requests=5,
     ),
     "openai/gpt-4o": ModelProfile(
         name="openai/gpt-4o",
@@ -862,7 +846,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=120.0,
-        max_concurrent_requests=3
+        max_concurrent_requests=3,
     ),
     "openai/gpt-4o-mini": ModelProfile(
         name="openai/gpt-4o-mini",
@@ -878,7 +862,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=200.0,
-        max_concurrent_requests=8
+        max_concurrent_requests=8,
     ),
     "anthropic/claude-3-5-sonnet": ModelProfile(
         name="anthropic/claude-3-5-sonnet",
@@ -894,7 +878,7 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=90.0,
-        max_concurrent_requests=4
+        max_concurrent_requests=4,
     ),
     "anthropic/claude-3-5-haiku": ModelProfile(
         name="anthropic/claude-3-5-haiku",
@@ -910,8 +894,8 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         supports_json_output=True,
         supports_tools=True,
         tokens_per_second=250.0,
-        max_concurrent_requests=12
-    )
+        max_concurrent_requests=12,
+    ),
 }
 
 

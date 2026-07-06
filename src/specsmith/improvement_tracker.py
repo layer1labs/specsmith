@@ -55,6 +55,20 @@ class ImprovementTracker:
         )
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
+        self.log_handler = handler
+
+    def close(self):
+        """Explicitly close logging handlers to prevent file lock issues."""
+        if hasattr(self, 'log_handler') and self.log_handler:
+            self.log_handler.close()
+            self.logger.removeHandler(self.log_handler)
+            self.log_handler = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def _is_development_mode(self) -> bool:
         """Check if development mode is enabled in project config."""
@@ -73,7 +87,9 @@ class ImprovementTracker:
     def record_session_analysis(self, analysis: SessionAnalysis) -> None:
         """Record session analysis to file and log."""
         # Save to JSON file
-        session_file = self.improvements_dir / f"session_{analysis.session_id}.json"
+        # Sanitize session_id for Windows compatibility (remove invalid characters)
+        sanitized_session_id = analysis.session_id.replace(":", "-").replace("/", "-")
+        session_file = self.improvements_dir / f"session_{sanitized_session_id}.json"
         with open(session_file, 'w') as f:
             json.dump(analysis.model_dump(), f, indent=2)
 
@@ -90,7 +106,10 @@ class ImprovementTracker:
     def record_improvement(self, improvement: ImprovementRecord) -> None:
         """Record an improvement suggestion."""
         # Save to JSON file
-        improvement_file = self.improvements_dir / f"improvement_{improvement.timestamp}.json"
+        # For Windows compatibility, we need to sanitize the timestamp in the filename
+        # but the timestamp in the data should remain unchanged
+        sanitized_timestamp = improvement.timestamp.replace(":", "-").replace("/", "-")
+        improvement_file = self.improvements_dir / f"improvement_{sanitized_timestamp}.json"
         with open(improvement_file, 'w') as f:
             json.dump(improvement.model_dump(), f, indent=2)
 
@@ -100,7 +119,9 @@ class ImprovementTracker:
 
     def get_session_analysis(self, session_id: str) -> SessionAnalysis | None:
         """Retrieve session analysis by session ID."""
-        session_file = self.improvements_dir / f"session_{session_id}.json"
+        # Sanitize session_id for Windows compatibility (remove invalid characters)
+        sanitized_session_id = session_id.replace(":", "-").replace("/", "-")
+        session_file = self.improvements_dir / f"session_{sanitized_session_id}.json"
         if session_file.exists():
             with open(session_file) as f:
                 data = json.load(f)

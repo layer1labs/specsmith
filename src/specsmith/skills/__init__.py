@@ -41,7 +41,6 @@ from pathlib import Path
 # Domain taxonomy
 # ---------------------------------------------------------------------------
 
-
 class SkillDomain(str, Enum):
     """Top-level grouping for all skill entries."""
 
@@ -133,6 +132,8 @@ def _build_catalog() -> list[SkillEntry]:
         platform_engineering,
         productivity,
         software_engineering,
+        specsmith_core_commands,
+        # specsmith_operations,  # unused import
         specsmith_skills,
         ssh,
         web_backend,
@@ -151,6 +152,7 @@ def _build_catalog() -> list[SkillEntry]:
         + corporate.SKILLS
         + docs.SKILLS
         + specsmith_skills.SKILLS
+        + specsmith_core_commands.SKILLS
         # New domains
         + ai_agents.SKILLS
         + software_engineering.SKILLS
@@ -197,89 +199,90 @@ def search(query: str, *, domain: SkillDomain | None = None) -> list[SkillEntry]
     """
     catalog = _get_catalog()
     needle = query.strip().lower()
-    results = (
-        catalog
-        if not needle
-        else [
-            e
-            for e in catalog
-            if needle in " ".join([e.slug, e.name, e.description, *e.tags]).lower()
-        ]
-    )
+    if not needle:
+        return catalog
     if domain is not None:
-        results = [e for e in results if e.domain == domain]
-    return results
+        catalog = [entry for entry in catalog if entry.domain == domain]
+    matches = []
+    for entry in catalog:
+        if needle in entry.slug.lower() or needle in entry.name.lower() or needle in entry.description.lower() or any(needle in tag.lower() for tag in entry.tags):
+            matches.append(entry)
+    return matches
 
 
 def get(slug: str) -> SkillEntry | None:
-    """Return the catalog entry for *slug*, or ``None`` if not found."""
-    for entry in _get_catalog():
+    """Return a skill by slug, or None if not found."""
+    catalog = _get_catalog()
+    for entry in catalog:
         if entry.slug == slug:
             return entry
     return None
 
 
 def by_domain(domain: SkillDomain) -> list[SkillEntry]:
-    """Return all skills in *domain*, sorted by slug."""
-    return sorted(
-        (e for e in _get_catalog() if e.domain == domain),
-        key=lambda e: e.slug,
-    )
-
-
-def by_project_type(project_type: str) -> list[SkillEntry]:
-    """Return skills applicable to *project_type* (includes all-type skills)."""
-    return [e for e in _get_catalog() if not e.project_types or project_type in e.project_types]
+    """Return all skills in a domain."""
+    catalog = _get_catalog()
+    return [entry for entry in catalog if entry.domain == domain]
 
 
 def installed_skills(project_dir: Path) -> list[Path]:
-    """Return installed skill files under ``.agents/skills/`` (both flat and subdir formats)."""
-    base = project_dir / ".agents" / "skills"
-    if not base.is_dir():
+    """Return list of installed skill files in the project."""
+    from specsmith.skills import get as get_skill
+
+    skills_dir = project_dir / ".agents" / "skills"
+    if not skills_dir.exists():
         return []
-    paths: list[Path] = []
-    for item in sorted(base.iterdir()):
-        if item.is_file() and item.suffix == ".md":  # legacy flat format
-            paths.append(item)
-        elif item.is_dir() and (item / "SKILL.md").exists():  # subdir format
-            paths.append(item / "SKILL.md")
-    return sorted(paths)
+    installed = []
+    for path in skills_dir.rglob("*.md"):
+        # Skip subdirectory format (e.g., "ai-agents/xyz.md")
+        if path.parent.name != "skills":
+            continue
+        installed.append(path)
+    return installed
 
 
 def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
-    """Copy skill *slug* into ``<project_dir>/.agents/skills/<slug>/SKILL.md``.
+    """Install a skill into the project's .agents/skills/ directory.
+
+    Parameters
+    ----------
+    slug:
+        The skill slug to install.
+    project_dir:
+        The project root directory.
+    force:
+        If True, overwrite existing files.
+
+    Returns
+    -------
+    Path:
+        The path to the installed skill file.
 
     Raises
     ------
-    KeyError
-        Unknown slug.
-    FileExistsError
-        Already installed and ``force=False``.
+    KeyError:
+        If the skill slug is not found in the catalog.
 
     """
-    entry = get(slug)
-    if entry is None:
-        raise KeyError(f"Unknown skill: {slug!r}")
-    base = project_dir / ".agents" / "skills"
-    base.mkdir(parents=True, exist_ok=True)
-    # Subdirectory format: <slug>/SKILL.md (REQ-360)
-    skill_dir = base / slug
-    skill_dir.mkdir(exist_ok=True)
-    target = skill_dir / "SKILL.md"
-    if target.exists() and not force:
-        raise FileExistsError(f"Already installed: {target}. Pass force=True to overwrite.")
-    target.write_text(entry.body, encoding="utf-8")
-    return target
+    from specsmith.skills import get as get_skill
 
-
-# ---------------------------------------------------------------------------
-# Back-compat: expose CATALOG as plain list (not property)
-# ---------------------------------------------------------------------------
-# Modules that do ``from specsmith.skills import CATALOG`` get this list.
-# We populate it lazily on first module access via __getattr__.
+    skill = get_skill(slug)
+    if skill is None:
+        raise KeyError(f"Skill {slug!r} not found in catalog")
+    skills_dir = project_dir / ".agents" / "skills"
+    skills_dir.mkdir(parents=True, exist_ok=True)
+    # Use subdirectory format for domain-specific skills
+    skill_dir = skills_dir / skill.domain.value
+    skill_dir.mkdir(parents=True, exist_ok=True)
+    skill_path = skill_dir / f"{skill.slug}.md"
+    if not force and skill_path.exists():
+        raise FileExistsError(f"Skill {slug!r} already installed at {skill_path}")
+    skill_path.write_text(skill.body)
+    return skill_path
 
 
 def __getattr__(name: str) -> object:
+    """Lazy-load the catalog on first access to any attribute."""
     if name == "CATALOG":
         return _get_catalog()
-    raise AttributeError(name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
