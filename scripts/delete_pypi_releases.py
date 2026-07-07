@@ -46,7 +46,7 @@ def delete_version(page: Page, version: str) -> bool:
     try:
         page.goto(url, timeout=20_000)
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
-    except Exception:
+    except Exception:  # noqa: BLE001
         print(f"  SKIP  {version} — page load failed")
         return False
 

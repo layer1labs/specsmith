@@ -41,6 +41,7 @@ from pathlib import Path
 # Domain taxonomy
 # ---------------------------------------------------------------------------
 
+
 class SkillDomain(str, Enum):
     """Top-level grouping for all skill entries."""
 
@@ -205,7 +206,12 @@ def search(query: str, *, domain: SkillDomain | None = None) -> list[SkillEntry]
         catalog = [entry for entry in catalog if entry.domain == domain]
     matches = []
     for entry in catalog:
-        if needle in entry.slug.lower() or needle in entry.name.lower() or needle in entry.description.lower() or any(needle in tag.lower() for tag in entry.tags):
+        if (
+            needle in entry.slug.lower()
+            or needle in entry.name.lower()
+            or needle in entry.description.lower()
+            or any(needle in tag.lower() for tag in entry.tags)
+        ):
             matches.append(entry)
     return matches
 

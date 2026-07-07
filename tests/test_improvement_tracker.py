@@ -16,7 +16,7 @@ def test_improvement_record_serialization():
         description="Fix memory leak in cleanup module",
         severity="high",
         status="pending",
-        metrics={"lines_fixed": 15, "test_coverage": 0.95}
+        metrics={"lines_fixed": 15, "test_coverage": 0.95},
     )
 
     # Test serialization
@@ -46,10 +46,10 @@ def test_session_analysis_serialization():
                 type="efficiency",
                 description="Optimize database queries",
                 severity="medium",
-                status="implemented"
+                status="implemented",
             )
         ],
-        session_notes="Session completed successfully with no major issues"
+        session_notes="Session completed successfully with no major issues",
     )
 
     # Test serialization
@@ -88,7 +88,7 @@ def test_record_session_analysis():
             cost_per_correct_solution=0.05,
             efficiency_metrics={"code_quality": 0.85},
             improvements=[],
-            session_notes="Test session"
+            session_notes="Test session",
         )
 
         tracker.record_session_analysis(analysis)
@@ -114,7 +114,7 @@ def test_record_improvement():
             type="bug",
             description="Fix memory leak in cleanup module",
             severity="high",
-            status="pending"
+            status="pending",
         )
 
         tracker.record_improvement(improvement)
@@ -147,7 +147,7 @@ def test_get_session_analysis():
                 cost_per_correct_solution=0.05,
                 efficiency_metrics={"code_quality": 0.85},
                 improvements=[],
-                session_notes="Test session"
+                session_notes="Test session",
             )
 
             tracker.record_session_analysis(analysis)
@@ -173,7 +173,7 @@ def test_get_recent_improvements():
                 type="bug",
                 description="Fix memory leak in cleanup module",
                 severity="high",
-                status="pending"
+                status="pending",
             )
 
             improvement2 = ImprovementRecord(
@@ -181,7 +181,7 @@ def test_get_recent_improvements():
                 type="efficiency",
                 description="Optimize database queries",
                 severity="medium",
-                status="implemented"
+                status="implemented",
             )
 
             tracker.record_improvement(improvement1)
@@ -216,10 +216,10 @@ def test_generate_session_report():
                         type="efficiency",
                         description="Optimize database queries",
                         severity="medium",
-                        status="implemented"
+                        status="implemented",
                     )
                 ],
-                session_notes="Test session with improvements"
+                session_notes="Test session with improvements",
             )
 
             tracker.record_session_analysis(analysis)

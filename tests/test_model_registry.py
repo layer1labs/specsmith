@@ -210,7 +210,7 @@ def test_model_profile_dataclass():
         recommended_runtime="test",
         recommended_temperature=0.5,
         tags=["test", "model"],
-        description="A test model profile"
+        description="A test model profile",
     )
 
     assert profile.name == "Test Model"

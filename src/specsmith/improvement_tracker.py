@@ -50,16 +50,14 @@ class ImprovementTracker:
         # Create file handler for improvement logs
         log_file = self.improvements_dir / "improvements.log"
         handler = logging.FileHandler(log_file)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
+        formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.log_handler = handler
 
     def close(self):
         """Explicitly close logging handlers to prevent file lock issues."""
-        if hasattr(self, 'log_handler') and self.log_handler:
+        if hasattr(self, "log_handler") and self.log_handler:
             self.log_handler.close()
             self.logger.removeHandler(self.log_handler)
             self.log_handler = None
@@ -76,9 +74,10 @@ class ImprovementTracker:
             config_file = self.project_dir / ".specsmith" / "config.yml"
             if config_file.exists():
                 import yaml
+
                 with open(config_file) as f:
                     config = yaml.safe_load(f)
-                    result = config.get('enable_development_mode', False)
+                    result = config.get("enable_development_mode", False)
                     return bool(result)
         except Exception:
             pass
@@ -90,7 +89,7 @@ class ImprovementTracker:
         # Sanitize session_id for Windows compatibility (remove invalid characters)
         sanitized_session_id = analysis.session_id.replace(":", "-").replace("/", "-")
         session_file = self.improvements_dir / f"session_{sanitized_session_id}.json"
-        with open(session_file, 'w') as f:
+        with open(session_file, "w") as f:
             json.dump(analysis.model_dump(), f, indent=2)
 
         # Log the session analysis
@@ -110,7 +109,7 @@ class ImprovementTracker:
         # but the timestamp in the data should remain unchanged
         sanitized_timestamp = improvement.timestamp.replace(":", "-").replace("/", "-")
         improvement_file = self.improvements_dir / f"improvement_{sanitized_timestamp}.json"
-        with open(improvement_file, 'w') as f:
+        with open(improvement_file, "w") as f:
             json.dump(improvement.model_dump(), f, indent=2)
 
         # Log the improvement
