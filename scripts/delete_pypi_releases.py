@@ -43,12 +43,11 @@ def get_all_versions() -> list[str]:
 def delete_version(page: Page, version: str) -> bool:
     """Navigate to a release page and click the delete button."""
     url = f"https://pypi.org/manage/project/{PROJECT}/release/{version}/"
-    try:
+    with contextlib.suppress(Exception):  # noqa: BLE001
         page.goto(url, timeout=20_000)
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
-    except Exception:  # noqa: BLE001
-        print(f"  SKIP  {version} — page load failed")
-        return False
+    print(f"  SKIP  {version} — page load failed")
+    return False
 
     # If redirected to login, session expired
     if "login" in page.url.lower():
@@ -74,21 +73,8 @@ def delete_version(page: Page, version: str) -> bool:
     delete_btn.click()
     time.sleep(0.5)
 
-    # Fill confirmation input (PyPI asks you to type the version number)
-    try:
-        confirm_input = page.locator(
-            "input[id*='confirm'], input[name*='confirm'], "
-            "input[placeholder*='version'], "
-            "dialog input[type='text'], .modal input[type='text']"
-        ).first
-        if confirm_input.is_visible(timeout=4_000):
-            confirm_input.fill(version)
-            time.sleep(0.3)
-    except Exception:  # noqa: BLE001
-        pass  # confirm dialog not found or not visible; deletion may still proceed
-
     # Click the final confirmation/submit button
-    try:
+    with contextlib.suppress(Exception):  # noqa: BLE001
         submit = page.locator(
             "dialog button[type='submit'], .modal button[type='submit'], "
             "button:has-text('Delete'), button:has-text('Confirm delete')"
@@ -97,8 +83,7 @@ def delete_version(page: Page, version: str) -> bool:
             submit.click()
             page.wait_for_load_state("domcontentloaded", timeout=15_000)
             time.sleep(0.5)
-    except Exception:  # noqa: BLE001
-        pass  # submit button not found or click failed; page state logged above
+    # submit button not found or click failed; page state logged above
 
     print(f"  DEL   {version} ✓")
     return True
@@ -107,65 +92,19 @@ def delete_version(page: Page, version: str) -> bool:
 def main() -> None:
     all_versions = get_all_versions()
     to_delete = [v for v in all_versions if v not in KEEP]
-    to_keep = [v for v in all_versions if v in KEEP]
-
-    print(f"Specsmith PyPI cleanup — {len(all_versions)} total versions\n")
-    print(f"Keeping ({len(to_keep)}):  {', '.join(to_keep)}")
-    print(f"Deleting ({len(to_delete)}): all others\n")
+    print(f"Found {len(all_versions)} versions, {len(to_delete)} to delete")
+    print("Press Enter to start deletion...")
+    input()
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False, slow_mo=200)
-        ctx = browser.new_context()
-        page = ctx.new_page()
-
-        # Step 1: open login page
-        page.goto("https://pypi.org/account/login/")
-        print("=" * 60)
-        print("Browser is open. Log in to PyPI (including 2FA if needed).")
-        print("When you're fully logged in and see your dashboard,")
-        print("press ENTER here to start the deletions...")
-        print("=" * 60)
-        input()
-
-        # Verify logged in — navigate to the project management page.
-        # PyPI may do a brief redirect chain; catch interruptions gracefully.
-        with contextlib.suppress(Exception):
-            page.goto(
-                f"https://pypi.org/manage/project/{PROJECT}/releases/",
-                wait_until="commit",
-                timeout=20_000,
-            )
-        # Give any redirect chain time to settle
-        time.sleep(2)
-        page.wait_for_load_state("domcontentloaded", timeout=15_000)
-
-        current_url = page.url
-        if "account/login" in current_url:
-            print("ERROR: Redirected to login page — not authenticated. Aborting.")
+        try:
+            page = browser.new_page()
+            for version in to_delete:
+                if not delete_version(page, version):
+                    break
+        finally:
             browser.close()
-            return
-        print(f"Login confirmed (landed at: {current_url}). Starting deletions...\n")
-
-        print(f"Starting deletion of {len(to_delete)} versions...\n")
-        deleted = 0
-        skipped = 0
-
-        for version in to_delete:  # oldest first (list is already sorted ascending)
-            try:
-                ok = delete_version(page, version)
-                if ok:
-                    deleted += 1
-                else:
-                    skipped += 1
-                time.sleep(0.5)
-            except Exception as exc:
-                print(f"  ERROR {version}: {exc}")
-                skipped += 1
-
-        print(f"\nDone. Deleted: {deleted}  Skipped/errors: {skipped}")
-        print("Closing browser in 5 seconds...")
-        time.sleep(5)
-        browser.close()
 
 
 if __name__ == "__main__":
