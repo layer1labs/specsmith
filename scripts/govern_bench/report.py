@@ -102,13 +102,15 @@ def render_democratization_table(report: BenchReport) -> str:
     ]
     if not rows:
         lines += [
-            "No frontier+UNGOVERNED baseline is available yet, so democratization metrics are pending.",
+            "No frontier+UNGOVERNED baseline is available yet, so democratization metrics "
+            "are pending.",
             "",
         ]
         return "\n".join(lines)
 
     lines += [
-        "| Scaffold | Frontier Baseline | Cheapest Model That Beats Frontier | Tier | Cost Multiplier |",
+        "| Scaffold | Frontier Baseline | Cheapest Model That Beats Frontier | Tier | "
+        "Cost Multiplier |",
         "|----------|-------------------|------------------------------------|------|-----------------|",
     ]
     for row in rows:
@@ -269,11 +271,13 @@ def render_report(
         cname = next((c.name for c in conditions if c.id == cid), cid)
         rows.append((
             cname,
-            f"{_fmt_pct(s['mean_pass_rate'])} ({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
+            f"{_fmt_pct(s['mean_pass_rate'])} "
+            f"({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
             _fmt_tokens(s["mean_total_tokens"]),
             _fmt_cost(s["mean_api_cost_usd"]),
             f"{s['mean_quality_score']:.2f}",
-            f"{_fmt_cost(s['mean_cost_of_pass'])} ({_fmt_ci_cost(s['ci_cop_low'], s['ci_cop_high'])})",
+            f"{_fmt_cost(s['mean_cost_of_pass'])} "
+            f"({_fmt_ci_cost(s['ci_cop_low'], s['ci_cop_high'])})",
             _fmt_pct(s["mean_first_pass_rate"]),
             f"{s['mean_consistency_score']:.2f}",
             _fmt_lift(s["mean_scaffold_lift"]),

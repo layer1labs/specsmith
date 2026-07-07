@@ -82,7 +82,6 @@ def yank_version(version: str, token: str, dry_run: bool) -> None:
 
 
 def main() -> None:
-    import urllib.parse
 
     parser = argparse.ArgumentParser(description="Yank old specsmith PyPI versions")
     parser.add_argument("--token", required=True, help="PyPI API token (pypi-...)")

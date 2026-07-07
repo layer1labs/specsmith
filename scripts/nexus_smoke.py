@@ -37,7 +37,7 @@ def smoke_test(
         ]
 
     last_error = ""
-    for url, name in endpoints:
+    for url, _name in endpoints:
         try:
             t0 = time.monotonic()
             req = urllib.request.Request(url, method="GET")

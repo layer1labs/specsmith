@@ -94,7 +94,9 @@ def test_record_session_analysis():
         tracker.record_session_analysis(analysis)
 
         # Check that file was created
-        session_file = Path(tmp_dir) / ".specsmith" / "improvements" / "session_test-session-123.json"
+        session_file = (
+            Path(tmp_dir) / ".specsmith" / "improvements" / "session_test-session-123.json"
+        )
         assert session_file.exists()
 
         # Check file content
@@ -118,7 +120,9 @@ def test_record_improvement():
         tracker.record_improvement(improvement)
 
         # Check that file was created (with sanitized timestamp for Windows compatibility)
-        improvement_file = Path(tmp_dir) / ".specsmith" / "improvements" / "improvement_2026-01-01T00-00-00Z.json"
+        improvement_file = (
+            Path(tmp_dir) / ".specsmith" / "improvements" / "improvement_2026-01-01T00-00-00Z.json"
+        )
         assert improvement_file.exists()
 
         # Check file content

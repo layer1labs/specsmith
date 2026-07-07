@@ -69,7 +69,8 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         recommended_runtime="vLLM",
         recommended_temperature=0.7,
         tags=["large", "reasoning", "cost-effective", "multilingual"],
-        description="Qwen3.6 35B parameter model with advanced reasoning capabilities and multilingual support.",
+        description="Qwen3.6 35B parameter model with advanced reasoning capabilities "
+        "and multilingual support.",
         supports_function_calling=True,
         supports_json_output=True,
         supports_tools=True,
@@ -182,7 +183,8 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         recommended_runtime="vLLM",
         recommended_temperature=0.7,
         tags=["medium", "reasoning", "open-source"],
-        description="Meta Llama 3.2 3B parameter model, good balance of performance and efficiency.",
+        description="Meta Llama 3.2 3B parameter model, good balance of performance "
+        "and efficiency.",
         supports_function_calling=True,
         supports_json_output=True,
         supports_tools=True,
@@ -214,7 +216,8 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         recommended_runtime="vLLM",
         recommended_temperature=0.7,
         tags=["large", "reasoning", "open-source"],
-        description="Meta Llama 3.1 70B parameter model, one of the most capable open-source models.",
+        description="Meta Llama 3.1 70B parameter model, one of the most capable "
+        "open-source models.",
         supports_function_calling=True,
         supports_json_output=True,
         supports_tools=True,
@@ -487,7 +490,8 @@ MODEL_REGISTRY: dict[str, ModelProfile] = {
         recommended_runtime="vLLM",
         recommended_temperature=0.7,
         tags=["large", "reasoning", "open-source"],
-        description="Meta Llama 3.3 70B parameter model, latest iteration with improved performance.",
+        description="Meta Llama 3.3 70B parameter model, latest iteration with improved "
+        "performance.",
         supports_function_calling=True,
         supports_json_output=True,
         supports_tools=True,

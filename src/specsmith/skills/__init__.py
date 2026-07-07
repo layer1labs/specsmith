@@ -227,7 +227,7 @@ def by_domain(domain: SkillDomain) -> list[SkillEntry]:
 
 def installed_skills(project_dir: Path) -> list[Path]:
     """Return list of installed skill files in the project."""
-    from specsmith.skills import get as get_skill
+    # from specsmith.skills import get as get_skill  # Unused import
 
     skills_dir = project_dir / ".agents" / "skills"
     if not skills_dir.exists():

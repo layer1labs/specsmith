@@ -14,8 +14,10 @@ Usage:
     python scripts/delete_pypi_releases.py
 """
 
+import contextlib
 import time
-from playwright.sync_api import sync_playwright, Page
+
+from playwright.sync_api import Page, sync_playwright
 
 PROJECT = "specsmith"
 
@@ -30,7 +32,8 @@ KEEP = {
 
 
 def get_all_versions() -> list[str]:
-    import urllib.request, json
+    import json
+    import urllib.request
     url = f"https://pypi.org/pypi/{PROJECT}/json"
     with urllib.request.urlopen(url) as resp:
         data = json.loads(resp.read())
@@ -126,14 +129,12 @@ def main() -> None:
 
         # Verify logged in — navigate to the project management page.
         # PyPI may do a brief redirect chain; catch interruptions gracefully.
-        try:
+        with contextlib.suppress(Exception):
             page.goto(
                 f"https://pypi.org/manage/project/{PROJECT}/releases/",
                 wait_until="commit",
                 timeout=20_000,
             )
-        except Exception:
-            pass  # navigation interruptions are expected during PyPI's redirect
         # Give any redirect chain time to settle
         time.sleep(2)
         page.wait_for_load_state("domcontentloaded", timeout=15_000)
