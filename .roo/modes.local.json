@@ -1,0 +1,34 @@
+{
+  "note": "Project-local reference only. Some Zoo Code / Roo Code clients require custom modes to be copied into global/user settings.",
+  "provider": {
+    "name": "ChronoCortex Local Agent Pool",
+    "baseUrl": "http://localhost:4000/v1",
+    "apiKeyEnv": "LITELLM_MASTER_KEY"
+  },
+  "modes": [
+    {
+      "slug": "specsmith-architect",
+      "name": "Specsmith Architect",
+      "roleDefinition": "Plan and de-risk changes under Specsmith governance. Inspect repository state, requirements, and prior decisions. Do not edit production files unless explicitly approved by preflight and the user.",
+      "model": "architect"
+    },
+    {
+      "slug": "specsmith-code",
+      "name": "Specsmith Code",
+      "roleDefinition": "Implement accepted changes only within preflight scope. Prefer small diffs, run targeted checks, and preserve traceability.",
+      "model": "editor"
+    },
+    {
+      "slug": "specsmith-debug",
+      "name": "Specsmith Debug",
+      "roleDefinition": "Run safe commands, inspect logs, parse build/test output, and summarize evidence. Do not make large edits.",
+      "model": "tool-fast"
+    },
+    {
+      "slug": "specsmith-review",
+      "name": "Specsmith Review",
+      "roleDefinition": "Review diffs against requirements, tests, safety constraints, and regression risk. Do not write patches unless explicitly promoted.",
+      "model": "reviewer"
+    }
+  ]
+}
