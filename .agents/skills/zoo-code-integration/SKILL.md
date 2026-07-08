@@ -1,125 +1,102 @@
----
-name: zoo-code-integration
-description: Skill for integrating with Zoo-Code for enhanced development workflows with specsmith governance
----
+# Zoo Code — Specsmith Governance Integration
 
-# Zoo Code Integration
+Use this skill when working in Zoo Code or Roo Code on a Specsmith-governed repository.
 
-This skill enables specsmith projects to integrate with Zoo-Code for enhanced development workflows while maintaining governance compliance across Windows, Linux, and Mac platforms.
+## Goal
 
-## Requirements Covered
+Make Zoo/Roo behave like a governed local engineering agent, not an unconstrained chat assistant.
 
-- Supports the Zoo-Code integration capabilities within specsmith governance
-- Enables cross-platform development with platform-specific considerations
+The required pattern is:
 
-## Integration Capabilities
-
-### Platform Features
-- Cross-platform integration for Windows, Linux, and macOS
-- Platform-specific configuration management
-- Unified development experience with Zoo-Code extension
-- Custom modes and language support for specsmith workflows
-- Benchmarking and performance monitoring capabilities
-
-### Governance Requirements
-- Human approval required for Zoo-Code integration setup
-- Configuration management with governance controls
-- Platform-specific settings with approval requirements
-- Audit logging of integration activities
-
-## Platform-Specific Considerations
-
-### Windows
-- Path handling with Windows-specific conventions
-- PowerShell and CMD integration
-- Windows-specific environment variables
-- File system permissions and access controls
-- Registry and system integration considerations
-
-### Linux
-- POSIX-compliant path handling
-- Shell integration (bash, zsh, fish)
-- Package manager integration (apt, yum, pacman)
-- System service management
-- File permissions and ownership
-
-### macOS
-- Darwin-specific path handling
-- macOS application integration
-- Homebrew and MacPorts package management
-- System preferences and security frameworks
-- AppleScript and automation support
-
-## Usage Examples
-
-```bash
-# Initialize Zoo-Code integration
-specsmith skill install zoo-code-integration
-
-# Configure for specific platform
-specsmith zoo-code init --platform windows
-
-# Export custom modes for Zoo-Code
-specsmith zoo-code export-modes --output-dir ./zoo-code-config
-
-# Run benchmark suite
-specsmith zoo-code benchmark --suite smoke --runtime zoo-code
-
-# Generate metrics report
-specsmith zoo-code metrics --by task --metric tpca
+```text
+Architect plans
+Coder edits
+Debug/Tool runs and parses commands
+Reviewer critiques
+Specsmith preflight/verify/trace gates the work
 ```
 
-## Configuration
+The model that writes a patch must not be the only model that approves it.
 
-The skill requires the following configuration in `scaffold.yml`:
+## Required local project files
 
-```yaml
-zoo_code:
-  platform: auto  # windows, linux, mac, or auto
-  integration_mode: "zoo-code"
-  benchmark_suite: "smoke"
-  telemetry_enabled: true
-  cross_platform_support: true
+Project-local Zoo/Roo integration lives in `.roo/`:
+
+- `.roo/mcp.json` — repo-local MCP server registration for `specsmith-governance`
+- `.roo/specsmith-rules.md` — mandatory agent protocol for Zoo/Roo
+- `.roo/modes.local.json` — project-local reference mode definitions
+- `.roo/global-settings.copy-to-zoo-code.json` — copyable global Zoo Code/OpenAI-compatible provider settings
+
+Only `.roo/mcp.json` and `.roo/specsmith-rules.md` are intended to be active project files. Global provider/model settings must be copied into Zoo Code global settings by the operator.
+
+## Session start
+
+1. Read `AGENTS.md` and `.roo/specsmith-rules.md`.
+2. Call the MCP tool `governance_checkpoint`.
+3. Call `governance_phase` and `governance_req_list` before changing code.
+4. Summarize the current phase, failing checks, relevant requirements, and permitted scope.
+
+## Before any code change
+
+Call `governance_preflight` with one sentence describing the intended change.
+
+Do not edit files unless the decision is `accepted`.
+
+If the decision is `needs_clarification`, ask a narrow question or reduce the change scope.
+
+If the decision is `rejected`, stop and report why.
+
+## During implementation
+
+Follow role separation:
+
+- Architect mode may plan and inspect but should not directly edit production code.
+- Code mode may edit only within the accepted preflight scope.
+- Debug/Tool mode should run safe commands and parse outputs; it should not make large edits.
+- Review mode should read diffs, requirements, and tests; it should not rewrite the patch unless explicitly promoted.
+
+Prefer small diffs. Ground API, register, binding, and build-system claims in actual repository files or command output.
+
+## Verification
+
+After edits:
+
+1. Run the relevant tests/build checks.
+2. Capture command output.
+3. Run `specsmith verify` or use MCP governance tools when available.
+4. Call `governance_trace_seal` for meaningful milestones, accepted reviews, or release gates.
+
+## Embedded/firmware discipline
+
+Never invent SDK, HAL, register, device-tree, or build-system APIs.
+
+For Zephyr/devicetree-style work, ground claims in:
+
+- `bindings/*.yaml`
+- board DTS/DTSI files
+- generated devicetree output
+- exact build errors
+
+For C/firmware work, ground claims in:
+
+- headers
+- vendor SDK files
+- compiler output
+- tests or reproducible logs
+
+## Local model routing
+
+When using a LiteLLM/vLLM local pool, route by task:
+
+| Task | Model role |
+|---|---|
+| repo planning, architecture, ambiguous debugging | `architect` |
+| implementation, tests, refactors | `editor` |
+| shell commands, build logs, JSON/YAML, quick summaries | `tool-fast` |
+| adversarial review, regression risk, final critique | `reviewer` |
+
+Use the LiteLLM router endpoint when available:
+
+```text
+http://localhost:4000/v1
 ```
-
-## Platform-Specific Setup
-
-### Windows Setup
-```bash
-# Windows-specific setup
-specsmith zoo-code init --platform windows
-# Ensure PowerShell execution policy allows script execution
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Linux Setup
-```bash
-# Linux-specific setup
-specsmith zoo-code init --platform linux
-# Install required dependencies
-sudo apt-get install -y nodejs npm
-```
-
-### macOS Setup
-```bash
-# macOS-specific setup
-specsmith zoo-code init --platform mac
-# Install Homebrew if needed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-```
-
-## Security Considerations
-
-- All Zoo-Code integrations require human approval
-- Platform-specific security policies must be enforced
-- File system access controls must be maintained
-- Environment variable handling must be secure
-- Cross-platform compatibility must not compromise security
-
-## Compliance Requirements
-
-- Follow security best practices for cross-platform development
-- Maintain audit logs of all Zoo-Code integration activities
-- Ensure proper platform-specific configuration management
-- Enforce approval-based integration setup
-- Support for platform-specific compliance requirements
