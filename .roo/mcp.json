@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "specsmith-governance": {
+      "command": "specsmith",
+      "args": ["mcp", "serve", "--project-dir", "."],
+      "env": {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1"
+      }
+    }
+  }
+}
