@@ -10,6 +10,11 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Fixed
+- **Read the Docs latest deployment** - The manual RTD workflow now configures the
+  canonical `layer1labs/specsmith` repository and `main` default branch, synchronizes
+  versions, verifies `latest` maps to `main`, and fails on rejected API responses.
+
 ## [0.22.1] - 2026-07-13
 ### Fixed
 - **ESDB license activation in pipx** (#295) - The Ed25519 `cryptography` verifier
