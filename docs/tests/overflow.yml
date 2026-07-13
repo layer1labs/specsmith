@@ -648,5 +648,5 @@
   type: integration
   verification_method: pytest tests/test_esdb_enforcement.py -k save_does_not_commit
   description: Verify save normalizes the Git policy, commits no SQLite cache, migration
-    backup, marker, state, or agent migration artifact, and retains the mergeable session
-    event log as canonical source of truth.
+    backup, marker, state, or agent migration artifact, and retains the mergeable
+    session event log as canonical source of truth.

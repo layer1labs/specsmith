@@ -3560,12 +3560,13 @@
     "id": "REQ-366",
     "version": 1,
     "title": "Activating the chronomemory ChronoStore ESDB backend requires a valid commercial license key",
-    "description": "When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore (ChronoMemory backend engine). The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence.",
+    "description": "When chronomemory is installed, specsmith must verify the presence and cryptographic validity of an Ed25519-signed license file before activating ChronoStore (ChronoMemory backend engine). The license file location is resolved from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the key is absent or invalid the backend silently falls back to SqliteStore with a one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects SQLite regardless of key presence. The base specsmith package must include the cryptography verifier required by `specsmith esdb enable`, so clean pip and pipx installations can activate a valid license without a separate dependency injection.",
     "source": "commercial licensing model",
     "status": "accepted",
     "test_ids": [
       "TEST-367",
-      "TEST-372"
+      "TEST-372",
+      "TEST-472"
     ]
   },
   {

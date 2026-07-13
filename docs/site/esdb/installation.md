@@ -13,6 +13,10 @@ Terms: [COMMERCIAL-LICENSE.md (ChronoMemory only)](https://github.com/layer1labs
 If you use specsmith, the simplest path is `pip install "specsmith[esdb]"`.
 See the [ESDB overview](../esdb.md#licensing) for the full two-tier licensing summary.
 
+The base specsmith package includes the Ed25519 license verifier, including in a
+`pipx` installation. Only the commercial ChronoMemory backend needs an additional
+package install.
+
 ---
 
 ## Requirements
@@ -38,6 +42,8 @@ Activate your license key:
 specsmith esdb enable --key-file /path/to/your.esdb.key
 specsmith esdb status   # confirms ChronoMemory / ChronoStore backend is active
 ```
+
+No `pipx inject specsmith cryptography` step is required before activating a license.
 
 ## Install standalone (without specsmith)
 

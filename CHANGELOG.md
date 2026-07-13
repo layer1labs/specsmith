@@ -10,6 +10,12 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.22.1] - 2026-07-13
+### Fixed
+- **ESDB license activation in pipx** (#295) - The Ed25519 `cryptography` verifier
+  is now a base SpecSmith dependency, so `specsmith esdb enable` works in a clean
+  `pipx install specsmith` environment without a manual `pipx inject` workaround.
+
 ## [0.22.0] - 2026-07-10
 ### Added
 - CPU fallback for local model detection (REQ-445) - When no GPU is detected,
@@ -922,7 +928,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.0...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.1...HEAD
+[0.22.1]: https://github.com/layer1labs/specsmith/compare/v0.22.0...v0.22.1
 [0.22.0]: https://github.com/layer1labs/specsmith/compare/v0.20.1...v0.22.0
 [0.20.1]: https://github.com/layer1labs/specsmith/compare/v0.20.0...v0.20.1
 [0.20.0]: https://github.com/layer1labs/specsmith/compare/v0.19.2...v0.20.0
