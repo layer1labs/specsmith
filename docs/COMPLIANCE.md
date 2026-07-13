@@ -50,7 +50,7 @@
 - ✓ session-protocol.yaml valid (m001 content-blob, kind=session-protocol)
 - ✓ verification.yaml valid (m001 content-blob, kind=verification)
 - ✓ All 412 accepted REQ(s) have test coverage
-- ✓ LEDGER.md has 461 lines (within 500 threshold)
+- ✓ LEDGER.md has 467 lines (within 500 threshold)
 - ✓ 0 open, 0 closed TODOs
 - ✓ AGENTS.md: 122 lines
 - ✓ docs/governance/RULES.md: 18 lines
@@ -102,6 +102,8 @@
 
 ## Recent Activity
 
+- `61b556e Merge pull request #293 from layer1labs/codex/release-0.22.0`
+- `1f75e19 release: prepare v0.22.0`
 - `52c33fd KILL SWITCH ACTIVATED: emergency stop`
 - `da69815 KILL SWITCH ACTIVATED: emergency stop`
 - `46da691 Merge pull request #292 from layer1labs/codex/clear-postmerge-codeql`
@@ -110,11 +112,9 @@
 - `76adac6 fix: resolve remaining CodeQL review findings`
 - `cf91bab merge: integrate Zoo/Roo governance configuration`
 - `ec2e978 wi_close WI-094C4FE3: Published archive/feat-zoo-roo-mcp-integration-202`
-- `c1bd591 KILL SWITCH ACTIVATED: emergency stop`
-- `d5ca276 fix: keep generated ESDB state out of saves`
 
 **Contributors:**
-- 724	Tristen Pierson
+- 725	Tristen Pierson
 - 5	dependabot[bot]
 - 1	Aqil Aziz
 

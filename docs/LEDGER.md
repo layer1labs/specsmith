@@ -459,3 +459,9 @@
 - **Type**: wi_close
 - **Status**: complete
 - **Chain hash**: `f558c2338dc69263...`
+
+## 2026-07-13T17:01 — wi_close WI-5C560143: v0.22.0 published to PyPI and GitHub; RTD stable and latest builds finished successfully.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `f3bbad392d19900e...`
