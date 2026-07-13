@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "primary_governance_command": "specsmith_run",
+  "slash_prefix": "/specsmith",
+  "verb_shortcuts": [
+    "audit",
+    "commit",
+    "doctor",
+    "load",
+    "pull",
+    "push",
+    "run",
+    "save",
+    "status",
+    "sync",
+    "validate",
+    "watch"
+  ],
+  "description": "Use specsmith_run() or /specsmith <args> in the Nexus REPL for all governance operations (save, load, push, pull, audit, status, \u2026). REQ-SM-001: agents must not invoke the specsmith binary directly via run_shell when specsmith_run is available."
+}

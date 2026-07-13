@@ -92,10 +92,10 @@ app/target/
 !.specsmith/config.yml
 !.specsmith/requirements.json
 !.specsmith/testcases.json
+!.specsmith/esdb.sqlite3
 !.specsmith/esdb_migration_manifest.json
 !.chronomemory/events.wal
 !.chronomemory/snapshot.json
-!.chronomemory/session-events.jsonl
 # Ephemeral runtime paths (never commit):
 .specsmith/session_metrics.jsonl
 .specsmith/backups/
