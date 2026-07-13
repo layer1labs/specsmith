@@ -417,3 +417,17 @@
 - **REQs affected**: TEST-470
 - **Status**: complete
 - **Chain hash**: `3b3775a522076719...`
+
+## 2026-07-13T15:30 — test-ran TEST-371: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-371
+- **Status**: complete
+- **Chain hash**: `92ad46273e1a25c0...`
+
+## 2026-07-13T15:30 — test-ran TEST-470: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-470
+- **Status**: complete
+- **Chain hash**: `77af924fed83a344...`

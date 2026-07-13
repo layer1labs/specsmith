@@ -216,8 +216,6 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
 
     # Reject backward migration (downgrade) unconditionally — REQ-370 / I16.
     def _ver(v: str) -> tuple[int, ...]:
-        import re
-
         m = re.match(r"(\d+)[.](\d+)(?:[.](\d+))?", v or "")
         if not m:
             return (0,)
