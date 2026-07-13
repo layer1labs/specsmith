@@ -5098,5 +5098,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-471",
+    "version": 1,
+    "title": "Preserve canonical ESDB state when saving a governed Git worktree",
+    "description": "Verify save normalizes the Git policy, commits no SQLite cache, migration backup, marker, state, or agent migration artifact, and retains the mergeable session event log as canonical source of truth.",
+    "requirement_id": "REQ-447",
+    "type": "integration",
+    "verification_method": "pytest tests/test_esdb_enforcement.py -k save_does_not_commit",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

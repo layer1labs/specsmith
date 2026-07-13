@@ -275,6 +275,8 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
 #   runs/chat/perf/...  — transient runtime directories
 #   ledger.jsonl        — deprecated flat-file ledger (superseded by LEDGER.md)
 #   chronomemory/backup — timestamped ChronoMemory backup copies
+#   migration artifacts — local upgrade state, recovery copies, and one-time
+#                         backfill markers; the ESDB manifest is canonical
 _GIT_IGNORED_POLICY: tuple[str, ...] = (
     ".specsmith/esdb.sqlite3",
     ".specsmith/esdb.sqlite3-shm",
@@ -297,6 +299,14 @@ _GIT_IGNORED_POLICY: tuple[str, ...] = (
     ".specsmith/agent-reports/",
     ".specsmith/dispatch/",
     ".specsmith/ledger.jsonl",
+    ".specsmith/agent-tools.json",
+    ".specsmith/agents.md.bak",
+    ".specsmith/agents.md.m005.bak",
+    ".specsmith/migration-state.json",
+    ".specsmith/migration-backups/",
+    ".specsmith/esdb-full-coverage",
+    ".specsmith/esdb-m009-backfill",
+    ".specsmith/esdb-m010-cleanup",
     ".chronomemory/backup/",
 )
 

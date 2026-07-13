@@ -1,7 +1,0 @@
-m010 applied:
-removed=3
-skipped=3
-blocked=0
-  - .specsmith/requirements.json
-  - .specsmith/testcases.json
-  - .specsmith/agents.md.m006.bak

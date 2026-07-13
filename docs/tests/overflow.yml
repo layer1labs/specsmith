@@ -642,3 +642,11 @@
   description: Verify single-branch is the default, branch creation is refused until
     an explicit workflow selection, and specsmith can enable GitFlow or another configured
     strategy.
+- id: TEST-471
+  title: Preserve canonical ESDB state when saving a governed Git worktree
+  requirement_id: REQ-447
+  type: integration
+  verification_method: pytest tests/test_esdb_enforcement.py -k save_does_not_commit
+  description: Verify save normalizes the Git policy, commits no SQLite cache, migration
+    backup, marker, state, or agent migration artifact, and retains the mergeable session
+    event log as canonical source of truth.
