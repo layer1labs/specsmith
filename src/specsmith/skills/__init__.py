@@ -233,18 +233,10 @@ def by_domain(domain: SkillDomain) -> list[SkillEntry]:
 
 def installed_skills(project_dir: Path) -> list[Path]:
     """Return list of installed skill files in the project."""
-    # from specsmith.skills import get as get_skill  # Unused import
-
     skills_dir = project_dir / ".agents" / "skills"
     if not skills_dir.exists():
         return []
-    installed = []
-    for path in skills_dir.rglob("*.md"):
-        # Skip subdirectory format (e.g., "ai-agents/xyz.md")
-        if path.parent.name != "skills":
-            continue
-        installed.append(path)
-    return installed
+    return sorted([*skills_dir.glob("*/SKILL.md"), *skills_dir.glob("*.md")])
 
 
 def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
@@ -270,20 +262,15 @@ def install(slug: str, project_dir: Path, *, force: bool = False) -> Path:
         If the skill slug is not found in the catalog.
 
     """
-    from specsmith.skills import get as get_skill
-
-    skill = get_skill(slug)
+    skill = get(slug)
     if skill is None:
         raise KeyError(f"Skill {slug!r} not found in catalog")
-    skills_dir = project_dir / ".agents" / "skills"
-    skills_dir.mkdir(parents=True, exist_ok=True)
-    # Use subdirectory format for domain-specific skills
-    skill_dir = skills_dir / skill.domain.value
+    skill_dir = project_dir / ".agents" / "skills" / skill.slug
     skill_dir.mkdir(parents=True, exist_ok=True)
-    skill_path = skill_dir / f"{skill.slug}.md"
+    skill_path = skill_dir / "SKILL.md"
     if not force and skill_path.exists():
-        raise FileExistsError(f"Skill {slug!r} already installed at {skill_path}")
-    skill_path.write_text(skill.body)
+        raise FileExistsError(f"Already installed: skill {slug!r} at {skill_path}")
+    skill_path.write_text(skill.body, encoding="utf-8")
     return skill_path
 
 

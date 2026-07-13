@@ -110,9 +110,9 @@
   confidence: 1.0
 - id: TEST-258
   title: ESDB Settings Page Renders Without Overflow
-  description: The Settings > Specsmith > ESDB page renders the status row,
-    action buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without
-    layout errors.
+  description: The Settings > Specsmith > ESDB page renders the status row, action
+    buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without layout
+    errors.
   requirement_id: REQ-258
   type: integration
   verification_method: manual (Rust UI build required)
@@ -131,8 +131,8 @@
   confidence: 1.0
 - id: TEST-260
   title: Eval Settings Page Renders
-  description: The Settings > Specsmith > Eval page renders header, description,
-    and CLI hint without errors.
+  description: The Settings > Specsmith > Eval page renders header, description, and
+    CLI hint without errors.
   requirement_id: REQ-260
   type: integration
   verification_method: manual (Rust UI build required)
@@ -151,8 +151,8 @@
   confidence: 1.0
 - id: TEST-262
   title: MCP AI Builder Card Generates And Saves Stub
-  description: In the Agents > MCP servers list, the AI Builder card accepts
-    a description, generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json
+  description: In the Agents > MCP servers list, the AI Builder card accepts a description,
+    generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json
     on 'Add to config' click.
   requirement_id: REQ-262
   type: integration

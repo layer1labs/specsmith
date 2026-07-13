@@ -146,7 +146,7 @@ session. Copy it to your Warp launch configurations directory:
 
 ```bash
 # Session start
-specsmith kill-session 2>/dev/null || true
+specsmith kill-session  # idempotent; safe when no processes exist
 specsmith audit --project-dir .
 specsmith sync  --project-dir .
 specsmith checkpoint --project-dir .   # output GOVERNANCE ANCHOR verbatim

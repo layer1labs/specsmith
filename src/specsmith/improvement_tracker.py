@@ -5,8 +5,10 @@
 import json
 import logging
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 
+import yaml
 from pydantic import BaseModel
 
 
@@ -53,19 +55,24 @@ class ImprovementTracker:
         formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.log_handler = handler
+        self.log_handler: logging.FileHandler | None = handler
 
-    def close(self):
+    def close(self) -> None:
         """Explicitly close logging handlers to prevent file lock issues."""
         if hasattr(self, "log_handler") and self.log_handler:
             self.log_handler.close()
             self.logger.removeHandler(self.log_handler)
             self.log_handler = None
 
-    def __enter__(self):
+    def __enter__(self) -> "ImprovementTracker":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def _is_development_mode(self) -> bool:
@@ -73,9 +80,7 @@ class ImprovementTracker:
         try:
             config_file = self.project_dir / ".specsmith" / "config.yml"
             if config_file.exists():
-                import yaml
-
-                with open(config_file) as f:
+                with open(config_file, encoding="utf-8") as f:
                     config = yaml.safe_load(f)
                     result = config.get("enable_development_mode", False)
                     return bool(result)

@@ -189,13 +189,17 @@ def _maybe_prompt_project_update() -> None:
 
         if installed < project:
             # Backward migration (downgrade) — hard error, REQ-370.
+            from specsmith.updater import version_mismatch_remediation
+
+            remedy = version_mismatch_remediation(project_ver)
             click.echo(
                 f"\nERROR: specsmith downgrade detected.\n"
                 f"  Project spec_version : {project_ver}\n"
                 f"  Installed specsmith  : {__version__} (older)\n"
                 "\n"
                 "  Backward migration is not supported.\n"
-                "  Upgrade specsmith first: pipx upgrade specsmith\n"
+                f"  Install the required version: {remedy}\n"
+                "  Stable projects can instead use: pipx upgrade specsmith\n"
                 "  Then re-run this command.",
                 err=True,
             )
@@ -595,8 +599,19 @@ def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
 VCS_PLATFORM_CHOICES = {"1": "github", "2": "gitlab", "3": "bitbucket", "4": ""}
 VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "None"}
 
-BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
-BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
+BRANCH_STRATEGY_CHOICES = {
+    "1": "single-branch",
+    "2": "gitflow",
+    "3": "trunk-based",
+    "4": "github-flow",
+}
+BRANCH_STRATEGY_LABELS = {
+    "1": "Single branch (direct governed work on main)",
+    "2": "Gitflow",
+    "3": "Trunk-based",
+    "4": "GitHub Flow",
+}
+_BRANCH_WORKFLOWS = tuple(BRANCH_STRATEGY_CHOICES.values())
 
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
@@ -631,7 +646,7 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     for k, v in BRANCH_STRATEGY_LABELS.items():
         console.print(f"  {k}. {v}")
     branch_choice = click.prompt("Select strategy", default="1")
-    branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "gitflow")
+    branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "single-branch")
 
     return ProjectConfig(
         name=name,
@@ -1880,6 +1895,17 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
     for tool in ("ruff", "pytest", "pipx"):
         ok, detail = _tool_version(tool)
         _add(tool, ok, detail)
+
+    if sys.platform == "win32":
+        from specsmith.updater import find_windows_launchers
+
+        launchers = find_windows_launchers(__import__("os").environ.get("PATH", ""))
+        _add(
+            "specsmith launchers",
+            len(launchers) <= 1,
+            str(launchers[0]) if len(launchers) == 1 else f"{len(launchers)} found; use pipx only",
+            warn=len(launchers) > 1,
+        )
 
     overall = "pass" if all(c["status"] != "fail" for c in checks) else "fail"
 
@@ -3634,12 +3660,12 @@ def branch_create(name: str, project_dir: str) -> None:
     """Create a branch following the branching strategy."""
     root = Path(project_dir).resolve()
     scaffold_path = root / "scaffold.yml"
-    strategy = "gitflow"
+    strategy = "single-branch"
     main_branch = "main"
     if scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        strategy = raw.get("branching_strategy", "gitflow")
+        strategy = raw.get("branching_strategy", "single-branch")
         main_branch = raw.get("default_branch", "main")
 
     from specsmith.vcs_commands import create_branch
@@ -3648,7 +3674,34 @@ def branch_create(name: str, project_dir: str) -> None:
     if result.success:
         console.print(f"[green]\u2713[/green] {result.message}")
     else:
-        console.print(f"[red]\u2717[/red] {result.message}")
+        raise click.ClickException(result.message)
+
+
+@branch_group.command(name="workflow")
+@click.argument("strategy", required=False, type=click.Choice(_BRANCH_WORKFLOWS))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def branch_workflow(strategy: str | None, project_dir: str) -> None:
+    """Show or explicitly select the governed branching workflow."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+    if not scaffold_path.exists():
+        raise click.ClickException(
+            "No scaffold.yml found; run specsmith init before selecting a workflow."
+        )
+
+    with scaffold_path.open(encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    current = str(raw.get("branching_strategy", "single-branch"))
+    if strategy is None:
+        console.print(f"Branch workflow: {current}")
+        return
+
+    raw["branching_strategy"] = strategy
+    scaffold_path.write_text(
+        yaml.safe_dump(raw, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"[green]\u2713[/green] Branch workflow set to {strategy}")
 
 
 @branch_group.command(name="list")
@@ -3789,6 +3842,13 @@ def channel_set_cmd(channel: str) -> None:
     immediately for all subsequent ``specsmith self-update`` / ``update`` calls.
     """
     from specsmith.channel import set_persisted_channel
+    from specsmith.updater import is_prerelease_version, version_mismatch_remediation
+
+    if channel == "stable" and is_prerelease_version(__version__):
+        raise click.UsageError(
+            "Cannot select stable while a prerelease is installed. "
+            f"Install a stable build first: {version_mismatch_remediation('0.21.0')}"
+        )
 
     set_persisted_channel(channel)
     channel_color = "cyan" if channel == "dev" else "green"

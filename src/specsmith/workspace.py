@@ -92,7 +92,7 @@ def init_workspace(root: Path, name: str, project_paths: list[str]) -> Path:
         "projects": [{"path": p} for p in project_paths],
         "defaults": {
             "vcs_platform": "github",
-            "branching_strategy": "gitflow",
+            "branching_strategy": "single-branch",
             "required_approvals": 1,
         },
     }

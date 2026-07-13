@@ -121,6 +121,8 @@ class _MigrationRegistry:
             m008_esdb_full_coverage,
             m009_esdb_first,
             m010_post_esdb_cleanup,
+            m011_windows_skill_shell,
+            m012_normalize_skill_shell,
         )
 
         instances: list[Migration] = [
@@ -134,6 +136,8 @@ class _MigrationRegistry:
             m008_esdb_full_coverage.EsdbFullCoverageMigration(),
             m009_esdb_first.EsdbFirstMigration(),
             m010_post_esdb_cleanup.PostEsdbCleanupMigration(),
+            m011_windows_skill_shell.WindowsSkillShellMigration(),
+            m012_normalize_skill_shell.NormalizeSkillShellMigration(),
         ]
         instances.sort(key=lambda m: m.version)
         self._migrations = instances

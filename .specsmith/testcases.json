@@ -4990,5 +4990,113 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-462",
+    "version": 1,
+    "title": "Validate epistemic chat handoff and Zoo-Code export",
+    "description": "Verify extractive source IDs, ESDB persistence, context compaction, and portable Zoo-Code export.",
+    "requirement_id": "REQ-446",
+    "type": "integration",
+    "verification_method": "pytest tests/test_chat_handoff.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-463",
+    "version": 1,
+    "title": "Merge and rebuild canonical ESDB session events",
+    "description": "Verify divergent event histories replay without loss or duplicate events and rebuild local SQLite state.",
+    "requirement_id": "REQ-447",
+    "type": "integration",
+    "verification_method": "pytest tests/test_session_store.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-464",
+    "version": 1,
+    "title": "Diagnose Windows launcher shadowing and redirected stderr",
+    "description": "Verify duplicate executable diagnostics and PowerShell-compatible launcher behavior.",
+    "requirement_id": "REQ-448",
+    "type": "cli",
+    "verification_method": "pytest tests/test_windows_launcher.py tests/test_migrations_skill_shell.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-465",
+    "version": 1,
+    "title": "Offer reachable development-version recovery",
+    "description": "Verify version mismatch diagnostics provide exact pipx recovery guidance without allowing downgrade.",
+    "requirement_id": "REQ-449",
+    "type": "cli",
+    "verification_method": "pytest tests/test_updater.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-466",
+    "version": 1,
+    "title": "Reject non-stable versions from stable release publishing",
+    "description": "Verify PEP 440 dev prerelease and local versions cannot enter the stable release workflow.",
+    "requirement_id": "REQ-450",
+    "type": "build",
+    "verification_method": "pytest tests/test_release_guard.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-467",
+    "version": 1,
+    "title": "Reject work-item persistence paths outside project root",
+    "description": "Verify normalized work-item state and file paths cannot escape the supplied project root.",
+    "requirement_id": "REQ-451",
+    "type": "unit",
+    "verification_method": "pytest tests/test_wi_lifecycle.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-468",
+    "version": 1,
+    "title": "Render quality report footer without implicit concatenation",
+    "description": "Verify the generated footer retains its expected report content while the renderer remains CodeQL-clean.",
+    "requirement_id": "REQ-452",
+    "type": "unit",
+    "verification_method": "pytest tests/test_quality_report.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-469",
+    "version": 1,
+    "title": "Verify release candidate quality gates",
+    "description": "Verify every local and CI release-candidate quality gate passes without lint, type, test, documentation, dependency-security, or governance failures.",
+    "requirement_id": "REQ-453",
+    "type": "build",
+    "verification_method": "ruff check src/ tests/ && ruff format --check src/ tests/ && mypy src/specsmith/ && pytest --cov=specsmith --cov-report=term-missing && mkdocs build --strict && pip-audit && specsmith audit --project-dir .",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-470",
+    "version": 1,
+    "title": "Enforce and configure the single-branch default",
+    "description": "Verify single-branch is the default, branch creation is refused until an explicit workflow selection, and specsmith can enable GitFlow or another configured strategy.",
+    "requirement_id": "REQ-454",
+    "type": "cli",
+    "verification_method": "pytest tests/test_branch_workflow.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

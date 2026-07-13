@@ -45,6 +45,7 @@ nav:
     - Project Types: project-types.md
   - Agentic Runtime:
     - CLI Commands: commands.md
+    - Epistemic Chat Handoffs: epistemic-handoffs.md
     - Multi-Agent Dispatch: dispatch.md
     - Agentic Client:
       - Overview: agent-client.md
@@ -59,6 +60,7 @@ nav:
   - Reference:
     - Importing: importing.md
     - Configuration: configuration.md
+    - Branch Workflows: branch-workflows.md
     - Doctor: doctor.md
     - Export & Compliance: export.md
     - Rate Limit Pacing: rate-limits.md

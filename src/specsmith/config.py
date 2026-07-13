@@ -140,7 +140,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.20.1", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.22.0", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -160,8 +160,8 @@ class ProjectConfig(BaseModel):
 
     # Branching strategy
     branching_strategy: str = Field(
-        default="gitflow",
-        description="Branching strategy (gitflow, trunk-based, github-flow)",
+        default="single-branch",
+        description="Branching strategy (single-branch, gitflow, trunk-based, github-flow)",
     )
     default_branch: str = Field(
         default="main",

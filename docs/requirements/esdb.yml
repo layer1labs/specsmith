@@ -101,18 +101,17 @@
   status: implemented
 - id: REQ-261
   title: AI Providers Table Without Column Overflow
-  description: 'The Agents > Providers settings page MUST display AI models
-    in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px,
-    Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as
-    o4-mini-deep-research MUST NOT overflow into adjacent columns.'
+  description: 'The Agents > Providers settings page MUST display AI models in a table
+    with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output:
+    80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research
+    MUST NOT overflow into adjacent columns.'
   source: ARCHITECTURE.md [Settings Extensions]
   status: implemented
 - id: REQ-262
   title: MCP AI Builder Card
-  description: The Agents > MCP servers list page MUST include a collapsible
-    AI Builder card that accepts a natural-language server description, calls specsmith
-    mcp generate <description> --json, displays the generated JSON stub, and offers
-    an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP
-    config file.
+  description: The Agents > MCP servers list page MUST include a collapsible AI Builder
+    card that accepts a natural-language server description, calls specsmith mcp generate
+    <description> --json, displays the generated JSON stub, and offers an 'Add to
+    ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.
   source: ARCHITECTURE.md [Settings Extensions]
   status: implemented

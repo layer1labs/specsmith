@@ -466,8 +466,8 @@
   confidence: 1.0
 - id: TEST-106
   title: Governance Page Surfaces Preflight/Verify/Trace
-  description: The Governance settings page shows the governance-serve health
-    status, the BYOE endpoint URL, and the specsmith updater.
+  description: The Governance settings page shows the governance-serve health status,
+    the BYOE endpoint URL, and the specsmith updater.
   requirement_id: REQ-106
   type: integration
   verification_method: evaluator
@@ -706,8 +706,7 @@
   title: API Stability Doc Enumerates Frozen Surface
   description: '`docs/site/api-stability.md` exists and enumerates: CLI subcommands,
     exit codes, JSON payload schemas, broker module API, ledger event schemas, VS
-    CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is
-    `Production/Stable`.'
+    CLI API surface. `pyproject.toml` version is `1.0.0` and classifier is `Production/Stable`.'
   requirement_id: REQ-129
   type: unit
   verification_method: pytest

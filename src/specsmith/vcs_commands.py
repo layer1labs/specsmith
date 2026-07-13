@@ -175,7 +175,7 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
     if scaffold_path and scaffold_path.exists() and not force:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        strategy = raw.get("branching_strategy", "gitflow")
+        strategy = raw.get("branching_strategy", "single-branch")
         main_branch = raw.get("default_branch", "main")
 
         if strategy == "gitflow" and branch == main_branch:
@@ -265,10 +265,20 @@ def create_branch(
     root: Path,
     name: str,
     *,
-    strategy: str = "gitflow",
+    strategy: str = "single-branch",
     main_branch: str = "main",
 ) -> GitResult:
     """Create a branch following the branching strategy."""
+    if strategy == "single-branch":
+        return GitResult(
+            success=False,
+            message=(
+                "Branch creation is disabled by the single-branch workflow. "
+                "Enable GitFlow, trunk-based, or GitHub Flow with "
+                "`specsmith branch workflow <strategy>` first."
+            ),
+        )
+
     develop_branch = "develop"
 
     # Determine base branch
@@ -344,15 +354,25 @@ def create_pr(
 
     scaffold_path = find_scaffold(root)
     platform = "github"
-    base_branch = "develop"
+    base_branch = "main"
+    strategy = "single-branch"
 
     if scaffold_path and scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
         platform = raw.get("vcs_platform", "github")
-        strategy = raw.get("branching_strategy", "gitflow")
+        strategy = raw.get("branching_strategy", "single-branch")
         branch = get_current_branch(root)
 
+        if strategy == "single-branch":
+            return GitResult(
+                success=False,
+                message=(
+                    "Pull requests are disabled by the single-branch workflow. "
+                    "Enable GitFlow, trunk-based, or GitHub Flow with "
+                    "`specsmith branch workflow <strategy>` first."
+                ),
+            )
         if strategy == "gitflow":
             if branch.startswith("hotfix/") or branch.startswith("release/"):
                 base_branch = raw.get("default_branch", "main")

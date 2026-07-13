@@ -4444,5 +4444,104 @@
     "test_ids": [
       "TEST-461"
     ]
+  },
+  {
+    "id": "REQ-446",
+    "version": 1,
+    "title": "Epistemic chat condensation and agent handoff",
+    "description": "Specsmith shall safely condense chat/session context into provenance-preserving ESDB artifacts that retain source identifiers, confidence, uncertainty, unresolved decisions, active work items, and validation status; reject or flag unsupported claims; restore usable context after compaction; and export/import a portable handoff envelope interoperable with Specsmith agents and Zoo-Code.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-462"
+    ]
+  },
+  {
+    "id": "REQ-447",
+    "version": 1,
+    "title": "Git-safe ESDB session persistence",
+    "description": "Specsmith shall store session and ESDB history in a deterministic, append-friendly, text-based canonical representation that can be merged across branches without lost or duplicated events; local SQLite databases and WAL sidecars shall be derived caches that can be rebuilt safely with validated schema, integrity, and recovery reporting.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-463"
+    ]
+  },
+  {
+    "id": "REQ-448",
+    "version": 1,
+    "title": "Windows launcher resolution diagnostics",
+    "description": "On Windows, Specsmith shall detect multiple or shadowed specsmith executables, report the active executable and package version, provide safe pipx-focused remediation, and support PowerShell stderr redirection without a launcher failure.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-464"
+    ]
+  },
+  {
+    "id": "REQ-449",
+    "version": 1,
+    "title": "Reachable version-mismatch recovery",
+    "description": "When a project requires a newer development or prerelease Specsmith version than the stable channel provides, Specsmith shall diagnose the channel mismatch, provide an exact supported pipx remediation command, and distinguish it from a normal stable upgrade without permitting backward migration.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-465"
+    ]
+  },
+  {
+    "id": "REQ-450",
+    "version": 1,
+    "title": "Stable release channel integrity",
+    "description": "Specsmith release automation shall reject PEP 440 development, prerelease, and local versions before stable PyPI upload, publish such artifacts only through an explicit development channel, and verify the stable install and upgrade path in CI.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-466"
+    ]
+  },
+  {
+    "id": "REQ-451",
+    "version": 1,
+    "title": "Contained work-item persistence paths",
+    "description": "Specsmith shall normalize every work-item persistence path with os.path.realpath, reject values outside the project root before filesystem access, and provide the same containment behavior on Windows, Linux, and macOS.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-467"
+    ]
+  },
+  {
+    "id": "REQ-452",
+    "version": 1,
+    "title": "CodeQL-clean report rendering",
+    "description": "Specsmith shall render quality reports without CodeQL implicit string concatenation findings while preserving the report content and formatting.",
+    "source": "docs/requirements/",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-468"
+    ]
+  },
+  {
+    "id": "REQ-453",
+    "version": 1,
+    "title": "Release candidate quality gates",
+    "description": "Before release, Specsmith shall pass strict linting, formatting, type checking, the complete test suite, strict documentation build, runtime dependency audit, and governance audit without unresolved issues.",
+    "source": "CI, release workflow, and release validation",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-469"
+    ]
+  },
+  {
+    "id": "REQ-454",
+    "version": 1,
+    "title": "Single-branch workflow default",
+    "description": "Specsmith shall default new projects to a single-branch workflow on the configured default branch, refuse branch creation until a different branching strategy is explicitly enabled through specsmith, and preserve GitFlow, trunk-based, and GitHub-flow behavior after opt-in.",
+    "source": "Git workflow governance",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-470"
+    ]
   }
 ]

@@ -1316,7 +1316,9 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         spec_version = "0.3.0"  # safe fallback
 
     # Detect branching strategy from git history (#107)
-    branching_strategy = _detect_branching_strategy(result.root) if result.has_git else "trunk"
+    branching_strategy = (
+        _detect_branching_strategy(result.root) if result.has_git else "single-branch"
+    )
     # Detect shell wrappers from scripts/ directory (#108)
     shell_wrappers = _detect_shell_wrappers(result.root)
     # Detect proprietary license: no LICENSE file + not a known open-source project

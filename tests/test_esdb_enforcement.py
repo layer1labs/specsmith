@@ -51,11 +51,15 @@ def test_run_sync_normalizes_legacy_esdb_gitignore(tmp_path: Path) -> None:
     # Broad ignores must be gone
     assert ".specsmith/" not in lines
     assert ".chronomemory/" not in lines
-    # Allow-list (tracked source-of-truth) must be present
-    assert "!.specsmith/esdb.sqlite3" in lines
+    # Mergeable source-of-truth must be tracked; SQLite remains local runtime state.
+    assert ".specsmith/esdb.sqlite3" in lines
+    assert ".specsmith/esdb.sqlite3-shm" in lines
+    assert ".specsmith/esdb.sqlite3-wal" in lines
+    assert "!.specsmith/esdb.sqlite3" not in lines
     assert "!.specsmith/esdb_migration_manifest.json" in lines
     assert "!.chronomemory/events.wal" in lines
     assert "!.chronomemory/snapshot.json" in lines
+    assert "!.chronomemory/session-events.jsonl" in lines
     # Deny-list (ephemeral runtime) must be present
     assert ".chronomemory/backup/" in lines
     assert ".specsmith/workitems.json" in lines
@@ -65,6 +69,39 @@ def test_run_sync_normalizes_legacy_esdb_gitignore(tmp_path: Path) -> None:
     assert ".specsmith/session_metrics.jsonl" in lines
     # esdb_migration_manifest must NOT appear as a bare deny rule
     assert ".specsmith/esdb_migration_manifest.json" not in lines
+
+
+def test_run_sync_rewrites_stale_auto_normalized_gitignore(tmp_path: Path) -> None:
+    """A stale generated allow rule must not keep the SQLite cache tracked."""
+    (tmp_path / ".gitignore").write_text(
+        "\n".join(
+            [
+                "# project rule",
+                "dist/",
+                "# specsmith ESDB policy (auto-normalized)",
+                "# Tracked (governance source-of-truth):",
+                "!.specsmith/esdb.sqlite3",
+                "!.specsmith/requirements.json",
+                "# Ephemeral runtime paths (never commit):",
+                ".specsmith/workitems.json",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    run_sync(tmp_path)
+
+    lines = {
+        line.strip()
+        for line in (tmp_path / ".gitignore").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    }
+    assert "# project rule" in lines
+    assert "dist/" in lines
+    assert "!.specsmith/esdb.sqlite3" not in lines
+    assert ".specsmith/esdb.sqlite3" in lines
+    assert "!.chronomemory/session-events.jsonl" in lines
 
 
 def test_normalizer_policy_sets_are_disjoint() -> None:

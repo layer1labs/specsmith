@@ -209,8 +209,8 @@
 - id: TEST-281
   title: AI Providers Bucket Score Section Compiles
   description: The updated `ai_providers_page.py` in specsmith compiles without errors
-    under `python -m py_compile`. The file must contain `model_intel` function
-    call or `bucket_score` field rendering code.
+    under `python -m py_compile`. The file must contain `model_intel` function call
+    or `bucket_score` field rendering code.
   requirement_id: REQ-281
   type: build
   verification_method: cargo check

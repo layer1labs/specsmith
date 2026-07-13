@@ -116,6 +116,21 @@ class TestWorkItemDataclass:
 
 
 class TestWorkItemStorePersistence:
+    def test_rejects_workitem_path_outside_project_root(self, tmp_path: Path, monkeypatch) -> None:
+        """Persistence paths must remain under the caller's project root (REQ-451)."""
+        import specsmith.wi_store as wi_store
+
+        original_realpath = wi_store.os.path.realpath
+
+        def escape_state(path: str) -> str:
+            if path.endswith(".specsmith"):
+                return original_realpath(str(tmp_path.parent / "outside"))
+            return original_realpath(path)
+
+        monkeypatch.setattr(wi_store.os.path, "realpath", escape_state)
+        with pytest.raises(WorkItemError, match="escapes project root"):
+            WorkItemStore(tmp_path)
+
     def test_load_missing_file_returns_empty(self, tmp_path: Path) -> None:
         store = _store(tmp_path)
         assert store.load() == []

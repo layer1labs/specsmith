@@ -26,7 +26,7 @@ Regardless of which tool you use, the governance session protocol is the same:
 **Session start** (run once before any other action):
 
 ```bash
-specsmith kill-session 2>/dev/null || true
+specsmith kill-session  # idempotent; safe when no processes exist
 specsmith audit --project-dir .
 specsmith sync  --project-dir .
 specsmith checkpoint --project-dir .   # output GOVERNANCE ANCHOR verbatim

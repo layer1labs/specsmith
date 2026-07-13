@@ -233,7 +233,7 @@ _ESDB_GITIGNORE_FORBIDDEN = frozenset(
 # Decision rationale:
 #   config.yml              — project identity and settings
 #   requirements/testcases  — governance canon (YAML-first or JSON cache)
-#   esdb.sqlite3            — ESDB SQLite backend (canonical record store)
+#   session-events.jsonl    — mergeable canonical session event log
 #   esdb_migration_manifest — which migrations have run; tracked for
 #                             reproducibility so fresh clones don't re-run
 #   events.wal/snapshot     — ChronoMemory canonical state (commercial tier)
@@ -241,10 +241,10 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
     ".specsmith/config.yml",
     ".specsmith/requirements.json",
     ".specsmith/testcases.json",
-    ".specsmith/esdb.sqlite3",
     ".specsmith/esdb_migration_manifest.json",
     ".chronomemory/events.wal",
     ".chronomemory/snapshot.json",
+    ".chronomemory/session-events.jsonl",
 )
 
 # Paths that MUST NOT be tracked in git — runtime/ephemeral artifacts.
@@ -253,6 +253,8 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
 # ignore rule is immediately effective rather than a dormant no-op.
 #
 # Decision rationale:
+#   esdb.sqlite3 + sidecars — local SQLite cache and journaling state; session
+#                             events are the mergeable canonical representation
 #   workitems.json      — runtime WI allocation; re-minted by preflight
 #   ledger-chain.txt    — ephemeral hash-chain cache; DEPRECATED (REQ-420)
 #   trace.jsonl         — trace log; DEPRECATED by ESDB seal_records (REQ-420)
@@ -265,6 +267,9 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
 #   ledger.jsonl        — deprecated flat-file ledger (superseded by LEDGER.md)
 #   chronomemory/backup — timestamped ChronoMemory backup copies
 _GIT_IGNORED_POLICY: tuple[str, ...] = (
+    ".specsmith/esdb.sqlite3",
+    ".specsmith/esdb.sqlite3-shm",
+    ".specsmith/esdb.sqlite3-wal",
     ".specsmith/workitems.json",
     ".specsmith/ledger-chain.txt",
     ".specsmith/trace.jsonl",
@@ -359,6 +364,7 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
 
     normalized_lines: list[str] = []
     removed_forbidden = False
+    removed_stale_policy = False
     in_auto_block = False
     for line in original_lines:
         stripped = line.strip()
@@ -367,6 +373,7 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
             continue
         if stripped == _POLICY_SENTINEL:
             in_auto_block = True  # drop the old sentinel and everything after it
+            removed_stale_policy = True
             continue
         if in_auto_block:
             # Keep lines that are unrelated to the specsmith policy block
@@ -388,7 +395,9 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
     deny_lines = list(_GIT_IGNORED_POLICY)
     missing_allows = [ln for ln in allow_lines if ln not in existing]
     missing_denies = [ln for ln in deny_lines if ln not in existing]
-    gitignore_changed = removed_forbidden or bool(missing_allows) or bool(missing_denies)
+    gitignore_changed = (
+        removed_forbidden or removed_stale_policy or bool(missing_allows) or bool(missing_denies)
+    )
 
     if not dry_run and gitignore_changed:
         if normalized_lines and normalized_lines[-1].strip():

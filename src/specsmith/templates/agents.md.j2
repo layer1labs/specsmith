@@ -9,7 +9,7 @@ Run these steps at the start of **every** session before touching any code:
 
 ```bash
 # 0. Kill any orphaned processes from previous sessions
-specsmith kill-session 2>/dev/null || true
+specsmith kill-session                        # idempotent; safe when no processes exist
 
 # 1. Apply any pending forward migrations (always auto-accepted — no prompt)
 specsmith migrate run --project-dir .

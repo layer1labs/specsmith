@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -92,6 +93,29 @@ def is_pipx_install() -> bool:
     # 4. Linux/macOS default: ~/.local/pipx/venvs/<pkg>/bin/python
     unix_pipx = (Path.home() / ".local" / "pipx" / "venvs").as_posix().lower()
     return bool(exe.startswith(unix_pipx))
+
+
+def version_mismatch_remediation(project_version: str) -> str:
+    """Return the safe pipx command for a project ahead of the stable channel."""
+    is_prerelease = re.search(r"\d(?:a|b|rc)\d", project_version) is not None
+    if ".dev" in project_version or "+" in project_version or is_prerelease:
+        return f"pipx install --force specsmith=={project_version}"
+    return "pipx upgrade specsmith"
+
+
+def is_prerelease_version(version: str) -> bool:
+    """Return whether a PEP 440 version cannot represent the stable channel."""
+    return bool(".dev" in version or "+" in version or re.search(r"\d(?:a|b|rc)\d", version))
+
+
+def find_windows_launchers(path_value: str) -> list[Path]:
+    """Return every discoverable ``specsmith.exe`` on a Windows PATH value."""
+    launchers: list[Path] = []
+    for entry in path_value.split(";"):
+        candidate = Path(entry) / "specsmith.exe"
+        if entry and candidate.is_file():
+            launchers.append(candidate)
+    return launchers
 
 
 def run_self_update(

@@ -156,10 +156,11 @@ class ContextOrchestrator:
             half = len(result.history) // 2
             dropped = result.history[:half]
             kept = result.history[half:]
-            summary_content = (
-                f"[Earlier conversation summary — {len(dropped)} turns condensed. "
-                "Key context preserved in ESDB and LEDGER.md.]"
-            )
+            from specsmith.chat_handoff import build_handoff, render_handoff_context, store_handoff
+
+            handoff = build_handoff(dropped)
+            store_handoff(self.root, handoff)
+            summary_content = render_handoff_context(handoff)
             result.history = [{"role": "assistant", "content": summary_content}] + kept
             freed = sum(len(t.get("content", "")) for t in dropped) // 4  # ~4 chars/token
             result.tokens_freed_estimate += freed
