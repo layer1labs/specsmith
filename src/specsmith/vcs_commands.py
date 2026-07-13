@@ -353,7 +353,6 @@ def create_pr(
     from specsmith.paths import find_scaffold
 
     scaffold_path = find_scaffold(root)
-    platform = "github"
     raw: dict[str, object] = {}
 
     if scaffold_path and scaffold_path.exists():
