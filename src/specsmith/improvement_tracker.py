@@ -11,6 +11,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
+LOGGER = logging.getLogger(__name__)
+
 
 class ImprovementRecord(BaseModel):
     """Record of an improvement suggestion or session analysis."""
@@ -77,15 +79,18 @@ class ImprovementTracker:
 
     def _is_development_mode(self) -> bool:
         """Check if development mode is enabled in project config."""
+        config_file = self.project_dir / ".specsmith" / "config.yml"
+        config: object = {}
         try:
-            config_file = self.project_dir / ".specsmith" / "config.yml"
             if config_file.exists():
                 with open(config_file, encoding="utf-8") as f:
-                    config = yaml.safe_load(f)
-                    result = config.get("enable_development_mode", False)
-                    return bool(result)
-        except Exception:
-            pass
+                    config = yaml.safe_load(f) or {}
+        except (OSError, yaml.YAMLError):
+            LOGGER.warning("Could not read development-mode config: %s", config_file, exc_info=True)
+            return False
+
+        if isinstance(config, dict):
+            return bool(config.get("enable_development_mode", False))
         return False
 
     def record_session_analysis(self, analysis: SessionAnalysis) -> None:
@@ -140,8 +145,10 @@ class ImprovementTracker:
                 with open(file_path) as f:
                     data = json.load(f)
                     improvements.append(ImprovementRecord(**data))
-            except Exception:
-                continue
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                self.logger.warning(
+                    "Skipping unreadable improvement record: %s", file_path, exc_info=True
+                )
 
         # Sort by timestamp (newest first)
         improvements.sort(key=lambda x: x.timestamp, reverse=True)

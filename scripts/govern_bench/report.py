@@ -103,14 +103,14 @@ def render_democratization_table(report: BenchReport) -> str:
     if not rows:
         lines += [
             "No frontier+UNGOVERNED baseline is available yet, so democratization metrics "
-            "are pending.",
+            + "are pending.",
             "",
         ]
         return "\n".join(lines)
 
     lines += [
         "| Scaffold | Frontier Baseline | Cheapest Model That Beats Frontier | Tier | "
-        "Cost Multiplier |",
+        + "Cost Multiplier |",
         "|----------|-------------------|------------------------------------|------|-----------------|",
     ]
     for row in rows:
@@ -124,13 +124,15 @@ def render_democratization_table(report: BenchReport) -> str:
         )
         lines.append(
             "| "
-            + " | ".join([
-                str(row["scaffold"]),
-                baseline,
-                winner,
-                tier,
-                multiplier,
-            ])
+            + " | ".join(
+                [
+                    str(row["scaffold"]),
+                    baseline,
+                    winner,
+                    tier,
+                    multiplier,
+                ]
+            )
             + " |"
         )
     lines.append("")
@@ -269,19 +271,21 @@ def render_report(
             continue
         s = summary[cid]
         cname = next((c.name for c in conditions if c.id == cid), cid)
-        rows.append((
-            cname,
-            f"{_fmt_pct(s['mean_pass_rate'])} "
-            f"({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
-            _fmt_tokens(s["mean_total_tokens"]),
-            _fmt_cost(s["mean_api_cost_usd"]),
-            f"{s['mean_quality_score']:.2f}",
-            f"{_fmt_cost(s['mean_cost_of_pass'])} "
-            f"({_fmt_ci_cost(s['ci_cop_low'], s['ci_cop_high'])})",
-            _fmt_pct(s["mean_first_pass_rate"]),
-            f"{s['mean_consistency_score']:.2f}",
-            _fmt_lift(s["mean_scaffold_lift"]),
-        ))
+        rows.append(
+            (
+                cname,
+                f"{_fmt_pct(s['mean_pass_rate'])} "
+                f"({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
+                _fmt_tokens(s["mean_total_tokens"]),
+                _fmt_cost(s["mean_api_cost_usd"]),
+                f"{s['mean_quality_score']:.2f}",
+                f"{_fmt_cost(s['mean_cost_of_pass'])} "
+                f"({_fmt_ci_cost(s['ci_cop_low'], s['ci_cop_high'])})",
+                _fmt_pct(s["mean_first_pass_rate"]),
+                f"{s['mean_consistency_score']:.2f}",
+                _fmt_lift(s["mean_scaffold_lift"]),
+            )
+        )
 
     # Best-value variables reserved for future bolding logic (not yet applied)
 
@@ -334,6 +338,7 @@ def render_report(
         lines.append(
             "|-----------|-----------|--------|------|---------|-----|------------|------|"
         )
+
         def _slice_order(s: SliceStats) -> int:
             return cids.index(s.condition_id) if s.condition_id in cids else 99
 
@@ -387,16 +392,18 @@ def render_report(
     # Inline compact raw data (per-run summary only — not full transcripts)
     raw_rows = []
     for run in report.runs:
-        raw_rows.append({
-            "task": run.task_id,
-            "condition": run.condition_id,
-            "rep": run.rep,
-            "tokens": run.total_tokens,
-            "cost_usd": round(run.api_cost_usd, 6),
-            "passed": run.passed,
-            "quality": round(run.quality_score, 3),
-            "rework_turns": run.rework_turns,
-        })
+        raw_rows.append(
+            {
+                "task": run.task_id,
+                "condition": run.condition_id,
+                "rep": run.rep,
+                "tokens": run.total_tokens,
+                "cost_usd": round(run.api_cost_usd, 6),
+                "passed": run.passed,
+                "quality": round(run.quality_score, 3),
+                "rework_turns": run.rework_turns,
+            }
+        )
     lines.append(json.dumps(raw_rows, indent=2))
     lines += ["```", ""]
 

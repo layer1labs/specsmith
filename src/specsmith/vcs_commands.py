@@ -355,31 +355,32 @@ def create_pr(
     scaffold_path = find_scaffold(root)
     platform = "github"
     base_branch = "main"
-    strategy = "single-branch"
+    raw: dict[str, object] = {}
 
     if scaffold_path and scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        platform = raw.get("vcs_platform", "github")
-        strategy = raw.get("branching_strategy", "single-branch")
-        branch = get_current_branch(root)
 
-        if strategy == "single-branch":
-            return GitResult(
-                success=False,
-                message=(
-                    "Pull requests are disabled by the single-branch workflow. "
-                    "Enable GitFlow, trunk-based, or GitHub Flow with "
-                    "`specsmith branch workflow <strategy>` first."
-                ),
-            )
-        if strategy == "gitflow":
-            if branch.startswith("hotfix/") or branch.startswith("release/"):
-                base_branch = raw.get("default_branch", "main")
-            else:
-                base_branch = raw.get("develop_branch", "develop")
+    platform = str(raw.get("vcs_platform", "github"))
+    strategy = str(raw.get("branching_strategy", "single-branch"))
+    if strategy == "single-branch":
+        return GitResult(
+            success=False,
+            message=(
+                "Pull requests are disabled by the single-branch workflow. "
+                "Enable GitFlow, trunk-based, or GitHub Flow with "
+                "`specsmith branch workflow <strategy>` first."
+            ),
+        )
+
+    branch = get_current_branch(root)
+    if strategy == "gitflow":
+        if branch.startswith("hotfix/") or branch.startswith("release/"):
+            base_branch = str(raw.get("default_branch", "main"))
         else:
-            base_branch = raw.get("default_branch", "main")
+            base_branch = str(raw.get("develop_branch", "develop"))
+    else:
+        base_branch = str(raw.get("default_branch", "main"))
 
     if not title:
         title = generate_commit_message(root)

@@ -50,6 +50,13 @@ def test_single_branch_refuses_pull_request(tmp_path: Path) -> None:
     assert "Pull requests are disabled" in result.message
 
 
+def test_missing_scaffold_uses_single_branch_default(tmp_path: Path) -> None:
+    result = create_pr(tmp_path)
+
+    assert not result.success
+    assert "Pull requests are disabled" in result.message
+
+
 def test_branch_workflow_command_enables_gitflow(tmp_path: Path) -> None:
     (tmp_path / "scaffold.yml").write_text(
         "name: workflow-test\nbranching_strategy: single-branch\n",
