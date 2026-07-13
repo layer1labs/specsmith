@@ -67,6 +67,19 @@ def _make_license_file(
 # ---------------------------------------------------------------------------
 
 
+def test_base_install_includes_cryptography_for_license_verification() -> None:
+    """TEST-472: pipx base installs need the verifier used by esdb enable."""
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    base_dependencies = pyproject.read_text(encoding="utf-8").split(
+        "[project.optional-dependencies]", maxsplit=1
+    )[0]
+
+    assert any(
+        line.strip().startswith('"cryptography>=42.0"')
+        for line in base_dependencies.splitlines()
+    )
+
+
 def test_valid_license(tmp_path: Path) -> None:
     key = _make_license_file(tmp_path)
     status = verify_license_file(key)

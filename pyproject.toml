@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.22.0"
+version = "0.22.1"
 description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, and Aider."
 readme = "README.md"
 license = "MIT"
@@ -37,6 +37,8 @@ classifiers = [
 
 dependencies = [
     "click>=8.1",
+    # `specsmith esdb enable` verifies Ed25519 license signatures in every install.
+    "cryptography>=42.0",
     "jinja2>=3.1",
     "pyyaml>=6.0",
     "pydantic>=2.0",
@@ -54,7 +56,6 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.0",
     "types-pyyaml>=6.0",
-    "cryptography>=42.0",   # needed for test_esdb_license.py signing helpers
 ]
 # ESDB commercial backend — requires a valid license from licensing@layer1labs.ai
 # Install: pip install specsmith[esdb]
@@ -62,7 +63,6 @@ dev = [
 # Terms: https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md
 esdb = [
     "chronomemory>=0.2.7",   # proprietary commercial — ChronoMemory terms only (not SQLite free tier)
-    "cryptography>=42.0",
 ]
 docs = [
     "mkdocs>=1.6",
@@ -95,8 +95,8 @@ all = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
-# cryptography for license verification (usable without full esdb extra)
-license-verify = ["cryptography>=42.0"]
+# Compatibility extra: cryptography is now part of every supported installation.
+license-verify = []
 
 [project.scripts]
 specsmith = "specsmith.cli:main"

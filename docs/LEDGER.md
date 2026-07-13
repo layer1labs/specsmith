@@ -465,3 +465,17 @@
 - **Type**: wi_close
 - **Status**: complete
 - **Chain hash**: `f3bbad392d19900e...`
+
+## 2026-07-13T18:08 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `46ed7529d803de9b...`
+
+## 2026-07-13T18:35 — wi_archive WI-6C92EE21: Superseded by WI-260B314F, which implements issue #295 under REQ-366 with TEST-472 coverage.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `f43dc947dfb44117...`

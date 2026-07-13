@@ -207,6 +207,10 @@ specsmith esdb enable --key-file /path/to/your-org.esdb.key
 The key is copied to `~/.specsmith/esdb.key`.  Every subsequent specsmith command
 automatically uses ChronoStore as long as the key is present and valid.
 
+The Ed25519 verifier used by `specsmith esdb enable` is included with the base
+specsmith package, including `pipx` installs. Only the commercial `chronomemory`
+backend needs the extra `pipx inject` step above.
+
 **Step 3 — verify ChronoStore is active**
 
 ```bash

@@ -239,6 +239,7 @@ If you hold a chronomemory ESDB license, activate the commercial backend:
 pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
 # or if using pipx:
 pipx inject specsmith "chronomemory>=0.2.0"  # inject into the specsmith pipx venv
+# The license verifier is included in base specsmith; no cryptography injection is needed.
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your.esdb.key

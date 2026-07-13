@@ -8,7 +8,7 @@
 - **Type**: python
 - **Language**: python
 - **VCS Platform**: github
-- **Spec Version**: 0.22.0
+- **Spec Version**: 0.22.1
 
 ## Verification Tools
 
@@ -21,10 +21,10 @@
 
 ## Audit Summary
 
-- **Passed**: 73
-- **Failed**: 0
+- **Passed**: 74
+- **Failed**: 1
 - **Fixable**: 0
-- **Status**: Healthy
+- **Status**: Issues found
 
 - ✓ Required file AGENTS.md exists
 - ✓ Required file LEDGER.md exists
@@ -50,7 +50,7 @@
 - ✓ session-protocol.yaml valid (m001 content-blob, kind=session-protocol)
 - ✓ verification.yaml valid (m001 content-blob, kind=verification)
 - ✓ All 412 accepted REQ(s) have test coverage
-- ✓ LEDGER.md has 467 lines (within 500 threshold)
+- ✓ LEDGER.md has 475 lines (within 500 threshold)
 - ✓ 0 open, 0 closed TODOs
 - ✓ AGENTS.md: 122 lines
 - ✓ docs/governance/RULES.md: 18 lines
@@ -99,9 +99,13 @@
 - ✓ WI-DA14F483 risk=medium gates satisfied
 - ✓ WI-8F467602 risk=medium gates satisfied
 - ✓ WI-5C560143 risk=medium gates satisfied
+- ✗ WI-6C92EE21 risk=medium missing gates: linked tests
+- ✓ WI-260B314F risk=low gates satisfied
 
 ## Recent Activity
 
+- `bf45813 Merge pull request #294 from layer1labs/codex/close-release-0.22.0`
+- `0f75440 chore(governance): close v0.22.0 release`
 - `61b556e Merge pull request #293 from layer1labs/codex/release-0.22.0`
 - `1f75e19 release: prepare v0.22.0`
 - `52c33fd KILL SWITCH ACTIVATED: emergency stop`
@@ -110,11 +114,9 @@
 - `05d3e38 fix: clear remaining post-merge CodeQL findings`
 - `eafcd63 Merge pull request #291 from layer1labs/codex/epistemic-release`
 - `76adac6 fix: resolve remaining CodeQL review findings`
-- `cf91bab merge: integrate Zoo/Roo governance configuration`
-- `ec2e978 wi_close WI-094C4FE3: Published archive/feat-zoo-roo-mcp-integration-202`
 
 **Contributors:**
-- 725	Tristen Pierson
+- 726	Tristen Pierson
 - 5	dependabot[bot]
 - 1	Aqil Aziz
 

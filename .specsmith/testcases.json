@@ -5110,5 +5110,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-472",
+    "version": 1,
+    "title": "Base package metadata includes cryptography for ESDB license activation",
+    "description": "Verify pyproject.toml lists cryptography in base project dependencies, so a clean pipx install can execute specsmith esdb enable without a manual pipx inject.",
+    "requirement_id": "REQ-366",
+    "type": "unit",
+    "verification_method": "pytest tests/test_esdb_license.py::test_base_install_includes_cryptography_for_license_verification",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
