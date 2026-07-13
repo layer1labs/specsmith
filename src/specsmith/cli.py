@@ -3853,7 +3853,7 @@ def channel_set_cmd(channel: str) -> None:
     if channel == "stable" and is_prerelease_version(__version__):
         raise click.UsageError(
             "Cannot select stable while a prerelease is installed. "
-            f"Install a stable build first: {version_mismatch_remediation('0.21.0')}"
+            f"Install a stable build first: {version_mismatch_remediation('0.22.0')}"
         )
 
     set_persisted_channel(channel)

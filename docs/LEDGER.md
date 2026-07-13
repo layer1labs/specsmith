@@ -439,3 +439,23 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `702e7876aafc9f6b...`
+
+## 2026-07-13T16:07 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `07c2f32732b2ca93...`
+
+## 2026-07-13T16:45 — wi_close WI-DA14F483: Release-readiness review completed; full validation evidence recorded.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `ff9df0399f80ac97...`
+
+## 2026-07-13T16:45 — wi_close WI-8F467602: Release plan clarified and superseded by WI-5C560143.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `f558c2338dc69263...`

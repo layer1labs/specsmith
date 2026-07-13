@@ -71,9 +71,10 @@ To enable development mode, set `enable_development_mode: true` in your project'
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.21.0** - CPU fallback for local model detection: When no GPU is detected, Specsmith now falls back to a minimal CPU-safe model instead of returning no recommendation (REQ-445). Also includes all v0.20.0 features.
-
-**v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
+**v0.22.0** - Epistemic chat handoffs preserve source provenance for Zoo-Code and
+other agents, while a mergeable JSONL session-event log keeps collaboration state
+reviewable. This release also adds CPU-safe local-model fallback (REQ-445) and
+stable-release validation before PyPI publishing.
 
 **v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
 
