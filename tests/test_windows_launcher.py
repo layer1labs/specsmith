@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sys
 
 from click.testing import CliRunner
 
@@ -24,7 +23,7 @@ def test_find_windows_launchers_detects_path_shadowing(tmp_path) -> None:
 
 def test_doctor_warns_about_windows_launcher_shadowing(tmp_path, monkeypatch) -> None:
     launchers = [tmp_path / "pipx" / "specsmith.exe", tmp_path / "scripts" / "specsmith.exe"]
-    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr("specsmith.cli._is_windows_platform", lambda: True)
     monkeypatch.setattr("specsmith.updater.find_windows_launchers", lambda _: launchers)
 
     result = CliRunner().invoke(main, ["doctor", "--project-dir", str(tmp_path), "--json"])

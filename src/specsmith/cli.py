@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -1896,7 +1897,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         ok, detail = _tool_version(tool)
         _add(tool, ok, detail)
 
-    if sys.platform == "win32":
+    if _is_windows_platform():
         from specsmith.updater import find_windows_launchers
 
         launchers = find_windows_launchers(__import__("os").environ.get("PATH", ""))
@@ -1923,6 +1924,11 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         console.print("All checks passed.")
     else:
         console.print("One or more checks failed.")
+
+
+def _is_windows_platform() -> bool:
+    """Return whether the CLI is running on Windows."""
+    return sys.platform == "win32"
 
 
 @main.command()
