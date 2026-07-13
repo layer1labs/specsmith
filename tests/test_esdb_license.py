@@ -75,8 +75,7 @@ def test_base_install_includes_cryptography_for_license_verification() -> None:
     )[0]
 
     assert any(
-        line.strip().startswith('"cryptography>=42.0"')
-        for line in base_dependencies.splitlines()
+        line.strip().startswith('"cryptography>=42.0"') for line in base_dependencies.splitlines()
     )
 
 
