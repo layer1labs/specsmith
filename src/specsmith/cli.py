@@ -14506,10 +14506,6 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
         raise SystemExit(1) from e
 
 
-if __name__ == "__main__":
-    main()
-
-
 # Development mode and improvement tracking commands
 @main.group(name="dev", invoke_without_command=True)
 def dev_group() -> None:
@@ -14580,3 +14576,7 @@ def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bo
                     click.echo(f"  - {imp.description} ({imp.severity})")
             else:
                 click.echo("No recent improvements recorded.")
+
+
+if __name__ == "__main__":
+    main()
