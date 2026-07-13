@@ -15,12 +15,12 @@ Covers:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-import specsmith.wi_store as wi_store
 from specsmith.cli import main
 from specsmith.wi_store import (
     WI_KINDS,
@@ -119,14 +119,14 @@ class TestWorkItemDataclass:
 class TestWorkItemStorePersistence:
     def test_rejects_workitem_path_outside_project_root(self, tmp_path: Path, monkeypatch) -> None:
         """Persistence paths must remain under the caller's project root (REQ-451)."""
-        original_realpath = wi_store.os.path.realpath
+        original_realpath = os.path.realpath
 
         def escape_state(path: str) -> str:
             if path.endswith(".specsmith"):
                 return original_realpath(str(tmp_path.parent / "outside"))
             return original_realpath(path)
 
-        monkeypatch.setattr(wi_store.os.path, "realpath", escape_state)
+        monkeypatch.setattr(os.path, "realpath", escape_state)
         with pytest.raises(WorkItemError, match="escapes project root"):
             WorkItemStore(tmp_path)
 

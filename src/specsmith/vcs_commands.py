@@ -354,7 +354,6 @@ def create_pr(
 
     scaffold_path = find_scaffold(root)
     platform = "github"
-    base_branch = "main"
     raw: dict[str, object] = {}
 
     if scaffold_path and scaffold_path.exists():

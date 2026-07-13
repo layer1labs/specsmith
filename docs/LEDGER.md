@@ -395,3 +395,25 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `1d6d373b06cfc948...`
+
+## 2026-07-13T14:59 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `c16a7c48273e40f7...`
+
+## 2026-07-13T15:14 — test-ran TEST-467: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-467
+- **Status**: complete
+- **Chain hash**: `15ebd5761b79a512...`
+
+## 2026-07-13T15:14 — test-ran TEST-470: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-470
+- **Status**: complete
+- **Chain hash**: `3b3775a522076719...`

@@ -32,9 +32,11 @@ from typing import Any, Protocol, cast
 class _MigratableStore(Protocol):
     """Minimal ESDB interface required by automatic legacy-data migration."""
 
-    def record_count(self) -> int: ...
+    def record_count(self) -> int:
+        pass
 
-    def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any: ...
+    def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
+        pass
 
 
 # ---------------------------------------------------------------------------
