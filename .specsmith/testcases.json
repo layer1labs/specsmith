@@ -5122,5 +5122,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-473",
+    "version": 1,
+    "title": "RTD deployment workflow configures canonical repository and main latest branch",
+    "description": "Verify the RTD deployment workflow updates the RTD project to layer1labs/specsmith on main, synchronizes versions, and fails on rejected project, version, or build API responses.",
+    "requirement_id": "REQ-067",
+    "type": "unit",
+    "verification_method": "pytest tests/test_rtd_deploy_workflow.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

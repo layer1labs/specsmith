@@ -733,7 +733,8 @@
     "source": "specsmith governance",
     "status": "planned",
     "test_ids": [
-      "TEST-067"
+      "TEST-067",
+      "TEST-473"
     ]
   },
   {
