@@ -56,11 +56,23 @@ jobs:
           PROJECT_STATUS=$(curl -sS -o /tmp/rtd-project.json -w "%{http_code}" -X PATCH \
             -H "Authorization: Token $RTD_TOKEN" \
             -H "Content-Type: application/json" \
-            -d '{"repository":{"url":"https://github.com/layer1labs/specsmith.git","type":"git"},"default_branch":"main","homepage":"https://github.com/layer1labs/specsmith"}' \
+            -d '{"repository":{"url":"https://github.com/layer1labs/specsmith","type":"git"},"default_branch":"main","homepage":"https://github.com/layer1labs/specsmith"}' \
             "https://readthedocs.org/api/v3/projects/specsmith/")
           echo "RTD project update: HTTP $PROJECT_STATUS"
           cat /tmp/rtd-project.json
           [ "$PROJECT_STATUS" = "204" ] || { echo "::error::RTD project update failed."; exit 1; }
+
+          PROJECT_STATE_STATUS=$(curl -sS -o /tmp/rtd-project-state.json -w "%{http_code}" \
+            -H "Authorization: Token $RTD_TOKEN" \
+            "https://readthedocs.org/api/v3/projects/specsmith/")
+          [ "$PROJECT_STATE_STATUS" = "200" ] || { echo "::error::RTD project verification failed with HTTP $PROJECT_STATE_STATUS."; cat /tmp/rtd-project-state.json; exit 1; }
+          PROJECT_REPOSITORY=$(python -c "import json; print(json.load(open('/tmp/rtd-project-state.json'))['repository']['url'])")
+          PROJECT_BRANCH=$(python -c "import json; print(json.load(open('/tmp/rtd-project-state.json'))['default_branch'])")
+          case "$PROJECT_REPOSITORY" in
+            https://github.com/layer1labs/specsmith|https://github.com/layer1labs/specsmith.git) ;;
+            *) echo "::error::RTD project repository is '$PROJECT_REPOSITORY', not layer1labs/specsmith."; exit 1 ;;
+          esac
+          [ "$PROJECT_BRANCH" = "main" ] || { echo "::error::RTD project default branch is '$PROJECT_BRANCH', not main."; exit 1; }
 
           SYNC_STATUS=$(curl -sS -o /tmp/rtd-sync.json -w "%{http_code}" -X POST \
             -H "Authorization: Token $RTD_TOKEN" \
