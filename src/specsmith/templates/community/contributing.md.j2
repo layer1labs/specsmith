@@ -5,9 +5,15 @@ Thank you for your interest in contributing! This project uses the [Agentic AI D
 ## Getting Started
 
 1. Fork the repository and clone your fork
+{% if project.branching_strategy == "single-branch" %}
+2. Work directly on `{{ project.default_branch }}`; branch and PR workflows stay disabled until explicitly enabled with `specsmith branch workflow <strategy>`
+3. Make, verify, and commit your changes on `{{ project.default_branch }}`
+4. Push the governed commit to `{{ project.default_branch }}`
+{% else %}
 2. Create a feature branch from `{{ project.develop_branch }}`: `git checkout -b feat/your-feature`
 3. Make your changes following the guidelines below
 4. Push and open a pull request against `{{ project.develop_branch }}`
+{% endif %}
 
 ## Development Workflow
 
@@ -15,7 +21,11 @@ This project follows a **propose → check → execute → verify → record** w
 
 1. **Read** `AGENTS.md` and `LEDGER.md` before starting work
 2. **Propose** your change (issue or PR description)
+{% if project.branching_strategy == "single-branch" %}
+3. **Implement** directly on `{{ project.default_branch }}`
+{% else %}
 3. **Implement** on a feature branch
+{% endif %}
 4. **Verify** — run all checks before submitting:
 {% if tools.lint %}
    - Lint: `{{ tools.lint[0] }}`
@@ -31,12 +41,17 @@ This project follows a **propose → check → execute → verify → record** w
 {% endif %}
 5. **Record** — update `LEDGER.md` with what you changed and why
 
-## Pull Request Guidelines
+## {% if project.branching_strategy == "single-branch" %}Commit{% else %}Pull Request{% endif %} Guidelines
 
+{% if project.branching_strategy != "single-branch" %}
 - Reference the issue number in your PR title (e.g., `feat: add widget support (#123)`)
 - All CI checks must pass before merge
 {% if project.require_pr_reviews %}
 - At least {{ project.required_approvals }} approval(s) required
+{% endif %}
+{% else %}
+- Reference the work item or issue in the commit message
+- All CI checks must pass before pushing
 {% endif %}
 - Keep commits focused and well-described
 - Update `docs/REQUIREMENTS.md` and `docs/TESTS.md` if your change adds or modifies requirements

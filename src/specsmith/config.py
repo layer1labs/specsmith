@@ -98,7 +98,6 @@ class ProjectType(str, Enum):
     DESKTOP_TAURI = "desktop-tauri"  # Tauri desktop app (Rust + WebView)
     # Brief lang — declarative contract-enforced logic language (github.com/Randozart/brief-lang)
     # Version anchor: v0.14.0 @ commit 6a43c4aebcc5c6c774dbc2908445fb19486e8043 (2026-06-14)
-    # No release tags exist yet; version string + commit hash are both recorded.
     BRIEF_LANG = "brief-lang"  # .bv/.sbv/.rbv/.ebv project using brief-compiler
 
 
@@ -141,7 +140,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.20.1", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.22.0", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -161,8 +160,8 @@ class ProjectConfig(BaseModel):
 
     # Branching strategy
     branching_strategy: str = Field(
-        default="gitflow",
-        description="Branching strategy (gitflow, trunk-based, github-flow)",
+        default="single-branch",
+        description="Branching strategy (single-branch, gitflow, trunk-based, github-flow)",
     )
     default_branch: str = Field(
         default="main",
@@ -455,6 +454,10 @@ class ProjectConfig(BaseModel):
     enable_trace_vault: bool = Field(
         default=False,
         description="Enable cryptographic trace vault (ESDB seal_record; REQ-420)",
+    )
+    enable_development_mode: bool = Field(
+        default=False,
+        description="Enable development mode with additional logging and improvement tracking",
     )
 
     @property

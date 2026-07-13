@@ -22,7 +22,15 @@ consolidated into the next published release.
 - CI matrix: Python 3.10-3.13 fully green - _read_project_name in quality_report.py now uses tomllib → tomli → regex fallback chain so pyproject.toml is parsed correctly on Python 3.10
 ---
 ## [Unreleased]
+
+## [0.22.0] - 2026-07-10
 ### Added
+- Epistemic chat handoffs (REQ-446) - Tiered context compaction now creates
+  extractive, provenance-linked ESDB handoffs that Zoo-Code and other agents can export.
+- Mergeable session event log (REQ-447) - `.chronomemory/session-events.jsonl`
+  is the canonical, reviewable session continuity artifact; SQLite is local derived state.
+- Stable-release guard (REQ-450) - the release workflow rejects development,
+  prerelease, and local versions before the PyPI upload step.
 - ESDB-first dual-write architecture (REQ-403..416) - Every governance event now writes to ESDB alongside the append-only LEDGER.md
 - `specsmith inspect` command (REQ-409) - Session-start command that emits a bordered governance block with audit health, active work items, ESDB EFF-CURRENT efficiency stats, and epistemic quality breakdown
 - M010 post-ESDB cleanup migration - Removes legacy files superseded by YAML+ESDB governance
@@ -30,6 +38,8 @@ consolidated into the next published release.
 - 142 new agent/REPL/benchmark tests
 
 ### Changed
+- Version mismatch recovery now prints a pinned pipx command when a project
+  requires a development build that the stable channel cannot supply (REQ-449).
 - Markdown governance mode deprecated - Running `specsmith sync` in markdown mode now emits a DeprecationWarning and auto-triggers m007 migration
 - Auditor YAML dir checks are mode-aware - The yaml-requirements-dir and yaml-tests-dir audit checks now only fail for projects in YAML-first mode
 - `specsmith architect` is now a group command - `specsmith architect` (without a subcommand) retains its original behavior, new subcommands `interview`, `gap`, and `update` are added

@@ -281,8 +281,8 @@
   status: implemented
 - id: REQ-334
   title: Per-Node Retry and Abort Controls
-  description: MUST provide a Retry button on FAILED and BLOCKED nodes (calls
-    POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort).
+  description: MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST
+    /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort).
     Retry and Abort MUST be disabled when not applicable to the node status.
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
   status: implemented

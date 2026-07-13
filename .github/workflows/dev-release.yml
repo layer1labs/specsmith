@@ -6,13 +6,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to create/update the rolling 'latest' GitHub pre-release
+  contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    # Only run from the develop branch — blocks accidental workflow_dispatch from main.
+  quality:
     if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -22,139 +21,63 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check src/ tests/
       - run: ruff format --check src/ tests/
-      - run: mypy src/specsmith --ignore-missing-imports
+      - run: mypy src/specsmith/
       - run: pytest tests/ -x -q
 
-  build-and-publish:
-    needs: test
+  dev-build:
+    needs: quality
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      contents: write   # write required to create/update the dev GitHub pre-release
-      id-token: write
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
-
       - name: Install build tools
         run: pip install build
-
-      - name: Set dev version
+      - name: Set development version
+        shell: bash
         run: |
-          # Use pyproject.toml version as the base (no patch bump).
-          # pyproject.toml should always hold the NEXT release version (e.g. 0.3.0).
-          # Dev builds publish as 0.3.0.devN — PEP 440 pre-release of the upcoming release.
-          # N = total commit count (monotonically increasing, unique per push).
-          BASE_VERSION=$(grep 'version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          COMMIT_COUNT=$(git rev-list --count HEAD)
-          DEV_VERSION="${BASE_VERSION}.dev${COMMIT_COUNT}"
-          echo "DEV_VERSION=${DEV_VERSION}" >> $GITHUB_ENV
-
-          # Patch pyproject.toml with dev version
-          sed -i "s/version = \"${BASE_VERSION}\"/version = \"${DEV_VERSION}\"/" pyproject.toml
-          echo "Building version: ${DEV_VERSION}"
-
-      - name: Strip git-URL deps before PyPI build
-        run: |
-          # PyPI rejects packages with direct git:// / git+https:// dependencies.
-          # chronomemory is now on PyPI (>=0.2.7); this step is a no-op for the current
-          # version spec but is kept as a safety net in case a git-URL dep is reintroduced.
-          sed -i '/chronomemory @ git+/d' pyproject.toml
-          echo "pyproject.toml after stripping git deps:"
-          grep -A2 'dependencies' pyproject.toml | head -20
-
+          BASE_VERSION=$(python -c 'import pathlib, tomllib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))["project"]["version"])')
+          if [[ ! "$BASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Development builds require a final base version, got $BASE_VERSION"
+            exit 1
+          fi
+          IFS=. read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+          NEXT_PATCH=$((PATCH + 1))
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$TAG" ]; then
+            COMMIT_COUNT=$(git rev-list --count "$TAG..HEAD")
+          else
+            COMMIT_COUNT=$(git rev-list --count HEAD)
+          fi
+          DEV_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}.dev${COMMIT_COUNT}"
+          python -c 'from pathlib import Path; import sys; path = Path("pyproject.toml"); text = path.read_text(encoding="utf-8"); path.write_text(text.replace(f"version = {sys.argv[1]!r}", f"version = {sys.argv[2]!r}", 1), encoding="utf-8")' "$BASE_VERSION" "$DEV_VERSION"
+          PYTHONPATH=src python scripts/check_dev_release.py --expected-version "$DEV_VERSION"
+          echo "DEV_VERSION=$DEV_VERSION" >> "$GITHUB_ENV"
       - run: python -m build
+      - name: Upload development artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-dist
+          path: dist/
 
-      - name: Publish dev release to PyPI
+  pypi-dev-publish:
+    needs: dev-build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dev-dist
+          path: dist/
+      - name: Publish development release to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          skip_existing: true  # gracefully skip if this exact version is already on PyPI
-
-      # Create/update a rolling GitHub pre-release so users can track dev builds.
-      # NOTE: when the first official stable release ships, remove this step and
-      # instead rely on release.yml with --latest to make stable the default.
-      - name: Create/update rolling dev GitHub pre-release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # Delete any existing 'latest-dev' tag+release so we can overwrite it.
-          gh release delete latest-dev --repo ${{ github.repository }} \
-            --yes --cleanup-tag 2>/dev/null || true
-          # Also remove any stale local tag (actions/checkout may have fetched it)
-          git tag -d latest-dev 2>/dev/null || true
-          gh release create latest-dev dist/* \
-            --title "Latest dev build (${DEV_VERSION})" \
-            --notes "Rolling dev pre-release built from the develop branch." \
-            --prerelease \
-            --target "${{ github.sha }}"
-          # --prerelease already prevents GitHub from marking this as the default
-          # 'latest' release — no extra flag needed.
-
-  docs-build:
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Trigger ReadTheDocs builds (develop + latest)
-        env:
-          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
-        run: |
-          if [ -z "$RTD_TOKEN" ]; then
-            echo "WARNING: RTD_TOKEN secret is not set. Skipping RTD build trigger."
-            echo "To fix: go to GitHub repo Settings → Secrets → Actions and add RTD_TOKEN."
-            echo "Get the token from: https://readthedocs.org/accounts/tokens/"
-            exit 0
-          fi
-
-          # Trigger the 'develop' RTD version build (accessible at /en/develop/)
-          echo "Triggering RTD build for 'develop' version..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Token $RTD_TOKEN" \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/develop/builds/")
-          echo "RTD develop build trigger: HTTP $STATUS"
-          if [ "$STATUS" != "202" ]; then
-            echo "WARNING: RTD develop build trigger returned HTTP $STATUS (expected 202)."
-            echo "Common causes:"
-            echo "  - 401: RTD_TOKEN is invalid or expired"
-            echo "  - 404: 'develop' version not activated in RTD dashboard"
-            echo "  Fix: https://readthedocs.org/projects/specsmith/versions/ → activate 'develop'"
-          fi
-
-          # Step 1: Set RTD project default_branch to 'develop'
-          echo "[1/3] Setting RTD project default_branch to 'develop'..."
-          PATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-            -H "Authorization: Token $RTD_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"default_branch": "develop"}' \
-            "https://readthedocs.org/api/v3/projects/specsmith/")
-          echo "RTD project PATCH: HTTP $PATCH_STATUS"
-
-          # Step 2: Set the 'latest' VERSION object's identifier to 'develop'
-          # This is the key step — the version object has its own branch setting
-          # separate from the project-level default_branch.
-          echo "[2/3] Setting RTD 'latest' version identifier to 'develop'..."
-          VER_PATCH=$(curl -s -o /tmp/ver_patch.txt -w "%{http_code}" -X PATCH \
-            -H "Authorization: Token $RTD_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"identifier": "develop", "active": true}' \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/")
-          echo "RTD 'latest' version PATCH: HTTP $VER_PATCH"
-          cat /tmp/ver_patch.txt | head -c 200 || true
-
-          # Step 3: Trigger a fresh /en/latest/ build (now tracks develop)
-          echo "[3/3] Triggering RTD 'latest' build from develop..."
-          LATEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Token $RTD_TOKEN" \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/")
-          echo "RTD latest build trigger: HTTP $LATEST_STATUS"
-          if [ "$LATEST_STATUS" != "202" ]; then
-            echo "WARNING: RTD latest trigger returned HTTP $LATEST_STATUS"
-            echo "If 404: 'latest' version may not be active in RTD dashboard."
-            echo "Fix: https://readthedocs.org/projects/specsmith/versions/ -> activate 'latest'"
-          fi
+          skip-existing: true

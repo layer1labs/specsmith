@@ -149,8 +149,8 @@
   status: implemented
 - id: REQ-281
   title: AI Settings Bucket Score Display
-  description: The Agents > Providers settings page MUST display bucket scores
-    (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}`
+  description: The Agents > Providers settings page MUST display bucket scores (reasoning,
+    conversational, longform) retrieved from `GET /api/model-intel/scores/{model}`
     for each configured provider. Scores MUST be shown as compact numeric badges.
     A Sync button MUST call `POST /api/model-intel/sync`.
   source: ARCHITECTURE.md §20–21 [KAI-001]

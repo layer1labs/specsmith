@@ -28,6 +28,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, cast
 
+
+class _MigratableStore(Protocol):
+    """Minimal ESDB interface required by automatic legacy-data migration."""
+
+    def record_count(self) -> int:
+        pass
+
+    def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Markdown parsers
 # ---------------------------------------------------------------------------
@@ -233,7 +244,7 @@ _ESDB_GITIGNORE_FORBIDDEN = frozenset(
 # Decision rationale:
 #   config.yml              — project identity and settings
 #   requirements/testcases  — governance canon (YAML-first or JSON cache)
-#   esdb.sqlite3            — ESDB SQLite backend (canonical record store)
+#   session-events.jsonl    — mergeable canonical session event log
 #   esdb_migration_manifest — which migrations have run; tracked for
 #                             reproducibility so fresh clones don't re-run
 #   events.wal/snapshot     — ChronoMemory canonical state (commercial tier)
@@ -241,10 +252,10 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
     ".specsmith/config.yml",
     ".specsmith/requirements.json",
     ".specsmith/testcases.json",
-    ".specsmith/esdb.sqlite3",
     ".specsmith/esdb_migration_manifest.json",
     ".chronomemory/events.wal",
     ".chronomemory/snapshot.json",
+    ".chronomemory/session-events.jsonl",
 )
 
 # Paths that MUST NOT be tracked in git — runtime/ephemeral artifacts.
@@ -253,6 +264,8 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
 # ignore rule is immediately effective rather than a dormant no-op.
 #
 # Decision rationale:
+#   esdb.sqlite3 + sidecars — local SQLite cache and journaling state; session
+#                             events are the mergeable canonical representation
 #   workitems.json      — runtime WI allocation; re-minted by preflight
 #   ledger-chain.txt    — ephemeral hash-chain cache; DEPRECATED (REQ-420)
 #   trace.jsonl         — trace log; DEPRECATED by ESDB seal_records (REQ-420)
@@ -264,7 +277,12 @@ _GIT_TRACKED_POLICY: tuple[str, ...] = (
 #   runs/chat/perf/...  — transient runtime directories
 #   ledger.jsonl        — deprecated flat-file ledger (superseded by LEDGER.md)
 #   chronomemory/backup — timestamped ChronoMemory backup copies
+#   migration artifacts — local upgrade state, recovery copies, and one-time
+#                         backfill markers; the ESDB manifest is canonical
 _GIT_IGNORED_POLICY: tuple[str, ...] = (
+    ".specsmith/esdb.sqlite3",
+    ".specsmith/esdb.sqlite3-shm",
+    ".specsmith/esdb.sqlite3-wal",
     ".specsmith/workitems.json",
     ".specsmith/ledger-chain.txt",
     ".specsmith/trace.jsonl",
@@ -283,6 +301,14 @@ _GIT_IGNORED_POLICY: tuple[str, ...] = (
     ".specsmith/agent-reports/",
     ".specsmith/dispatch/",
     ".specsmith/ledger.jsonl",
+    ".specsmith/agent-tools.json",
+    ".specsmith/agents.md.bak",
+    ".specsmith/agents.md.m005.bak",
+    ".specsmith/migration-state.json",
+    ".specsmith/migration-backups/",
+    ".specsmith/esdb-full-coverage",
+    ".specsmith/esdb-m009-backfill",
+    ".specsmith/esdb-m010-cleanup",
     ".chronomemory/backup/",
 )
 
@@ -359,6 +385,7 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
 
     normalized_lines: list[str] = []
     removed_forbidden = False
+    removed_stale_policy = False
     in_auto_block = False
     for line in original_lines:
         stripped = line.strip()
@@ -367,6 +394,7 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
             continue
         if stripped == _POLICY_SENTINEL:
             in_auto_block = True  # drop the old sentinel and everything after it
+            removed_stale_policy = True
             continue
         if in_auto_block:
             # Keep lines that are unrelated to the specsmith policy block
@@ -388,7 +416,9 @@ def normalize_esdb_gitignore_policy(root: Path, *, dry_run: bool = False) -> boo
     deny_lines = list(_GIT_IGNORED_POLICY)
     missing_allows = [ln for ln in allow_lines if ln not in existing]
     missing_denies = [ln for ln in deny_lines if ln not in existing]
-    gitignore_changed = removed_forbidden or bool(missing_allows) or bool(missing_denies)
+    gitignore_changed = (
+        removed_forbidden or removed_stale_policy or bool(missing_allows) or bool(missing_denies)
+    )
 
     if not dry_run and gitignore_changed:
         if normalized_lines and normalized_lines[-1].strip():
@@ -775,16 +805,9 @@ def auto_migrate_if_needed(root: Path) -> dict[str, int]:
     if not specsmith_dir.exists():
         return {}
 
-    class _MigratableStore(Protocol):
-        def record_count(self) -> int:
-            pass
-
-        def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
-            pass
-
     try:
         with open_default_store(root, warn=False) as store:
-            typed_store = cast("_MigratableStore", store)
+            typed_store = cast(_MigratableStore, store)
             if not _should_auto_migrate(typed_store, specsmith_dir):
                 return {}
             counts = typed_store.migrate_from_json(specsmith_dir)

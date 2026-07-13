@@ -45,7 +45,6 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-
 _PRODUCT = "specsmith-esdb"
 
 
@@ -67,7 +66,6 @@ def sign_license(
         License dict ready to be written as JSON.
     """
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
 
     issued = issued_at or date.today().isoformat()
 
@@ -78,7 +76,7 @@ def sign_license(
     priv_bytes = base64.b64decode(private_key_b64.strip())
     priv_key = Ed25519PrivateKey.from_private_bytes(priv_bytes)
 
-    payload = f"{customer}|{_PRODUCT}|{issued}|{expires_at}".encode("utf-8")
+    payload = f"{customer}|{_PRODUCT}|{issued}|{expires_at}".encode()
     sig_bytes = priv_key.sign(payload)
     sig_b64 = base64.b64encode(sig_bytes).decode("ascii")
 
@@ -131,7 +129,9 @@ def main() -> None:
         sys.exit(1)
 
     default_expires = (date.today() + timedelta(days=365)).isoformat()
-    expires_at = args.expires or input(f"Expiry date [YYYY-MM-DD, default {default_expires}]: ").strip()
+    expires_at = args.expires or input(
+        f"Expiry date [YYYY-MM-DD, default {default_expires}]: "
+    ).strip()
     if not expires_at:
         expires_at = default_expires
 

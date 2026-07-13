@@ -1,0 +1,86 @@
+# specsmith requirements — AI/ML platforms and skills
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+
+# Schema: id (REQ-NNN), title, description, source, status, test_coverage, approval_required
+# Required fields: id, title, status
+
+- id: REQ-109
+  title: WebUI Platform Integration
+  description: Allow specsmith projects to integrate with WebUI platforms for AI model serving with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-110
+  title: VLLM Platform Integration
+  description: Allow specsmith projects to integrate with VLLM for large language model serving with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-111
+  title: LMStudio Platform Integration
+  description: Allow specsmith projects to integrate with LMStudio for local AI model serving with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-112
+  title: Ollama Platform Integration
+  description: Allow specsmith projects to integrate with Ollama for local AI model serving with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-113
+  title: OpenTerminal Platform Integration
+  description: Allow specsmith projects to integrate with OpenTerminal for AI terminal interfaces with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-114
+  title: Platform Skill Management
+  description: Allow specsmith projects to manage skills for different AI platforms with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-115
+  title: Platform Configuration Management
+  description: Allow specsmith projects to configure AI platform settings and parameters with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-116
+  title: Platform Resource Management
+  description: Allow specsmith projects to manage platform resources including memory, GPU, and compute with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-117
+  title: Platform Security Controls
+  description: Ensure AI platform integrations follow security best practices with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-118
+  title: Platform Monitoring and Logging
+  description: Allow specsmith projects to monitor and log AI platform activities with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true

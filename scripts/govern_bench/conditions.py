@@ -336,7 +336,8 @@ CONDITIONS: list[Condition] = [
             - decision == "accepted" → note the work_item_id and proceed immediately.
             - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
               Instead, autonomously resolve it:
-              1. specsmith req add --title "<feature title>" --description "<one-line scope>" --status planned
+              1. specsmith req add --title "<feature title>" --description "<one-line scope>"
+                 --status planned
               2. Re-run preflight. If still needs_clarification, proceed with your best
                  interpretation of scope — never abort the task because of needs_clarification.
 
@@ -381,7 +382,8 @@ CONDITIONS: list[Condition] = [
                - decision == "accepted" → note work_item_id, proceed.
                - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
                  Instead, autonomously resolve it:
-                 a. specsmith req add --title "<title>" --description "<one-line scope>" --status planned
+                 a. specsmith req add --title "<title>" --description "<one-line scope>"
+                    --status planned
                  b. Re-run preflight. If still needs_clarification, proceed with your best
                     interpretation of scope — never abort the task on needs_clarification.
             3. Implement the change.
@@ -526,7 +528,8 @@ CONDITIONS: list[Condition] = [
                - decision == "accepted" → note work_item_id, proceed.
                - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
                  Instead, autonomously resolve it:
-                 a. specsmith req add --title "<title>" --description "<one-line scope>" --status planned
+                 a. specsmith req add --title "<title>" --description "<one-line scope>"
+                    --status planned
                  b. Re-run preflight. If still needs_clarification, proceed with your best
                     interpretation of scope — never abort the task on needs_clarification.
             3. Decompose the task into a dependency DAG:

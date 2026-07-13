@@ -22,6 +22,25 @@ def zoo_code_group() -> None:
     """Manage Zoo-Code integration and benchmarking for Specsmith."""
 
 
+@zoo_code_group.command("export-handoff")
+@click.option("--project-dir", default=".", help="Governed project containing session state")
+@click.option("--output", type=click.Path(), required=True, help="Portable handoff JSON path")
+def zoo_code_export_handoff(project_dir: str, output: str) -> None:
+    """Export the latest session as a validated portable agent handoff."""
+    from specsmith.chat_handoff import build_handoff
+    from specsmith.session_store import load_session
+
+    root = Path(project_dir)
+    context, history = load_session(root)
+    handoff = build_handoff(history, work_item_ids=list((context or {}).get("work_item_ids", [])))
+    output_path = Path(output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(handoff, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    click.echo(f"Exported epistemic handoff {handoff['id']} to {output_path}")
+
+
 @zoo_code_group.command("init")
 @click.option("--output-dir", default=".", help="Directory to create Zoo-Code config files")
 def zoo_code_init(output_dir: str) -> None:

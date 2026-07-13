@@ -29,7 +29,7 @@ The same governance protocol applies whether you are an AI agent or a human at a
 Run once at the beginning of every work session:
 
 ```bash
-specsmith kill-session 2>/dev/null || true   # kill any orphaned processes
+specsmith kill-session                        # idempotent; safe when no processes exist
 specsmith migrate run                         # apply pending schema migrations
 specsmith audit --project-dir .              # verify governance health
 specsmith sync  --project-dir .              # YAML → JSON → MD sync

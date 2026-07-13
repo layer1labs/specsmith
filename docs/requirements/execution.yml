@@ -1,0 +1,102 @@
+# specsmith requirements — local execution and environment management
+# CANONICAL SOURCE: edit this file, not docs/REQUIREMENTS.md
+# docs/REQUIREMENTS.md is regenerated from these YAML files.
+
+# Schema: id (REQ-NNN), title, description, source, status, test_coverage, approval_required
+# Required fields: id, title, status
+
+- id: REQ-089
+  title: Local Command Execution Policy
+  description: Allow specsmith to execute local commands with a default permissive policy from a local repo standpoint, with configurable whitelists and blacklists
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-090
+  title: Local Command Whitelist Management
+  description: Allow specsmith to manage whitelisted commands for local execution with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-091
+  title: Local Command Blacklist Management
+  description: Allow specsmith to manage blacklisted commands for local execution with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-092
+  title: Local Command Override Capability
+  description: Allow specsmith to override execution policies with human approval, enabling execution of commands not in default policy
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-093
+  title: Pip Execution Override
+  description: Allow specsmith to execute pip commands with override capability, using only local pip from the local environment in workspace
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-094
+  title: Pip Execution Safety Checks
+  description: When pip execution is overridden, specsmith must warn and ensure only local pip from workspace environment is used
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-095
+  title: Virtual Environment Creation
+  description: Allow specsmith to create virtual environments for projects with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-096
+  title: Virtual Environment Management
+  description: Allow specsmith to manage virtual environments including activation, deactivation, and cleanup with human approval
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-097
+  title: Virtual Environment Validation
+  description: When creating or using virtual environments, specsmith must validate that they are properly configured and safe to use
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-098
+  title: Virtual Environment Warning System
+  description: When projects attempt to use non-pipx versions of specsmith, specsmith must warn and offer to create new venv if one doesn't exist
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-099
+  title: Local Environment Isolation
+  description: Specsmith must ensure local command execution is isolated to the project workspace environment with appropriate warnings
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true
+
+- id: REQ-100
+  title: Execution Policy Configuration
+  description: Allow specsmith to configure execution policies including default permissive mode, whitelists, blacklists, and override rules
+  source: specsmith governance
+  status: planned
+  test_coverage: true
+  approval_required: true

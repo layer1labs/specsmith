@@ -185,8 +185,15 @@ class WorkItemStore:
         # os.path.realpath is the CodeQL-recognised sanitiser for py/path-injection.
         # Path.resolve() is NOT tracked by CodeQL's taint model — always use
         # os.path.realpath for paths originating from caller/user input.
-        self._root = Path(os.path.realpath(str(project_root)))
-        self._path = self._root / ".specsmith" / _WORKITEMS_FILE
+        root = os.path.realpath(str(project_root))
+        state_dir = os.path.realpath(os.path.join(root, ".specsmith"))
+        path = os.path.realpath(os.path.join(state_dir, _WORKITEMS_FILE))
+        if state_dir != root and not state_dir.startswith(root + os.sep):
+            raise WorkItemError(f"Work-item state escapes project root: {state_dir!r}")
+        if not path.startswith(state_dir + os.sep):
+            raise WorkItemError(f"Work-item file escapes state directory: {path!r}")
+        self._root = Path(root)
+        self._path = Path(path)
 
     # ------------------------------------------------------------------
     # Persistence

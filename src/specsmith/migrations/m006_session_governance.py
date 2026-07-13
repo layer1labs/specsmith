@@ -55,7 +55,7 @@ chat application** (Warp, Cursor, Claude, GPT, or any other agent surface).
 ### Session start (run once, output result verbatim)
 
 ```bash
-specsmith kill-session 2>/dev/null || true   # kill orphaned processes
+specsmith kill-session                        # idempotent; safe when no processes exist
 specsmith audit --project-dir .              # verify governance health
 specsmith sync --project-dir .              # confirm machine state
 specsmith checkpoint --project-dir .        # emit GOVERNANCE ANCHOR

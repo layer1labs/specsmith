@@ -18,6 +18,7 @@ records is tracked in docs/DEPRECATIONS.md.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import time
@@ -25,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_TURNS = 200  # Maximum conversation turns to retain in history file
+_EVENTS_FILE = "session-events.jsonl"
 
 
 def save_session(
@@ -56,6 +58,22 @@ def save_session(
     capped = history[-MAX_TURNS:]
     _atomic_write_jsonl(hist_path, capped)
 
+    # Canonical, merge-friendly session history. SQLite remains a local index;
+    # this append-only text artifact is safe to review and reconcile in Git.
+    events_path = root / ".chronomemory" / _EVENTS_FILE
+    events_path.parent.mkdir(parents=True, exist_ok=True)
+    event = {
+        "schema_version": 1,
+        "saved_at": ctx_dict["saved_at"],
+        "context": ctx_dict,
+        "history": capped,
+    }
+    canonical = json.dumps(event, sort_keys=True, ensure_ascii=False)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16].upper()
+    event["event_id"] = "SESSION-" + digest
+    existing = _load_events(events_path)
+    _atomic_write_jsonl(events_path, merge_session_events(existing, [event]))
+
 
 def load_session(
     root: Path,
@@ -67,6 +85,18 @@ def load_session(
 
     """
     specsmith_dir = root / ".specsmith"
+    events = _load_events(root / ".chronomemory" / _EVENTS_FILE)
+    if events:
+        valid = [
+            event
+            for event in events
+            if event.get("schema_version") == 1 and isinstance(event.get("context"), dict)
+        ]
+        if valid:
+            latest = max(valid, key=lambda e: str(e.get("saved_at", "")))
+            history = latest.get("history", [])
+            if isinstance(history, list) and all(isinstance(turn, dict) for turn in history):
+                return dict(latest["context"]), history
 
     # Load session state
     state_path = specsmith_dir / "session-state.json"
@@ -90,6 +120,43 @@ def load_session(
             history = []
 
     return ctx_dict, history
+
+
+def merge_session_events(*event_sets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Merge branch event sets by immutable ID in deterministic replay order."""
+    merged: dict[str, dict[str, Any]] = {}
+    for events in event_sets:
+        for event in events:
+            event_id = event.get("event_id")
+            if not isinstance(event_id, str) or not event_id.startswith("SESSION-"):
+                continue
+            existing = merged.get(event_id)
+            if existing is None:
+                merged[event_id] = event
+            elif json.dumps(existing, sort_keys=True) != json.dumps(event, sort_keys=True):
+                raise ValueError(f"conflicting session event ID: {event_id}")
+    return sorted(
+        merged.values(), key=lambda event: (str(event.get("saved_at", "")), event["event_id"])
+    )
+
+
+def rebuild_local_session_index(root: Path) -> int:
+    """Rebuild local SQLite session records from canonical session events."""
+    from specsmith.esdb import SqliteRecord, SqliteStore
+
+    events = merge_session_events(_load_events(root / ".chronomemory" / _EVENTS_FILE))
+    with SqliteStore(root) as store:
+        for event in events:
+            store.upsert(
+                SqliteRecord(
+                    id=event["event_id"],
+                    kind="session_event",
+                    label="Canonical session event",
+                    confidence=1.0,
+                    data=event,
+                )
+            )
+    return len(events)
 
 
 def make_resume_message(ctx_dict: dict[str, Any]) -> dict[str, Any]:
@@ -151,3 +218,18 @@ def _atomic_write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     tmp = path.with_suffix(".jsonl.tmp")
     tmp.write_text(content, encoding="utf-8")
     os.replace(str(tmp), str(path))
+
+
+def _load_events(path: Path) -> list[dict[str, Any]]:
+    """Read well-formed canonical events, ignoring malformed merge remnants."""
+    if not path.is_file():
+        return []
+    events: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            events.append(value)
+    return events

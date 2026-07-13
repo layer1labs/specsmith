@@ -45,6 +45,7 @@ nav:
     - Project Types: project-types.md
   - Agentic Runtime:
     - CLI Commands: commands.md
+    - Epistemic Chat Handoffs: epistemic-handoffs.md
     - Multi-Agent Dispatch: dispatch.md
     - Agentic Client:
       - Overview: agent-client.md
@@ -52,6 +53,7 @@ nav:
       - Standalone CLI: standalone-cli.md
       - Agent Integrations: agent-integrations.md
       - Warp Integration: warp-integration.md
+      - Zoo Code / Roo Code: zoo-code-roo.md
       - BYOE Endpoints: endpoints.md
       - Kairos Terminal: kairos-terminal.md
     - Skills Index: skills-index.md
@@ -59,6 +61,7 @@ nav:
   - Reference:
     - Importing: importing.md
     - Configuration: configuration.md
+    - Branch Workflows: branch-workflows.md
     - Doctor: doctor.md
     - Export & Compliance: export.md
     - Rate Limit Pacing: rate-limits.md

@@ -315,3 +315,105 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `cf98c08d1f8ceb46...`
+
+## 2026-07-10T18:38 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `faaf06ea12574c6a...`
+
+## 2026-07-13T07:33 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `07ad8108e3860a7c...`
+
+## 2026-07-13T10:30 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `b864898ee975ecce...`
+
+## 2026-07-13T11:12 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `b960aeeee661d07c...`
+
+## 2026-07-13T11:23 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `82c26ea54d1780a8...`
+
+## 2026-07-13T11:31 — wi_archive WI-2B89DD4E: Deferred: governance requires the user to explicitly confirm deletion of refs/heads/feat/zoo-roo-mcp-integration.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `050e3319e536e818...`
+
+## 2026-07-13T11:31 — wi_archive WI-0DA3685B: Deferred: governance requires the user to explicitly confirm deletion of refs/heads/feat/zoo-roo-mcp-integration.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `7aca009cad3ae1a1...`
+
+## 2026-07-13T11:31 — wi_archive WI-71E9EDBB: Deferred: GitHub rejects authors approving their own protected pull request; an independent code owner is required.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `f2361802e838e239...`
+
+## 2026-07-13T11:32 — wi_close WI-094C4FE3: Published archive/feat-zoo-roo-mcp-integration-20260713 at the closed branch head after verification.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `b19ddba9a15b5658...`
+
+## 2026-07-13T14:38 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `0fcf05a9931e039e...`
+
+## 2026-07-13T14:42 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `1d6d373b06cfc948...`
+
+## 2026-07-13T14:59 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `c16a7c48273e40f7...`
+
+## 2026-07-13T15:14 — test-ran TEST-467: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-467
+- **Status**: complete
+- **Chain hash**: `15ebd5761b79a512...`
+
+## 2026-07-13T15:14 — test-ran TEST-470: passed (status: pending → implemented)
+- **Author**: specsmith
+- **Type**: test-ran
+- **REQs affected**: TEST-470
+- **Status**: complete
+- **Chain hash**: `3b3775a522076719...`

@@ -22,7 +22,7 @@ aider --read AGENTS.md       --read .agents/skills/specsmith-session-governance/
 ## Every Aider session — mandatory protocol
 1. Run before starting aider:
 ```bash
-specsmith kill-session 2>/dev/null || true
+specsmith kill-session  # idempotent; safe when no processes exist
 specsmith audit --project-dir .
 specsmith sync  --project-dir .
 specsmith checkpoint --project-dir .

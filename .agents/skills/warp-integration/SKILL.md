@@ -26,7 +26,7 @@ specsmith mcp register              # register this project (run once per projec
 ## Every Warp session — mandatory protocol
 1. Run at session start:
 ```bash
-specsmith kill-session 2>/dev/null || true
+specsmith kill-session  # idempotent; safe when no processes exist
 specsmith audit --project-dir .
 specsmith sync  --project-dir .
 specsmith checkpoint --project-dir .

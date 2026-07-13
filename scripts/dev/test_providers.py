@@ -31,7 +31,7 @@ if openai_key:
         )
         reply = resp.choices[0].message.content.strip()
         print(f"  -> {reply}")
-        print(f"  PASS" if "OPENAI_OK" in reply else f"  UNEXPECTED reply: {reply}")
+        print("  PASS" if "OPENAI_OK" in reply else f"  UNEXPECTED reply: {reply}")
     except Exception as e:
         print(f"  FAIL: {e}")
 else:
@@ -52,7 +52,7 @@ if google_key:
         )
         reply = resp.text.strip()
         print(f"  -> {reply}")
-        print(f"  PASS" if "GEMINI_OK" in reply else f"  UNEXPECTED reply: {reply}")
+        print("  PASS" if "GEMINI_OK" in reply else f"  UNEXPECTED reply: {reply}")
     except Exception as e:
         print(f"  FAIL: {e}")
 else:
