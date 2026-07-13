@@ -28,6 +28,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol, cast
 
+
+class _MigratableStore(Protocol):
+    """Minimal ESDB interface required by automatic legacy-data migration."""
+
+    def record_count(self) -> int: ...
+
+    def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any: ...
+
+
 # ---------------------------------------------------------------------------
 # Markdown parsers
 # ---------------------------------------------------------------------------
@@ -784,17 +793,9 @@ def auto_migrate_if_needed(root: Path) -> dict[str, int]:
     if not specsmith_dir.exists():
         return {}
 
-    # pylint: disable=unused-private-member
-    class _MigratableStore(Protocol):
-        def record_count(self) -> int:
-            pass
-
-        def migrate_from_json(self, specsmith_dir: Path) -> dict[str, int] | Any:
-            pass
-
     try:
         with open_default_store(root, warn=False) as store:
-            typed_store = cast("_MigratableStore", store)
+            typed_store = cast(_MigratableStore, store)
             if not _should_auto_migrate(typed_store, specsmith_dir):
                 return {}
             counts = typed_store.migrate_from_json(specsmith_dir)
