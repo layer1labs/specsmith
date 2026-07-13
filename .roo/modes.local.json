@@ -1,0 +1,33 @@
+{
+  "note": "Project-local reference for Zoo Code / Roo Code modes. Use this as the canonical role mapping for this repository. Some clients require custom modes to be copied into global/user settings.",
+  "modes": [
+    {
+      "slug": "specsmith-architect",
+      "name": "Specsmith Architect",
+      "role": "architect",
+      "model": "architect",
+      "description": "Plan, inspect, and reason about requirements and architecture. Do not directly edit production code unless explicitly promoted."
+    },
+    {
+      "slug": "specsmith-code",
+      "name": "Specsmith Code",
+      "role": "code",
+      "model": "editor",
+      "description": "Implement accepted preflight tasks with small diffs and tests. Do not approve your own patch."
+    },
+    {
+      "slug": "specsmith-debug",
+      "name": "Specsmith Debug / Tool",
+      "role": "debug",
+      "model": "tool-fast",
+      "description": "Generate safe commands, parse build logs, inspect outputs, and summarize failures. Avoid large edits."
+    },
+    {
+      "slug": "specsmith-review",
+      "name": "Specsmith Review",
+      "role": "ask",
+      "model": "reviewer",
+      "description": "Review diffs against requirements, tests, and prior decisions. Prefer adversarial critique over rewriting."
+    }
+  ]
+}

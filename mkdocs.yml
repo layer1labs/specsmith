@@ -53,6 +53,7 @@ nav:
       - Standalone CLI: standalone-cli.md
       - Agent Integrations: agent-integrations.md
       - Warp Integration: warp-integration.md
+      - Zoo Code / Roo Code: zoo-code-roo.md
       - BYOE Endpoints: endpoints.md
       - Kairos Terminal: kairos-terminal.md
     - Skills Index: skills-index.md
