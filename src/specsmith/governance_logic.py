@@ -19,6 +19,16 @@ from pathlib import Path
 from typing import Any, cast
 
 
+def _is_environment_only_specsmith_upgrade(utterance: str) -> bool:
+    """Return whether an utterance only maintains the local pipx CLI."""
+    text = utterance.casefold()
+    return (
+        "specsmith" in text
+        and "pipx" in text
+        and any(action in text for action in ("install", "update", "upgrade"))
+    )
+
+
 def _safe_resolve(path: str | Path) -> Path:
     """Resolve a project directory path and reject traversal sequences.
 
@@ -88,6 +98,32 @@ def run_preflight(
     _safe_root = os.path.realpath(_raw)
     _root_str = _safe_root  # alias used by helpers later in this function
     intent = classify_intent(utterance)
+
+    # Local pipx maintenance is not a repository change.  Return before scope
+    # inference and persistence so the command cannot dirty a governed project.
+    if _is_environment_only_specsmith_upgrade(utterance):
+        return {
+            "decision": "environment_only",
+            "scope": "environment_only",
+            "work_item_id": "",
+            "requirement_ids": [],
+            "test_case_ids": [],
+            "confidence_target": 1.0,
+            "instruction": (
+                "Pipx-managed local SpecSmith CLI maintenance is outside project governance. "
+                "Proceed with `pipx upgrade specsmith`; no project work item or "
+                "records were created."
+            ),
+            "intent": intent.value,
+            "ai_disclosure": {
+                "governed_by": "specsmith",
+                "governance_gated": True,
+                "provider": os.environ.get("SPECSMITH_PROVIDER", "local/heuristic"),
+                "model": os.environ.get("SPECSMITH_MODEL", "deterministic-broker"),
+                "spec_version": __version__,
+            },
+        }
+
     # Requirements scope source for keyword matching in infer_scope().
     # Requirements are sourced from .specsmith/requirements.json (YAML-first mode);
     # the REQUIREMENTS.md markdown is only a token-overlap fallback.  The canonical

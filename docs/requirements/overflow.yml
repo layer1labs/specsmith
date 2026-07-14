@@ -500,3 +500,19 @@
     strategy is explicitly enabled through specsmith, and preserve GitFlow, trunk-based,
     and GitHub-flow behavior after opt-in.
   source: Git workflow governance
+- id: REQ-455
+  title: Environment-only SpecSmith CLI upgrades are non-blocking
+  status: implemented
+  description: A preflight request limited to upgrading or installing the pipx-managed
+    local SpecSmith CLI MUST return the explicit environment_only decision with exit
+    code 0, no work item, no ESDB or ledger record, and instructions to use pipx.
+    It MUST NOT require repository requirement matching or clarification.
+  source: 'GitHub issue #299'
+- id: REQ-456
+  title: SpecSmith CLI help is side-effect free
+  status: implemented
+  description: Every SpecSmith CLI invocation containing --help MUST return usage
+    without project migration, update checks, ledger writes, ESDB writes, work-item
+    allocation, or project-file creation or modification. Migration remains available
+    only through an explicit operational command.
+  source: 'GitHub issue #300'

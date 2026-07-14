@@ -9,7 +9,7 @@ description: |
   through governance, traceability, and automated compliance checking.
 
 type: python
-version: 0.22.1
+version: 0.22.2
 license: MIT
 author: Layer1 Labs
 url: https://github.com/layer1labs/specsmith

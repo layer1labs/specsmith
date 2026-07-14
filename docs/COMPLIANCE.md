@@ -8,7 +8,7 @@
 - **Type**: python
 - **Language**: python
 - **VCS Platform**: github
-- **Spec Version**: 0.22.1
+- **Spec Version**: 0.22.2
 
 ## Verification Tools
 

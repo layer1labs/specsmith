@@ -416,7 +416,12 @@ class PreflightDecision:
 
     @property
     def accepted(self) -> bool:
-        return self.decision.lower() == "accepted"
+        return self.decision.lower() in {"accepted", "environment_only"}
+
+    @property
+    def environment_only(self) -> bool:
+        """Whether this decision permits local tool maintenance only."""
+        return self.decision.lower() == "environment_only"
 
 
 def _resolve_specsmith_executable() -> str:
@@ -523,7 +528,11 @@ def narrate_plan(
     else:
         lines.append("No matching governance scope found; will ask before drafting anything new.")
 
-    if decision.accepted:
+    if decision.environment_only:
+        lines.append(
+            "Environment-only SpecSmith CLI maintenance may proceed; no project work is governed."
+        )
+    elif decision.accepted:
         lines.append("Specsmith approved this work.")
     elif decision.decision == "needs_clarification":
         # Surface only one clarifying question (REQ-063 stop-and-align).

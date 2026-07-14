@@ -2893,7 +2893,8 @@
     "source": "ARCHITECTURE.md §ESDB / ChronoStore",
     "status": "implemented",
     "test_ids": [
-      "TEST-305"
+      "TEST-305",
+      "TEST-478"
     ]
   },
   {
@@ -3234,7 +3235,8 @@
     "source": "ARCHITECTURE.md §CI Automation Manager — save/load Commands",
     "status": "implemented",
     "test_ids": [
-      "TEST-336"
+      "TEST-336",
+      "TEST-477"
     ]
   },
   {
@@ -3399,7 +3401,8 @@
     "source": "ARCHITECTURE.md §Session Governance Protocol",
     "status": "implemented",
     "test_ids": [
-      "TEST-351"
+      "TEST-351",
+      "TEST-479"
     ]
   },
   {
@@ -3600,7 +3603,8 @@
     "source": "user requirement",
     "status": "accepted",
     "test_ids": [
-      "TEST-370"
+      "TEST-370",
+      "TEST-476"
     ]
   },
   {
@@ -4545,6 +4549,28 @@
     "status": "implemented",
     "test_ids": [
       "TEST-470"
+    ]
+  },
+  {
+    "id": "REQ-455",
+    "version": 1,
+    "title": "Environment-only SpecSmith CLI upgrades are non-blocking",
+    "description": "A preflight request limited to upgrading or installing the pipx-managed local SpecSmith CLI MUST return the explicit environment_only decision with exit code 0, no work item, no ESDB or ledger record, and instructions to use pipx. It MUST NOT require repository requirement matching or clarification.",
+    "source": "GitHub issue #299",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-474"
+    ]
+  },
+  {
+    "id": "REQ-456",
+    "version": 1,
+    "title": "SpecSmith CLI help is side-effect free",
+    "description": "Every SpecSmith CLI invocation containing --help MUST return usage without project migration, update checks, ledger writes, ESDB writes, work-item allocation, or project-file creation or modification. Migration remains available only through an explicit operational command.",
+    "source": "GitHub issue #300",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-475"
     ]
   }
 ]

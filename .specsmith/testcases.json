@@ -5134,5 +5134,77 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-474",
+    "version": 1,
+    "title": "Pipx SpecSmith upgrades return a non-blocking environment-only preflight decision",
+    "description": "Verify pipx-managed local SpecSmith upgrade language returns environment_only, exits successfully, and does not create governance state.",
+    "requirement_id": "REQ-455",
+    "type": "cli",
+    "verification_method": "pytest tests/test_nexus.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-475",
+    "version": 1,
+    "title": "Preflight help does not mutate an outdated project",
+    "description": "Verify specsmith preflight --help leaves an older governed project byte-for-byte unchanged and does not create governance files.",
+    "requirement_id": "REQ-456",
+    "type": "cli",
+    "verification_method": "pytest tests/test_cli.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-476",
+    "version": 1,
+    "title": "Release metadata and embedded project schema versions agree",
+    "description": "Verify pyproject metadata, source fallback, default scaffold schema, and shipped wheel metadata use the same release version.",
+    "requirement_id": "REQ-369",
+    "type": "build",
+    "verification_method": "pytest tests/test_release_version_contract.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-477",
+    "version": 1,
+    "title": "Save falls back to the symbolic branch in the supplied worktree",
+    "description": "Verify save push resolves main from the supplied Git worktree when git branch --show-current returns no value and reports the inspected worktree if no branch exists.",
+    "requirement_id": "REQ-336",
+    "type": "unit",
+    "verification_method": "pytest tests/test_vcs_commands.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-478",
+    "version": 1,
+    "title": "ESDB migration repairs a verified legacy ChronoMemory WAL chain",
+    "description": "Verify an invalid ChronoStore chain is backed up, compacted, revalidated, and recorded in the migration manifest.",
+    "requirement_id": "REQ-305",
+    "type": "unit",
+    "verification_method": "pytest tests/test_esdb_migrate_wal_repair.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-479",
+    "version": 1,
+    "title": "Governance checkpoint anchor uses ASCII fixed-width rows",
+    "description": "Verify human checkpoint output uses ASCII borders and status words only, with every row the same fixed width.",
+    "requirement_id": "REQ-351",
+    "type": "cli",
+    "verification_method": "pytest tests/test_cli.py",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

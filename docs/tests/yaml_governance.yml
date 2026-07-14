@@ -1192,3 +1192,32 @@
   description: Verify pyproject.toml lists cryptography in base project dependencies,
     so a clean pipx install can execute specsmith esdb enable without a manual pipx
     inject.
+- id: TEST-476
+  title: Release metadata and embedded project schema versions agree
+  requirement_id: REQ-369
+  type: build
+  verification_method: pytest tests/test_release_version_contract.py
+  description: Verify pyproject metadata, source fallback, default scaffold schema,
+    and shipped wheel metadata use the same release version.
+- id: TEST-477
+  title: Save falls back to the symbolic branch in the supplied worktree
+  requirement_id: REQ-336
+  type: unit
+  verification_method: pytest tests/test_vcs_commands.py
+  description: Verify save push resolves main from the supplied Git worktree when
+    git branch --show-current returns no value and reports the inspected worktree
+    if no branch exists.
+- id: TEST-478
+  title: ESDB migration repairs a verified legacy ChronoMemory WAL chain
+  requirement_id: REQ-305
+  type: unit
+  verification_method: pytest tests/test_esdb_migrate_wal_repair.py
+  description: Verify an invalid ChronoStore chain is backed up, compacted, revalidated,
+    and recorded in the migration manifest.
+- id: TEST-479
+  title: Governance checkpoint anchor uses ASCII fixed-width rows
+  requirement_id: REQ-351
+  type: cli
+  verification_method: pytest tests/test_cli.py
+  description: Verify human checkpoint output uses ASCII borders and status words
+    only, with every row the same fixed width.
