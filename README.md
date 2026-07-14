@@ -263,6 +263,10 @@ pipx upgrade specsmith   # preferred — upgrades the pipx-isolated CLI
 specsmith self-update    # alternative: self-update from within specsmith
 ```
 
+An intent limited to maintaining the local pipx CLI is returned as the non-blocking
+`environment_only` preflight decision. It exits successfully and creates no project
+work item, ledger entry, or ESDB record. All `--help` invocations are read-only.
+
 ---
 
 ## Quick Start

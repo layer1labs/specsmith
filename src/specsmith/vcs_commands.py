@@ -39,9 +39,16 @@ def _run_git(root: Path, args: list[str], *, timeout: int = 30) -> GitResult:
 
 
 def get_current_branch(root: Path) -> str:
-    """Get the current git branch name."""
+    """Get the current git branch name for the supplied worktree."""
     result = _run_git(root, ["branch", "--show-current"])
-    return result.output if result.success else ""
+    branch = result.output.strip() if result.success else ""
+    if branch:
+        return branch
+
+    # ``branch --show-current`` is empty in some shell/worktree combinations
+    # despite HEAD being attached. ``symbolic-ref`` is the authoritative fallback.
+    result = _run_git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"])
+    return result.output.strip() if result.success else ""
 
 
 def has_uncommitted_changes(root: Path) -> bool:
@@ -166,7 +173,12 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
 
     branch = get_current_branch(root)
     if not branch:
-        return GitResult(success=False, message="Not on any branch")
+        worktree = _run_git(root, ["rev-parse", "--show-toplevel"])
+        inspected = worktree.output.strip() if worktree.success else str(root.resolve())
+        return GitResult(
+            success=False,
+            message=f"Not on any branch in git worktree: {inspected}",
+        )
 
     # Safety: check branching strategy
     from specsmith.paths import find_scaffold

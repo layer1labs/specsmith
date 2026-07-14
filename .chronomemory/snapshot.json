@@ -1,7 +1,7 @@
 {
-  "seq": 783,
-  "last_hash": "9f8045a92b0c7692ecd5b987e7a8b0c7e1233a17f6e88ab021f17953bd5123ea",
-  "ts": "2026-06-26T22:35:25Z",
+  "seq": 896,
+  "last_hash": "9012aebc01213c67509f00a5d218c8352f71ccb34422803d5bb6a429e7662f49",
+  "ts": "2026-07-13T23:50:02Z",
   "records": [
     {
       "id": "REQ-001",
@@ -1607,11 +1607,11 @@
       "id": "REQ-065",
       "kind": "requirement",
       "status": "active",
-      "label": "WI Lifecycle States",
+      "label": "GitHub Release Creation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1619,10 +1619,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-065",
-        "title": "WI Lifecycle States",
-        "description": "Every Work Item must move through a defined set of states: open, implemented, promoted, closed, archived, rejected. The allowed transitions are enforced by WorkItemStore.",
-        "source": "wi_store.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "GitHub Release Creation",
+        "description": "Allow specsmith to create GitHub releases for tagged versions with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-065"
         ]
@@ -1632,11 +1633,11 @@
       "id": "REQ-066",
       "kind": "requirement",
       "status": "active",
-      "label": "WI-to-REQ Promotion",
+      "label": "PyPI Deployment",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1644,10 +1645,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-066",
-        "title": "WI-to-REQ Promotion",
-        "description": "A Work Item in the open or implemented state may be promoted to a formal requirement via specsmith wi promote, which creates a new REQ-NNN entry in the target requirements YAML and records promoted_to_req on the WI.",
-        "source": "wi_store.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "PyPI Deployment",
+        "description": "Allow specsmith to trigger PyPI package deployment with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-066"
         ]
@@ -1657,11 +1659,11 @@
       "id": "REQ-067",
       "kind": "requirement",
       "status": "active",
-      "label": "WI Status Persistence",
+      "label": "CI Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1669,12 +1671,14 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-067",
-        "title": "WI Status Persistence",
-        "description": "Work Item state is persisted to .specsmith/workitems.json using an atomic write (write-then-rename) so crashes never leave the store corrupt.",
-        "source": "wi_store.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "CI Management",
+        "description": "Allow specsmith to manage CI workflows with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
-          "TEST-067"
+          "TEST-067",
+          "TEST-473"
         ]
       }
     },
@@ -1682,11 +1686,11 @@
       "id": "REQ-068",
       "kind": "requirement",
       "status": "active",
-      "label": "WI Auto-Implementation on Verify Equilibrium",
+      "label": "Pull Request Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1694,10 +1698,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-068",
-        "title": "WI Auto-Implementation on Verify Equilibrium",
-        "description": "When specsmith verify reaches equilibrium for a given work_item_id, the WI is automatically transitioned from open to implemented. This wiring is best-effort and never blocks the verify result.",
-        "source": "governance_logic.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Pull Request Management",
+        "description": "Allow specsmith to manage PRs, merges, and issue creation with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-068"
         ]
@@ -1757,11 +1762,11 @@
       "id": "REQ-071",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Must Index the Repository",
+      "label": "Release Notes Generation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1769,10 +1774,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-071",
-        "title": "Nexus Must Index the Repository",
-        "description": "Nexus must populate .repo-index/ with files.json, tags, test_commands.json, architecture.md, and conventions.md as available.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Notes Generation",
+        "description": "Allow specsmith to automatically generate release notes from commit history with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-071"
         ]
@@ -1782,11 +1788,11 @@
       "id": "REQ-072",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus REPL Must Support Slash Commands",
+      "label": "Release Tag Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1794,10 +1800,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-072",
-        "title": "Nexus REPL Must Support Slash Commands",
-        "description": "The Nexus REPL must support /plan, /ask, /fix, /test, /commit, /pr, /undo, /context, /exit.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Tag Management",
+        "description": "Allow specsmith to manage release tags including creation, deletion, and modification with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-072"
         ]
@@ -1807,11 +1814,11 @@
       "id": "REQ-073",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Output Contract",
+      "label": "Artifact Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1819,10 +1826,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-073",
-        "title": "Nexus Output Contract",
-        "description": "Each Nexus task response must include sections Plan, Commands to run, Files changed, Diff, Test results, and Next action.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Artifact Management",
+        "description": "Allow specsmith to manage release artifacts including uploads, downloads, and cleanup with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-073"
         ]
@@ -1832,11 +1840,11 @@
       "id": "REQ-074",
       "kind": "requirement",
       "status": "active",
-      "label": "vLLM Image Must Be Pinned",
+      "label": "Release Branch Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1844,10 +1852,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-074",
-        "title": "vLLM Image Must Be Pinned",
-        "description": "The Nexus docker-compose.yml must pin the vLLM image to a specific tag (vllm/vllm-openai:v0.8.5) and not use latest.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Branch Management",
+        "description": "Allow specsmith to manage release branches including creation, merging, and deletion with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-074"
         ]
@@ -1857,11 +1866,11 @@
       "id": "REQ-075",
       "kind": "requirement",
       "status": "active",
-      "label": "vLLM Must Serve l1-nexus Model",
+      "label": "Release Validation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1869,10 +1878,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-075",
-        "title": "vLLM Must Serve l1-nexus Model",
-        "description": "The Nexus docker-compose.yml must publish the served model as l1-nexus and use the Hermes tool-call parser.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Validation",
+        "description": "Allow specsmith to perform automated validation checks before release creation with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-075"
         ]
@@ -1882,11 +1892,11 @@
       "id": "REQ-076",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Tool Executor Registration Must Be Unique",
+      "label": "Release Rollback",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1894,10 +1904,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-076",
-        "title": "Nexus Tool Executor Registration Must Be Unique",
-        "description": "Each Nexus tool must be registered with the AG2 executor exactly once; LLM-side tool signatures may be attached to multiple caller agents but the execution function must not be re-registered to avoid AG2 override warnings.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Rollback",
+        "description": "Allow specsmith to rollback to previous releases with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-076"
         ]
@@ -1907,11 +1918,11 @@
       "id": "REQ-077",
       "kind": "requirement",
       "status": "active",
-      "label": "Safe Cleanup Must Default to Dry-Run",
+      "label": "Release Promotion",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1919,10 +1930,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-077",
-        "title": "Safe Cleanup Must Default to Dry-Run",
-        "description": "The Specsmith safe-cleanup capability must default to dry-run mode and only delete files when an explicit apply flag is provided.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Promotion",
+        "description": "Allow specsmith to promote releases between environments (dev, staging, prod) with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-077"
         ]
@@ -1932,11 +1944,11 @@
       "id": "REQ-078",
       "kind": "requirement",
       "status": "active",
-      "label": "Safe Cleanup Must Use a Hard-Coded Target List",
+      "label": "Release Metadata Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1944,10 +1956,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-078",
-        "title": "Safe Cleanup Must Use a Hard-Coded Target List",
-        "description": "Safe cleanup must only consider the canonical built-in target list and must reject user-supplied arbitrary paths.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Release Metadata Management",
+        "description": "Allow specsmith to manage release metadata including version, date, and author information with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-078"
         ]
@@ -1957,11 +1970,11 @@
       "id": "REQ-079",
       "kind": "requirement",
       "status": "active",
-      "label": "Safe Cleanup Must Protect Governance and Source",
+      "label": "Git Platform Agnostic Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1969,10 +1982,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-079",
-        "title": "Safe Cleanup Must Protect Governance and Source",
-        "description": "Safe cleanup must refuse to delete .git, .specsmith, governance markdown files, pyproject.toml, README.md, LICENSE, CHANGELOG.md, src/, tests/, docs/, scripts/, .repo-index/, .github/, .vscode/, third-party agent integration directories (such as .agents/), and project configuration dotfiles.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Agnostic Management",
+        "description": "Allow specsmith to manage Git repositories across multiple platforms (GitHub, GitLab, Bitbucket, etc.) with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-079"
         ]
@@ -1982,11 +1996,11 @@
       "id": "REQ-080",
       "kind": "requirement",
       "status": "active",
-      "label": "Safe Cleanup Must Emit a Structured Report",
+      "label": "GitHub Platform Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1994,10 +2008,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-080",
-        "title": "Safe Cleanup Must Emit a Structured Report",
-        "description": "Safe cleanup must return a report containing the lists of removed paths, skipped paths with reasons, and total bytes reclaimed, suitable for inclusion as ledger evidence.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "GitHub Platform Management",
+        "description": "Allow specsmith to manage GitHub repositories, issues, pull requests, and releases with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-080"
         ]
@@ -2007,11 +2022,11 @@
       "id": "REQ-081",
       "kind": "requirement",
       "status": "active",
-      "label": "Safe Cleanup Must Be Exposed via Specsmith CLI",
+      "label": "GitLab Platform Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2019,10 +2034,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-081",
-        "title": "Safe Cleanup Must Be Exposed via Specsmith CLI",
-        "description": "The Specsmith CLI must expose the safe cleanup capability as `specsmith clean`, supporting `--apply`, `--json`, and `--project-dir`. When `--apply` is used and `LEDGER.md` exists, the run must be recorded as a `cleanup` ledger event tagged with REQ-077..REQ-080.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "GitLab Platform Management",
+        "description": "Allow specsmith to manage GitLab repositories, issues, merge requests, and releases with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-081"
         ]
@@ -2032,11 +2048,11 @@
       "id": "REQ-082",
       "kind": "requirement",
       "status": "active",
-      "label": "CLI Console Must Be UTF-8 Safe Across Platforms",
+      "label": "Bitbucket Platform Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2044,10 +2060,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-082",
-        "title": "CLI Console Must Be UTF-8 Safe Across Platforms",
-        "description": "All Specsmith CLI output (rich Console) must render UTF-8 glyphs (such as warning, arrow, check, cross) without raising UnicodeEncodeError on Windows code pages such as cp1252. The console factory must reconfigure stdout/stderr to UTF-8 and disable rich's legacy_windows renderer.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Bitbucket Platform Management",
+        "description": "Allow specsmith to manage Bitbucket repositories, issues, pull requests, and releases with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-082"
         ]
@@ -2057,11 +2074,11 @@
       "id": "REQ-083",
       "kind": "requirement",
       "status": "active",
-      "label": "Canonical Test Specification File Is TESTS.md",
+      "label": "Azure DevOps Platform Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2069,10 +2086,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-083",
-        "title": "Canonical Test Specification File Is TESTS.md",
-        "description": "The canonical test specification file is named `TESTS.md` (replacing the legacy names `TESTS.md`, `TEST-SPEC.md`, and `TEST-SPECS.md`). Specsmith code, governance documents, templates, scaffolder output, importer overlay, auditor checks, retrieval index, exporter, validator, REPL skill files, ReadTheDocs site, and CLI help must all reference `TESTS.md`. Legacy filenames must not be created by new scaffolds, must be auto-renamed by `specsmith migrate-project`, and must not be referenced in user-facing docs.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Azure DevOps Platform Management",
+        "description": "Allow specsmith to manage Azure DevOps repositories, issues, pull requests, and releases with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-083"
         ]
@@ -2082,11 +2100,11 @@
       "id": "REQ-084",
       "kind": "requirement",
       "status": "active",
-      "label": "Natural-Language Governance Broker",
+      "label": "Git Platform Authentication Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2094,10 +2112,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-084",
-        "title": "Natural-Language Governance Broker",
-        "description": "Specsmith must expose a Nexus broker module (`specsmith.agent.broker`) that translates plain-language user utterances into Specsmith-governed work without the user reasoning about REQ IDs, TEST IDs, or work items. The broker must classify intent (read-only ask vs change vs release), infer affected scope from the local `.repo-index` and existing requirements, invoke `specsmith preflight` and `specsmith verify` as the only sources of governance decisions, render plain-language plans and outcomes, hide REQ/TEST/work-item IDs by default (revealed only on `/why`, `/show-governance`, or `--verbose`), bound retries per REQ-014, escalate to a single user clarification on stop-and-align (REQ-063), and never invent governance content (REQ/TEST drafting requires explicit user confirmation).",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Authentication Management",
+        "description": "Allow specsmith to manage authentication credentials for multiple Git platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-084"
         ]
@@ -2107,11 +2126,11 @@
       "id": "REQ-085",
       "kind": "requirement",
       "status": "active",
-      "label": "specsmith preflight CLI Subcommand",
+      "label": "Git Platform Configuration Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2119,10 +2138,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-085",
-        "title": "specsmith preflight CLI Subcommand",
-        "description": "The Specsmith CLI must expose a `specsmith preflight <utterance>` subcommand that reads `REQUIREMENTS.md` and `.specsmith/` state, classifies intent and infers scope, and emits a JSON object with at least the keys `decision` (one of `accepted`, `needs_clarification`, `blocked`, `rejected`), `work_item_id`, `requirement_ids`, `test_case_ids`, `confidence_target`, and `instruction`. Read-only asks accept by default, destructive intents require clarification, and changes with no matching scope return `needs_clarification` with a one-sentence question. The CLI must support `--project-dir`, `--json`, and `--verbose`.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Configuration Management",
+        "description": "Allow specsmith to configure platform-specific settings and webhooks for multiple Git platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-085"
         ]
@@ -2132,11 +2152,11 @@
       "id": "REQ-086",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus REPL Must Gate Execution on Preflight Acceptance",
+      "label": "Git Platform Repository Creation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2144,10 +2164,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-086",
-        "title": "Nexus REPL Must Gate Execution on Preflight Acceptance",
-        "description": "When a non-slash utterance flows through the broker, the Nexus REPL must only invoke the AG2 orchestrator's `run_task` if the preflight decision is `accepted`. For any other decision (`needs_clarification`, `blocked`, `rejected`), the REPL must print the broker's plain-language clarification or rejection and return to the prompt without executing.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Repository Creation",
+        "description": "Allow specsmith to create repositories on multiple Git platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-086"
         ]
@@ -2157,11 +2178,11 @@
       "id": "REQ-087",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus REPL Must Drive Execution Through the Bounded-Retry Harness",
+      "label": "Git Platform Repository Deletion",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2169,10 +2190,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-087",
-        "title": "Nexus REPL Must Drive Execution Through the Bounded-Retry Harness",
-        "description": "When the preflight decision is `accepted`, the Nexus REPL must drive the AG2 orchestrator through `specsmith.agent.broker.execute_with_governance`, supplying an executor that wraps `orchestrator.run_task` and synthesizes a result dict (`equilibrium`, `confidence`, `summary`). The harness must honor `DEFAULT_RETRY_BUDGET` (REQ-014), surface the single clarifying question on stop-and-align (REQ-063), and never call `run_task` directly outside the harness.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Repository Deletion",
+        "description": "Allow specsmith to delete repositories on multiple Git platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-087"
         ]
@@ -2182,11 +2204,11 @@
       "id": "REQ-088",
       "kind": "requirement",
       "status": "active",
-      "label": "specsmith preflight Must Resolve Test Case IDs From Machine State",
+      "label": "Git Platform Repository Cloning",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2194,10 +2216,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-088",
-        "title": "specsmith preflight Must Resolve Test Case IDs From Machine State",
-        "description": "The `specsmith preflight` CLI must populate `test_case_ids` in its JSON payload by joining the matched `requirement_ids` against `.specsmith/testcases.json` (or `TESTS.md` when the JSON is unavailable). When the resolved set is non-empty the CLI must include every matching `TEST-NNN` id and must never invent ids not present in machine state.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Git Platform Repository Cloning",
+        "description": "Allow specsmith to clone repositories from multiple Git platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-088"
         ]
@@ -2207,11 +2230,11 @@
       "id": "REQ-089",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Live l1-nexus Smoke Test",
+      "label": "Local Command Execution Policy",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2219,10 +2242,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-089",
-        "title": "Nexus Live l1-nexus Smoke Test",
-        "description": "Specsmith must ship a `scripts/nexus_smoke.py` script that POSTs a minimal chat-completions request to a running vLLM `l1-nexus` container at `http://localhost:8000/v1/chat/completions` and reports whether the model responded with a well-formed `choices[0].message.content`. A pytest integration test must invoke the script and skip unless the environment variable `NEXUS_LIVE=1` is set, so the suite stays green offline but is verifiable when the container is up.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Local Command Execution Policy",
+        "description": "Allow specsmith to execute local commands with a default permissive policy from a local repo standpoint, with configurable whitelists and blacklists",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-089"
         ]
@@ -2232,11 +2256,11 @@
       "id": "REQ-090",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Documentation Must Describe Broker, Preflight, and Gated Execution",
+      "label": "Local Command Whitelist Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2244,10 +2268,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-090",
-        "title": "Nexus Documentation Must Describe Broker, Preflight, and Gated Execution",
-        "description": "`ARCHITECTURE.md`, `README.md`, and `docs/` must describe the natural-language broker (REQ-084), the `specsmith preflight` CLI (REQ-085), the REPL execution gate (REQ-086), and the bounded-retry harness (REQ-087), including the `/why` toggle and an end-to-end example flow. Documentation must not surface REQ/TEST/WI tokens to the user except inside the explicit `/why` block.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Local Command Whitelist Management",
+        "description": "Allow specsmith to manage whitelisted commands for local execution with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-090"
         ]
@@ -2257,11 +2282,11 @@
       "id": "REQ-091",
       "kind": "requirement",
       "status": "active",
-      "label": "Orchestrator Must Return a Structured TaskResult",
+      "label": "Local Command Blacklist Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2269,10 +2294,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-091",
-        "title": "Orchestrator Must Return a Structured TaskResult",
-        "description": "`orchestrator.run_task` must return a `TaskResult` dataclass with at least the fields `equilibrium: bool`, `confidence: float`, `summary: str`, `files_changed: list[str]`, and `test_results: dict`. The Nexus REPL's broker branch must consume this dataclass directly when feeding `execute_with_governance` (REQ-087); the broker must not synthesize `equilibrium` from a boolean cast of the summary string.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Local Command Blacklist Management",
+        "description": "Allow specsmith to manage blacklisted commands for local execution with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-091"
         ]
@@ -2282,11 +2308,11 @@
       "id": "REQ-092",
       "kind": "requirement",
       "status": "active",
-      "label": "specsmith preflight CLI Must Use Decision-Specific Exit Codes",
+      "label": "Local Command Override Capability",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2294,10 +2320,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-092",
-        "title": "specsmith preflight CLI Must Use Decision-Specific Exit Codes",
-        "description": "The `specsmith preflight` CLI must exit `0` for `accepted`, `2` for `needs_clarification`, and `3` for `blocked` or `rejected` decisions, so CI pipelines and shell wrappers can branch on intent without parsing the JSON payload. The JSON payload must continue to print on stdout for both success and non-zero exits.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Local Command Override Capability",
+        "description": "Allow specsmith to override execution policies with human approval, enabling execution of commands not in default policy",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-092"
         ]
@@ -2307,11 +2334,11 @@
       "id": "REQ-093",
       "kind": "requirement",
       "status": "active",
-      "label": "Accepted preflight Must Record a Ledger Event",
+      "label": "Pip Execution Override",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2319,10 +2346,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-093",
-        "title": "Accepted preflight Must Record a Ledger Event",
-        "description": "When `specsmith preflight` produces an `accepted` decision and `LEDGER.md` exists in the project root, the CLI must append a `preflight` ledger event tagged with `REQ-085` plus the resolved `requirement_ids`. The event must record the utterance, the assigned `work_item_id`, and the `confidence_target`, so every accepted preflight is traceable end-to-end.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Pip Execution Override",
+        "description": "Allow specsmith to execute pip commands with override capability, using only local pip from the local environment in workspace",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-093"
         ]
@@ -2332,11 +2360,11 @@
       "id": "REQ-094",
       "kind": "requirement",
       "status": "active",
-      "label": "/why Must Surface Post-Run Governance in the REPL",
+      "label": "Pip Execution Safety Checks",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2344,10 +2372,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-094",
-        "title": "/why Must Surface Post-Run Governance in the REPL",
-        "description": "When `verbose_governance` is on (toggled by `/why` or `/show-governance`), after the REPL drives `execute_with_governance` for an accepted utterance it must print a single `[/why]` block summarizing the assigned `work_item_id`, the matched `requirement_ids` and `test_case_ids`, the post-run confidence, and whether the bounded-retry harness reached equilibrium. When verbose mode is off, the post-run governance block must not be emitted.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Pip Execution Safety Checks",
+        "description": "When pip execution is overridden, specsmith must warn and ensure only local pip from workspace environment is used",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-094"
         ]
@@ -2357,11 +2386,11 @@
       "id": "REQ-095",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Live Smoke Run Must Be Reproducible Evidence",
+      "label": "Virtual Environment Creation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2369,10 +2398,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-095",
-        "title": "Nexus Live Smoke Run Must Be Reproducible Evidence",
-        "description": "A live or honestly-skipped invocation of `scripts/nexus_smoke.py` must be captured under `.specsmith/runs/WI-NEXUS-011/logs.txt` so the project ledger preserves at least one reproducible record of the broker -> preflight -> orchestrator -> vLLM end-to-end path (or a documented reason the live container could not be reached in the current environment).",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Virtual Environment Creation",
+        "description": "Allow specsmith to create virtual environments for projects with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-095"
         ]
@@ -2382,11 +2412,11 @@
       "id": "REQ-096",
       "kind": "requirement",
       "status": "active",
-      "label": "Bounded-Retry Harness Must Map Failures to Retry Strategies",
+      "label": "Virtual Environment Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2394,10 +2424,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-096",
-        "title": "Bounded-Retry Harness Must Map Failures to Retry Strategies",
-        "description": "When `execute_with_governance` exhausts its retry budget (REQ-014), it must classify the last executor report against the canonical retry strategy mapping (REQ-028): `narrow_scope`, `expand_scope`, `fix_tests`, `rollback`, or `stop`. The classification must be exposed on `RunResult.strategy` and surfaced in the clarifying question (REQ-063) so the user gets one concrete next-action label rather than only a free-form sentence.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Virtual Environment Management",
+        "description": "Allow specsmith to manage virtual environments including activation, deactivation, and cleanup with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-096"
         ]
@@ -2407,11 +2438,11 @@
       "id": "REQ-097",
       "kind": "requirement",
       "status": "active",
-      "label": "specsmith verify CLI Subcommand",
+      "label": "Virtual Environment Validation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2419,10 +2450,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-097",
-        "title": "specsmith verify CLI Subcommand",
-        "description": "The Specsmith CLI must expose a `specsmith verify` subcommand that consumes the verification input contract (REQ-027): file diffs, test results, execution logs, and changed files (paths or `--stdin` JSON). The subcommand must emit a JSON object with at least `equilibrium`, `confidence`, `summary`, `files_changed`, `test_results`, and `retry_strategy`. Exit code 0 on equilibrium with confidence ≥ the configured threshold, 2 when retry is recommended, and 3 when stop-and-align is required.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Virtual Environment Validation",
+        "description": "When creating or using virtual environments, specsmith must validate that they are properly configured and safe to use",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-097"
         ]
@@ -2432,11 +2464,11 @@
       "id": "REQ-098",
       "kind": "requirement",
       "status": "active",
-      "label": "Confidence Threshold Must Be Read From .specsmith/config.yml",
+      "label": "Virtual Environment Warning System",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2444,10 +2476,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-098",
-        "title": "Confidence Threshold Must Be Read From .specsmith/config.yml",
-        "description": "Both `specsmith preflight` and the broker's `run_preflight` helper must consult `.specsmith/config.yml` for the `epistemic.confidence_threshold` value (REQ-058) and use it as the floor for the JSON `confidence_target` field whenever it is greater than the heuristic default. When the config file is absent or unparseable, the existing heuristic defaults must continue to apply.",
-        "source": ".specsmith/config.yml, ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Virtual Environment Warning System",
+        "description": "When projects attempt to use non-pipx versions of specsmith, specsmith must warn and offer to create new venv if one doesn't exist",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-098"
         ]
@@ -2457,11 +2490,11 @@
       "id": "REQ-099",
       "kind": "requirement",
       "status": "active",
-      "label": "Accepted Preflight Must Record a Distinct work_proposal Event",
+      "label": "Local Environment Isolation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2469,10 +2502,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-099",
-        "title": "Accepted Preflight Must Record a Distinct work_proposal Event",
-        "description": "When `specsmith preflight` produces an `accepted` decision and assigns a brand-new `work_item_id`, the CLI must append a `work_proposal` ledger event in addition to the existing `preflight` event (REQ-044). The `work_proposal` entry must reference REQ-044 and REQ-085, include the `work_item_id` and matched `requirement_ids`, and must NOT be emitted when the underlying `work_item_id` already appears in `LEDGER.md` (no duplicate proposals).",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Local Environment Isolation",
+        "description": "Specsmith must ensure local command execution is isolated to the project workspace environment with appropriate warnings",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-099"
         ]
@@ -2482,11 +2516,11 @@
       "id": "REQ-100",
       "kind": "requirement",
       "status": "active",
-      "label": "Broker Scope Inference May Surface Stress-Test Critical Failures",
+      "label": "Execution Policy Configuration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2494,10 +2528,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-100",
-        "title": "Broker Scope Inference May Surface Stress-Test Critical Failures",
-        "description": "When the user passes `--stress` to `specsmith preflight` and the matched requirements set is non-empty, the CLI must invoke the existing AEE `StressTester` against those belief artifacts and surface any critical failures in the JSON payload as a `stress_warnings` list. The narration (verbose mode) must include a one-sentence plain-English warning when at least one critical failure is found. The flag must default off so unrelated tests continue to pass.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Execution Policy Configuration",
+        "description": "Allow specsmith to configure execution policies including default permissive mode, whitelists, blacklists, and override rules",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-100"
         ]
@@ -2507,11 +2542,11 @@
       "id": "REQ-101",
       "kind": "requirement",
       "status": "active",
-      "label": "Lint Baseline Must Be Clean",
+      "label": "Playwright Testing Framework",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2519,10 +2554,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-101",
-        "title": "Lint Baseline Must Be Clean",
-        "description": "`ruff check src/ tests/` and `ruff format --check src/ tests/` must both exit zero on `develop`. The lint job in `.github/workflows/ci.yml` enforces this contract. Per-file ignores in `pyproject.toml` are reserved for documentation modules whose long lines are intentional (e.g. `toolrules.py`, `tool_installer.py`).",
-        "source": ".github/workflows/ci.yml, pyproject.toml",
-        "status": "implemented",
+        "version": 1,
+        "title": "Playwright Testing Framework",
+        "description": "Allow specsmith projects to use Playwright for end-to-end browser testing with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-101"
         ]
@@ -2532,11 +2568,11 @@
       "id": "REQ-102",
       "kind": "requirement",
       "status": "active",
-      "label": "Type-Check Baseline Must Be Clean",
+      "label": "Testing Framework Configuration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2544,10 +2580,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-102",
-        "title": "Type-Check Baseline Must Be Clean",
-        "description": "`mypy src/specsmith/` must exit zero on `develop`. Strict-mypy is preserved for the historically-typed modules; dynamically-typed modules in `specsmith.agent.*`, `specsmith.console_utils`, `specsmith.serve`, and the agent-orchestrator surface are explicitly enumerated in the `[[tool.mypy.overrides]]` `ignore_errors=true` block of `pyproject.toml` until they are individually annotated.",
-        "source": ".github/workflows/ci.yml, pyproject.toml",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Framework Configuration",
+        "description": "Allow specsmith projects to configure testing frameworks including Playwright, pytest, and others with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-102"
         ]
@@ -2557,11 +2594,11 @@
       "id": "REQ-103",
       "kind": "requirement",
       "status": "active",
-      "label": "Security Baseline Tolerates Unfixed pip Advisory",
+      "label": "Testing Environment Isolation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2569,10 +2606,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-103",
-        "title": "Security Baseline Tolerates Unfixed pip Advisory",
-        "description": "The CI security job must upgrade pip to the latest release before invoking `pip-audit`, and must pass the `--ignore-vuln CVE-2026-3219` flag for the unfixed pip advisory so the runner's own pip version does not block PRs. Specsmith's actual runtime dependencies (click, jinja2, pyyaml, pydantic, rich) must remain pip-audit clean; any new advisory against them must trigger a dependency bump rather than another ignore-flag.",
-        "source": ".github/workflows/ci.yml",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Environment Isolation",
+        "description": "Ensure testing environments are properly isolated from development environments with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-103"
         ]
@@ -2582,11 +2620,11 @@
       "id": "REQ-104",
       "kind": "requirement",
       "status": "active",
-      "label": "Work Items Must Mirror Implemented REQs",
+      "label": "Testing Artifact Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2594,10 +2632,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-104",
-        "title": "Work Items Must Mirror Implemented REQs",
-        "description": "`.specsmith/workitems.json` must derive from `.specsmith/requirements.json` and `.specsmith/testcases.json`. For each REQ-N there must be a matching WORK-N entry with `requirement_id=REQ-N`, `test_case_ids` listing every TEST joined by `requirement_id`, and `status=complete` when the REQ is implemented in source. The `scripts/sync_workitems.py` helper is the canonical sync.",
-        "source": "scripts/sync_workitems.py, .specsmith/workitems.json",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Artifact Management",
+        "description": "Allow specsmith projects to manage test artifacts including screenshots, videos, and logs with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-104"
         ]
@@ -2607,11 +2646,11 @@
       "id": "REQ-105",
       "kind": "requirement",
       "status": "active",
-      "label": "Live Smoke Evidence Must Be Reproducible Or Honestly Skipped",
+      "label": "Testing Report Generation",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2619,10 +2658,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-105",
-        "title": "Live Smoke Evidence Must Be Reproducible Or Honestly Skipped",
-        "description": "A live or honestly-skipped invocation of `scripts/nexus_smoke.py` against the configured `l1-nexus` model must be captured under `.specsmith/runs/WI-NEXUS-011/logs.txt`. The skip note must include a fresh probe attempt, a timestamp, and the hardware/environment reason the live container could not be reached.",
-        "source": ".specsmith/runs/WI-NEXUS-011/logs.txt, scripts/nexus_smoke.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Report Generation",
+        "description": "Allow specsmith projects to automatically generate test reports with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-105"
         ]
@@ -2632,11 +2672,11 @@
       "id": "REQ-106",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Must Surface Governance Commands",
+      "label": "Testing Integration with CI/CD",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2644,10 +2684,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-106",
-        "title": "Kairos Must Surface Governance Commands",
-        "description": "The Kairos terminal client must provide UI access to the three primary governance operations: preflight gate, verify, and governance trace (`/why`). These are surfaced via the Governance settings page and the BYOE proxy at `http://127.0.0.1:7700`.",
-        "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Integration with CI/CD",
+        "description": "Allow specsmith projects to integrate testing frameworks with CI/CD pipelines with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-106"
         ]
@@ -2657,11 +2698,11 @@
       "id": "REQ-107",
       "kind": "requirement",
       "status": "active",
-      "label": "ARCHITECTURE.md Must Reflect Current State",
+      "label": "Testing Parallel Execution",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2669,10 +2710,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-107",
-        "title": "ARCHITECTURE.md Must Reflect Current State",
-        "description": "`ARCHITECTURE.md` must contain a 'Current State' section listing the realized broker, harness, retry strategies, CI baseline, Kairos governance integration, live-smoke evidence note, and documentation surface. The section is the source of truth for 'the system as built' and must be updated each time a release is cut.",
-        "source": "ARCHITECTURE.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Parallel Execution",
+        "description": "Allow specsmith projects to execute tests in parallel with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-107"
         ]
@@ -2682,11 +2724,11 @@
       "id": "REQ-108",
       "kind": "requirement",
       "status": "active",
-      "label": "Real Verifier Signal Must Drive Confidence",
+      "label": "Testing Coverage Reporting",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2694,10 +2736,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-108",
-        "title": "Real Verifier Signal Must Drive Confidence",
-        "description": "`Orchestrator._build_task_result` must derive `TaskResult.confidence` and `equilibrium` from a real verifier (`src/specsmith/agent/verifier.py`) that inspects test results, ruff output, and mypy output for the changed files. The hardcoded 0.85 / 0.4 / 0.0 placeholder must be removed.",
-        "source": "src/specsmith/agent/verifier.py, src/specsmith/agent/orchestrator.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Testing Coverage Reporting",
+        "description": "Allow specsmith projects to generate and track test coverage reports with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-108"
         ]
@@ -2707,11 +2750,11 @@
       "id": "REQ-109",
       "kind": "requirement",
       "status": "active",
-      "label": "Live `l1-nexus` Smoke Overlay Must Produce ok=true on 7B Hardware",
+      "label": "WebUI Platform Integration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2719,10 +2762,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-109",
-        "title": "Live `l1-nexus` Smoke Overlay Must Produce ok=true on 7B Hardware",
-        "description": "Specsmith ships a `docker-compose.smoke.yml` overlay that swaps `l1-nexus` to a 7B GPTQ-Int4 model fitting <=8 GB VRAM, and `.specsmith/runs/WI-NEXUS-029/logs.txt` documents how to capture an `ok: true` smoke result with `NEXUS_LIVE=1` against that overlay.",
-        "source": "docker-compose.smoke.yml, .specsmith/runs/WI-NEXUS-029/logs.txt",
-        "status": "implemented",
+        "version": 1,
+        "title": "WebUI Platform Integration",
+        "description": "Allow specsmith projects to integrate with WebUI platforms for AI model serving with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-109"
         ]
@@ -2732,11 +2776,11 @@
       "id": "REQ-110",
       "kind": "requirement",
       "status": "active",
-      "label": "End-to-End Nexus Path Must Be Integration-Tested",
+      "label": "VLLM Platform Integration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2744,10 +2788,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-110",
-        "title": "End-to-End Nexus Path Must Be Integration-Tested",
-        "description": "`tests/test_e2e_nexus.py` exercises the broker -> preflight -> harness -> orchestrator -> verifier path with a `FakeOrchestrator` and asserts ledger events, `RunResult.success`, and retry-strategy classification on a scripted failure-then-recovery sequence.",
-        "source": "tests/test_e2e_nexus.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "VLLM Platform Integration",
+        "description": "Allow specsmith projects to integrate with VLLM for large language model serving with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-110"
         ]
@@ -2757,11 +2802,11 @@
       "id": "REQ-111",
       "kind": "requirement",
       "status": "active",
-      "label": "Mypy Strict Carveout Must Shrink Toward Zero",
+      "label": "LMStudio Platform Integration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2769,10 +2814,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-111",
-        "title": "Mypy Strict Carveout Must Shrink Toward Zero",
-        "description": "At least the four newly-annotated dynamic agent modules (`broker`, `safety`, `console_utils`, `indexer`) are fully type-annotated and removed from the `[[tool.mypy.overrides]] ignore_errors=true` block in `pyproject.toml`. The remaining carveout (orchestrator, repl, tools, cleanup, serve) is documented as a 1.x cleanup target.",
-        "source": "pyproject.toml, src/specsmith/agent/*.py, src/specsmith/console_utils.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "LMStudio Platform Integration",
+        "description": "Allow specsmith projects to integrate with LMStudio for local AI model serving with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-111"
         ]
@@ -2782,11 +2828,11 @@
       "id": "REQ-112",
       "kind": "requirement",
       "status": "active",
-      "label": "Streaming Token Bridge Must Emit JSONL Events",
+      "label": "Ollama Platform Integration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2794,10 +2840,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-112",
-        "title": "Streaming Token Bridge Must Emit JSONL Events",
-        "description": "A new `specsmith chat <utterance> --json-events` CLI subcommand drives the broker + harness end-to-end and emits a JSONL event stream on stdout with at least the event types `block_start`, `token`, `tool_call`, `tool_result`, `block_complete`, and `task_complete`. Each event is a single JSON object on its own line.",
-        "source": "src/specsmith/cli.py, src/specsmith/agent/events.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Ollama Platform Integration",
+        "description": "Allow specsmith projects to integrate with Ollama for local AI model serving with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-112"
         ]
@@ -2807,11 +2854,11 @@
       "id": "REQ-113",
       "kind": "requirement",
       "status": "active",
-      "label": "Block-Based Output Schema",
+      "label": "OpenTerminal Platform Integration",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2819,10 +2866,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-113",
-        "title": "Block-Based Output Schema",
-        "description": "Every `block_start` event carries a `block_id`, `kind` (one of `plan`, `message`, `tool_call`, `tool_result`, `diff`, `test_results`, `verdict`), `agent`, and `timestamp`. The corresponding `block_complete` reuses the same `block_id`. Schema is documented in `docs/site/chat-events.md`.",
-        "source": "src/specsmith/agent/events.py, docs/site/chat-events.md",
-        "status": "implemented",
+        "version": 1,
+        "title": "OpenTerminal Platform Integration",
+        "description": "Allow specsmith projects to integrate with OpenTerminal for AI terminal interfaces with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-113"
         ]
@@ -2832,11 +2880,11 @@
       "id": "REQ-114",
       "kind": "requirement",
       "status": "active",
-      "label": "Plan Block Must Surface Steps",
+      "label": "Platform Skill Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2844,10 +2892,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-114",
-        "title": "Plan Block Must Surface Steps",
-        "description": "When the broker classifies an utterance as a `change` and preflight is `accepted`, the chat stream must emit a `plan` block whose payload is a list of `{step_id, title, status}` items. Status transitions (`pending` -> `running` -> `done` / `failed`) are emitted as `plan_step` events keyed by `step_id`.",
-        "source": "src/specsmith/agent/events.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Platform Skill Management",
+        "description": "Allow specsmith projects to manage skills for different AI platforms with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-114"
         ]
@@ -2857,11 +2906,11 @@
       "id": "REQ-115",
       "kind": "requirement",
       "status": "active",
-      "label": "Permission/Autonomy Tier Must Be Honored End-to-End",
+      "label": "Platform Configuration Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2869,10 +2918,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-115",
-        "title": "Permission/Autonomy Tier Must Be Honored End-to-End",
-        "description": "`specsmith chat` accepts `--profile {safe,standard,open,admin}` (default reads `scaffold.yml`). Under `safe`, every tool call emits a `tool_request` event and waits for an inbound `tool_decision` line on stdin (`{decision: 'approve'|'deny'}`). Under `standard` / `open` the harness proceeds without prompting. The selected profile is recorded in the ledger entry.",
-        "source": "src/specsmith/cli.py, src/specsmith/profiles.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Platform Configuration Management",
+        "description": "Allow specsmith projects to configure AI platform settings and parameters with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-115"
         ]
@@ -2882,11 +2932,11 @@
       "id": "REQ-116",
       "kind": "requirement",
       "status": "active",
-      "label": "Inline Diff Review Must Round-Trip Comments",
+      "label": "Platform Resource Management",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2894,10 +2944,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-116",
-        "title": "Inline Diff Review Must Round-Trip Comments",
-        "description": "`specsmith chat` emits a `diff` block per file changed by the orchestrator; subsequent stdin lines of the form `{type: 'comment', block_id, path, line, body}` are stored in the session memory and surfaced to the bounded-retry harness as additional context on the next attempt. `--comment` flag on `specsmith verify` does the equivalent for non-streaming use.",
-        "source": "src/specsmith/agent/events.py, src/specsmith/cli.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Platform Resource Management",
+        "description": "Allow specsmith projects to manage platform resources including memory, GPU, and compute with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-116"
         ]
@@ -2907,11 +2958,11 @@
       "id": "REQ-117",
       "kind": "requirement",
       "status": "active",
-      "label": "Predict-Only Preflight Must Not Allocate a Work Item",
+      "label": "Platform Security Controls",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2919,10 +2970,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-117",
-        "title": "Predict-Only Preflight Must Not Allocate a Work Item",
-        "description": "`specsmith preflight <utterance> --predict-only --json` returns the same JSON shape as the canonical `preflight` (intent, requirement_ids, instruction, etc.) but with `work_item_id == ''`, no ledger event written, and a new `predicted_refinement` field that suggests a tightened utterance. Used by IDE autocomplete.",
-        "source": "src/specsmith/cli.py",
-        "status": "implemented",
+        "version": 1,
+        "title": "Platform Security Controls",
+        "description": "Ensure AI platform integrations follow security best practices with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-117"
         ]
@@ -2932,11 +2984,11 @@
       "id": "REQ-118",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Must Surface specsmith chat Stream",
+      "label": "Platform Monitoring and Logging",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -2944,10 +2996,11 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-118",
-        "title": "Kairos Must Surface specsmith chat Stream",
-        "description": "The Kairos governance proxy (`/v1/chat/completions`) consumes the `specsmith chat --json-events` JSONL stream and exposes it to the agent session.",
-        "source": "app/src/settings_view/governance_page.rs, kairos_governance crate",
-        "status": "implemented",
+        "version": 1,
+        "title": "Platform Monitoring and Logging",
+        "description": "Allow specsmith projects to monitor and log AI platform activities with human approval",
+        "source": "specsmith governance",
+        "status": "planned",
         "test_ids": [
           "TEST-118"
         ]
@@ -4707,11 +4760,11 @@
       "id": "REQ-190",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Terminal Connects via HTTP/WebSocket",
+      "label": "Terminal Connects via HTTP/WebSocket",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -4719,8 +4772,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-190",
-        "title": "Kairos Terminal Connects via HTTP/WebSocket",
-        "description": "The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
+        "version": 1,
+        "title": "Terminal Connects via HTTP/WebSocket",
+        "description": "The terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
         "source": "docs/PLANNED-REQUIREMENTS.md (SRV-005)",
         "status": "implemented",
         "test_ids": [
@@ -5833,11 +5887,11 @@
       "id": "REQ-258",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos ESDB Settings Page",
+      "label": "ESDB Settings Page",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -5845,9 +5899,10 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-258",
-        "title": "Kairos ESDB Settings Page",
-        "description": "The Kairos settings sidebar MUST include an ESDB page under the Specsmith umbrella group. The page MUST display current ESDB status (record count, backend, chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup, Rollback, and Compact.",
-        "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+        "version": 1,
+        "title": "ESDB Settings Page",
+        "description": "The settings sidebar MUST include an ESDB page under the Specsmith umbrella group. The page MUST display current ESDB status (record count, backend, chain validity) and provide action buttons for Refresh, Export JSON, Import, Backup, Rollback, and Compact.",
+        "source": "ARCHITECTURE.md [Settings Extensions]",
         "status": "implemented",
         "test_ids": [
           "TEST-258"
@@ -5858,11 +5913,11 @@
       "id": "REQ-259",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Skills Settings Page",
+      "label": "Skills Settings Page",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -5870,9 +5925,10 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-259",
-        "title": "Kairos Skills Settings Page",
-        "description": "The Kairos settings sidebar MUST include a Skills page under the Specsmith umbrella group. The page MUST display a description of the Skills system and instructions for using specsmith skills build and related commands.",
-        "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+        "version": 1,
+        "title": "Skills Settings Page",
+        "description": "The settings sidebar MUST include a Skills page under the Specsmith umbrella group. The page MUST display a description of the Skills system and instructions for using specsmith skills build and related commands.",
+        "source": "ARCHITECTURE.md [Settings Extensions]",
         "status": "implemented",
         "test_ids": [
           "TEST-259"
@@ -5883,11 +5939,11 @@
       "id": "REQ-260",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Eval Settings Page",
+      "label": "Eval Settings Page",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -5895,9 +5951,10 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-260",
-        "title": "Kairos Eval Settings Page",
-        "description": "The Kairos settings sidebar MUST include an Eval page under the Specsmith umbrella group. The page MUST describe the evaluation tracking system and direct users to specsmith eval run for generating reports.",
-        "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+        "version": 1,
+        "title": "Eval Settings Page",
+        "description": "The settings sidebar MUST include an Eval page under the Specsmith umbrella group. The page MUST describe the evaluation tracking system and direct users to specsmith eval run for generating reports.",
+        "source": "ARCHITECTURE.md [Settings Extensions]",
         "status": "implemented",
         "test_ids": [
           "TEST-260"
@@ -5908,11 +5965,11 @@
       "id": "REQ-261",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos AI Providers Table Without Column Overflow",
+      "label": "AI Providers Table Without Column Overflow",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -5920,9 +5977,10 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-261",
-        "title": "Kairos AI Providers Table Without Column Overflow",
-        "description": "The Kairos Agents > Providers settings page MUST display AI models in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research MUST NOT overflow into adjacent columns.",
-        "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+        "version": 1,
+        "title": "AI Providers Table Without Column Overflow",
+        "description": "The Agents > Providers settings page MUST display AI models in a table with fixed-width columns (Name: 200px, Model ID: 220px, Context: 80px, Output: 80px) using ConstrainedBox + Clipped elements. Long model names such as o4-mini-deep-research MUST NOT overflow into adjacent columns.",
+        "source": "ARCHITECTURE.md [Settings Extensions]",
         "status": "implemented",
         "test_ids": [
           "TEST-261"
@@ -5933,11 +5991,11 @@
       "id": "REQ-262",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos MCP AI Builder Card",
+      "label": "MCP AI Builder Card",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -5945,9 +6003,10 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-262",
-        "title": "Kairos MCP AI Builder Card",
-        "description": "The Kairos Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.",
-        "source": "ARCHITECTURE.md [Kairos Settings Extensions]",
+        "version": 1,
+        "title": "MCP AI Builder Card",
+        "description": "The Agents > MCP servers list page MUST include a collapsible AI Builder card that accepts a natural-language server description, calls specsmith mcp generate <description> --json, displays the generated JSON stub, and offers an 'Add to ~/.specsmith/mcp.json' button that appends the stub to the user's MCP config file.",
+        "source": "ARCHITECTURE.md [Settings Extensions]",
         "status": "implemented",
         "test_ids": [
           "TEST-262"
@@ -6410,11 +6469,11 @@
       "id": "REQ-281",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos AI Settings Bucket Score Display",
+      "label": "AI Settings Bucket Score Display",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -6422,8 +6481,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-281",
-        "title": "Kairos AI Settings Bucket Score Display",
-        "description": "The Kairos Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.",
+        "version": 1,
+        "title": "AI Settings Bucket Score Display",
+        "description": "The Agents > Providers settings page MUST display bucket scores (reasoning, conversational, longform) retrieved from `GET /api/model-intel/scores/{model}` for each configured provider. Scores MUST be shown as compact numeric badges. A Sync button MUST call `POST /api/model-intel/sync`.",
         "source": "ARCHITECTURE.md §20–21 [KAI-001]",
         "status": "implemented",
         "test_ids": [
@@ -7236,11 +7296,11 @@
       "id": "REQ-332",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Live DAG Graph Panel",
+      "label": "Live DAG Graph Panel",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -7248,8 +7308,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-332",
-        "title": "Kairos Live DAG Graph Panel",
-        "description": "Kairos MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
+        "version": 1,
+        "title": "Live DAG Graph Panel",
+        "description": "MUST render a DispatchPanelView that subscribes to GET /api/dispatch/events SSE and renders an SVG DAG graph with nodes coloured by status (pending=grey, running=blue, completed=green, failed=red, blocked=amber) and directed edges showing dependencies. A node click MUST open a side panel with role, summary, files changed, and ESDB record ID.",
         "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
         "status": "implemented",
         "test_ids": [
@@ -7261,11 +7322,11 @@
       "id": "REQ-333",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Gantt Timeline Strip",
+      "label": "Gantt Timeline Strip",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -7273,8 +7334,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-333",
-        "title": "Kairos Gantt Timeline Strip",
-        "description": "Kairos MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
+        "version": 1,
+        "title": "Gantt Timeline Strip",
+        "description": "MUST render a GanttStrip alongside the DAG graph showing a horizontal timeline bar per node, filled as the node transitions from pending to running to completed, visually indicating parallel execution overlap.",
         "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
         "status": "implemented",
         "test_ids": [
@@ -7286,11 +7348,11 @@
       "id": "REQ-334",
       "kind": "requirement",
       "status": "active",
-      "label": "Kairos Per-Node Retry and Abort Controls",
+      "label": "Per-Node Retry and Abort Controls",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -7298,8 +7360,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-334",
-        "title": "Kairos Per-Node Retry and Abort Controls",
-        "description": "Kairos MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
+        "version": 1,
+        "title": "Per-Node Retry and Abort Controls",
+        "description": "MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort). Retry and Abort MUST be disabled when not applicable to the node status.",
         "source": "ARCHITECTURE.md §Multi-Agent DAG Dispatcher",
         "status": "implemented",
         "test_ids": [
@@ -10867,11 +10930,11 @@
       "id": "TEST-106",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Governance Page Surfaces Preflight/Verify/Trace",
+      "label": "Governance Page Surfaces Preflight/Verify/Trace",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10879,8 +10942,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-106",
-        "title": "Kairos Governance Page Surfaces Preflight/Verify/Trace",
-        "description": "The Kairos Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater.",
+        "version": 1,
+        "title": "Governance Page Surfaces Preflight/Verify/Trace",
+        "description": "The Governance settings page shows the governance-serve health status, the BYOE endpoint URL, and the specsmith updater.",
         "requirement_id": "REQ-106",
         "type": "integration",
         "verification_method": "evaluator",
@@ -11179,11 +11243,11 @@
       "id": "TEST-118",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos BYOE Proxy Consumes Chat Stream",
+      "label": "BYOE Proxy Consumes Chat Stream",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -11191,8 +11255,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-118",
-        "title": "Kairos BYOE Proxy Consumes Chat Stream",
-        "description": "The Kairos governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy openChat command test has been retired.*",
+        "version": 1,
+        "title": "BYOE Proxy Consumes Chat Stream",
+        "description": "The governance proxy at `http://127.0.0.1:7700/v1/chat/completions` accepts agent requests and forwards them through specsmith preflight/verify. *The legacy openChat command test has been retired.*",
         "requirement_id": "REQ-118",
         "type": "integration",
         "verification_method": "evaluator",
@@ -13025,11 +13090,11 @@
       "id": "TEST-190",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Terminal Connects via HTTP/WebSocket",
+      "label": "Terminal Connects via HTTP/WebSocket",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -13037,8 +13102,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-190",
-        "title": "Kairos Terminal Connects via HTTP/WebSocket",
-        "description": "The Kairos terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
+        "version": 1,
+        "title": "Terminal Connects via HTTP/WebSocket",
+        "description": "The terminal MUST connect to `specsmith serve` over HTTP/WebSocket for all governance operations.",
         "requirement_id": "REQ-190",
         "type": "unit",
         "verification_method": "evaluator",
@@ -14221,11 +14287,11 @@
       "id": "TEST-258",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos ESDB Settings Page Renders Without Overflow",
+      "label": "ESDB Settings Page Renders Without Overflow",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14233,8 +14299,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-258",
-        "title": "Kairos ESDB Settings Page Renders Without Overflow",
-        "description": "The Kairos Settings > Specsmith > ESDB page renders the status row, action buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without layout errors.",
+        "version": 1,
+        "title": "ESDB Settings Page Renders Without Overflow",
+        "description": "The Settings > Specsmith > ESDB page renders the status row, action buttons (Refresh, Export JSON, Import, Backup, Rollback, Compact) without layout errors.",
         "requirement_id": "REQ-258",
         "type": "integration",
         "verification_method": "manual (Rust UI build required)",
@@ -14247,11 +14314,11 @@
       "id": "TEST-259",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Skills Settings Page Renders",
+      "label": "Skills Settings Page Renders",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14259,8 +14326,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-259",
-        "title": "Kairos Skills Settings Page Renders",
-        "description": "The Kairos Settings > Specsmith > Skills page renders header, description, and CLI hint without errors.",
+        "version": 1,
+        "title": "Skills Settings Page Renders",
+        "description": "The Settings > Specsmith > Skills page renders header, description, and CLI hint without errors.",
         "requirement_id": "REQ-259",
         "type": "integration",
         "verification_method": "manual (Rust UI build required)",
@@ -19911,6 +19979,1188 @@
           "model": "deterministic-broker",
           "spec_version": "0.17.1"
         }
+      }
+    },
+    {
+      "id": "LED-FBC090B5C988",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "specsmith migration: 0.19.2 → 0.20.1",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "specsmith migration: 0.19.2 → 0.20.1",
+        "entry_type": "migration",
+        "author": "specsmith",
+        "reqs": "",
+        "status": "complete",
+        "epistemic_status": "unknown",
+        "belief_artifacts": "",
+        "entry_hash": "087ee05e1059ce808421e8c2ca68cb50034083cc1164b614b566309e2f4c5e95",
+        "timestamp": "2026-06-29T18:07:15.254736+00:00"
+      }
+    },
+    {
+      "id": "MET-S-A4976835",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-A4976835: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-A4976835",
+        "timestamp": "2026-06-29T18:10:29Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "WI-0F3467ED",
+      "kind": "work_item",
+      "status": "active",
+      "label": "When a user reads README.md or the RTD docs they can find step-by-step instructions for using specsmith as a standalone CLI and for integrating it with Warp, Cursor, Windsurf, Claude Code, Gemini CLI,",
+      "confidence": 0.85,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-06-29T18:15:32Z",
+        "updated_at": "2026-06-29T18:15:32Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-0F3467ED",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Read-only ask; no governance changes required.",
+      "confidence": 0.85,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "accepted",
+        "intent": "read_only_ask",
+        "work_item_id": "WI-0F3467ED",
+        "test_case_ids": [],
+        "instruction": "Read-only ask; no governance changes required.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.20.1"
+        }
+      }
+    },
+    {
+      "id": "MET-S-5A6A4208",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-5A6A4208: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-5A6A4208",
+        "timestamp": "2026-06-29T18:22:32Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "WI-43BF4538",
+      "kind": "work_item",
+      "status": "active",
+      "label": "When specsmith run is active inside Warp terminal, Warp shows the coding agent toolbar and emits desktop notifications for key governance events",
+      "confidence": 0.85,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-06-29T18:32:43Z",
+        "updated_at": "2026-06-29T18:32:43Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-43BF4538",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Read-only ask; no governance changes required.",
+      "confidence": 0.85,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "accepted",
+        "intent": "read_only_ask",
+        "work_item_id": "WI-43BF4538",
+        "test_case_ids": [],
+        "instruction": "Read-only ask; no governance changes required.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.20.1"
+        }
+      }
+    },
+    {
+      "id": "MET-S-3F68DF53",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-3F68DF53: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-3F68DF53",
+        "timestamp": "2026-06-29T18:39:20Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "WI-093974D5",
+      "kind": "work_item",
+      "status": "active",
+      "label": "Implement issues #299 and #300: return an explicit non-blocking out-of-scope decision for environment-only SpecSmith CLI upgrades, and ensure every --help invocation is read-only with no migration or ",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-07-13T23:46:09Z",
+        "updated_at": "2026-07-13T23:46:09Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-093974D5",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Release operations require explicit confirmation. Specify the target version and channel, or cite a release-management requirement via --req REQ-050 / --req REQ-051.",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "needs_clarification",
+        "intent": "release",
+        "work_item_id": "WI-093974D5",
+        "test_case_ids": [],
+        "instruction": "Release operations require explicit confirmation. Specify the target version and channel, or cite a release-management requirement via --req REQ-050 / --req REQ-051.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.22.1"
+        }
+      }
+    },
+    {
+      "id": "WI-003B068E",
+      "kind": "work_item",
+      "status": "active",
+      "label": "Fix issues #299 and #300 under REQ-369 and REQ-418: classify pipx-managed CLI upgrades as environment-only without a clarification loop, and make preflight help read-only. [REQ-369 REQ-418]",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-369",
+        "REQ-418",
+        "TEST-370",
+        "TEST-428"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-07-13T23:47:57Z",
+        "updated_at": "2026-07-13T23:47:57Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-003B068E",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-369",
+        "REQ-418"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "accepted",
+        "intent": "change",
+        "work_item_id": "WI-003B068E",
+        "test_case_ids": [
+          "TEST-370",
+          "TEST-428"
+        ],
+        "instruction": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.22.1"
+        }
+      }
+    },
+    {
+      "id": "REQ-423",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-423",
+        "version": 1,
+        "title": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
+        "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-433"
+        ]
+      }
+    },
+    {
+      "id": "REQ-424",
+      "kind": "requirement",
+      "status": "active",
+      "label": "CI pipeline must produce zero CodeQL static analysis alerts on every run",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-424",
+        "version": 1,
+        "title": "CI pipeline must produce zero CodeQL static analysis alerts on every run",
+        "description": "Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static analysis alerts on every CI run",
+        "source": "WI-0CEA445B",
+        "status": "planned",
+        "test_ids": [
+          "TEST-434"
+        ]
+      }
+    },
+    {
+      "id": "REQ-425",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-425",
+        "version": 1,
+        "title": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
+        "description": "Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation",
+        "source": "WI-B73B339B",
+        "status": "planned",
+        "test_ids": [
+          "TEST-435"
+        ]
+      }
+    },
+    {
+      "id": "REQ-426",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-426",
+        "version": 1,
+        "title": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
+        "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-436"
+        ]
+      }
+    },
+    {
+      "id": "REQ-427",
+      "kind": "requirement",
+      "status": "active",
+      "label": "GovernanceBench metrics/report statistical and leaderboard outputs",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-427",
+        "version": 1,
+        "title": "GovernanceBench metrics/report statistical and leaderboard outputs",
+        "description": "GovernanceBench metrics/report shall compute Wilson pass-rate confidence intervals, bootstrap cost-of-pass confidence intervals, first-pass and consistency statistics, scaffold-lift vs UNGOVERNED, model-tier mapping, democratization and Pareto summaries, and Hugging Face leaderboard JSON/rendered report sections.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-437",
+          "TEST-438",
+          "TEST-440",
+          "TEST-441"
+        ]
+      }
+    },
+    {
+      "id": "REQ-428",
+      "kind": "requirement",
+      "status": "active",
+      "label": "gitignore normalizer must enforce disjoint allow/deny policy and untrack diverged paths",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-428",
+        "version": 1,
+        "title": "gitignore normalizer must enforce disjoint allow/deny policy and untrack diverged paths",
+        "description": "normalize_esdb_gitignore_policy in sync.py must (a) separate tracked paths from ignored paths in two disjoint sets, (b) never emit a bare ignore rule for a path it also allows, (c) run git rm --cached for any deny-listed path found in git ls-files, and (d) make esdb_migration_manifest.json explicitly tracked",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-439"
+        ]
+      }
+    },
+    {
+      "id": "REQ-429",
+      "kind": "requirement",
+      "status": "active",
+      "label": "checkpoint ESDB field must reflect active backend: show SQLite record count and chain status when chronomemory is unavailable, ChronoMemory count otherwise, and N/A when no ESDB is present",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-429",
+        "version": 1,
+        "title": "checkpoint ESDB field must reflect active backend: show SQLite record count and chain status when chronomemory is unavailable, ChronoMemory count otherwise, and N/A when no ESDB is present",
+        "description": "The 'specsmith checkpoint' GOVERNANCE ANCHOR box must accurately show the active ESDB backend. When chronomemory (commercial) is the active backend and WAL exists, show record count and chain validity as now. When SQLite is the active backend (chronomemory absent or WAL missing), show 'SQLite (N recs, ✓ chain)' with actual SqliteStore record count and chain_valid() result. When no ESDB is present at all, show 'N/A'. The current 0-record default is misleading for SQLite-only installations.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-442"
+        ]
+      }
+    },
+    {
+      "id": "REQ-430",
+      "kind": "requirement",
+      "status": "active",
+      "label": "preflight release classifier must distinguish release execution from release tooling edits",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-430",
+        "version": 1,
+        "title": "preflight release classifier must distinguish release execution from release tooling edits",
+        "description": "The deterministic broker must not classify edits to release.yml, packaging scripts, dist files, and release documentation as intent=release. Only utterances that explicitly execute a release (cut, publish, ship, tag vX.Y.Z, bump version) should trigger the release gate. Maintenance of release tooling must fall through to CHANGE classification so it can be accepted by scope-matching.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-443",
+          "TEST-445"
+        ]
+      }
+    },
+    {
+      "id": "REQ-431",
+      "kind": "requirement",
+      "status": "active",
+      "label": "preflight release intent must accept when known scope matched or explicit REQ cited, and always allocate a work item",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-431",
+        "version": 1,
+        "title": "preflight release intent must accept when known scope matched or explicit REQ cited, and always allocate a work item",
+        "description": "When intent=release is classified: (a) if the utterance contains explicit release-management REQ IDs (e.g. REQ-050, REQ-051) or the scope confidence >= 0.6, the decision must be accepted as a governed change; (b) needs_clarification must still allocate a work_item_id so specsmith approve --work-item can proceed; (c) the instruction must reference --req flag for explicit override. The current dead-end (needs_clarification + empty work_item_id) makes approve impossible.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-444"
+        ]
+      }
+    },
+    {
+      "id": "REQ-432",
+      "kind": "requirement",
+      "status": "active",
+      "label": "audit must flag empty or fallback-only governance YAML rule sets",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-432",
+        "version": 1,
+        "title": "audit must flag empty or fallback-only governance YAML rule sets",
+        "description": "check_governance_yaml_content must iterate .specsmith/governance/*.yaml; fail audit if any file has rules: [] or rules: [{note: ...}] only. Gate on presence of governance dir. m001 silent-skip when source_md missing must become a loud warning.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-446",
+          "TEST-452"
+        ]
+      }
+    },
+    {
+      "id": "REQ-433",
+      "kind": "requirement",
+      "status": "active",
+      "label": "sync must warn when REQUIREMENTS.md contains REQ IDs absent from docs/requirements YAML files",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-433",
+        "version": 1,
+        "title": "sync must warn when REQUIREMENTS.md contains REQ IDs absent from docs/requirements YAML files",
+        "description": "In YAML-first mode run_sync must compare IDs in docs/REQUIREMENTS.md against those loaded from docs/requirements/*.yml; emit SyncWarning for any ID present in markdown but absent from YAML with hint to add to yml and re-run sync. Same pattern for TESTS.md vs docs/tests/*.yml.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-447",
+          "TEST-448"
+        ]
+      }
+    },
+    {
+      "id": "REQ-434",
+      "kind": "requirement",
+      "status": "active",
+      "label": "CLI verify_cmd must wire equilibrium to WI mark_implemented and files_touched",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-434",
+        "version": 1,
+        "title": "CLI verify_cmd must wire equilibrium to WI mark_implemented and files_touched",
+        "description": "verify_cmd (cli.py) computes equilibrium but never calls WorkItemStore.mark_implemented or sets files_touched on the WI, unlike governance_logic.run_verify. verify_cmd must call run_verify from governance_logic or mirror the WI-update logic so WI status advances to implemented on equilibrium.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-449"
+        ]
+      }
+    },
+    {
+      "id": "REQ-435",
+      "kind": "requirement",
+      "status": "active",
+      "label": "infer_scope must apply a minimum relevance score threshold to drop incidental matches",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-435",
+        "version": 1,
+        "title": "infer_scope must apply a minimum relevance score threshold to drop incidental matches",
+        "description": "infer_scope currently returns up to top_k=3 results with no minimum score floor (only overlap>0). Add min_score=0.15 parameter; filter out matches below threshold before returning. Update run_preflight to pass min_score=0.15 so only genuinely related requirements are associated with work items.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-450"
+        ]
+      }
+    },
+    {
+      "id": "REQ-436",
+      "kind": "requirement",
+      "status": "active",
+      "label": "session_metrics.jsonl must record real token counts, cost, model, and work_item_id per turn",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-436",
+        "version": 1,
+        "title": "session_metrics.jsonl must record real token counts, cost, model, and work_item_id per turn",
+        "description": "session_metrics.jsonl auto-save path passes only command=save with all telemetry defaults zero. Real per-turn token usage is captured in ESDB token_metric via write_token_metric (runner.py:614). Add flush_session_metrics helper that reads the most recent ESDB token_metric record and appends a populated MetricsRecord to session_metrics.jsonl after write_token_metric is called.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-451"
+        ]
+      }
+    },
+    {
+      "id": "REQ-437",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Datasource adapters must define retrieval contracts, resilience behavior, and citation normalization guarantees",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-437",
+        "version": 1,
+        "title": "Datasource adapters must define retrieval contracts, resilience behavior, and citation normalization guarantees",
+        "description": "The datasources module (src/specsmith/datasources/) provides patent, publication, and citation adapters. Each adapter must declare a typed retrieval contract, handle transient failures with retry/backoff, and normalize citation output to a canonical schema. Absence of these guarantees makes adapter output unpredictable for governance evidence packs.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-453"
+        ]
+      }
+    },
+    {
+      "id": "REQ-438",
+      "kind": "requirement",
+      "status": "active",
+      "label": "GUI commands and views must provide governed parity with core CLI state and error semantics",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-438",
+        "version": 1,
+        "title": "GUI commands and views must provide governed parity with core CLI state and error semantics",
+        "description": "The GUI surface (src/specsmith/gui/) exposes governance state visually. Every GUI action that maps to a CLI command must produce identical governance outcomes (preflight, audit, sync). GUI error messages must be derived from the same error taxonomy as the CLI. No silent failures.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-454"
+        ]
+      }
+    },
+    {
+      "id": "REQ-439",
+      "kind": "requirement",
+      "status": "active",
+      "label": "IDE integration adapters must implement a uniform capability and error-handling contract",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-439",
+        "version": 1,
+        "title": "IDE integration adapters must implement a uniform capability and error-handling contract",
+        "description": "Integration adapters (src/specsmith/integrations/: aider, copilot, cursor, gemini, windsurf, claude) must each declare supported operations, degrade gracefully when the target tool is unavailable, and surface errors through specsmith governance events rather than silent fallbacks.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-455"
+        ]
+      }
+    },
+    {
+      "id": "REQ-440",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Plugin management must define install, list, remove, and compatibility validation requirements",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-440",
+        "version": 1,
+        "title": "Plugin management must define install, list, remove, and compatibility validation requirements",
+        "description": "The plugin lifecycle (specsmith plugin command + src/specsmith/plugins.py) must: enumerate installed plugins (list), validate manifests on install, reject incompatible plugin versions, and support removal without leaving orphaned state. Plugin errors must not propagate to core governance commands.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-456"
+        ]
+      }
+    },
+    {
+      "id": "REQ-441",
+      "kind": "requirement",
+      "status": "active",
+      "label": "specsmith plugin CLI must document and enforce plugin command surface (list, validate, install, remove)",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-441",
+        "version": 1,
+        "title": "specsmith plugin CLI must document and enforce plugin command surface (list, validate, install, remove)",
+        "description": "The specsmith plugin command is a CLI surface with no explicit REQ. It must: list all installed entry-point and manifest plugins (plugin list), validate plugin manifests before activation (plugin validate), and provide clear error messages when plugins fail to load.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-457"
+        ]
+      }
+    },
+    {
+      "id": "REQ-442",
+      "kind": "requirement",
+      "status": "active",
+      "label": "specsmith pr CLI must cover governed pull request creation, status, and merge workflows",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-442",
+        "version": 1,
+        "title": "specsmith pr CLI must cover governed pull request creation, status, and merge workflows",
+        "description": "The specsmith pr (create-pr/governed-pr) command surface has no explicit REQ. It must: create PRs with governance comment blocks, evaluate PR governance status against open WIs, and block merge on policy violations when --required-check is set.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-458"
+        ]
+      }
+    },
+    {
+      "id": "REQ-443",
+      "kind": "requirement",
+      "status": "active",
+      "label": "specsmith ps CLI must surface process and session state for all tracked agent runs",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-443",
+        "version": 1,
+        "title": "specsmith ps CLI must surface process and session state for all tracked agent runs",
+        "description": "The specsmith ps command has no explicit REQ. It must list all tracked PIDs from .specsmith/pids/, report status (running/stopped/unknown) for each, and integrate with kill-session so process cleanup is auditable and idempotent.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-459"
+        ]
+      }
+    },
+    {
+      "id": "REQ-444",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Native Warp integration",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-444",
+        "version": 1,
+        "title": "Native Warp integration",
+        "description": "specsmith provides a first-class Warp integration: a 'warp' integration adapter (specsmith integrate warp) that generates Warp-native artifacts (MCP governance server config, a Tab Config for a governed session, and a governance skill) so Warp's agent is governed by specsmith; and the 'specsmith run' REPL detects when it runs inside Warp (TERM_PROGRAM/WARP_*) and adapts its banner/ready frame accordingly.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-460"
+        ]
+      }
+    },
+    {
+      "id": "REQ-445",
+      "kind": "requirement",
+      "status": "active",
+      "label": "VRAM-aware local model recommendations",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-445",
+        "version": 1,
+        "title": "VRAM-aware local model recommendations",
+        "description": "First-class Ollama model recommendation engine: a model catalog with approximate Q4 VRAM footprints and a recommend_models(vram_gb)/recommend_for_hardware() API that selects a role lineup (default/coding, fast scratch, harder pass/reasoning, general) keyed by the detected GPU VRAM tier, with per-model fit assessment (fits/tight/spills-to-RAM). Exposed via 'specsmith local-model recommend' (+ --json). Must not change existing detect_local_model/detect_local_models behavior.",
+        "source": "docs/requirements/",
+        "status": "planned",
+        "test_ids": [
+          "TEST-461"
+        ]
+      }
+    },
+    {
+      "id": "REQ-446",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Epistemic chat condensation and agent handoff",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-446",
+        "version": 1,
+        "title": "Epistemic chat condensation and agent handoff",
+        "description": "Specsmith shall safely condense chat/session context into provenance-preserving ESDB artifacts that retain source identifiers, confidence, uncertainty, unresolved decisions, active work items, and validation status; reject or flag unsupported claims; restore usable context after compaction; and export/import a portable handoff envelope interoperable with Specsmith agents and Zoo-Code.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-462"
+        ]
+      }
+    },
+    {
+      "id": "REQ-447",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Git-safe ESDB session persistence",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-447",
+        "version": 1,
+        "title": "Git-safe ESDB session persistence",
+        "description": "Specsmith shall store session and ESDB history in a deterministic, append-friendly, text-based canonical representation that can be merged across branches without lost or duplicated events; local SQLite databases and WAL sidecars shall be derived caches that can be rebuilt safely with validated schema, integrity, and recovery reporting.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-463",
+          "TEST-471"
+        ]
+      }
+    },
+    {
+      "id": "REQ-448",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Windows launcher resolution diagnostics",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-448",
+        "version": 1,
+        "title": "Windows launcher resolution diagnostics",
+        "description": "On Windows, Specsmith shall detect multiple or shadowed specsmith executables, report the active executable and package version, provide safe pipx-focused remediation, and support PowerShell stderr redirection without a launcher failure.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-464"
+        ]
+      }
+    },
+    {
+      "id": "REQ-449",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Reachable version-mismatch recovery",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-449",
+        "version": 1,
+        "title": "Reachable version-mismatch recovery",
+        "description": "When a project requires a newer development or prerelease Specsmith version than the stable channel provides, Specsmith shall diagnose the channel mismatch, provide an exact supported pipx remediation command, and distinguish it from a normal stable upgrade without permitting backward migration.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-465"
+        ]
+      }
+    },
+    {
+      "id": "REQ-450",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Stable release channel integrity",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-450",
+        "version": 1,
+        "title": "Stable release channel integrity",
+        "description": "Specsmith release automation shall reject PEP 440 development, prerelease, and local versions before stable PyPI upload, publish such artifacts only through an explicit development channel, and verify the stable install and upgrade path in CI.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-466"
+        ]
+      }
+    },
+    {
+      "id": "REQ-451",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Contained work-item persistence paths",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-451",
+        "version": 1,
+        "title": "Contained work-item persistence paths",
+        "description": "Specsmith shall normalize every work-item persistence path with os.path.realpath, reject values outside the project root before filesystem access, and provide the same containment behavior on Windows, Linux, and macOS.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-467"
+        ]
+      }
+    },
+    {
+      "id": "REQ-452",
+      "kind": "requirement",
+      "status": "active",
+      "label": "CodeQL-clean report rendering",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-452",
+        "version": 1,
+        "title": "CodeQL-clean report rendering",
+        "description": "Specsmith shall render quality reports without CodeQL implicit string concatenation findings while preserving the report content and formatting.",
+        "source": "docs/requirements/",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-468"
+        ]
+      }
+    },
+    {
+      "id": "REQ-453",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Release candidate quality gates",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-453",
+        "version": 1,
+        "title": "Release candidate quality gates",
+        "description": "Before release, Specsmith shall pass strict linting, formatting, type checking, the complete test suite, strict documentation build, runtime dependency audit, and governance audit without unresolved issues.",
+        "source": "CI, release workflow, and release validation",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-469"
+        ]
+      }
+    },
+    {
+      "id": "REQ-454",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Single-branch workflow default",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-454",
+        "version": 1,
+        "title": "Single-branch workflow default",
+        "description": "Specsmith shall default new projects to a single-branch workflow on the configured default branch, refuse branch creation until a different branching strategy is explicitly enabled through specsmith, and preserve GitFlow, trunk-based, and GitHub-flow behavior after opt-in.",
+        "source": "Git workflow governance",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-470"
+        ]
+      }
+    },
+    {
+      "id": "REQ-455",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Environment-only SpecSmith CLI upgrades are non-blocking",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-455",
+        "version": 1,
+        "title": "Environment-only SpecSmith CLI upgrades are non-blocking",
+        "description": "A preflight request limited to upgrading or installing the pipx-managed local SpecSmith CLI MUST return the explicit environment_only decision with exit code 0, no work item, no ESDB or ledger record, and instructions to use pipx. It MUST NOT require repository requirement matching or clarification.",
+        "source": "GitHub issue #299",
+        "status": "planned",
+        "test_ids": []
       }
     }
   ]

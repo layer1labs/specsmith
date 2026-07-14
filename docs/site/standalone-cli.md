@@ -46,9 +46,14 @@ specsmith preflight "<describe the change>" --json
 ```
 
 - `decision == "accepted"` → proceed; note the `work_item_id`
+- `decision == "environment_only"` → proceed with local `pipx` maintenance only;
+  no work item, ledger entry, or ESDB record is created
 - `decision == "needs_clarification"` → read the `instruction` field and refine your intent
 
 Never make a code change without an accepted preflight. The work item ID links the change to governance.
+
+All `--help` invocations are read-only: they do not migrate a project, check for updates,
+or create governance files.
 
 ### During work
 

@@ -276,6 +276,12 @@ once when first setting up ESDB in an existing project.
 specsmith esdb migrate
 ```
 
+When an active ChronoStore WAL has a recoverable invalid legacy hash chain,
+`esdb migrate` creates a backup, compacts the WAL to rebuild its chain, verifies
+the result, and records the backup path and repair outcome in
+`.specsmith/esdb_migration_manifest.json`. A repair failure leaves the manifest
+unsuccessful with an explicit remediation error.
+
 ### `specsmith esdb status --json`
 
 JSON output for scripting and CI:

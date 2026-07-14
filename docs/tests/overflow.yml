@@ -650,3 +650,18 @@
   description: Verify save normalizes the Git policy, commits no SQLite cache, migration
     backup, marker, state, or agent migration artifact, and retains the mergeable
     session event log as canonical source of truth.
+- id: TEST-474
+  title: Pipx SpecSmith upgrades return a non-blocking environment-only preflight
+    decision
+  requirement_id: REQ-455
+  type: cli
+  verification_method: pytest tests/test_nexus.py
+  description: Verify pipx-managed local SpecSmith upgrade language returns environment_only,
+    exits successfully, and does not create governance state.
+- id: TEST-475
+  title: Preflight help does not mutate an outdated project
+  requirement_id: REQ-456
+  type: cli
+  verification_method: pytest tests/test_cli.py
+  description: Verify specsmith preflight --help leaves an older governed project
+    byte-for-byte unchanged and does not create governance files.

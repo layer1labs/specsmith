@@ -130,9 +130,11 @@ class _AutoUpdateGroup(click.Group):
             warnings.simplefilter("ignore", DeprecationWarning)
             protected = list(ctx.protected_args)  # [subcommand] in 8.x, [] in 9.0
         subcommand = protected[0] if protected else (ctx.args[0] if ctx.args else "")
+        help_requested = any(arg in {"--help", "-h"} for arg in (*protected, *ctx.args))
         skip = (
             os.environ.get("SPECSMITH_NO_AUTO_UPDATE", "").strip() in ("1", "true", "yes")
             or subcommand in self._SKIP_COMMANDS
+            or help_requested
         )
 
         if not skip:
@@ -939,7 +941,7 @@ def preflight_cmd(
 
     # REQ-092: decision-specific exit codes so CI / shell wrappers can branch
     # on intent without parsing the JSON payload.
-    if decision_str == "accepted":
+    if decision_str in {"accepted", "environment_only"}:
         return  # exit 0
     if decision_str == "needs_clarification":
         raise SystemExit(2)
@@ -3853,7 +3855,7 @@ def channel_set_cmd(channel: str) -> None:
     if channel == "stable" and is_prerelease_version(__version__):
         raise click.UsageError(
             "Cannot select stable while a prerelease is installed. "
-            f"Install a stable build first: {version_mismatch_remediation('0.22.1')}"
+            f"Install a stable build first: {version_mismatch_remediation('0.22.2')}"
         )
 
     set_persisted_channel(channel)
@@ -4100,7 +4102,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         pass
 
     # ── Phase ─────────────────────────────────────────────────────────────────
-    phase_key, phase_label, phase_emoji, phase_pct = "unknown", "Unknown", "", 0
+    phase_key, phase_label, phase_pct = "unknown", "Unknown", 0
     try:
         from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
 
@@ -4108,7 +4110,6 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         phase = PHASE_MAP.get(phase_key)
         if phase:
             phase_label = phase.label
-            phase_emoji = phase.emoji
             phase_pct = phase_progress_pct(phase, root)
     except Exception:  # noqa: BLE001
         pass
@@ -4203,7 +4204,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         "ts": ts,
         "project": project_name,
         "phase": phase_key,
-        "phase_label": f"{phase_emoji} {phase_label}",
+        "phase_label": phase_label,
         "phase_pct": phase_pct,
         "health": "clean" if health_ok else f"{audit_failed} issues",
         "audit_failed": audit_failed,
@@ -4223,69 +4224,37 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
 
     # ── Human-readable anchor block ───────────────────────────────────────────
     # Designed to be compact and survive context summarization.
-    _w = 57  # interior width — must match len(hbar)
-    hbar = "\u2550" * _w  # ═══…
-    vbar = "\u2551"  # ║
-    health_icon = "\u2713" if health_ok else "\u2717"
-    esdb_icon = "\u2713" if esdb_ok else "\u2717"
+    _w = 72
+    health_status = "OK" if health_ok else "FAIL"
+    esdb_status = "OK" if esdb_ok else "FAIL"
     if esdb_backend == "chronomemory":
-        esdb_field = f"ESDB: {esdb_records} records ({esdb_icon} chain)"
+        esdb_field = f"ESDB: chronomemory {esdb_records} records chain={esdb_status}"
     elif esdb_backend == "sqlite":
-        # Compact format keeps the row within the 57-char box interior.
-        # " REQs    : NNN   TESTs: NNN   " = 30 chars, leaving 27 for esdb_field.
-        esdb_field = f"ESDB: SQLite {esdb_records} recs {esdb_icon}"
+        esdb_field = f"ESDB: sqlite {esdb_records} records chain={esdb_status}"
     else:
         esdb_field = "ESDB: N/A"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
-    def _arow(rich: str, plain: str, wide: int = 0) -> str:
-        """Format one anchor box row: ║ <content padded to _w terminal cols> ║.
+    def _arow(content: str) -> str:
+        """Return an ASCII-only row with a stable terminal-column width."""
+        ascii_content = content.encode("ascii", "backslashreplace").decode("ascii")
+        return f"|{ascii_content[:_w].ljust(_w)}|"
 
-        ``plain`` is the markup-free string used for width calculation.
-        ``wide`` is the count of 2-wide (full-width/emoji) characters in ``plain``
-        that add an extra terminal column beyond their Python ``len()``.
-        """
-        pad = " " * max(0, _w - len(plain) - wide)
-        return f"[bold cyan]{vbar}[/bold cyan]{rich}{pad}[bold cyan]{vbar}[/bold cyan]"
-
-    console.print(f"[bold cyan]\u2554{hbar}\u2557[/bold cyan]")
-
-    r1 = f" GOVERNANCE ANCHOR  {ts}"
-    console.print(_arow(r1, r1))
-
-    r2_plain = f" Project : {project_name}"
-    console.print(_arow(f" Project : [bold]{project_name}[/bold]", r2_plain))
-
-    # Emoji omitted from the anchor box: full-width glyphs vary by terminal
-    # and break the fixed-width box alignment unpredictably (GH #align).
-    r3_plain = f" Phase   : {phase_label} ({phase_pct}%)"
-    console.print(_arow(r3_plain, r3_plain))
-
-    r4_plain = (
-        f" Health  : {health_icon} clean"
-        if health_ok
-        else f" Health  : {health_icon} {audit_failed} issues"
-    )
-    r4_rich = (
-        f" Health  : [green]{health_icon} clean[/green]"
-        if health_ok
-        else f" Health  : [red]{health_icon} {audit_failed} issues[/red]"
-    )
-    console.print(_arow(r4_rich, r4_plain))
-
-    r5 = f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"
-    console.print(_arow(r5, r5))
-
-    r6 = f" WIs     : {wi_str}"
-    console.print(_arow(r6, r6))
+    click.echo("+" + "-" * _w + "+")
+    click.echo(_arow(f" GOVERNANCE ANCHOR  {ts}"))
+    click.echo(_arow(f" Project : {project_name}"))
+    click.echo(_arow(f" Phase   : {phase_label} ({phase_pct}%)"))
+    health_field = "clean" if health_ok else f"{audit_failed} issues"
+    click.echo(_arow(f" Health  : {health_status} {health_field}"))
+    click.echo(_arow(f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"))
+    click.echo(_arow(f" WIs     : {wi_str}"))
 
     if last_preflight:
-        _pf_max = _w - len(" Preflight: ")  # 45 — was incorrectly 55
+        _pf_max = _w - len(" Preflight: ")
         pf_short = last_preflight[:_pf_max]
-        r7 = f" Preflight: {pf_short}"
-        console.print(_arow(r7, r7))
+        click.echo(_arow(f" Preflight: {pf_short}"))
 
-    console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
+    click.echo("+" + "-" * _w + "+")
     console.print(
         "[dim]Include this block verbatim in any context summary "
         r"(\`specsmith checkpoint\` re-generates it).[/dim]",
@@ -11975,18 +11944,50 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     }
 
     manifest_path = root / ".specsmith" / "esdb_migration_manifest.json"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # --- Phase 2: migrate into active ESDB backend (if validation passed) ---
     migrate_counts: dict[str, int] = {}
+    wal_repair: dict[str, Any] = {"attempted": False}
     if ok:
         try:
             from specsmith.esdb import open_default_store
 
             with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+                from specsmith.esdb import ESDB_BACKEND
+
+                chain_valid = getattr(store, "chain_valid", None)
+                is_invalid_chrono_wal = (
+                    ESDB_BACKEND == "chronomemory"
+                    and callable(chain_valid)
+                    and chain_valid() is False
+                )
+                if is_invalid_chrono_wal:
+                    # ChronoMemory < 0.1.3 can retain readable records in a
+                    # WAL whose historical hash chain no longer validates.
+                    # Back up first, then compact to rebuild the chain safely.
+                    wal_repair = {
+                        "attempted": True,
+                        "detected_invalid": True,
+                        "method": "backup_then_compact",
+                    }
+                    backup = getattr(store, "backup", None)
+                    compact = getattr(store, "compact", None)
+                    if not callable(backup) or not callable(compact):
+                        raise RuntimeError(
+                            "ChronoStore cannot repair a legacy WAL because backup() or "
+                            "compact() is unavailable",
+                        )
+                    backup_path = backup()
+                    wal_repair["backup_path"] = str(backup_path)
+                    compact()
+                    wal_repair["chain_valid_after"] = chain_valid() is not False
+                    if not wal_repair["chain_valid_after"]:
+                        raise RuntimeError(
+                            "ChronoStore compact() did not restore WAL chain validity"
+                        )
+                    wal_repair["ok"] = True
+
                 migrate_counts = store.migrate_from_json(root / ".specsmith")
-            from specsmith.esdb import ESDB_BACKEND
 
             manifest["migrated"] = migrate_counts
             if ESDB_BACKEND == "chronomemory":
@@ -11994,7 +11995,27 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
             else:
                 manifest["backend"] = "SQLite (.specsmith/esdb.sqlite3)"
         except Exception as _me:  # noqa: BLE001
+            issue_kind = "legacy-wal-chain-repair" if wal_repair["attempted"] else "esdb-migration"
+            migration_issue = {"kind": issue_kind, "detail": str(_me)}
+            issues.append(migration_issue)
+            errors.append(migration_issue)
+            ok = False
             manifest["chrono_error"] = str(_me)
+            if wal_repair["attempted"]:
+                wal_repair["ok"] = False
+
+    manifest["ok"] = ok
+    manifest["issues"] = issues
+    manifest["error_count"] = len(errors)
+    manifest["warning_count"] = len(issues) - len(errors)
+    manifest["wal_repair"] = wal_repair
+    manifest["next_step"] = (
+        "Ready for ChronoMemory native ingestion."
+        if ok
+        else "Fix errors above, then re-run to update the manifest."
+    )
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     if as_json:
         click.echo(_json.dumps(manifest, indent=2))

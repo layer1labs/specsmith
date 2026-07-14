@@ -10,10 +10,25 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.22.2] - 2026-07-14
+
 ### Fixed
 - **Read the Docs latest deployment** - The manual RTD workflow now configures the
   canonical `layer1labs/specsmith` repository and `main` default branch, synchronizes
   versions, verifies `latest` maps to `main`, and fails on rejected API responses.
+- **Environment-only preflight loop** (#299) - `pipx`-managed local SpecSmith CLI
+  maintenance now returns a non-blocking `environment_only` decision without creating
+  project work items, ledger entries, or ESDB records.
+- **Mutating help path** (#300) - `--help` now bypasses automatic migration and update
+  checks, keeping help invocations side-effect free even for an outdated project.
+- **Release/schema provenance** (#301) - release metadata, source fallback, and the
+  default project schema are covered by a single version-parity contract.
+- **Save branch detection** (#302) - `save` falls back to Git's symbolic HEAD branch
+  and reports the inspected worktree when HEAD is genuinely detached.
+- **Legacy ChronoMemory WAL repair** (#303) - `esdb migrate` backs up and compacts a
+  detected invalid legacy chain, revalidates it, and records the outcome in its manifest.
+- **Governance anchor rendering** - checkpoint output now uses ASCII-only borders and
+  fixed-width rows with `OK`/`FAIL` status words.
 
 ## [0.22.1] - 2026-07-13
 ### Fixed
@@ -933,7 +948,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.1...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.2...HEAD
+[0.22.2]: https://github.com/layer1labs/specsmith/compare/v0.22.1...v0.22.2
 [0.22.1]: https://github.com/layer1labs/specsmith/compare/v0.22.0...v0.22.1
 [0.22.0]: https://github.com/layer1labs/specsmith/compare/v0.20.1...v0.22.0
 [0.20.1]: https://github.com/layer1labs/specsmith/compare/v0.20.0...v0.20.1
