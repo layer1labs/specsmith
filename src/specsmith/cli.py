@@ -3373,6 +3373,17 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
 
+    # Persist the save metric before committing.  ChronoStore appends this
+    # dual-write to its tracked WAL, so writing it after the commit leaves the
+    # worktree dirty even when save otherwise reports success.
+    try:
+        from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+        pre_commit_ok = all(step["ok"] for step in steps)
+        MetricsStore(root).append(MetricsRecord.new(command="save", passed=pre_commit_ok))
+    except Exception:  # noqa: BLE001  # metrics remain best-effort
+        pass
+
     # 2. Commit
     if not has_uncommitted_changes(root):
         steps.append({"step": "commit", "ok": True, "note": "Nothing to commit"})
@@ -3435,15 +3446,6 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
             note = step.get("message") or step.get("note") or step.get("error") or ""
             console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
-
-    # Auto-record a minimal metrics row for lifetime tracking
-    try:
-        from specsmith.project_metrics import MetricsRecord, MetricsStore
-
-        _store = MetricsStore(root)
-        _store.append(MetricsRecord.new(command="save", passed=ok))
-    except Exception:  # noqa: BLE001  # intentional: metrics are best-effort; never block save
-        pass
 
     if not ok:
         raise SystemExit(1)
@@ -3855,7 +3857,7 @@ def channel_set_cmd(channel: str) -> None:
     if channel == "stable" and is_prerelease_version(__version__):
         raise click.UsageError(
             "Cannot select stable while a prerelease is installed. "
-            f"Install a stable build first: {version_mismatch_remediation('0.22.2')}"
+            f"Install a stable build first: {version_mismatch_remediation('0.22.3')}"
         )
 
     set_persisted_channel(channel)
