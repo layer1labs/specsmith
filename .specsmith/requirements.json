@@ -3236,7 +3236,8 @@
     "status": "implemented",
     "test_ids": [
       "TEST-336",
-      "TEST-477"
+      "TEST-477",
+      "TEST-480"
     ]
   },
   {

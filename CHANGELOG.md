@@ -10,6 +10,11 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.22.3] - 2026-07-14
+
+### Fixed
+- Issue #305 - `specsmith save` now writes its metrics/ChronoMemory WAL event before the commit boundary, so a successful save does not leave `.chronomemory/events.wal` modified afterward.
+
 ## [0.22.2] - 2026-07-14
 
 ### Fixed
@@ -948,7 +953,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.2...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.3...HEAD
+[0.22.3]: https://github.com/layer1labs/specsmith/compare/v0.22.2...v0.22.3
 [0.22.2]: https://github.com/layer1labs/specsmith/compare/v0.22.1...v0.22.2
 [0.22.1]: https://github.com/layer1labs/specsmith/compare/v0.22.0...v0.22.1
 [0.22.0]: https://github.com/layer1labs/specsmith/compare/v0.20.1...v0.22.0

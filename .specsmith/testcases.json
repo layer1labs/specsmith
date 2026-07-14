@@ -5206,5 +5206,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-480",
+    "version": 1,
+    "title": "Save commits tracked ChronoMemory WAL metric before reporting success",
+    "description": "Regression coverage for GitHub issue #305: the metrics dual-write must occur before save's commit boundary so events.wal is committed rather than left dirty.",
+    "requirement_id": "REQ-336",
+    "type": "integration",
+    "verification_method": "Run save against a tracked ChronoMemory WAL fixture and assert git status is clean afterward",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]
