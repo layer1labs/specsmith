@@ -71,6 +71,9 @@ To enable development mode, set `enable_development_mode: true` in your project'
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
+**v0.22.4** - Version bump to 0.22.4 across all package metadata files for the
+v0.22.4 release.
+
 **v0.22.0** - Epistemic chat handoffs preserve source provenance for Zoo-Code and
 other agents, while a mergeable JSONL session-event log keeps collaboration state
 reviewable. This release also adds CPU-safe local-model fallback (REQ-445) and

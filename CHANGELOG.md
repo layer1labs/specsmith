@@ -10,6 +10,12 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.22.4] - 2026-07-15
+
+### Changed
+- Bumped version to `0.22.4` across `pyproject.toml`, `src/specsmith/__init__.py`, and
+  `src/specsmith/config.py` for the v0.22.4 release.
+
 ## [0.22.3] - 2026-07-14
 
 ### Fixed
