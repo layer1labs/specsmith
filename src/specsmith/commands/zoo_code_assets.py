@@ -100,9 +100,7 @@ def command(title: str, mode: str) -> str:
         f"Execute **{title.lower()}** under Specsmith governance. Inspect authority, "
         "bound scope, preserve evidence, run relevant verification, and report risks."
     )
-    return (
-        f"---\ndescription: {title}\nmode: {mode}\n---\n\n<!-- {MARKER} -->\n{body}\n"
-    )
+    return f"---\ndescription: {title}\nmode: {mode}\n---\n\n<!-- {MARKER} -->\n{body}\n"
 
 
 def skill(path: str, description: str) -> str:
@@ -295,9 +293,7 @@ class ZooCodeAssets:
             elif path.read_text(encoding="utf-8") != expected:
                 result.errors.append(f"mismatched global asset: {path}")
         if set(self._manifest().get("files", [])) != set(GLOBAL):
-            result.errors.append(
-                f"missing or stale manifest: {self.global_roo / MANIFEST}"
-            )
+            result.errors.append(f"missing or stale manifest: {self.global_roo / MANIFEST}")
         return result
 
     def _doctor_project(self) -> Result:
@@ -307,16 +303,11 @@ class ZooCodeAssets:
             if path.is_file():
                 text = path.read_text(encoding="utf-8")
                 if MARKER in text or OLD_MARKER in text or text == legacy:
-                    result.errors.append(
-                        f"generic asset duplicated in workspace: {path}"
-                    )
+                    result.errors.append(f"generic asset duplicated in workspace: {path}")
         value = self._read_json(self.project / ".roo" / "mcp.json", result)
         if value is not None:
             servers = value.get("mcpServers")
-            if (
-                not isinstance(servers, dict)
-                or servers.get("specsmith-governance") != MCP
-            ):
+            if not isinstance(servers, dict) or servers.get("specsmith-governance") != MCP:
                 result.errors.append("Specsmith MCP server is missing or mismatched")
         return result
 
