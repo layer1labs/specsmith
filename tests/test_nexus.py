@@ -553,6 +553,7 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("LEDGER.md"),
     Path("REQUIREMENTS.md"),
     Path("TESTS.md"),
+    Path("CHANGELOG.md"),  # documents migration history; legitimately contains legacy names
     Path("docs") / "LEDGER.md",  # canonical ledger (moved from root)
     Path("docs") / "REQUIREMENTS.md",  # canonical requirements (moved from root; contains history)
     Path("docs") / "TESTS.md",  # canonical tests (moved from root; contains history)
