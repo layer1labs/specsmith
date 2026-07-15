@@ -31,9 +31,9 @@ def test_backup_and_preserve_existing(tmp_path: Path) -> None:
     assert result.ok
     assert target.with_name(target.name + ".before-specsmith-zoo-code").exists()
     target.write_text("custom again\n", encoding="utf-8")
-    result = ZooCodeAssets(
-        tmp_path / "project", tmp_path / "global", preserve_existing=True
-    ).setup("global")
+    result = ZooCodeAssets(tmp_path / "project", tmp_path / "global", preserve_existing=True).setup(
+        "global"
+    )
     assert not result.ok
     assert target.read_text(encoding="utf-8") == "custom again\n"
 
@@ -48,9 +48,7 @@ def test_mcp_merge_and_duplicate_cleanup(tmp_path: Path) -> None:
     )
     duplicate = roo / "rules" / "00-specsmith-source-of-truth.md"
     duplicate.parent.mkdir(parents=True)
-    duplicate.write_text(
-        GLOBAL["rules/00-specsmith-source-of-truth.md"], encoding="utf-8"
-    )
+    duplicate.write_text(GLOBAL["rules/00-specsmith-source-of-truth.md"], encoding="utf-8")
     custom = roo / "rules" / "10-specsmith-governance.md"
     custom.write_text("project-specific\n", encoding="utf-8")
     result = ZooCodeAssets(project, tmp_path / "global").setup("project")
