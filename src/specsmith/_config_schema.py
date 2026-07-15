@@ -360,7 +360,7 @@ class ProjectConfig(BaseModel):
         default="docs/TESTS.md",
         description=(
             "Canonical test specification file path. Default: docs/TESTS.md. "
-            "Override with e.g. docs/TEST_SPEC.md."
+            "Override with e.g. tests/custom_tests.md."
         ),
     )
     requirements_file: str = Field(

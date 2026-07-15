@@ -4,10 +4,10 @@
 from pydantic import Field
 
 from specsmith._config_schema import (
+    _TYPE_LABELS,
     Platform,
     ProjectConfig,
     ProjectType,
-    _TYPE_LABELS,
     _normalize_scaffold_raw,
 )
 
