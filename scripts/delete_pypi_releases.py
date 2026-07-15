@@ -34,6 +34,7 @@ KEEP = {
 def get_all_versions() -> list[str]:
     import json
     import urllib.request
+
     url = f"https://pypi.org/pypi/{PROJECT}/json"
     with urllib.request.urlopen(url) as resp:
         data = json.loads(resp.read())

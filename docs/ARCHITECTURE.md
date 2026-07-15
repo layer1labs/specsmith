@@ -887,10 +887,12 @@ Two top-level CLI commands provide a complete governance checkpoint cycle:
 
 **`specsmith save`** (REQ-336):
 1. Create a timestamped ESDB backup via `ChronoStore.backup()` (ChronoMemory backend class; written to `.chronomemory/backup/<timestamp>/`)
-2. `git add` all governance files and `git commit` with an auto-generated message
-3. `git push` the current branch to origin
+2. Persist the command's lifetime metric before staging, so any tracked ChronoMemory WAL event is included in this same save commit
+3. `git add` all governance files and `git commit` with an auto-generated message
+4. `git push` the current branch to origin
 - `--json` emits `{backup_path, commit_hash, push_ok}`
 - Exits 0 on success; exits 1 on any step failure
+- A successful save leaves no tracked ESDB/WAL changes uncommitted.
 
 **`specsmith load`** (REQ-337):
 1. `git pull` the current branch from origin

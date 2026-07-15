@@ -70,6 +70,68 @@ class TestCLIVersion:
         assert __version__ in result.output
 
 
+class TestCLIHelp:
+    def test_preflight_help_does_not_migrate_or_write_project_files(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """TEST-475: help must not mutate a project that needs migration."""
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "SPECSMITH.yml").write_text(
+            "name: temp-specsmith-repro\ntype: cli-python\nspec_version: 0.22.0\n",
+            encoding="utf-8",
+        )
+        (tmp_path / "LEDGER.md").write_text("# Ledger\n", encoding="utf-8")
+        before = {
+            path.relative_to(tmp_path): path.read_bytes()
+            for path in tmp_path.rglob("*")
+            if path.is_file()
+        }
+
+        monkeypatch.chdir(tmp_path)
+        result = CliRunner().invoke(
+            main,
+            ["preflight", "--help"],
+            env={"SPECSMITH_NO_UPDATE_CHECK": "1"},
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Usage: " in result.output
+        assert "Auto-migrating" not in result.output
+        after = {
+            path.relative_to(tmp_path): path.read_bytes()
+            for path in tmp_path.rglob("*")
+            if path.is_file()
+        }
+        assert after == before
+
+
+class TestCheckpointAnchor:
+    def test_checkpoint_anchor_is_ascii_and_fixed_width(self, tmp_path: Path) -> None:
+        """TEST-479: anchor rows must render safely in proportional-font clients."""
+        result = CliRunner().invoke(
+            main,
+            ["checkpoint", "--project-dir", str(tmp_path)],
+            env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0, result.output
+        lines = result.output.splitlines()
+        top = next(index for index, line in enumerate(lines) if line.startswith("+---"))
+        bottom = next(
+            index for index, line in enumerate(lines[top + 1 :], top + 1) if line.startswith("+---")
+        )
+        anchor = lines[top : bottom + 1]
+
+        assert all(line.isascii() for line in anchor)
+        assert all(len(line) == len(anchor[0]) for line in anchor)
+        assert anchor[0] == anchor[-1]
+        assert all(line.startswith("|") and line.endswith("|") for line in anchor[1:-1])
+        assert "Health  : " in "\n".join(anchor)
+
+
 class TestCLIInit:
     def test_init_from_config(self, tmp_path: Path) -> None:
         config = {

@@ -64,6 +64,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install build
+      - name: Verify stable release version and tag
+        run: PYTHONPATH=src python scripts/check_stable_release.py --expected-version "${{ github.ref_name }}"
       - name: Strip git-URL deps before PyPI build
         run: |
           # PyPI rejects packages with direct git+https:// dependencies.
@@ -188,32 +190,7 @@ jobs:
     continue-on-error: true
     if: false  # manual trigger only — use rtd-deploy.yml workflow
     steps:
-      - name: Trigger ReadTheDocs stable build
-        env:
-          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
+      - name: Manual RTD deployment required
         run: |
-          if [ -z "$RTD_TOKEN" ]; then
-            echo "WARNING: RTD_TOKEN not set — skipping RTD trigger."
-            exit 0
-          fi
-          TAG="${{ github.ref_name }}"
-          echo "Triggering RTD builds for tag ${TAG}..."
-
-          # 1. Trigger the 'stable' version build (auto-tracked from latest tag)
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Token $RTD_TOKEN" \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/stable/builds/")
-          echo "RTD stable build trigger: HTTP $STATUS"
-
-          # 2. Point 'latest' at main so it tracks the stable release
-          curl -s -o /dev/null -X PATCH \
-            -H "Authorization: Token $RTD_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"identifier": "main", "active": true}' \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/"
-
-          # 3. Trigger a fresh 'latest' build (now tracking main)
-          LATEST=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Token $RTD_TOKEN" \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/")
-          echo "RTD latest build trigger: HTTP $LATEST"
+          echo "::error::RTD deployment is manual. Use rtd-deploy.yml so project source, version sync, and build results are validated."
+          exit 1

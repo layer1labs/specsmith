@@ -1,117 +1,107 @@
 # Zoo Code / Roo Code Integration
 
-Specsmith supports Zoo Code and Roo Code as governed local agent clients.
+Specsmith integrates with Zoo Code / Roo Code through reusable global assets, a repo-local `.roo/` directory, and the Specsmith MCP governance server.
 
-The intended architecture is:
+## Setup
 
-```text
-Zoo Code / Roo Code
-  -> project-local .roo MCP config
-  -> specsmith-governance MCP server
-  -> LiteLLM local router
-  -> vLLM resident role models
+Install or upgrade Specsmith with pipx, then configure the active project:
+
+```bash
+pipx upgrade specsmith
+cd /path/to/project
+specsmith zoo-code setup --project-dir .
+specsmith zoo-code doctor --project-dir .
 ```
 
-Zoo/Roo are the hands. LiteLLM is the router. vLLM is the local model pool. Specsmith is the engineering governance layer.
+The setup command installs reusable Specsmith rules, slash commands, and skills under `~/.roo`. It also merges the `specsmith-governance` MCP server into the project `.roo/mcp.json` without removing unrelated servers.
 
-## Project-local files
+Use `--global-roo PATH` or `ROO_GLOBAL_DIR` to override the global directory. `--scope global` and `--scope project` limit the operation. `--dry-run` previews changes, and `--preserve-existing` refuses to replace unmanaged files at reserved Specsmith paths.
 
-The repo-local integration surface is `.roo/`:
+## Ownership boundary
 
-| File | Purpose |
-|---|---|
-| `.roo/mcp.json` | Registers the `specsmith-governance` MCP server for this repository. |
-| `.roo/specsmith-rules.md` | Defines mandatory governed-agent behavior. |
-| `.roo/modes.local.json` | Project-local reference mapping of modes to local model roles. |
-| `.roo/global-settings.copy-to-zoo-code.json` | Copyable global provider/model settings for clients that do not read project-local mode config. |
+Specsmith owns reusable global governance assets and their setup, migration, doctor, and uninstall lifecycle. Repositories should contain only project-specific rules, commands, skills, custom modes, and provider/model settings.
 
-Do not commit real API keys or secrets into `.roo/`.
+Existing generic Specsmith rules duplicated inside a project are removed only when they match a recognized legacy asset or carry a Specsmith managed marker. Customized project files are preserved and reported.
 
-## MCP server
+## MCP setup
 
-`.roo/mcp.json` starts Specsmith's MCP server from the current repository:
+The generated repo-local MCP entry is:
 
 ```json
 {
   "mcpServers": {
     "specsmith-governance": {
       "command": "specsmith",
-      "args": ["mcp", "serve", "--project-dir", "."]
+      "args": ["mcp", "serve", "--project-dir", "."],
+      "env": {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1"
+      }
     }
   }
 }
 ```
 
-The MCP tools provide the governance loop:
+The MCP server exposes governance tools such as:
 
 - `governance_checkpoint`
-- `governance_preflight`
 - `governance_phase`
 - `governance_req_list`
+- `governance_preflight`
+- `governance_audit`
 - `governance_trace_seal`
 
-## Required workflow
+## Required agent flow
 
-Every Zoo/Roo coding session should follow this loop:
+Every Zoo/Roo session should follow this sequence:
 
 ```text
-1. Read AGENTS.md and .roo/specsmith-rules.md.
-2. Call governance_checkpoint.
-3. Call governance_phase and governance_req_list.
-4. Call governance_preflight before editing.
-5. Edit only within accepted scope.
-6. Run targeted tests or build checks.
-7. Review the diff with a separate reviewer role.
-8. Seal meaningful decisions or release evidence.
+read AGENTS.md and applicable global/project rules
+call governance_checkpoint
+call governance_phase
+call governance_req_list
+call governance_preflight before edits
+edit only within accepted scope
+run tests/build checks
+run verification
+seal meaningful decisions
 ```
 
-The model that writes the patch must not be the only model that approves it.
+Do not edit files unless `governance_preflight` returns `accepted` or the request is classified as a permitted environment-only operation.
 
 ## Local model routing
 
-Use a LiteLLM-compatible endpoint when a ChronoCortex local agent pool is available:
+When a local LiteLLM/vLLM pool is available, use the router endpoint:
 
 ```text
-http://localhost:4000/v1
+Base URL: http://localhost:4000/v1
+API key:  $LITELLM_MASTER_KEY
 ```
 
 Recommended role mapping:
 
-| Zoo/Roo mode | Local model role |
+| Zoo/Roo mode | Model |
 |---|---|
-| Architect | `architect` |
-| Code | `editor` |
-| Debug / Tool | `tool-fast` |
-| Review | `reviewer` |
+| Specsmith Architect | `architect` |
+| Specsmith Code | `editor` |
+| Specsmith Debug / Tool | `tool-fast` |
+| Specsmith Review | `reviewer` |
 
-## Operator setup
+The model that writes a patch must not be the only model that approves it.
 
-1. Start the local model pool and LiteLLM router.
-2. Export `LITELLM_MASTER_KEY` in the environment that launches Zoo/Roo.
-3. Copy `.roo/global-settings.copy-to-zoo-code.json` values into Zoo Code global settings when required by the client.
-4. Confirm the MCP server appears as `specsmith-governance`.
-5. Start work from Architect mode and require preflight before edits.
+## Operator checklist
 
-## Safety defaults
+1. Start the local model router when using local models.
+2. Run `specsmith zoo-code setup --project-dir .`.
+3. Run `specsmith zoo-code doctor --project-dir .`.
+4. Reload the editor so Zoo Code discovers the final rules, commands, skills, and MCP configuration.
+5. Start governed work with `/specsmith-intake` or the appropriate project-specific command.
 
-Zoo/Roo agents should not perform these actions without explicit user approval and accepted Specsmith preflight:
+## Remove managed integration state
 
-- dependency upgrades
-- public API changes
-- large generated rewrites
-- destructive file operations
-- secret or `.env` edits
-- git push, release, or deploy actions
+```bash
+specsmith zoo-code uninstall --project-dir .
+```
 
-## Embedded and firmware work
-
-For firmware, FPGA, Zephyr, or low-level systems work, Zoo/Roo must ground changes in actual repository evidence:
-
-- headers
-- vendor SDK files
-- bindings
-- generated output
-- compiler/build logs
-- tests
-
-Do not accept invented SDK, HAL, register, device-tree, or build-system APIs.
+Uninstall removes only marker-owned global assets and removes the MCP entry only when it still matches the Specsmith-managed value. Unmanaged and customized files are preserved.

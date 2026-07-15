@@ -35,6 +35,7 @@ htmlcov/
 
 # Build artifacts
 .work/
+/site/
 *.log
 
 # specsmith governance data policy (auto-enforced by specsmith sync)
@@ -43,13 +44,16 @@ htmlcov/
 !.specsmith/config.yml
 !.specsmith/requirements.json
 !.specsmith/testcases.json
-!.specsmith/esdb.sqlite3
 !.specsmith/esdb_migration_manifest.json
 !.chronomemory/events.wal
 !.chronomemory/snapshot.json
+!.chronomemory/session-events.jsonl
 #
 # Ephemeral runtime paths — never committed:
 # (specsmith sync will run `git rm --cached` for any of these already tracked)
+.specsmith/esdb.sqlite3
+.specsmith/esdb.sqlite3-shm
+.specsmith/esdb.sqlite3-wal
 .specsmith/workitems.json
 .specsmith/ledger-chain.txt
 .specsmith/trace.jsonl

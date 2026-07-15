@@ -5,9 +5,13 @@
 import json
 import logging
 from pathlib import Path
+from types import TracebackType
 from typing import Any
 
+import yaml
 from pydantic import BaseModel
+
+LOGGER = logging.getLogger(__name__)
 
 
 class ImprovementRecord(BaseModel):
@@ -53,34 +57,40 @@ class ImprovementTracker:
         formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.log_handler = handler
+        self.log_handler: logging.FileHandler | None = handler
 
-    def close(self):
+    def close(self) -> None:
         """Explicitly close logging handlers to prevent file lock issues."""
         if hasattr(self, "log_handler") and self.log_handler:
             self.log_handler.close()
             self.logger.removeHandler(self.log_handler)
             self.log_handler = None
 
-    def __enter__(self):
+    def __enter__(self) -> "ImprovementTracker":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def _is_development_mode(self) -> bool:
         """Check if development mode is enabled in project config."""
+        config_file = self.project_dir / ".specsmith" / "config.yml"
+        config: object = {}
         try:
-            config_file = self.project_dir / ".specsmith" / "config.yml"
             if config_file.exists():
-                import yaml
+                with open(config_file, encoding="utf-8") as f:
+                    config = yaml.safe_load(f) or {}
+        except (OSError, yaml.YAMLError):
+            LOGGER.warning("Could not read development-mode config: %s", config_file, exc_info=True)
+            return False
 
-                with open(config_file) as f:
-                    config = yaml.safe_load(f)
-                    result = config.get("enable_development_mode", False)
-                    return bool(result)
-        except Exception:
-            pass
+        if isinstance(config, dict):
+            return bool(config.get("enable_development_mode", False))
         return False
 
     def record_session_analysis(self, analysis: SessionAnalysis) -> None:
@@ -135,8 +145,10 @@ class ImprovementTracker:
                 with open(file_path) as f:
                     data = json.load(f)
                     improvements.append(ImprovementRecord(**data))
-            except Exception:
-                continue
+            except (OSError, json.JSONDecodeError, TypeError, ValueError):
+                self.logger.warning(
+                    "Skipping unreadable improvement record: %s", file_path, exc_info=True
+                )
 
         # Sort by timestamp (newest first)
         improvements.sort(key=lambda x: x.timestamp, reverse=True)

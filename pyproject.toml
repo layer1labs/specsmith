@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.21.0"
-description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, and Aider."
+version = "0.22.4"
+description = "AEE governance toolkit for AI-assisted development — session preflight gates, multi-agent dispatch, requirements↔test traceability, ESDB persistence, MCP server, and skills for Warp, Cursor, Claude Code, Copilot, Windsurf, Aider, and Zoo Code."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -32,18 +32,16 @@ classifiers = [
     "Topic :: Software Development :: Code Generators",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Code Generators",
 ]
 
 dependencies = [
     "click>=8.1",
+    "cryptography>=42.0",
     "jinja2>=3.1",
     "pyyaml>=6.0",
     "pydantic>=2.0",
     "rich>=13.0",
-    # chronomemory is now an OPTIONAL commercial dep (specsmith[esdb]).
-    # The free SQLite backend is built-in and requires no extra install.
-    # To unlock ChronoStore: pip install specsmith[esdb] + specsmith esdb enable
 ]
 
 [project.optional-dependencies]
@@ -54,39 +52,23 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.0",
     "types-pyyaml>=6.0",
-    "cryptography>=42.0",   # needed for test_esdb_license.py signing helpers
 ]
-# ESDB commercial backend — requires a valid license from licensing@layer1labs.ai
-# Install: pip install specsmith[esdb]
-# Activate: specsmith esdb enable --key-file /path/to/your.esdb.key
-# Terms: https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md
 esdb = [
-    "chronomemory>=0.2.7",   # proprietary commercial — ChronoMemory terms only (not SQLite free tier)
-    "cryptography>=42.0",
+    "chronomemory>=0.2.7",
 ]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
 ]
-# LLM provider extras for specsmith run (agentic client)
 anthropic = ["anthropic>=0.56"]
 openai = ["openai>=1.0"]
-# gemini: supports both the new google-genai SDK (GA May 2025, recommended)
-# and the legacy google-generativeai SDK (deprecated Nov 2025, fallback).
-# The provider auto-detects which is installed.
 gemini = ["google-genai>=1.0"]
-mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.ai
+mistral = ["openai>=1.0"]
 gui = ["PySide6>=6.6"]
-# AG2 agent shell (Planner/Builder/Verifier over Ollama)
 ag2 = ["ag2[ollama]"]
-# Optional semantic backend for `specsmith history search --semantic` (REQ-135).
-# Falls back gracefully to keyword matching if these are not installed.
 history-semantic = ["sentence-transformers>=2.2", "numpy>=1.24"]
-# Optional whisper-cpp wrapper for the voice agent input (REQ-141).
 voice = ["whisper-cpp-python>=0.2"]
-# Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
-# Convenience bundle: everything EXCEPT esdb (commercial license required separately)
 all = [
     "anthropic>=0.56",
     "openai>=1.0",
@@ -95,8 +77,7 @@ all = [
     "ruff>=0.4",
     "mypy>=1.10",
 ]
-# cryptography for license verification (usable without full esdb extra)
-license-verify = ["cryptography>=42.0"]
+license-verify = []
 
 [project.scripts]
 specsmith = "specsmith.cli:main"
@@ -123,29 +104,19 @@ line-length = 100
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
-# Long rule text and install command strings in documentation modules
 "src/specsmith/toolrules.py" = ["E501"]
 "src/specsmith/tool_installer.py" = ["E501"]
-# One-shot rebuild scripts contain literal REQ description strings that are
-# intentionally long; wrapping them would damage readability of the source
-# of truth they reconstruct.
+"src/specsmith/commands/zoo_code_assets.py" = ["E501", "UP035"]
 "scripts/rebuild_requirements_json.py" = ["E501"]
 "scripts/rebuild_requirements_md.py" = ["E501"]
-# Compliance package: regulation description strings and HTML templates are
-# intentionally long; wrapping would damage readability.
 "src/specsmith/compliance/_compat.py" = ["E501"]
 "src/specsmith/compliance/regulations.py" = ["E501"]
 "src/specsmith/compliance/reporter.py" = ["E501"]
 "src/specsmith/compliance/evidence.py" = ["E501"]
-# CI manager: error message strings are intentionally descriptive
 "src/specsmith/ci_manager.py" = ["E501"]
-# Context orchestrator: tier descriptions are intentionally descriptive
 "src/specsmith/context_orchestrator.py" = ["E501"]
-# Skills module: skill body strings contain markdown content with long lines
 "src/specsmith/skills/*.py" = ["E501"]
-# MCP server module: tool schema description strings are long but cannot be split
 "src/specsmith/mcp_server.py" = ["E501"]
-# Migration files: rule description strings and template content
 "src/specsmith/migrations/m001_governance_yaml.py" = ["E501"]
 "src/specsmith/migrations/m004_ledger_esdb.py" = ["E501"]
 
@@ -154,17 +125,13 @@ python_version = "3.10"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
-# GUI package requires PySide6, an optional extra not available in the mypy
-# environment. Exclude it from type-checking to avoid false positives.
 exclude = ["src/specsmith/gui"]
 
-# Optional extras — installed by the user, not in the dev environment.
-# Ignore missing stubs rather than failing type-check for absent packages.
 [[tool.mypy.overrides]]
 module = [
     "anthropic",
     "anthropic.*",
-    "autogen",    # AG2 agent shell — optional extra
+    "autogen",
     "autogen.*",
     "openai",
     "openai.*",
@@ -172,31 +139,24 @@ module = [
     "google.*",
     "yaml",
     "yaml.*",
-    "keyring",   # optional OS credential store; stubs not published
+    "keyring",
     "keyring.*",
-    "numpy",     # optional [history-semantic] extra (REQ-135)
+    "numpy",
     "numpy.*",
-    "sentence_transformers",  # optional [history-semantic] extra (REQ-135)
+    "sentence_transformers",
     "sentence_transformers.*",
-    "whisper_cpp_python",  # optional [voice] extra (REQ-141)
-    "whisper_cpp_python.*",
-    "chronomemory",   # git dep — no published stubs yet
+    "whisper_cpp_python",
+    "chronomemory",
     "chronomemory.*",
-    "tomllib",         # stdlib in 3.11+; not available when checking against python_version=3.10
-    "tomli",           # optional 3.10 backport; not installed in the dev environment
+    "tomllib",
+    "tomli",
 ]
 ignore_missing_imports = true
 
-# epistemic library has pre-existing strict-mypy issues unrelated to specsmith changes
 [[tool.mypy.overrides]]
 module = ["epistemic", "epistemic.*"]
 ignore_errors = true
 
-# Modules that use dynamic typing patterns incompatible with strict mypy.
-# These are correct at runtime; the Any-heavy urllib, json.loads, etc. patterns
-# are the source of most errors here. Exclude from strict type checking.
-# REQ-111: shrunk this list as part of the pre-1.0 cleanup; broker, safety,
-# console_utils, and indexer have been graduated to strict mypy.
 [[tool.mypy.overrides]]
 module = [
     "specsmith.ollama_cmds",
@@ -218,12 +178,9 @@ module = [
     "specsmith.toolrules",
     "specsmith.tool_installer",
     "specsmith.commands.intelligence",
-    # glossa-lab AI pattern ports — urllib/json-heavy, Any patterns expected
     "specsmith.agent.hf_leaderboard",
     "specsmith.agent.llm_client",
-    # pre-existing openai SDK overload mismatch, not introduced by our changes
     "specsmith.agent.chat_runner",
-    # New modules — dynamic/Any-heavy patterns; will be typed in 1.x cleanup
     "specsmith.compliance.checker",
     "specsmith.compliance.evidence",
     "specsmith.compliance.reporter",
@@ -238,12 +195,7 @@ module = [
     "specsmith.ci_manager",
     "specsmith.context_orchestrator",
     "specsmith.session_store",
-    # MCP server: lazy in-function imports and dynamic Any patterns
     "specsmith.mcp_server",
-    # ESDB package: conditional chronomemory stubs in except ImportError branch
-    # produce type[_Stub] vs type[ChronoRecord] assignment errors that are
-    # correct at runtime but cannot be expressed statically without TYPE_CHECKING.
-    # specsmith.esdb.* covers bridge.py and _license.py sub-modules too.
     "specsmith.esdb",
     "specsmith.esdb.*",
 ]

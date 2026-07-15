@@ -281,8 +281,8 @@
   status: implemented
 - id: REQ-334
   title: Per-Node Retry and Abort Controls
-  description: MUST provide a Retry button on FAILED and BLOCKED nodes (calls
-    POST /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort).
+  description: MUST provide a Retry button on FAILED and BLOCKED nodes (calls POST
+    /api/dispatch/retry) and an Abort button on RUNNING nodes (calls POST /api/dispatch/abort).
     Retry and Abort MUST be disabled when not applicable to the node status.
   source: ARCHITECTURE.md §Multi-Agent DAG Dispatcher
   status: implemented
@@ -638,7 +638,9 @@
     from SPECSMITH_ESDB_KEY environment variable or ~/.specsmith/esdb.key. If the
     key is absent or invalid the backend silently falls back to SqliteStore with a
     one-time warning. The SPECSMITH_ESDB_BACKEND=sqlite environment variable force-selects
-    SQLite regardless of key presence.
+    SQLite regardless of key presence. The base specsmith package must include the
+    cryptography verifier required by `specsmith esdb enable`, so clean pip and pipx
+    installations can activate a valid license without a separate dependency injection.
   source: commercial licensing model
 - id: REQ-367
   title: chronomemory must carry a proprietary commercial license separate from specsmith

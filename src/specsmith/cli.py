@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import contextlib
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ import click
 import yaml
 
 from specsmith import __version__
+from specsmith._config_schema import _TYPE_LABELS
 from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.commands.zoo_code import zoo_code_group
 from specsmith.config import Platform, ProjectConfig, ProjectType
@@ -70,12 +72,7 @@ def _load_project_env(path: str | None = None) -> None:
 _load_project_env()
 
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
-PROJECT_TYPE_LABELS = {
-    str(i + 1): label
-    for i, (t, label) in enumerate(
-        __import__("specsmith.config", fromlist=["_TYPE_LABELS"])._TYPE_LABELS.items(),
-    )
-}
+PROJECT_TYPE_LABELS = {str(i + 1): label for i, (t, label) in enumerate(_TYPE_LABELS.items())}
 
 
 class _AutoUpdateGroup(click.Group):
@@ -129,9 +126,11 @@ class _AutoUpdateGroup(click.Group):
             warnings.simplefilter("ignore", DeprecationWarning)
             protected = list(ctx.protected_args)  # [subcommand] in 8.x, [] in 9.0
         subcommand = protected[0] if protected else (ctx.args[0] if ctx.args else "")
+        help_requested = any(arg in {"--help", "-h"} for arg in (*protected, *ctx.args))
         skip = (
             os.environ.get("SPECSMITH_NO_AUTO_UPDATE", "").strip() in ("1", "true", "yes")
             or subcommand in self._SKIP_COMMANDS
+            or help_requested
         )
 
         if not skip:
@@ -189,13 +188,17 @@ def _maybe_prompt_project_update() -> None:
 
         if installed < project:
             # Backward migration (downgrade) — hard error, REQ-370.
+            from specsmith.updater import version_mismatch_remediation
+
+            remedy = version_mismatch_remediation(project_ver)
             click.echo(
                 f"\nERROR: specsmith downgrade detected.\n"
                 f"  Project spec_version : {project_ver}\n"
                 f"  Installed specsmith  : {__version__} (older)\n"
                 "\n"
                 "  Backward migration is not supported.\n"
-                "  Upgrade specsmith first: pipx upgrade specsmith\n"
+                f"  Install the required version: {remedy}\n"
+                "  Stable projects can instead use: pipx upgrade specsmith\n"
                 "  Then re-run this command.",
                 err=True,
             )
@@ -595,8 +598,19 @@ def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
 VCS_PLATFORM_CHOICES = {"1": "github", "2": "gitlab", "3": "bitbucket", "4": ""}
 VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "None"}
 
-BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
-BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
+BRANCH_STRATEGY_CHOICES = {
+    "1": "single-branch",
+    "2": "gitflow",
+    "3": "trunk-based",
+    "4": "github-flow",
+}
+BRANCH_STRATEGY_LABELS = {
+    "1": "Single branch (direct governed work on main)",
+    "2": "Gitflow",
+    "3": "Trunk-based",
+    "4": "GitHub Flow",
+}
+_BRANCH_WORKFLOWS = tuple(BRANCH_STRATEGY_CHOICES.values())
 
 
 def _interactive_config(no_git: bool) -> ProjectConfig:
@@ -631,7 +645,7 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     for k, v in BRANCH_STRATEGY_LABELS.items():
         console.print(f"  {k}. {v}")
     branch_choice = click.prompt("Select strategy", default="1")
-    branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "gitflow")
+    branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "single-branch")
 
     return ProjectConfig(
         name=name,
@@ -923,7 +937,7 @@ def preflight_cmd(
 
     # REQ-092: decision-specific exit codes so CI / shell wrappers can branch
     # on intent without parsing the JSON payload.
-    if decision_str == "accepted":
+    if decision_str in {"accepted", "environment_only"}:
         return  # exit 0
     if decision_str == "needs_clarification":
         raise SystemExit(2)
@@ -1881,6 +1895,17 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         ok, detail = _tool_version(tool)
         _add(tool, ok, detail)
 
+    if _is_windows_platform():
+        from specsmith.updater import find_windows_launchers
+
+        launchers = find_windows_launchers(__import__("os").environ.get("PATH", ""))
+        _add(
+            "specsmith launchers",
+            len(launchers) <= 1,
+            str(launchers[0]) if len(launchers) == 1 else f"{len(launchers)} found; use pipx only",
+            warn=len(launchers) > 1,
+        )
+
     overall = "pass" if all(c["status"] != "fail" for c in checks) else "fail"
 
     if as_json:
@@ -1897,6 +1922,11 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
         console.print("All checks passed.")
     else:
         console.print("One or more checks failed.")
+
+
+def _is_windows_platform() -> bool:
+    """Return whether the CLI is running on Windows."""
+    return sys.platform == "win32"
 
 
 @main.command()
@@ -3339,6 +3369,17 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
     except Exception as exc:  # noqa: BLE001
         steps.append({"step": "esdb_backup", "ok": False, "error": str(exc)})
 
+    # Persist the save metric before committing.  ChronoStore appends this
+    # dual-write to its tracked WAL, so writing it after the commit leaves the
+    # worktree dirty even when save otherwise reports success.
+    try:
+        from specsmith.project_metrics import MetricsRecord, MetricsStore
+
+        pre_commit_ok = all(step["ok"] for step in steps)
+        MetricsStore(root).append(MetricsRecord.new(command="save", passed=pre_commit_ok))
+    except Exception:  # noqa: BLE001  # metrics remain best-effort
+        pass
+
     # 2. Commit
     if not has_uncommitted_changes(root):
         steps.append({"step": "commit", "ok": True, "note": "Nothing to commit"})
@@ -3401,15 +3442,6 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
             color = "green" if step["ok"] else ("yellow" if "note" in step else "red")
             note = step.get("message") or step.get("note") or step.get("error") or ""
             console.print(f"  [{color}]{icon}[/{color}] {step['step']}: {note}")
-
-    # Auto-record a minimal metrics row for lifetime tracking
-    try:
-        from specsmith.project_metrics import MetricsRecord, MetricsStore
-
-        _store = MetricsStore(root)
-        _store.append(MetricsRecord.new(command="save", passed=ok))
-    except Exception:  # noqa: BLE001  # intentional: metrics are best-effort; never block save
-        pass
 
     if not ok:
         raise SystemExit(1)
@@ -3634,12 +3666,12 @@ def branch_create(name: str, project_dir: str) -> None:
     """Create a branch following the branching strategy."""
     root = Path(project_dir).resolve()
     scaffold_path = root / "scaffold.yml"
-    strategy = "gitflow"
+    strategy = "single-branch"
     main_branch = "main"
     if scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        strategy = raw.get("branching_strategy", "gitflow")
+        strategy = raw.get("branching_strategy", "single-branch")
         main_branch = raw.get("default_branch", "main")
 
     from specsmith.vcs_commands import create_branch
@@ -3648,7 +3680,34 @@ def branch_create(name: str, project_dir: str) -> None:
     if result.success:
         console.print(f"[green]\u2713[/green] {result.message}")
     else:
-        console.print(f"[red]\u2717[/red] {result.message}")
+        raise click.ClickException(result.message)
+
+
+@branch_group.command(name="workflow")
+@click.argument("strategy", required=False, type=click.Choice(_BRANCH_WORKFLOWS))
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def branch_workflow(strategy: str | None, project_dir: str) -> None:
+    """Show or explicitly select the governed branching workflow."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+    if not scaffold_path.exists():
+        raise click.ClickException(
+            "No scaffold.yml found; run specsmith init before selecting a workflow."
+        )
+
+    with scaffold_path.open(encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    current = str(raw.get("branching_strategy", "single-branch"))
+    if strategy is None:
+        console.print(f"Branch workflow: {current}")
+        return
+
+    raw["branching_strategy"] = strategy
+    scaffold_path.write_text(
+        yaml.safe_dump(raw, default_flow_style=False, sort_keys=False),
+        encoding="utf-8",
+    )
+    console.print(f"[green]\u2713[/green] Branch workflow set to {strategy}")
 
 
 @branch_group.command(name="list")
@@ -3789,6 +3848,13 @@ def channel_set_cmd(channel: str) -> None:
     immediately for all subsequent ``specsmith self-update`` / ``update`` calls.
     """
     from specsmith.channel import set_persisted_channel
+    from specsmith.updater import is_prerelease_version, version_mismatch_remediation
+
+    if channel == "stable" and is_prerelease_version(__version__):
+        raise click.UsageError(
+            "Cannot select stable while a prerelease is installed. "
+            f"Install a stable build first: {version_mismatch_remediation('0.22.3')}"
+        )
 
     set_persisted_channel(channel)
     channel_color = "cyan" if channel == "dev" else "green"
@@ -4034,7 +4100,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         pass
 
     # ── Phase ─────────────────────────────────────────────────────────────────
-    phase_key, phase_label, phase_emoji, phase_pct = "unknown", "Unknown", "", 0
+    phase_key, phase_label, phase_pct = "unknown", "Unknown", 0
     try:
         from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
 
@@ -4042,7 +4108,6 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         phase = PHASE_MAP.get(phase_key)
         if phase:
             phase_label = phase.label
-            phase_emoji = phase.emoji
             phase_pct = phase_progress_pct(phase, root)
     except Exception:  # noqa: BLE001
         pass
@@ -4137,7 +4202,7 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
         "ts": ts,
         "project": project_name,
         "phase": phase_key,
-        "phase_label": f"{phase_emoji} {phase_label}",
+        "phase_label": phase_label,
         "phase_pct": phase_pct,
         "health": "clean" if health_ok else f"{audit_failed} issues",
         "audit_failed": audit_failed,
@@ -4157,69 +4222,37 @@ def checkpoint_cmd(project_dir: str, as_json: bool) -> None:
 
     # ── Human-readable anchor block ───────────────────────────────────────────
     # Designed to be compact and survive context summarization.
-    _w = 57  # interior width — must match len(hbar)
-    hbar = "\u2550" * _w  # ═══…
-    vbar = "\u2551"  # ║
-    health_icon = "\u2713" if health_ok else "\u2717"
-    esdb_icon = "\u2713" if esdb_ok else "\u2717"
+    _w = 72
+    health_status = "OK" if health_ok else "FAIL"
+    esdb_status = "OK" if esdb_ok else "FAIL"
     if esdb_backend == "chronomemory":
-        esdb_field = f"ESDB: {esdb_records} records ({esdb_icon} chain)"
+        esdb_field = f"ESDB: chronomemory {esdb_records} records chain={esdb_status}"
     elif esdb_backend == "sqlite":
-        # Compact format keeps the row within the 57-char box interior.
-        # " REQs    : NNN   TESTs: NNN   " = 30 chars, leaving 27 for esdb_field.
-        esdb_field = f"ESDB: SQLite {esdb_records} recs {esdb_icon}"
+        esdb_field = f"ESDB: sqlite {esdb_records} records chain={esdb_status}"
     else:
         esdb_field = "ESDB: N/A"
     wi_str = ", ".join(recent_wis) if recent_wis else "none seen"
 
-    def _arow(rich: str, plain: str, wide: int = 0) -> str:
-        """Format one anchor box row: ║ <content padded to _w terminal cols> ║.
+    def _arow(content: str) -> str:
+        """Return an ASCII-only row with a stable terminal-column width."""
+        ascii_content = content.encode("ascii", "backslashreplace").decode("ascii")
+        return f"|{ascii_content[:_w].ljust(_w)}|"
 
-        ``plain`` is the markup-free string used for width calculation.
-        ``wide`` is the count of 2-wide (full-width/emoji) characters in ``plain``
-        that add an extra terminal column beyond their Python ``len()``.
-        """
-        pad = " " * max(0, _w - len(plain) - wide)
-        return f"[bold cyan]{vbar}[/bold cyan]{rich}{pad}[bold cyan]{vbar}[/bold cyan]"
-
-    console.print(f"[bold cyan]\u2554{hbar}\u2557[/bold cyan]")
-
-    r1 = f" GOVERNANCE ANCHOR  {ts}"
-    console.print(_arow(r1, r1))
-
-    r2_plain = f" Project : {project_name}"
-    console.print(_arow(f" Project : [bold]{project_name}[/bold]", r2_plain))
-
-    # Emoji omitted from the anchor box: full-width glyphs vary by terminal
-    # and break the fixed-width box alignment unpredictably (GH #align).
-    r3_plain = f" Phase   : {phase_label} ({phase_pct}%)"
-    console.print(_arow(r3_plain, r3_plain))
-
-    r4_plain = (
-        f" Health  : {health_icon} clean"
-        if health_ok
-        else f" Health  : {health_icon} {audit_failed} issues"
-    )
-    r4_rich = (
-        f" Health  : [green]{health_icon} clean[/green]"
-        if health_ok
-        else f" Health  : [red]{health_icon} {audit_failed} issues[/red]"
-    )
-    console.print(_arow(r4_rich, r4_plain))
-
-    r5 = f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"
-    console.print(_arow(r5, r5))
-
-    r6 = f" WIs     : {wi_str}"
-    console.print(_arow(r6, r6))
+    click.echo("+" + "-" * _w + "+")
+    click.echo(_arow(f" GOVERNANCE ANCHOR  {ts}"))
+    click.echo(_arow(f" Project : {project_name}"))
+    click.echo(_arow(f" Phase   : {phase_label} ({phase_pct}%)"))
+    health_field = "clean" if health_ok else f"{audit_failed} issues"
+    click.echo(_arow(f" Health  : {health_status} {health_field}"))
+    click.echo(_arow(f" REQs    : {req_count}   TESTs: {test_count}   {esdb_field}"))
+    click.echo(_arow(f" WIs     : {wi_str}"))
 
     if last_preflight:
-        _pf_max = _w - len(" Preflight: ")  # 45 — was incorrectly 55
+        _pf_max = _w - len(" Preflight: ")
         pf_short = last_preflight[:_pf_max]
-        r7 = f" Preflight: {pf_short}"
-        console.print(_arow(r7, r7))
+        click.echo(_arow(f" Preflight: {pf_short}"))
 
-    console.print(f"[bold cyan]\u255a{hbar}\u255d[/bold cyan]")
+    click.echo("+" + "-" * _w + "+")
     console.print(
         "[dim]Include this block verbatim in any context summary "
         r"(\`specsmith checkpoint\` re-generates it).[/dim]",
@@ -6831,7 +6864,8 @@ def info_cmd(as_json: bool, section: str) -> None:
     """Report all specsmith capabilities: languages, project types, tools, LLM backends."""
     import json as json_mod  # noqa: PLC0415
 
-    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith._config_schema import _TYPE_LABELS  # noqa: PLC0415
+    from specsmith.config import ProjectType  # noqa: PLC0415
     from specsmith.languages import EXT_LANG, LANG_CATEGORY, LANG_DISPLAY  # noqa: PLC0415
 
     try:
@@ -7988,7 +8022,8 @@ def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
     """
     import json as json_mod  # noqa: PLC0415
 
-    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith._config_schema import _TYPE_LABELS  # noqa: PLC0415
+    from specsmith.config import ProjectType  # noqa: PLC0415
     from specsmith.importer import (  # noqa: PLC0415
         detect_project,
         suggest_auxiliary,
@@ -11909,18 +11944,50 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
     }
 
     manifest_path = root / ".specsmith" / "esdb_migration_manifest.json"
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # --- Phase 2: migrate into active ESDB backend (if validation passed) ---
     migrate_counts: dict[str, int] = {}
+    wal_repair: dict[str, Any] = {"attempted": False}
     if ok:
         try:
             from specsmith.esdb import open_default_store
 
             with open_default_store(root, warn=False) as store:  # type: ignore[attr-defined]
+                from specsmith.esdb import ESDB_BACKEND
+
+                chain_valid = getattr(store, "chain_valid", None)
+                is_invalid_chrono_wal = (
+                    ESDB_BACKEND == "chronomemory"
+                    and callable(chain_valid)
+                    and chain_valid() is False
+                )
+                if is_invalid_chrono_wal:
+                    # ChronoMemory < 0.1.3 can retain readable records in a
+                    # WAL whose historical hash chain no longer validates.
+                    # Back up first, then compact to rebuild the chain safely.
+                    wal_repair = {
+                        "attempted": True,
+                        "detected_invalid": True,
+                        "method": "backup_then_compact",
+                    }
+                    backup = getattr(store, "backup", None)
+                    compact = getattr(store, "compact", None)
+                    if not callable(backup) or not callable(compact):
+                        raise RuntimeError(
+                            "ChronoStore cannot repair a legacy WAL because backup() or "
+                            "compact() is unavailable",
+                        )
+                    backup_path = backup()
+                    wal_repair["backup_path"] = str(backup_path)
+                    compact()
+                    wal_repair["chain_valid_after"] = chain_valid() is not False
+                    if not wal_repair["chain_valid_after"]:
+                        raise RuntimeError(
+                            "ChronoStore compact() did not restore WAL chain validity"
+                        )
+                    wal_repair["ok"] = True
+
                 migrate_counts = store.migrate_from_json(root / ".specsmith")
-            from specsmith.esdb import ESDB_BACKEND
 
             manifest["migrated"] = migrate_counts
             if ESDB_BACKEND == "chronomemory":
@@ -11928,7 +11995,27 @@ def esdb_migrate_cmd(project_dir: str, as_json: bool) -> None:
             else:
                 manifest["backend"] = "SQLite (.specsmith/esdb.sqlite3)"
         except Exception as _me:  # noqa: BLE001
+            issue_kind = "legacy-wal-chain-repair" if wal_repair["attempted"] else "esdb-migration"
+            migration_issue = {"kind": issue_kind, "detail": str(_me)}
+            issues.append(migration_issue)
+            errors.append(migration_issue)
+            ok = False
             manifest["chrono_error"] = str(_me)
+            if wal_repair["attempted"]:
+                wal_repair["ok"] = False
+
+    manifest["ok"] = ok
+    manifest["issues"] = issues
+    manifest["error_count"] = len(errors)
+    manifest["warning_count"] = len(issues) - len(errors)
+    manifest["wal_repair"] = wal_repair
+    manifest["next_step"] = (
+        "Ready for ChronoMemory native ingestion."
+        if ok
+        else "Fix errors above, then re-run to update the manifest."
+    )
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(_json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 
     if as_json:
         click.echo(_json.dumps(manifest, indent=2))
@@ -14446,10 +14533,6 @@ def ai_analyze_cmd(project_dir: str, as_json: bool) -> None:
         raise SystemExit(1) from e
 
 
-if __name__ == "__main__":
-    main()
-
-
 # Development mode and improvement tracking commands
 @main.group(name="dev", invoke_without_command=True)
 def dev_group() -> None:
@@ -14520,3 +14603,7 @@ def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bo
                     click.echo(f"  - {imp.description} ({imp.severity})")
             else:
                 click.echo("No recent improvements recorded.")
+
+
+if __name__ == "__main__":
+    main()

@@ -39,9 +39,16 @@ def _run_git(root: Path, args: list[str], *, timeout: int = 30) -> GitResult:
 
 
 def get_current_branch(root: Path) -> str:
-    """Get the current git branch name."""
+    """Get the current git branch name for the supplied worktree."""
     result = _run_git(root, ["branch", "--show-current"])
-    return result.output if result.success else ""
+    branch = result.output.strip() if result.success else ""
+    if branch:
+        return branch
+
+    # ``branch --show-current`` is empty in some shell/worktree combinations
+    # despite HEAD being attached. ``symbolic-ref`` is the authoritative fallback.
+    result = _run_git(root, ["symbolic-ref", "--quiet", "--short", "HEAD"])
+    return result.output.strip() if result.success else ""
 
 
 def has_uncommitted_changes(root: Path) -> bool:
@@ -166,7 +173,12 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
 
     branch = get_current_branch(root)
     if not branch:
-        return GitResult(success=False, message="Not on any branch")
+        worktree = _run_git(root, ["rev-parse", "--show-toplevel"])
+        inspected = worktree.output.strip() if worktree.success else str(root.resolve())
+        return GitResult(
+            success=False,
+            message=f"Not on any branch in git worktree: {inspected}",
+        )
 
     # Safety: check branching strategy
     from specsmith.paths import find_scaffold
@@ -175,7 +187,7 @@ def run_push(root: Path, *, force: bool = False) -> GitResult:
     if scaffold_path and scaffold_path.exists() and not force:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        strategy = raw.get("branching_strategy", "gitflow")
+        strategy = raw.get("branching_strategy", "single-branch")
         main_branch = raw.get("default_branch", "main")
 
         if strategy == "gitflow" and branch == main_branch:
@@ -265,10 +277,20 @@ def create_branch(
     root: Path,
     name: str,
     *,
-    strategy: str = "gitflow",
+    strategy: str = "single-branch",
     main_branch: str = "main",
 ) -> GitResult:
     """Create a branch following the branching strategy."""
+    if strategy == "single-branch":
+        return GitResult(
+            success=False,
+            message=(
+                "Branch creation is disabled by the single-branch workflow. "
+                "Enable GitFlow, trunk-based, or GitHub Flow with "
+                "`specsmith branch workflow <strategy>` first."
+            ),
+        )
+
     develop_branch = "develop"
 
     # Determine base branch
@@ -343,23 +365,32 @@ def create_pr(
     from specsmith.paths import find_scaffold
 
     scaffold_path = find_scaffold(root)
-    platform = "github"
-    base_branch = "develop"
+    raw: dict[str, object] = {}
 
     if scaffold_path and scaffold_path.exists():
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
-        platform = raw.get("vcs_platform", "github")
-        strategy = raw.get("branching_strategy", "gitflow")
-        branch = get_current_branch(root)
 
-        if strategy == "gitflow":
-            if branch.startswith("hotfix/") or branch.startswith("release/"):
-                base_branch = raw.get("default_branch", "main")
-            else:
-                base_branch = raw.get("develop_branch", "develop")
+    platform = str(raw.get("vcs_platform", "github"))
+    strategy = str(raw.get("branching_strategy", "single-branch"))
+    if strategy == "single-branch":
+        return GitResult(
+            success=False,
+            message=(
+                "Pull requests are disabled by the single-branch workflow. "
+                "Enable GitFlow, trunk-based, or GitHub Flow with "
+                "`specsmith branch workflow <strategy>` first."
+            ),
+        )
+
+    branch = get_current_branch(root)
+    if strategy == "gitflow":
+        if branch.startswith("hotfix/") or branch.startswith("release/"):
+            base_branch = str(raw.get("default_branch", "main"))
         else:
-            base_branch = raw.get("default_branch", "main")
+            base_branch = str(raw.get("develop_branch", "develop"))
+    else:
+        base_branch = str(raw.get("default_branch", "main"))
 
     if not title:
         title = generate_commit_message(root)

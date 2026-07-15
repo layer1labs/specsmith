@@ -72,10 +72,12 @@ Each entry lists:
 
 ### `.specsmith/session-state.json` and `.specsmith/conversation-history.jsonl` — session continuity
 - **Sites:** `src/specsmith/session_store.py` (module docstring, `save_session`).
-- **Superseded by:** _no ESDB equivalent yet._
-- **Status:** legacy flat files; runtime/session-resume only (gitignored).
-- **Teardown:** future REQ — model session state as ESDB session records, then
-  drop these files.
+- **Superseded by:** `.chronomemory/session-events.jsonl` (REQ-447), with local
+  SQLite `session_event` records rebuilt from that canonical text log.
+- **Status:** dual-written for backward compatibility. The canonical event log
+  is Git-reviewable, deduplicated by immutable event ID, and replayed first.
+- **Teardown:** remove the flat-file fallback after the next compatible major
+  release confirms every supported client can replay canonical session events.
 
 ### `.specsmith/esdb_migration_manifest.json` — one-shot migration scan
 - **Sites:** `src/specsmith/cli.py` (`esdb migrate` scan), `src/specsmith/sync.py`

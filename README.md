@@ -71,9 +71,13 @@ To enable development mode, set `enable_development_mode: true` in your project'
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.21.0** - CPU fallback for local model detection: When no GPU is detected, Specsmith now falls back to a minimal CPU-safe model instead of returning no recommendation (REQ-445). Also includes all v0.20.0 features.
+**v0.22.4** - Version bump to 0.22.4 across all package metadata files for the
+v0.22.4 release.
 
-**v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
+**v0.22.0** - Epistemic chat handoffs preserve source provenance for Zoo-Code and
+other agents, while a mergeable JSONL session-event log keeps collaboration state
+reviewable. This release also adds CPU-safe local-model fallback (REQ-445) and
+stable-release validation before PyPI publishing.
 
 **v0.20.0** — Native Warp integration: `specsmith integrate warp` scaffolds `.warp/` MCP + launch configs and a Warp-aware `specsmith run` banner (REQ-444). Plus VRAM-aware local model recommendations: `specsmith local-model recommend` prints a per-role lineup (default / fast / harder pass / general) with a `fits`/`tight`/`spills` fit assessment (REQ-445).
 
@@ -238,6 +242,7 @@ If you hold a chronomemory ESDB license, activate the commercial backend:
 pip install "specsmith[esdb]"                 # installs chronomemory from PyPI
 # or if using pipx:
 pipx inject specsmith "chronomemory>=0.2.0"  # inject into the specsmith pipx venv
+# The license verifier is included in base specsmith; no cryptography injection is needed.
 
 # Step 2 — activate your license key
 specsmith esdb enable --key-file /path/to/your.esdb.key
@@ -260,6 +265,10 @@ See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a
 pipx upgrade specsmith   # preferred — upgrades the pipx-isolated CLI
 specsmith self-update    # alternative: self-update from within specsmith
 ```
+
+An intent limited to maintaining the local pipx CLI is returned as the non-blocking
+`environment_only` preflight decision. It exits successfully and creates no project
+work item, ledger entry, or ESDB record. All `--help` invocations are read-only.
 
 ---
 

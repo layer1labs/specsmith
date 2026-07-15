@@ -547,6 +547,7 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("src") / "specsmith" / "upgrader.py",
     # Config field description uses legacy name as an example of an acceptable override value
     Path("src") / "specsmith" / "config.py",
+    Path("src") / "specsmith" / "_config_schema.py",  # same pattern: description example
     # Governance-record files that legitimately reference legacy names while
     # documenting the rename (REQ-083 description; ledger event history).
     Path("LEDGER.md"),
@@ -966,6 +967,48 @@ def test_specsmith_preflight_cli_change_with_scope_accepts(tmp_path):
     assert payload["decision"] == "accepted"
     assert payload["intent"] == "change"
     assert payload["requirement_ids"]  # at least one matched REQ
+
+
+def test_specsmith_preflight_cli_pipx_upgrade_is_environment_only(tmp_path):
+    """TEST-474: local pipx upgrades must not create project governance state."""
+    from click.testing import CliRunner
+
+    from specsmith.cli import main
+
+    scaffold = tmp_path / "scaffold.yml"
+    scaffold.write_text("name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8")
+    before = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*")
+        if path.is_file()
+    }
+
+    result = CliRunner().invoke(
+        main,
+        [
+            "preflight",
+            "Upgrade the pipx-managed SpecSmith CLI on this machine to the latest version",
+            "--project-dir",
+            str(tmp_path),
+            "--json",
+        ],
+        env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["decision"] == "environment_only"
+    assert payload["scope"] == "environment_only"
+    assert payload["work_item_id"] == ""
+    assert payload["requirement_ids"] == []
+    assert payload["test_case_ids"] == []
+    after = {
+        path.relative_to(tmp_path): path.read_bytes()
+        for path in tmp_path.rglob("*")
+        if path.is_file()
+    }
+    assert after == before
 
 
 # ---------------------------------------------------------------------------

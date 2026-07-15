@@ -1,14 +1,14 @@
 # Compliance Report — specsmith
 
-**Generated:** 2026-07-05
+**Generated:** 2026-07-13
 
 ## Project Summary
 
 - **Name**: specsmith
-- **Type**: CLI tool (Python)
+- **Type**: python
 - **Language**: python
 - **VCS Platform**: github
-- **Spec Version**: 0.20.1
+- **Spec Version**: 0.22.3
 
 ## Verification Tools
 
@@ -21,10 +21,10 @@
 
 ## Audit Summary
 
-- **Passed**: 35
-- **Failed**: 0
+- **Passed**: 74
+- **Failed**: 1
 - **Fixable**: 0
-- **Status**: Healthy
+- **Status**: Issues found
 
 - ✓ Required file AGENTS.md exists
 - ✓ Required file LEDGER.md exists
@@ -49,35 +49,75 @@
 - ✓ rules.yaml contains structured 'rules' entries
 - ✓ session-protocol.yaml valid (m001 content-blob, kind=session-protocol)
 - ✓ verification.yaml valid (m001 content-blob, kind=verification)
-- ✓ All 403 accepted REQ(s) have test coverage
-- ✓ LEDGER.md has 309 lines (within 500 threshold)
+- ✓ All 412 accepted REQ(s) have test coverage
+- ✓ LEDGER.md has 475 lines (within 500 threshold)
 - ✓ 0 open, 0 closed TODOs
-- ✓ AGENTS.md: 191 lines
-- ✓ docs/governance/RULES.md: 243 lines
-- ✓ docs/governance/SESSION-PROTOCOL.md: 80 lines
-- ✓ docs/governance/LIFECYCLE.md: 44 lines
-- ✓ docs/governance/ROLES.md: 30 lines
-- ✓ docs/governance/CONTEXT-BUDGET.md: 62 lines
-- ✓ docs/governance/VERIFICATION.md: 43 lines
-- ✓ docs/governance/DRIFT-METRICS.md: 54 lines
+- ✓ AGENTS.md: 122 lines
+- ✓ docs/governance/RULES.md: 18 lines
+- ✓ docs/governance/SESSION-PROTOCOL.md: 50 lines
+- ✓ docs/governance/LIFECYCLE.md: 28 lines
+- ✓ docs/governance/ROLES.md: 51 lines
+- ✓ docs/governance/CONTEXT-BUDGET.md: 40 lines
+- ✓ docs/governance/VERIFICATION.md: 49 lines
+- ✓ docs/governance/DRIFT-METRICS.md: 44 lines
 - ✓ Phase 🚀 Release: 100% ready
+- ✓ WI-C5A3000C risk=low gates satisfied
+- ✓ WI-424D94E9 risk=low gates satisfied
+- ✓ WI-75940FB5 risk=low gates satisfied
+- ✓ WI-55ED3D3C risk=low gates satisfied
+- ✓ WI-F1579D03 risk=low gates satisfied
+- ✓ WI-3E135E87 risk=low gates satisfied
+- ✓ WI-0A0CBF48 risk=low gates satisfied
+- ✓ WI-D3390673 risk=low gates satisfied
+- ✓ WI-EE91A49E risk=low gates satisfied
+- ✓ WI-75EB75D4 risk=low gates satisfied
+- ✓ WI-AD2B9BF6 risk=low gates satisfied
+- ✓ WI-100A6DB0 risk=low gates satisfied
+- ✓ WI-1FA34EDD risk=low gates satisfied
+- ✓ WI-54FBF673 risk=low gates satisfied
+- ✓ WI-7195E80A risk=low gates satisfied
+- ✓ WI-CCB839B8 risk=low gates satisfied
+- ✓ WI-90F68EC4 risk=low gates satisfied
+- ✓ WI-AD8285B7 risk=low gates satisfied
+- ✓ WI-F9B14D9C risk=low gates satisfied
+- ✓ WI-C4FB242E risk=low gates satisfied
+- ✓ WI-C1B608A9 risk=low gates satisfied
+- ✓ WI-FCA45C63 risk=low gates satisfied
+- ✓ WI-14572445 risk=low gates satisfied
+- ✓ WI-549942F2 risk=low gates satisfied
+- ✓ WI-6484EE02 risk=low gates satisfied
+- ✓ WI-CFC9C82C risk=low gates satisfied
+- ✓ WI-508DEB6C risk=medium gates satisfied
+- ✓ WI-605822F2 risk=low gates satisfied
+- ✓ WI-A210227F risk=low gates satisfied
+- ✓ WI-5A57E6D6 risk=low gates satisfied
+- ✓ WI-940D7073 risk=low gates satisfied
+- ✓ WI-094C4FE3 risk=low gates satisfied
+- ✓ WI-898AEB59 risk=low gates satisfied
+- ✓ WI-B4E3F895 risk=low gates satisfied
+- ✓ WI-1DDA18E0 risk=low gates satisfied
+- ✓ WI-DA14F483 risk=medium gates satisfied
+- ✓ WI-8F467602 risk=medium gates satisfied
+- ✓ WI-5C560143 risk=medium gates satisfied
+- ✗ WI-6C92EE21 risk=medium missing gates: linked tests
+- ✓ WI-260B314F risk=low gates satisfied
 
 ## Recent Activity
 
-- `c4c3d8a chore: sync develop to main (v0.20.1 + Warp integration + docs)`
-- `8492ad8 wi_close WI-0CB81412: done`
-- `3668ecf wi_close WI-0CB81412: done`
-- `dca6269 wi_close WI-0CB81412: done`
-- `633373d wi_close WI-0CB81412: done`
-- `2168489 chore(governance): link TEST-051 to release WI-81102448 (v0.20.1)`
-- `38b477b Merge pull request #272 from layer1labs/develop`
-- `86da788 release: v0.20.1`
-- `592f0b5 Merge pull request #271 from layer1labs/develop`
-- `75f8741 docs(readme): correct skill count to 138 and add brief-lang project type`
+- `bf45813 Merge pull request #294 from layer1labs/codex/close-release-0.22.0`
+- `0f75440 chore(governance): close v0.22.0 release`
+- `61b556e Merge pull request #293 from layer1labs/codex/release-0.22.0`
+- `1f75e19 release: prepare v0.22.0`
+- `52c33fd KILL SWITCH ACTIVATED: emergency stop`
+- `da69815 KILL SWITCH ACTIVATED: emergency stop`
+- `46da691 Merge pull request #292 from layer1labs/codex/clear-postmerge-codeql`
+- `05d3e38 fix: clear remaining post-merge CodeQL findings`
+- `eafcd63 Merge pull request #291 from layer1labs/codex/epistemic-release`
+- `76adac6 fix: resolve remaining CodeQL review findings`
 
 **Contributors:**
-- 655	Tristen Pierson
-- 4	dependabot[bot]
+- 726	Tristen Pierson
+- 5	dependabot[bot]
 - 1	Aqil Aziz
 
 ## AI System Inventory (REG-010)

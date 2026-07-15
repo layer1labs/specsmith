@@ -10,6 +10,11 @@ on:
 # Default: deny all permissions. Each job grants only what it needs.
 permissions: {}
 
+env:
+  SPECSMITH_ALLOW_NON_PIPX: "1"
+  SPECSMITH_NO_AUTO_UPDATE: "1"
+  SPECSMITH_PYPI_CHECKED: "1"
+
 jobs:
   lint:
     name: Lint (ruff)
@@ -248,11 +253,11 @@ jobs:
           SPECSMITH_PYPI_CHECKED: "1"
           PYTHONIOENCODING: utf-8
         run: |
-          python -m specsmith.cli api-surface > /tmp/api_surface.live.json
+            python -m specsmith api-surface > /tmp/api_surface.live.json
       - name: Diff against committed fixture
         run: |
           diff -u tests/fixtures/api_surface.json /tmp/api_surface.live.json || {
             echo "::error::api_surface.json is stale. Regenerate via:"
-            echo "  python -m specsmith.cli api-surface > tests/fixtures/api_surface.json"
+              echo "  python -m specsmith api-surface > tests/fixtures/api_surface.json"
             exit 1
           }

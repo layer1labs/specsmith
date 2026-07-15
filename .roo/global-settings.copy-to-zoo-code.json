@@ -1,27 +1,33 @@
 {
-  "note": "Copy these values into Zoo Code / Roo Code global settings if your client does not read project-local mode/provider settings. Do not commit real API keys.",
-  "providers": [
-    {
-      "name": "ChronoCortex Local Agent Pool",
-      "type": "openai-compatible",
-      "baseUrl": "http://localhost:4000/v1",
-      "apiKeyEnv": "LITELLM_MASTER_KEY",
-      "models": [
-        "architect",
-        "editor",
-        "tool-fast",
-        "reviewer"
-      ]
-    }
-  ],
-  "recommendedModelMapping": {
-    "architect": "architect",
-    "code": "editor",
-    "debug": "tool-fast",
-    "review": "reviewer"
+  "note": "Copy these provider/model ideas into Zoo Code global settings. This file is a project reference only; Zoo Code global settings are not automatically loaded from this repository.",
+  "provider": {
+    "name": "ChronoCortex Local Agent Pool",
+    "type": "openai-compatible",
+    "baseUrl": "http://localhost:4000/v1",
+    "apiKeyEnv": "LITELLM_MASTER_KEY"
   },
-  "requiredProjectFiles": [
-    ".roo/mcp.json",
-    ".roo/specsmith-rules.md"
-  ]
+  "models": {
+    "architect": {
+      "id": "architect",
+      "useFor": ["architecture", "repo planning", "ambiguous debugging", "risk review"]
+    },
+    "editor": {
+      "id": "editor",
+      "useFor": ["implementation", "tests", "refactors", "code edits"]
+    },
+    "toolFast": {
+      "id": "tool-fast",
+      "useFor": ["shell planning", "build logs", "JSON/YAML", "quick summaries"]
+    },
+    "reviewer": {
+      "id": "reviewer",
+      "useFor": ["diff review", "regression risk", "adversarial critique"]
+    }
+  },
+  "recommendedModeMapping": {
+    "Specsmith Architect": "architect",
+    "Specsmith Code": "editor",
+    "Specsmith Debug / Tool": "tool-fast",
+    "Specsmith Review": "reviewer"
+  }
 }

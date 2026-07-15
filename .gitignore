@@ -34,6 +34,7 @@ htmlcov/
 
 # Generated examples / test output
 .work/
+/site/
 tmp/
 temp/
 *.log
@@ -52,6 +53,9 @@ _diag_*.py
 # .specsmith/ split: committed (audit chain) vs gitignored (runtime cache)
 # Keep committed: config.yml, requirements.json, testcases.json
 # All runtime-only / regeneratable artifacts are gitignored:
+.specsmith/esdb.sqlite3
+.specsmith/esdb.sqlite3-shm
+.specsmith/esdb.sqlite3-wal
 .specsmith/workitems.json
 .specsmith/runs/
 .specsmith/chat/
@@ -83,15 +87,26 @@ _diag_*.py
 crates/chronomemory/target/
 app/target/
 
+tests/fixtures/*.bak
+tests/fixtures/*.tmp
+
 # specsmith ESDB policy (auto-normalized)
 # Tracked (governance source-of-truth):
 !.specsmith/config.yml
 !.specsmith/requirements.json
 !.specsmith/testcases.json
-!.specsmith/esdb.sqlite3
 !.specsmith/esdb_migration_manifest.json
 !.chronomemory/events.wal
 !.chronomemory/snapshot.json
+!.chronomemory/session-events.jsonl
 # Ephemeral runtime paths (never commit):
 .specsmith/session_metrics.jsonl
 .specsmith/backups/
+.specsmith/agent-tools.json
+.specsmith/agents.md.bak
+.specsmith/agents.md.m005.bak
+.specsmith/migration-state.json
+.specsmith/migration-backups/
+.specsmith/esdb-full-coverage
+.specsmith/esdb-m009-backfill
+.specsmith/esdb-m010-cleanup

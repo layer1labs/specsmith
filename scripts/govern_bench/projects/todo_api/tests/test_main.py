@@ -23,6 +23,7 @@ client = TestClient(app)
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def reset_store():
     """Reset the module-level store before each test.
@@ -32,6 +33,7 @@ def reset_store():
     because the inner `db=[]` list is a different object from _TODO_STORE.
     """
     import app.main as m
+
     m._TODO_STORE.clear()
     m._NEXT_ID = 1
     yield
@@ -42,6 +44,7 @@ def reset_store():
 # ---------------------------------------------------------------------------
 # Basic CRUD tests (all pass on clean state)
 # ---------------------------------------------------------------------------
+
 
 def test_list_todos_empty():
     response = client.get("/todos")
@@ -106,6 +109,7 @@ def test_list_todos_returns_all():
 # T2 FAILING TEST — mutable default argument bug
 # This test will FAIL until T2 is implemented correctly.
 # ---------------------------------------------------------------------------
+
 
 def test_create_todo_isolation():
     """Verify that creating one todo results in exactly one todo in the store.

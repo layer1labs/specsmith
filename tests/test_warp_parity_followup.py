@@ -11,7 +11,10 @@ Covers:
 from __future__ import annotations
 
 import json
+import os
 import socket
+import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -192,6 +195,7 @@ def test_voice_cli_status_with_stub(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "api_surface.json"
+_PROJECT_ROOT = Path(__file__).parents[1]
 
 
 def test_api_surface_fixture_exists() -> None:
@@ -212,8 +216,28 @@ def test_api_surface_matches_fixture() -> None:
     expected = json.loads(_FIXTURE.read_text(encoding="utf-8"))
     assert actual == expected, (
         "API surface drifted. Regenerate the snapshot if intentional:\n"
-        "  py -m specsmith.cli api-surface > tests/fixtures/api_surface.json"
+        "  py -m specsmith api-surface > tests/fixtures/api_surface.json"
     )
+
+
+def test_package_module_api_surface_matches_fixture() -> None:
+    """The package entry point must expose the fully registered CLI surface."""
+    env = os.environ | {
+        "SPECSMITH_ALLOW_NON_PIPX": "1",
+        "SPECSMITH_NO_AUTO_UPDATE": "1",
+        "SPECSMITH_PYPI_CHECKED": "1",
+    }
+    result = subprocess.run(
+        [sys.executable, "-m", "specsmith", "api-surface"],
+        cwd=str(_PROJECT_ROOT),
+        capture_output=True,
+        check=False,
+        encoding="utf-8",
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == json.loads(_FIXTURE.read_text(encoding="utf-8"))
 
 
 def test_api_surface_contains_required_1_0_commands() -> None:

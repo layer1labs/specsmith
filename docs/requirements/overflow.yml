@@ -438,3 +438,81 @@
     general) keyed by the detected GPU VRAM tier, with per-model fit assessment (fits/tight/spills-to-RAM).
     Exposed via ''specsmith local-model recommend'' (+ --json). Must not change existing
     detect_local_model/detect_local_models behavior.'
+- id: REQ-446
+  title: Epistemic chat condensation and agent handoff
+  status: implemented
+  description: Specsmith shall safely condense chat/session context into provenance-preserving
+    ESDB artifacts that retain source identifiers, confidence, uncertainty, unresolved
+    decisions, active work items, and validation status; reject or flag unsupported
+    claims; restore usable context after compaction; and export/import a portable
+    handoff envelope interoperable with Specsmith agents and Zoo-Code.
+- id: REQ-447
+  title: Git-safe ESDB session persistence
+  status: implemented
+  description: Specsmith shall store session and ESDB history in a deterministic,
+    append-friendly, text-based canonical representation that can be merged across
+    branches without lost or duplicated events; local SQLite databases and WAL sidecars
+    shall be derived caches that can be rebuilt safely with validated schema, integrity,
+    and recovery reporting.
+- id: REQ-448
+  title: Windows launcher resolution diagnostics
+  status: implemented
+  description: On Windows, Specsmith shall detect multiple or shadowed specsmith executables,
+    report the active executable and package version, provide safe pipx-focused remediation,
+    and support PowerShell stderr redirection without a launcher failure.
+- id: REQ-449
+  title: Reachable version-mismatch recovery
+  status: implemented
+  description: When a project requires a newer development or prerelease Specsmith
+    version than the stable channel provides, Specsmith shall diagnose the channel
+    mismatch, provide an exact supported pipx remediation command, and distinguish
+    it from a normal stable upgrade without permitting backward migration.
+- id: REQ-450
+  title: Stable release channel integrity
+  status: implemented
+  description: Specsmith release automation shall reject PEP 440 development, prerelease,
+    and local versions before stable PyPI upload, publish such artifacts only through
+    an explicit development channel, and verify the stable install and upgrade path
+    in CI.
+- id: REQ-451
+  title: Contained work-item persistence paths
+  status: implemented
+  description: Specsmith shall normalize every work-item persistence path with os.path.realpath,
+    reject values outside the project root before filesystem access, and provide the
+    same containment behavior on Windows, Linux, and macOS.
+- id: REQ-452
+  title: CodeQL-clean report rendering
+  status: implemented
+  description: Specsmith shall render quality reports without CodeQL implicit string
+    concatenation findings while preserving the report content and formatting.
+- id: REQ-453
+  title: Release candidate quality gates
+  status: implemented
+  description: Before release, Specsmith shall pass strict linting, formatting, type
+    checking, the complete test suite, strict documentation build, runtime dependency
+    audit, and governance audit without unresolved issues.
+  source: CI, release workflow, and release validation
+- id: REQ-454
+  title: Single-branch workflow default
+  status: implemented
+  description: Specsmith shall default new projects to a single-branch workflow on
+    the configured default branch, refuse branch creation until a different branching
+    strategy is explicitly enabled through specsmith, and preserve GitFlow, trunk-based,
+    and GitHub-flow behavior after opt-in.
+  source: Git workflow governance
+- id: REQ-455
+  title: Environment-only SpecSmith CLI upgrades are non-blocking
+  status: implemented
+  description: A preflight request limited to upgrading or installing the pipx-managed
+    local SpecSmith CLI MUST return the explicit environment_only decision with exit
+    code 0, no work item, no ESDB or ledger record, and instructions to use pipx.
+    It MUST NOT require repository requirement matching or clarification.
+  source: 'GitHub issue #299'
+- id: REQ-456
+  title: SpecSmith CLI help is side-effect free
+  status: implemented
+  description: Every SpecSmith CLI invocation containing --help MUST return usage
+    without project migration, update checks, ledger writes, ESDB writes, work-item
+    allocation, or project-file creation or modification. Migration remains available
+    only through an explicit operational command.
+  source: 'GitHub issue #300'

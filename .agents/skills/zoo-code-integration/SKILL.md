@@ -66,6 +66,19 @@ After edits:
 3. Run `specsmith verify` or use MCP governance tools when available.
 4. Call `governance_trace_seal` for meaningful milestones, accepted reviews, or release gates.
 
+## Portable handoffs
+
+When a session must continue in another agent, export the latest governed
+context instead of writing an ungrounded prose summary:
+
+```powershell
+specsmith zoo-code export-handoff --project-dir . --output handoff.json
+```
+
+The resulting envelope retains source IDs, confidence, and uncertainty. The
+receiving agent must verify the cited source IDs before treating an excerpt as
+a decision or a fact.
+
 ## Embedded/firmware discipline
 
 Never invent SDK, HAL, register, device-tree, or build-system APIs.
@@ -99,4 +112,3 @@ Use the LiteLLM router endpoint when available:
 
 ```text
 http://localhost:4000/v1
-```
