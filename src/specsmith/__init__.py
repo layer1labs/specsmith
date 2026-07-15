@@ -8,4 +8,4 @@ from importlib.metadata import version as _pkg_version
 try:
     __version__: str = _pkg_version("specsmith")
 except PackageNotFoundError:  # running from source without install
-    __version__ = "0.22.4"  # fallback: keep in sync with pyproject.toml
+    __version__ = "0.22.5"  # fallback: keep in sync with pyproject.toml
