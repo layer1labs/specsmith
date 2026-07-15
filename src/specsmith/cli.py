@@ -13,9 +13,10 @@ import click
 import yaml
 
 from specsmith import __version__
+from specsmith._config_schema import _TYPE_LABELS
 from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.commands.zoo_code import zoo_code_group
-from specsmith.config import _TYPE_LABELS, Platform, ProjectConfig, ProjectType
+from specsmith.config import Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
 from specsmith.scaffolder import scaffold_project
@@ -6863,7 +6864,8 @@ def info_cmd(as_json: bool, section: str) -> None:
     """Report all specsmith capabilities: languages, project types, tools, LLM backends."""
     import json as json_mod  # noqa: PLC0415
 
-    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith._config_schema import _TYPE_LABELS  # noqa: PLC0415
+    from specsmith.config import ProjectType  # noqa: PLC0415
     from specsmith.languages import EXT_LANG, LANG_CATEGORY, LANG_DISPLAY  # noqa: PLC0415
 
     try:
@@ -8020,7 +8022,8 @@ def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
     """
     import json as json_mod  # noqa: PLC0415
 
-    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith._config_schema import _TYPE_LABELS  # noqa: PLC0415
+    from specsmith.config import ProjectType  # noqa: PLC0415
     from specsmith.importer import (  # noqa: PLC0415
         detect_project,
         suggest_auxiliary,

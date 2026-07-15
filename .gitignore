@@ -87,6 +87,9 @@ _diag_*.py
 crates/chronomemory/target/
 app/target/
 
+tests/fixtures/*.bak
+tests/fixtures/*.tmp
+
 # specsmith ESDB policy (auto-normalized)
 # Tracked (governance source-of-truth):
 !.specsmith/config.yml
