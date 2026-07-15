@@ -27,7 +27,7 @@ def test_release_metadata_and_embedded_schema_versions_agree() -> None:
     )
     schema_version = _quoted_value(
         ROOT / "src" / "specsmith" / "config.py",
-        r'spec_version:\s*str\s*=\s*Field\(default="([^"]+)"',
+        r'ProjectConfig\.model_fields\["spec_version"\]\.default\s*=\s*"([^"]+)"',
     )
     project_schema = yaml.safe_load((ROOT / "docs" / "SPECSMITH.yml").read_text(encoding="utf-8"))
 

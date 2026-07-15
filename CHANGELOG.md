@@ -10,6 +10,19 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.22.5] - 2026-07-15
+
+### Fixed
+- Import path for `_TYPE_LABELS` — moved from `specsmith.config` to `specsmith._config_schema`
+  (PR #309 fix on origin/main).
+- Legacy `TEST_SPEC.md` reference in `src/specsmith/_config_schema.py` field description
+  added to skip list in `tests/test_nexus.py` (PR #310).
+
+### Changed
+- Removed `.github/workflows/dev-release.yml` — dev-build job fails on stable release
+  versions and is no longer needed (PR #310).
+- Cleaned up old alpha/beta tags not published to PyPI.
+
 ## [0.22.4] - 2026-07-15
 
 ### Changed
