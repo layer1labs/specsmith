@@ -71,10 +71,7 @@ def _load_project_env(path: str | None = None) -> None:
 _load_project_env()
 
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
-PROJECT_TYPE_LABELS = {
-    str(i + 1): label
-    for i, (t, label) in enumerate(_TYPE_LABELS.items())
-}
+PROJECT_TYPE_LABELS = {str(i + 1): label for i, (t, label) in enumerate(_TYPE_LABELS.items())}
 
 
 class _AutoUpdateGroup(click.Group):

@@ -29,8 +29,8 @@ from starlette.responses import Response
 # ---------------------------------------------------------------------------
 # 1. Rate limiting state (NOT deprecated)
 # ---------------------------------------------------------------------------
-_RATE_LIMIT_WINDOW = 60      # seconds
-_RATE_LIMIT_MAX = 100        # max requests per window per client IP
+_RATE_LIMIT_WINDOW = 60  # seconds
+_RATE_LIMIT_MAX = 100  # max requests per window per client IP
 _rate_limit_store: dict[str, list[float]] = defaultdict(list)
 
 
@@ -72,6 +72,7 @@ def _validate_jwt(token: str | None) -> bool:
 # 3. Request-ID injection (NOT deprecated)
 # ---------------------------------------------------------------------------
 
+
 def _inject_request_id(request: Request) -> str:
     """Return an existing X-Request-ID or generate a new UUID4."""
     existing = request.headers.get("X-Request-ID")
@@ -81,6 +82,7 @@ def _inject_request_id(request: Request) -> str:
 # ---------------------------------------------------------------------------
 # Middleware class
 # ---------------------------------------------------------------------------
+
 
 class AuthMiddleware(BaseHTTPMiddleware):
     """Starlette middleware applying rate limiting and request-ID injection.

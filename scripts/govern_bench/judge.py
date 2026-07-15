@@ -170,9 +170,7 @@ def _judge_anthropic(prompt: str, model: str) -> JudgeResult:
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        return JudgeResult.error_result(
-            "ANTHROPIC_API_KEY not set; skipping LLM judge"
-        )
+        return JudgeResult.error_result("ANTHROPIC_API_KEY not set; skipping LLM judge")
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
@@ -201,9 +199,7 @@ def _judge_openai(prompt: str, model: str) -> JudgeResult:
 
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        return JudgeResult.error_result(
-            "OPENAI_API_KEY not set; skipping LLM judge"
-        )
+        return JudgeResult.error_result("OPENAI_API_KEY not set; skipping LLM judge")
 
     try:
         client = openai.OpenAI(api_key=api_key)
