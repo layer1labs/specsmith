@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from specsmith.commands.zoo_code import zoo_code_group
 from specsmith.commands.zoo_code_assets import GLOBAL, MARKER, MCP, ZooCodeAssets
+
+
+def test_lifecycle_commands_are_registered() -> None:
+    assert {"setup", "doctor", "uninstall"} <= set(zoo_code_group.commands)
 
 
 def test_setup_doctor_and_idempotence(tmp_path: Path) -> None:
