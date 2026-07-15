@@ -1,1 +1,0 @@
-{"errors":[{"path":["mutation","minimizeComment","viewerCanMinimize"],"extensions":{"code":"undefinedField","typeName":"MinimizeCommentPayload","fieldName":"viewerCanMinimize"},"locations":[{"line":3,"column":5}],"message":"Field 'viewerCanMinimize' doesn't exist on type 'MinimizeCommentPayload'"}]}gh: Field 'viewerCanMinimize' doesn't exist on type 'MinimizeCommentPayload'

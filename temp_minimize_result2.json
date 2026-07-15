@@ -1,1 +1,0 @@
-{"errors":[{"path":["mutation","minimizeComment","isMinimized"],"extensions":{"code":"undefinedField","typeName":"MinimizeCommentPayload","fieldName":"isMinimized"},"locations":[{"line":3,"column":5}],"message":"Field 'isMinimized' doesn't exist on type 'MinimizeCommentPayload'"}]}gh: Field 'isMinimized' doesn't exist on type 'MinimizeCommentPayload'

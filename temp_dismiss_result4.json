@@ -1,1 +1,0 @@
-{"errors":[{"message":"Expected one of SCHEMA, SCALAR, TYPE, ENUM, INPUT, UNION, INTERFACE, actual: UNKNOWN_CHAR (\"@\") at [1, 1]","locations":[{"line":1,"column":1}]}]}gh: Expected one of SCHEMA, SCALAR, TYPE, ENUM, INPUT, UNION, INTERFACE, actual: UNKNOWN_CHAR ("@") at [1, 1]

@@ -1,1 +1,0 @@
-{"query":"mutation {\n  dismissPullRequestReview(input: {\n    pullRequestReviewId: \"PRR_kwDOR2RC5c8AAAABGGeILQ\",\n    message: \"False positive: spec_version is intentionally exported for cli.py public API.\"\n  }) {\n    pullRequestReview {\n      id\n      state\n    }\n  }\n}"}

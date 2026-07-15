@@ -1,1 +1,0 @@
-{"errors":[{"path":["mutation","minimizeComment","actionRequired"],"extensions":{"code":"undefinedField","typeName":"MinimizeCommentPayload","fieldName":"actionRequired"},"locations":[{"line":3,"column":5}],"message":"Field 'actionRequired' doesn't exist on type 'MinimizeCommentPayload'"}]}gh: Field 'actionRequired' doesn't exist on type 'MinimizeCommentPayload'
