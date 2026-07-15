@@ -112,4 +112,3 @@ Use the LiteLLM router endpoint when available:
 
 ```text
 http://localhost:4000/v1
-```
