@@ -1,0 +1,12 @@
+mutation {
+  dismissPullRequestReview(input: {
+    pullRequestReviewId: "PRR_kwDOR2RC5c8AAAABGGeILQ",
+    message: "False positive: spec_version is intentionally exported for cli.py public API.",
+    event: "APPROVE"
+  }) {
+    pullRequestReview {
+      id
+      state
+    }
+  }
+}

@@ -1,0 +1,9 @@
+unknown shorthand flag: 'T' in -Tail
+
+Usage:  gh run download [<run-id>] [flags]
+
+Flags:
+  -D, --dir string            The directory to download artifacts into (default ".")
+  -n, --name stringArray      Download artifacts that match any of the given names
+  -p, --pattern stringArray   Download artifacts that match a glob pattern
+  

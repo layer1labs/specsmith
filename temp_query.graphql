@@ -1,0 +1,16 @@
+query {
+  repository(name: "specsmith", owner: "layer1labs") {
+    pullRequest(number: 308) {
+      id
+      reviews(first: 10) {
+        nodes {
+          id
+          state
+          author {
+            login
+          }
+        }
+      }
+    }
+  }
+}

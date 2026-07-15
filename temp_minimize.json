@@ -1,0 +1,1 @@
+{"query":"mutation {\n  minimizeComment(input: {classifier: RESOLVED, subjectId: \"PRRC_kwDOR2RC5c7V1Vvf\"}) {\n    minimizedComment {\n      isMinimized\n    }\n  }\n}"}

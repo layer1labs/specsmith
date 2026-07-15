@@ -1,0 +1,7 @@
+mutation {
+  dismissPullRequestReview(input: {pullRequestReviewId: "PRR_kwDOR2RC5c8AAAABGGeILQ", body: "Dismissed: false positive - spec_version is intentionally exported.", resolution: RESOLVED}) {
+    pullRequestReview {
+      id
+    }
+  }
+}
