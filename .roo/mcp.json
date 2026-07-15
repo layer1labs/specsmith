@@ -14,13 +14,8 @@
 				"SPECSMITH_PYPI_CHECKED": "1"
 			},
 			"alwaysAllow": [
-				"governance_phase",
-				"governance_req_list",
-				"governance_audit",
-				"governance_preflight",
-				"governance_project_list",
-				"governance_checkpoint",
-				"governance_trace_seal"
+				"*",
+				"governance_audit"
 			]
 		}
 	}
