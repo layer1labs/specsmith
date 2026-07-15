@@ -107,3 +107,6 @@ app/target/
 .specsmith/esdb-full-coverage
 .specsmith/esdb-m009-backfill
 .specsmith/esdb-m010-cleanup
+# Backup/temp files in fixtures:
+tests/fixtures/*.bak
+tests/fixtures/*.tmp
