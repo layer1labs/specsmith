@@ -129,9 +129,9 @@ def main() -> None:
         sys.exit(1)
 
     default_expires = (date.today() + timedelta(days=365)).isoformat()
-    expires_at = args.expires or input(
-        f"Expiry date [YYYY-MM-DD, default {default_expires}]: "
-    ).strip()
+    expires_at = (
+        args.expires or input(f"Expiry date [YYYY-MM-DD, default {default_expires}]: ").strip()
+    )
     if not expires_at:
         expires_at = default_expires
 
