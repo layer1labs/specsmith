@@ -62,3 +62,26 @@ Every completed task should report:
 - reviewer findings
 - remaining risks
 - follow-up work, if any
+
+## Loop prevention
+
+### Command repetition limit
+- Never call the same tool (especially `execute_command`) more than **3 times** with identical arguments.
+- If a command fails or produces unexpected output, **stop retrying the same command** and instead:
+  1. Analyze the output for clues
+  2. Try a different approach (read file, search, list directory)
+  3. Ask for clarification if needed
+- When polling for CI/external state (e.g., waiting for green build), use **different** commands each iteration (e.g., check different endpoints, wait between polls) rather than repeating the exact same call.
+
+### Self-correction protocol
+When you detect you are about to repeat an action:
+1. Pause and review: "Have I tried this exact thing before?"
+2. If yes, switch strategy: read logs, check file contents, list directory structure
+3. Never assume the same command will produce different results without a state change
+
+### Intentional polling exceptions
+The following scenarios allow repeated tool calls with different parameters:
+- CI/CD status polling (use different status endpoints or add delays)
+- Health checks (check different services/ports)
+- File watch / change detection (use different watch patterns)
+- Retry with backoff (increase delay between attempts)
