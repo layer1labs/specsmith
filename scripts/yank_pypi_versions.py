@@ -50,9 +50,7 @@ def yank_version(version: str, token: str, dry_run: bool) -> None:
 
     # Yank via PyPI API
     # PyPI's yank endpoint (warehouse API)
-    yank_url = (
-        f"https://pypi.org/manage/project/{PROJECT}/release/{version}/yank/"
-    )
+    yank_url = f"https://pypi.org/manage/project/{PROJECT}/release/{version}/yank/"
     data = f"reason={urllib.parse.quote(YANK_REASON)}".encode()
 
     if dry_run:

@@ -15,7 +15,7 @@ import yaml
 from specsmith import __version__
 from specsmith.commands.issues_policy import register_issue_policy_commands
 from specsmith.commands.zoo_code import zoo_code_group
-from specsmith.config import Platform, ProjectConfig, ProjectType, _TYPE_LABELS
+from specsmith.config import _TYPE_LABELS, Platform, ProjectConfig, ProjectType
 from specsmith.console_utils import make_console
 from specsmith.requirements_parser import define_test_cases, parse_architecture_requirements
 from specsmith.scaffolder import scaffold_project
@@ -71,10 +71,7 @@ def _load_project_env(path: str | None = None) -> None:
 _load_project_env()
 
 PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
-PROJECT_TYPE_LABELS = {
-    str(i + 1): label
-    for i, (t, label) in enumerate(_TYPE_LABELS.items())
-}
+PROJECT_TYPE_LABELS = {str(i + 1): label for i, (t, label) in enumerate(_TYPE_LABELS.items())}
 
 
 class _AutoUpdateGroup(click.Group):
