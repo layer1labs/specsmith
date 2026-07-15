@@ -547,6 +547,7 @@ _LEGACY_SCAN_SKIP_FILES = {
     Path("src") / "specsmith" / "upgrader.py",
     # Config field description uses legacy name as an example of an acceptable override value
     Path("src") / "specsmith" / "config.py",
+    Path("src") / "specsmith" / "_config_schema.py",  # same pattern: description example
     # Governance-record files that legitimately reference legacy names while
     # documenting the rename (REQ-083 description; ledger event history).
     Path("LEDGER.md"),
