@@ -1,23 +1,31 @@
 # Zoo Code / Roo Code Integration
 
-Specsmith integrates with Zoo Code / Roo Code through a repo-local `.roo/` directory and the Specsmith MCP governance server.
+Specsmith integrates with Zoo Code / Roo Code through reusable global assets, a repo-local `.roo/` directory, and the Specsmith MCP governance server.
 
-## What belongs in the repository
+## Setup
 
-Project-local integration files:
+Install or upgrade Specsmith with pipx, then configure the active project:
 
-| File | Purpose |
-|---|---|
-| `.roo/mcp.json` | Registers the `specsmith-governance` MCP server for this repo. |
-| `.roo/specsmith-rules.md` | Mandatory rules for governed Zoo/Roo sessions. |
-| `.roo/modes.local.json` | Reference mode-to-model mapping for this project. |
-| `.roo/global-settings.copy-to-zoo-code.json` | Copyable global provider/model settings for Zoo Code. |
+```bash
+pipx upgrade specsmith
+cd /path/to/project
+specsmith zoo-code setup --project-dir .
+specsmith zoo-code doctor --project-dir .
+```
 
-Zoo Code global settings are not automatically loaded from a repository. Keep copyable global settings in the project as a reference, then copy them into Zoo Code global/user settings manually.
+The setup command installs reusable Specsmith rules, slash commands, and skills under `~/.roo`. It also merges the `specsmith-governance` MCP server into the project `.roo/mcp.json` without removing unrelated servers.
+
+Use `--global-roo PATH` or `ROO_GLOBAL_DIR` to override the global directory. `--scope global` and `--scope project` limit the operation. `--dry-run` previews changes, and `--preserve-existing` refuses to replace unmanaged files at reserved Specsmith paths.
+
+## Ownership boundary
+
+Specsmith owns reusable global governance assets and their setup, migration, doctor, and uninstall lifecycle. Repositories should contain only project-specific rules, commands, skills, custom modes, and provider/model settings.
+
+Existing generic Specsmith rules duplicated inside a project are removed only when they match a recognized legacy asset or carry a Specsmith managed marker. Customized project files are preserved and reported.
 
 ## MCP setup
 
-The repo-local MCP config should look like this:
+The generated repo-local MCP entry is:
 
 ```json
 {
@@ -49,7 +57,7 @@ The MCP server exposes governance tools such as:
 Every Zoo/Roo session should follow this sequence:
 
 ```text
-read AGENTS.md + .roo/specsmith-rules.md
+read AGENTS.md and applicable global/project rules
 call governance_checkpoint
 call governance_phase
 call governance_req_list
@@ -60,7 +68,7 @@ run verification
 seal meaningful decisions
 ```
 
-Do not edit files unless `governance_preflight` returns `accepted`.
+Do not edit files unless `governance_preflight` returns `accepted` or the request is classified as a permitted environment-only operation.
 
 ## Local model routing
 
@@ -82,18 +90,18 @@ Recommended role mapping:
 
 The model that writes a patch must not be the only model that approves it.
 
-## Operator setup checklist
+## Operator checklist
 
-1. Start the local model router if using local models.
-2. Copy `.roo/global-settings.copy-to-zoo-code.json` into Zoo Code global settings, adapting field names to the current extension version.
-3. Ensure Zoo/Roo sees `.roo/mcp.json` for the active workspace.
-4. Start a session by asking the agent to read `.roo/specsmith-rules.md` and call `governance_checkpoint`.
-5. Run governed tasks using the role split: Architect -> Code -> Debug/Tool -> Review.
+1. Start the local model router when using local models.
+2. Run `specsmith zoo-code setup --project-dir .`.
+3. Run `specsmith zoo-code doctor --project-dir .`.
+4. Reload the editor so Zoo Code discovers the final rules, commands, skills, and MCP configuration.
+5. Start governed work with `/specsmith-intake` or the appropriate project-specific command.
 
-## Safe defaults
+## Remove managed integration state
 
-- Architect mode plans and reads; it should not directly edit production code.
-- Code mode implements accepted preflight tasks.
-- Debug/Tool mode runs safe commands and parses logs.
-- Review mode critiques diffs against requirements, tests, and prior decisions.
-- Specsmith blocks or escalates work when confidence, phase, or scope checks fail.
+```bash
+specsmith zoo-code uninstall --project-dir .
+```
+
+Uninstall removes only marker-owned global assets and removes the MCP entry only when it still matches the Specsmith-managed value. Unmanaged and customized files are preserved.
