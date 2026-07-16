@@ -100,6 +100,9 @@ tests/fixtures/*.tmp
 !.chronomemory/snapshot.json
 !.chronomemory/session-events.jsonl
 # Ephemeral runtime paths (never commit):
+.specsmith/esdb.sqlite3
+.specsmith/esdb.sqlite3-shm
+.specsmith/esdb.sqlite3-wal
 .specsmith/session_metrics.jsonl
 .specsmith/backups/
 .specsmith/agent-tools.json

@@ -42,8 +42,9 @@ from typing import Any
 
 # ── Repo mapping ────────────────────────────────────────────────────────────
 
+# Kairos repo is deprecated; only specsmith remains active.
+# Kept for backward compatibility — callers may still pass "kairos" which maps here.
 ORGS: dict[str, str] = {
-    "kairos": "layer1labs/kairos",
     "specsmith": "layer1labs/specsmith",
 }
 
@@ -231,17 +232,15 @@ class DuplicateBlockedError(Exception):
 
 
 def search_issues(
-    repo: str,
     query: str,
     *,
     max_results: int = 5,
 ) -> list[dict[str, Any]]:
-    """Search open issues in *repo* matching *query*.
+    """Search open issues in layer1labs/specsmith matching *query*.
 
-    ``repo`` is a short name: ``"kairos"`` or ``"specsmith"``.
     Returns a list of issue dicts with keys: number, title, html_url, state.
     """
-    full_repo = ORGS.get(repo, f"layer1labs/{repo}")
+    full_repo = "layer1labs/specsmith"
     keywords = "+".join(list(_words(query))[:8])
     q = f"repo:{full_repo}+is:issue+is:open+{urllib.parse.quote(keywords, safe='+:')}"
     path = f"search/issues?q={q}&per_page={max_results}"
@@ -259,13 +258,13 @@ def search_issues(
     ]
 
 
-def check_duplicate(repo: str, title: str) -> DuplicateCheckResult:
-    """Return a DuplicateCheckResult for the given *title* in *repo*.
+def check_duplicate(title: str) -> DuplicateCheckResult:
+    """Return a DuplicateCheckResult for the given *title* in layer1labs/specsmith.
 
     Never raises; errors are captured in ``.error``.
     """
     try:
-        candidates = search_issues(repo, title, max_results=5)
+        candidates = search_issues(title, max_results=5)
     except Exception as exc:  # noqa: BLE001
         return DuplicateCheckResult(error=str(exc))
 
@@ -284,14 +283,13 @@ def check_duplicate(repo: str, title: str) -> DuplicateCheckResult:
 
 
 def file_issue(
-    repo: str,
     title: str,
     body: str,
-    labels: tuple[str, ...] = (),
     *,
+    labels: tuple[str, ...] = (),
     force: bool = False,
 ) -> FiledIssueResult:
-    """File a GitHub issue, blocking if likely duplicates exist.
+    """File a GitHub issue in layer1labs/specsmith, blocking if likely duplicates exist.
 
     When ``force=False`` (the default) and ``check_duplicate()`` finds issues
     with Jaccard similarity ≥ DUPLICATE_THRESHOLD, raises ``DuplicateBlockedError``.
@@ -300,11 +298,11 @@ def file_issue(
     Requires ``gh`` CLI to be installed and authenticated.
     """
     if not force:
-        check = check_duplicate(repo, title)
+        check = check_duplicate(title)
         if check.blocked:
             raise DuplicateBlockedError(check)
 
-    full_repo = ORGS.get(repo, f"layer1labs/{repo}")
+    full_repo = "layer1labs/specsmith"
     payload: dict[str, Any] = {"title": title, "body": body}
     if labels:
         payload["labels"] = list(labels)

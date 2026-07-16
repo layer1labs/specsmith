@@ -13110,7 +13110,7 @@ def agent_endpoint_presets_cmd(as_json: bool) -> None:
 def issue_group() -> None:
     """File and search GitHub issues with duplicate detection.
 
-    All commands check layer1labs/kairos and layer1labs/specsmith repos.
+    All commands operate on the layer1labs/specsmith repo.
     Duplicate detection uses title-word Jaccard similarity; issues with
     similarity ≥ 0.60 block filing unless --force is passed.
 
@@ -13121,15 +13121,8 @@ def issue_group() -> None:
 
 @issue_group.command(name="check")
 @click.argument("title")
-@click.option(
-    "--repo",
-    default="kairos",
-    type=click.Choice(["kairos", "specsmith"]),
-    show_default=True,
-    help="Target repository.",
-)
 @click.option("--json", "as_json", is_flag=True, default=False)
-def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
+def issue_check_cmd(title: str, as_json: bool) -> None:
     """Check for duplicate open issues matching TITLE.
 
     Returns two lists: 'duplicates' (Jaccard ≥ 0.60, blocks filing)
@@ -13139,7 +13132,7 @@ def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
 
     from specsmith.issue_reporter import check_duplicate  # noqa: PLC0415
 
-    result = check_duplicate(repo, title)
+    result = check_duplicate(title)
     if as_json:
         click.echo(_json.dumps(result.to_dict(), indent=2))
         return
@@ -13178,12 +13171,6 @@ def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
 @click.argument("title")
 @click.option("--body", default="", help="Issue body / description.")
 @click.option(
-    "--repo",
-    default="kairos",
-    type=click.Choice(["kairos", "specsmith"]),
-    show_default=True,
-)
-@click.option(
     "--label",
     "labels",
     multiple=True,
@@ -13205,13 +13192,12 @@ def issue_check_cmd(title: str, repo: str, as_json: bool) -> None:
 def issue_file_cmd(
     title: str,
     body: str,
-    repo: str,
     labels: tuple[str, ...],
     ai: bool,
     force: bool,
     as_json: bool,
 ) -> None:
-    """File a new issue in REPO, blocked if likely duplicates exist.
+    """File a new issue in layer1labs/specsmith, blocked if likely duplicates exist.
 
     Requires the `gh` CLI to be installed and authenticated.
     Pass --ai to use the configured LLM to format the report.
@@ -13232,7 +13218,7 @@ def issue_file_cmd(
         title, body = ai_enhance_report(title, body)
 
     try:
-        result = file_issue(repo, title, body, labels=labels, force=force)
+        result = file_issue(title, body, labels=labels, force=force)
     except DuplicateBlockedError as exc:
         if as_json:
             click.echo(
@@ -13265,12 +13251,6 @@ def issue_file_cmd(
 @issue_group.command(name="search")
 @click.argument("query")
 @click.option(
-    "--repo",
-    default="kairos",
-    type=click.Choice(["kairos", "specsmith"]),
-    show_default=True,
-)
-@click.option(
     "--max",
     "max_results",
     default=10,
@@ -13278,13 +13258,13 @@ def issue_file_cmd(
     help="Maximum number of results.",
 )
 @click.option("--json", "as_json", is_flag=True, default=False)
-def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> None:
-    """Search open issues in REPO by QUERY.  No similarity threshold applied."""
+def issue_search_cmd(query: str, max_results: int, as_json: bool) -> None:
+    """Search open issues in layer1labs/specsmith by QUERY.  No similarity threshold applied."""
     import json as _json  # noqa: PLC0415
 
     from specsmith.issue_reporter import search_issues  # noqa: PLC0415
 
-    results = search_issues(repo, query, max_results=max_results)
+    results = search_issues(query, max_results=max_results)
     if as_json:
         click.echo(_json.dumps({"issues": results, "count": len(results)}, indent=2))
         return
@@ -13293,7 +13273,7 @@ def issue_search_cmd(query: str, repo: str, max_results: int, as_json: bool) -> 
         console.print("[dim]No open issues found.[/dim]")
         return
 
-    console.print(f"[bold]Open issues in {repo}[/bold] ({len(results)} results)\n")
+    console.print(f"[bold]Open issues in layer1labs/specsmith[/bold] ({len(results)} results)\n")
     for issue in results:
         console.print(f"  [bold]#{issue['number']}[/bold]  {issue['title']}")
         console.print(f"  [blue]{issue['html_url']}[/blue]")
@@ -13502,7 +13482,160 @@ main.add_command(ci_group)
 
 @main.group(name="context")
 def context_group() -> None:
-    """Context window management and optimization."""
+    """Context window management and optimization.
+
+    Commands:
+      optimize    Run all context optimization tiers (legacy)
+      guided      Epistemic-value-aware guided compression (smart)
+    """
+
+
+@context_group.command(name="guided")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--target",
+    "target_fill_pct",
+    type=float,
+    default=50.0,
+    show_default=True,
+    help="Target context fill percentage (lower = more aggressive).",
+)
+@click.option(
+    "--source",
+    "source",
+    type=click.Choice(["all", "conversation", "ledger", "esdb"]),
+    default="all",
+    show_default=True,
+    help="Which context source to compress.",
+)
+@click.option("--json", "as_json", is_flag=True, default=False)
+def context_guided_cmd(
+    project_dir: str, target_fill_pct: float, source: str, as_json: bool
+) -> None:
+    """Run epistemic-value-aware guided compression.
+
+    Unlike the legacy tiered optimizer, guided compression evaluates the
+    epistemic value of each context element and preserves what matters
+    for governance continuity while discarding or summarizing low-value
+    content.
+
+    Epistemic tiers:
+      TIER_CRITICAL  — Never evict (requirements, seals, phase state)
+      TIER_HIGH      — Keep full (preflights, audits, recent ESDB)
+      TIER_MEDIUM    — Summarize (conversation turns, ledger entries)
+      TIER_LOW       — Compress (debug traces, tool output)
+      TIER_DISCARD   — Drop (temp files, stale PIDs, duplicates)
+    """
+    import json as _json
+
+    from specsmith.guided_compression import (
+        GuidedCompressor,
+        ContextElement,
+    )
+
+    compressor = GuidedCompressor(project_dir)
+
+    if source in ("all", "conversation"):
+        # Read conversation history from ESDB if available
+        try:
+            from specsmith.esdb import SqliteStore
+
+            with SqliteStore(project_dir) as store:
+                history_records = list(store.all())
+            history: list[dict] = []
+            for rec in history_records:
+                if rec.key.startswith("CHAT-"):
+                    history.append(rec.data)
+            if history:
+                result = compressor.compress_from_conversation(
+                    history, target_fill_pct=target_fill_pct
+                )
+                if as_json:
+                    click.echo(
+                        _json.dumps(
+                            {
+                                "source": "conversation",
+                                "result": {
+                                    "original_size": result.original_size,
+                                    "compressed_size": result.compressed_size,
+                                    "compression_ratio": result.compression_ratio,
+                                    "elements_preserved": result.elements_preserved,
+                                    "elements_summarized": result.elements_summarized,
+                                    "elements_discarded": result.elements_discarded,
+                                    "summary": result.summary,
+                                    "actions": result.actions[:20],  # limit
+                                },
+                            },
+                            indent=2,
+                        )
+                    )
+                    return
+                console.print(f"[bold]Conversation compression:[/bold]")
+                console.print(f"  {result.summary}")
+                for action in result.actions[:10]:
+                    console.print(f"    - {action}")
+                if len(result.actions) > 10:
+                    console.print(f"    ... and {len(result.actions) - 10} more")
+        except Exception as exc:  # noqa: BLE001
+            console.print(f"[dim]Conversation compression skipped: {exc}[/dim]")
+
+    if source in ("all", "ledger"):
+        result = compressor.compress_from_ledger(target_fill_pct=target_fill_pct)
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {
+                        "source": "ledger",
+                        "result": {
+                            "original_size": result.original_size,
+                            "compressed_size": result.compressed_size,
+                            "compression_ratio": result.compression_ratio,
+                            "elements_preserved": result.elements_preserved,
+                            "elements_summarized": result.elements_summarized,
+                            "elements_discarded": result.elements_discarded,
+                            "summary": result.summary,
+                            "actions": result.actions[:20],
+                        },
+                    },
+                    indent=2,
+                )
+            )
+            return
+        console.print(f"[bold]Ledger compression:[/bold]")
+        console.print(f"  {result.summary}")
+        for action in result.actions[:10]:
+            console.print(f"    - {action}")
+
+    if source in ("all", "esdb"):
+        result = compressor.compress_from_esdb(target_fill_pct=target_fill_pct)
+        if as_json:
+            click.echo(
+                _json.dumps(
+                    {
+                        "source": "esdb",
+                        "result": {
+                            "original_size": result.original_size,
+                            "compressed_size": result.compressed_size,
+                            "compression_ratio": result.compression_ratio,
+                            "elements_preserved": result.elements_preserved,
+                            "elements_summarized": result.elements_summarized,
+                            "elements_discarded": result.elements_discarded,
+                            "summary": result.summary,
+                            "actions": result.actions[:20],
+                        },
+                    },
+                    indent=2,
+                )
+            )
+            return
+        console.print(f"[bold]ESDB compression:[/bold]")
+        console.print(f"  {result.summary}")
+        for action in result.actions[:10]:
+            console.print(f"    - {action}")
+
+    if not as_json:
+        console.print("")
+        console.print("[dim]Guided compression complete.[/dim]")
 
 
 @context_group.command(name="optimize")
