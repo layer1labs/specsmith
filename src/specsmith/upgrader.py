@@ -11,7 +11,7 @@ from pathlib import Path
 import yaml
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from specsmith import __version__
+from specsmith import GOVERNANCE_VERSION
 from specsmith.config import ProjectConfig
 
 
@@ -134,7 +134,7 @@ def run_upgrade(
     except Exception as e:  # noqa: BLE001
         return UpgradeResult(message=f"Invalid scaffold config: {e}")
 
-    new_version = target_version or __version__
+    new_version = target_version or GOVERNANCE_VERSION
     old_version = config.spec_version
 
     # Reject backward migration (downgrade) unconditionally — REQ-370 / I16.

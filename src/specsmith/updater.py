@@ -8,7 +8,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from specsmith import __version__
+from specsmith import __version__, GOVERNANCE_VERSION
 
 
 def get_update_channel() -> str:
@@ -161,10 +161,13 @@ def run_self_update(
 
 
 def check_project_version(root: Path) -> tuple[str, str]:
-    """Compare scaffold config spec_version to installed version.
+    """Compare scaffold config spec_version to installed governance version.
 
     Checks ``docs/SPECSMITH.yml`` (canonical) then ``scaffold.yml`` (legacy).
-    Returns (project_version, installed_version).
+    Returns (project_version, governance_version).
+
+    The governance version (GOVERNANCE_VERSION) is used for project migration
+    decisions, while the package version (__version__) is used for self-update.
     """
     import yaml
 
@@ -172,27 +175,29 @@ def check_project_version(root: Path) -> tuple[str, str]:
 
     scaffold_path = find_scaffold(root)
     if scaffold_path is None:
-        return "", __version__
+        return "", GOVERNANCE_VERSION
 
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f) or {}
 
-    return raw.get("spec_version", ""), __version__
+    return raw.get("spec_version", ""), GOVERNANCE_VERSION
 
 
 def needs_migration(root: Path) -> bool:
-    """Check if the project needs migration to current specsmith version."""
-    project_ver, installed_ver = check_project_version(root)
+    """Check if the project needs migration to current governance version."""
+    project_ver, gov_ver = check_project_version(root)
     if not project_ver:
         return False
-    return project_ver != installed_ver
+    return project_ver != gov_ver
 
 
 def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
-    """Migrate a project to the current specsmith version.
+    """Migrate a project to the current governance version.
 
     Checks ``docs/SPECSMITH.yml`` (canonical) then ``scaffold.yml`` (legacy).
     Returns list of actions taken (or that would be taken for dry_run).
+
+    Uses GOVERNANCE_VERSION (not __version__) for the target governance schema.
     """
     import yaml
 
@@ -211,8 +216,8 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     old_version = raw.get("spec_version", "unknown")
     actions: list[str] = []
 
-    if old_version == __version__:
-        return [f"Already at version {__version__}"]
+    if old_version == GOVERNANCE_VERSION:
+        return [f"Already at governance version {GOVERNANCE_VERSION}"]
 
     # Reject backward migration (downgrade) unconditionally — REQ-370 / I16.
     def _ver(v: str) -> tuple[int, ...]:
@@ -221,18 +226,18 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
             return (0,)
         return tuple(int(x) for x in m.groups() if x is not None)
 
-    if old_version != "unknown" and _ver(__version__) < _ver(old_version):
+    if old_version != "unknown" and _ver(GOVERNANCE_VERSION) < _ver(old_version):
         return [
             f"ERROR: Backward migration is not supported. "
-            f"Project spec_version is {old_version!r} but installed specsmith is "
-            f"{__version__!r} (older). Upgrade specsmith first: pipx upgrade specsmith",
+            f"Project spec_version is {old_version!r} but installed governance version is "
+            f"{GOVERNANCE_VERSION!r} (older). Upgrade specsmith first: pipx upgrade specsmith",
         ]
 
-    actions.append(f"Migrate spec_version: {old_version} → {__version__}")
+    actions.append(f"Migrate spec_version: {old_version} \u2192 {GOVERNANCE_VERSION}")
 
     # Update scaffold.yml version
     if not dry_run:
-        raw["spec_version"] = __version__
+        raw["spec_version"] = GOVERNANCE_VERSION
         with open(scaffold_path, "w") as f:
             yaml.dump(raw, f, default_flow_style=False, sort_keys=False)
     actions.append(f"Updated {scaffold_path.name}")
@@ -244,7 +249,7 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     try:
         ProjectConfig(**_normalize_scaffold_raw(raw))  # Validate config
         if not dry_run:
-            result = run_upgrade(root, target_version=__version__)
+            result = run_upgrade(root, target_version=GOVERNANCE_VERSION)
             for updated_file in result.updated_files:
                 actions.append(f"Regenerated {updated_file}")
         else:
@@ -256,7 +261,7 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     if not dry_run:
         add_entry(
             root,
-            description=f"specsmith migration: {old_version} → {__version__}",
+            description=f"specsmith migration: {old_version} \u2192 {GOVERNANCE_VERSION}",
             entry_type="migration",
             author="specsmith",
         )

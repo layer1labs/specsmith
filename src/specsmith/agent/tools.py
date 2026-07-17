@@ -2,7 +2,9 @@ import contextlib
 import glob
 import json
 import os
+import re
 import subprocess
+import tempfile
 import urllib.request
 from dataclasses import dataclass
 from dataclasses import field as _dc_field
@@ -73,14 +75,57 @@ def write_file(path: str, content: str, cwd: str | None = None) -> str:
 
 @validate_json_args
 def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
-    """Patch a file using standard diff/patch."""
-    # We can write the diff to a temp file and use the `patch` command
+    """Patch a file using standard diff/patch.
+
+    Validates diff format before applying. Rejects diffs with
+    ``:start_line:`` / ``:end_line:`` markers in the REPLACE section
+    (common model-generation artifact). Suggests ``write_to_file`` as
+    fallback for large edits.
+    """
+    import re
+    import sys
     import tempfile
 
     p = normalize_path(path, cwd)
     if not p.is_file():
         return f"Error: File '{path}' does not exist to patch."
 
+    # --- diff-format validation (issue #344) ---------------------------
+    # Cache key: 512-char prefix of the diff string.
+    # Use module-level singleton for dedup across calls.
+    _cache: dict[str, bool] = getattr(
+        sys.modules[__name__], "_diff_validation_cache", {}
+    )
+    if not isinstance(_cache, dict):
+        _cache = {}
+        sys.modules[__name__]._diff_validation_cache = _cache  # type: ignore[attr-defined]
+
+    _cache_key = diff[:512]
+    validated = _cache.get(_cache_key)
+    if validated is None:
+        # Detect malformed REPLACE section markers.
+        # A valid unified diff has the new-file content directly after
+        # the ``@@`` hunk header.  Malformed model output often inserts
+        # ``:start_line:`` / ``:end_line:`` markers inside the REPLACE
+        # block.
+        _replace_section = diff.split("@@")[2] if len(diff.split("@@")) >= 3 else ""
+        has_bad_markers = bool(
+            re.search(r"^:\s*start_line\s*:", _replace_section, re.MULTILINE)
+            or re.search(r"^:\s*end_line\s*:", _replace_section, re.MULTILINE)
+        )
+        validated = not has_bad_markers
+        _cache[_cache_key] = validated
+
+    if not validated:
+        return (
+            "Malformed diff format detected: ':start_line:' or ':end_line:' markers "
+            "found in the REPLACE section.  The patch command expects a standard "
+            "unified diff.  Example of correct format:\n\n"
+            "--- a/src/example.py\n+++ b/src/example.py\n@@ -1,3 +1,3 @@\n line1\n-line2\n+line2_fixed\n line3\n\n"
+            "For large edits, prefer the 'write_to_file' tool instead."
+        )
+
+    # --- apply the patch -----------------------------------------------
     try:
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(diff)
@@ -88,7 +133,7 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
 
         result = subprocess.run(
             ["patch", "-p0", "-i", temp_diff_path],
-            cwd=p.parent,
+            cwd=str(p.parent),
             capture_output=True,
             text=True,
         )
@@ -240,7 +285,12 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
         ),
         ToolSpec(
             name="patch_file",
-            description="Apply a unified diff patch to a file.",
+            description=(
+                "Apply a unified diff patch to a file.  Validates diff format "
+                "before applying: rejects diffs with ':start_line:' / ':end_line:' "
+                "markers in the REPLACE section (common model-generation artifact). "
+                "For large edits, prefer 'write_to_file' instead."
+            ),
             func=patch_file,
             epistemic_claims=["modifies filesystem: logged in audit chain"],
         ),

@@ -17,9 +17,15 @@ Covers:
   TEST-PA-12: AgentDispatcher with mocked worker runs fan-out successfully
 
 No LLM or AG2 calls; workers and ESDB writes are mocked throughout.
+
+Traceability:
+    __trace_id__ = "REQ-326..REQ-334"  — all tests verify parallel dispatch requirements.
 """
 
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify REQ-326..REQ-334
+__trace_id__ = "REQ-326..REQ-334"
 
 from pathlib import Path
 from unittest import mock

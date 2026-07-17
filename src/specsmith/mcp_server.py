@@ -65,6 +65,39 @@ _REGISTERED_PROJECTS: list[str] = []
 # Persistent project registry  (~/.specsmith/mcp-projects.json)
 # ---------------------------------------------------------------------------
 
+# Patterns that identify a path as transient/temporary.
+# These match the *last path component* (the project directory itself),
+# not arbitrary substrings in parent directories.
+_TEMP_SUFFIXES = (
+    "/pytest",
+    "\\pytest",
+    "/pytest-",
+    "\\pytest-",
+    "/tmp",
+    "\\tmp",
+    "/temp",
+    "\\temp",
+    "/__pycache__",
+    "\\__pycache__",
+    "/.vite/",
+    "/.svelte-kit/",
+    "/.next/",
+    "/node_modules/.cache/",
+    "/.tox/",
+    "/.nox/",
+    "/.eggs/",
+    "/.dist-info/",
+)
+
+# Specsmith project markers that indicate a valid project root.
+_PROJECT_MARKERS = (
+    ".specsmith",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "docs/SPECSMITH.yml",
+    "docs/REQUIREMENTS.md",
+)
+
 
 def _registry_file() -> Path:
     """Return the path to the user-level MCP project registry file.
@@ -77,49 +110,258 @@ def _registry_file() -> Path:
     return home / "mcp-projects.json"
 
 
+def _is_temp_path(path: str) -> bool:
+    """Return True if *path* looks like a temporary or transient directory.
+
+    Checks the *last path component* (the project directory name itself)
+    against known temp prefixes.  Also checks the immediate parent directory
+    for pytest-specific patterns (e.g. ``pytest-of-user``, ``pytest123``).
+    This catches paths like ``pytest-of-user/pytest123/test0`` without
+    false-positives on the pytest temp directory that pytest creates for
+    the test run itself (e.g. ``pytest-1031/test_func/proj``).
+    """
+    p = Path(path)
+    name = p.name.lower() if p.name else path.lower()
+    path_lower = path.lower()
+    for suffix in _TEMP_SUFFIXES:
+        if suffix.endswith("/"):
+            # Match parent directory patterns like /__pycache__/
+            if suffix[1:] in path_lower:
+                return True
+        else:
+            pattern = suffix[1:].lower()
+            # Match the last component: pytest-*, tmp, temp, etc.
+            if name == pattern or name.startswith(pattern + "-"):
+                return True
+            # Also check the immediate parent directory for pytest patterns.
+            # This catches paths like pytest-of-user/pytest123/test0 where
+            # the parent (pytest123) is a pytest temp directory.
+            if pattern.startswith("pytest") and len(p.parts) >= 2:
+                parent = p.parts[-2].lower()
+                if parent == pattern or parent.startswith(pattern + "-"):
+                    return True
+                # Also match pytest-* and pytestNNN patterns in parent.
+                if pattern == "pytest":
+                    if parent.startswith("pytest-"):
+                        return True
+                    if parent.startswith("pytest") and len(parent) > 6:
+                        return True
+    return False
+
+
+def _is_valid_project(path: Path) -> bool:
+    """Return True if *path* looks like a Specsmith project root.
+
+    A path is considered valid if it is a directory and contains at least
+    one recognized project marker file/directory.
+    """
+    if not path.is_dir():
+        return False
+    # Always accept if it has the specsmith marker.
+    for marker in _PROJECT_MARKERS:
+        if (path / marker).exists():
+            return True
+    return False
+
+
+def _canonicalize_path(path: str) -> str:
+    """Canonicalize a path for deduplication.
+
+    - Resolves symlinks and normalizes separators.
+    - On Windows, normalizes drive letter case and backslashes.
+    """
+    p = Path(path).resolve()
+    result = str(p)
+    # Windows: normalize drive letter to uppercase.
+    if result and result[1:2] == ":":
+        result = result[0].upper() + result[1:]
+    return result
+
+
+def _load_registry_raw() -> tuple[list[str], dict[str, Any] | None]:
+    """Load the registry file, returning (projects_list, full_data_or_None).
+
+    Returns an empty list and None when the file is missing or malformed.
+    """
+    try:
+        data = json.loads(_registry_file().read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            projects = data.get("projects", [])
+            if isinstance(projects, list):
+                return projects, data
+        return [], None
+    except Exception:  # noqa: BLE001
+        return [], None
+
+
+def _save_registry(projects: list[str]) -> None:
+    """Atomically persist *projects* to the registry file.
+
+    Uses a write-to-temp-then-rename pattern so an interrupted write
+    preserves the prior valid registry.
+    """
+    reg = _registry_file()
+    reg.parent.mkdir(parents=True, exist_ok=True)
+    tmp = reg.with_suffix(".json.tmp")
+    tmp.write_text(
+        json.dumps({"projects": projects}, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    try:
+        tmp.replace(reg)
+    except OSError:
+        # Fallback: direct write if rename is not supported.
+        reg.write_text(
+            json.dumps({"projects": projects}, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+
 def read_registry() -> list[str]:
     """Return all absolute project paths from the registry.
 
     Returns an empty list when the registry file is missing or malformed.
     Invalid entries (empty strings, non-strings) are silently skipped.
+    Paths are canonicalized and deduplicated.
     """
-    try:
-        data = json.loads(_registry_file().read_text(encoding="utf-8"))
-        projects = data.get("projects", []) if isinstance(data, dict) else []
-        return [p for p in projects if isinstance(p, str) and p]
-    except Exception:  # noqa: BLE001
-        return []
+    projects, _ = _load_registry_raw()
+    canonical: list[str] = []
+    seen: set[str] = set()
+    for p in projects:
+        if not isinstance(p, str) or not p:
+            continue
+        c = _canonicalize_path(p)
+        if c not in seen:
+            seen.add(c)
+            canonical.append(c)
+    return canonical
 
 
 def write_registry(paths: list[str]) -> None:
-    """Persist *paths* to the registry file (creates parent dirs as needed)."""
-    reg = _registry_file()
-    reg.parent.mkdir(parents=True, exist_ok=True)
-    reg.write_text(
-        json.dumps({"projects": paths}, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    """Persist *paths* to the registry file atomically."""
+    _save_registry(paths)
 
 
-def register_project(path: str = ".") -> bool:
-    """Add *path* to the registry. Returns True if it was newly added."""
-    abs_path = str(Path(path).resolve())
-    projects = read_registry()
-    if abs_path in projects:
+def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> bool:
+    """Add *path* to the registry. Returns True if it was newly added.
+
+    Parameters
+    ----------
+    path:
+        Project directory to register.
+    allow_uninitialized:
+        When False (default), the path must exist and contain at least one
+        Specsmith project marker (``.specsmith/``, ``AGENTS.md``, etc.).
+        When True, any existing directory is accepted.
+
+    The registry is validated, canonicalized, deduplicated, and written
+    atomically.  Temporary/transient paths (pytest temp dirs, deleted
+    worktrees) are rejected.
+    """
+    abs_path = Path(path).resolve()
+    canonical = _canonicalize_path(str(abs_path))
+
+    # Reject temp/transient paths.
+    if _is_temp_path(canonical):
         return False
-    projects.append(abs_path)
-    write_registry(projects)
+
+    # Validate the path.
+    if not allow_uninitialized and not _is_valid_project(abs_path):
+        return False
+
+    projects, _ = _load_registry_raw()
+    # Deduplicate using canonical form.
+    seen: set[str] = set()
+    filtered: list[str] = []
+    for p in projects:
+        c = _canonicalize_path(p)
+        if c not in seen:
+            seen.add(c)
+            filtered.append(c)
+
+    if canonical in seen:
+        return False  # Already registered.
+
+    # Prepend so the new project becomes the default.
+    filtered.insert(0, canonical)
+    _save_registry(filtered)
     return True
 
 
 def unregister_project(path: str = ".") -> bool:
     """Remove *path* from the registry. Returns True if it was present."""
-    abs_path = str(Path(path).resolve())
-    projects = read_registry()
-    if abs_path not in projects:
-        return False
-    write_registry([p for p in projects if p != abs_path])
+    canonical = _canonicalize_path(path)
+    projects, _ = _load_registry_raw()
+    new_projects = [p for p in projects if _canonicalize_path(p) != canonical]
+    if len(new_projects) == len(projects):
+        return False  # Not found.
+    _save_registry(new_projects)
     return True
+
+
+def prune_registry(
+    *, dry_run: bool = False, stale_threshold_days: int = 30
+) -> dict[str, Any]:
+    """Prune stale, inaccessible, or temporary entries from the registry.
+
+    Parameters
+    ----------
+    dry_run:
+        When True, report what *would* be removed without mutating the file.
+    stale_threshold_days:
+        Entries whose paths no longer exist are considered stale.  Only
+        entries that have been stale for more than *stale_threshold_days*
+        are removed (currently all missing entries are treated as stale).
+
+    Returns
+    -------
+    A dict with keys ``removed``, ``preserved``, ``stale``, ``inaccessible``.
+    """
+    projects, _ = _load_registry_raw()
+    removed: list[str] = []
+    preserved: list[str] = []
+    stale: list[str] = []
+    inaccessible: list[str] = []
+
+    canonical_projects: list[str] = []
+    seen: set[str] = set()
+
+    for p in projects:
+        c = _canonicalize_path(p)
+        if c in seen:
+            continue  # Skip duplicates.
+        seen.add(c)
+
+        if _is_temp_path(c):
+            removed.append(c)
+            continue
+
+        proj_path = Path(c)
+        if not proj_path.exists():
+            stale.append(c)
+            removed.append(c)
+            continue
+
+        if not proj_path.is_dir():
+            stale.append(c)
+            removed.append(c)
+            continue
+
+        # Path exists and is a directory — preserve it.
+        canonical_projects.append(c)
+        preserved.append(c)
+
+    result = {
+        "removed": removed,
+        "preserved": preserved,
+        "stale": stale,
+        "inaccessible": inaccessible,
+    }
+
+    if not dry_run and removed:
+        _save_registry(canonical_projects)
+
+    return result
 
 
 def build_warp_mcp_config() -> dict[str, Any]:

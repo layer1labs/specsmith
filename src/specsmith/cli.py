@@ -86,9 +86,7 @@ class _AutoUpdateGroup(click.Group):
     # Commands that should not trigger the version check
     _SKIP_COMMANDS = {
         "update",
-        "self-update",
         "migrate-project",
-        "verify-release",
         "plugin",
         "--version",
         "help",
@@ -135,26 +133,28 @@ class _AutoUpdateGroup(click.Group):
 
         if not skip:
             _maybe_prompt_project_update()
-            _maybe_notify_pypi_update()
 
         return super().invoke(ctx)
 
 
 def _maybe_prompt_project_update() -> None:
-    """Check if the project's scaffold config differs from the installed version.
+    """Check if the project's scaffold config differs from the installed governance version.
 
-    Forward migration (installed > project): auto-runs migration immediately
-    without any Y/n prompt — REQ-369.  Backward migration (installed < project)
+    Forward migration (governance > project): auto-runs migration immediately
+    without any Y/n prompt — REQ-369.  Backward migration (governance < project)
     is a hard error that exits with code 1 — REQ-370.
 
     Checks docs/SPECSMITH.yml (canonical) then scaffold.yml (legacy).
     Runs in under 5ms for projects that are up to date (no network call).
+
+    Uses GOVERNANCE_VERSION (not __version__) for project governance comparison.
     """
     import os
     import re
     import sys
     from pathlib import Path
 
+    from specsmith import GOVERNANCE_VERSION
     from specsmith.paths import find_scaffold
 
     def _ver(v: str) -> tuple[int, ...]:
@@ -174,16 +174,16 @@ def _maybe_prompt_project_update() -> None:
         with open(scaffold_path) as f:
             raw = yaml.safe_load(f) or {}
         project_ver = raw.get("spec_version", "")
-        if not project_ver or project_ver == __version__:
+        if not project_ver or project_ver == GOVERNANCE_VERSION:
             return  # Up to date or no version recorded
 
         # Only act once per shell session (track via env var)
-        session_key = f"SPECSMITH_CHECKED_{project_ver}_{__version__}"
+        session_key = f"SPECSMITH_CHECKED_{project_ver}_{GOVERNANCE_VERSION}"
         if os.environ.get(session_key):
             return
         os.environ[session_key] = "1"
 
-        installed = _ver(__version__)
+        installed = _ver(GOVERNANCE_VERSION)
         project = _ver(project_ver)
 
         if installed < project:
@@ -194,7 +194,7 @@ def _maybe_prompt_project_update() -> None:
             click.echo(
                 f"\nERROR: specsmith downgrade detected.\n"
                 f"  Project spec_version : {project_ver}\n"
-                f"  Installed specsmith  : {__version__} (older)\n"
+                f"  Installed governance : {GOVERNANCE_VERSION} (older)\n"
                 "\n"
                 "  Backward migration is not supported.\n"
                 f"  Install the required version: {remedy}\n"
@@ -207,7 +207,7 @@ def _maybe_prompt_project_update() -> None:
         # Forward migration — auto-accept, no prompt, REQ-369.
         from specsmith.updater import run_migration
 
-        console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {__version__}...[/cyan]")
+        console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {GOVERNANCE_VERSION}...[/cyan]")
         actions = run_migration(Path())
         for a in actions:
             if a.startswith("ERROR:"):
@@ -218,91 +218,6 @@ def _maybe_prompt_project_update() -> None:
         raise  # Never swallow the hard-error exit
     except Exception:  # noqa: BLE001
         pass  # Never break the actual command on version check errors
-
-
-def _maybe_notify_pypi_update() -> None:
-    """Check PyPI for a newer specsmith version. Prints one-liner if outdated.
-
-    Persists the last-check timestamp to ``~/.specsmith/last-update-check``
-    so the network call is only made when it has been more than
-    ``SPECSMITH_UPDATE_INTERVAL_HOURS`` hours since the previous check
-    (default: 24h).  Within that window the function returns immediately
-    without any I/O — adding zero latency to every CLI invocation.
-
-    Override the interval::
-
-        SPECSMITH_UPDATE_INTERVAL_HOURS=4 specsmith audit
-
-    Disable entirely::
-
-        SPECSMITH_NO_UPDATE_CHECK=1 specsmith audit
-
-    Uses a 3-second network timeout so a slow/offline connection never
-    blocks the user.
-    """
-    import os
-    import time
-    from pathlib import Path
-
-    if os.environ.get("SPECSMITH_NO_UPDATE_CHECK"):
-        return
-
-    # One check per shell session — never fire twice in the same process tree.
-    session_key = "SPECSMITH_PYPI_CHECKED"
-    if os.environ.get(session_key):
-        return
-    os.environ[session_key] = "1"
-
-    try:
-        interval_h = float(os.environ.get("SPECSMITH_UPDATE_INTERVAL_HOURS", "24"))
-        interval_s = interval_h * 3600
-
-        stamp_file = Path.home() / ".specsmith" / "last-update-check"
-        now = time.time()
-
-        # Read persisted last-check time (best-effort).
-        last_check = 0.0
-        if stamp_file.is_file():
-            with contextlib.suppress(ValueError, OSError):
-                last_check = float(stamp_file.read_text(encoding="utf-8").strip())
-
-        # Not due yet — skip entirely (no network call).
-        if now - last_check < interval_s:
-            return
-
-        import json as _json  # noqa: PLC0415
-        from urllib.request import urlopen  # noqa: PLC0415
-
-        resp = urlopen("https://pypi.org/pypi/specsmith/json", timeout=3)
-        data = _json.loads(resp.read())
-        latest = data.get("info", {}).get("version", "")
-        if not latest:
-            return
-
-        # Persist the timestamp now that we have a successful response.
-        try:
-            stamp_file.parent.mkdir(parents=True, exist_ok=True)
-            stamp_file.write_text(str(now), encoding="utf-8")
-        except OSError:
-            pass  # Never fail the CLI over a timestamp write error
-
-        # Simple version comparison — no packaging dep needed.
-        def _ver(v: str) -> tuple[int, ...]:
-            import re  # noqa: PLC0415
-
-            clean = re.match(r"(\d+\.\d+\.\d+)", v)
-            return tuple(int(x) for x in clean.group(1).split(".")) if clean else (0,)
-
-        if _ver(latest) > _ver(__version__):
-            console.print(
-                f"  [dim]specsmith [bold]{latest}[/bold] available "
-                f"(you have {__version__}). "
-                f"Run [bold]specsmith self-update[/bold] or "
-                f"[bold]pipx upgrade specsmith[/bold].[/dim]",
-            )
-    except Exception:  # noqa: BLE001
-        pass  # Never block the CLI on network errors
-
 
 @click.group(cls=_AutoUpdateGroup)
 @click.version_option(version=__version__, prog_name="specsmith")
@@ -3125,80 +3040,6 @@ def release(version: str, project_dir: str) -> None:
         f"  5. git push origin main develop --tags",
     )
 
-
-@main.command(name="verify-release")
-def verify_release() -> None:
-    """Check PyPI, RTD, and GitHub release status after a release."""
-    import subprocess
-    import urllib.request
-
-    from specsmith import __version__
-
-    console.print(f"[bold]Verifying release v{__version__}[/bold]\n")
-    checks_passed = 0
-    checks_failed = 0
-
-    # PyPI
-    try:
-        url = "https://pypi.org/pypi/specsmith/json"
-        resp = urllib.request.urlopen(url, timeout=10)  # noqa: S310
-        import json
-
-        data = json.loads(resp.read())
-        pypi_version = data["info"]["version"]
-        if pypi_version == __version__:
-            console.print(f"  [green]\u2713[/green] PyPI: v{pypi_version}")
-            checks_passed += 1
-        else:
-            console.print(f"  [red]\u2717[/red] PyPI: v{pypi_version} (expected {__version__})")
-            checks_failed += 1
-    except Exception:  # noqa: BLE001
-        console.print("  [red]\u2717[/red] PyPI: could not reach pypi.org")
-        checks_failed += 1
-
-    # RTD
-    try:
-        resp = urllib.request.urlopen(
-            "https://specsmith.readthedocs.io/en/latest/",
-            timeout=10,
-        )
-        if resp.status == 200:
-            console.print("  [green]\u2713[/green] RTD: site is live")
-            checks_passed += 1
-        else:
-            console.print(f"  [red]\u2717[/red] RTD: status {resp.status}")
-            checks_failed += 1
-    except Exception:  # noqa: BLE001
-        console.print("  [red]\u2717[/red] RTD: could not reach readthedocs.io")
-        checks_failed += 1
-
-    # GitHub release
-    try:
-        result = subprocess.run(  # noqa: S603 — argv is a fixed, trusted CLI invocation
-            ["gh", "release", "view", f"v{__version__}", "--json", "tagName"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if result.returncode == 0:
-            console.print(f"  [green]\u2713[/green] GitHub Release: v{__version__}")
-            checks_passed += 1
-        else:
-            console.print(f"  [red]\u2717[/red] GitHub Release: v{__version__} not found")
-            checks_failed += 1
-    except Exception:  # noqa: BLE001
-        console.print("  [yellow]\u2014[/yellow] GitHub Release: gh CLI not available")
-
-    console.print()
-    if checks_failed == 0:
-        console.print(f"[bold green]All {checks_passed} checks passed.[/bold green]")
-    else:
-        console.print(
-            f"[bold red]{checks_failed} check(s) failed.[/bold red] {checks_passed} passed.",
-        )
-
-
 @main.command()
 @click.option(
     "--project-dir",
@@ -3930,51 +3771,6 @@ def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
             for a in actions:
                 console.print(f"  [green]\u2713[/green] {a}")
 
-
-@main.command(name="self-update")
-@click.option(
-    "--channel",
-    type=click.Choice(["stable", "dev"]),
-    default=None,
-    help="Force channel (default: auto-detect from installed version).",
-)
-@click.option("--version", "target_version", default="", help="Install a specific version.")
-def self_update_cmd(channel: str | None, target_version: str) -> None:
-    """Update specsmith to the latest version.
-
-    Auto-detects channel: stable builds upgrade to latest stable,
-    dev builds upgrade to latest dev. Use --channel to override.
-    Use --version to pin a specific version.
-    """
-    from specsmith.updater import check_latest_version, get_update_channel, run_self_update
-
-    current_channel = get_update_channel()
-    effective_channel = channel or current_channel
-
-    if target_version:
-        console.print(f"[bold]Installing specsmith {target_version}...[/bold]")
-        success, msg = run_self_update(target_version=target_version)
-    else:
-        current, latest, effective_channel = check_latest_version(channel=effective_channel)
-        if not latest:
-            console.print("[yellow]Could not reach PyPI.[/yellow]")
-            return
-        if current == latest:
-            console.print(
-                f"[green]\u2713[/green] specsmith {current} is up to date ({effective_channel}).",
-            )
-            return
-        console.print(f"  Current: {current} ({current_channel})")
-        console.print(f"  Latest:  {latest} ({effective_channel})")
-        success, msg = run_self_update(channel=effective_channel)
-
-    if success:
-        console.print("[green]\u2713[/green] Updated successfully.")
-        console.print("  Restart your shell to use the new version.")
-    else:
-        console.print(f"[red]\u2717[/red] Update failed: {msg}")
-
-
 @main.command(name="migrate-project")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--dry-run", is_flag=True, default=False, help="Show changes without writing.")
@@ -4268,24 +4064,60 @@ def session_end_cmd(project_dir: str) -> None:
     root = Path(project_dir).resolve()
     report = run_session_end(root)
 
-    console.print("[bold]Session End Checklist[/bold]\n")
-    for check in report.checks:
-        if check.status == "ok":
-            console.print(f"  [green]\u2713[/green] {check.message}")
-        elif check.status == "warn":
-            console.print(f"  [yellow]\u26a0[/yellow] {check.message}")
-        else:
-            console.print(f"  [red]\u2717[/red] {check.message}")
+    _STATUS_SYMBOL = {
+        "ok": ("[green]\u2713[/green]", "green"),
+        "warn": ("[yellow]\u26a0[/yellow]", "yellow"),
+        "action": ("[red]\u2717[/red]", "red"),
+    }
 
     console.print()
+    console.print("[bold cyan]\u2261 Session End Checklist[/bold cyan]  [dim]({})[/dim]".format(root.name))
+    console.print()
+
+    # Group checks by status for better readability
+    ok_checks = [c for c in report.checks if c.status == "ok"]
+    warn_checks = [c for c in report.checks if c.status == "warn"]
+    action_checks = [c for c in report.checks if c.status == "action"]
+
+    if ok_checks:
+        console.print("  [dim]Passed[/dim]")
+        for check in ok_checks:
+            sym, _ = _STATUS_SYMBOL[check.status]
+            console.print(f"    {sym}  [{check.name:<12s}] {check.message}")
+        console.print()
+
+    if warn_checks:
+        console.print("  [dim]Warnings[/dim]")
+        for check in warn_checks:
+            sym, _ = _STATUS_SYMBOL[check.status]
+            console.print(f"    {sym}  [{check.name:<12s}] {check.message}")
+        console.print()
+
+    if action_checks:
+        console.print("  [dim]Actions Required[/dim]")
+        for check in action_checks:
+            sym, _ = _STATUS_SYMBOL[check.status]
+            console.print(f"    {sym}  [{check.name:<12s}] {check.message}")
+        console.print()
+
+    # Summary footer
+    console.print("  [dim]─[/dim]" * 50)
     if report.action_count > 0:
         console.print(
-            f"[bold red]{report.action_count} action(s) needed before ending session.[/bold red]",
+            f"  [bold red]\u2717 {report.action_count} action(s) needed[/bold red]"
+            f"  |  [yellow]\u26a0 {report.warn_count} warning(s)[/yellow]"
+            f"  |  [green]\u2713 {len(ok_checks)} passed[/green]",
         )
     elif report.warn_count > 0:
-        console.print(f"[bold yellow]{report.warn_count} warning(s).[/bold yellow]")
+        console.print(
+            f"  [bold yellow]\u26a0 {report.warn_count} warning(s)[/bold yellow]"
+            f"  |  [green]\u2713 {len(ok_checks)} passed[/green]",
+        )
     else:
-        console.print("[bold green]Session clean. Ready to end.[/bold green]")
+        console.print(
+            f"  [bold green]\u2713 Session clean. Ready to end. ({len(ok_checks)} checks passed)[/bold green]",
+        )
+    console.print()
 
 
 # ---------------------------------------------------------------------------
@@ -9315,6 +9147,14 @@ def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
         console.print("[dim]No work items found.[/dim]")
         return
 
+    _STATUS_ICON = {
+        "open": "[cyan]\u25cb[/cyan]",
+        "implemented": "[green]\u2713[/green]",
+        "promoted": "[bold green]\u25b8[/bold green]",
+        "closed": "[dim]\u2717[/dim]",
+        "archived": "[yellow]\u2756[/yellow]",
+        "rejected": "[red]\u2717[/red]",
+    }
     _STATUS_COLOR = {
         "open": "cyan",
         "implemented": "green",
@@ -9323,18 +9163,51 @@ def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
         "archived": "yellow",
         "rejected": "red",
     }
-    console.print(f"[bold]Work Items[/bold]  ({root.name})\n")
+
+    # Summary header
+    total = len(items)
+    status_counts: dict[str, int] = {}
+    for item in items:
+        status_counts[item.status] = status_counts.get(item.status, 0) + 1
+    summary_parts = [f"{k}: {v}" for k, v in sorted(status_counts.items())]
+    summary_str = ", ".join(summary_parts) if summary_parts else "none"
+
+    console.print()
+    console.print(f"[bold cyan]\u2261 Work Items[/bold cyan]  [dim]({root.name})[/dim]")
+    console.print(f"  [dim]Total: {total}  |  {summary_str}[/dim]\n")
+
+    # Table header
+    console.print(
+        f"  [{'ID':<14s} [{'Status':<13s} [{'Kind':<10s}  Intent",
+    )
+    console.print(f"  {'─' * 14}  {'─' * 13}  {'─' * 10}  {'─' * 50}")
+
     for item in items:
         color = _STATUS_COLOR.get(item.status, "white")
-        req_tag = f"  [{', '.join(item.requirement_ids)}]" if item.requirement_ids else ""
-        promoted_tag = f"  → {item.promoted_to_req}" if item.promoted_to_req else ""
-        console.print(
-            f"  [{color}]{item.id}[/{color}]  "
-            f"[{color}]{item.status:12s}[/{color}]  "
-            f"[dim]{item.kind:9s}[/dim]  "
-            f"{item.intent[:60]}"
-            f"[dim]{req_tag}{promoted_tag}[/dim]",
-        )
+        icon = _STATUS_ICON.get(item.status, " ")
+        intent_preview = item.intent[:50]
+        if len(item.intent) > 50:
+            intent_preview += "..."
+
+        lines = [
+            f"  {icon} [{color}]{item.id:<13s}[/{color}]  "
+            f"[{color}]{item.status:<12s}[/{color}]  "
+            f"[dim]{item.kind:<9s}[/dim]  {intent_preview}",
+        ]
+
+        # Requirement links on a second line if present
+        if item.requirement_ids or item.promoted_to_req:
+            req_part = ""
+            if item.requirement_ids:
+                req_part = f"[dim]reqs: {', '.join(item.requirement_ids)}[/dim]"
+            if item.promoted_to_req:
+                req_part += f" [dim]\u2192 {item.promoted_to_req}[/dim]" if req_part else f"[dim]\u2192 {item.promoted_to_req}[/dim]"
+            lines.append(f"    {req_part}")
+
+        for line in lines:
+            console.print(line)
+
+    console.print()
 
 
 @wi_group.command(name="show")
@@ -9742,12 +9615,37 @@ def workflow_list(project_dir: str, as_json: bool) -> None:
     if not items:
         console.print("[dim]No workflows recorded.[/dim]")
         return
+
+    console.print()
+    console.print("[bold cyan]\u2261 Workflows[/bold cyan]  [dim]({})[/dim]".format(root.name))
+    console.print(f"  [dim]Total: {len(items)}[/dim]\n")
+
+    # Table header
+    console.print(
+        f"  [{'Name':<25s} [{'Params':<20s}  Command",
+    )
+    console.print(f"  {'─' * 25}  {'─' * 20}  {'─' * 50}")
+
     for item in items:
+        name = item["name"][:24]
         params = ", ".join(item["params"]) or "(none)"
-        console.print(f"[bold]{item['name']}[/bold] — params: {params}")
+        if len(params) > 19:
+            params = params[:18] + "\u2026"
+        command = item["command"][:49]
+        if len(item["command"]) > 49:
+            command += "\u2026"
+
+        console.print(
+            f"  [bold cyan]\u25b8[/bold cyan] [{name:<24s}] "
+            f"[dim]{params:<19s}[/dim]  {command}",
+        )
         if item["description"]:
-            console.print(f"  {item['description']}")
-        console.print(f"  [dim]{item['command']}[/dim]")
+            desc = item["description"][:70]
+            if len(item["description"]) > 70:
+                desc += "\u2026"
+            console.print(f"      [dim]{desc}[/dim]")
+
+    console.print()
 
 
 @workflow_group.command(name="run")
@@ -10707,7 +10605,13 @@ def mcp_install_warp_cmd(as_json: bool) -> None:
 
 @mcp_group.command(name="register")
 @click.argument("path", default=".", required=False)
-def mcp_register_cmd(path: str) -> None:
+@click.option(
+    "--allow-uninitialized",
+    is_flag=True,
+    default=False,
+    help="Register even if no Specsmith project markers are found.",
+)
+def mcp_register_cmd(path: str, allow_uninitialized: bool) -> None:
     """Register a project directory with the MCP server registry.
 
     Run once inside a project directory to add it to
@@ -10727,16 +10631,16 @@ def mcp_register_cmd(path: str) -> None:
         console.print(f"[red]\u2717[/red] Path does not exist: {root}")
         raise SystemExit(1)
 
-    added = register_project(str(root))
+    added = register_project(str(root), allow_uninitialized=allow_uninitialized)
     if added:
         console.print(f"[green]\u2713[/green] Registered: [bold]{root}[/bold]")
-        if not (root / ".specsmith").exists():
+        if not allow_uninitialized and not (root / ".specsmith").exists():
             console.print(
                 "  [yellow]\u26a0[/yellow] No .specsmith/ found. "
                 "Run [bold]specsmith init[/bold] or [bold]specsmith import[/bold] first.",
             )
     else:
-        console.print(f"[dim]Already registered: {root}[/dim]")
+        console.print(f"[dim]Already registered or rejected: {root}[/dim]")
     console.print(
         "  [dim]specsmith mcp projects  ← view all registered[/dim]\n"
         "  [dim]specsmith mcp serve      ← start the server[/dim]",
@@ -10811,6 +10715,58 @@ def mcp_projects_cmd(as_json: bool) -> None:
         "\n  specsmith mcp unregister [path]  ← remove a project"
         "\n  specsmith mcp serve              ← start the server[/dim]",
     )
+
+
+@mcp_group.command(name="prune")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Report what would be removed without mutating the registry.",
+)
+def mcp_prune_cmd(dry_run: bool) -> None:
+    """Prune stale, inaccessible, or temporary entries from the MCP registry.
+
+    Removes entries whose paths no longer exist, entries that look like
+    temporary directories (pytest temp, __pycache__, etc.), and duplicate
+    path spellings.
+
+    \b
+    Examples::
+
+        specsmith mcp prune --dry-run    # preview changes
+        specsmith mcp prune              # apply changes
+    """
+    from specsmith.mcp_server import prune_registry
+
+    result = prune_registry(dry_run=dry_run)
+
+    if as_json := getattr(mcp_prune_cmd, "_as_json", False):
+        import json as _json
+
+        click.echo(_json.dumps(result, indent=2))
+        return
+
+    if dry_run:
+        console.print("[bold yellow]Prune dry-run — no changes made[/bold yellow]\n")
+    else:
+        console.print("[bold green]Pruning MCP registry[/bold green]\n")
+
+    if result["removed"]:
+        console.print(f"[red]Removed {len(result['removed'])} entries:[/red]")
+        for p in result["removed"]:
+            console.print(f"  [red]  \u2717 {p}[/red]")
+    else:
+        console.print("[green]\u2713 No entries to remove.[/green]")
+
+    if result["preserved"]:
+        console.print(f"\n[dim]Preserved {len(result['preserved'])} valid entries.[/dim]")
+
+    if not dry_run:
+        console.print(
+            "\n[dim]specsmith mcp projects  ← view current registry[/dim]\n"
+            "  specsmith mcp prune --dry-run  ← preview next time[/dim]",
+        )
 
 
 main.add_command(mcp_group)
@@ -13890,12 +13846,41 @@ def migrate_run_cmd(
 
 
 main.add_command(migrate_group)
-try:
-    from specsmith.commands.reporting import register_reporting_commands
 
-    register_reporting_commands(main)
-except Exception:  # noqa: BLE001
-    pass
+# Lazy-load reporting commands to avoid Windows Click/gettext hang on startup.
+# The import is deferred until the first time a reporting command is invoked.
+# We monkey-patch main.get_command to trigger lazy loading before normal lookup.
+_reported_loaded: bool = False
+
+
+def _lazy_load_reporting() -> None:
+    """Load reporting commands on first access."""
+    global _reported_loaded
+    if _reported_loaded:
+        return
+    try:
+        from specsmith.commands.reporting import (  # noqa: PLC0415
+            register_reporting_commands,
+        )
+
+        register_reporting_commands(main)
+    except Exception:  # noqa: BLE001
+        pass
+    _reported_loaded = True
+
+
+# Store original get_command as a module-level function (not bound method)
+_original_get_command = click.Group.get_command
+
+
+def _patched_get_command(self: click.Group, ctx: click.Context, cmd_name: str) -> click.Command | None:
+    # Trigger lazy load before normal lookup
+    _lazy_load_reporting()
+    return _original_get_command(self, ctx, cmd_name)
+
+
+# Apply the patch
+click.Group.get_command = _patched_get_command
 
 register_issue_policy_commands(main, console)
 

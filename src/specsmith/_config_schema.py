@@ -9,6 +9,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+# Governance version — imported here so the schema default stays in sync.
+# config.py overrides this at module level with the authoritative value.
+from specsmith import GOVERNANCE_VERSION
+
 
 class ProjectType(str, Enum):
     """Supported project types from the spec (Section 17)."""
@@ -140,7 +144,7 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.22.3", description="Spec version to scaffold from")
+    spec_version: str = Field(default=GOVERNANCE_VERSION, description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -697,4 +701,22 @@ _SECTION_REFS: dict[str, str] = {
     ProjectType.DESKTOP_TAURI: "17.49",
     # Brief lang
     ProjectType.BRIEF_LANG: "17.50",
+    # FPGA vendor-specific types (missing section refs)
+    ProjectType.FPGA_RTL_AMD: "17.51",
+    ProjectType.FPGA_RTL_INTEL: "17.52",
+    ProjectType.FPGA_RTL_LATTICE: "17.53",
+    ProjectType.MIXED_FPGA_EMBEDDED: "17.54",
+    ProjectType.MIXED_FPGA_FIRMWARE: "17.55",
+    # New project types (missing section refs)
+    ProjectType.EMBEDDED_PYTHON_HMI: "17.56",
+    ProjectType.RESEARCH_PYTHON: "17.57",
+    ProjectType.SAFETY_CRITICAL: "17.58",
+    # IP / Patent
+    ProjectType.PATENT_PROSECUTION: "17.59",
+    # Modern web frameworks (missing section refs)
+    ProjectType.NEXTJS_APP: "17.60",
+    ProjectType.NUXT_APP: "17.61",
+    ProjectType.SVELTEKIT_APP: "17.62",
+    ProjectType.REMIX_APP: "17.63",
+    ProjectType.ASTRO_SITE: "17.64",
 }

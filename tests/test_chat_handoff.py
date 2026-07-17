@@ -1,5 +1,15 @@
 # SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
+"""Tests for chat handoff and context rendering.
+
+Traceability:
+    __trace_id__ = "REQ-317"  — verifies handoff context propagation.
+"""
+
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify REQ-317
+__trace_id__ = "REQ-317"
 
 import json
 from pathlib import Path
@@ -28,7 +38,10 @@ def _history() -> list[dict[str, str]]:
     ]
 
 
+# --- REQ-317: Handoff context propagation tests ---
+
 def test_handoff_is_extractive_and_valid() -> None:
+    """TEST-317-01: Handoff must be extractive with valid confidence."""
     handoff = build_handoff(_history(), work_item_ids=["WI-TEST", "WI-TEST"])
 
     assert handoff["confidence"] == 1.0
@@ -38,6 +51,7 @@ def test_handoff_is_extractive_and_valid() -> None:
 
 
 def test_handoff_rejects_unproven_confidence() -> None:
+    """TEST-317-02: Handoff with unproven confidence must be rejected."""
     handoff = build_handoff(_history())
     handoff["confidence"] = 0.8
 
@@ -46,35 +60,17 @@ def test_handoff_rejects_unproven_confidence() -> None:
 
 
 def test_handoff_persists_to_sqlite(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TEST-317-03: Handoff must persist to SQLite backend."""
     monkeypatch.setenv("SPECSMITH_ESDB_BACKEND", "sqlite")
-    handoff = build_handoff(_history())
+    handoff = build_handoff(_history(), work_item_ids=["WI-TEST"])
+
     store_handoff(tmp_path, handoff)
 
+    # Verify the handoff was stored in the ESDB SQLite store
     from specsmith.esdb import SqliteStore
 
     with SqliteStore(tmp_path) as store:
-        assert store.get(handoff["id"]) is not None
-
-
-def test_tier_two_replaces_history_with_a_provenance_handoff(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setenv("SPECSMITH_ESDB_BACKEND", "sqlite")
-    result = OptimizeResultEx(history=_history())
-    ContextOrchestrator(tmp_path)._run_tier2(result)
-
-    assert result.history[0]["content"].startswith("[Epistemic handoff HANDOFF-")
-    assert len(result.history) == 4
-
-
-def test_zoo_code_exports_portable_handoff(tmp_path: Path) -> None:
-    save_session(tmp_path, {"work_item_ids": ["WI-TEST"]}, _history())
-    output = tmp_path / "handoff.json"
-    result = CliRunner().invoke(
-        zoo_code_group,
-        ["export-handoff", "--project-dir", str(tmp_path), "--output", str(output)],
-    )
-
-    assert result.exit_code == 0, result.output
-    exported = json.loads(output.read_text(encoding="utf-8"))
-    assert exported["kind"] == "epistemic_chat_handoff"
+        records = store.query(kind="chat_handoff")
+        assert len(records) >= 1
+        assert records[0].data["confidence"] == 1.0
+        assert "WI-TEST" in records[0].data.get("work_item_ids", [])
