@@ -21,14 +21,11 @@ import json
 import os
 import shutil
 import threading
-import time
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 import specsmith.mcp_server as mcp_mod
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -57,7 +54,7 @@ def _make_project_dir(base: Path, name: str) -> Path:
 
 
 class TestMCPREG001ExplicitRegistration:
-    """MCP server startup with a project directory does not add a persistent entry unless the user invokes registration."""
+    """MCP startup never persists a path without explicit registration."""
 
     def test_startup_does_not_persist(self, reg_home: Path) -> None:
         """Starting an MCP server for a path must not automatically persist that path."""
@@ -82,7 +79,7 @@ class TestMCPREG001ExplicitRegistration:
 
 
 class TestMCPREG002PytestIsolation:
-    """Test runs using temporary project roots leave the real/default registry byte-for-byte unchanged."""
+    """Temporary test roots leave the real/default registry unchanged."""
 
     def test_temp_dirs_not_persisted(self, reg_home: Path) -> None:
         """pytest temp directory paths are rejected by _is_temp_path."""
@@ -114,7 +111,7 @@ class TestMCPREG002PytestIsolation:
 
 
 class TestMCPREG003ProjectValidation:
-    """Valid Specsmith roots register; missing files, regular files, and uninitialized directories are rejected."""
+    """Only valid Specsmith roots register without an explicit override."""
 
     def test_valid_specsmith_root_registers(self, reg_home: Path) -> None:
         """A directory with .specsmith marker registers successfully."""
@@ -325,8 +322,8 @@ class TestMCPREG008ConcurrentRegistration:
 
         assert len(errors) == 0
         projects = mcp_mod.read_registry()
-        # All 5 should be present (dedup may reduce if paths collide).
-        assert len(projects) >= 1
+        assert len(projects) == 5
+        assert not mcp_mod._registry_lock_file().exists()
 
     def test_concurrent_register_unregister(self, reg_home: Path) -> None:
         """Register and unregister in parallel should not crash."""
@@ -382,7 +379,9 @@ class TestMCPREG009CrossPlatformPaths:
         added1 = mcp_mod.register_project(str(proj))
         assert added1 is True
         # Register with different case.
-        added2 = mcp_mod.register_project(str(proj).upper() if str(proj).islower() else str(proj).lower())
+        added2 = mcp_mod.register_project(
+            str(proj).upper() if str(proj).islower() else str(proj).lower()
+        )
         # On case-insensitive FS, resolve() returns the same path.
         assert added2 is False
 
@@ -393,7 +392,7 @@ class TestMCPREG009CrossPlatformPaths:
 
 
 class TestMCPREG010StructuredStatus:
-    """list/register/prune operations expose machine-readable path, state, provenance, and reason fields."""
+    """Registry operations expose structured path, state, provenance, and reasons."""
 
     def test_prune_returns_structured_dict(self, reg_home: Path) -> None:
         """prune_registry returns a dict with removed, preserved, stale, inaccessible keys."""

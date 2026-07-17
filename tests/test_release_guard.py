@@ -12,7 +12,9 @@ from __future__ import annotations
 __trace_id__ = "REQ-050"
 
 import pytest
+from click.testing import CliRunner
 
+from specsmith.cli import main
 from specsmith.release_guard import (
     is_development_version,
     is_stable_version,
@@ -20,8 +22,8 @@ from specsmith.release_guard import (
     require_stable_version,
 )
 
-
 # --- REQ-050: Release version gating tests ---
+
 
 @pytest.mark.parametrize("version", ["0.21.0.dev1", "0.21.0a1", "0.21.0rc1", "0.21.0+local"])
 def test_non_final_versions_are_rejected(version: str) -> None:
@@ -57,3 +59,16 @@ def test_non_development_versions_are_rejected_from_dev_channel(version: str) ->
     assert not is_development_version(version)
     with pytest.raises(ValueError, match="requires an X.Y.Z.devN"):
         require_development_version(version)
+
+
+def test_public_cli_rejects_self_release_and_keeps_read_only_verification() -> None:
+    """TEST-487: self-release operations remain repository-private."""
+    runner = CliRunner()
+
+    release_result = runner.invoke(main, ["release", "1.2.3"])
+    verify_help_result = runner.invoke(main, ["verify-release", "--help"])
+
+    assert release_result.exit_code != 0
+    assert "No such command 'release'" in release_result.output
+    assert verify_help_result.exit_code == 0
+    assert "Read-only release-readiness" in verify_help_result.output

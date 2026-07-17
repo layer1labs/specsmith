@@ -1,0 +1,36 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
+    text = (ROOT / ".github/workflows/prepare-release.yml").read_text(encoding="utf-8")
+    assert "options: [check, prepare]" in text
+    assert "release/" in text
+    assert "release_status_guard.py" in text
+    assert "Clean second pass" in text
+    assert "git add -A" not in text
+    assert "force" not in text.lower()
+
+
+def test_tag_workflow_is_non_mutating_and_rejects_duplicates() -> None:
+    text = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    assert "release_bootstrap.py check" in text
+    assert "merge-base --is-ancestor" in text
+    assert "build --sdist" in text
+    assert "already exists on PyPI" in text
+    assert "skip-existing" not in text
+    assert "sed -i" not in text
+    assert "verify-publication:" in text
+    assert "verify_publication.py" in text
+    assert "publication-receipt.json" in text
+    assert "name: release-evidence" in text
+    assert "--seal release-evidence/release-seal.json" in text
+
+
+def test_canonical_runbook_has_fixed_point_and_immutable_recovery() -> None:
+    text = (ROOT / "docs/site/releasing.md").read_text(encoding="utf-8")
+    assert "second pass must be" in text
+    assert "Published tags and package versions are immutable" in text
+    assert "new commit and a new version" in text
+    assert "post-publication receipt" in text

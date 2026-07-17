@@ -11,11 +11,9 @@ from __future__ import annotations
 # Traceability marker: all tests in this module verify REQ-317
 __trace_id__ = "REQ-317"
 
-import json
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
 
 from specsmith.chat_handoff import (
     build_handoff,
@@ -23,9 +21,6 @@ from specsmith.chat_handoff import (
     store_handoff,
     validate_handoff,
 )
-from specsmith.commands.zoo_code import zoo_code_group
-from specsmith.context_orchestrator import ContextOrchestrator, OptimizeResultEx
-from specsmith.session_store import save_session
 
 
 def _history() -> list[dict[str, str]]:
@@ -39,6 +34,7 @@ def _history() -> list[dict[str, str]]:
 
 
 # --- REQ-317: Handoff context propagation tests ---
+
 
 def test_handoff_is_extractive_and_valid() -> None:
     """TEST-317-01: Handoff must be extractive with valid confidence."""

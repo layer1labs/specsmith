@@ -19,6 +19,7 @@ import signal
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,7 +32,7 @@ class ShellResolverResult:
     executable: str  # resolved path to the shell executable
     shell_family: str  # "pwsh", "powershell", "cmd", "bash", "sh", or "unknown"
     argv_prefix: list[str]  # argv prefix for subprocess.Popen
-    source: str  # "env", "config", "windows-preferred", "windows-fallback", "posix-config", "posix-default", "none"
+    source: str  # provenance: explicit/config/env/platform/none
     detected_version: str = ""  # e.g. "7.4.0" or ""
     diagnostic: str = ""  # actionable message if source == "none"
 
@@ -40,7 +41,9 @@ class ShellResolverResult:
 _resolver_cache: ShellResolverResult | None = None
 
 
-def _resolve_shell(executable: str | None = None) -> ShellResolverResult:
+def _resolve_shell(
+    executable: str | None = None, *, config_shell: str | None = None
+) -> ShellResolverResult:
     """Resolve the best available shell for cross-platform execution (REQ-313).
 
     Resolution order:
@@ -69,22 +72,39 @@ def _resolve_shell(executable: str | None = None) -> ShellResolverResult:
                 executable=resolved,
                 shell_family=family,
                 argv_prefix=[resolved],
-                source="env",
+                source="explicit",
                 detected_version=version,
             )
-            _resolver_cache = result
             return result
         result = ShellResolverResult(
             executable=executable,
             shell_family=_classify_shell(executable),
             argv_prefix=[executable],
-            source="env",
+            source="explicit",
             diagnostic=f"Specified shell '{executable}' not found in PATH",
         )
-        _resolver_cache = result
         return result
 
-    # 2. SPECSMITH_SHELL environment override
+    # 2. Resolved project configuration
+    if config_shell:
+        resolved = shutil.which(config_shell)
+        if resolved:
+            return ShellResolverResult(
+                executable=resolved,
+                shell_family=_classify_shell(config_shell),
+                argv_prefix=_shell_prefix(resolved, _classify_shell(config_shell)),
+                source="config",
+                detected_version=_detect_shell_version(resolved),
+            )
+        return ShellResolverResult(
+            executable=config_shell,
+            shell_family=_classify_shell(config_shell),
+            argv_prefix=[config_shell],
+            source="config",
+            diagnostic=f"Configured shell '{config_shell}' not found in PATH",
+        )
+
+    # 3. SPECSMITH_SHELL environment override
     env_shell = os.environ.get("SPECSMITH_SHELL")
     if env_shell:
         resolved = shutil.which(env_shell)
@@ -136,6 +156,14 @@ def _classify_shell(name: str) -> str:
     return "unknown"
 
 
+def _shell_prefix(executable: str, family: str) -> list[str]:
+    if family in {"pwsh", "powershell"}:
+        return [executable, "-NoProfile", "-NonInteractive", "-Command"]
+    if family == "cmd":
+        return [executable, "/c"]
+    return [executable, "-c"]
+
+
 def _detect_shell_version(executable: str) -> str:
     """Detect the version of a shell executable."""
     try:
@@ -150,6 +178,7 @@ def _detect_shell_version(executable: str) -> str:
             first_line = result.stdout.strip().split("\n")[0]
             # Try to extract version number
             import re
+
             match = re.search(r"(\d+\.\d+\.\d+)", first_line)
             if match:
                 return match.group(1)
@@ -185,13 +214,20 @@ def _resolve_windows_shell() -> ShellResolverResult:
             detected_version=version,
         )
 
-    # Fallback to cmd.exe (always available on Windows)
-    cmd = shutil.which("cmd.exe") or "cmd.exe"
+    cmd = shutil.which("cmd.exe") or shutil.which("cmd")
+    if cmd:
+        return ShellResolverResult(
+            executable=cmd,
+            shell_family="cmd",
+            argv_prefix=[cmd, "/c"],
+            source="windows-fallback",
+        )
     return ShellResolverResult(
-        executable=cmd,
-        shell_family="cmd",
-        argv_prefix=[cmd, "/c"],
-        source="windows-fallback",
+        executable="",
+        shell_family="none",
+        argv_prefix=[],
+        source="none",
+        diagnostic="No supported Windows shell found; install PowerShell 7 or repair cmd.exe",
     )
 
 
@@ -228,8 +264,7 @@ def _resolve_posix_shell() -> ShellResolverResult:
         argv_prefix=[],
         source="none",
         diagnostic=(
-            "No supported shell found. Install bash or sh. "
-            "Set SPECSMITH_SHELL to override."
+            "No supported shell found. Install bash or sh. Set SPECSMITH_SHELL to override."
         ),
     )
 
@@ -365,7 +400,7 @@ def _kill_process(pid: int, *, graceful_timeout: float = 5.0) -> bool:
 
 def run_tracked(
     root: Path,
-    command: str,
+    command: str | Sequence[str],
     *,
     timeout: int = 120,
     capture: bool = True,
@@ -393,22 +428,36 @@ def run_tracked(
     stdout_path = _logs_dir(root) / f"exec_{ts}.stdout"
     stderr_path = _logs_dir(root) / f"exec_{ts}.stderr"
 
-    # Resolve shell using the deterministic resolver (REQ-313)
-    resolver_result = _resolve_shell(executable=shell)
+    if isinstance(command, str):
+        config_shell = None
+        if shell is None:
+            from specsmith.config_resolver import resolve_config
 
-    if resolver_result.source == "none":
-        raise RuntimeError(
-            f"No supported shell available: {resolver_result.diagnostic}"
+            resolved_config = resolve_config(root)
+            config_shell = (resolved_config.values.get("execution") or {}).get("shell")
+        resolver_result = _resolve_shell(executable=shell, config_shell=config_shell)
+        if resolver_result.diagnostic:
+            raise RuntimeError(resolver_result.diagnostic)
+        process_args = resolver_result.argv_prefix + [command]
+        command_display = command
+    else:
+        if not command:
+            raise ValueError("direct argv command must not be empty")
+        process_args = [str(part) for part in command]
+        command_display = " ".join(process_args)
+        resolver_result = ShellResolverResult(
+            executable=process_args[0],
+            shell_family="direct",
+            argv_prefix=[],
+            source="argv",
         )
-
-    shell_args: list[str] = resolver_result.argv_prefix + [command]
 
     stdout_fh = open(stdout_path, "w", encoding="utf-8") if capture else None  # noqa: SIM115
     stderr_fh = open(stderr_path, "w", encoding="utf-8") if capture else None  # noqa: SIM115
 
     try:
         proc = subprocess.Popen(  # noqa: S603
-            shell_args,
+            process_args,
             stdout=stdout_fh or subprocess.PIPE,
             stderr=stderr_fh or subprocess.PIPE,
             cwd=str(root),
@@ -416,7 +465,7 @@ def run_tracked(
 
         tracked = TrackedProcess(
             pid=proc.pid,
-            command=command,
+            command=command_display,
             started=started,
             timeout=timeout,
         )
@@ -440,7 +489,7 @@ def run_tracked(
             pid_file.unlink()
 
         return ExecResult(
-            command=command,
+            command=command_display,
             exit_code=124 if timed_out else exit_code,
             pid=proc.pid,
             duration=duration,

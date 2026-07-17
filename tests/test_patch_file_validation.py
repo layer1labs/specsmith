@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 """Tests for patch_file diff-format validation (issue #344)."""
+
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -13,25 +13,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from specsmith.agent.tools import patch_file  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture()
 def tmp_project(tmp_path: Path) -> Path:
     """Create a minimal project with a source file to patch."""
     src = tmp_path / "src"
     src.mkdir()
-    (src / "example.py").write_text(
-        "# example\nline1\nline2\nline3\n", encoding="utf-8"
-    )
+    (src / "example.py").write_text("# example\nline1\nline2\nline3\n", encoding="utf-8")
     return tmp_path
 
 
 # ---------------------------------------------------------------------------
 # Valid diff — should pass through to patch command
 # ---------------------------------------------------------------------------
+
 
 def test_valid_diff_applies(tmp_project: Path) -> None:
     """A well-formed unified diff passes validation and reaches patch command."""
@@ -57,6 +56,7 @@ def test_valid_diff_applies(tmp_project: Path) -> None:
 # Malformed diff — :start_line: marker in REPLACE section
 # ---------------------------------------------------------------------------
 
+
 def test_malformed_diff_start_line_rejected(tmp_project: Path) -> None:
     """Diff with :start_line: marker in REPLACE section is rejected."""
     diff = (
@@ -75,9 +75,27 @@ def test_malformed_diff_start_line_rejected(tmp_project: Path) -> None:
     assert "write_to_file" in result
 
 
+def test_zoo_search_replace_marker_in_replace_is_rejected_with_retry_example(
+    tmp_project: Path,
+) -> None:
+    diff = (
+        "<<<<<<< SEARCH\n"
+        "content to find\n"
+        "=======\n"
+        ":start_line:5\n"
+        "replacement content\n"
+        ">>>>>>> REPLACE\n"
+    )
+    result = patch_file("src/example.py", diff, cwd=str(tmp_project))
+    assert "Malformed diff format" in result
+    assert "<<<<<<< SEARCH\n:start_line:5" in result
+    assert "repeated failure" in result
+
+
 # ---------------------------------------------------------------------------
 # Malformed diff — :end_line: marker in REPLACE section
 # ---------------------------------------------------------------------------
+
 
 def test_malformed_diff_end_line_rejected(tmp_project: Path) -> None:
     """Diff with :end_line: marker in REPLACE section is rejected."""
@@ -100,6 +118,7 @@ def test_malformed_diff_end_line_rejected(tmp_project: Path) -> None:
 # Malformed diff — both markers
 # ---------------------------------------------------------------------------
 
+
 def test_malformed_diff_both_markers_rejected(tmp_project: Path) -> None:
     """Diff with both :start_line: and :end_line: markers is rejected."""
     diff = (
@@ -120,6 +139,7 @@ def test_malformed_diff_both_markers_rejected(tmp_project: Path) -> None:
 # ---------------------------------------------------------------------------
 # Cache deduplication — same prefix should not re-parse
 # ---------------------------------------------------------------------------
+
 
 def test_validation_cache_dedup(tmp_project: Path) -> None:
     """Repeated calls with same diff prefix skip re-parsing."""
@@ -149,6 +169,7 @@ def test_validation_cache_dedup(tmp_project: Path) -> None:
 # Non-existent file — early error
 # ---------------------------------------------------------------------------
 
+
 def test_nonexistent_file_error(tmp_project: Path) -> None:
     """Requesting to patch a non-existent file returns error immediately."""
     diff = "valid diff"
@@ -160,6 +181,7 @@ def test_nonexistent_file_error(tmp_project: Path) -> None:
 # Empty diff — should not crash
 # ---------------------------------------------------------------------------
 
+
 def test_empty_diff_does_not_crash(tmp_project: Path) -> None:
     """An empty diff string does not crash the function."""
     result = patch_file("src/example.py", "", cwd=str(tmp_project))
@@ -170,6 +192,7 @@ def test_empty_diff_does_not_crash(tmp_project: Path) -> None:
 # ---------------------------------------------------------------------------
 # Diff with only hunk header (no REPLACE section) — should not crash
 # ---------------------------------------------------------------------------
+
 
 def test_hunk_only_no_crash(tmp_project: Path) -> None:
     """A diff with only @@ header (no REPLACE content) does not crash."""

@@ -193,17 +193,25 @@ def run_upgrade(
         obsolete_workflow.unlink()
         result.updated_files.append("docs/WORKFLOW.md (removed — replaced by LIFECYCLE.md)")
 
-    # Regenerate governance templates (always overwritten — they're spec-managed).
-    # REG-007: safe_overwrite creates a timestamped .bak before each write.
+    # Regenerate spec-managed governance templates. Identical renders are a
+    # no-op; changed content is backed up under ignored project-local state.
     from specsmith.safe_write import safe_overwrite as _safe_overwrite
 
+    backup_dir = root / ".specsmith" / "backups" / "governance"
     for template_name, output_rel in _GOVERNANCE_TEMPLATES:
         output_path = root / output_rel
         output_path.parent.mkdir(parents=True, exist_ok=True)
         tmpl = env.get_template(template_name)
         content = tmpl.render(**ctx)
-        _safe_overwrite(output_path, content, reason=f"upgrade {output_rel}")
-        result.updated_files.append(output_rel)
+        existed = output_path.exists()
+        backup = _safe_overwrite(
+            output_path,
+            content,
+            reason=f"upgrade {output_rel}",
+            backup_dir=backup_dir,
+        )
+        if backup is not None or not existed:
+            result.updated_files.append(output_rel)
 
     # Update scaffold config with new version (at canonical or legacy location)
     raw["spec_version"] = new_version

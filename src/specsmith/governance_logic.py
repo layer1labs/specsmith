@@ -14,12 +14,11 @@ serialisation.  They never write to stdout/stderr; callers handle I/O.
 from __future__ import annotations
 
 import hashlib
-
-from specsmith import __version__
 import os
-import uuid
 from pathlib import Path
 from typing import Any, cast
+
+from specsmith import __version__
 
 
 def _is_environment_only_specsmith_upgrade(utterance: str) -> bool:

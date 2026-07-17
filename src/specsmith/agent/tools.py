@@ -2,13 +2,12 @@ import contextlib
 import glob
 import json
 import os
-import re
 import subprocess
-import tempfile
 import urllib.request
 from dataclasses import dataclass
 from dataclasses import field as _dc_field
 from pathlib import Path
+from typing import Any
 
 from specsmith.agent.safety import (
     normalize_path,
@@ -25,10 +24,14 @@ def run_shell(command: str, cwd: str | None = None, timeout: int = 60) -> str:
         cwd = os.getcwd()
 
     try:
+        from specsmith.executor import _resolve_shell
+
+        resolved = _resolve_shell()
+        if resolved.diagnostic:
+            return f"Error executing command: {resolved.diagnostic}"
         result = subprocess.run(
-            command,
+            resolved.argv_prefix + [command],
             cwd=cwd,
-            shell=True,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -93,9 +96,7 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
     # --- diff-format validation (issue #344) ---------------------------
     # Cache key: 512-char prefix of the diff string.
     # Use module-level singleton for dedup across calls.
-    _cache: dict[str, bool] = getattr(
-        sys.modules[__name__], "_diff_validation_cache", {}
-    )
+    _cache: dict[str, bool] = getattr(sys.modules[__name__], "_diff_validation_cache", {})
     if not isinstance(_cache, dict):
         _cache = {}
         sys.modules[__name__]._diff_validation_cache = _cache  # type: ignore[attr-defined]
@@ -108,7 +109,11 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
         # the ``@@`` hunk header.  Malformed model output often inserts
         # ``:start_line:`` / ``:end_line:`` markers inside the REPLACE
         # block.
-        _replace_section = diff.split("@@")[2] if len(diff.split("@@")) >= 3 else ""
+        if "<<<<<<< SEARCH" in diff and "=======" in diff:
+            _replace_section = diff.split("=======", 1)[1].split(">>>>>>> REPLACE", 1)[0]
+        else:
+            hunks = diff.split("@@")
+            _replace_section = hunks[2] if len(hunks) >= 3 else ""
         has_bad_markers = bool(
             re.search(r"^:\s*start_line\s*:", _replace_section, re.MULTILINE)
             or re.search(r"^:\s*end_line\s*:", _replace_section, re.MULTILINE)
@@ -119,10 +124,11 @@ def patch_file(path: str, diff: str, cwd: str | None = None) -> str:
     if not validated:
         return (
             "Malformed diff format detected: ':start_line:' or ':end_line:' markers "
-            "found in the REPLACE section.  The patch command expects a standard "
-            "unified diff.  Example of correct format:\n\n"
-            "--- a/src/example.py\n+++ b/src/example.py\n@@ -1,3 +1,3 @@\n line1\n-line2\n+line2_fixed\n line3\n\n"
-            "For large edits, prefer the 'write_to_file' tool instead."
+            "found in the REPLACE section. Markers are permitted only immediately "
+            "after '<<<<<<< SEARCH'. Retry with:\n\n<<<<<<< SEARCH\n:start_line:5\n"
+            "content to find\n=======\nreplacement content\n>>>>>>> REPLACE\n\n"
+            "After a repeated failure, use a smaller targeted edit or the "
+            "'write_to_file' tool for a complete rewrite."
         )
 
     # --- apply the patch -----------------------------------------------
@@ -234,6 +240,25 @@ def remember_project_fact(key: str, value: str, cwd: str | None = None) -> str:
     return f"Remembered fact '{key}'."
 
 
+@validate_json_args
+def update_todo_list(
+    items: list[dict[str, Any]], paused: bool = False, pause_reason: str = ""
+) -> str:
+    """Render a readable, mode-independent nested todo list."""
+    from specsmith.agent.todo_renderer import TodoItem, render_todo_list
+
+    def convert(item: dict[str, Any]) -> TodoItem:
+        return TodoItem(
+            title=str(item.get("title") or "Untitled task"),
+            status=str(item.get("status") or "pending"),
+            children=tuple(convert(child) for child in item.get("children") or ()),
+        )
+
+    return render_todo_list(
+        tuple(convert(item) for item in items), paused=paused, pause_reason=pause_reason
+    )
+
+
 # ---------------------------------------------------------------------------
 # Tool specification (REG-001 / REG-002)
 # ---------------------------------------------------------------------------
@@ -341,6 +366,15 @@ def build_tool_registry(project_dir: str = ".") -> list[ToolSpec]:
             description="Store a named fact in the local project index (.repo-index/facts.json).",
             func=remember_project_fact,
             epistemic_claims=["modifies .repo-index/facts.json only"],
+        ),
+        ToolSpec(
+            name="update_todo_list",
+            description=(
+                "Render nested todos with consistent headings, status symbols, "
+                "bounded titles, and explicit pause state."
+            ),
+            func=update_todo_list,
+            epistemic_claims=["render-only: does not persist task state"],
         ),
         # ── Compiler / linter / formatter tools ─────────────────────────────
         ToolSpec(

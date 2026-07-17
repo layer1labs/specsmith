@@ -144,7 +144,10 @@ class ProjectConfig(BaseModel):
         ),
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default=GOVERNANCE_VERSION, description="Spec version to scaffold from")
+    spec_version: str = Field(
+        default=GOVERNANCE_VERSION,
+        description="Spec version to scaffold from",
+    )
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -553,10 +556,17 @@ def _normalize_scaffold_raw(raw: dict[str, Any]) -> dict[str, Any]:
 
     Migrations handled:
     - ``project`` → ``name``  (renamed in specsmith ≤ 0.9)
+    - legacy Specsmith self-project ``version`` → ``spec_version`` when the
+      latter is absent; preserve the package version as a separate field.
     """
     if raw and "project" in raw and "name" not in raw:
         raw = dict(raw)
         raw["name"] = raw.pop("project")
+    if raw and raw.get("name") == "specsmith" and "spec_version" not in raw:
+        legacy_version = raw.get("version")
+        if isinstance(legacy_version, str) and legacy_version:
+            raw = dict(raw)
+            raw["spec_version"] = legacy_version
     return raw
 
 

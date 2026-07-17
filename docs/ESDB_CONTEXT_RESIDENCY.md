@@ -9,6 +9,14 @@
 
 This document defines ESDB-backed context residency management that keeps only the minimum task-relevant working set in the LLM context while persisting important information durably. It replaces destructive eviction with non-destructive context-residency operations, implements smart retrieval with token budgets, and supports bounded session resume without injecting raw historical turns.
 
+Canonical collaborative evidence is represented by `ReplicatedEventSet`, an
+immutable event-set union whose root is independent of merge order and platform.
+SQLite and ChronoStore are materialized indexes over that event contract, not an
+authority that may silently resolve concurrent same-entity edits. Divergent
+frontier events remain queryable conflicts and authoritative reads fail until a
+new resolution event names both parents. Legacy WAL hashes remain attached to
+migrated events as provenance; residency changes never alter those events.
+
 ```mermaid
 graph TD
     A[Session Start] --> B[Load Bounded Context Packet]

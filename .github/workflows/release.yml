@@ -5,7 +5,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
   security-events: read  # needed for code scanning alert API
 
 jobs:
@@ -59,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -66,28 +68,43 @@ jobs:
       - run: pip install build
       - name: Verify stable release version and tag
         run: PYTHONPATH=src python scripts/check_stable_release.py --expected-version "${{ github.ref_name }}"
-      - name: Strip git-URL deps before PyPI build
+      - name: Verify tag belongs to main
+        run: git fetch origin main && git merge-base --is-ancestor "${{ github.sha }}" origin/main
+      - name: Candidate closure check
+        run: python scripts/release_bootstrap.py check --version "${{ github.ref_name }}" --manifest "${{ runner.temp }}/closure.json"
+      - name: Build canonical artifacts
         run: |
-          # PyPI rejects packages with direct git+https:// dependencies.
-          # chronomemory is now on PyPI (>=0.2.7); this step is a no-op for the current
-          # version spec but is kept in case a git-URL dep is reintroduced.
-          sed -i '/chronomemory @ git+/d' pyproject.toml
-      - run: python -m build
+          python -m build --sdist
+          python -m pip wheel --no-deps --wheel-dir dist dist/specsmith-*.tar.gz
+          python -c "from pathlib import Path; Path('release-evidence').mkdir()"
+          python -m pip hash dist/* > release-evidence/SHA256SUMS
+          python -c "import shutil; shutil.copy2(r'${{ runner.temp }}/closure.json', 'release-evidence/release-seal.json')"
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
+      - name: Upload release evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-evidence
+          path: release-evidence/
 
   github-release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-evidence
+          path: release-evidence/
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -97,9 +114,9 @@ jobs:
           #   1. Remove the 'prerelease: false' note below (GitHub will mark it
           #      as the latest stable release by default).
           #   2. Change kairos_updater.rs KairosUpdateChannel::default() -> Stable.
-          gh release create "${{ github.ref_name }}" dist/* \
+          gh release create "${{ github.ref_name }}" dist/* release-evidence/* \
             --title "${{ github.ref_name }}" \
-            --generate-notes || echo "Release already exists — skipping"
+            --generate-notes
 
   pypi-publish:
     needs: [build, code-scan-gate]
@@ -113,14 +130,66 @@ jobs:
       id-token: write
     if: github.event.base_ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Reject existing PyPI version
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.error, urllib.request
+          version = os.environ['VERSION'].removeprefix('v')
+          try:
+              urllib.request.urlopen(f'https://pypi.org/pypi/specsmith/{version}/json')
+          except urllib.error.HTTPError as error:
+              if error.code == 404:
+                  raise SystemExit(0)
+              raise
+          raise SystemExit(f'specsmith {version} already exists on PyPI')
+          PY
       - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-evidence
+          path: release-evidence/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  verify-publication:
+    needs: [github-release, pypi-publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
-          skip-existing: true
+          name: dist
+          path: dist/
+      - name: Verify GitHub release
+        id: github-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "url=$(gh release view '${{ github.ref_name }}' --json url --jq .url)" >> "$GITHUB_OUTPUT"
+      - name: Verify PyPI artifacts and create receipt
+        run: |
+          python scripts/verify_publication.py \
+            --seal release-evidence/release-seal.json \
+            --dist dist \
+            --version "${{ github.ref_name }}" \
+            --repository "${{ github.repository }}" \
+            --tag "${{ github.ref_name }}" \
+            --github-url "${{ steps.github-release.outputs.url }}" \
+            --output publication-receipt.json
+      - name: Attach verified receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.ref_name }}" publication-receipt.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: publication-receipt
+          path: publication-receipt.json
 
   cleanup-dev-releases:
     # After a stable release lands on PyPI, scrub all .devN pre-release builds

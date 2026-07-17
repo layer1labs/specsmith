@@ -15,6 +15,8 @@ Named tests:
 - EXECSHELL-010: PowerShell non-interactive flags
 """
 
+# ruff: noqa: SIM117
+
 from __future__ import annotations
 
 import os
@@ -25,6 +27,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Import the module to access _resolver_cache directly (not a stale reference)
+import specsmith.executor as _executor_mod
 from specsmith.executor import (
     _classify_shell,
     _detect_shell_version,
@@ -32,11 +36,7 @@ from specsmith.executor import (
     _resolve_shell,
     _resolve_windows_shell,
     run_tracked,
-    ShellResolverResult,
 )
-
-# Import the module to access _resolver_cache directly (not a stale reference)
-import specsmith.executor as _executor_mod
 
 
 def _clear_cache() -> None:
@@ -47,6 +47,7 @@ def _clear_cache() -> None:
 # ---------------------------------------------------------------------------
 # EXECSHELL-001: Default resolution prefers pwsh on Windows
 # ---------------------------------------------------------------------------
+
 
 class TestEXECSHELL001DefaultWindowsResolution:
     """Default shell resolution on Windows prefers pwsh.exe."""
@@ -68,11 +69,14 @@ class TestEXECSHELL001DefaultWindowsResolution:
         """When pwsh.exe is absent but powershell.exe exists, resolver returns powershell."""
         with patch.object(sys, "platform", "win32"):
             # Mock which to return None for pwsh variants, then powershell.exe
-            which_side_effect = MagicMock(side_effect=[
-                None,  # pwsh.exe → not found
-                None,  # pwsh → not found
-                "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",  # powershell.exe → found
-            ])
+            which_side_effect = MagicMock(
+                side_effect=[
+                    None,  # pwsh.exe → not found
+                    None,  # pwsh → not found
+                    # powershell.exe found
+                    "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+                ]
+            )
             with patch("shutil.which", side_effect=which_side_effect):
                 result = _resolve_windows_shell()
 
@@ -82,7 +86,10 @@ class TestEXECSHELL001DefaultWindowsResolution:
     def test_falls_back_to_cmd_when_no_powershell(self, tmp_path: Path) -> None:
         """When neither pwsh nor powershell exist, resolver returns cmd.exe."""
         with patch.object(sys, "platform", "win32"):
-            with patch("shutil.which", return_value=None):
+            which_side_effect = MagicMock(
+                side_effect=[None, None, None, None, "C:/Windows/System32/cmd.exe"]
+            )
+            with patch("shutil.which", side_effect=which_side_effect):
                 result = _resolve_windows_shell()
 
         assert result.shell_family == "cmd"
@@ -93,6 +100,7 @@ class TestEXECSHELL001DefaultWindowsResolution:
 # ---------------------------------------------------------------------------
 # EXECSHELL-002: Default resolution prefers bash on POSIX
 # ---------------------------------------------------------------------------
+
 
 class TestEXECSHELL002DefaultPOSIXResolution:
     """Default shell resolution on POSIX prefers bash."""
@@ -111,10 +119,12 @@ class TestEXECSHELL002DefaultPOSIXResolution:
     def test_falls_back_to_sh_when_no_bash(self, tmp_path: Path) -> None:
         """When bash is absent but sh exists, resolver returns sh."""
         with patch.object(sys, "platform", "linux"):
-            which_side_effect = MagicMock(side_effect=[
-                None,  # bash → not found
-                "/bin/sh",  # sh → found
-            ])
+            which_side_effect = MagicMock(
+                side_effect=[
+                    None,  # bash → not found
+                    "/bin/sh",  # sh → found
+                ]
+            )
             with patch("shutil.which", side_effect=which_side_effect):
                 result = _resolve_posix_shell()
 
@@ -135,6 +145,7 @@ class TestEXECSHELL002DefaultPOSIXResolution:
 # ---------------------------------------------------------------------------
 # EXECSHELL-003: SPECSMITH_SHELL environment override
 # ---------------------------------------------------------------------------
+
 
 class TestEXECSHELL003EnvOverride:
     """SPECSMITH_SHELL environment variable overrides default resolution."""
@@ -182,6 +193,7 @@ class TestEXECSHELL003EnvOverride:
 # EXECSHELL-004: Explicit shell override parameter
 # ---------------------------------------------------------------------------
 
+
 class TestEXECSHELL004ExplicitOverride:
     """Explicit shell parameter overrides all other resolution."""
 
@@ -191,19 +203,20 @@ class TestEXECSHELL004ExplicitOverride:
             result = _resolve_shell(executable="pwsh")
 
         assert result.shell_family == "pwsh"
-        assert result.source == "env"
+        assert result.source == "explicit"
 
     def test_explicit_shell_not_found(self, tmp_path: Path) -> None:
         """Passing nonexistent shell returns diagnostic."""
         result = _resolve_shell(executable="/nonexistent/shell")
 
-        assert result.source == "env"
+        assert result.source == "explicit"
         assert "not found" in result.diagnostic
 
 
 # ---------------------------------------------------------------------------
 # EXECSHELL-005: Shell family classification
 # ---------------------------------------------------------------------------
+
 
 class TestEXECSHELL005ShellClassification:
     """Shell family classification is correct for all known shells."""
@@ -232,6 +245,7 @@ class TestEXECSHELL005ShellClassification:
 # ---------------------------------------------------------------------------
 # EXECSHELL-006: Version detection
 # ---------------------------------------------------------------------------
+
 
 class TestEXECSHELL006VersionDetection:
     """Shell version detection extracts version from --version output."""
@@ -276,6 +290,7 @@ class TestEXECSHELL006VersionDetection:
 # EXECSHELL-007: Cached resolver result
 # ---------------------------------------------------------------------------
 
+
 class TestEXECSHELL007Cache:
     """Resolver result is cached for performance."""
 
@@ -310,6 +325,7 @@ class TestEXECSHELL007Cache:
 # EXECSHELL-008: No shell available diagnostic
 # ---------------------------------------------------------------------------
 
+
 class TestEXECSHELL008NoShellDiagnostic:
     """Diagnostic message is actionable when no shell is available."""
 
@@ -328,6 +344,7 @@ class TestEXECSHELL008NoShellDiagnostic:
 # EXECSHELL-009: run_tracked uses resolved shell
 # ---------------------------------------------------------------------------
 
+
 class TestEXECSHELL009RunTracked:
     """run_tracked() uses the resolved shell and records provenance."""
 
@@ -340,13 +357,15 @@ class TestEXECSHELL009RunTracked:
 
         # Use side_effect so pwsh.exe and powershell.exe return None (not found),
         # but cmd.exe returns the cmd path. This prevents real pwsh.exe from being found.
-        which_side_effect = MagicMock(side_effect=[
-            None,  # pwsh.exe → not found
-            None,  # pwsh → not found
-            None,  # powershell.exe → not found
-            None,  # powershell → not found
-            "C:/Windows/System32/cmd.exe",  # cmd.exe → found
-        ])
+        which_side_effect = MagicMock(
+            side_effect=[
+                None,  # pwsh.exe → not found
+                None,  # pwsh → not found
+                None,  # powershell.exe → not found
+                None,  # powershell → not found
+                "C:/Windows/System32/cmd.exe",  # cmd.exe → found
+            ]
+        )
         with patch("shutil.which", side_effect=which_side_effect):
             with patch("subprocess.Popen") as mock_popen:
                 mock_popen.return_value = mock_proc
@@ -371,9 +390,7 @@ class TestEXECSHELL009RunTracked:
                 mock_popen.return_value = mock_proc
                 with patch("subprocess.run") as mock_run:
                     mock_run.side_effect = TimeoutExpired("bash", 5)
-                    result = run_tracked(
-                        tmp_path, "echo hello", timeout=5, shell="bash"
-                    )
+                    result = run_tracked(tmp_path, "echo hello", timeout=5, shell="bash")
 
         assert result.shell_family == "bash"
 
@@ -390,6 +407,7 @@ class TestEXECSHELL009RunTracked:
 # EXECSHELL-010: PowerShell non-interactive flags
 # ---------------------------------------------------------------------------
 
+
 class TestEXECSHELL010PowerShellFlags:
     """PowerShell invocations use non-interactive, non-profile behavior."""
 
@@ -403,14 +421,35 @@ class TestEXECSHELL010PowerShellFlags:
         assert "-NonInteractive" in result.argv_prefix
         assert "-Command" in result.argv_prefix
 
+
+def test_configured_shell_precedes_environment() -> None:
+    _clear_cache()
+    with (
+        patch.dict(os.environ, {"SPECSMITH_SHELL": "bash"}),
+        patch("shutil.which", return_value="C:/pwsh.exe"),
+    ):
+        result = _resolve_shell(config_shell="pwsh")
+    assert result.source == "config"
+    assert result.shell_family == "pwsh"
+
+
+def test_direct_argv_bypasses_shell(tmp_path: Path) -> None:
+    result = run_tracked(tmp_path, [sys.executable, "--version"], timeout=10)
+    assert result.exit_code == 0
+    assert result.shell_family == "direct"
+    assert result.shell_path == sys.executable
+
     def test_powershell_argv_prefix(self, tmp_path: Path) -> None:
         """powershell argv prefix includes -NoProfile, -NonInteractive, -Command."""
         with patch.object(sys, "platform", "win32"):
-            which_side_effect = MagicMock(side_effect=[
-                None,  # pwsh.exe → not found
-                None,  # pwsh → not found
-                "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",  # powershell.exe → found
-            ])
+            which_side_effect = MagicMock(
+                side_effect=[
+                    None,  # pwsh.exe → not found
+                    None,  # pwsh → not found
+                    # powershell.exe found
+                    "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+                ]
+            )
             with patch("shutil.which", side_effect=which_side_effect):
                 result = _resolve_windows_shell()
 

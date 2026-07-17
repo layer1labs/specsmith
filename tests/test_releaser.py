@@ -27,6 +27,7 @@ def _write(path: Path, text: str) -> None:
 
 # --- REQ-050: Stale-reference scanner tests ---
 
+
 def test_dev_channel_pre_reference_not_flagged(tmp_path: Path) -> None:
     """TEST-050-01: A dev-docs note mapping dev docs to the pre-release install is legitimate."""
     _write(
@@ -37,7 +38,7 @@ def test_dev_channel_pre_reference_not_flagged(tmp_path: Path) -> None:
 
 
 def test_dev_release_section_pre_reference_not_flagged(tmp_path: Path) -> None:
-    """TEST-050-02: An install hint under a 'Dev Releases' heading is legitimate dev-channel docs."""
+    """TEST-050-02: Dev Releases may contain a legitimate dev-channel install hint."""
     _write(
         tmp_path / "docs" / "site" / "releasing.md",
         "## Dev Releases (develop branch)\n\nInstall: `pip install --pre specsmith`\n",

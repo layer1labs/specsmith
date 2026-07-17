@@ -9,6 +9,9 @@
 
 SpecSmith is the governance layer for AI-assisted development: it sits between agents and your repo, enforces preflight decisions, and records requirement/test traceability with auditable evidence. It is **not** an IDE, autonomous coding agent, CI runner, or legal-compliance certifier. Use SpecSmith when changes need repeatable controls, work-item lineage, and review-ready artifacts; do not use it for throwaway prototyping where governance overhead is unnecessary. Compared with GitHub Spec Kit, OpenSpec, and BMAD, SpecSmith adds execution-time policy gates and trace chains. Compared with Aider, Claude Code, and Cursor, SpecSmith governs those clients instead of replacing them. Compared with LangGraph and AutoGen, SpecSmith prioritizes software-governance outcomes and evidence quality over general-purpose multi-agent orchestration.
 
+For Zoo Code / Roo Code, use the canonical
+[setup, repair, and governed-context guide](https://specsmith.readthedocs.io/en/stable/zoo-code-roo/).
+
 ## Architecture at a glance
 
 ```

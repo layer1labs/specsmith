@@ -723,7 +723,10 @@ def _sync_static_fallback(scores_path: Path) -> dict[str, Any]:
         store = _load_store(scores_path)
         for model_name, benchmarks in _STATIC_BENCHMARKS.items():
             _upsert_score(store, model_name, benchmarks, "static_fallback")
-        _save_store(scores_path, store)
+        try:
+            _save_store(scores_path, store)
+        except OSError as error:
+            _log.warning("Static model score cache is not writable: %s", error)
     count = len(_STATIC_BENCHMARKS)
     _log.info("Static model scores loaded: %d models", count)
     return {

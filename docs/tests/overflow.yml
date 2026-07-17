@@ -665,3 +665,197 @@
   verification_method: pytest tests/test_cli.py
   description: Verify specsmith preflight --help leaves an older governed project
     byte-for-byte unchanged and does not create governance files.
+- id: TEST-481
+  title: Generate current Zoo import schema without secrets
+  requirement_id: REQ-457
+  type: unit
+  verification_method: tests/test_zoo_code_litellm_profile.py
+  description: Verifies the generated providerProfiles/apiConfigs/modeApiConfigs document
+    uses Zoo Code LiteLLM field names, leaves litellmApiKey absent, and uses its documented
+    default endpoint.
+- id: TEST-482
+  title: Repair managed Zoo assets while preserving user configuration
+  requirement_id: REQ-457
+  type: unit
+  verification_method: tests/test_zoo_code_litellm_profile.py
+  description: Verifies safe migration of the obsolete managed artifact, recovery
+    from malformed managed JSON with a backup, and preservation of user-owned profiles
+    and mode mappings.
+- id: TEST-483
+  title: Generate portable Zoo auto-import settings
+  requirement_id: REQ-457
+  type: unit
+  verification_method: tests/test_zoo_code_litellm_profile.py
+  description: Verifies Windows, Linux, and macOS VS Code settings paths, idempotent
+    auto-import updates, and capability-aware cache controls.
+- id: TEST-484
+  title: Serialize concurrent MCP registry mutations across platforms
+  requirement_id: REQ-458
+  type: unit
+  verification_method: tests/test_mcp_registry.py
+  description: Spawns concurrent registration and unregister operations, verifies
+    a valid registry with no lost entries, and covers the portable lock cleanup path.
+- id: TEST-485
+  title: Install candidate wheel and exercise public cross-platform smoke flow
+  requirement_id: REQ-459
+  type: integration
+  verification_method: scripts/platform_smoke.py and .github/workflows/ci.yml
+  description: Builds the wheel, installs it into a fresh platform-aware venv, and
+    validates initialization, audit, strict validation, sync/fixed-point, and Zoo
+    Local-LLM asset generation from a Unicode and space-containing path.
+- id: TEST-486
+  title: Generate and preserve the Zoo wildcard command default
+  requirement_id: REQ-460
+  type: unit
+  verification_method: tests/test_zoo_code_litellm_profile.py
+  description: Verifies current-schema allowedCommands emits exactly the literal
+    wildcard, does not invoke shell expansion for representative Windows and POSIX
+    command strings, regenerates idempotently, and protects user-owned assets.
+- id: TEST-487
+  title: Reject public Specsmith self-release invocation
+  requirement_id: REQ-461
+  type: unit
+  verification_method: tests/test_release_guard.py and tests/test_api_surface.py
+  description: Verifies the public CLI and frozen API surface exclude release while
+    retaining the generic read-only verify-release capability.
+- id: TEST-488
+  title: Normalize and verify distinct self-project version metadata
+  requirement_id: REQ-462
+  type: unit
+  verification_method: tests/test_release_version_contract.py
+  description: Verifies current two-field metadata, legacy Specsmith version-only
+    normalization, forward migration detection, backward rejection, and distinct
+    package and governance parity diagnostics.
+- id: TEST-489
+  title: Reach a fixed point for managed governance regeneration
+  requirement_id: REQ-463
+  type: integration
+  verification_method: tests/test_safe_write.py and tests/test_upgrader.py
+  description: Verifies identical content is a no-op, changed managed content backs
+    up into ignored project-local storage, and a repeated governed upgrade does not
+    create additional source changes.
+- id: TEST-490
+  title: Build and check a private Specsmith release candidate
+  requirement_id: REQ-464
+  type: integration
+  verification_method: scripts/release_bootstrap.py
+  description: Verifies candidate sdist-to-wheel construction, isolated execution,
+    version parity, digest manifest generation, and read-only closure checking.
+- id: TEST-491
+  title: Validate trusted preparation and immutable publication workflows
+  requirement_id: REQ-465
+  type: integration
+  verification_method: tests/test_release_workflows.py
+  description: Verifies workflow inputs, ref protections, least privilege, closure
+    checks, allowlisted writes, immutable artifact reuse, and duplicate rejection.
+- id: TEST-492
+  title: Validate immutable publication workflow
+  requirement_id: REQ-466
+  type: integration
+  verification_method: tests/test_release_workflows.py
+  description: Verifies non-mutating tag validation, main ancestry, canonical build,
+    artifact reuse, and hard failure for an existing published version.
+- id: TEST-493
+  title: Detect release evidence tampering and causal violations
+  requirement_id: REQ-467
+  type: unit
+  verification_method: tests/test_release_evidence.py
+  description: Verifies canonical seal hashing, receipt linkage, artifact mismatch,
+    incomplete publication, and the absence of receipt writes to tagged source.
+- id: TEST-494
+  title: Reject forbidden active release guidance
+  requirement_id: REQ-468
+  type: integration
+  verification_method: tests/test_release_workflows.py
+  description: Scans active guidance for public self-release, force-retagging,
+    skip-existing publication, and documentation work after tagging.
+- id: TEST-495
+  title: Verify cross-platform shell resolution and execution evidence
+  requirement_id: REQ-469
+  type: integration
+  verification_method: tests/test_executor_shell_resolver.py
+  description: Covers precedence, Windows and POSIX fallback, direct argv, exit codes, timeouts, paths, diagnostics, and evidence.
+- id: TEST-496
+  title: Verify predictive context decisions
+  requirement_id: REQ-470
+  type: unit
+  verification_method: tests/test_context_control.py
+  description: Covers pressure states, fit, cooldowns, hard boundaries, condensation integrity, and fresh-task fallback.
+- id: TEST-497
+  title: Verify residency and bounded rehydration
+  requirement_id: REQ-471
+  type: unit
+  verification_method: tests/test_context_control.py
+  description: Covers offload, pinning, deduplication, stable pointers, token budgets, ranking, and backend-neutral behavior.
+- id: TEST-498
+  title: Verify context health and cleanup safety
+  requirement_id: REQ-472
+  type: unit
+  verification_method: tests/test_context_control.py
+  description: Covers missing invariants, duplicates, staleness, contradictions, quarantine, checkpoint-first cleanup, and digest verification.
+- id: TEST-499
+  title: Verify complete Zoo context lifecycle
+  requirement_id: REQ-473
+  type: integration
+  verification_method: tests/test_zoo_context_controller.py
+  description: Covers local profile, governed transitions, degraded mode, rehydration, cleanup, and platform-neutral directives.
+- id: TEST-500
+  title: Verify replicated ESDB convergence and conflicts
+  requirement_id: REQ-474
+  type: unit
+  verification_method: tests/test_replicated_events.py
+  description: Covers event union, deterministic roots, attribution, materialization, conflicts, merge order, and legacy evidence links.
+- id: TEST-501
+  title: Verify machine-readable issue evidence
+  requirement_id: REQ-475
+  type: integration
+  verification_method: tests/test_issue_evidence.py
+  description: Covers named mappings, binary status, unavailable reasons, report serialization, and strict missing-evidence rejection.
+- id: TEST-502
+  title: Verify layered identity resolution
+  requirement_id: REQ-476
+  type: unit
+  verification_method: tests/test_identity_resolver.py
+  description: Covers distinct IDs, precedence, provenance, provider adapters, privacy, and stable event attribution.
+- id: TEST-503
+  title: Verify unified configuration precedence and migration
+  requirement_id: REQ-477
+  type: unit
+  verification_method: tests/test_config_resolver.py
+  description: Covers schemas, field-aware precedence, platform paths, provenance, strict keys, secrets, legacy conflicts, and idempotence.
+- id: TEST-504
+  title: Verify Specsmith-authoritative Zoo transitions
+  requirement_id: REQ-478
+  type: integration
+  verification_method: tests/test_zoo_context_controller.py
+  description: Covers exact packet digests, native-summary blocking, required invariants, degraded state, snapshots, handoff, and opt-out.
+- id: TEST-505
+  title: Verify repairable Zoo settings lifecycle
+  requirement_id: REQ-479
+  type: integration
+  verification_method: tests/test_zoo_code_litellm_profile.py and tests/test_zoo_settings_lifecycle.py
+  description: Covers ownership, idempotence, drift repair, secrets, user preservation, conflicts, uninstall, manual gaps, versions, and paths.
+- id: TEST-506
+  title: Verify bounded packaged CLI startup
+  requirement_id: REQ-480
+  type: integration
+  verification_method: tests/test_cli_startup.py and scripts/platform_smoke.py
+  description: Covers basic commands, reporting isolation, visible failures, locale and path variants, timing budget, and wheel parity.
+- id: TEST-507
+  title: Verify canonical invocation documentation
+  requirement_id: REQ-481
+  type: documentation
+  verification_method: tests/test_invocation_docs.py
+  description: Covers decision and compatibility matrices, fallbacks, Zoo guidance, and discoverable RTD navigation.
+- id: TEST-508
+  title: Verify malformed diff recovery
+  requirement_id: REQ-482
+  type: unit
+  verification_method: tests/test_patch_file_validation.py
+  description: Covers invalid marker placement, valid diffs, actionable corrected examples, retry guidance, and whole-file fallback.
+- id: TEST-509
+  title: Verify readable todo rendering
+  requirement_id: REQ-483
+  type: unit
+  verification_method: tests/test_todo_renderer.py
+  description: Covers statuses, long titles, arbitrary nesting, pauses, separators, and consistent mode-independent output.

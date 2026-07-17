@@ -207,7 +207,9 @@ def _maybe_prompt_project_update() -> None:
         # Forward migration — auto-accept, no prompt, REQ-369.
         from specsmith.updater import run_migration
 
-        console.print(f"[cyan]Auto-migrating project {project_ver} \u2192 {GOVERNANCE_VERSION}...[/cyan]")
+        console.print(
+            f"[cyan]Auto-migrating project {project_ver} \u2192 {GOVERNANCE_VERSION}...[/cyan]"
+        )
         actions = run_migration(Path())
         for a in actions:
             if a.startswith("ERROR:"):
@@ -218,6 +220,7 @@ def _maybe_prompt_project_update() -> None:
         raise  # Never swallow the hard-error exit
     except Exception:  # noqa: BLE001
         pass  # Never break the actual command on version check errors
+
 
 @click.group(cls=_AutoUpdateGroup)
 @click.version_option(version=__version__, prog_name="specsmith")
@@ -3003,15 +3006,7 @@ def migrate(new_type: str, project_dir: str) -> None:
     console.print(f"\n[bold green]Migrated to {config.type_label}.[/bold green]")
 
 
-@main.command()
-@click.argument("version")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True),
-    default=".",
-    help="Project root directory.",
-)
-def release(version: str, project_dir: str) -> None:
+def _bump_project_version(version: str, project_dir: str) -> None:
     """Bump version in all locations and scan for stale refs."""
     from specsmith.releaser import bump_version, scan_stale_refs
 
@@ -3039,6 +3034,7 @@ def release(version: str, project_dir: str) -> None:
         f"  4. git tag -a v{version} -m 'v{version}'\n"
         f"  5. git push origin main develop --tags",
     )
+
 
 @main.command()
 @click.option(
@@ -3088,6 +3084,21 @@ def apply(project_dir: str) -> None:
 # ---------------------------------------------------------------------------
 # VCS commands
 # ---------------------------------------------------------------------------
+
+
+@main.command(name="verify-release")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def verify_release(project_dir: str) -> None:
+    """Read-only release-readiness verification for a governed project."""
+    from specsmith.auditor import run_audit
+
+    root = Path(project_dir).resolve()
+    report = run_audit(root)
+    if not report.healthy:
+        raise click.ClickException(
+            f"Release readiness failed: {report.failed} audit issue(s) require attention."
+        )
+    console.print("[green]Release readiness verified: governance audit is healthy.[/green]")
 
 
 @main.command(name="commit")
@@ -3221,8 +3232,12 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
     except Exception:  # noqa: BLE001  # metrics remain best-effort
         pass
 
-    # 2. Commit
-    if not has_uncommitted_changes(root):
+    # 2. Commit only when project_dir itself is a Git worktree. Git otherwise
+    # walks into a parent repository, which could commit an unrelated checkout.
+    is_git_worktree = (root / ".git").exists()
+    if not is_git_worktree:
+        steps.append({"step": "commit", "ok": True, "note": "Not a Git worktree; skipped"})
+    elif not has_uncommitted_changes(root):
         steps.append({"step": "commit", "ok": True, "note": "Nothing to commit"})
     else:
         commit_result = run_commit(root, message=message, auto_push=False)
@@ -3231,7 +3246,7 @@ def save_cmd(project_dir: str, message: str, no_push: bool, force: bool, as_json
         )
 
     # 3. Push
-    if not no_push:
+    if not no_push and is_git_worktree:
         push_result = run_push(root, force=force)
         steps.append({"step": "push", "ok": push_result.success, "message": push_result.message})
 
@@ -3771,6 +3786,7 @@ def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
             for a in actions:
                 console.print(f"  [green]\u2713[/green] {a}")
 
+
 @main.command(name="migrate-project")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--dry-run", is_flag=True, default=False, help="Show changes without writing.")
@@ -4071,7 +4087,7 @@ def session_end_cmd(project_dir: str) -> None:
     }
 
     console.print()
-    console.print("[bold cyan]\u2261 Session End Checklist[/bold cyan]  [dim]({})[/dim]".format(root.name))
+    console.print(f"[bold cyan]\u2261 Session End Checklist[/bold cyan]  [dim]({root.name})[/dim]")
     console.print()
 
     # Group checks by status for better readability
@@ -4115,7 +4131,8 @@ def session_end_cmd(project_dir: str) -> None:
         )
     else:
         console.print(
-            f"  [bold green]\u2713 Session clean. Ready to end. ({len(ok_checks)} checks passed)[/bold green]",
+            "  [bold green]\u2713 Session clean. Ready to end. "
+            f"({len(ok_checks)} checks passed)[/bold green]",
         )
     console.print()
 
@@ -9201,7 +9218,11 @@ def wi_list_cmd(project_dir: str, filter_status: str, as_json: bool) -> None:
             if item.requirement_ids:
                 req_part = f"[dim]reqs: {', '.join(item.requirement_ids)}[/dim]"
             if item.promoted_to_req:
-                req_part += f" [dim]\u2192 {item.promoted_to_req}[/dim]" if req_part else f"[dim]\u2192 {item.promoted_to_req}[/dim]"
+                req_part += (
+                    f" [dim]\u2192 {item.promoted_to_req}[/dim]"
+                    if req_part
+                    else f"[dim]\u2192 {item.promoted_to_req}[/dim]"
+                )
             lines.append(f"    {req_part}")
 
         for line in lines:
@@ -9617,7 +9638,7 @@ def workflow_list(project_dir: str, as_json: bool) -> None:
         return
 
     console.print()
-    console.print("[bold cyan]\u2261 Workflows[/bold cyan]  [dim]({})[/dim]".format(root.name))
+    console.print(f"[bold cyan]\u2261 Workflows[/bold cyan]  [dim]({root.name})[/dim]")
     console.print(f"  [dim]Total: {len(items)}[/dim]\n")
 
     # Table header
@@ -9636,8 +9657,7 @@ def workflow_list(project_dir: str, as_json: bool) -> None:
             command += "\u2026"
 
         console.print(
-            f"  [bold cyan]\u25b8[/bold cyan] [{name:<24s}] "
-            f"[dim]{params:<19s}[/dim]  {command}",
+            f"  [bold cyan]\u25b8[/bold cyan] [{name:<24s}] [dim]{params:<19s}[/dim]  {command}",
         )
         if item["description"]:
             desc = item["description"][:70]
@@ -10741,7 +10761,7 @@ def mcp_prune_cmd(dry_run: bool) -> None:
 
     result = prune_registry(dry_run=dry_run)
 
-    if as_json := getattr(mcp_prune_cmd, "_as_json", False):
+    if getattr(mcp_prune_cmd, "_as_json", False):
         import json as _json
 
         click.echo(_json.dumps(result, indent=2))
@@ -13864,18 +13884,57 @@ def _lazy_load_reporting() -> None:
         )
 
         register_reporting_commands(main)
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as error:  # noqa: BLE001
+        raise click.ClickException(
+            f"unable to register reporting commands: {type(error).__name__}: {error}"
+        ) from error
     _reported_loaded = True
+
+
+def _reporting_proxy(name: str) -> click.Command:
+    """Create a lightweight command that imports reporting only when invoked."""
+
+    @click.command(
+        name=name,
+        add_help_option=False,
+        context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
+    )
+    @click.argument("forwarded", nargs=-1, type=click.UNPROCESSED)
+    @click.pass_context
+    def proxy(ctx: click.Context, forwarded: tuple[str, ...]) -> None:
+        _lazy_load_reporting()
+        actual = main.commands.get(name)
+        if actual is None or actual is proxy:
+            raise click.ClickException(f"reporting command '{name}' was not registered")
+        forwarded_args = [*forwarded, *ctx.args]
+        subcontext = actual.make_context(name, forwarded_args, parent=ctx.parent)
+        with subcontext:
+            actual.invoke(subcontext)
+
+    proxy.help = "Load and run the optional reporting command."
+    return proxy
+
+
+for _reporting_name in (
+    "quickstart",
+    "expand",
+    "github",
+    "verify-integrations",
+    "drift-check",
+):
+    main.add_command(_reporting_proxy(_reporting_name))
 
 
 # Store original get_command as a module-level function (not bound method)
 _original_get_command = click.Group.get_command
 
 
-def _patched_get_command(self: click.Group, ctx: click.Context, cmd_name: str) -> click.Command | None:
-    # Trigger lazy load before normal lookup
-    _lazy_load_reporting()
+def _patched_get_command(
+    self: click.Group, ctx: click.Context, cmd_name: str
+) -> click.Command | None:
+    # Import reporting extensions only after their existing parent group is selected.
+    if self is not main and self.name in {"import", "export", "trace"}:
+        _lazy_load_reporting()
     return _original_get_command(self, ctx, cmd_name)
 
 

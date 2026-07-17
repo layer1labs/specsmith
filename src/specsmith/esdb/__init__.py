@@ -35,6 +35,12 @@ _INSTALL_HINT = (
 # ---------------------------------------------------------------------------
 # SQLite backend — always available, free, MIT (REQ-365)
 # ---------------------------------------------------------------------------
+from specsmith.esdb.replicated_events import (  # noqa: E402
+    EventConflictError,
+    MaterializedState,
+    ReplicatedEvent,
+    ReplicatedEventSet,
+)
 from specsmith.esdb.sqlite_store import SqliteRecord, SqliteStore  # noqa: E402
 
 # ---------------------------------------------------------------------------
@@ -233,6 +239,10 @@ def _maybe_promote_sqlite_to_chrono(root: "object", chrono: "object") -> None:
 
 
 __all__ = [
+    "EventConflictError",
+    "MaterializedState",
+    "ReplicatedEvent",
+    "ReplicatedEventSet",
     # SQLite backend (free, MIT)
     "SqliteStore",
     "SqliteRecord",

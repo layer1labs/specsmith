@@ -69,11 +69,12 @@ def safe_overwrite(
     new_content: str,
     *,
     reason: str = "",
+    backup_dir: Path | None = None,
 ) -> Path | None:
     """Overwrite ``path`` with ``new_content``, creating a backup first.
 
     Returns the backup ``Path`` if a backup was made, or ``None`` if the
-    file did not previously exist (no backup needed).
+    file did not previously exist or already contains identical content.
 
     The backup is a copy of the original file named::
 
@@ -90,9 +91,16 @@ def safe_overwrite(
         _atomic_write(path, new_content)
         return None
 
-    # Create timestamped backup
-    ts = datetime.now().strftime("%Y%m%dT%H%M%S")
-    backup = path.with_name(f"{path.stem}.{ts}.bak")
+    if path.read_text(encoding="utf-8") == new_content:
+        return None
+
+    if backup_dir is None:
+        ts = datetime.now().strftime("%Y%m%dT%H%M%S")
+        backup = path.with_name(f"{path.stem}.{ts}.bak")
+    else:
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+        backup = backup_dir / f"{path.name}.{digest}.bak"
     shutil.copy2(path, backup)
 
     _atomic_write(path, new_content)

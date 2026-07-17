@@ -71,6 +71,10 @@ class SessionContext:
     # Session metadata
     session_id: str = ""
     started_at: str = ""
+    actor_id: str = ""
+    agent_id: str = ""
+    replica_id: str = ""
+    identity_provenance: dict[str, str] = field(default_factory=dict)
 
     # Context lifecycle fields (internal)
     _prev_session_id: str = ""  # Previous session ID for continuity
@@ -102,6 +106,10 @@ class SessionContext:
             "reachable_providers": self.reachable_providers,
             "session_id": self.session_id,
             "started_at": self.started_at,
+            "actor_id": self.actor_id,
+            "agent_id": self.agent_id,
+            "replica_id": self.replica_id,
+            "identity_provenance": self.identity_provenance,
             # Context lifecycle metadata
             "_prev_session_id": self._prev_session_id,
             "_prev_phase": self._prev_phase,
@@ -276,6 +284,7 @@ def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> S
     # Installed version (package version)
     try:
         from specsmith import __version__
+
         ctx.installed_version = __version__
     except Exception:  # noqa: BLE001
         ctx.installed_version = "unknown"
@@ -283,6 +292,7 @@ def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> S
     # Governance version (schema version for project config)
     try:
         from specsmith import GOVERNANCE_VERSION
+
         ctx.governance_version = GOVERNANCE_VERSION
     except Exception:  # noqa: BLE001
         ctx.governance_version = "unknown"
@@ -300,19 +310,31 @@ def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> S
 
     ctx.is_governed = True
 
-    # Load scaffold config
+    # Load canonical layered configuration and distinct session identities.
     try:
-        import yaml
-        raw = yaml.safe_load(scaffold.read_text(encoding="utf-8")) or {}
-        ctx.spec_version = str(raw.get("spec_version", ""))
-        if ctx.spec_version and ctx.governance_version and ctx.spec_version != ctx.governance_version:
+        from specsmith.config_resolver import resolve_config
+        from specsmith.identity import resolve_identity
+
+        resolved = resolve_config(root)
+        ctx.spec_version = str(resolved.values.get("spec_version", ""))
+        identity = resolve_identity(resolved, root, session_id=ctx.session_id)
+        ctx.actor_id = identity.actor_id
+        ctx.agent_id = identity.agent_id
+        ctx.replica_id = identity.replica_id
+        ctx.identity_provenance = dict(identity.provenance)
+        if (
+            ctx.spec_version
+            and ctx.governance_version
+            and ctx.spec_version != ctx.governance_version
+        ):
             ctx.needs_migration = True
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as error:  # noqa: BLE001
+        ctx.health_issues.append(f"configuration/identity resolution failed: {error}")
 
     # Phase
     try:
         from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
+
         phase_key = read_phase(root)
         phase = PHASE_MAP.get(phase_key)
         if phase:
@@ -336,6 +358,7 @@ def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> S
     # Provider state
     try:
         from specsmith.agent.provider_registry import ProviderRegistry
+
         reg = ProviderRegistry.load()
         ctx.provider_count = len(reg.providers)
         ctx.reachable_providers = len([p for p in reg.providers if p.status == "reachable"])
@@ -345,6 +368,7 @@ def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> S
     # Active profile
     try:
         from specsmith.agent.execution_profiles import ExecutionProfileStore
+
         store = ExecutionProfileStore.load()
         ctx.active_profile = store.default().id
     except Exception:  # noqa: BLE001
@@ -393,6 +417,7 @@ def _check_session_isolation(root: Path, current_session_id: str) -> list[str]:
     if state_path.is_file():
         try:
             import json
+
             existing = json.loads(state_path.read_text(encoding="utf-8"))
             existing_id = existing.get("session_id", "")
             if existing_id and existing_id != current_session_id:
@@ -410,9 +435,7 @@ def _check_session_isolation(root: Path, current_session_id: str) -> list[str]:
             if sd.is_dir():
                 lock_file = sd / ".lock"
                 if lock_file.is_file():
-                    issues.append(
-                        f"Crashed session detected: {sd.name} (lock file present)"
-                    )
+                    issues.append(f"Crashed session detected: {sd.name} (lock file present)")
 
     return issues
 
@@ -421,6 +444,7 @@ def _warm_context_cache(root: Path, ctx: SessionContext) -> None:
     """Warm the context cache by loading previous session state."""
     try:
         from specsmith.session_store import load_session
+
         prev_ctx, history = load_session(root)
         if prev_ctx:
             ctx._prev_session_id = prev_ctx.get("session_id", "")
@@ -456,7 +480,7 @@ def shutdown_session(root: Path, ctx: SessionContext | None = None) -> dict[str,
     Returns:
         A summary dict with cleanup results.
     """
-    result = {
+    result: dict[str, Any] = {
         "session_id": ctx.session_id if ctx else "",
         "persisted": False,
         "locks_cleared": 0,
@@ -472,6 +496,7 @@ def shutdown_session(root: Path, ctx: SessionContext | None = None) -> dict[str,
             history: list[dict[str, Any]] = []
             try:
                 from specsmith.session_store import load_session
+
                 _, history = load_session(root)
             except Exception:  # noqa: BLE001
                 pass
@@ -548,6 +573,7 @@ def clear_session_context(root: Path) -> dict[str, Any]:
             if sd.is_dir():
                 try:
                     import shutil
+
                     shutil.rmtree(sd)
                     result["dirs_removed"].append(sd.name)
                 except Exception as exc:  # noqa: BLE001

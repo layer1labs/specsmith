@@ -8,7 +8,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from specsmith import __version__, GOVERNANCE_VERSION
+from specsmith import GOVERNANCE_VERSION, __version__
 
 
 def get_update_channel() -> str:
@@ -113,8 +113,15 @@ def find_windows_launchers(path_value: str) -> list[Path]:
     launchers: list[Path] = []
     for entry in path_value.split(";"):
         candidate = Path(entry) / "specsmith.exe"
-        if entry and candidate.is_file():
-            launchers.append(candidate)
+        if not entry:
+            continue
+        try:
+            if candidate.is_file():
+                launchers.append(candidate)
+        except OSError:
+            # PATH may contain an inaccessible stale/network launcher. Doctor
+            # reports what it can inspect instead of failing the entire scan.
+            continue
     return launchers
 
 
@@ -180,7 +187,10 @@ def check_project_version(root: Path) -> tuple[str, str]:
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f) or {}
 
-    return raw.get("spec_version", ""), GOVERNANCE_VERSION
+    from specsmith.config import _normalize_scaffold_raw
+
+    normalized = _normalize_scaffold_raw(raw)
+    return normalized.get("spec_version", ""), GOVERNANCE_VERSION
 
 
 def needs_migration(root: Path) -> bool:
@@ -213,6 +223,9 @@ def run_migration(root: Path, *, dry_run: bool = False) -> list[str]:
     with open(scaffold_path) as f:
         raw = yaml.safe_load(f) or {}
 
+    from specsmith.config import _normalize_scaffold_raw
+
+    raw = _normalize_scaffold_raw(raw)
     old_version = raw.get("spec_version", "unknown")
     actions: list[str] = []
 

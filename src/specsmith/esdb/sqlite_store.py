@@ -40,6 +40,7 @@ _DB_FILENAME = "esdb.sqlite3"
 # Merge conflict exception (ISSUE-336)
 # ---------------------------------------------------------------------------
 
+
 class MergeConflictError(Exception):
     """Raised when a merge operation detects conflicting changes on branches."""
 
@@ -47,6 +48,7 @@ class MergeConflictError(Exception):
         super().__init__(message)
         self.message = message
         self.conflicts = conflicts or []
+
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS records (
@@ -332,7 +334,7 @@ class SqliteStore:
                 confidence=row["confidence"],
                 data=json.loads(row["data"]),
                 source_ids=json.loads(row["source_ids"]),
-                branch=row["branch"] if "branch" in row.keys() else "main",
+                branch=dict(row).get("branch", "main"),
             )
             for row in rows
         ]
@@ -363,7 +365,7 @@ class SqliteStore:
             confidence=row["confidence"],
             data=json.loads(row["data"]),
             source_ids=json.loads(row["source_ids"]),
-            branch=row["branch"] if "branch" in row.keys() else "main",
+            branch=dict(row).get("branch", "main"),
         )
 
     # ------------------------------------------------------------------
@@ -608,8 +610,12 @@ class SqliteStore:
         # Non-conflicting records: copy from source to target (upsert by (id, branch))
         conn.execute(
             """
-            INSERT INTO records (id, kind, status, label, confidence, data, source_ids, branch, created_at)
-            SELECT r.id, r.kind, r.status, r.label, r.confidence, r.data, r.source_ids, ?, r.created_at
+            INSERT INTO records (
+                id, kind, status, label, confidence, data, source_ids, branch, created_at
+            )
+            SELECT
+                r.id, r.kind, r.status, r.label, r.confidence,
+                r.data, r.source_ids, ?, r.created_at
             FROM records r
             WHERE r.branch = ?
               AND r.status != 'tombstone'
@@ -689,7 +695,9 @@ class SqliteStore:
 
         conn.execute(
             """
-            INSERT INTO records (id, kind, status, label, confidence, data, source_ids, branch, created_at)
+            INSERT INTO records (
+                id, kind, status, label, confidence, data, source_ids, branch, created_at
+            )
             SELECT id, kind, status, label, confidence, data, source_ids, ?, created_at
             FROM records
             WHERE branch = ? AND status != 'tombstone'

@@ -2,7 +2,12 @@
 
 **Issue:** [#343](https://github.com/layer1labs/specsmith/issues/343)
 **Phase:** Architectural decision record
-**Status:** Proposed
+**Status:** Accepted — canonical
+
+For startup diagnosis without waiting for normal Click dispatch, run
+`python -X importtime -c "import specsmith.cli"`. Reporting modules are loaded
+only when their command or parent namespace is selected; a registration failure
+is reported as an actionable CLI error rather than silently removing commands.
 
 ## Overview
 

@@ -38,7 +38,11 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
+import threading
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any
 
@@ -59,6 +63,15 @@ _DEFAULT_PROJECT_DIR: str = "."
 
 # All registered project directories (absolute paths), default first.
 _REGISTERED_PROJECTS: list[str] = []
+
+# Registry mutations may come from multiple MCP clients in one process or from
+# separate CLI processes.  A process-local re-entrant lock prevents same-process
+# read/modify/write races; the adjacent lock file serializes cooperating
+# processes on Windows, Linux, and macOS without platform-specific APIs.
+_REGISTRY_THREAD_LOCK = threading.RLock()
+_REGISTRY_LOCK_TIMEOUT_SECONDS = 5.0
+_REGISTRY_LOCK_POLL_SECONDS = 0.05
+_REGISTRY_STALE_LOCK_SECONDS = 60.0
 
 
 # ---------------------------------------------------------------------------
@@ -110,6 +123,52 @@ def _registry_file() -> Path:
     return home / "mcp-projects.json"
 
 
+def _registry_lock_file() -> Path:
+    """Return the cooperative cross-process lock path for the registry."""
+    registry = _registry_file()
+    return registry.with_name(f".{registry.name}.lock")
+
+
+@contextmanager
+def _registry_mutation_lock(timeout: float = _REGISTRY_LOCK_TIMEOUT_SECONDS) -> Iterator[None]:
+    """Serialize a complete registry mutation across threads and processes.
+
+    ``O_CREAT | O_EXCL`` is portable to the supported platforms.  A stale lock
+    can only be reclaimed after a generous interval, preventing a crashed
+    process from permanently disabling a user's registry while avoiding removal
+    of an active short-lived mutation.
+    """
+    lock_path = _registry_lock_file()
+    deadline = time.monotonic() + timeout
+    with _REGISTRY_THREAD_LOCK:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor: int | None = None
+        while descriptor is None:
+            try:
+                descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
+            except FileExistsError:
+                try:
+                    age = time.time() - lock_path.stat().st_mtime
+                    if age > _REGISTRY_STALE_LOCK_SECONDS:
+                        lock_path.unlink(missing_ok=True)
+                        continue
+                except OSError:
+                    # Another process may have released or replaced the lock.
+                    continue
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"Timed out waiting for MCP registry lock: {lock_path}"
+                    ) from None
+                time.sleep(_REGISTRY_LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            os.close(descriptor)
+            with suppress(FileNotFoundError):
+                lock_path.unlink()
+
+
 def _is_temp_path(path: str) -> bool:
     """Return True if *path* looks like a temporary or transient directory.
 
@@ -158,10 +217,7 @@ def _is_valid_project(path: Path) -> bool:
     if not path.is_dir():
         return False
     # Always accept if it has the specsmith marker.
-    for marker in _PROJECT_MARKERS:
-        if (path / marker).exists():
-            return True
-    return False
+    return any((path / marker).exists() for marker in _PROJECT_MARKERS)
 
 
 def _canonicalize_path(path: str) -> str:
@@ -202,19 +258,19 @@ def _save_registry(projects: list[str]) -> None:
     """
     reg = _registry_file()
     reg.parent.mkdir(parents=True, exist_ok=True)
-    tmp = reg.with_suffix(".json.tmp")
-    tmp.write_text(
-        json.dumps({"projects": projects}, indent=2, ensure_ascii=False),
-        encoding="utf-8",
+    payload = json.dumps({"projects": projects}, indent=2, ensure_ascii=False)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{reg.stem}.", suffix=".tmp", dir=reg.parent
     )
     try:
-        tmp.replace(reg)
-    except OSError:
-        # Fallback: direct write if rename is not supported.
-        reg.write_text(
-            json.dumps({"projects": projects}, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
+            temporary.write(payload)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_name, reg)
+    except Exception:
+        Path(temporary_name).unlink(missing_ok=True)
+        raise
 
 
 def read_registry() -> list[str]:
@@ -239,7 +295,8 @@ def read_registry() -> list[str]:
 
 def write_registry(paths: list[str]) -> None:
     """Persist *paths* to the registry file atomically."""
-    _save_registry(paths)
+    with _registry_mutation_lock():
+        _save_registry(paths)
 
 
 def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> bool:
@@ -269,39 +326,39 @@ def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> b
     if not allow_uninitialized and not _is_valid_project(abs_path):
         return False
 
-    projects, _ = _load_registry_raw()
-    # Deduplicate using canonical form.
-    seen: set[str] = set()
-    filtered: list[str] = []
-    for p in projects:
-        c = _canonicalize_path(p)
-        if c not in seen:
-            seen.add(c)
-            filtered.append(c)
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        # Deduplicate using canonical form.
+        seen: set[str] = set()
+        filtered: list[str] = []
+        for p in projects:
+            c = _canonicalize_path(p)
+            if c not in seen:
+                seen.add(c)
+                filtered.append(c)
 
-    if canonical in seen:
-        return False  # Already registered.
+        if canonical in seen:
+            return False  # Already registered.
 
-    # Prepend so the new project becomes the default.
-    filtered.insert(0, canonical)
-    _save_registry(filtered)
-    return True
+        # Prepend so the new project becomes the default.
+        filtered.insert(0, canonical)
+        _save_registry(filtered)
+        return True
 
 
 def unregister_project(path: str = ".") -> bool:
     """Remove *path* from the registry. Returns True if it was present."""
     canonical = _canonicalize_path(path)
-    projects, _ = _load_registry_raw()
-    new_projects = [p for p in projects if _canonicalize_path(p) != canonical]
-    if len(new_projects) == len(projects):
-        return False  # Not found.
-    _save_registry(new_projects)
-    return True
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        new_projects = [p for p in projects if _canonicalize_path(p) != canonical]
+        if len(new_projects) == len(projects):
+            return False  # Not found.
+        _save_registry(new_projects)
+        return True
 
 
-def prune_registry(
-    *, dry_run: bool = False, stale_threshold_days: int = 30
-) -> dict[str, Any]:
+def prune_registry(*, dry_run: bool = False, stale_threshold_days: int = 30) -> dict[str, Any]:
     """Prune stale, inaccessible, or temporary entries from the registry.
 
     Parameters
@@ -317,7 +374,17 @@ def prune_registry(
     -------
     A dict with keys ``removed``, ``preserved``, ``stale``, ``inaccessible``.
     """
-    projects, _ = _load_registry_raw()
+    if dry_run:
+        projects, _ = _load_registry_raw()
+        return _prune_registry_projects(projects, dry_run=True)
+
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        return _prune_registry_projects(projects, dry_run=False)
+
+
+def _prune_registry_projects(projects: list[str], *, dry_run: bool) -> dict[str, Any]:
+    """Analyze registry entries while the caller owns a mutation lock if needed."""
     removed: list[str] = []
     preserved: list[str] = []
     stale: list[str] = []
@@ -554,6 +621,37 @@ _TOOLS: list[dict[str, Any]] = [
             "required": ["seal_type", "description"],
         },
     },
+    {
+        "name": "governance_context_transition",
+        "description": (
+            "Return Specsmith's authoritative context action and exact replacement "
+            "packet digest. Zoo must not invoke native summarization in governed mode."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "telemetry": {"type": "object"},
+                "task": {"type": "object"},
+                "work_item_id": {"type": "string"},
+                "invariants": {"type": "object"},
+                "records": {"type": "array", "items": {"type": "object"}},
+                "governed": {"type": "boolean", "default": True},
+            },
+            "required": ["telemetry", "task"],
+        },
+    },
+    {
+        "name": "governance_context_verify",
+        "description": "Verify that Zoo applied the exact Specsmith context packet digest.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "expected_digest": {"type": "string"},
+                "applied_digest": {"type": "string"},
+            },
+            "required": ["expected_digest", "applied_digest"],
+        },
+    },
 ]
 
 
@@ -759,6 +857,74 @@ def _handle_governance_preflight(args: dict[str, Any]) -> dict[str, Any]:
             }
 
 
+def _handle_governance_context_transition(args: dict[str, Any]) -> dict[str, Any]:
+    from specsmith.context_control import (
+        ContextAction,
+        ContextRecord,
+        ContextTelemetry,
+        SemanticCheckpoint,
+        TaskEnvelope,
+        ZooContextController,
+        cleanup_context,
+        decide_context_action,
+    )
+
+    telemetry = ContextTelemetry(**dict(args.get("telemetry") or {}))
+    task = TaskEnvelope(**dict(args.get("task") or {}))
+    decision = decide_context_action(telemetry, task)
+    packet = None
+    health = None
+    if decision.action is not ContextAction.CONTINUE and args.get("invariants"):
+        checkpoint = SemanticCheckpoint.create(
+            str(args.get("work_item_id") or "unscoped"), dict(args["invariants"])
+        )
+        records = [ContextRecord(**record) for record in args.get("records") or []]
+        packet, health = cleanup_context(
+            checkpoint,
+            records,
+            token_budget=max(0, telemetry.remaining_work_capacity),
+        )
+    directive = ZooContextController().directive(
+        decision,
+        governed=bool(args.get("governed", True)),
+        packet=packet,
+        health=health,
+    )
+    return {
+        "decision": decision.to_dict(),
+        "directive": {
+            "action": directive.action,
+            "packet_digest": directive.packet_digest,
+            "resume_allowed": directive.resume_allowed,
+            "native_summary_allowed": directive.native_summary_allowed,
+            "degraded": directive.degraded,
+            "reason": directive.reason,
+        },
+        "packet": (
+            {
+                "checkpoint_id": packet.checkpoint_id,
+                "work_item_id": packet.work_item_id,
+                "invariants": packet.invariants,
+                "records": packet.records,
+                "digest": packet.digest,
+            }
+            if packet
+            else None
+        ),
+    }
+
+
+def _handle_governance_context_verify(args: dict[str, Any]) -> dict[str, Any]:
+    expected = str(args.get("expected_digest") or "")
+    applied = str(args.get("applied_digest") or "")
+    verified = bool(expected and expected == applied)
+    return {
+        "verified": verified,
+        "resume_allowed": verified,
+        "status": "healthy" if verified else "blocked_degraded",
+    }
+
+
 def _handle_governance_phase(args: dict[str, Any]) -> dict[str, Any]:
     """Return the current AEE phase and readiness info."""
     root = _resolve_root(args)
@@ -920,6 +1086,8 @@ _HANDLERS = {
     "governance_phase": _handle_governance_phase,
     "governance_req_list": _handle_governance_req_list,
     "governance_trace_seal": _handle_governance_trace_seal,
+    "governance_context_transition": _handle_governance_context_transition,
+    "governance_context_verify": _handle_governance_context_verify,
 }
 
 
