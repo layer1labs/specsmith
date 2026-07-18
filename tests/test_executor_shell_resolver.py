@@ -29,14 +29,13 @@ import pytest
 
 # Import the module to access _resolver_cache directly (not a stale reference)
 import specsmith.executor as _executor_mod
-from specsmith.executor import (
-    _classify_shell,
-    _detect_shell_version,
-    _resolve_posix_shell,
-    _resolve_shell,
-    _resolve_windows_shell,
-    run_tracked,
-)
+
+_classify_shell = _executor_mod._classify_shell
+_detect_shell_version = _executor_mod._detect_shell_version
+_resolve_posix_shell = _executor_mod._resolve_posix_shell
+_resolve_shell = _executor_mod._resolve_shell
+_resolve_windows_shell = _executor_mod._resolve_windows_shell
+run_tracked = _executor_mod.run_tracked
 
 
 def _clear_cache() -> None:
