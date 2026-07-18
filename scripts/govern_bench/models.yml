@@ -25,9 +25,12 @@ models:
     model: meta-llama/Llama-3.1-8B-Instruct:deepinfra
     group: open
     tier: open-small
-  - label: qwen3-coder-30b
+  - label: qwen3.6-35b
     provider: huggingface
-    model: Qwen/Qwen3-Coder-30B-A3B-Instruct
+    # The FP8 repository is not currently available through managed HF
+    # Inference Providers. Pin the full-precision post-trained model to the
+    # cheapest tool-capable live route for reproducible comparisons.
+    model: Qwen/Qwen3.6-35B-A3B:deepinfra
     group: open
     tier: open-mid
   - label: llama-3.3-70b
@@ -53,9 +56,9 @@ models:
     model: meta-llama/llama-3.1-8b-instruct
     group: open-direct
     tier: open-small
-  - label: qwen3-coder-30b-direct
+  - label: qwen3.6-35b-direct
     provider: openai-compat
-    model: qwen/qwen3-coder-30b-a3b-instruct
+    model: qwen/qwen3.6-35b-a3b
     group: open-direct
     tier: open-mid
   - label: llama-3.3-70b-direct
@@ -80,14 +83,19 @@ models:
     model: gpt-4o
     group: openai
     tier: mid
-  - label: gpt-5.5
+  - label: gpt-5.6-luna
     provider: openai
-    model: gpt-5.5
+    model: gpt-5.6-luna
+    group: openai
+    tier: mini
+  - label: gpt-5.6-terra
+    provider: openai
+    model: gpt-5.6-terra
     group: openai
     tier: mid
-  - label: gpt-5
+  - label: gpt-5.6-sol
     provider: openai
-    model: gpt-5
+    model: gpt-5.6-sol
     group: openai
     tier: frontier
 

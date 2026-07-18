@@ -3,7 +3,7 @@
 """HuggingFace Open LLM Leaderboard sync and bucket scoring (REQ-263..REQ-269).
 
 Fetches model benchmark data from the HuggingFace Datasets Server and computes
-per-bucket scores covering all specsmith/kairos task types.
+per-bucket scores covering all specsmith task types.
 
 Bucket formulas (normalised 0-100, all use leaderboard benchmarks):
   Reasoning      = 0.35×MATH + 0.30×GPQA + 0.25×BBH + 0.10×IFEval
@@ -723,7 +723,10 @@ def _sync_static_fallback(scores_path: Path) -> dict[str, Any]:
         store = _load_store(scores_path)
         for model_name, benchmarks in _STATIC_BENCHMARKS.items():
             _upsert_score(store, model_name, benchmarks, "static_fallback")
-        _save_store(scores_path, store)
+        try:
+            _save_store(scores_path, store)
+        except OSError as error:
+            _log.warning("Static model score cache is not writable: %s", error)
     count = len(_STATIC_BENCHMARKS)
     _log.info("Static model scores loaded: %d models", count)
     return {

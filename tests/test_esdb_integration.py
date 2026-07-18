@@ -12,9 +12,15 @@ All tests use the free SQLite backend.  No LLM, no chronomemory dep required.
 
 Covers: REQ-395 (TEST-395), REQ-396 (TEST-396), REQ-397 (TEST-397),
         REQ-398 (TEST-398), REQ-399 (TEST-399)
+
+Traceability:
+    __trace_id__ = "REQ-395..REQ-399"  — all tests verify ESDB integration requirements.
 """
 
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify REQ-395..REQ-399
+__trace_id__ = "REQ-395..REQ-399"
 
 import os
 from pathlib import Path

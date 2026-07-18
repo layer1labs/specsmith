@@ -292,16 +292,7 @@ class ContextOrchestrator:
         min_confidence: float = 0.5,
         source_type_exclude: list[str] | None = None,
     ) -> int:
-        """Tombstone low-confidence records in the ESDB store (REQ-400).
-
-        Writes back to the store (tombstone via store.delete()) so the eviction
-        persists across sessions.  Data is never physically removed — tombstone
-        only.  Infrastructure records (edge, rollback_event, token_metric,
-        skill_run, efficiency_metric, context_usage) and governance records
-        (requirement, testcase) are exempt.
-
-        Returns the count of records actually tombstoned.
-        """
+        """Mark low-value records cold without changing durable ESDB state."""
         _EXEMPT_KINDS = frozenset(
             {
                 "requirement",
@@ -315,16 +306,14 @@ class ContextOrchestrator:
             },
         )
 
-        # --- Try ChronoStore first (commercial backend) ----------------------
+        cold_ids: set[str] = set()
         wal = self.root / ".chronomemory" / "events.wal"
         if wal.exists():
             try:
                 from chronomemory import ChronoStore
 
                 with ChronoStore(self.root) as store:
-                    records = store.query()
-                    count = 0
-                    for rec in records:
+                    for rec in store.query():
                         if getattr(rec, "kind", "") in _EXEMPT_KINDS:
                             continue
                         evict = rec.confidence < min_confidence
@@ -334,34 +323,48 @@ class ContextOrchestrator:
                         ):
                             evict = True
                         if evict:
-                            store.delete(rec.id)  # tombstone — never physically removed
-                            count += 1
-                    return count
+                            cold_ids.add(rec.id)
             except Exception:  # noqa: BLE001
-                pass  # fall through to SqliteStore
+                cold_ids.clear()
 
-        # --- Fall back to SqliteStore (free default backend) -----------------
-        try:
+        if not cold_ids:
             from specsmith.esdb import SqliteStore
 
             sqlite_path = self.root / ".specsmith" / "esdb.sqlite3"
             if not sqlite_path.exists():
                 return 0
             with SqliteStore(self.root) as store:
-                records = store.query(status="active")
-                count = 0
-                for rec in records:
+                for rec in store.query(status="active"):
                     if rec.kind in _EXEMPT_KINDS:
                         continue
                     evict = rec.confidence < min_confidence
                     if source_type_exclude and rec.kind in source_type_exclude:
                         evict = True
                     if evict:
-                        store.delete(rec.id)  # tombstone
-                        count += 1
-                return count
-        except Exception:  # noqa: BLE001
-            return 0
+                        cold_ids.add(rec.id)
+
+        import json
+
+        from specsmith.safe_write import safe_overwrite
+
+        residency_path = self.root / ".specsmith" / "context-residency.json"
+        existing: dict[str, Any] = {}
+        if residency_path.is_file():
+            try:
+                existing = json.loads(residency_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                existing = {}
+        states = dict(existing.get("records") or {})
+        for record_id in cold_ids:
+            states[record_id] = "cold"
+        payload = {"schema_version": 1, "records": dict(sorted(states.items()))}
+        safe_overwrite(
+            residency_path,
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            reason="non-destructive context offload",
+            backup_dir=self.root / ".specsmith" / "backups" / "context",
+        )
+        return len(cold_ids)
 
     def _count_critical_records(self) -> int:
         """Count records that qualify as critical (must be protected).

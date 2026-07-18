@@ -13,10 +13,12 @@ serialisation.  They never write to stdout/stderr; callers handle I/O.
 
 from __future__ import annotations
 
+import hashlib
 import os
-import uuid
 from pathlib import Path
 from typing import Any, cast
+
+from specsmith import __version__
 
 
 def _is_environment_only_specsmith_upgrade(utterance: str) -> bool:
@@ -79,7 +81,7 @@ def run_preflight(
     import json as _json
     import re as _re
 
-    from specsmith import __version__
+    from specsmith import GOVERNANCE_VERSION
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
     # Inline validation + sanitisation so CodeQL's taint analysis can follow
@@ -120,7 +122,7 @@ def run_preflight(
                 "governance_gated": True,
                 "provider": os.environ.get("SPECSMITH_PROVIDER", "local/heuristic"),
                 "model": os.environ.get("SPECSMITH_MODEL", "deterministic-broker"),
-                "spec_version": __version__,
+                "spec_version": GOVERNANCE_VERSION,
             },
         }
 
@@ -307,7 +309,13 @@ def run_preflight(
     _alloc_wi = decision_str == "accepted" or (
         decision_str == "needs_clarification" and intent in (Intent.RELEASE, Intent.DESTRUCTIVE)
     )
-    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if (_alloc_wi and not predict_only) else ""
+    if _alloc_wi and not predict_only:
+        # Deterministic work-item ID: hash(utterance + intent + requirement_ids)
+        # so the same preflight call always produces the same WI idempotently.
+        _seed = f"{utterance}|{intent.value}|{','.join(sorted(requirement_ids))}"
+        work_item_id = f"WI-{hashlib.sha256(_seed.encode('utf-8')).hexdigest()[:12].upper()}"
+    else:
+        work_item_id = ""
 
     payload: dict[str, Any] = {
         "decision": decision_str,
@@ -484,14 +492,17 @@ def _build_openai_response(
     role: str = "assistant",
     finish_reason: str = "stop",
 ) -> dict[str, Any]:
-    """Build a minimal OpenAI-compatible /v1/chat/completions response."""
-    import time
-    import uuid
+    """Build a minimal OpenAI-compatible /v1/chat/completions response.
 
+    Uses deterministic ID and timestamp so repeated calls with the same
+    arguments produce identical output (issue #321).
+    """
+    _seed = f"{model}|{content[:200]}|{role}|{finish_reason}"
+    _hash = hashlib.sha256(_seed.encode("utf-8")).hexdigest()[:20]
     return {
-        "id": f"chatcmpl-{uuid.uuid4().hex[:20]}",
+        "id": f"chatcmpl-{_hash}",
         "object": "chat.completion",
-        "created": int(time.time()),
+        "created": 0,  # deterministic placeholder; real timestamp not needed for governance proxy
         "model": model,
         "choices": [
             {
@@ -522,15 +533,15 @@ def run_chat_proxy(
     1. Extracts the user's utterance from the message list (last user turn).
     2. Runs :func:`run_preflight` — if not accepted, returns a governance
        refusal response **instead** of forwarding to the real AI.
-    3. Forwards the request to the real AI provider (``KAIROS_AI_BASE_URL``).
+    3. Forwards the request to the real AI provider (``SPECSMITH_AI_BASE_URL``).
     4. Runs :func:`run_verify` on the response summary.
-    5. Returns the real AI response (with a ``x-kairos-governance`` header in
+    5. Returns the real AI response (with a ``x-specsmith-governance`` header in
        the HTTP layer).
 
     Environment variables used when real provider is not passed explicitly:
-    - ``KAIROS_AI_BASE_URL``  — real AI provider base URL
-    - ``KAIROS_AI_API_KEY``   — real AI provider API key
-    - ``KAIROS_AI_MODEL``     — real AI provider model
+    - ``SPECSMITH_AI_BASE_URL``  — real AI provider base URL
+    - ``SPECSMITH_AI_API_KEY``   — real AI provider API key
+    - ``SPECSMITH_AI_MODEL``     — real AI provider model
 
     Falls back to a stub response when no real provider is configured
     (useful for local dev / governance-only testing without a real LLM).
@@ -547,7 +558,7 @@ def run_chat_proxy(
             utterance = content if isinstance(content, str) else str(content)
             break
     if not utterance:
-        utterance = "kairos terminal request"
+        utterance = "specsmith request"
 
     # ── 2. Governance preflight gate ───────────────────────────────────
     effective_project = project_dir or os.getcwd()
@@ -557,7 +568,7 @@ def run_chat_proxy(
         # Not accepted — return governance refusal, do NOT forward to AI.
         instruction = preflight.get("instruction", "Request not accepted by governance.")
         refusal = (
-            f"⚠ **Kairos Governance Gate**: {instruction}\n\n"
+            f"⚠ **Specsmith Governance Gate**: {instruction}\n\n"
             f"Decision: `{preflight.get('decision', 'needs_clarification')}`  \n"
             f"WI: `{preflight.get('work_item_id', '—')}`  \n"
             f"Confidence target: `{preflight.get('confidence_target', 0.7)}`"
@@ -565,15 +576,15 @@ def run_chat_proxy(
         return _build_openai_response(model, refusal, finish_reason="governance_stop")
 
     # ── 3. Forward to real AI provider ──────────────────────────────────
-    base_url = (real_base_url or os.environ.get("KAIROS_AI_BASE_URL", "")).rstrip("/")
-    api_key = real_api_key or os.environ.get("KAIROS_AI_API_KEY", "")
-    effective_model = real_model or os.environ.get("KAIROS_AI_MODEL", "") or model
+    base_url = (real_base_url or os.environ.get("SPECSMITH_AI_BASE_URL", "")).rstrip("/")
+    api_key = real_api_key or os.environ.get("SPECSMITH_AI_API_KEY", "")
+    effective_model = real_model or os.environ.get("SPECSMITH_AI_MODEL", "") or model
 
     if not base_url:
         # No real AI configured — return governance-accepted stub.
         stub = (
             f"✓ **Governance ACCEPTED** (WI:`{preflight.get('work_item_id', '')}`).  \n"
-            f"No AI provider configured. Set `KAIROS_AI_BASE_URL` to forward requests.  \n"
+            f"No AI provider configured. Set `SPECSMITH_AI_BASE_URL` to forward requests.  \n"
             f"Utterance: *{utterance[:200]}*"
         )
         return _build_openai_response(effective_model, stub)
@@ -605,7 +616,7 @@ def run_chat_proxy(
         # Forward failure — return governance-accepted stub with error note.
         error_stub = (
             f"✓ **Governance ACCEPTED** — AI provider error: `{exc}`.  \n"
-            f"Check `KAIROS_AI_BASE_URL` (`{base_url}`) is reachable."
+            f"Check `SPECSMITH_AI_BASE_URL` (`{base_url}`) is reachable."
         )
         return _build_openai_response(effective_model, error_stub)
 
@@ -871,7 +882,7 @@ class GovernanceHTTPServer:
                         qs = _up.urlparse(self.path).query
                         params = _up.parse_qs(qs)
                         role = params.get("role", ["coder"])[0]
-                        models = list(BASELINE_SCORES.keys())
+                        models = sorted(BASELINE_SCORES.keys())  # deterministic order (#321)
                         ranked = rank_models_for_role(role, models)
                         self._json_ok(
                             {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]},
@@ -1056,7 +1067,7 @@ class GovernanceHTTPServer:
 
                         result = run_chat_proxy(
                             messages=body.get("messages") or [],
-                            model=body.get("model", "kairos"),
+                            model=body.get("model", "specsmith"),
                             project_dir=body.get("project_dir") or project_dir,
                         )
                         import json as _j
@@ -1072,7 +1083,7 @@ class GovernanceHTTPServer:
                         safe_role = (req_role or "coder").replace("\r", "").replace("\n", "")
                         safe_model = effective_model.replace("\r", "").replace("\n", "")
                         safe_provider = effective_provider.replace("\r", "").replace("\n", "")
-                        self.send_header("x-kairos-governance", "gated")
+                        self.send_header("x-specsmith-governance", "gated")
                         self.send_header("X-Specsmith-Role", safe_role)
                         self.send_header("X-Specsmith-Model", safe_model)
                         self.send_header("X-Specsmith-Provider", safe_provider)
@@ -1126,17 +1137,18 @@ class GovernanceHTTPServer:
 
 
 # Role keywords used by _infer_role_from_messages to detect intent from system prompts.
+# Keys are sorted alphabetically so iteration order is deterministic (#321).
 _ROLE_KEYWORDS: dict[str, list[str]] = {
-    "coder": ["write code", "implement", "code", "function", "diff"],
     "architect": ["design", "architecture", "system", "trade-off"],
-    "reviewer": ["review", "feedback", "quality", "pr"],
-    "editor": ["edit", "format", "refactor", "fix"],
-    "researcher": ["research", "documentation", "lookup", "search"],
-    "tester": ["test", "coverage", "assertion", "spec"],
     "classifier": ["classify", "categorize", "intent"],
-    "strategist": ["strategy", "business", "competitive", "market"],
+    "coder": ["write code", "implement", "code", "function", "diff"],
     "drafter": ["draft", "specification", "proposal", "report"],
+    "editor": ["edit", "format", "refactor", "fix"],
     "ip-analyst": ["patent", "claims", "prior art", "ip", "freedom"],
+    "researcher": ["research", "documentation", "lookup", "search"],
+    "strategist": ["strategy", "business", "competitive", "market"],
+    "tester": ["test", "coverage", "assertion", "spec"],
+    "reviewer": ["review", "feedback", "quality", "pr"],
 }
 
 
@@ -1151,7 +1163,7 @@ def _infer_role_from_messages(messages: list[dict[str, Any]]) -> str:
         return "coder"
     best_role = "coder"
     best_count = 0
-    for role, keywords in _ROLE_KEYWORDS.items():
+    for role, keywords in sorted(_ROLE_KEYWORDS.items()):  # deterministic order (#321)
         count = sum(1 for kw in keywords if kw in system_text)
         if count > best_count:
             best_count = count
@@ -1161,7 +1173,7 @@ def _infer_role_from_messages(messages: list[dict[str, Any]]) -> str:
 
 def _resolve_provider_name() -> str:
     """Return the configured AI provider name for attribution headers."""
-    provider = os.environ.get("KAIROS_AI_BASE_URL", "")
+    provider = os.environ.get("SPECSMITH_AI_BASE_URL", "")
     if not provider:
         return "specsmith-local"
     if "openai" in provider:

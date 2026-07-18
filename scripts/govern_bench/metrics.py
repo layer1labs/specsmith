@@ -56,6 +56,10 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "gpt-5.4-pro": (20.00, 80.00),
     "gpt-5.5": (3.00, 12.00),  # mid-tier coding model
     "gpt-5.5-pro": (15.00, 60.00),
+    "gpt-5.6-luna": (1.00, 6.00),
+    "gpt-5.6-terra": (2.50, 15.00),
+    "gpt-5.6-sol": (5.00, 30.00),
+    "gpt-5.6": (5.00, 30.00),
     # ── OpenAI reasoning models ──────────────────────────────────────────
     "o1": (15.0, 60.00),
     "o3": (10.0, 40.00),
@@ -86,6 +90,8 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "meta-llama/llama-3.1-8b-instruct": (0.05, 0.08),
     "Qwen/Qwen3-Coder-30B-A3B-Instruct": (0.10, 0.30),
     "qwen/qwen3-coder-30b-a3b-instruct": (0.10, 0.30),
+    "Qwen/Qwen3.6-35B-A3B": (0.15, 0.95),
+    "qwen/qwen3.6-35b-a3b": (0.15, 0.95),
     "meta-llama/Llama-3.3-70B-Instruct": (0.60, 0.70),
     "meta-llama/llama-3.3-70b-instruct": (0.60, 0.70),
     "openai/gpt-oss-120b": (0.15, 0.60),
@@ -105,11 +111,15 @@ _MODEL_TIER_OVERRIDES: dict[str, str] = {
     "claude-haiku-4-5": "nano",
     "gpt-4o-mini": "mini",
     "gpt-5.5": "mini",
+    "gpt-5.6-luna": "mini",
     "gpt-4.1-mini": "mini",
     "gpt-5.4": "mid",
+    "gpt-5.6-terra": "mid",
     "claude-sonnet-4-5": "mid",
     "gemini-3.1-pro": "mid",
     "gpt-5": "frontier",
+    "gpt-5.6-sol": "frontier",
+    "gpt-5.6": "frontier",
     "claude-opus-4-5": "frontier",
     "llama-3.1-70b": "open-source",
     "qwen2.5-coder-72b": "open-source",
@@ -118,6 +128,7 @@ _MODEL_TIER_OVERRIDES: dict[str, str] = {
     # Keys are lowercased repo ids; model_tier() lowercases before lookup.
     "meta-llama/llama-3.1-8b-instruct": "open-small",
     "qwen/qwen3-coder-30b-a3b-instruct": "open-mid",
+    "qwen/qwen3.6-35b-a3b": "open-mid",
     "meta-llama/llama-3.3-70b-instruct": "open-large",
     "openai/gpt-oss-120b": "open-xl",
 }

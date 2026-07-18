@@ -30,22 +30,24 @@ The 4-step AEE core method: **Frame → Disassemble → Stress-Test → Reconstr
 
 ## Governance Efficiency Benchmark
 
-!!! success "Measured: governance cuts cost-per-correct-answer by 3–6×"
-    We benchmarked specsmith against 11 alternatives (ungoverned, BMAD, Cursor rules, Copilot, Aider,
-    Cline, Codex CLI, OpenSpec, Agile BDD/TDD, and context injection) across real coding tasks with
-    `gpt-4o-mini` and `gpt-5.5`.
+!!! info "Latest measured benchmark: complete GPT-4o-mini evidence, partial Qwen evidence"
+    The July run evaluated 13 conditions across seven coding and safety tasks.
+    GPT-4o-mini completed 182/182 cells. The Qwen provider completed only 74/182,
+    so Qwen is excluded from cross-model conclusions.
 
-    | Condition | Pass Rate (T1) | Tokens | Cost-of-Pass |
+    | Condition | Aggregate pass rate | Mean tokens | Cost-of-pass |
     |---|---|---|---|
-    | Ungoverned | 0% | 44.6k | ∞ |
-    | Context injection | 100% | 43.7k | $0.0084 |
-    | BMAD-style | 50% | 139.1k | $0.0523 |
-    | **specsmith LIGHT** | **100%** | **21.1k** | **$0.0032** |
-    | **specsmith FULL** | **100%** | **17.1k** | **$0.0026** |
+    | Ungoverned | 64% | 49.5k | $0.01348 |
+    | Cursor rules | 71% | 41.1k | $0.01015 |
+    | OpenSpec-style | 71% | 63.1k | $0.01521 |
+    | **specsmith LIGHT** | **57%** | 52.0k | $0.01500 |
+    | **specsmith FULL** | **57%** | 59.9k | $0.01665 |
 
-    With `gpt-5.5`: governance is **6.3× cheaper** per correct answer ($0.028 vs $0.179).
+    Effects varied materially by task: specsmith improved T10 but underperformed
+    the ungoverned condition on T1 and T13. Two repetitions per slice are
+    directional evidence, not a universal governance-efficiency claim.
 
-    [Full benchmark report →](efficiency-benchmark.md) · [Model comparison (4o-mini vs 5.5) →](model-comparison.md)
+    [Full benchmark report →](efficiency-benchmark.md) · [Comparison validity report →](model-comparison.md)
 
 ## Why specsmith?
 

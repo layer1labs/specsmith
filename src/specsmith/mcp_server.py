@@ -38,7 +38,11 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tempfile
+import threading
 import time
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any
 
@@ -60,10 +64,72 @@ _DEFAULT_PROJECT_DIR: str = "."
 # All registered project directories (absolute paths), default first.
 _REGISTERED_PROJECTS: list[str] = []
 
+# Registry mutations may come from multiple MCP clients in one process or from
+# separate CLI processes.  A process-local re-entrant lock prevents same-process
+# read/modify/write races; the adjacent lock file serializes cooperating
+# processes on Windows, Linux, and macOS without platform-specific APIs.
+_REGISTRY_THREAD_LOCK = threading.RLock()
+_REGISTRY_LOCK_TIMEOUT_SECONDS = 5.0
+_REGISTRY_LOCK_POLL_SECONDS = 0.05
+_REGISTRY_STALE_LOCK_SECONDS = 60.0
+_REGISTRY_IO_RETRY_ATTEMPTS = 6
+_REGISTRY_IO_RETRY_SECONDS = 0.025
+
+
+def _retry_registry_permission_error(operation: Callable[[], None]) -> None:
+    """Retry a short registry filesystem operation after transient denial.
+
+    Windows virus scanners and file indexers can briefly retain a handle after
+    it is closed, causing ``os.replace`` or ``Path.unlink`` to raise WinError 5
+    or 32.  A bounded retry keeps registry mutations atomic without hiding a
+    persistent permissions problem.
+    """
+    for attempt in range(_REGISTRY_IO_RETRY_ATTEMPTS):
+        try:
+            operation()
+            return
+        except PermissionError:
+            if attempt + 1 >= _REGISTRY_IO_RETRY_ATTEMPTS:
+                raise
+            time.sleep(_REGISTRY_IO_RETRY_SECONDS)
+
 
 # ---------------------------------------------------------------------------
 # Persistent project registry  (~/.specsmith/mcp-projects.json)
 # ---------------------------------------------------------------------------
+
+# Patterns that identify a path as transient/temporary.
+# These match the *last path component* (the project directory itself),
+# not arbitrary substrings in parent directories.
+_TEMP_SUFFIXES = (
+    "/pytest",
+    "\\pytest",
+    "/pytest-",
+    "\\pytest-",
+    "/tmp",
+    "\\tmp",
+    "/temp",
+    "\\temp",
+    "/__pycache__",
+    "\\__pycache__",
+    "/.vite/",
+    "/.svelte-kit/",
+    "/.next/",
+    "/node_modules/.cache/",
+    "/.tox/",
+    "/.nox/",
+    "/.eggs/",
+    "/.dist-info/",
+)
+
+# Specsmith project markers that indicate a valid project root.
+_PROJECT_MARKERS = (
+    ".specsmith",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "docs/SPECSMITH.yml",
+    "docs/REQUIREMENTS.md",
+)
 
 
 def _registry_file() -> Path:
@@ -77,49 +143,374 @@ def _registry_file() -> Path:
     return home / "mcp-projects.json"
 
 
+def _registry_lock_file() -> Path:
+    """Return the cooperative cross-process lock path for the registry."""
+    registry = _registry_file()
+    return registry.with_name(f".{registry.name}.lock")
+
+
+@contextmanager
+def _registry_mutation_lock(timeout: float = _REGISTRY_LOCK_TIMEOUT_SECONDS) -> Iterator[None]:
+    """Serialize a complete registry mutation across threads and processes.
+
+    ``O_CREAT | O_EXCL`` is portable to the supported platforms.  A stale lock
+    can only be reclaimed after a generous interval, preventing a crashed
+    process from permanently disabling a user's registry while avoiding removal
+    of an active short-lived mutation.
+    """
+    lock_path = _registry_lock_file()
+    deadline = time.monotonic() + timeout
+    with _REGISTRY_THREAD_LOCK:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        descriptor: int | None = None
+        while descriptor is None:
+            try:
+                descriptor = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(descriptor, f"pid={os.getpid()}\n".encode("ascii"))
+            except FileExistsError:
+                try:
+                    age = time.time() - lock_path.stat().st_mtime
+                    if age > _REGISTRY_STALE_LOCK_SECONDS:
+                        lock_path.unlink(missing_ok=True)
+                        continue
+                except OSError:
+                    # Another process may have released or replaced the lock.
+                    continue
+                if time.monotonic() >= deadline:
+                    raise TimeoutError(
+                        f"Timed out waiting for MCP registry lock: {lock_path}"
+                    ) from None
+                time.sleep(_REGISTRY_LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            os.close(descriptor)
+            with suppress(FileNotFoundError):
+                _retry_registry_permission_error(lock_path.unlink)
+
+
+def _is_temp_path(path: str) -> bool:
+    """Return True if *path* looks like a temporary or transient directory.
+
+    Checks the *last path component* (the project directory name itself)
+    against known temp prefixes.  Also checks the immediate parent directory
+    for pytest-specific patterns (e.g. ``pytest-of-user``, ``pytest123``).
+    This catches paths like ``pytest-of-user/pytest123/test0`` without
+    false-positives on the pytest temp directory that pytest creates for
+    the test run itself (e.g. ``pytest-1031/test_func/proj``).
+    """
+    p = Path(path)
+    parts = p.parts
+    explicit_home = os.environ.get("SPECSMITH_HOME", "").strip()
+    if explicit_home:
+        with suppress(OSError, ValueError):
+            parts = p.resolve().relative_to(Path(explicit_home).resolve()).parts
+
+    for index, component in enumerate(parts):
+        lowered = component.lower()
+        if (
+            lowered in {"pytest", ".pytest_tmp"}
+            or lowered.startswith(("pytest-", "pytest-of-", "pytest_of_"))
+            or (lowered.startswith("pytest") and lowered[6:].isdigit())
+        ):
+            return True
+        if lowered in {"tmp", "temp"} and (not explicit_home or index == len(parts) - 1):
+            return True
+        if lowered in {"__pycache__", ".vite", ".svelte-kit", ".next", ".tox", ".nox"}:
+            return True
+
+    name = p.name.lower() if p.name else path.lower()
+    path_lower = path.lower()
+    for suffix in _TEMP_SUFFIXES:
+        if suffix.endswith("/"):
+            # Match parent directory patterns like /__pycache__/
+            if suffix[1:] in path_lower:
+                return True
+        else:
+            pattern = suffix[1:].lower()
+            # Match the last component: pytest-*, tmp, temp, etc.
+            if name == pattern or name.startswith(pattern + "-"):
+                return True
+            # Also check the immediate parent directory for pytest patterns.
+            # This catches paths like pytest-of-user/pytest123/test0 where
+            # the parent (pytest123) is a pytest temp directory.
+            if pattern.startswith("pytest") and len(p.parts) >= 2:
+                parent = p.parts[-2].lower()
+                if parent == pattern or parent.startswith(pattern + "-"):
+                    return True
+                # Also match pytest-* and pytestNNN patterns in parent.
+                if pattern == "pytest":
+                    if parent.startswith("pytest-"):
+                        return True
+                    if parent.startswith("pytest") and len(parent) > 6:
+                        return True
+    return False
+
+
+def _is_valid_project(path: Path) -> bool:
+    """Return True if *path* looks like a Specsmith project root.
+
+    A path is considered valid if it is a directory and contains at least
+    one recognized project marker file/directory.
+    """
+    if not path.is_dir():
+        return False
+    # Always accept if it has the specsmith marker.
+    return any((path / marker).exists() for marker in _PROJECT_MARKERS)
+
+
+def _canonicalize_path(path: str) -> str:
+    """Canonicalize a path for deduplication.
+
+    - Resolves symlinks and normalizes separators.
+    - On Windows, normalizes drive letter case and backslashes.
+    """
+    p = Path(path).resolve()
+    result = str(p)
+    # Windows: normalize drive letter to uppercase.
+    if result and result[1:2] == ":":
+        result = result[0].upper() + result[1:]
+    return result
+
+
+def _paths_equivalent(left: str, right: str) -> bool:
+    """Return whether two path spellings identify the same filesystem entry.
+
+    Canonical string equality handles missing and ordinary paths.  ``samefile``
+    additionally handles case variants on case-insensitive filesystems without
+    conflating distinct entries on case-sensitive filesystems.
+    """
+    if left == right:
+        return True
+    try:
+        return Path(left).samefile(right)
+    except OSError:
+        return False
+
+
+def _load_registry_raw() -> tuple[list[Any], dict[str, Any] | None]:
+    """Load the registry file, returning (projects_list, full_data_or_None).
+
+    Returns an empty list and None when the file is missing or malformed.
+    """
+    try:
+        data = json.loads(_registry_file().read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            projects = data.get("projects", [])
+            if isinstance(projects, list):
+                return projects, data
+        return [], None
+    except Exception:  # noqa: BLE001
+        return [], None
+
+
+def _save_registry(projects: list[str]) -> None:
+    """Atomically persist *projects* to the registry file.
+
+    Uses a write-to-temp-then-rename pattern so an interrupted write
+    preserves the prior valid registry.
+    """
+    reg = _registry_file()
+    reg.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps({"projects": projects}, indent=2, ensure_ascii=False)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{reg.stem}.", suffix=".tmp", dir=reg.parent
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
+            temporary.write(payload)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        _retry_registry_permission_error(lambda: os.replace(temporary_name, reg))
+    except Exception:
+        Path(temporary_name).unlink(missing_ok=True)
+        raise
+
+
+def _repair_registry_entries(projects: list[Any]) -> tuple[list[str], bool]:
+    """Return safe registry strings and whether persisted data needs repair."""
+    repaired: list[str] = []
+    seen: set[str] = set()
+    changed = False
+    for project in projects:
+        if not isinstance(project, str) or not project.strip() or _is_temp_path(project):
+            changed = True
+            continue
+        if project in seen:
+            changed = True
+            continue
+        seen.add(project)
+        repaired.append(project)
+    return repaired, changed
+
+
 def read_registry() -> list[str]:
     """Return all absolute project paths from the registry.
 
     Returns an empty list when the registry file is missing or malformed.
     Invalid entries (empty strings, non-strings) are silently skipped.
+    Paths are canonicalized and deduplicated.
     """
-    try:
-        data = json.loads(_registry_file().read_text(encoding="utf-8"))
-        projects = data.get("projects", []) if isinstance(data, dict) else []
-        return [p for p in projects if isinstance(p, str) and p]
-    except Exception:  # noqa: BLE001
-        return []
+    projects, _ = _load_registry_raw()
+    projects, changed = _repair_registry_entries(projects)
+    if changed:
+        with _registry_mutation_lock():
+            latest, _ = _load_registry_raw()
+            projects, latest_changed = _repair_registry_entries(latest)
+            if latest_changed:
+                _save_registry(projects)
+
+    canonical: list[str] = []
+    for p in projects:
+        if not isinstance(p, str) or not p:
+            continue
+        c = _canonicalize_path(p)
+        if not any(_paths_equivalent(c, existing) for existing in canonical):
+            canonical.append(c)
+    return canonical
 
 
 def write_registry(paths: list[str]) -> None:
-    """Persist *paths* to the registry file (creates parent dirs as needed)."""
-    reg = _registry_file()
-    reg.parent.mkdir(parents=True, exist_ok=True)
-    reg.write_text(
-        json.dumps({"projects": paths}, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    """Persist *paths* to the registry file atomically."""
+    with _registry_mutation_lock():
+        _save_registry(paths)
 
 
-def register_project(path: str = ".") -> bool:
-    """Add *path* to the registry. Returns True if it was newly added."""
-    abs_path = str(Path(path).resolve())
-    projects = read_registry()
-    if abs_path in projects:
+def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> bool:
+    """Add *path* to the registry. Returns True if it was newly added.
+
+    Parameters
+    ----------
+    path:
+        Project directory to register.
+    allow_uninitialized:
+        When False (default), the path must exist and contain at least one
+        Specsmith project marker (``.specsmith/``, ``AGENTS.md``, etc.).
+        When True, any existing directory is accepted.
+
+    The registry is validated, canonicalized, deduplicated, and written
+    atomically.  Temporary/transient paths (pytest temp dirs, deleted
+    worktrees) are rejected.
+    """
+    abs_path = Path(path).resolve()
+    canonical = _canonicalize_path(str(abs_path))
+
+    # Reject temp/transient paths.
+    if _is_temp_path(canonical):
         return False
-    projects.append(abs_path)
-    write_registry(projects)
-    return True
+
+    # Validate the path.
+    if not allow_uninitialized and not _is_valid_project(abs_path):
+        return False
+
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        # Deduplicate using canonical form.
+        filtered: list[str] = []
+        for p in projects:
+            if not isinstance(p, str) or _is_temp_path(p):
+                continue
+            c = _canonicalize_path(p)
+            if not any(_paths_equivalent(c, existing) for existing in filtered):
+                filtered.append(c)
+
+        if any(_paths_equivalent(canonical, existing) for existing in filtered):
+            return False  # Already registered.
+
+        # Prepend so the new project becomes the default.
+        filtered.insert(0, canonical)
+        _save_registry(filtered)
+        return True
 
 
 def unregister_project(path: str = ".") -> bool:
     """Remove *path* from the registry. Returns True if it was present."""
-    abs_path = str(Path(path).resolve())
-    projects = read_registry()
-    if abs_path not in projects:
-        return False
-    write_registry([p for p in projects if p != abs_path])
-    return True
+    canonical = _canonicalize_path(path)
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        new_projects = [
+            p
+            for p in projects
+            if isinstance(p, str)
+            and not _is_temp_path(p)
+            and not _paths_equivalent(_canonicalize_path(p), canonical)
+        ]
+        if len(new_projects) == len(projects):
+            return False  # Not found.
+        _save_registry(new_projects)
+        return True
+
+
+def prune_registry(*, dry_run: bool = False, stale_threshold_days: int = 30) -> dict[str, Any]:
+    """Prune stale, inaccessible, or temporary entries from the registry.
+
+    Parameters
+    ----------
+    dry_run:
+        When True, report what *would* be removed without mutating the file.
+    stale_threshold_days:
+        Entries whose paths no longer exist are considered stale.  Only
+        entries that have been stale for more than *stale_threshold_days*
+        are removed (currently all missing entries are treated as stale).
+
+    Returns
+    -------
+    A dict with keys ``removed``, ``preserved``, ``stale``, ``inaccessible``.
+    """
+    if dry_run:
+        projects, _ = _load_registry_raw()
+        return _prune_registry_projects(projects, dry_run=True)
+
+    with _registry_mutation_lock():
+        projects, _ = _load_registry_raw()
+        return _prune_registry_projects(projects, dry_run=False)
+
+
+def _prune_registry_projects(projects: list[Any], *, dry_run: bool) -> dict[str, Any]:
+    """Analyze registry entries while the caller owns a mutation lock if needed."""
+    removed: list[str] = []
+    preserved: list[str] = []
+    stale: list[str] = []
+    inaccessible: list[str] = []
+
+    canonical_projects: list[str] = []
+    seen: set[str] = set()
+
+    for p in projects:
+        if not isinstance(p, str) or _is_temp_path(p):
+            removed.append(str(p))
+            continue
+        c = _canonicalize_path(p)
+        if c in seen:
+            continue  # Skip duplicates.
+        seen.add(c)
+
+        proj_path = Path(c)
+        if not proj_path.exists():
+            stale.append(c)
+            removed.append(c)
+            continue
+
+        if not proj_path.is_dir():
+            stale.append(c)
+            removed.append(c)
+            continue
+
+        # Path exists and is a directory — preserve it.
+        canonical_projects.append(c)
+        preserved.append(c)
+
+    result = {
+        "removed": removed,
+        "preserved": preserved,
+        "stale": stale,
+        "inaccessible": inaccessible,
+    }
+
+    if not dry_run and removed:
+        _save_registry(canonical_projects)
+
+    return result
 
 
 def build_warp_mcp_config() -> dict[str, Any]:
@@ -310,6 +701,37 @@ _TOOLS: list[dict[str, Any]] = [
                 },
             },
             "required": ["seal_type", "description"],
+        },
+    },
+    {
+        "name": "governance_context_transition",
+        "description": (
+            "Return Specsmith's authoritative context action and exact replacement "
+            "packet digest. Zoo must not invoke native summarization in governed mode."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "telemetry": {"type": "object"},
+                "task": {"type": "object"},
+                "work_item_id": {"type": "string"},
+                "invariants": {"type": "object"},
+                "records": {"type": "array", "items": {"type": "object"}},
+                "governed": {"type": "boolean", "default": True},
+            },
+            "required": ["telemetry", "task"],
+        },
+    },
+    {
+        "name": "governance_context_verify",
+        "description": "Verify that Zoo applied the exact Specsmith context packet digest.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "expected_digest": {"type": "string"},
+                "applied_digest": {"type": "string"},
+            },
+            "required": ["expected_digest", "applied_digest"],
         },
     },
 ]
@@ -517,6 +939,74 @@ def _handle_governance_preflight(args: dict[str, Any]) -> dict[str, Any]:
             }
 
 
+def _handle_governance_context_transition(args: dict[str, Any]) -> dict[str, Any]:
+    from specsmith.context_control import (
+        ContextAction,
+        ContextRecord,
+        ContextTelemetry,
+        SemanticCheckpoint,
+        TaskEnvelope,
+        ZooContextController,
+        cleanup_context,
+        decide_context_action,
+    )
+
+    telemetry = ContextTelemetry(**dict(args.get("telemetry") or {}))
+    task = TaskEnvelope(**dict(args.get("task") or {}))
+    decision = decide_context_action(telemetry, task)
+    packet = None
+    health = None
+    if decision.action is not ContextAction.CONTINUE and args.get("invariants"):
+        checkpoint = SemanticCheckpoint.create(
+            str(args.get("work_item_id") or "unscoped"), dict(args["invariants"])
+        )
+        records = [ContextRecord(**record) for record in args.get("records") or []]
+        packet, health = cleanup_context(
+            checkpoint,
+            records,
+            token_budget=max(0, telemetry.remaining_work_capacity),
+        )
+    directive = ZooContextController().directive(
+        decision,
+        governed=bool(args.get("governed", True)),
+        packet=packet,
+        health=health,
+    )
+    return {
+        "decision": decision.to_dict(),
+        "directive": {
+            "action": directive.action,
+            "packet_digest": directive.packet_digest,
+            "resume_allowed": directive.resume_allowed,
+            "native_summary_allowed": directive.native_summary_allowed,
+            "degraded": directive.degraded,
+            "reason": directive.reason,
+        },
+        "packet": (
+            {
+                "checkpoint_id": packet.checkpoint_id,
+                "work_item_id": packet.work_item_id,
+                "invariants": packet.invariants,
+                "records": packet.records,
+                "digest": packet.digest,
+            }
+            if packet
+            else None
+        ),
+    }
+
+
+def _handle_governance_context_verify(args: dict[str, Any]) -> dict[str, Any]:
+    expected = str(args.get("expected_digest") or "")
+    applied = str(args.get("applied_digest") or "")
+    verified = bool(expected and expected == applied)
+    return {
+        "verified": verified,
+        "resume_allowed": verified,
+        "status": "healthy" if verified else "blocked_degraded",
+    }
+
+
 def _handle_governance_phase(args: dict[str, Any]) -> dict[str, Any]:
     """Return the current AEE phase and readiness info."""
     root = _resolve_root(args)
@@ -678,6 +1168,8 @@ _HANDLERS = {
     "governance_phase": _handle_governance_phase,
     "governance_req_list": _handle_governance_req_list,
     "governance_trace_seal": _handle_governance_trace_seal,
+    "governance_context_transition": _handle_governance_context_transition,
+    "governance_context_verify": _handle_governance_context_verify,
 }
 
 

@@ -35,7 +35,7 @@ Skills for project governance workflows, verification, release management, ESDB,
 | `onboarding-coach` | Onboarding Coach — guided first session | onboarding, first-run |
 | `patent-prosecution-workflow` | Patent Prosecution Workflow — prior-art, USPTO MCP, PAR | patent, uspto, ppubs, claim-themes, ip |
 | `planner` | Planner — propose-then-execute | planning, aee, governance |
-| `release-pilot` | Release Pilot — gitflow release cut | git, semver, release, gitflow |
+| `release-pilot` | Release Pilot — private fixed-point release readiness | git, semver, release, verification |
 | `specsmith` | Specsmith — master governance CLI reference | specsmith, aee, session, audit, phase |
 | `specsmith-audit` | Specsmith Audit — drift detection and governance health | specsmith, audit, drift, health, aee |
 | `specsmith-save` | Specsmith Save — governance-aware save workflow | specsmith, save, commit, esdb, backup |

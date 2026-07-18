@@ -4,7 +4,7 @@
 #
 # Schema: id (REQ-NNN), title, description, source, status
 # Required fields: id, title, status
-- id: REQ-444
+- id: REQ-484
   title: Governance Efficiency Benchmark Harness Integrity
   description: >-
     The governance efficiency benchmark under scripts/govern_bench MUST produce
@@ -14,7 +14,10 @@
     runs return real token usage and cost. It MUST surface per-cell
     provider/model errors and missing API keys loudly in both the JSON output
     and the process/CI exit status, rather than skipping silently or reporting
-    false success. It MUST attribute cost-of-pass and model tier from per-model
+    false success. Any real run with an errored or skipped cell MUST fail.
+    Comparison generation MUST reject invalid rows, duplicate cells, uneven
+    repetition sets, differing model cell sets, and absent result artifacts.
+    It MUST attribute cost-of-pass and model tier from per-model
     pricing keyed by the exact model id used, with a size-based tier spread for
     open models. It MUST allow the run matrix to be selected by model
     group/tier via workflow inputs so subsets such as open-only and later
@@ -24,4 +27,4 @@
     selected model has a live inference provider before a full run, failing
     fast otherwise.
   source: scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)
-  status: planned
+  status: implemented

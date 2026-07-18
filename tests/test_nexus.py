@@ -6,9 +6,17 @@ These tests cover Specsmith governance requirements REQ-065..REQ-076 for the
 local-first Nexus agent runtime, including its tooling layer, safety
 middleware, repository indexer, REPL slash commands, AG2 orchestration, and
 docker-compose configuration of the vLLM (l1-nexus) model server.
+
+Also covers REQ-430/REQ-431 release classifier and dead-end unblock tests.
+
+Traceability:
+    __trace_id__ = "REQ-065..REQ-076, REQ-430, REQ-431"  — nexus runtime + release classifier.
 """
 
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify REQ-065..REQ-076, REQ-430, REQ-431
+__trace_id__ = "REQ-065..REQ-076, REQ-430, REQ-431"
 
 import inspect
 import json

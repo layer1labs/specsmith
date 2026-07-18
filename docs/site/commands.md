@@ -640,26 +640,16 @@ specsmith migrate-project --dry-run
 
 - `--dry-run` — Show what would change without writing.
 
-## `specsmith release`
-
-Bump the version string everywhere and scan for stale references.
-
-```bash
-specsmith release 0.3.0
-specsmith release 0.3.0 --project-dir ./my-project
-```
-
-Updates version in `pyproject.toml`, `Cargo.toml`, `package.json`, `src/**/__init__.py`, README badges, and CHANGELOG. Scans for references to the old version that may need updating. Prints the next manual steps (CHANGELOG, git tag, push).
-
 ## `specsmith verify-release`
 
-Post-release smoke check: verify PyPI, RTD, and GitHub release are live.
+Read-only release-readiness verification for a governed project.
 
 ```bash
-specsmith verify-release
+specsmith verify-release --project-dir ./my-project
 ```
 
-Checks that the installed version is published on PyPI, that the RTD site is reachable, and that the GitHub Release tag exists. Requires `gh` CLI for the GitHub check.
+Runs the governance audit and returns success only when the project is healthy.
+It does not publish, tag, deploy, or promote Specsmith or the target project.
 
 ## `specsmith ledger`
 

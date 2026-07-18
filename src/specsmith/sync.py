@@ -636,7 +636,7 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
             existing_test_map = {t["id"]: t for t in old_tests if isinstance(t, dict)}
 
     # Merge: preserve existing input/expected_behavior for tests that already
-    # have hand-crafted content so we don't clobber kairos-style detailed specs.
+    # have hand-crafted content so we don't clobber detailed specs.
     for tc in new_tests_obj:
         existing = existing_test_map.get(tc["id"], {})
         if existing.get("input"):

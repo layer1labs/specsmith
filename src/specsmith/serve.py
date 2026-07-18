@@ -141,6 +141,13 @@ class _AgentThread:
                     break  # shutdown signal
                 try:
                     self._runner._handle_command(text)  # noqa: SLF001
+
+                    # Auto-compress history if threshold exceeded (REQ-308)
+                    if hasattr(self._runner, "compress_history") and not getattr(
+                        self._runner, "_context_compressed", False
+                    ):
+                        with contextlib.suppress(Exception):
+                            self._runner.compress_history()
                 except Exception as e:  # noqa: BLE001
                     self._bus.emit({"type": "error", "message": str(e)})
                 self._bus.emit({"type": "turn_done"})

@@ -118,7 +118,7 @@ jobs:
         run: |
           python scripts/govern_bench/run_bench.py \
             --task T6 --task T7 \
-            --provider huggingface --model Qwen/Qwen3-Coder-30B-A3B-Instruct \
+            --provider huggingface --model Qwen/Qwen3.6-35B-A3B:deepinfra \
             --reps 2 \
             --output /tmp/bench-smoke-hf.md \
             --json-output /tmp/bench-smoke-hf.json
@@ -348,7 +348,7 @@ jobs:
           FILES=(results/bench-results-*.json)
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No result files found — all model jobs may have failed or been skipped."
-            exit 0
+            exit 1
           fi
           echo "Comparing ${#FILES[@]} result file(s): ${FILES[*]}"
           python scripts/govern_bench/compare_runs.py \

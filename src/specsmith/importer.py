@@ -1305,13 +1305,13 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
         if result.readme_summary
         else f"Imported {result.primary_language or 'project'} library"
     )
-    # Write the installed specsmith version as spec_version so the generated
-    # scaffold.yml immediately matches the tool and the auto-update prompt
-    # never fires unnecessarily on first use.
+    # Write the governance version as spec_version so the generated
+    # scaffold.yml immediately matches the governance schema and the auto-update
+    # prompt never fires unnecessarily on first use.
     try:
-        from specsmith import __version__ as _installed_ver
+        from specsmith import GOVERNANCE_VERSION as _gov_ver
 
-        spec_version = _installed_ver
+        spec_version = _gov_ver
     except Exception:  # noqa: BLE001
         spec_version = "0.3.0"  # safe fallback
 

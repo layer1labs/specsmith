@@ -516,3 +516,183 @@
     allocation, or project-file creation or modification. Migration remains available
     only through an explicit operational command.
   source: 'GitHub issue #300'
+- id: REQ-457
+  title: Zoo Code Local-LLM import profile lifecycle
+  status: implemented
+  description: Specsmith MUST generate the current Zoo Code import document for a
+    Local-LLM LiteLLM profile at http://127.0.0.1:4000; map built-in and discovered
+    Specsmith modes to that profile; request prompt caching only when capability metadata
+    confirms support; preserve user-owned profiles and mappings; repair only Specsmith-managed
+    malformed, obsolete, or tampered assets with a backup; never serialize an API
+    key; and generate portable Windows, Linux, and macOS auto-import configuration.
+  source: 'GitHub issue #331; Zoo Code upstream provider-settings and importExport
+    schemas'
+- id: REQ-458
+  title: Concurrent-safe MCP project registry
+  status: implemented
+  description: Specsmith MUST atomically read-modify-write the persistent MCP project
+    registry under a bounded process-safe lock so concurrent register, unregister,
+    and prune operations preserve valid unrelated entries on Windows, Linux, and macOS
+    without leaving a partial registry file or lock.
+  source: 'GitHub issue #316; MCPREG-007 and MCPREG-008'
+- id: REQ-459
+  title: Cross-platform wheel smoke validation
+  status: implemented
+  description: Specsmith CI MUST build the candidate wheel and validate a clean wheel
+    installation through public generic initialization, audit, strict validation,
+    sync, fixed-point, and Zoo Code asset generation on Windows, Linux, and macOS
+    using path names containing spaces and Unicode without shell activation or platform-specific
+    console-script paths.
+  source: 'GitHub issue #330'
+- id: REQ-460
+  title: Permissive Zoo Code command default
+  status: implemented
+  description: Specsmith MUST emit Zoo Code's current globalSettings.allowedCommands
+    setting as exactly ["*"] in its managed settings-import asset for new projects;
+    preserve user-owned assets and live user settings; migrate only an untouched,
+    provenance-marked prior default; and document that this intentional permissive
+    execution control is separate from Specsmith governance and unsuitable for
+    untrusted repositories without user restriction.
+  source: 'GitHub issue #329; Zoo Code global-settings and auto-approval schemas'
+- id: REQ-461
+  title: Private Specsmith self-release boundary
+  status: implemented
+  description: The installed public Specsmith CLI MUST not expose a release command
+    or instructions capable of publishing, tagging, deploying, or promoting Specsmith
+    itself; generic read-only release readiness verification remains public, while
+    repository-local CI and scripts own self-release operations.
+  source: 'GitHub issue #318'
+- id: REQ-462
+  title: Distinct package and governance metadata versions
+  status: implemented
+  description: Specsmith's repository metadata MUST retain a package/project version
+    and a distinct governance schema version; migration uses spec_version, legacy
+    version-only metadata is normalized only for the Specsmith self-project without
+    loss, and release closure verifies package-to-version and candidate-governance-to-
+    spec_version parity independently.
+  source: 'GitHub issue #319'
+- id: REQ-463
+  title: Deterministic managed governance regeneration
+  status: implemented
+  description: >
+    Candidate governance generation MUST be idempotent: identical managed content
+    performs no write or backup, changed managed content is atomically replaced with
+    backups only under ignored .specsmith/backups/governance, and a repeated upgrade
+    generation pass produces no additional tracked or untracked source files.
+  source: 'GitHub issue #321'
+- id: REQ-464
+  title: Private candidate bootstrap and closure checker
+  status: implemented
+  description: >
+    Repository-local CI tooling must build a candidate sdist and wheel, install
+    that exact wheel in an isolated environment, apply public governance checks,
+    enforce package and governance version parity, and emit a digest-linked JSON
+    closure manifest without exposing a public self-release command.
+  source: 'GitHub issue #323'
+- id: REQ-465
+  title: Trusted release preparation workflow
+  status: implemented
+  description: >
+    A manually dispatched CI workflow must validate a trusted release branch,
+    default to read-only closure checking, constrain prepare-mode changes, and
+    perform a clean candidate-driven second pass without publishing or tagging.
+  source: 'GitHub issue #324'
+- id: REQ-466
+  title: Immutable tag publication workflow
+  status: implemented
+  description: >
+    Tag publication must perform no source mutation, prove tag and version parity
+    and main ancestry, pass candidate closure, build one wheel from one canonical
+    sdist, reject duplicate PyPI versions, and publish identical verified artifacts.
+  source: 'GitHub issue #325'
+- id: REQ-467
+  title: Causally separated release evidence
+  status: implemented
+  description: >
+    Releases must use a deterministic pre-release seal and a post-publication
+    receipt that digest-links the immutable seal, tag, commit, and published
+    artifacts without modifying the released source or moving its tag.
+  source: 'GitHub issue #326'
+- id: REQ-468
+  title: Canonical private self-bootstrap release runbook
+  status: implemented
+  description: >
+    Maintainer and agent release guidance must describe the CI-only fixed-point
+    bootstrap sequence, immutable publication, seal and receipt causality, and
+    recovery through new commits or versions without public self-release commands.
+  source: 'GitHub issue #327'
+- id: REQ-469
+  title: Deterministic cross-platform governed shell execution
+  status: implemented
+  description: Governed string commands MUST use an explainable shell resolver with explicit, config, environment, and platform precedence; direct argv MUST bypass shell parsing; Windows prefers PowerShell 7; timeout, exit, process-tree, path, and redacted evidence semantics remain portable.
+  source: 'GitHub issue #313'
+- id: REQ-470
+  title: Predictive governed context control
+  status: implemented
+  description: Context control MUST make deterministic task-fit and checkpoint decisions from captured token telemetry, preserve post-task headroom, rate-limit semantic checkpoints, validate condensation integrity, and require a bounded fresh-task handoff when capacity remains unsafe.
+  source: 'GitHub issue #332'
+- id: REQ-471
+  title: Non-destructive ESDB context residency
+  status: implemented
+  description: Context offloading MUST change only a token-budgeted residency index, never durable evidence state, and MUST support stable provenance pointers, pinned invariants, deterministic ranked retrieval, deduplication, and backend-equivalent rehydration.
+  source: 'GitHub issue #333'
+- id: REQ-472
+  title: Governed context health and cleanup
+  status: implemented
+  description: Context health MUST detect missing constraints, stale or duplicate evidence, contradictions, provenance gaps, and suspicious instructions; cleanup MUST checkpoint first, rebuild only the working packet, verify its digest and invariants, and fail closed without deleting evidence.
+  source: 'GitHub issue #334'
+- id: REQ-473
+  title: Zoo local-agent and epistemic context lifecycle
+  status: implemented
+  description: Zoo integration MUST combine repaired local LiteLLM defaults with Specsmith-owned context decisions, durable offloading, verified cleanup, explicit degraded states, and fresh-task fallback consistently across supported platforms.
+  source: 'GitHub issue #335'
+- id: REQ-474
+  title: Replicated merge-safe ESDB events
+  status: implemented
+  description: Canonical ESDB collaboration state MUST be an immutable replicated event set with stable actor, agent, replica, and session attribution; deterministic materialization MUST expose same-record conflicts and produce order- and platform-independent roots without discarding legacy chain evidence.
+  source: 'GitHub issue #336'
+- id: REQ-475
+  title: Traceable binary test evidence
+  status: implemented
+  description: Issue requirements MUST map to named binary tests and machine-readable reports that record pass, fail, or explicit unavailable state; CI MUST reject silent skips, missing mappings, swallowed failures, and non-idempotent outputs.
+  source: 'GitHub issue #337'
+- id: REQ-476
+  title: Layered actor agent replica and session identity
+  status: implemented
+  description: One explainable identity resolver MUST keep actor, agent, replica, and session identities distinct, apply configuration precedence, support optional read-only provider detection, avoid credentials and private tracked values, and attach stable attribution to evidence events.
+  source: 'GitHub issue #338'
+- id: REQ-477
+  title: Unified layered configuration resolution
+  status: implemented
+  description: One versioned resolver MUST merge platform-native global, tracked docs/SPECSMITH.yml, ignored .specsmith/local.yml, environment, and explicit values with field-aware precedence, provenance, strict unknown-key and secret handling, and deterministic legacy migration.
+  source: 'GitHub issue #339'
+- id: REQ-478
+  title: Specsmith-authoritative Zoo context transitions
+  status: implemented
+  description: In governed mode Specsmith MUST author semantic checkpoints and replacement packets, verify applied packet digests and invariants, block native silent summarization or truncation, distinguish workspace snapshots, and fail into explicit recoverable degraded state when unavailable.
+  source: 'GitHub issue #340'
+- id: REQ-479
+  title: Safe repairable Zoo settings lifecycle
+  status: implemented
+  description: A versioned ownership registry MUST automate supported Zoo settings, preserve unrelated and user-owned values, detect and safely repair managed drift, report exact verifiable manual-only gaps, protect secrets, and provide conflict-aware setup, doctor, and uninstall semantics across platforms.
+  source: 'GitHub issue #341'
+- id: REQ-480
+  title: Bounded visible CLI startup
+  status: implemented
+  description: Basic packaged CLI commands MUST dispatch within a documented budget without eagerly constructing unrelated command modules; optional registration failures MUST remain visible, locale/path variants MUST be bounded, and startup profiling MUST identify slow imports.
+  source: 'GitHub issue #342'
+- id: REQ-481
+  title: Canonical invocation strategy
+  status: implemented
+  description: Documentation MUST define the preferred and fallback use of MCP, REPL slash commands, skills, and direct CLI across IDE, interactive, headless, CI, Zoo, Windows, Linux, and macOS environments.
+  source: 'GitHub issue #343'
+- id: REQ-482
+  title: Recover malformed model diff operations
+  status: implemented
+  description: Agent patch tooling MUST reject line markers in replacement sections with a correct example and deterministic retry or whole-file fallback guidance, while accepting valid targeted and truncated-file edits.
+  source: 'GitHub issue #344'
+- id: REQ-483
+  title: Readable consistent agent todo rendering
+  status: implemented
+  description: Agent todo output MUST render top-level separators, stable two-space nesting, distinct status symbols, bounded titles, and clear paused/resumed state consistently for arbitrary nesting and all agent modes.
+  source: 'GitHub issue #345'

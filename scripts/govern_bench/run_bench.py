@@ -52,6 +52,11 @@ from govern_bench.report import write_report  # noqa: E402
 from govern_bench.tasks import load_all_tasks  # noqa: E402
 
 
+def incomplete_real_run(*, dry_run: bool, skipped: int, errored: int) -> bool:
+    """Return whether publishable benchmark completeness has been violated."""
+    return not dry_run and bool(skipped or errored)
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the specsmith governance efficiency benchmark",
@@ -404,9 +409,10 @@ def main() -> int:
     print("CoP = cost-of-pass (USD to get one correct answer) | vs-Base = ratio vs UNGOVERNED")
     print("$/mo@20 = estimated monthly spend at 20 tasks/day, 22 working days")
 
-    # Loud-fail accounting: a benchmark run that silently skips every cell is
-    # worthless. Surface the passed/skipped/errored tally and fail the process
-    # when a real (non-dry-run) model produced zero usable results.
+    # Loud-fail accounting: a benchmark run with any missing provider result is
+    # incomplete and must never be published as a valid comparison.  Preserve
+    # the JSON/report artifacts for diagnosis, but fail the real run so CI and
+    # downstream release gates cannot mistake partial data for model failures.
     total = len(report.runs)
     skipped = sum(1 for r in report.runs if r.skipped)
     errored = sum(1 for r in report.runs if r.error)
@@ -423,11 +429,11 @@ def main() -> int:
         for err in first_errors:
             print(f"  error: {err}", file=sys.stderr)
 
-    if not args.dry_run and non_skipped == 0:
+    if incomplete_real_run(dry_run=args.dry_run, skipped=skipped, errored=errored):
         print(
-            f"\n[FATAL] Model {args.model!r} (provider={args.provider}) produced "
-            f"zero non-skipped results across {total} runs — every cell errored or "
-            f"was skipped. Failing loudly instead of publishing empty results.",
+            f"\n[FATAL] Model {args.model!r} (provider={args.provider}) produced an "
+            f"incomplete benchmark: {skipped} skipped and {errored} errored cells "
+            f"across {total} runs. Failing loudly instead of publishing partial results.",
             file=sys.stderr,
         )
         return 1

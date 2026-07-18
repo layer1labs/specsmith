@@ -3,7 +3,9 @@
 GovernanceBench measures how governance/scaffolding changes **cost, quality, and safety**
 across coding-agent workflows.
 
-> Status: expansion in progress. Published benchmark results are **TBD**.
+> Status: the 2026-07-18 GPT-4o-mini run is complete and published with
+> limitations. The paired Qwen run is incomplete and excluded from comparative
+> claims. See `docs/site/efficiency-benchmark.md`.
 
 ---
 
@@ -73,7 +75,7 @@ GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons
 
 ### Provider examples
 
-- **OpenAI**: `gpt-4.1-nano`, `gpt-4o-mini`, `gpt-5.4`, `gpt-5`
+- **OpenAI**: `gpt-4o-mini`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`
 - **Anthropic**: `claude-haiku-4-5`, `claude-sonnet-4-5`, `claude-opus-4-5`
 - **Google**: `gemini-3.5-flash`, `gemini-3.1-pro`
 - **OpenAI-compatible endpoints** (vLLM/Ollama/proxy): open-source model hosting
@@ -83,10 +85,10 @@ GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons
 | Tier | Price Band (input $/1M tokens, indicative) | Example Models |
 |------|---------------------------------------------|----------------|
 | Nano | `< $1` | `gpt-4.1-nano`, `gemini-3.5-flash`, `claude-haiku-4-5` |
-| Mini | `$1–$4` | `gpt-4o-mini`, `gpt-5.5`, `gpt-4.1-mini` |
-| Mid | `$5–$15` | `gpt-5.4`, `claude-sonnet-4-5`, `gemini-3.1-pro` |
-| Frontier | `> $15` | `gpt-5`, `claude-opus-4-5` |
-| Open-source | Infra-dependent | `Llama-3.1-70B`, `Qwen2.5-Coder-72B`, `DeepSeek-Coder-V3` |
+| Mini | `$1–$4` blended | `gpt-5.6-luna`, `gpt-4.1-mini` |
+| Mid | `$5–$15` blended | `gpt-5.6-terra`, `claude-sonnet-4-5`, `gemini-3.1-pro` |
+| Frontier | `> $15` blended | `gpt-5.6-sol`, `claude-opus-4-5` |
+| Open-source | Infra-dependent | `Qwen/Qwen3.6-35B-A3B`, `Llama-3.3-70B`, `gpt-oss-120b` |
 
 Use these as comparison tiers, not fixed coverage requirements. Final model lists should be
 recorded in run metadata and report headers.
@@ -154,7 +156,17 @@ GovernanceBench includes HF-oriented documentation and schema assets:
 - `scripts/govern_bench/leaderboard_schema.json` — leaderboard JSON schema
 - `scripts/govern_bench/METHODOLOGY.md` — standalone statistical methodology
 
-Benchmark result values should remain `TBD` in docs until empirical runs are completed.
+Only complete empirical runs may be published as benchmark evidence. Partial or
+provider-failed artifacts remain diagnostic and must not produce comparison claims.
+
+### Result completeness contract
+
+A real run is publishable only when every requested task/condition/repetition
+cell is present exactly once and has no provider error or skipped status.
+Cross-model reports additionally require identical cell sets for every model.
+Provider failures remain diagnostic artifact rows, but the process exits nonzero
+and the comparison generator rejects them instead of treating them as model
+failures or zero-cost observations.
 
 ---
 

@@ -29,6 +29,10 @@ def _module_name(src_root: Path, py_file: Path) -> str:
     return "specsmith." + ".".join(rel.parts)
 
 
+def _matches_module_prefix(module: str, prefixes: tuple[str, ...]) -> bool:
+    return any(module == prefix or module.startswith(prefix + ".") for prefix in prefixes)
+
+
 def test_internal_modules_are_not_imported_outside_allowlist() -> None:
     src_root = Path(__file__).resolve().parents[1] / "src" / "specsmith"
     violations: list[str] = []
@@ -47,9 +51,9 @@ def test_internal_modules_are_not_imported_outside_allowlist() -> None:
                     continue
                 if not imported.startswith("specsmith."):
                     continue
-                if not imported.startswith(INTERNAL_PREFIXES):
+                if not _matches_module_prefix(imported, INTERNAL_PREFIXES):
                     continue
-                if importer.startswith(tuple(ALLOWED_IMPORTERS)):
+                if _matches_module_prefix(importer, tuple(ALLOWED_IMPORTERS)):
                     continue
                 if importer.startswith(imported):
                     continue

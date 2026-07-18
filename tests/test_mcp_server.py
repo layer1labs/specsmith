@@ -78,10 +78,10 @@ class TestMcpProtocol:
         assert result["serverInfo"]["name"] == "specsmith-governance"
         assert "tools" in result["capabilities"]
 
-    def test_tools_list_returns_seven_tools(self) -> None:
+    def test_tools_list_returns_governance_and_context_tools(self) -> None:
         resp = _send_rpc(_make_rpc("tools/list", {}, req_id=2))
         tools = resp["result"]["tools"]
-        assert len(tools) == 7
+        assert len(tools) == 9
         names = {t["name"] for t in tools}
         assert names == {
             "governance_project_list",
@@ -91,6 +91,8 @@ class TestMcpProtocol:
             "governance_phase",
             "governance_req_list",
             "governance_trace_seal",
+            "governance_context_transition",
+            "governance_context_verify",
         }
 
     def test_each_tool_has_input_schema(self) -> None:
@@ -307,7 +309,7 @@ class TestRegistryFunctions:
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         paths = ["/path/to/proj1", "/path/to/proj2"]
         mcp_mod.write_registry(paths)
-        assert mcp_mod.read_registry() == paths
+        assert mcp_mod.read_registry() == [str(Path(path).resolve()) for path in paths]
 
     def test_register_project_adds_new_entry(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -315,7 +317,7 @@ class TestRegistryFunctions:
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        added = mcp_mod.register_project(str(proj))
+        added = mcp_mod.register_project(str(proj), allow_uninitialized=True)
         assert added is True
         assert str(proj) in mcp_mod.read_registry()
 
@@ -325,8 +327,8 @@ class TestRegistryFunctions:
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        mcp_mod.register_project(str(proj))
-        added_again = mcp_mod.register_project(str(proj))
+        mcp_mod.register_project(str(proj), allow_uninitialized=True)
+        added_again = mcp_mod.register_project(str(proj), allow_uninitialized=True)
         assert added_again is False
         assert mcp_mod.read_registry().count(str(proj)) == 1
 
@@ -336,7 +338,7 @@ class TestRegistryFunctions:
         monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path))
         proj = tmp_path / "myproject"
         proj.mkdir()
-        mcp_mod.register_project(str(proj))
+        mcp_mod.register_project(str(proj), allow_uninitialized=True)
         removed = mcp_mod.unregister_project(str(proj))
         assert removed is True
         assert str(proj) not in mcp_mod.read_registry()
@@ -359,8 +361,8 @@ class TestRegistryFunctions:
         proj_a.mkdir()
         proj_b = tmp_path / "beta"
         proj_b.mkdir()
-        mcp_mod.register_project(str(proj_a))
-        mcp_mod.register_project(str(proj_b))
+        mcp_mod.register_project(str(proj_a), allow_uninitialized=True)
+        mcp_mod.register_project(str(proj_b), allow_uninitialized=True)
 
         old_stdin = sys.stdin
         sys.stdin = io.StringIO("")
@@ -369,8 +371,8 @@ class TestRegistryFunctions:
         finally:
             sys.stdin = old_stdin
 
-        # First registered project is the default
-        assert str(proj_a) == mcp_mod._DEFAULT_PROJECT_DIR
+        # The newest explicit registration is prepended and becomes the default.
+        assert str(proj_b) == mcp_mod._DEFAULT_PROJECT_DIR
         assert str(proj_b) in mcp_mod._REGISTERED_PROJECTS
 
 
@@ -401,10 +403,13 @@ class TestGovernanceProjectList:
         assert "projects" in content
         assert "count" in content
 
-    def test_extra_projects_registered(self, tmp_path: Path) -> None:
+    def test_extra_projects_registered(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """run_server registers extra_project_dirs and they appear in project_list."""
         import io
 
+        monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path / "registry"))
         extra = tmp_path / "extra"
         extra.mkdir()
 
@@ -424,6 +429,7 @@ class TestGovernanceProjectList:
         """run_server must NOT call os.chdir — paths are resolved absolutely."""
         import io
 
+        monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path / "registry"))
         chdir_calls: list[str] = []
         monkeypatch.setattr("os.chdir", lambda p: chdir_calls.append(str(p)))
         old_stdin = sys.stdin
@@ -503,7 +509,7 @@ class TestGovernanceTraceSeal:
 
 
 class TestMcpServeCli:
-    def test_initialize_via_subprocess(self) -> None:
+    def test_initialize_via_subprocess(self, tmp_path: Path) -> None:
         """Send an initialize message to `specsmith mcp serve` via subprocess stdin."""
         init_msg = (
             json.dumps(
@@ -521,7 +527,12 @@ class TestMcpServeCli:
             + "\n"
         )
 
-        env = {**os.environ, "SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"}
+        env = {
+            **os.environ,
+            "SPECSMITH_ALLOW_NON_PIPX": "1",
+            "SPECSMITH_NO_AUTO_UPDATE": "1",
+            "SPECSMITH_HOME": str(tmp_path / "registry"),
+        }
         try:
             proc = subprocess.run(
                 [sys.executable, "-m", "specsmith", "mcp", "serve"],
@@ -539,7 +550,7 @@ class TestMcpServeCli:
         response = json.loads(proc.stdout.strip().splitlines()[0])
         assert response["result"]["serverInfo"]["name"] == "specsmith-governance"
 
-    def test_tools_list_via_subprocess(self) -> None:
+    def test_tools_list_via_subprocess(self, tmp_path: Path) -> None:
         """Send initialize + notifications/initialized + tools/list to the server."""
         messages = [
             json.dumps(
@@ -559,7 +570,12 @@ class TestMcpServeCli:
         ]
         stdin_payload = "\n".join(messages) + "\n"
 
-        env = {**os.environ, "SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"}
+        env = {
+            **os.environ,
+            "SPECSMITH_ALLOW_NON_PIPX": "1",
+            "SPECSMITH_NO_AUTO_UPDATE": "1",
+            "SPECSMITH_HOME": str(tmp_path / "registry"),
+        }
         try:
             proc = subprocess.run(
                 [sys.executable, "-m", "specsmith", "mcp", "serve"],
@@ -579,7 +595,7 @@ class TestMcpServeCli:
         tools_resp = json.loads(lines[-1])
         assert "result" in tools_resp
         tools = tools_resp["result"]["tools"]
-        assert len(tools) == 7
+        assert len(tools) == 9
 
 
 # ---------------------------------------------------------------------------

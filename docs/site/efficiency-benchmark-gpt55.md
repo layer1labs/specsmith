@@ -1,5 +1,10 @@
 # specsmith Governance Efficiency Benchmark
 
+!!! note "Historical pilot"
+    This page preserves the June 2026 GPT-5.5 pilot for provenance. It is not
+    the current benchmark report. See [Governance Efficiency Benchmark](efficiency-benchmark.md)
+    for the expanded July run and its evidence limitations.
+
 **Date:** 2026-06-23  
 **Model:** gpt-5.5  
 **Repetitions per cell:** 2  
