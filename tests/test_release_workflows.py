@@ -11,6 +11,12 @@ def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
     assert "Clean second pass" in text
     assert "git add -A" not in text
     assert "force" not in text.lower()
+    assert "permissions: {}" in text
+    assert "contents: read" in text
+    assert "contents: write" in text
+    assert "contents: ${{" not in text
+    assert "if: inputs.mode == 'check'" in text
+    assert "if: inputs.mode == 'prepare'" in text
 
 
 def test_tag_workflow_is_non_mutating_and_rejects_duplicates() -> None:
