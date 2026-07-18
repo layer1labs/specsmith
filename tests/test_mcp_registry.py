@@ -386,9 +386,7 @@ class TestMCPREG009CrossPlatformPaths:
         # case-insensitive Windows and macOS volumes.
         assert added2 is False
 
-    def test_path_equivalence_preserves_case_sensitive_entries(
-        self, reg_home: Path
-    ) -> None:
+    def test_path_equivalence_preserves_case_sensitive_entries(self, reg_home: Path) -> None:
         """Distinct case-sensitive entries must not be conflated."""
         upper = _make_project_dir(reg_home, "CaseSensitive")
         lower = _make_project_dir(reg_home, "casesensitive")

@@ -363,9 +363,7 @@ def unregister_project(path: str = ".") -> bool:
     with _registry_mutation_lock():
         projects, _ = _load_registry_raw()
         new_projects = [
-            p
-            for p in projects
-            if not _paths_equivalent(_canonicalize_path(p), canonical)
+            p for p in projects if not _paths_equivalent(_canonicalize_path(p), canonical)
         ]
         if len(new_projects) == len(projects):
             return False  # Not found.
