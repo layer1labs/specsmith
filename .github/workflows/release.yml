@@ -26,7 +26,7 @@ jobs:
       # packages that mypy can still use (like yaml) even without stub files.
       - run: pip install types-pyyaml
       - run: mypy src/specsmith --ignore-missing-imports --disable-error-code import-untyped
-      - run: pytest tests/ -x -q
+      - run: python -m pytest tests/ -x -q
 
   code-scan-gate:
     # Block the release if any High or Critical code scanning alerts are open.
