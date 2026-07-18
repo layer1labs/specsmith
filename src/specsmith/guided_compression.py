@@ -37,7 +37,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -342,7 +342,7 @@ class GuidedCompressor:
         compressed_parts: list[str] = []
         for elem in preserved:
             compressed_parts.append(elem.content)
-        for elem, summary in summarized:
+        for _elem, summary in summarized:
             compressed_parts.append(summary)
 
         compressed_text = "\n\n".join(compressed_parts)
@@ -354,7 +354,7 @@ class GuidedCompressor:
         # Build actions list
         for elem in preserved:
             result.actions.append(f"Preserved {elem.element_type} ({elem.element_id})")
-        for elem, summary in summarized:
+        for elem, _summary in summarized:
             result.actions.append(f"Summarized {elem.element_type} ({elem.element_id})")
         for elem in discarded:
             result.actions.append(f"Discarded {elem.element_type} ({elem.element_id})")
@@ -373,9 +373,7 @@ class GuidedCompressor:
     # Internal classification & decision logic
     # ------------------------------------------------------------------
 
-    def _classify_elements(
-        self, elements: list[ContextElement]
-    ) -> list[ContextElement]:
+    def _classify_elements(self, elements: list[ContextElement]) -> list[ContextElement]:
         """Classify elements, adjusting tier based on age and metadata."""
         classified: list[ContextElement] = []
         for elem in elements:
@@ -396,9 +394,7 @@ class GuidedCompressor:
             classified.append(elem)
         return classified
 
-    def _decide_action(
-        self, elem: ContextElement, target_fill_pct: float
-    ) -> str:
+    def _decide_action(self, elem: ContextElement, target_fill_pct: float) -> str:
         """Decide whether to preserve, summarize, or discard an element.
 
         Args:
@@ -458,9 +454,7 @@ class GuidedCompressor:
         # Try to extract common fields from content
         content = elem.content
         for field_name in ("title", "status", "description", "message", "result"):
-            match = re.search(
-                rf'"{field_name}"\s*:\s*"([^"]*)"', content
-            )
+            match = re.search(rf'"{field_name}"\s*:\s*"([^"]*)"', content)
             if match:
                 meta[field_name] = match.group(1)[:100]
                 break
@@ -473,7 +467,9 @@ class GuidedCompressor:
         try:
             return template.format(**meta)
         except (KeyError, IndexError):
-            return f"[Summarized {elem.element_type} ({elem.element_id}): {len(elem.content)} chars]"
+            return (
+                f"[Summarized {elem.element_type} ({elem.element_id}): {len(elem.content)} chars]"
+            )
 
     def _classify_esdb_key(self, key: str) -> str:
         """Classify an ESDB key into an element type."""
@@ -508,13 +504,56 @@ class GuidedCompressor:
 
         for i, turn in enumerate(history):
             role = turn.get("role", "unknown")
-            content = turn.get("content", "")
             elements.append(
                 ContextElement(
                     element_id=f"turn-{i}",
                     element_type="conversation_turn",
                     content=json.dumps(turn, ensure_ascii=False),
                     metadata={"role": role, "index": i},
+                )
+            )
+
+        return self.compress(elements, target_fill_pct=target_fill_pct)
+
+    def compress_from_esdb(
+        self,
+        *,
+        target_fill_pct: float = 50.0,
+        max_records: int = 100,
+    ) -> GuidedCompressionResult:
+        """Compress active SQLite ESDB records based on epistemic value."""
+        try:
+            from specsmith.esdb import SqliteStore
+        except ImportError:
+            return GuidedCompressionResult(summary="ESDB module not available.")
+
+        with SqliteStore(self.root) as store:
+            records = store.query(status="active")[:max_records]
+
+        elements: list[ContextElement] = []
+        for record in records:
+            record_id = str(record.id)
+            element_type = self._classify_esdb_key(record_id)
+            content = json.dumps(
+                {
+                    "id": record_id,
+                    "kind": record.kind,
+                    "label": record.label,
+                    "data": record.data,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            elements.append(
+                ContextElement(
+                    element_id=record_id,
+                    element_type=element_type,
+                    content=content,
+                    metadata={
+                        "source": "esdb",
+                        "kind": record.kind,
+                        "branch": record.branch,
+                    },
                 )
             )
 
@@ -622,9 +661,7 @@ def guided_compress(
     compressor = GuidedCompressor(project_root)
 
     if history is not None:
-        return compressor.compress_from_conversation(
-            history, target_fill_pct=target_fill_pct
-        )
+        return compressor.compress_from_conversation(history, target_fill_pct=target_fill_pct)
 
     if elements is not None:
         return compressor.compress(elements, target_fill_pct=target_fill_pct)
@@ -632,84 +669,3 @@ def guided_compress(
     return GuidedCompressionResult(
         summary="No elements or history provided.",
     )
-
-    def compress_from_esdb(
-        self,
-        *,
-        target_fill_pct: float = 50.0,
-        max_records: int = 100,
-    ) -> GuidedCompressionResult:
-        """Compress ESDB records based on epistemic value.
-
-        Reads from the project's ESDB and classifies records by type.
-
-        Args:
-            target_fill_pct: Target fill percentage.
-            max_records: Maximum number of records to include.
-
-        Returns:
-            GuidedCompressionResult.
-        """
-        try:
-            from specsmith.esdb import open_default_store, SqliteStore
-        except ImportError:
-            return GuidedCompressionResult(
-                summary="ESDB module not available.",
-            )
-
-        elements: list[ContextElement] = []
-
-        with SqliteStore(self.root) as store:
-            # Get recent records
-            all_records = list(store.all())
-
-        for rec in all_records[:max_records]:
-            rec_id = str(rec.id) if hasattr(rec, "id") else str(rec.get("id", ""))
-            rec_key = rec.key if hasattr(rec, "key") else rec.get("key", "")
-            rec_data = rec.data if hasattr(rec, "data") else rec.get("data", {})
-            rec_ts = (
-                rec.timestamp if hasattr(rec, "timestamp") else rec.get("timestamp", "")
-            )
-
-            # Classify by key
-            if rec_key in ("REQ-", "WI-", "SEAL-", "PHASE-", "EFF-"):
-                elem_type = self._classify_esdb_key(rec_key)
-            else:
-                elem_type = "esdb_record"
-
-            content = json.dumps(
-                {"key": rec_key, "data": rec_data},
-                ensure_ascii=False,
-                indent=2,
-            )
-
-            elements.append(
-                ContextElement(
-                    element_id=rec_id,
-                    element_type=elem_type,
-                    content=content,
-                    metadata={"source": "esdb"},
-                    created_at=rec_ts if isinstance(rec_ts, str) else str(rec_ts),
-                )
-            )
-
-        return self.compress(elements, target_fill_pct=target_fill_pct)
-
-    def compress_ledger(
-        self,
-        *,
-        keep_recent_entries: int = 10,
-        target_fill_pct: float = 50.0,
-    ) -> GuidedCompressionResult:
-        """Compress LEDGER.md entries based on epistemic value.
-
-        Args:
-            keep_recent_entries: Number of recent entries to keep full.
-            target_fill_pct: Target fill percentage.
-
-        Returns:
-            GuidedCompressionResult.
-        """
-        from specsmith.paths import find_ledger
-
-        ledger_path = find_ledger(self.root)

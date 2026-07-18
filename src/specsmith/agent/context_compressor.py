@@ -23,7 +23,6 @@ REQ-308: Context orchestrator — automatic tiered optimization (extends)
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import Any
 
 
@@ -49,8 +48,8 @@ def compress_history_elements(
     try:
         from specsmith.guided_compression import (
             ContextElement,
-            GuidedCompressor,
             GuidedCompressionResult,
+            GuidedCompressor,
         )
 
         elements: list[ContextElement] = [
@@ -64,9 +63,7 @@ def compress_history_elements(
         ]
 
         compressor = GuidedCompressor(project_dir)
-        result: GuidedCompressionResult = compressor.compress(
-            elements, target_fill_pct=target_pct
-        )
+        result: GuidedCompressionResult = compressor.compress(elements, target_fill_pct=target_pct)
 
         if result.space_saved_pct <= 10:
             # Not worth compressing

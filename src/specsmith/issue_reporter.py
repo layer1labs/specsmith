@@ -42,8 +42,8 @@ from typing import Any
 
 # ── Repo mapping ────────────────────────────────────────────────────────────
 
-# Kairos repo is deprecated; only specsmith remains active.
-# Kept for backward compatibility — callers may still pass "kairos" which maps here.
+# Known short names. Unknown short names retain the historical Layer1Labs
+# namespace behavior, while callers may also pass an explicit owner/name.
 ORGS: dict[str, str] = {
     "specsmith": "layer1labs/specsmith",
 }
@@ -231,17 +231,26 @@ class DuplicateBlockedError(Exception):
 # ── Core functions ───────────────────────────────────────────────────────────
 
 
+def _full_repo_name(repo: str) -> str:
+    if "/" in repo:
+        return repo
+    return ORGS.get(repo, f"layer1labs/{repo}")
+
+
 def search_issues(
-    query: str,
+    repo_or_query: str,
+    query: str | None = None,
     *,
     max_results: int = 5,
 ) -> list[dict[str, Any]]:
-    """Search open issues in layer1labs/specsmith matching *query*.
+    """Search open issues using either ``(repo, query)`` or ``(query,)``.
 
-    Returns a list of issue dicts with keys: number, title, html_url, state.
+    The one-argument form defaults to ``layer1labs/specsmith``. Returns issue
+    dictionaries with keys: number, title, html_url, and state.
     """
-    full_repo = "layer1labs/specsmith"
-    keywords = "+".join(list(_words(query))[:8])
+    repo, issue_query = ("specsmith", repo_or_query) if query is None else (repo_or_query, query)
+    full_repo = _full_repo_name(repo)
+    keywords = "+".join(list(_words(issue_query))[:8])
     q = f"repo:{full_repo}+is:issue+is:open+{urllib.parse.quote(keywords, safe='+:')}"
     path = f"search/issues?q={q}&per_page={max_results}"
     data = _gh_api_get(path)
@@ -258,17 +267,19 @@ def search_issues(
     ]
 
 
-def check_duplicate(title: str) -> DuplicateCheckResult:
-    """Return a DuplicateCheckResult for the given *title* in layer1labs/specsmith.
+def check_duplicate(repo_or_title: str, title: str | None = None) -> DuplicateCheckResult:
+    """Check duplicates using either ``(repo, title)`` or ``(title,)``.
 
-    Never raises; errors are captured in ``.error``.
+    The one-argument form defaults to ``layer1labs/specsmith``. Never raises;
+    errors are captured in ``.error``.
     """
+    repo, issue_title = ("specsmith", repo_or_title) if title is None else (repo_or_title, title)
     try:
-        candidates = search_issues(title, max_results=5)
+        candidates = search_issues(repo, issue_title, max_results=5)
     except Exception as exc:  # noqa: BLE001
         return DuplicateCheckResult(error=str(exc))
 
-    title_words = _words(title)
+    title_words = _words(issue_title)
     similar: list[dict[str, Any]] = []
     duplicates: list[dict[str, Any]] = []
     for c in candidates:
@@ -283,27 +294,34 @@ def check_duplicate(title: str) -> DuplicateCheckResult:
 
 
 def file_issue(
-    title: str,
-    body: str,
+    repo_or_title: str,
+    title_or_body: str,
+    body: str | None = None,
     *,
     labels: tuple[str, ...] = (),
     force: bool = False,
 ) -> FiledIssueResult:
-    """File a GitHub issue in layer1labs/specsmith, blocking if likely duplicates exist.
+    """File an issue using ``(repo, title, body)`` or ``(title, body)``.
 
     When ``force=False`` (the default) and ``check_duplicate()`` finds issues
     with Jaccard similarity ≥ DUPLICATE_THRESHOLD, raises ``DuplicateBlockedError``.
-    Set ``force=True`` to bypass the check.
+    The two-argument form defaults to ``layer1labs/specsmith``. Set
+    ``force=True`` to bypass the check.
 
     Requires ``gh`` CLI to be installed and authenticated.
     """
+    repo, title, issue_body = (
+        ("specsmith", repo_or_title, title_or_body)
+        if body is None
+        else (repo_or_title, title_or_body, body)
+    )
     if not force:
-        check = check_duplicate(title)
+        check = check_duplicate(repo, title)
         if check.blocked:
             raise DuplicateBlockedError(check)
 
-    full_repo = "layer1labs/specsmith"
-    payload: dict[str, Any] = {"title": title, "body": body}
+    full_repo = _full_repo_name(repo)
+    payload: dict[str, Any] = {"title": title, "body": issue_body}
     if labels:
         payload["labels"] = list(labels)
 

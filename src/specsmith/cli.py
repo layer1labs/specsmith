@@ -13506,7 +13506,6 @@ def context_guided_cmd(
 
     from specsmith.guided_compression import (
         GuidedCompressor,
-        ContextElement,
     )
 
     compressor = GuidedCompressor(project_dir)
@@ -13546,7 +13545,7 @@ def context_guided_cmd(
                         )
                     )
                     return
-                console.print(f"[bold]Conversation compression:[/bold]")
+                console.print("[bold]Conversation compression:[/bold]")
                 console.print(f"  {result.summary}")
                 for action in result.actions[:10]:
                     console.print(f"    - {action}")
@@ -13577,7 +13576,7 @@ def context_guided_cmd(
                 )
             )
             return
-        console.print(f"[bold]Ledger compression:[/bold]")
+        console.print("[bold]Ledger compression:[/bold]")
         console.print(f"  {result.summary}")
         for action in result.actions[:10]:
             console.print(f"    - {action}")
@@ -13604,7 +13603,7 @@ def context_guided_cmd(
                 )
             )
             return
-        console.print(f"[bold]ESDB compression:[/bold]")
+        console.print("[bold]ESDB compression:[/bold]")
         console.print(f"  {result.summary}")
         for action in result.actions[:10]:
             console.print(f"    - {action}")
