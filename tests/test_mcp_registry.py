@@ -104,6 +104,29 @@ class TestMCPREG002PytestIsolation:
         # The main reg_home registry should still be empty.
         assert mcp_mod.read_registry() == []
 
+    def test_read_repairs_transient_and_malformed_entries(self, reg_home: Path) -> None:
+        """Old or tampered registry entries are removed atomically on read."""
+        valid = _make_project_dir(reg_home, "preserved")
+        transient = reg_home / "pytest-of-user" / "pytest123" / "leaked"
+        registry = mcp_mod._registry_file()
+        registry.write_text(
+            json.dumps(
+                {
+                    "projects": [
+                        str(valid),
+                        str(transient),
+                        42,
+                        "",
+                        str(valid),
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        assert mcp_mod.read_registry() == [str(valid.resolve())]
+        assert json.loads(registry.read_text(encoding="utf-8")) == {"projects": [str(valid)]}
+
 
 # ---------------------------------------------------------------------------
 # MCPREG-003 — Project validation
@@ -324,6 +347,27 @@ class TestMCPREG008ConcurrentRegistration:
         projects = mcp_mod.read_registry()
         assert len(projects) == 5
         assert not mcp_mod._registry_lock_file().exists()
+
+    def test_atomic_replace_retries_transient_permission_error(
+        self, reg_home: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A transient Windows file-handle denial does not lose registration."""
+        project = _make_project_dir(reg_home, "replace-retry")
+        real_replace = mcp_mod.os.replace
+        attempts = 0
+
+        def flaky_replace(source: str, destination: Path) -> None:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                raise PermissionError(13, "transient access denial")
+            real_replace(source, destination)
+
+        monkeypatch.setattr(mcp_mod.os, "replace", flaky_replace)
+
+        assert mcp_mod.register_project(str(project)) is True
+        assert mcp_mod.read_registry() == [str(project.resolve())]
+        assert attempts == 2
 
     def test_concurrent_register_unregister(self, reg_home: Path) -> None:
         """Register and unregister in parallel should not crash."""

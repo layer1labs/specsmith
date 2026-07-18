@@ -5,17 +5,18 @@
 # Schema: id, title, description, requirement_id, type,
 #         verification_method, input, expected_behavior, confidence
 # Required fields: id, title, requirement_id
-- id: TEST-460
+- id: TEST-510
   title: Governance Efficiency Benchmark Harness Integrity
   description: The govern_bench harness MUST call live provider endpoints (HuggingFace
     Inference Providers router), surface per-cell errors and missing keys loudly in
     JSON output and exit status, attribute per-model cost and a size-based tier
     spread keyed by the exact model id, expose toggleable model groups via workflow
-    inputs, install demo-project dependencies and verify pytest collection, and probe
-    each selected model for a live provider before a full run.
-  requirement_id: REQ-444
+    inputs, install demo-project dependencies and verify pytest collection, probe
+    each selected model for a live provider before a full run, fail partial real
+    runs, and reject incomplete or mismatched comparison artifacts.
+  requirement_id: REQ-484
   type: integration
-  verification_method: evaluator
+  verification_method: pytest tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py
   input: {}
   expected_behavior: {}
   confidence: 1.0

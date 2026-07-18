@@ -41,7 +41,7 @@ import sys
 import tempfile
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -72,6 +72,26 @@ _REGISTRY_THREAD_LOCK = threading.RLock()
 _REGISTRY_LOCK_TIMEOUT_SECONDS = 5.0
 _REGISTRY_LOCK_POLL_SECONDS = 0.05
 _REGISTRY_STALE_LOCK_SECONDS = 60.0
+_REGISTRY_IO_RETRY_ATTEMPTS = 6
+_REGISTRY_IO_RETRY_SECONDS = 0.025
+
+
+def _retry_registry_permission_error(operation: Callable[[], None]) -> None:
+    """Retry a short registry filesystem operation after transient denial.
+
+    Windows virus scanners and file indexers can briefly retain a handle after
+    it is closed, causing ``os.replace`` or ``Path.unlink`` to raise WinError 5
+    or 32.  A bounded retry keeps registry mutations atomic without hiding a
+    persistent permissions problem.
+    """
+    for attempt in range(_REGISTRY_IO_RETRY_ATTEMPTS):
+        try:
+            operation()
+            return
+        except PermissionError:
+            if attempt + 1 >= _REGISTRY_IO_RETRY_ATTEMPTS:
+                raise
+            time.sleep(_REGISTRY_IO_RETRY_SECONDS)
 
 
 # ---------------------------------------------------------------------------
@@ -166,7 +186,7 @@ def _registry_mutation_lock(timeout: float = _REGISTRY_LOCK_TIMEOUT_SECONDS) -> 
         finally:
             os.close(descriptor)
             with suppress(FileNotFoundError):
-                lock_path.unlink()
+                _retry_registry_permission_error(lock_path.unlink)
 
 
 def _is_temp_path(path: str) -> bool:
@@ -180,6 +200,25 @@ def _is_temp_path(path: str) -> bool:
     the test run itself (e.g. ``pytest-1031/test_func/proj``).
     """
     p = Path(path)
+    parts = p.parts
+    explicit_home = os.environ.get("SPECSMITH_HOME", "").strip()
+    if explicit_home:
+        with suppress(OSError, ValueError):
+            parts = p.resolve().relative_to(Path(explicit_home).resolve()).parts
+
+    for index, component in enumerate(parts):
+        lowered = component.lower()
+        if (
+            lowered in {"pytest", ".pytest_tmp"}
+            or lowered.startswith(("pytest-", "pytest-of-", "pytest_of_"))
+            or (lowered.startswith("pytest") and lowered[6:].isdigit())
+        ):
+            return True
+        if lowered in {"tmp", "temp"} and (not explicit_home or index == len(parts) - 1):
+            return True
+        if lowered in {"__pycache__", ".vite", ".svelte-kit", ".next", ".tox", ".nox"}:
+            return True
+
     name = p.name.lower() if p.name else path.lower()
     path_lower = path.lower()
     for suffix in _TEMP_SUFFIXES:
@@ -249,7 +288,7 @@ def _paths_equivalent(left: str, right: str) -> bool:
         return False
 
 
-def _load_registry_raw() -> tuple[list[str], dict[str, Any] | None]:
+def _load_registry_raw() -> tuple[list[Any], dict[str, Any] | None]:
     """Load the registry file, returning (projects_list, full_data_or_None).
 
     Returns an empty list and None when the file is missing or malformed.
@@ -282,10 +321,27 @@ def _save_registry(projects: list[str]) -> None:
             temporary.write(payload)
             temporary.flush()
             os.fsync(temporary.fileno())
-        os.replace(temporary_name, reg)
+        _retry_registry_permission_error(lambda: os.replace(temporary_name, reg))
     except Exception:
         Path(temporary_name).unlink(missing_ok=True)
         raise
+
+
+def _repair_registry_entries(projects: list[Any]) -> tuple[list[str], bool]:
+    """Return safe registry strings and whether persisted data needs repair."""
+    repaired: list[str] = []
+    seen: set[str] = set()
+    changed = False
+    for project in projects:
+        if not isinstance(project, str) or not project.strip() or _is_temp_path(project):
+            changed = True
+            continue
+        if project in seen:
+            changed = True
+            continue
+        seen.add(project)
+        repaired.append(project)
+    return repaired, changed
 
 
 def read_registry() -> list[str]:
@@ -296,6 +352,14 @@ def read_registry() -> list[str]:
     Paths are canonicalized and deduplicated.
     """
     projects, _ = _load_registry_raw()
+    projects, changed = _repair_registry_entries(projects)
+    if changed:
+        with _registry_mutation_lock():
+            latest, _ = _load_registry_raw()
+            projects, latest_changed = _repair_registry_entries(latest)
+            if latest_changed:
+                _save_registry(projects)
+
     canonical: list[str] = []
     for p in projects:
         if not isinstance(p, str) or not p:
@@ -344,6 +408,8 @@ def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> b
         # Deduplicate using canonical form.
         filtered: list[str] = []
         for p in projects:
+            if not isinstance(p, str) or _is_temp_path(p):
+                continue
             c = _canonicalize_path(p)
             if not any(_paths_equivalent(c, existing) for existing in filtered):
                 filtered.append(c)
@@ -363,7 +429,11 @@ def unregister_project(path: str = ".") -> bool:
     with _registry_mutation_lock():
         projects, _ = _load_registry_raw()
         new_projects = [
-            p for p in projects if not _paths_equivalent(_canonicalize_path(p), canonical)
+            p
+            for p in projects
+            if isinstance(p, str)
+            and not _is_temp_path(p)
+            and not _paths_equivalent(_canonicalize_path(p), canonical)
         ]
         if len(new_projects) == len(projects):
             return False  # Not found.
@@ -396,7 +466,7 @@ def prune_registry(*, dry_run: bool = False, stale_threshold_days: int = 30) -> 
         return _prune_registry_projects(projects, dry_run=False)
 
 
-def _prune_registry_projects(projects: list[str], *, dry_run: bool) -> dict[str, Any]:
+def _prune_registry_projects(projects: list[Any], *, dry_run: bool) -> dict[str, Any]:
     """Analyze registry entries while the caller owns a mutation lock if needed."""
     removed: list[str] = []
     preserved: list[str] = []
@@ -407,14 +477,13 @@ def _prune_registry_projects(projects: list[str], *, dry_run: bool) -> dict[str,
     seen: set[str] = set()
 
     for p in projects:
+        if not isinstance(p, str) or _is_temp_path(p):
+            removed.append(str(p))
+            continue
         c = _canonicalize_path(p)
         if c in seen:
             continue  # Skip duplicates.
         seen.add(c)
-
-        if _is_temp_path(c):
-            removed.append(c)
-            continue
 
         proj_path = Path(c)
         if not proj_path.exists():

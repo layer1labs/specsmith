@@ -29,11 +29,87 @@ from govern_bench.metrics import model_tier, strip_provider_route
 
 
 def load_results(path: str) -> list[dict]:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    rows = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{path}: benchmark result must be a non-empty JSON array")
+    return rows
+
+
+_REQUIRED_RESULT_FIELDS = {
+    "task",
+    "condition",
+    "rep",
+    "model",
+    "tokens",
+    "cost_usd",
+    "passed",
+    "quality",
+    "rework_turns",
+    "skipped",
+    "error",
+}
+
+
+def validate_results(
+    rows: list[dict], source: str = "benchmark results"
+) -> set[tuple[str, str, int]]:
+    """Reject incomplete, duplicate, or uneven benchmark cells.
+
+    Provider failures are operationally unavailable observations, not model
+    failures.  Treating them as zero-pass/zero-cost rows biases every aggregate,
+    so comparison generation is deliberately fail-closed.
+    """
+    cells: set[tuple[str, str, int]] = set()
+    reps_by_slice: dict[tuple[str, str], set[int]] = defaultdict(set)
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise ValueError(f"{source}: row {index} is not an object")
+        missing = sorted(_REQUIRED_RESULT_FIELDS - row.keys())
+        if missing:
+            raise ValueError(f"{source}: row {index} is missing fields {missing}")
+        if row["skipped"] or row["error"]:
+            detail = row["error"] or "cell marked skipped"
+            raise ValueError(
+                f"{source}: incomplete cell {row['task']}/{row['condition']}/rep-{row['rep']}: "
+                f"{detail}"
+            )
+        key = (str(row["task"]), str(row["condition"]), int(row["rep"]))
+        if key in cells:
+            raise ValueError(f"{source}: duplicate cell {key}")
+        cells.add(key)
+        reps_by_slice[key[:2]].add(key[2])
+
+    expected_reps = next(iter(reps_by_slice.values()))
+    uneven = {
+        f"{task}/{condition}": sorted(reps)
+        for (task, condition), reps in reps_by_slice.items()
+        if reps != expected_reps
+    }
+    if uneven:
+        raise ValueError(
+            f"{source}: benchmark slices have uneven repetition sets; "
+            f"expected {sorted(expected_reps)}, found {uneven}"
+        )
+    return cells
+
+
+def validate_comparable(cell_sets: list[tuple[str, set[tuple[str, str, int]]]]) -> None:
+    """Require every model file to contain the same task/condition/rep cells."""
+    if not cell_sets:
+        raise ValueError("no benchmark result sets supplied")
+    reference_name, reference = cell_sets[0]
+    for name, cells in cell_sets[1:]:
+        if cells != reference:
+            missing = sorted(reference - cells)[:10]
+            extra = sorted(cells - reference)[:10]
+            raise ValueError(
+                f"{name}: cell set differs from {reference_name}; missing={missing}, extra={extra}"
+            )
 
 
 def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
     """Return {task -> {condition -> stats}}."""
+    validate_results(rows)
     by_tc: dict[tuple, list] = defaultdict(list)
     for r in rows:
         by_tc[(r["task"], r["condition"])].append(r)
@@ -88,6 +164,7 @@ CONDITION_ORDER = [
     "AGILE_TDD",
     "SPECSMITH_LIGHT",
     "SPECSMITH_FULL",
+    "SPECSMITH_DISPATCH",
 ]
 
 CONDITION_LABELS = {
@@ -103,6 +180,7 @@ CONDITION_LABELS = {
     "AGILE_TDD": "Agile BDD / TDD",
     "SPECSMITH_LIGHT": "specsmith LIGHT (preflight)",
     "SPECSMITH_FULL": "specsmith FULL (governed)",
+    "SPECSMITH_DISPATCH": "specsmith DISPATCH (multi-agent)",
 }
 
 TASK_LABELS = {
@@ -131,6 +209,15 @@ def _derive_model_label(rows: list[dict], path: str) -> str:
     if labels:
         return max(set(labels), key=labels.count)
     return Path(path).stem
+
+
+def split_input_spec(spec: str) -> tuple[str, str | None]:
+    """Split optional ``FILE:LABEL`` without corrupting Windows drive paths."""
+    windows_drive_path = len(spec) >= 3 and spec[1] == ":" and spec[2] in "\\/"
+    if ":" in spec and not windows_drive_path:
+        path, label = spec.rsplit(":", 1)
+        return path, label
+    return spec, None
 
 
 def _headline_task(
@@ -400,19 +487,24 @@ def main() -> int:
     args = parser.parse_args()
 
     models: list[tuple[str, dict]] = []
-    for spec in args.inputs:
-        # Accept bare FILE (label auto-derived from the JSON 'model' field) or
-        # an explicit FILE:LABEL override.
-        if ":" in spec:
-            path, label = spec.rsplit(":", 1)
+    cell_sets: list[tuple[str, set[tuple[str, str, int]]]] = []
+    try:
+        for spec in args.inputs:
+            # Accept bare FILE (label auto-derived from the JSON 'model' field) or
+            # an explicit FILE:LABEL override.
+            path, label = split_input_spec(spec)
             rows = load_results(path)
-        else:
-            path = spec
-            rows = load_results(path)
-            label = _derive_model_label(rows, path)
-        data = rollup(rows)
-        models.append((label, data))
-        print(f"Loaded {len(rows)} runs for {label!r} from {path}")
+            if label is None:
+                label = _derive_model_label(rows, path)
+            cells = validate_results(rows, path)
+            data = rollup(rows)
+            models.append((label, data))
+            cell_sets.append((label, cells))
+            print(f"Loaded {len(rows)} runs for {label!r} from {path}")
+        validate_comparable(cell_sets)
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        print(f"[FATAL] Invalid benchmark comparison input: {exc}", file=sys.stderr)
+        return 1
 
     md = render_comparison(models, tasks=args.tasks)
     out = Path(args.output)

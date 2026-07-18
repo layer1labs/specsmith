@@ -403,10 +403,13 @@ class TestGovernanceProjectList:
         assert "projects" in content
         assert "count" in content
 
-    def test_extra_projects_registered(self, tmp_path: Path) -> None:
+    def test_extra_projects_registered(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """run_server registers extra_project_dirs and they appear in project_list."""
         import io
 
+        monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path / "registry"))
         extra = tmp_path / "extra"
         extra.mkdir()
 
@@ -426,6 +429,7 @@ class TestGovernanceProjectList:
         """run_server must NOT call os.chdir — paths are resolved absolutely."""
         import io
 
+        monkeypatch.setenv("SPECSMITH_HOME", str(tmp_path / "registry"))
         chdir_calls: list[str] = []
         monkeypatch.setattr("os.chdir", lambda p: chdir_calls.append(str(p)))
         old_stdin = sys.stdin
@@ -505,7 +509,7 @@ class TestGovernanceTraceSeal:
 
 
 class TestMcpServeCli:
-    def test_initialize_via_subprocess(self) -> None:
+    def test_initialize_via_subprocess(self, tmp_path: Path) -> None:
         """Send an initialize message to `specsmith mcp serve` via subprocess stdin."""
         init_msg = (
             json.dumps(
@@ -523,7 +527,12 @@ class TestMcpServeCli:
             + "\n"
         )
 
-        env = {**os.environ, "SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"}
+        env = {
+            **os.environ,
+            "SPECSMITH_ALLOW_NON_PIPX": "1",
+            "SPECSMITH_NO_AUTO_UPDATE": "1",
+            "SPECSMITH_HOME": str(tmp_path / "registry"),
+        }
         try:
             proc = subprocess.run(
                 [sys.executable, "-m", "specsmith", "mcp", "serve"],
@@ -541,7 +550,7 @@ class TestMcpServeCli:
         response = json.loads(proc.stdout.strip().splitlines()[0])
         assert response["result"]["serverInfo"]["name"] == "specsmith-governance"
 
-    def test_tools_list_via_subprocess(self) -> None:
+    def test_tools_list_via_subprocess(self, tmp_path: Path) -> None:
         """Send initialize + notifications/initialized + tools/list to the server."""
         messages = [
             json.dumps(
@@ -561,7 +570,12 @@ class TestMcpServeCli:
         ]
         stdin_payload = "\n".join(messages) + "\n"
 
-        env = {**os.environ, "SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"}
+        env = {
+            **os.environ,
+            "SPECSMITH_ALLOW_NON_PIPX": "1",
+            "SPECSMITH_NO_AUTO_UPDATE": "1",
+            "SPECSMITH_HOME": str(tmp_path / "registry"),
+        }
         try:
             proc = subprocess.run(
                 [sys.executable, "-m", "specsmith", "mcp", "serve"],

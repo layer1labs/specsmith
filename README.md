@@ -27,7 +27,9 @@ AI Agents / IDE Clients
 ## When to use / when not to use
 
 - Use when you need governed AI development, auditable decision trails, and requirement-to-test linkage.
-- Use especially for larger projects where governance reduces token costs by 2-6x compared to ungoverned approaches (as demonstrated in our efficiency benchmarks)
+- Use especially for larger projects where explicit governance, traceability,
+  and release evidence matter; benchmark outcomes vary by task and model, so
+  review the published limitations before making efficiency assumptions.
 - Use with local LLMs like LMStudio, vLLM, or llama.cpp for maximum cost control and privacy
 - Avoid when rapid local prototyping is the only goal and formal governance is unnecessary.
 
@@ -39,17 +41,26 @@ AI Agents / IDE Clients
 
 ### Governance efficiency benchmark
 
-We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) comparing specsmith governance against 11 alternatives (ungoverned, BMAD, Cursor rules, Copilot, Aider, Cline, Codex CLI, OpenSpec, Agile BDD/TDD, and context injection) across real coding tasks with gpt-4o-mini and gpt-5.5.
+The latest [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
+compares 13 governance/scaffolding conditions across seven coding and safety
+tasks. GPT-4o-mini completed all 182 cells; the Qwen run was interrupted by
+provider credit and rate-limit errors and is excluded from model comparisons.
 
-| Condition | Pass Rate | Mean Tokens | Cost/run | Cost-of-Pass |
+| Condition | Aggregate pass rate | Mean tokens | Cost/run | Cost-of-pass |
 |---|---|---|---|---|
-| Ungoverned (raw agent) | 0% on T1 | 44.6k | $0.0079 | ∞ |
-| Context injection (CLAUDE.md) | 100% | 43.7k | $0.0084 | $0.0084 |
-| BMAD-style structured prompting | 50% | 139.1k | $0.0262 | $0.0523 |
-| **specsmith LIGHT (preflight)** | **100%** | **21.1k** | **$0.0032** | **$0.0032** |
-| **specsmith FULL (governed)** | **100%** | **17.1k** | **$0.0026** | **$0.0026** |
+| Ungoverned (raw agent) | 64% | 49.5k | $0.00867 | $0.01348 |
+| Cursor rules | 71% | 41.1k | $0.00725 | $0.01015 |
+| Copilot instructions | 71% | 49.1k | $0.00864 | $0.01210 |
+| OpenSpec-style | 71% | 63.1k | $0.01087 | $0.01521 |
+| **specsmith LIGHT** | **57%** | 52.0k | $0.00857 | $0.01500 |
+| **specsmith FULL** | **57%** | 59.9k | $0.00951 | $0.01665 |
+| **specsmith DISPATCH** | **57%** | 63.6k | $0.01070 | $0.01872 |
 
-**Key findings:** specsmith FULL is the only condition to achieve 100% pass rate on the feature-addition task (T1). It uses 2.6× fewer tokens than ungoverned and produces a cost-of-pass 3.2× lower than the next-best alternative. With gpt-5.5, governance reduces cost-of-pass by **6.3×** ($0.028 vs $0.179).
+**Key finding:** governance effects were task-dependent. LIGHT and FULL improved
+T10 from 0% to 100%, while governed conditions underperformed on T1 and T13.
+With only two repetitions per slice, these results are directional rather than a
+general efficacy claim. The benchmark now fails closed on incomplete provider
+data so unavailable cells cannot appear as 0%-pass/$0-cost model results.
 
 ## Current Stats
 
@@ -58,7 +69,8 @@ We ran a [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/
 - **10 governance skills** (including improvement-reporter, agent-flow-controller, model-runtime-optimizer)
 - **Development mode** with improvement tracking and session analysis
 
-See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
+and [comparison validity report](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
 ### Development Mode Features
 
@@ -72,10 +84,12 @@ When enabled in project configuration, development mode provides:
 
 To enable development mode, set `enable_development_mode: true` in your project's `.specsmith/config.yml` file.
 
-See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/) and [model comparison (gpt-4o-mini vs gpt-5.5)](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
+and [comparison validity report](https://specsmith.readthedocs.io/en/stable/model-comparison/).
 
-**v0.22.4** - Version bump to 0.22.4 across all package metadata files for the
-v0.22.4 release.
+**v0.23.0** — Guided context compression, resilient SpecSmith/Zoo-Code config
+repair, replicated ESDB evidence, cross-platform release closure, and
+fail-closed GovernanceBench comparisons with Qwen3.6/GPT-5.6 model coverage.
 
 **v0.22.0** - Epistemic chat handoffs preserve source provenance for Zoo-Code and
 other agents, while a mergeable JSONL session-event log keeps collaboration state

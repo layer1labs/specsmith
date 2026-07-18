@@ -10,6 +10,40 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-07-18
+
+### Added
+- Guided context compression and predictive context-risk controls with governed
+  handoffs, source provenance, and Zoo-Code-compatible context exports.
+- Cross-platform release closure pipeline with candidate bootstrapping,
+  deterministic release seals, publication receipts, main-ancestry validation,
+  and explicit security scanning gates.
+- Resilient configuration resolution and repair for older, partial, or tampered
+  SpecSmith/Zoo-Code settings, including LiteLLM profile and lifecycle coverage.
+- Replicated ESDB events, identity resolution, issue evidence, structured todo
+  rendering, and safer patch/write validation.
+- GovernanceBench result-completeness regression tests and current model entries
+  for Qwen3.6-35B-A3B and GPT-5.6 Luna, Terra, and Sol.
+
+### Changed
+- GovernanceBench now fails any real run containing an errored or skipped cell;
+  cross-model reports reject missing, duplicate, uneven, or mismatched cells.
+- Benchmark, README, and Read the Docs pages now publish the complete July
+  GPT-4o-mini evidence, explicitly quarantine the partial Qwen provider run, and
+  remove unsupported universal efficiency claims.
+- GitHub Actions test execution and shell expectations are aligned across Windows
+  and Linux, including Python-module pytest invocation and release permission
+  compilation.
+
+### Fixed
+- Case-insensitive MCP project-path deduplication, transient Windows file-handle
+  retries, test isolation, and atomic repair of old or tampered registry entries.
+- Provider failures that previously allowed partial GovernanceBench artifacts to
+  appear as successful 0%-pass/$0-cost comparisons.
+- Cross-platform command resolution, safe writes, session startup, governance
+  synchronization, context residency, and Zoo-Code settings lifecycle defects
+  closed in the post-0.22.5 issue-resolution sweep.
+
 ## [0.22.5] - 2026-07-15
 
 ### Fixed
@@ -972,7 +1006,10 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.22.3...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.0...HEAD
+[0.23.0]: https://github.com/layer1labs/specsmith/compare/v0.22.5...v0.23.0
+[0.22.5]: https://github.com/layer1labs/specsmith/compare/v0.22.4...v0.22.5
+[0.22.4]: https://github.com/layer1labs/specsmith/compare/v0.22.3...v0.22.4
 [0.22.3]: https://github.com/layer1labs/specsmith/compare/v0.22.2...v0.22.3
 [0.22.2]: https://github.com/layer1labs/specsmith/compare/v0.22.1...v0.22.2
 [0.22.1]: https://github.com/layer1labs/specsmith/compare/v0.22.0...v0.22.1

@@ -250,3 +250,109 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `870da6e4181e53be...`
+
+## 2026-07-18T11:22 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `973af1b6969ef1fc...`
+
+## 2026-07-18T14:31 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `679c3429dabca986...`
+
+## 2026-07-18T14:56 — wi_archive WI-C1EB33EA2A85: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `f23a6a0bd23ab67e...`
+
+## 2026-07-18T14:56 — wi_archive WI-E4B8AEF90FDB: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `4a9b357b5521d10e...`
+
+## 2026-07-18T14:56 — wi_archive WI-8CE548E8242B: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `a0ec204c7ca972b3...`
+
+## 2026-07-18T14:56 — wi_archive WI-BA05158EA90F: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `0c047a6bfa9e7382...`
+
+## 2026-07-18T14:56 — wi_archive WI-486F7DFE085F: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `dc1dbbdf2ec1a50d...`
+
+## 2026-07-18T14:56 — wi_archive WI-C4BB548E4BD3: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `c72a06ed12d07e79...`
+
+## 2026-07-18T14:56 — wi_archive WI-BA2A6CCC884C: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `922d6eecbb5771b0...`
+
+## 2026-07-18T14:56 — wi_archive WI-3EE3721682AB: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `d9640865af2d515b...`
+
+## 2026-07-18T14:56 — wi_archive WI-675DF4193A2D: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `78be9d0e8bf3bee7...`
+
+## 2026-07-18T14:56 — wi_archive WI-14991818AAFC: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `ef446dfcf75ac909...`
+
+## 2026-07-18T14:57 — wi_archive WI-3A9BFC786ED7: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `c4e592d3d78f79c8...`
+
+## 2026-07-18T14:57 — wi_archive WI-4CACDA8D61BB: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `5401dea1a33700a7...`
+
+## 2026-07-18T14:57 — wi_archive WI-4B14A1000914: Completed read-only benchmark control, status, analysis, or documentation-source lookup; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `9945f65c0aa1f52d...`
+
+## 2026-07-18T15:23 — wi_archive WI-78A143A42321: Documentation synchronization completed; no standalone implementation behavior.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `65abcf15397a0374...`
+
+## 2026-07-18T15:23 — wi_archive WI-40986EEAF11F: Keep a Changelog synchronization completed; no standalone implementation behavior.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `a25c131ab7b9dbaa...`
