@@ -440,20 +440,21 @@ def test_direct_argv_bypasses_shell(tmp_path: Path) -> None:
     assert result.shell_family == "direct"
     assert result.shell_path == sys.executable
 
-    def test_powershell_argv_prefix(self, tmp_path: Path) -> None:
-        """powershell argv prefix includes -NoProfile, -NonInteractive, -Command."""
-        with patch.object(sys, "platform", "win32"):
-            which_side_effect = MagicMock(
-                side_effect=[
-                    None,  # pwsh.exe → not found
-                    None,  # pwsh → not found
-                    # powershell.exe found
-                    "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
-                ]
-            )
-            with patch("shutil.which", side_effect=which_side_effect):
-                result = _resolve_windows_shell()
 
-        assert "-NoProfile" in result.argv_prefix
-        assert "-NonInteractive" in result.argv_prefix
-        assert "-Command" in result.argv_prefix
+def test_powershell_argv_prefix() -> None:
+    """powershell argv prefix includes -NoProfile, -NonInteractive, -Command."""
+    with patch.object(sys, "platform", "win32"):
+        which_side_effect = MagicMock(
+            side_effect=[
+                None,  # pwsh.exe → not found
+                None,  # pwsh → not found
+                # powershell.exe found
+                "C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+            ]
+        )
+        with patch("shutil.which", side_effect=which_side_effect):
+            result = _resolve_windows_shell()
+
+    assert "-NoProfile" in result.argv_prefix
+    assert "-NonInteractive" in result.argv_prefix
+    assert "-Command" in result.argv_prefix

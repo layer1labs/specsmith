@@ -418,10 +418,10 @@ class GuidedCompressor:
 
         # Medium elements summarized if target is aggressive
         if adjusted_tier == "TIER_MEDIUM":
-            if target_fill_pct <= 40:
-                return "summarize"
             if target_fill_pct <= 20:
                 return "discard"
+            if target_fill_pct <= 40:
+                return "summarize"
             return "preserve"
 
         # Low elements summarized or discarded

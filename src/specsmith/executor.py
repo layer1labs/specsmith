@@ -184,6 +184,7 @@ def _detect_shell_version(executable: str) -> str:
                 return match.group(1)
             return first_line[:80]
     except (subprocess.TimeoutExpired, subprocess.SubprocessError, OSError):
+        # Version detection is diagnostic only; shell resolution remains usable.
         pass
     return ""
 

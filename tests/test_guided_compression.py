@@ -1,5 +1,7 @@
+import pytest
+
 from specsmith.esdb import SqliteRecord, SqliteStore
-from specsmith.guided_compression import GuidedCompressor, guided_compress
+from specsmith.guided_compression import ContextElement, GuidedCompressor, guided_compress
 
 
 def test_conversation_and_convenience_compression_are_callable(tmp_path) -> None:
@@ -38,3 +40,20 @@ def test_esdb_compression_is_a_real_class_method_and_reads_active_records(tmp_pa
 
     assert result.original_size > 0
     assert result.elements_preserved + result.elements_summarized == 1
+
+
+@pytest.mark.parametrize(
+    ("target_fill_pct", "expected"),
+    [(20, "discard"), (20.1, "summarize"), (40, "summarize"), (40.1, "preserve")],
+)
+def test_medium_tier_compression_boundaries(
+    tmp_path, target_fill_pct: float, expected: str
+) -> None:
+    element = ContextElement(
+        element_id="medium",
+        element_type="conversation_turn",
+        content="boundary behavior",
+        metadata={"adjusted_tier": "TIER_MEDIUM"},
+    )
+
+    assert GuidedCompressor(tmp_path)._decide_action(element, target_fill_pct) == expected

@@ -389,8 +389,8 @@ class TestMCPREG008ConcurrentRegistration:
                 try:
                     p = reg_home / f"loop-{i}"
                     mcp_mod.unregister_project(str(p))
-                except Exception:
-                    pass
+                except Exception as exc:
+                    errors.append(exc)
 
         t1 = threading.Thread(target=register_loop)
         t2 = threading.Thread(target=unregister_loop)

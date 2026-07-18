@@ -15,7 +15,7 @@ def _import_cli(
             sys.executable,
             "-c",
             "import sys; import specsmith.cli; "
-            "print('specsmith.commands.reporting' in sys.modules)",
+            + "print('specsmith.commands.reporting' in sys.modules)",
         ],
         cwd=cwd,
         env=env,

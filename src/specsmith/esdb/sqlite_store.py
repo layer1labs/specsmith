@@ -77,14 +77,6 @@ CREATE TABLE IF NOT EXISTS audit_events (
     branch           TEXT NOT NULL DEFAULT 'main'
 )
 """
-# Branch-merge schema migration (adds branch column if missing)
-_MIGRATE_BRANCH = """
-ALTER TABLE records ADD COLUMN branch TEXT NOT NULL DEFAULT 'main'
-"""
-_MIGRATE_BRANCH_AUDIT = """
-ALTER TABLE audit_events ADD COLUMN branch TEXT NOT NULL DEFAULT 'main'
-"""
-
 _UPSERT_SQL = """
 INSERT INTO records (id, kind, status, label, confidence, data, source_ids, branch, created_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)

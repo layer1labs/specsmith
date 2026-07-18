@@ -16,11 +16,6 @@ _VERSION_FILES: list[tuple[str, str]] = [
     ("tests/test_cli.py", r'"[0-9]+\.[0-9]+\.[0-9]+[^"]*" in result\.output'),
 ]
 
-# Governance version files — bumped when schema changes independently
-_GOVERNANCE_VERSION_FILES: list[tuple[str, str]] = [
-    ("src/specsmith/__init__.py", r'GOVERNANCE_VERSION = "[^"]*"'),
-]
-
 
 def bump_version(root: Path, new_version: str) -> list[str]:
     """Bump version in all 5 locations. Returns list of updated files."""
