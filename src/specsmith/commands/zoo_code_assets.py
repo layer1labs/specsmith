@@ -448,3 +448,15 @@ def register_zoo_code_asset_commands() -> None:
     for item in (setup, doctor, uninstall):
         if item.name not in zoo_code_group.commands:
             zoo_code_group.add_command(item)
+
+
+def register_zoo_code_litellm_commands() -> None:
+    """Register the LiteLLM profile CLI commands with the Zoo Code group."""
+    from specsmith.commands.zoo_code import zoo_code_group
+    from specsmith.commands.zoo_code_litellm_profile import _litellm_group
+
+    # Keep the lifecycle commands under ``zoo-code litellm``.  Registering the
+    # child commands directly collided with the existing generic ``setup`` and
+    # ``doctor`` commands, leaving the WIP implementation unreachable.
+    if _litellm_group.name not in zoo_code_group.commands:
+        zoo_code_group.add_command(_litellm_group)

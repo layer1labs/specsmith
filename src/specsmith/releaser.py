@@ -7,13 +7,18 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# The 5 files that must be updated for every release
+# The 5 files that must be updated for every release (package version)
 _VERSION_FILES: list[tuple[str, str]] = [
     ("pyproject.toml", r'version = "[^"]*"'),
     ("src/specsmith/__init__.py", r'__version__ = "[^"]*"'),  # fallback value
     ("src/specsmith/config.py", r'default="[^"]*", description="Spec version'),
     ("tests/test_smoke.py", r'__version__ == "[^"]*"'),
     ("tests/test_cli.py", r'"[0-9]+\.[0-9]+\.[0-9]+[^"]*" in result\.output'),
+]
+
+# Governance version files — bumped when schema changes independently
+_GOVERNANCE_VERSION_FILES: list[tuple[str, str]] = [
+    ("src/specsmith/__init__.py", r'GOVERNANCE_VERSION = "[^"]*"'),
 ]
 
 
@@ -67,6 +72,24 @@ def bump_version(root: Path, new_version: str) -> list[str]:
         r'--spec-version", "[0-9]+\.[0-9]+\.[0-9]+[a-z0-9]*"',
         f'--spec-version", "{new_version}"',
     )
+
+    return updated
+
+
+def bump_governance_version(root: Path, new_version: str) -> list[str]:
+    """Bump GOVERNANCE_VERSION in __init__.py only.
+
+    Returns list of updated files.
+    Use this when the governance schema changes independently of the package version.
+    """
+    updated: list[str] = []
+
+    _replace_in_file(
+        root / "src/specsmith/__init__.py",
+        r'GOVERNANCE_VERSION = "[^"]*"',
+        f'GOVERNANCE_VERSION = "{new_version}"',
+    )
+    updated.append("src/specsmith/__init__.py")
 
     return updated
 

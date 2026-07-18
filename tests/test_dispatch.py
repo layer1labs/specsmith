@@ -13,9 +13,15 @@ TEST-328: DAG state transitions persisted as JSONL
 TEST-329: Per-node governance preflight (unit-level mock)
 TEST-330: DAG run resumable from checkpoint
 TEST-331: Dispatch CLI group subcommands
+
+Traceability:
+    __trace_id__ = "REQ-321..REQ-334"  — all tests verify dispatcher requirements.
 """
 
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify REQ-321..REQ-334
+__trace_id__ = "REQ-321..REQ-334"
 
 import json
 from pathlib import Path

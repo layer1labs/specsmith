@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -32,8 +33,16 @@ class SessionReport:
         return sum(1 for c in self.checks if c.status == "warn")
 
 
-def run_session_end(root: Path) -> SessionReport:
-    """Run session-end checklist."""
+def run_session_end(root: Path, ctx: Any = None) -> SessionReport:
+    """Run session-end checklist and execute cleanup hooks.
+
+    This function runs the standard checklist AND performs context lifecycle
+    cleanup: persisting state, clearing locks, and cleaning temp artifacts.
+
+    Args:
+        root: Project root path.
+        ctx: Optional SessionContext to persist. If None, state is loaded from disk.
+    """
     from specsmith.vcs_commands import (
         get_current_branch,
         has_uncommitted_changes,
@@ -41,6 +50,37 @@ def run_session_end(root: Path) -> SessionReport:
     )
 
     report = SessionReport()
+
+    # ── Context lifecycle cleanup hook ────────────────────────────────────
+    try:
+        from specsmith.session_init import shutdown_session
+
+        cleanup_result = shutdown_session(root, ctx)
+        if cleanup_result.get("persisted"):
+            report.checks.append(
+                SessionCheck(
+                    name="persist",
+                    status="ok",
+                    message="Session state persisted",
+                ),
+            )
+        if cleanup_result.get("locks_cleared", 0) > 0:
+            report.checks.append(
+                SessionCheck(
+                    name="locks",
+                    status="warn",
+                    message=f"Cleared {cleanup_result['locks_cleared']} stale lock file(s)",
+                ),
+            )
+        if cleanup_result.get("errors"):
+            for err in cleanup_result["errors"]:
+                report.checks.append(
+                    SessionCheck(name="cleanup-error", status="warn", message=err),
+                )
+    except Exception:  # noqa: BLE001
+        report.checks.append(
+            SessionCheck(name="persist", status="warn", message="Could not persist session state"),
+        )
 
     # Uncommitted changes
     if has_uncommitted_changes(root):

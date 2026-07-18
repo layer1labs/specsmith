@@ -89,6 +89,7 @@ app/target/
 
 tests/fixtures/*.bak
 tests/fixtures/*.tmp
+.test-tmp/
 
 # specsmith ESDB policy (auto-normalized)
 # Tracked (governance source-of-truth):

@@ -9,9 +9,15 @@ All tests run deterministically in CI without requiring a running LLM.
 Tests marked ``evaluator`` in TESTS.md (TEST-206..220) are verified here as
 concrete pytest assertions, effectively upgrading their verification_method
 to ``unit``.
+
+Traceability:
+    __trace_id__ = "REQ-206..REQ-220, REQ-244..REQ-247"  — compliance and context window tests.
 """
 
 from __future__ import annotations
+
+# Traceability marker: all tests in this module verify compliance requirements
+__trace_id__ = "REQ-206..REQ-220, REQ-244..REQ-247"
 
 import json
 from pathlib import Path

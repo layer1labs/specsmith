@@ -45,6 +45,7 @@ nav:
     - Project Types: project-types.md
   - Agentic Runtime:
     - CLI Commands: commands.md
+    - Invocation Strategy: invocation-strategy.md
     - Epistemic Chat Handoffs: epistemic-handoffs.md
     - Multi-Agent Dispatch: dispatch.md
     - Agentic Client:

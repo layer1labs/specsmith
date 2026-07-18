@@ -288,12 +288,12 @@ def test_context_seed_excludes_low_confidence_records(tmp_project: Path) -> None
 
 
 # ---------------------------------------------------------------------------
-# REQ-400: context eviction write-back
+# REQ-471: non-destructive context residency write-back
 # ---------------------------------------------------------------------------
 
 
-def test_eviction_writes_back_tombstone(tmp_project: Path) -> None:
-    """_evict_low_confidence_records() actually tombstones records in SqliteStore."""
+def test_eviction_writes_residency_without_tombstone(tmp_project: Path) -> None:
+    """Offloading marks residency cold while durable records remain active."""
     from specsmith.context_orchestrator import ContextOrchestrator
     from specsmith.esdb import SqliteRecord, SqliteStore
 
@@ -325,12 +325,16 @@ def test_eviction_writes_back_tombstone(tmp_project: Path) -> None:
         low_rec = store.get("LOW-001")
         high_rec = store.get("HIGH-001")
 
-    assert low_rec is not None and low_rec.status == "tombstone"
+    assert low_rec is not None and low_rec.status == "active"
     assert high_rec is not None and high_rec.status == "active"
+    residency = json.loads(
+        (tmp_project / ".specsmith/context-residency.json").read_text(encoding="utf-8")
+    )
+    assert residency["records"] == {"LOW-001": "cold"}
 
 
 def test_eviction_exempts_governance_kinds(tmp_project: Path) -> None:
-    """_evict_low_confidence_records() never tombstones requirement or testcase records."""
+    """Governance records remain pinned and active."""
     from specsmith.context_orchestrator import ContextOrchestrator
     from specsmith.esdb import SqliteRecord, SqliteStore
 

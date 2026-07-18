@@ -10,6 +10,9 @@ description: |
 
 type: python
 version: 0.22.5
+# Governance schema/tool version that last generated or migrated this project.
+# This is intentionally distinct from the package/project release version above.
+spec_version: 0.22.5
 license: MIT
 author: Layer1 Labs
 url: https://github.com/layer1labs/specsmith

@@ -35,16 +35,33 @@ from typing import Any
 
 _DB_FILENAME = "esdb.sqlite3"
 
+
+# ---------------------------------------------------------------------------
+# Merge conflict exception (ISSUE-336)
+# ---------------------------------------------------------------------------
+
+
+class MergeConflictError(Exception):
+    """Raised when a merge operation detects conflicting changes on branches."""
+
+    def __init__(self, message: str, conflicts: list[dict[str, Any]] | None = None):
+        super().__init__(message)
+        self.message = message
+        self.conflicts = conflicts or []
+
+
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS records (
-    id          TEXT PRIMARY KEY,
+    id          TEXT NOT NULL,
     kind        TEXT NOT NULL DEFAULT 'fact',
     status      TEXT NOT NULL DEFAULT 'active',
     label       TEXT NOT NULL DEFAULT '',
     confidence  REAL NOT NULL DEFAULT 0.7,
     data        TEXT NOT NULL DEFAULT '{}',
     source_ids  TEXT NOT NULL DEFAULT '[]',
-    created_at  REAL NOT NULL
+    branch      TEXT NOT NULL DEFAULT 'main',
+    created_at  REAL NOT NULL,
+    PRIMARY KEY (id, branch)
 )
 """
 _CREATE_AUDIT_TABLE = """
@@ -56,20 +73,50 @@ CREATE TABLE IF NOT EXISTS audit_events (
     actor            TEXT NOT NULL,
     command_source   TEXT NOT NULL,
     work_item_id     TEXT NOT NULL,
-    payload_hash     TEXT NOT NULL
+    payload_hash     TEXT NOT NULL,
+    branch           TEXT NOT NULL DEFAULT 'main'
 )
+"""
+# Branch-merge schema migration (adds branch column if missing)
+_MIGRATE_BRANCH = """
+ALTER TABLE records ADD COLUMN branch TEXT NOT NULL DEFAULT 'main'
+"""
+_MIGRATE_BRANCH_AUDIT = """
+ALTER TABLE audit_events ADD COLUMN branch TEXT NOT NULL DEFAULT 'main'
 """
 
 _UPSERT_SQL = """
-INSERT INTO records (id, kind, status, label, confidence, data, source_ids, created_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(id) DO UPDATE SET
+INSERT INTO records (id, kind, status, label, confidence, data, source_ids, branch, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT(id, branch) DO UPDATE SET
     kind       = excluded.kind,
     status     = excluded.status,
     label      = excluded.label,
     confidence = excluded.confidence,
     data       = excluded.data,
-    source_ids = excluded.source_ids
+    source_ids = excluded.source_ids,
+    branch     = excluded.branch
+"""
+
+# Merge conflict detection: find records modified on both branches since their common ancestor
+_MERGE_CONFLICT_CHECK = """
+SELECT r1.id, r1.branch as branch1, r2.branch as branch2,
+       r1.data as data1, r2.data as data2
+FROM records r1
+JOIN records r2 ON r1.id = r2.id
+WHERE r1.branch = ? AND r2.branch = ?
+  AND r1.status != 'tombstone' AND r2.status != 'tombstone'
+  AND r1.data != r2.data
+"""
+
+# Get all distinct branches
+_GET_BRANCHES = """
+SELECT DISTINCT branch FROM records WHERE status != 'tombstone' ORDER BY branch
+"""
+
+# Get record versions across branches for conflict detection
+_GET_RECORD_BRANCHES = """
+SELECT id, branch, data, status FROM records WHERE id = ? ORDER BY branch
 """
 
 
@@ -81,7 +128,7 @@ ON CONFLICT(id) DO UPDATE SET
 class SqliteRecord:
     """A single record in SqliteStore — mirrors EsdbRecord / ChronoRecord."""
 
-    __slots__ = ("confidence", "data", "id", "kind", "label", "source_ids", "status")
+    __slots__ = ("branch", "confidence", "data", "id", "kind", "label", "source_ids", "status")
 
     def __init__(
         self,
@@ -92,6 +139,7 @@ class SqliteRecord:
         confidence: float = 0.7,
         data: dict[str, Any] | None = None,
         source_ids: list[str] | None = None,
+        branch: str = "main",
     ) -> None:
         self.id = id
         self.kind = kind
@@ -100,6 +148,7 @@ class SqliteRecord:
         self.confidence = confidence
         self.data = data or {}
         self.source_ids = source_ids or []
+        self.branch = branch
 
     # Alias used by callers that expect ChronoRecord-style attribute
     @property
@@ -118,6 +167,7 @@ class SqliteRecord:
             "confidence": self.confidence,
             "data": self.data,
             "source_ids": self.source_ids,
+            "branch": self.branch,
         }
 
     def __repr__(self) -> str:
@@ -201,7 +251,7 @@ class SqliteStore:
     # ------------------------------------------------------------------
 
     def upsert(self, record: SqliteRecord) -> None:
-        """Insert or update a record."""
+        """Insert or update a record on the specified branch."""
         conn = self._require_open()
         conn.execute(
             _UPSERT_SQL,
@@ -213,17 +263,18 @@ class SqliteStore:
                 record.confidence,
                 json.dumps(record.data, ensure_ascii=False),
                 json.dumps(record.source_ids, ensure_ascii=False),
+                record.branch or "main",
                 time.time(),
             ),
         )
         conn.commit()
 
-    def delete(self, record_id: str) -> None:
-        """Tombstone a record (sets status='tombstone', does not physically delete)."""
+    def delete(self, record_id: str, branch: str = "main") -> None:
+        """Tombstone a record on the given branch (sets status='tombstone')."""
         conn = self._require_open()
         conn.execute(
-            "UPDATE records SET status='tombstone' WHERE id=?",
-            (record_id,),
+            "UPDATE records SET status='tombstone' WHERE id=? AND branch=?",
+            (record_id, branch),
         )
         conn.commit()
 
@@ -236,6 +287,7 @@ class SqliteStore:
         *,
         kind: str | None = None,
         status: str | None = "active",
+        branch: str | None = None,
         rag_filter: bool = False,
         min_confidence: float = 0.0,
     ) -> list[SqliteRecord]:
@@ -244,6 +296,7 @@ class SqliteStore:
         Args:
             kind:           Filter by record kind (None = all kinds).
             status:         Filter by status; pass ``""`` or ``None`` for all statuses.
+            branch:         Filter by branch name (None = all branches).
             rag_filter:     If True apply ``confidence >= 0.6`` threshold (H18).
             min_confidence: Additional minimum confidence threshold.
 
@@ -258,6 +311,9 @@ class SqliteStore:
         if status:
             clauses.append("status = ?")
             params.append(status)
+        if branch:
+            clauses.append("branch = ?")
+            params.append(branch)
         threshold = max(0.6 if rag_filter else 0.0, min_confidence)
         if threshold > 0.0:
             clauses.append("confidence >= ?")
@@ -278,14 +334,27 @@ class SqliteStore:
                 confidence=row["confidence"],
                 data=json.loads(row["data"]),
                 source_ids=json.loads(row["source_ids"]),
+                branch=dict(row).get("branch", "main"),
             )
             for row in rows
         ]
 
-    def get(self, record_id: str) -> SqliteRecord | None:
-        """Return a single record by ID, or None."""
+    def get(self, record_id: str, branch: str | None = None) -> SqliteRecord | None:
+        """Return a single record by ID, optionally filtered by branch.
+
+        If *branch* is None, returns the first match regardless of status
+        (preserves legacy behaviour for tombstone checks).
+        """
         conn = self._require_open()
-        row = conn.execute("SELECT * FROM records WHERE id=?", (record_id,)).fetchone()
+        if branch:
+            row = conn.execute(
+                "SELECT * FROM records WHERE id=? AND branch=?", (record_id, branch)
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT * FROM records WHERE id=? LIMIT 1",
+                (record_id,),
+            ).fetchone()
         if row is None:
             return None
         return SqliteRecord(
@@ -296,6 +365,7 @@ class SqliteStore:
             confidence=row["confidence"],
             data=json.loads(row["data"]),
             source_ids=json.loads(row["source_ids"]),
+            branch=dict(row).get("branch", "main"),
         )
 
     # ------------------------------------------------------------------
@@ -341,14 +411,24 @@ class SqliteStore:
         command_source: str = "specsmith",
         work_item_id: str = "",
         actor: str = "",
+        branch: str = "main",
     ) -> str:
-        """Append a tamper-evident audit event and return its event_id."""
+        """Append a tamper-evident audit event and return its event_id.
+
+        Args:
+            payload:        Event payload dict.
+            command_source: Source of the command.
+            work_item_id:   Associated work item ID.
+            actor:          Actor name.
+            branch:         Branch name for branch-merge-safe audit logging (ISSUE-336).
+        """
         conn = self._require_open()
         ts = datetime.now(timezone.utc).isoformat()
         payload_json = json.dumps(payload, sort_keys=True, ensure_ascii=False)
         payload_hash = hashlib.sha256(payload_json.encode("utf-8")).hexdigest()
         prev_row = conn.execute(
-            "SELECT current_hash FROM audit_events ORDER BY rowid DESC LIMIT 1",
+            "SELECT current_hash FROM audit_events WHERE branch = ? ORDER BY rowid DESC LIMIT 1",
+            (branch,),
         ).fetchone()
         prev_hash = str(prev_row["current_hash"]) if prev_row else "0" * 64
         event_id = f"EVT-{uuid.uuid4().hex[:16].upper()}"
@@ -362,9 +442,9 @@ class SqliteStore:
             """
             INSERT INTO audit_events (
                 event_id, timestamp, prev_hash, current_hash,
-                actor, command_source, work_item_id, payload_hash
+                actor, command_source, work_item_id, payload_hash, branch
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event_id,
@@ -375,6 +455,7 @@ class SqliteStore:
                 command_source,
                 work_item_id,
                 payload_hash,
+                branch,
             ),
         )
         conn.commit()
@@ -412,6 +493,254 @@ class SqliteStore:
         """Run VACUUM to reclaim space (no-op equivalent to ChronoStore.compact)."""
         conn = self._require_open()
         conn.execute("VACUUM")
+
+    # ------------------------------------------------------------------
+    # Branch-merge-safe operations (ISSUE-336)
+    # ------------------------------------------------------------------
+
+    def get_branches(self) -> list[str]:
+        """Return all distinct branch names that have active records."""
+        conn = self._require_open()
+        rows = conn.execute(_GET_BRANCHES).fetchall()
+        return [row["branch"] for row in rows]
+
+    def get_record_branches(self, record_id: str) -> list[dict[str, Any]]:
+        """Return all branch versions of a record for conflict detection.
+
+        Returns a list of dicts with keys: id, branch, data, status.
+        """
+        conn = self._require_open()
+        rows = conn.execute(_GET_RECORD_BRANCHES, (record_id,)).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "branch": row["branch"],
+                "data": json.loads(row["data"]),
+                "status": row["status"],
+            }
+            for row in rows
+        ]
+
+    def detect_merge_conflicts(
+        self, source_branch: str, target_branch: str = "main"
+    ) -> list[dict[str, Any]]:
+        """Detect merge conflicts between *source_branch* and *target_branch*.
+
+        A conflict exists when the same record ID has different non-tombstone data
+        on both branches.
+
+        Returns a list of conflict dicts:
+            {
+                "id": str,
+                "source_branch": str,
+                "target_branch": str,
+                "source_data": dict,
+                "target_data": dict,
+            }
+        """
+        conn = self._require_open()
+        rows = conn.execute(_MERGE_CONFLICT_CHECK, (source_branch, target_branch)).fetchall()
+        conflicts: list[dict[str, Any]] = []
+        for row in rows:
+            conflicts.append(
+                {
+                    "id": row["id"],
+                    "source_branch": row["branch1"],
+                    "target_branch": row["branch2"],
+                    "source_data": json.loads(row["data1"]),
+                    "target_data": json.loads(row["data2"]),
+                }
+            )
+        return conflicts
+
+    def merge_branch(
+        self,
+        source_branch: str,
+        target_branch: str = "main",
+        strategy: str = "source_wins",
+    ) -> dict[str, Any]:
+        """Merge *source_branch* into *target_branch* with conflict detection.
+
+        This is a merge-safe operation that:
+        1. Detects conflicts between the branches
+        2. Applies the chosen resolution strategy
+        3. Records the merge in the audit log
+
+        Args:
+            source_branch:  Branch to merge from.
+            target_branch:  Branch to merge into (default: "main").
+            strategy:       Conflict resolution strategy:
+                            - "source_wins": source branch data takes precedence
+                            - "target_wins": target branch data takes precedence
+                            - "fail_on_conflict": raise MergeConflictError if any conflicts
+
+        Returns:
+            A dict with merge results:
+                {
+                    "merged": int,           # records merged successfully
+                    "conflicts": int,        # records with conflicts
+                    "conflict_ids": list[str],
+                    "strategy": str,
+                    "source_branch": str,
+                    "target_branch": str,
+                }
+
+        Raises:
+            MergeConflictError: If strategy is "fail_on_conflict" and conflicts exist.
+        """
+        conflicts = self.detect_merge_conflicts(source_branch, target_branch)
+        conflict_ids = [c["id"] for c in conflicts]
+
+        result = {
+            "merged": 0,
+            "conflicts": len(conflicts),
+            "conflict_ids": conflict_ids,
+            "strategy": strategy,
+            "source_branch": source_branch,
+            "target_branch": target_branch,
+        }
+
+        if conflicts and strategy == "fail_on_conflict":
+            raise MergeConflictError(
+                f"Merge conflict detected: {len(conflicts)} record(s) differ "
+                f"between '{source_branch}' and '{target_branch}': {conflict_ids}"
+            )
+
+        conn = self._require_open()
+        # Non-conflicting records: copy from source to target (upsert by (id, branch))
+        conn.execute(
+            """
+            INSERT INTO records (
+                id, kind, status, label, confidence, data, source_ids, branch, created_at
+            )
+            SELECT
+                r.id, r.kind, r.status, r.label, r.confidence,
+                r.data, r.source_ids, ?, r.created_at
+            FROM records r
+            WHERE r.branch = ?
+              AND r.status != 'tombstone'
+              AND r.id NOT IN (
+                  SELECT r2.id FROM records r2 WHERE r2.branch = ? AND r2.status != 'tombstone'
+              )
+            ON CONFLICT(id, branch) DO UPDATE SET
+                kind       = excluded.kind,
+                status     = excluded.status,
+                label      = excluded.label,
+                confidence = excluded.confidence,
+                data       = excluded.data,
+                source_ids = excluded.source_ids,
+                branch     = excluded.branch
+            """,
+            (target_branch, source_branch, target_branch),
+        )
+        result["merged"] = conn.total_changes
+
+        # Conflict resolution: update target with source or target data
+        if conflicts and strategy == "source_wins":
+            for conflict in conflicts:
+                conn.execute(
+                    """
+                    UPDATE records SET
+                        data = ?,
+                        status = (
+                            CASE WHEN (
+                                SELECT status FROM records
+                                WHERE id = ? AND branch = ?
+                            ) != 'tombstone' THEN 'active' ELSE 'tombstone' END
+                        )
+                    WHERE id = ? AND branch = ?
+                    """,
+                    (
+                        json.dumps(conflict["source_data"], ensure_ascii=False),
+                        conflict["id"],
+                        source_branch,
+                        conflict["id"],
+                        target_branch,
+                    ),
+                )
+            result["merged"] += len(conflicts)
+
+        conn.commit()
+
+        # Audit the merge
+        self.append_audit_event(
+            payload={
+                "action": "branch_merge",
+                "source_branch": source_branch,
+                "target_branch": target_branch,
+                "strategy": strategy,
+                "merged_count": result["merged"],
+                "conflict_count": result["conflicts"],
+            },
+            command_source="esdb_merge",
+            branch=target_branch,
+        )
+
+        return result
+
+    def create_branch(self, branch_name: str, from_branch: str = "main") -> bool:
+        """Create a new branch by copying active records from *from_branch*.
+
+        Returns True if records were copied, False if the source branch has no records.
+        """
+        conn = self._require_open()
+        # Check source branch has records
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM records WHERE branch = ? AND status != 'tombstone'",
+            (from_branch,),
+        ).fetchone()
+        count = int(row["cnt"]) if row else 0
+        if count == 0:
+            return False
+
+        conn.execute(
+            """
+            INSERT INTO records (
+                id, kind, status, label, confidence, data, source_ids, branch, created_at
+            )
+            SELECT id, kind, status, label, confidence, data, source_ids, ?, created_at
+            FROM records
+            WHERE branch = ? AND status != 'tombstone'
+            ON CONFLICT(id, branch) DO NOTHING
+            """,
+            (branch_name, from_branch),
+        )
+        conn.commit()
+
+        # Audit the branch creation
+        self.append_audit_event(
+            payload={
+                "action": "branch_create",
+                "branch_name": branch_name,
+                "from_branch": from_branch,
+                "record_count": count,
+            },
+            command_source="esdb_branch",
+            branch=branch_name,
+        )
+        return True
+
+    def delete_branch(self, branch_name: str) -> int:
+        """Tombstone all records on *branch_name*. Returns the number of records tombstoned."""
+        conn = self._require_open()
+        row = conn.execute(
+            "UPDATE records SET status = 'tombstone' WHERE branch = ? AND status != 'tombstone'",
+            (branch_name,),
+        )
+        count = row.rowcount
+        conn.commit()
+
+        # Audit the branch deletion
+        self.append_audit_event(
+            payload={
+                "action": "branch_delete",
+                "branch_name": branch_name,
+                "tombstoned_count": count,
+            },
+            command_source="esdb_branch",
+            branch=branch_name,
+        )
+        return count
 
     # ------------------------------------------------------------------
     # Migration helper

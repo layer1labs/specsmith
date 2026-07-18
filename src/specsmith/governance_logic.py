@@ -13,10 +13,12 @@ serialisation.  They never write to stdout/stderr; callers handle I/O.
 
 from __future__ import annotations
 
+import hashlib
 import os
-import uuid
 from pathlib import Path
 from typing import Any, cast
+
+from specsmith import __version__
 
 
 def _is_environment_only_specsmith_upgrade(utterance: str) -> bool:
@@ -79,7 +81,7 @@ def run_preflight(
     import json as _json
     import re as _re
 
-    from specsmith import __version__
+    from specsmith import GOVERNANCE_VERSION
     from specsmith.agent.broker import Intent, classify_intent, infer_scope
 
     # Inline validation + sanitisation so CodeQL's taint analysis can follow
@@ -120,7 +122,7 @@ def run_preflight(
                 "governance_gated": True,
                 "provider": os.environ.get("SPECSMITH_PROVIDER", "local/heuristic"),
                 "model": os.environ.get("SPECSMITH_MODEL", "deterministic-broker"),
-                "spec_version": __version__,
+                "spec_version": GOVERNANCE_VERSION,
             },
         }
 
@@ -307,7 +309,13 @@ def run_preflight(
     _alloc_wi = decision_str == "accepted" or (
         decision_str == "needs_clarification" and intent in (Intent.RELEASE, Intent.DESTRUCTIVE)
     )
-    work_item_id = f"WI-{uuid.uuid4().hex[:8].upper()}" if (_alloc_wi and not predict_only) else ""
+    if _alloc_wi and not predict_only:
+        # Deterministic work-item ID: hash(utterance + intent + requirement_ids)
+        # so the same preflight call always produces the same WI idempotently.
+        _seed = f"{utterance}|{intent.value}|{','.join(sorted(requirement_ids))}"
+        work_item_id = f"WI-{hashlib.sha256(_seed.encode('utf-8')).hexdigest()[:12].upper()}"
+    else:
+        work_item_id = ""
 
     payload: dict[str, Any] = {
         "decision": decision_str,
@@ -484,14 +492,17 @@ def _build_openai_response(
     role: str = "assistant",
     finish_reason: str = "stop",
 ) -> dict[str, Any]:
-    """Build a minimal OpenAI-compatible /v1/chat/completions response."""
-    import time
-    import uuid
+    """Build a minimal OpenAI-compatible /v1/chat/completions response.
 
+    Uses deterministic ID and timestamp so repeated calls with the same
+    arguments produce identical output (issue #321).
+    """
+    _seed = f"{model}|{content[:200]}|{role}|{finish_reason}"
+    _hash = hashlib.sha256(_seed.encode("utf-8")).hexdigest()[:20]
     return {
-        "id": f"chatcmpl-{uuid.uuid4().hex[:20]}",
+        "id": f"chatcmpl-{_hash}",
         "object": "chat.completion",
-        "created": int(time.time()),
+        "created": 0,  # deterministic placeholder; real timestamp not needed for governance proxy
         "model": model,
         "choices": [
             {
@@ -871,7 +882,7 @@ class GovernanceHTTPServer:
                         qs = _up.urlparse(self.path).query
                         params = _up.parse_qs(qs)
                         role = params.get("role", ["coder"])[0]
-                        models = list(BASELINE_SCORES.keys())
+                        models = sorted(BASELINE_SCORES.keys())  # deterministic order (#321)
                         ranked = rank_models_for_role(role, models)
                         self._json_ok(
                             {"role": role, "scores": [{"model": m, "score": s} for m, s in ranked]},
@@ -1126,17 +1137,18 @@ class GovernanceHTTPServer:
 
 
 # Role keywords used by _infer_role_from_messages to detect intent from system prompts.
+# Keys are sorted alphabetically so iteration order is deterministic (#321).
 _ROLE_KEYWORDS: dict[str, list[str]] = {
-    "coder": ["write code", "implement", "code", "function", "diff"],
     "architect": ["design", "architecture", "system", "trade-off"],
-    "reviewer": ["review", "feedback", "quality", "pr"],
-    "editor": ["edit", "format", "refactor", "fix"],
-    "researcher": ["research", "documentation", "lookup", "search"],
-    "tester": ["test", "coverage", "assertion", "spec"],
     "classifier": ["classify", "categorize", "intent"],
-    "strategist": ["strategy", "business", "competitive", "market"],
+    "coder": ["write code", "implement", "code", "function", "diff"],
     "drafter": ["draft", "specification", "proposal", "report"],
+    "editor": ["edit", "format", "refactor", "fix"],
     "ip-analyst": ["patent", "claims", "prior art", "ip", "freedom"],
+    "researcher": ["research", "documentation", "lookup", "search"],
+    "strategist": ["strategy", "business", "competitive", "market"],
+    "tester": ["test", "coverage", "assertion", "spec"],
+    "reviewer": ["review", "feedback", "quality", "pr"],
 }
 
 
@@ -1151,7 +1163,7 @@ def _infer_role_from_messages(messages: list[dict[str, Any]]) -> str:
         return "coder"
     best_role = "coder"
     best_count = 0
-    for role, keywords in _ROLE_KEYWORDS.items():
+    for role, keywords in sorted(_ROLE_KEYWORDS.items()):  # deterministic order (#321)
         count = sum(1 for kw in keywords if kw in system_text)
         if count > best_count:
             best_count = count

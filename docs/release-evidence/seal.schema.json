@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","title":"Specsmith pre-release governance seal","type":"object","required":["schema","closure","seal_sha256"],"properties":{"schema":{"const":"specsmith-release-seal-v1"},"closure":{"type":"object"},"seal_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"}}}

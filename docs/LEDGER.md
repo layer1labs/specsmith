@@ -140,3 +140,105 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `6f5f68c50ef18586...`
+
+## 2026-07-16T11:42 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `2105949b8244bd82...`
+
+## 2026-07-17T15:21 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `de5ef8470c180ba0...`
+
+## 2026-07-17T15:28 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `edca0a30163f22d1...`
+
+## 2026-07-17T16:02 — wi_archive WI-2CE29E168C03: Superseded by implementation work items WI-E71B050EF8E3, WI-FC3A0AA031DC, and WI-3740C75389BE after verification and planning completed.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `b3b2182320087f97...`
+
+## 2026-07-17T16:53 — wi_archive WI-FC229F1FDCDB: Read-only diagnostic preflight superseded by governed implementation WI-1DEB5D9DFEBC.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `8e545232bce3a953...`
+
+## 2026-07-17T16:54 — wi_archive WI-90E0FD6A3C87: Read-only diagnostic preflight superseded by governed implementation WI-1DEB5D9DFEBC.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `affb800fa7a54546...`
+
+## 2026-07-17T17:24 — wi_archive WI-8D9CD462BD42: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `3a14b8f8e99f90dc...`
+
+## 2026-07-17T18:33 — wi_archive WI-A751CE2C15F2: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `e79500e5a7c0691d...`
+
+## 2026-07-17T18:33 — wi_archive WI-C5DCFEC27C86: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `7c6d0613bfac817d...`
+
+## 2026-07-17T18:33 — wi_archive WI-DDA4E0719024: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `4a9a630a192559a8...`
+
+## 2026-07-17T18:33 — wi_archive WI-F743E5AA20BC: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `e9752feb30860904...`
+
+## 2026-07-17T18:33 — wi_archive WI-B4A68F34D7C9: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `95ea5c05608c6179...`
+
+## 2026-07-17T18:33 — wi_archive WI-3BCF72F75C7C: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `dcb99827d917750d...`
+
+## 2026-07-17T18:33 — wi_archive WI-44B680B66DBA: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `15237d93013cb915...`
+
+## 2026-07-17T18:33 — wi_archive WI-93A18BA03A7A: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `eff328fd5702e48c...`
+
+## 2026-07-17T18:33 — wi_archive WI-2BA14DC4B58E: deferred
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `734ecceb0b938786...`

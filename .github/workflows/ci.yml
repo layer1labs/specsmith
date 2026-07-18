@@ -67,7 +67,39 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: pip install -e ".[dev]"
-      - run: pytest --cov=specsmith --cov-report=term-missing
+      - name: Run tests with machine-readable evidence
+        run: >-
+          pytest --cov=specsmith --cov-report=term-missing
+          --junitxml=test-results/pytest-${{ matrix.os }}-py${{ matrix.python-version }}.xml
+      - name: Archive test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-evidence-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: test-results/*.xml
+          if-no-files-found: error
+
+  wheel-smoke:
+    # The full test matrix above covers Python 3.11 and 3.12 on all three
+    # operating systems. This job additionally validates the exact wheel a
+    # user installs, without shell activation or platform-specific venv paths.
+    name: Candidate wheel smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - run: python scripts/platform_smoke.py --wheel-dir dist
 
   security:
     name: Security audit (pip-audit)

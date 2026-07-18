@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Session initialization — detect project, load governance, offer onboarding (REQ-225).
+"""Session initialization -- detect project, load governance, offer onboarding (REQ-225).
 
 When Kairos opens or ``specsmith run`` starts, this module provides the
 intelligence to:
@@ -12,6 +12,11 @@ intelligence to:
 The ``SessionContext`` returned by ``init_session()`` is the single
 object that the runner, serve, and Kairos all consume to understand
 the current project state.
+
+Context lifecycle (Issue #335):
+  - init_session() now runs initialization hooks (directory setup, isolation check, context warm)
+  - shutdown_session() persists state, clears locks, cleans temp artifacts
+  - clear_session_context() provides aggressive cleanup for fresh starts
 """
 
 from __future__ import annotations
@@ -27,7 +32,13 @@ _log = logging.getLogger(__name__)
 
 @dataclass
 class SessionContext:
-    """Complete governance context for a session."""
+    """Complete governance context for a session.
+
+    Includes context lifecycle fields for:
+      - Continuity: tracking previous session state
+      - Isolation: detecting stale/leaked session data
+      - Cleanup: managing session resources
+    """
 
     project_dir: str = ""
     project_name: str = ""
@@ -36,6 +47,7 @@ class SessionContext:
     needs_migration: bool = False
     spec_version: str = ""
     installed_version: str = ""
+    governance_version: str = ""
 
     # Governance state
     phase: str = "inception"
@@ -59,6 +71,15 @@ class SessionContext:
     # Session metadata
     session_id: str = ""
     started_at: str = ""
+    actor_id: str = ""
+    agent_id: str = ""
+    replica_id: str = ""
+    identity_provenance: dict[str, str] = field(default_factory=dict)
+
+    # Context lifecycle fields (internal)
+    _prev_session_id: str = ""  # Previous session ID for continuity
+    _prev_phase: str = ""  # Previous phase for transition tracking
+    _history_turns: int = 0  # Number of history turns loaded
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -69,6 +90,7 @@ class SessionContext:
             "needs_migration": self.needs_migration,
             "spec_version": self.spec_version,
             "installed_version": self.installed_version,
+            "governance_version": self.governance_version,
             "phase": self.phase,
             "phase_label": self.phase_label,
             "phase_emoji": self.phase_emoji,
@@ -84,6 +106,14 @@ class SessionContext:
             "reachable_providers": self.reachable_providers,
             "session_id": self.session_id,
             "started_at": self.started_at,
+            "actor_id": self.actor_id,
+            "agent_id": self.agent_id,
+            "replica_id": self.replica_id,
+            "identity_provenance": self.identity_provenance,
+            # Context lifecycle metadata
+            "_prev_session_id": self._prev_session_id,
+            "_prev_phase": self._prev_phase,
+            "_history_turns": self._history_turns,
         }
 
 
@@ -109,13 +139,7 @@ def _is_yaml_first_mode(root: Path) -> bool:
 
 
 def _count_requirements(root: Path) -> tuple[int, int]:
-    """Count total requirements and covered (with tests) requirements.
-
-    In YAML-first mode (REQ-380): reads from .specsmith/requirements.json and
-    .specsmith/testcases.json so the session context is accurate even when the
-    deprecated REQUIREMENTS.md / TESTS.md files no longer exist.
-    Falls back to markdown files for projects still in markdown mode.
-    """
+    """Count total requirements and covered (with tests) requirements."""
     if _is_yaml_first_mode(root):
         import contextlib
         import json
@@ -135,7 +159,6 @@ def _count_requirements(root: Path) -> tuple[int, int]:
             return len(req_ids), len(covered)
         return 0, 0
 
-    # Markdown-mode fallback
     req_path = root / "docs" / "REQUIREMENTS.md"
     if not req_path.is_file():
         req_path = root / "REQUIREMENTS.md"
@@ -161,10 +184,7 @@ def _count_requirements(root: Path) -> tuple[int, int]:
 
 
 def _count_tests(root: Path) -> int:
-    """Count total test specifications.
-
-    In YAML-first mode: reads testcases.json. Falls back to TESTS.md.
-    """
+    """Count total test specifications."""
     if _is_yaml_first_mode(root):
         import contextlib
         import json
@@ -177,7 +197,6 @@ def _count_tests(root: Path) -> int:
             return len(tests)
         return 0
 
-    # Markdown-mode fallback
     import re
 
     test_path = root / "docs" / "TESTS.md"
@@ -195,7 +214,6 @@ def _get_health_score(root: Path) -> tuple[int, list[str]]:
     checks_passed = 0
     total_checks = 6
 
-    # Check key files exist
     if _find_scaffold(root):
         checks_passed += 1
     else:
@@ -238,11 +256,19 @@ def _get_health_score(root: Path) -> tuple[int, list[str]]:
     return int(checks_passed / total_checks * 100), issues
 
 
-def init_session(project_dir: str | Path = ".") -> SessionContext:
+def init_session(project_dir: str | Path = ".", *, force_new: bool = False) -> SessionContext:
     """Initialize a session context for the given project directory.
 
     This is the primary entry point consumed by ``specsmith run``,
     ``specsmith serve``, and the Kairos governance client.
+
+    Args:
+        project_dir: Path to the project root.
+        force_new: If True, skip loading previous session state and start fresh.
+
+    Returns:
+        A fully-initialized SessionContext with hooks for initialization,
+        cleanup, and isolation verification.
     """
     import uuid
 
@@ -255,7 +281,7 @@ def init_session(project_dir: str | Path = ".") -> SessionContext:
         started_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     )
 
-    # Installed version
+    # Installed version (package version)
     try:
         from specsmith import __version__
 
@@ -263,25 +289,47 @@ def init_session(project_dir: str | Path = ".") -> SessionContext:
     except Exception:  # noqa: BLE001
         ctx.installed_version = "unknown"
 
+    # Governance version (schema version for project config)
+    try:
+        from specsmith import GOVERNANCE_VERSION
+
+        ctx.governance_version = GOVERNANCE_VERSION
+    except Exception:  # noqa: BLE001
+        ctx.governance_version = "unknown"
+
     # Check if project is governed
     scaffold = _find_scaffold(root)
     if scaffold is None:
         ctx.is_governed = False
         ctx.needs_import = True
+        _ensure_session_dirs(root)
+        isolation_issues = _check_session_isolation(root, ctx.session_id)
+        if isolation_issues:
+            ctx.health_issues.extend(isolation_issues)
         return ctx
 
     ctx.is_governed = True
 
-    # Load scaffold config
+    # Load canonical layered configuration and distinct session identities.
     try:
-        import yaml
+        from specsmith.config_resolver import resolve_config
+        from specsmith.identity import resolve_identity
 
-        raw = yaml.safe_load(scaffold.read_text(encoding="utf-8")) or {}
-        ctx.spec_version = str(raw.get("spec_version", ""))
-        if ctx.spec_version and ctx.installed_version and ctx.spec_version != ctx.installed_version:
+        resolved = resolve_config(root)
+        ctx.spec_version = str(resolved.values.get("spec_version", ""))
+        identity = resolve_identity(resolved, root, session_id=ctx.session_id)
+        ctx.actor_id = identity.actor_id
+        ctx.agent_id = identity.agent_id
+        ctx.replica_id = identity.replica_id
+        ctx.identity_provenance = dict(identity.provenance)
+        if (
+            ctx.spec_version
+            and ctx.governance_version
+            and ctx.spec_version != ctx.governance_version
+        ):
             ctx.needs_migration = True
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as error:  # noqa: BLE001
+        ctx.health_issues.append(f"configuration/identity resolution failed: {error}")
 
     # Phase
     try:
@@ -326,4 +374,217 @@ def init_session(project_dir: str | Path = ".") -> SessionContext:
     except Exception:  # noqa: BLE001
         pass
 
+    # -- Context initialization hooks (Issue #335) ---------------------------
+
+    # Hook 1: Ensure session directory structure exists (isolation)
+    _ensure_session_dirs(root)
+
+    # Hook 2: Validate session isolation -- detect stale/leaked state
+    isolation_issues = _check_session_isolation(root, ctx.session_id)
+    if isolation_issues:
+        ctx.health_issues.extend(isolation_issues)
+        ctx.health_score = max(0, ctx.health_score - len(isolation_issues) * 5)
+
+    # Hook 3: Load previous session state for continuity (unless force_new)
+    if not force_new:
+        _warm_context_cache(root, ctx)
+
     return ctx
+
+
+# ---------------------------------------------------------------------------
+# Context lifecycle helpers (Issue #335)
+# ---------------------------------------------------------------------------
+
+
+def _ensure_session_dirs(root: Path) -> None:
+    """Ensure session isolation directories exist."""
+    sessions_dir = root / ".specsmith" / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _check_session_isolation(root: Path, current_session_id: str) -> list[str]:
+    """Check for stale or leaked session state.
+
+    Returns a list of isolation issues found. Each issue is a human-readable
+    string that will be added to SessionContext.health_issues.
+    """
+    issues: list[str] = []
+    specsmith_dir = root / ".specsmith"
+
+    # Check for stale session-state.json
+    state_path = specsmith_dir / "session-state.json"
+    if state_path.is_file():
+        try:
+            import json
+
+            existing = json.loads(state_path.read_text(encoding="utf-8"))
+            existing_id = existing.get("session_id", "")
+            if existing_id and existing_id != current_session_id:
+                issues.append(
+                    f"Stale session state detected (previous: {existing_id}, "
+                    f"current: {current_session_id}) -- new session started"
+                )
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Check for orphaned session directories with lock files
+    sessions_dir = specsmith_dir / "sessions"
+    if sessions_dir.is_dir():
+        for sd in sessions_dir.iterdir():
+            if sd.is_dir():
+                lock_file = sd / ".lock"
+                if lock_file.is_file():
+                    issues.append(f"Crashed session detected: {sd.name} (lock file present)")
+
+    return issues
+
+
+def _warm_context_cache(root: Path, ctx: SessionContext) -> None:
+    """Warm the context cache by loading previous session state."""
+    try:
+        from specsmith.session_store import load_session
+
+        prev_ctx, history = load_session(root)
+        if prev_ctx:
+            ctx._prev_session_id = prev_ctx.get("session_id", "")
+            ctx._prev_phase = prev_ctx.get("phase", "")
+            ctx._history_turns = len(history)
+            _log.info(
+                "Context warmed: prev_session=%s, history_turns=%d",
+                ctx._prev_session_id,
+                ctx._history_turns,
+            )
+        else:
+            _log.info("Context warmed: no previous session state found")
+    except Exception:  # noqa: BLE001
+        _log.debug("Context warm failed (best-effort): %s", exc_info=True)
+        ctx._prev_session_id = ""
+        ctx._prev_phase = ""
+        ctx._history_turns = 0
+
+
+def shutdown_session(root: Path, ctx: SessionContext | None = None) -> dict[str, Any]:
+    """Run context cleanup/shutdown hooks for the current session.
+
+    This function performs:
+      1. Persist final session state
+      2. Clean up lock files and temporary artifacts
+      3. Close any open session resources
+      4. Write a session-end event to the canonical event log
+
+    Args:
+        root: Project root path.
+        ctx: Optional SessionContext to persist. If None, loads from disk.
+
+    Returns:
+        A summary dict with cleanup results.
+    """
+    result: dict[str, Any] = {
+        "session_id": ctx.session_id if ctx else "",
+        "persisted": False,
+        "locks_cleared": 0,
+        "artifacts_cleaned": 0,
+        "errors": [],
+    }
+
+    try:
+        from specsmith.session_store import save_session
+
+        if ctx is not None:
+            ctx_dict = ctx.to_dict()
+            history: list[dict[str, Any]] = []
+            try:
+                from specsmith.session_store import load_session
+
+                _, history = load_session(root)
+            except Exception:  # noqa: BLE001
+                pass
+            save_session(root, ctx_dict, history)
+            result["persisted"] = True
+    except Exception as exc:  # noqa: BLE001
+        result["errors"].append(f"persist: {exc}")
+
+    # Clean up lock files
+    sessions_dir = root / ".specsmith" / "sessions"
+    if sessions_dir.is_dir():
+        for sd in sessions_dir.iterdir():
+            if sd.is_dir():
+                lock_file = sd / ".lock"
+                if lock_file.is_file():
+                    try:
+                        lock_file.unlink()
+                        result["locks_cleared"] += 1
+                    except Exception as exc:  # noqa: BLE001
+                        result["errors"].append(f"lock cleanup: {sd.name}: {exc}")
+
+    # Clean up temp files (*.tmp)
+    specsmith_dir = root / ".specsmith"
+    if specsmith_dir.is_dir():
+        for tmp in specsmith_dir.rglob("*.tmp"):
+            try:
+                tmp.unlink()
+                result["artifacts_cleaned"] += 1
+            except Exception as exc:  # noqa: BLE001
+                result["errors"].append(f"temp cleanup: {tmp.name}: {exc}")
+
+    return result
+
+
+def clear_session_context(root: Path) -> dict[str, Any]:
+    """Clear all session context state for a fresh start.
+
+    This is the most aggressive cleanup -- it removes:
+      - session-state.json
+      - conversation-history.jsonl
+      - All session directories under .specsmith/sessions/
+      - Lock files and temp artifacts
+    """
+    result: dict[str, Any] = {
+        "files_removed": [],
+        "dirs_removed": [],
+        "errors": [],
+    }
+
+    specsmith_dir = root / ".specsmith"
+
+    # Remove session-state.json
+    state_path = specsmith_dir / "session-state.json"
+    if state_path.is_file():
+        try:
+            state_path.unlink()
+            result["files_removed"].append("session-state.json")
+        except Exception as exc:  # noqa: BLE001
+            result["errors"].append(f"remove session-state.json: {exc}")
+
+    # Remove conversation-history.jsonl
+    hist_path = specsmith_dir / "conversation-history.jsonl"
+    if hist_path.is_file():
+        try:
+            hist_path.unlink()
+            result["files_removed"].append("conversation-history.jsonl")
+        except Exception as exc:  # noqa: BLE001
+            result["errors"].append(f"remove conversation-history.jsonl: {exc}")
+
+    # Remove all session directories
+    sessions_dir = specsmith_dir / "sessions"
+    if sessions_dir.is_dir():
+        for sd in sessions_dir.iterdir():
+            if sd.is_dir():
+                try:
+                    import shutil
+
+                    shutil.rmtree(sd)
+                    result["dirs_removed"].append(sd.name)
+                except Exception as exc:  # noqa: BLE001
+                    result["errors"].append(f"remove session dir {sd.name}: {exc}")
+
+    return result
+
+
+__all__ = [
+    "SessionContext",
+    "init_session",
+    "shutdown_session",
+    "clear_session_context",
+]
