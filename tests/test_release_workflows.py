@@ -3,6 +3,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_ci_uses_module_pytest_for_repository_private_release_tests() -> None:
+    text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "python -m pytest --cov=specsmith" in text
+    assert "\n          pytest --cov=specsmith" not in text
+
+
 def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
     text = (ROOT / ".github/workflows/prepare-release.yml").read_text(encoding="utf-8")
     assert "options: [check, prepare]" in text
