@@ -3225,10 +3225,7 @@
     "verification_method": "pytest",
     "input": "optimize(65), optimize(82), optimize(88) on ContextOrchestrator(tmp_path)",
     "expected_behavior": "Correct tier actions returned; no files deleted from disk",
-    "confidence": 0.9,
-    "last_result": "passed",
-    "last_run_at": "2026-07-18T22:26:44Z",
-    "status": "implemented"
+    "confidence": 0.9
   },
   {
     "id": "TEST-309",
