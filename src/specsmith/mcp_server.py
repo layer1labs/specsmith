@@ -234,6 +234,21 @@ def _canonicalize_path(path: str) -> str:
     return result
 
 
+def _paths_equivalent(left: str, right: str) -> bool:
+    """Return whether two path spellings identify the same filesystem entry.
+
+    Canonical string equality handles missing and ordinary paths.  ``samefile``
+    additionally handles case variants on case-insensitive filesystems without
+    conflating distinct entries on case-sensitive filesystems.
+    """
+    if left == right:
+        return True
+    try:
+        return Path(left).samefile(right)
+    except OSError:
+        return False
+
+
 def _load_registry_raw() -> tuple[list[str], dict[str, Any] | None]:
     """Load the registry file, returning (projects_list, full_data_or_None).
 
@@ -282,13 +297,11 @@ def read_registry() -> list[str]:
     """
     projects, _ = _load_registry_raw()
     canonical: list[str] = []
-    seen: set[str] = set()
     for p in projects:
         if not isinstance(p, str) or not p:
             continue
         c = _canonicalize_path(p)
-        if c not in seen:
-            seen.add(c)
+        if not any(_paths_equivalent(c, existing) for existing in canonical):
             canonical.append(c)
     return canonical
 
@@ -329,15 +342,13 @@ def register_project(path: str = ".", *, allow_uninitialized: bool = False) -> b
     with _registry_mutation_lock():
         projects, _ = _load_registry_raw()
         # Deduplicate using canonical form.
-        seen: set[str] = set()
         filtered: list[str] = []
         for p in projects:
             c = _canonicalize_path(p)
-            if c not in seen:
-                seen.add(c)
+            if not any(_paths_equivalent(c, existing) for existing in filtered):
                 filtered.append(c)
 
-        if canonical in seen:
+        if any(_paths_equivalent(canonical, existing) for existing in filtered):
             return False  # Already registered.
 
         # Prepend so the new project becomes the default.
@@ -351,7 +362,11 @@ def unregister_project(path: str = ".") -> bool:
     canonical = _canonicalize_path(path)
     with _registry_mutation_lock():
         projects, _ = _load_registry_raw()
-        new_projects = [p for p in projects if _canonicalize_path(p) != canonical]
+        new_projects = [
+            p
+            for p in projects
+            if not _paths_equivalent(_canonicalize_path(p), canonical)
+        ]
         if len(new_projects) == len(projects):
             return False  # Not found.
         _save_registry(new_projects)

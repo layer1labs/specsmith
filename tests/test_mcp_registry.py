@@ -373,8 +373,8 @@ class TestMCPREG009CrossPlatformPaths:
         c2 = mcp_mod._canonicalize_path(str(proj) + "/")
         assert c1 == c2
 
-    def test_case_insensitive_dedup_on_windows(self, reg_home: Path) -> None:
-        """Path case differences should be handled (on case-insensitive FS)."""
+    def test_case_insensitive_dedup(self, reg_home: Path) -> None:
+        """Path case differences are deduplicated on case-insensitive filesystems."""
         proj = _make_project_dir(reg_home, "CaseProj")
         added1 = mcp_mod.register_project(str(proj))
         assert added1 is True
@@ -382,8 +382,21 @@ class TestMCPREG009CrossPlatformPaths:
         added2 = mcp_mod.register_project(
             str(proj).upper() if str(proj).islower() else str(proj).lower()
         )
-        # On case-insensitive FS, resolve() returns the same path.
+        # The alternate spelling resolves to the same filesystem entry on
+        # case-insensitive Windows and macOS volumes.
         assert added2 is False
+
+    def test_path_equivalence_preserves_case_sensitive_entries(
+        self, reg_home: Path
+    ) -> None:
+        """Distinct case-sensitive entries must not be conflated."""
+        upper = _make_project_dir(reg_home, "CaseSensitive")
+        lower = _make_project_dir(reg_home, "casesensitive")
+
+        if upper.samefile(lower):
+            pytest.skip("filesystem is case-insensitive")
+
+        assert mcp_mod._paths_equivalent(str(upper), str(lower)) is False
 
 
 # ---------------------------------------------------------------------------
