@@ -581,7 +581,7 @@ class TestMcpServeCli:
         tools_resp = json.loads(lines[-1])
         assert "result" in tools_resp
         tools = tools_resp["result"]["tools"]
-        assert len(tools) == 7
+        assert len(tools) == 9
 
 
 # ---------------------------------------------------------------------------

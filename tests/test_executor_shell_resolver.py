@@ -366,13 +366,14 @@ class TestEXECSHELL009RunTracked:
                 "C:/Windows/System32/cmd.exe",  # cmd.exe → found
             ]
         )
-        with patch("shutil.which", side_effect=which_side_effect):
-            with patch("subprocess.Popen") as mock_popen:
-                mock_popen.return_value = mock_proc
-                # Also mock subprocess.run for version detection
-                with patch("subprocess.run") as mock_run:
-                    mock_run.side_effect = TimeoutExpired("cmd", 5)
-                    result = run_tracked(tmp_path, "echo hello", timeout=5)
+        with patch.object(sys, "platform", "win32"):
+            with patch("shutil.which", side_effect=which_side_effect):
+                with patch("subprocess.Popen") as mock_popen:
+                    mock_popen.return_value = mock_proc
+                    # Also mock subprocess.run for version detection
+                    with patch("subprocess.run") as mock_run:
+                        mock_run.side_effect = TimeoutExpired("cmd", 5)
+                        result = run_tracked(tmp_path, "echo hello", timeout=5)
 
         assert result.shell_family == "cmd"
         assert result.shell_path == "C:/Windows/System32/cmd.exe"
