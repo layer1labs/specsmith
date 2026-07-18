@@ -23,6 +23,7 @@ def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
     assert "contents: ${{" not in text
     assert "if: inputs.mode == 'check'" in text
     assert "if: inputs.mode == 'prepare'" in text
+    assert text.count("python -m pip install build pyyaml") == 2
 
 
 def test_tag_workflow_is_non_mutating_and_rejects_duplicates() -> None:

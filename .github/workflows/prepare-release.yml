@@ -47,7 +47,7 @@ jobs:
           if not re.fullmatch(r'\d+\.\d+\.\d+', version):
               raise SystemExit('version must be stable SemVer')
           PY
-      - run: python -m pip install build
+      - run: python -m pip install build pyyaml
       - name: Candidate bootstrap
         run: >-
           python scripts/release_bootstrap.py check
@@ -89,7 +89,7 @@ jobs:
           if not re.fullmatch(r'\d+\.\d+\.\d+', version):
               raise SystemExit('version must be stable SemVer')
           PY
-      - run: python -m pip install build
+      - run: python -m pip install build pyyaml
       - name: Candidate bootstrap
         run: >-
           python scripts/release_bootstrap.py prepare
