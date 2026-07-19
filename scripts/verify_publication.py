@@ -17,6 +17,10 @@ except ModuleNotFoundError:  # Direct execution adds scripts/, not the repositor
     from release_evidence import create_receipt
 
 
+PYPI_PROPAGATION_ATTEMPTS = 19
+PYPI_PROPAGATION_DELAY_SECONDS = 10
+
+
 def sha256_file(path: Path) -> str:
     hasher = hashlib.sha256()
     with path.open("rb") as stream:
@@ -44,7 +48,10 @@ def verify_pypi_files(dist_dir: Path, payload: dict[str, Any]) -> list[dict[str,
 
 
 def fetch_pypi_payload(
-    version: str, *, attempts: int = 6, delay_seconds: float = 10
+    version: str,
+    *,
+    attempts: int = PYPI_PROPAGATION_ATTEMPTS,
+    delay_seconds: float = PYPI_PROPAGATION_DELAY_SECONDS,
 ) -> dict[str, Any]:
     """Fetch a release after allowing bounded time for PyPI propagation."""
     if attempts < 1:

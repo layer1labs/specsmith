@@ -10,6 +10,10 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Changed
+- PyPI post-publication verification now allows a bounded three-minute
+  propagation window before failing.
+
 ## [0.23.3] - 2026-07-18
 
 ### Fixed
