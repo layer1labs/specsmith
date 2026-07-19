@@ -10,6 +10,12 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.23.3] - 2026-07-18
+
+### Fixed
+- Post-publication verification now downloads the immutable release seal before
+  creating its receipt and retries bounded PyPI propagation failures.
+
 ## [0.23.2] - 2026-07-18
 
 ### Added
@@ -1010,7 +1016,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.2...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.3...HEAD
+[0.23.3]: https://github.com/layer1labs/specsmith/compare/v0.23.2...v0.23.3
 [0.23.2]: https://github.com/layer1labs/specsmith/compare/v0.22.5...v0.23.2
 [0.22.5]: https://github.com/layer1labs/specsmith/compare/v0.22.4...v0.22.5
 [0.22.4]: https://github.com/layer1labs/specsmith/compare/v0.22.3...v0.22.4
