@@ -7,7 +7,12 @@ from urllib.error import HTTPError
 import pytest
 
 from scripts.release_evidence import create_receipt, create_seal, digest
-from scripts.verify_publication import fetch_pypi_payload, verify_pypi_files
+from scripts.verify_publication import (
+    PYPI_PROPAGATION_ATTEMPTS,
+    PYPI_PROPAGATION_DELAY_SECONDS,
+    fetch_pypi_payload,
+    verify_pypi_files,
+)
 
 
 def test_receipt_links_immutable_seal() -> None:
@@ -63,3 +68,7 @@ def test_pypi_fetch_retries_release_propagation(monkeypatch: pytest.MonkeyPatch)
 
     assert payload["info"]["version"] == "1.2.3"
     assert sleeps == [0]
+
+
+def test_pypi_default_propagation_window_is_at_least_three_minutes() -> None:
+    assert (PYPI_PROPAGATION_ATTEMPTS - 1) * PYPI_PROPAGATION_DELAY_SECONDS >= 180
