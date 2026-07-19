@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -41,6 +43,28 @@ def verify_pypi_files(dist_dir: Path, payload: dict[str, Any]) -> list[dict[str,
     return verified
 
 
+def fetch_pypi_payload(
+    version: str, *, attempts: int = 6, delay_seconds: float = 10
+) -> dict[str, Any]:
+    """Fetch a release after allowing bounded time for PyPI propagation."""
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+    url = f"https://pypi.org/pypi/specsmith/{version}/json"
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            retryable = error.code == 404 or 500 <= error.code < 600
+            if not retryable or attempt == attempts:
+                raise
+        except urllib.error.URLError:
+            if attempt == attempts:
+                raise
+        time.sleep(delay_seconds)
+    raise AssertionError("unreachable")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seal", type=Path, required=True)
@@ -52,15 +76,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
+    seal = json.loads(args.seal.read_text(encoding="utf-8"))
     version = args.version.removeprefix("v")
-    with urllib.request.urlopen(
-        f"https://pypi.org/pypi/specsmith/{version}/json", timeout=30
-    ) as response:
-        payload = json.load(response)
+    payload = fetch_pypi_payload(version)
     if payload.get("info", {}).get("version") != version:
         raise ValueError("PyPI version response does not match the release")
 
-    seal = json.loads(args.seal.read_text(encoding="utf-8"))
     publication = {
         "version": version,
         "tag": args.tag,

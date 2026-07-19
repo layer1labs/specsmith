@@ -42,6 +42,8 @@ def test_tag_workflow_is_non_mutating_and_rejects_duplicates() -> None:
     assert "publication-receipt.json" in text
     assert "name: release-evidence" in text
     assert "--seal release-evidence/release-seal.json" in text
+    verify_block = text.split("verify-publication:", 1)[1].split("cleanup-dev-releases:", 1)[0]
+    assert "name: release-evidence" in verify_block
 
 
 def test_canonical_runbook_has_fixed_point_and_immutable_recovery() -> None:

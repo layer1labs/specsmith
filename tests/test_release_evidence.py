@@ -1,10 +1,13 @@
+import json
 from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
+from urllib.error import HTTPError
 
 import pytest
 
 from scripts.release_evidence import create_receipt, create_seal, digest
-from scripts.verify_publication import verify_pypi_files
+from scripts.verify_publication import fetch_pypi_payload, verify_pypi_files
 
 
 def test_receipt_links_immutable_seal() -> None:
@@ -38,3 +41,25 @@ def test_pypi_verification_requires_matching_artifact_digest(tmp_path: Path) -> 
     }
     with pytest.raises(ValueError, match="digest mismatch"):
         verify_pypi_files(tmp_path, payload)
+
+
+def test_pypi_fetch_retries_release_propagation(monkeypatch: pytest.MonkeyPatch) -> None:
+    responses: list[Exception | BytesIO] = [
+        HTTPError("https://example.invalid", 404, "Not Found", {}, None),
+        BytesIO(json.dumps({"info": {"version": "1.2.3"}}).encode()),
+    ]
+
+    def fake_urlopen(url: str, timeout: int) -> BytesIO:
+        response = responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return response
+
+    sleeps: list[float] = []
+    monkeypatch.setattr("scripts.verify_publication.urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("scripts.verify_publication.time.sleep", sleeps.append)
+
+    payload = fetch_pypi_payload("1.2.3", attempts=2, delay_seconds=0)
+
+    assert payload["info"]["version"] == "1.2.3"
+    assert sleeps == [0]

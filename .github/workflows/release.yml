@@ -167,6 +167,10 @@ jobs:
         with:
           name: dist
           path: dist/
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-evidence
+          path: release-evidence/
       - name: Verify GitHub release
         id: github-release
         env:
