@@ -10,7 +10,7 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
-## [0.23.1] - 2026-07-18
+## [0.23.2] - 2026-07-18
 
 ### Added
 - Guided context compression and predictive context-risk controls with governed
@@ -36,6 +36,8 @@ consolidated into the next published release.
   compilation.
 
 ### Fixed
+- Release build environments now install PyYAML before validating the stable
+  package version and tag, preventing pre-publication dependency failures.
 - Release test collection now invokes pytest as a Python module so repository-
   private release-evidence helpers import reliably in the tag workflow.
 - Case-insensitive MCP project-path deduplication, transient Windows file-handle
@@ -1008,8 +1010,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.1...HEAD
-[0.23.1]: https://github.com/layer1labs/specsmith/compare/v0.22.5...v0.23.1
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.2...HEAD
+[0.23.2]: https://github.com/layer1labs/specsmith/compare/v0.22.5...v0.23.2
 [0.22.5]: https://github.com/layer1labs/specsmith/compare/v0.22.4...v0.22.5
 [0.22.4]: https://github.com/layer1labs/specsmith/compare/v0.22.3...v0.22.4
 [0.22.3]: https://github.com/layer1labs/specsmith/compare/v0.22.2...v0.22.3

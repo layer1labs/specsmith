@@ -28,6 +28,7 @@ def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
 
 def test_tag_workflow_is_non_mutating_and_rejects_duplicates() -> None:
     text = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+    assert "python -m pip install build pyyaml" in text
     assert "python -m pytest tests/ -x -q" in text
     assert "- run: pytest tests/ -x -q" not in text
     assert "release_bootstrap.py check" in text

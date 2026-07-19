@@ -65,7 +65,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install build
+      - run: python -m pip install build pyyaml
       - name: Verify stable release version and tag
         run: PYTHONPATH=src python scripts/check_stable_release.py --expected-version "${{ github.ref_name }}"
       - name: Verify tag belongs to main
