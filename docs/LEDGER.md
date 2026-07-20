@@ -394,3 +394,9 @@
 - **Type**: wi_close
 - **Status**: complete
 - **Chain hash**: `25a90a368237976e...`
+
+## 2026-07-20T11:55 — wi_close WI-BD69AB0192B2: Byte-for-byte fixture comparison verified with a single final newline
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `58082c054b385ac6...`
