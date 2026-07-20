@@ -417,3 +417,17 @@
 - **Type**: wi_archive
 - **Status**: complete
 - **Chain hash**: `ddbf1e59c1a0dcc2...`
+
+## 2026-07-20T08:21 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `413bdc945b7623ab...`
+
+## 2026-07-20T08:29 — wi_archive WI-5B502724DBF8: Release-metadata preflight was classified as read-only and created no requirement/test links; release readiness is covered by the existing release governance requirements and CI gates.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `073372156523bfbd...`
