@@ -10,6 +10,8 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-07-20
+
 ### Added
 - Grace, the renamed and simplified local fallback REPL, now provides local
   `/help` and `/status`, clearer provider recovery, and automatic epistemic
@@ -1040,7 +1042,8 @@ See git history for per-commit details on intermediate versions.
 
 ---
 
-[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.23.3...HEAD
+[Unreleased]: https://github.com/layer1labs/specsmith/compare/v0.24.0...HEAD
+[0.24.0]: https://github.com/layer1labs/specsmith/compare/v0.23.3...v0.24.0
 [0.23.3]: https://github.com/layer1labs/specsmith/compare/v0.23.2...v0.23.3
 [0.23.2]: https://github.com/layer1labs/specsmith/compare/v0.22.5...v0.23.2
 [0.22.5]: https://github.com/layer1labs/specsmith/compare/v0.22.4...v0.22.5
