@@ -1,28 +1,44 @@
-# Architecture Diagrams
+# Architecture diagrams
 
-This section contains architectural diagrams that illustrate the structure and components of Specsmith.
+## Governed change loop
 
-## Overview
+```mermaid
+flowchart LR
+    A["Developer or host agent"] --> B["Preflight"]
+    B --> C["Requirement scope"]
+    C --> D["Linked tests"]
+    D --> E["Native implementation"]
+    E --> F["Verification"]
+    F -->|pass| G["Checkpoint and evidence"]
+    F -->|retry| C
+    B -->|clarify or stop| H["Human alignment"]
+```
 
-Specsmith is built around a core architecture that supports:
+## Source-of-truth flow
 
-- Applied Epistemic Engineering (AEE) principles
-- Governed development workflows
-- Multi-agent collaboration
-- Traceability and compliance
+```mermaid
+flowchart TD
+    R["docs/requirements/*.yml"] --> S["specsmith sync"]
+    T["docs/tests/*.yml"] --> S
+    S --> C[".specsmith derived caches"]
+    C --> P["Preflight and audit"]
+    P --> L["LEDGER.md"]
+    P --> E["ESDB"]
+    L --> K["Compact checkpoint"]
+    E --> K
+```
 
-## Key Components
+## Integration boundary
 
-- **Governance Engine**: Enforces project requirements and compliance
-- **Agent Runtime**: Manages agent execution and coordination
-- **ESDB (ChronoMemory)**: Secure storage for project evidence
-- **CLI Interface**: Command-line access to all features
-- **Web Interface**: Optional graphical user interface
+```mermaid
+flowchart LR
+    H["Host agent tools"] -->|intent and observed evidence| S["Specsmith AEE kernel"]
+    S -->|accepted scope and linked tests| H
+    S --> M["MCP or focused adapter"]
+    S --> G["Grace local fallback"]
+    S --> D["Ledger and ESDB"]
+```
 
-## Diagrams
-
-### High-Level Architecture
-[High-level architecture diagram would be displayed here]
-
-### Component Interactions
-[Component interaction diagram would be displayed here]
+The host owns code editing, Git, browsers, deployment, and framework skills.
+Specsmith owns requirements, test traceability, epistemic boundaries, verification,
+and durable evidence.

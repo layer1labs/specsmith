@@ -13,7 +13,7 @@ from chronomemory import EsdbBridge
 1. **ESDB active** — `.chronomemory/events.wal` exists → delegates to `ChronoStore`
 2. **JSON fallback** — no WAL yet → reads `.specsmith/requirements.json` and `testcases.json`
 
-This allows specsmith CLI commands, dashboards, and CI scripts to work with both migrated
+This allows Specsmith CLI commands, integrations, and CI scripts to work with both migrated
 and non-migrated projects without branching.
 
 ## Constructor

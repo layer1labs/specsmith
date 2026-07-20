@@ -36,6 +36,7 @@ nav:
     - Overview: getting-started.md
     - Quickstart: quickstart.md
   - Foundations:
+    - Architecture: architecture-diagrams.md
     - Applied Epistemic Engineering:
       - AEE Primer (Full Guide): aee-primer.md
       - epistemic Library Reference: epistemic-library.md

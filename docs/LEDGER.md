@@ -420,3 +420,31 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `6fffa691114cc71a...`
+
+## 2026-07-20T13:28 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `23d4bd2aa165d66d...`
+
+## 2026-07-20T13:28 — wi_archive WI-389194B37F20: Read-only version-policy assessment; no implementation work item was required.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `b385aae8ab57666a...`
+
+## 2026-07-20T14:08 — wi_close WI-80855D228FD6: v0.25.0 release candidate prepared and verified: full tests, static quality, strict docs, governance, package/platform smoke, dependency audit, and sealed closure check passed.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `c8afa2cf72c812d4...`
+
+## 2026-07-20T14:08 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `a4628b67dbf78bda...`

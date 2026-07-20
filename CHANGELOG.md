@@ -10,6 +10,8 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-07-20
+
 ### Changed
 - The public CLI now presents only the mission-essential requirements, linked
   tests, preflight/verification, epistemic context, Grace, ESDB, policy, and
@@ -17,6 +19,9 @@ consolidated into the next published release.
 - README, RTD navigation, policies, and project examples now use the same lean
   governed-change loop and delegate Git, native tests, browsers, deployment,
   and generic agent skills to the host tool.
+- Release-facing package metadata, architecture, API-stability guidance, and
+  verification-tool documentation now describe the same focused product boundary.
+- GitHub Actions Python setup steps now use `actions/setup-python@v7`.
 
 ### Removed
 - Legacy public CLI products for Git hosting, generic multi-agent dispatch,
@@ -31,6 +36,8 @@ consolidated into the next published release.
 - Preflight now recognizes direct mutation requests instead of accepting them
   as read-only, and deterministic work-item IDs are scoped to the canonical
   project root to prevent cross-repository collisions (#357).
+- The committed API-surface fixture now has a stable trailing newline so format
+  and snapshot checks agree on every supported platform.
 
 ## [0.24.0] - 2026-07-20
 
