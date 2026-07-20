@@ -68,7 +68,7 @@ The ledger is append-only. Agents write entries here after every task:
 ```markdown
 ## 2026-04-01 — Add export command
 
-- **Proposal**: Add `specsmith export` to generate compliance reports
+- **Proposal**: Add a requirement/test coverage report to the host CI output
 - **Changes**: Created exporter.py, wired CLI command, added tests
 - **Verified**: 113 tests pass, lint clean, mypy clean
 - **Next**: Update documentation site
@@ -93,7 +93,8 @@ This is how context persists across sessions. When an agent starts with `resume`
 - **Description**: specsmith init --config creates project from YAML
 ```
 
-`specsmith audit` checks that every REQ has at least one TEST with a `Covers:` reference. `specsmith export` generates the full coverage matrix.
+`specsmith audit` checks that every requirement has at least one linked test and
+reports the coverage gaps directly. CI may retain that output as evidence.
 
 ## Drift Detection
 
@@ -147,7 +148,7 @@ Specsmith encodes each OEA finding as an enforceable H-rule rather than a recomm
 
 ### H15 — Epistemic Scope Bounding
 No claims outside verified knowledge. Respond with explicit uncertainty rather than
-fabricating plausible-sounding but unverified content. Checked via `specsmith epistemic-audit`.
+fabricating plausible-sounding but unverified content. Checked via `specsmith audit`.
 
 ### H16 — Anti-Drift Recursion Guard
 Max 5 autonomous generation steps before a human checkpoint. Recursive self-refinement
@@ -194,12 +195,6 @@ As of specsmith v0.12 the governance authority has flipped from Markdown-primary
 ```bash
 # Full pipeline: YAML → JSON cache → Markdown artifacts
 specsmith sync
-
-# Regenerate only Markdown (skip JSON rewrite)
-specsmith generate docs
-
-# Dry-run: see what would change without writing
-specsmith generate docs --check
 
 # CI gate: exits 1 if JSON cache is out of sync with YAML
 specsmith sync --check

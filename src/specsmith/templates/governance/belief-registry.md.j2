@@ -4,9 +4,9 @@ The belief registry is the catalog of all `BeliefArtifact` instances in this pro
 core architectural assumptions, technology decisions, and external dependencies.
 Each entry has an ID, propositions, epistemic boundary, confidence, and last stress-test date.
 
-For a full interactive view: `specsmith belief-graph`
-For stress-test results: `specsmith stress-test`
-For certainty scores: `specsmith epistemic-audit`
+For governed requirements: `specsmith req list`
+For linked test evidence: `specsmith test list`
+For epistemic and chain checks: `specsmith audit`
 
 ---
 
@@ -67,7 +67,7 @@ Each dependency is a belief that it will behave as documented.
 
 ## Belief Artifact Statistics
 
-Run `specsmith epistemic-audit` to get current statistics:
+Run `specsmith audit` and `specsmith inspect` to get current statistics:
 - Total beliefs: ?
 - Equilibrium: ?
 - Overall certainty: ?

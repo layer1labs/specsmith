@@ -28,5 +28,5 @@ the underlying requirements or preflight gate. Zoo Code must preserve history
 and enter an explicit degraded state when Specsmith cannot authorize a context
 transition; it must not silently use its native summarizer.
 
-For the full rationale, command mappings, and examples, see the repository
-architecture decision record `docs/INVOCATION_STRATEGY.md`.
+The same policy is encoded in generated `AGENTS.md` and the integration-specific
+setup pages in this guide.

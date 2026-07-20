@@ -1,5 +1,5 @@
 site_name: specsmith
-site_description: Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines.
+site_description: Lean governance for requirements, tests, epistemic context, evidence, and AI-assisted development.
 site_url: https://specsmith.readthedocs.io
 repo_url: https://github.com/layer1labs/specsmith
 repo_name: layer1labs/specsmith
@@ -40,6 +40,7 @@ nav:
       - AEE Primer (Full Guide): aee-primer.md
       - epistemic Library Reference: epistemic-library.md
     - Governance Model: governance.md
+    - Policy: policy.md
     - YAML Governance: yaml-governance.md
     - Work Item Lifecycle: wi-lifecycle.md
     - Project Types: project-types.md
@@ -47,24 +48,20 @@ nav:
     - CLI Commands: commands.md
     - Invocation Strategy: invocation-strategy.md
     - Epistemic Chat Handoffs: epistemic-handoffs.md
-    - Multi-Agent Dispatch: dispatch.md
     - Agentic Client:
       - Overview: agent-client.md
-      - Multi-Agent Profiles: agents.md
       - Standalone CLI: standalone-cli.md
       - Agent Integrations: agent-integrations.md
       - Warp Integration: warp-integration.md
       - Zoo Code / Roo Code: zoo-code-roo.md
       - BYOE Endpoints: endpoints.md
-      - Kairos Terminal: kairos-terminal.md
+      - Grace REPL: kairos-terminal.md
     - Skills Index: skills-index.md
     - Tool Registry: tool-registry.md
   - Reference:
     - Importing: importing.md
     - Configuration: configuration.md
-    - Branch Workflows: branch-workflows.md
     - Doctor: doctor.md
-    - Export & Compliance: export.md
     - Rate Limit Pacing: rate-limits.md
     - API Stability: api-stability.md
     - Troubleshooting: troubleshooting.md

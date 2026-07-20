@@ -99,8 +99,8 @@ class TestMarkdownDeprecationWarning:
             f"Unexpected DeprecationWarning(s) in YAML mode: {deprecation_warnings}"
         )
 
-    def test_deprecation_warning_mentions_migrate_command(self, tmp_path: Path) -> None:
-        """The deprecation message must guide the user to 'specsmith migrate run'."""
+    def test_deprecation_warning_mentions_automatic_migration(self, tmp_path: Path) -> None:
+        """The deprecation message must explain automatic forward migration."""
         _write_governance_mode(tmp_path, "markdown")
         _write_minimal_md(tmp_path)
 
@@ -111,10 +111,7 @@ class TestMarkdownDeprecationWarning:
             run_sync(tmp_path, dry_run=True)
 
         messages = " ".join(str(w.message) for w in caught)
-        # The deprecation message should reference migrate
-        assert "migrate" in messages.lower(), (
-            f"Deprecation message should mention 'migrate': {messages!r}"
-        )
+        assert "automatic" in messages.lower(), messages
 
 
 class TestYamlFirstSync:

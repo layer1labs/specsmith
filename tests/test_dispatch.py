@@ -430,54 +430,6 @@ class TestAgentPool:
 # ---------------------------------------------------------------------------
 
 
-class TestDispatchCLI:
-    def test_dispatch_group_registered(self):
-        """specsmith dispatch group and subcommands are registered in CLI (REQ-331)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["dispatch", "--help"])
-        assert result.exit_code == 0
-        assert "run" in result.output
-        assert "status" in result.output
-        assert "list" in result.output
-        assert "retry" in result.output
-
-    def test_dispatch_run_help(self):
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["dispatch", "run", "--help"])
-        assert result.exit_code == 0
-        assert "--max-workers" in result.output
-        assert "--json" in result.output
-
-    def test_dispatch_list_empty(self, tmp_path: Path):
-        """dispatch list on an empty project prints gracefully (REQ-331)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["dispatch", "list", "--project-dir", str(tmp_path)])
-        assert result.exit_code == 0
-
-    def test_dispatch_status_missing(self, tmp_path: Path):
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main, ["dispatch", "status", "--dag-id", "nonexistent", "--project-dir", str(tmp_path)]
-        )
-        assert result.exit_code == 0
-
-
 # ---------------------------------------------------------------------------
 # TEST-325 + TEST-330: AgentDispatcher end-to-end with mocked workers
 # ---------------------------------------------------------------------------
@@ -776,36 +728,6 @@ class TestMultiAgentCompliance:
             assert "rec-xyz" in dag.get("child").context_in
 
     # REQ-318: completed nodes not re-executed on retry
-    def test_retry_refuses_completed_node(self, tmp_path):
-        """dispatch retry --node n1 returns error if n1 is already completed (REQ-318)."""
-        from click.testing import CliRunner
-
-        from specsmith.agent.dispatch import EventEmitter
-        from specsmith.cli import main
-
-        # Set up a completed run
-        emitter = EventEmitter(tmp_path, "dag-318")
-        emitter.node_started("n1", "coder", depends_on=[])
-        emitter.node_completed("n1", None, "done")
-        emitter.dag_done({})
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "dispatch",
-                "retry",
-                "--node",
-                "n1",
-                "--dag-id",
-                "dag-318",
-                "--project-dir",
-                str(tmp_path),
-            ],
-        )
-        # Should exit 0 but print 'already completed'
-        assert result.exit_code == 0
-        assert "already completed" in result.output.lower() or "completed" in result.output.lower()
 
     # REQ-319: ESDB record contains DAG lineage
     def test_esdb_record_contains_dag_lineage(self, tmp_path):

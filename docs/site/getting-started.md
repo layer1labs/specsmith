@@ -186,17 +186,17 @@ specsmith doctor --project-dir my-tool
 # ...
 ```
 
-### Step 5: Set the AEE Workflow Phase
+### Step 5: Check AEE Readiness
 
 ```bash
-specsmith phase --project-dir my-tool
+specsmith checkpoint --project-dir my-tool
 ```
 
-This shows the current phase (defaults to `inception`) with a readiness checklist. Advance when checks pass:
+This shows the current phase and a compact readiness anchor. For the complete
+requirements, tests, and evidence gate, run:
 
 ```bash
-specsmith phase next --project-dir my-tool   # advance to architecture
-specsmith phase list                         # show all 7 phases
+specsmith audit --project-dir my-tool
 ```
 
 ### Step 6: Open in Your AI Agent
@@ -275,7 +275,7 @@ Now you can use all specsmith commands:
 ```bash
 specsmith audit --project-dir ./my-existing-project    # Health check
 specsmith validate --project-dir ./my-existing-project  # Consistency
-specsmith export --project-dir ./my-existing-project    # Coverage report
+specsmith checkpoint --project-dir ./my-existing-project # Compact evidence handoff
 specsmith doctor --project-dir ./my-existing-project    # Tool check
 ```
 

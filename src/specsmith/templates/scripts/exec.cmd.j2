@@ -5,7 +5,7 @@ REM Usage: scripts\exec.cmd "<command>" [timeout_seconds]
 REM
 REM PID files: .specsmith\pids\<pid>.json (for specsmith ps / specsmith abort)
 REM Logs:      .specsmith\logs\exec_<timestamp>.stdout/.stderr
-REM Prefer:    specsmith exec "<command>" --timeout <N>  (Python-based, full tracking)
+REM Use this shim when the host agent does not provide bounded command execution.
 
 setlocal enabledelayedexpansion
 

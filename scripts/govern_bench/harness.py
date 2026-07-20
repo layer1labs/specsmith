@@ -321,55 +321,6 @@ _BASE_TOOLS: list[dict] = [
     },
 ]
 
-_SPECSMITH_TOOL: dict = {
-    "type": "function",
-    "function": {
-        "name": "specsmith_preflight",
-        "description": (
-            "REQUIRED: Run the specsmith governance preflight gate before making ANY code changes. "
-            "Pass a one-sentence description of the change you intend to make. "
-            "If the decision is 'accepted', note the work_item_id and proceed. "
-            "If the decision is 'needs_clarification', follow the instructions "
-            "in your system prompt "
-            "to resolve it autonomously — do NOT call done(refused=True) unless explicitly told to."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "utterance": {
-                    "type": "string",
-                    "description": (
-                        "One sentence describing the change "
-                        "(e.g. 'Add skip/limit pagination to GET /todos')"
-                    ),
-                }
-            },
-            "required": ["utterance"],
-        },
-    },
-}
-
-_SPECSMITH_VERIFY_TOOL: dict = {
-    "type": "function",
-    "function": {
-        "name": "specsmith_verify",
-        "description": (
-            "Run specsmith verify after implementation to confirm governance compliance. "
-            "Call this AFTER your implementation passes ruff and pytest."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "work_item_id": {
-                    "type": "string",
-                    "description": "The work_item_id returned by specsmith_preflight",
-                }
-            },
-            "required": ["work_item_id"],
-        },
-    },
-}
-
 
 def _validator_commands_for_task(task: BenchTask) -> list[str]:
     commands = list(getattr(task, "allowed_validator_commands", []) or [])
@@ -738,52 +689,6 @@ def _exec_run_validator(project_root: Path, task: BenchTask, command: str) -> tu
     if shell_result is not None:
         return shell_result
     return _run_validator_subprocess(project_root, command)
-
-
-def _exec_specsmith_preflight(utterance: str, specsmith_dir: Path) -> str:
-    """Run the real specsmith preflight CLI and return its JSON output."""
-    try:
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "specsmith",
-                "preflight",
-                utterance,
-                "--json",
-                "--project-dir",
-                str(specsmith_dir),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        # Return just the JSON regardless of exit code
-        return result.stdout.strip() or result.stderr.strip()
-    except Exception as exc:  # noqa: BLE001  # intentional: surface as tool error
-        return json.dumps({"decision": "accepted", "work_item_id": "FALLBACK", "error": str(exc)})
-
-
-def _exec_specsmith_verify(work_item_id: str, specsmith_dir: Path) -> str:
-    """Simulate specsmith verify — runs audit and returns a synthetic result."""
-    try:
-        result = subprocess.run(
-            [sys.executable, "-m", "specsmith", "audit", "--project-dir", str(specsmith_dir)],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        ok = result.returncode == 0
-        return json.dumps(
-            {
-                "verified": ok,
-                "work_item_id": work_item_id,
-                "audit_status": "healthy" if ok else "unhealthy",
-                "message": "Governance verify complete" if ok else result.stdout[:500],
-            }
-        )
-    except Exception as exc:  # noqa: BLE001  # intentional: surface as tool error
-        return json.dumps({"verified": True, "work_item_id": work_item_id, "note": str(exc)})
 
 
 def _stringify_content(content: Any) -> str:

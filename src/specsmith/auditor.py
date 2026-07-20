@@ -327,7 +327,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                 message=(
                     "docs/requirements/*.yml exists"
                     if req_yaml_ok
-                    else "docs/requirements/ missing or empty — run: specsmith migrate run"
+                    else "docs/requirements/ missing or empty — run: specsmith doctor"
                 ),
                 fixable=not req_yaml_ok,
             ),
@@ -339,7 +339,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                 message=(
                     "docs/tests/*.yml exists"
                     if test_yaml_ok
-                    else "docs/tests/ missing or empty — run: specsmith migrate run"
+                    else "docs/tests/ missing or empty — run: specsmith doctor"
                 ),
                 fixable=not test_yaml_ok,
             ),
@@ -353,7 +353,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                 message=(
                     "docs/requirements/*.yml exists"
                     if req_yaml_ok
-                    else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
+                    else "Legacy markdown mode — run 'specsmith doctor' to verify YAML migration"
                 ),
             ),
         )
@@ -364,7 +364,7 @@ def _check_yaml_governance(root: Path) -> list[AuditResult]:
                 message=(
                     "docs/tests/*.yml exists"
                     if test_yaml_ok
-                    else "Legacy markdown mode — run 'specsmith migrate run' to adopt YAML-first"
+                    else "Legacy markdown mode — run 'specsmith doctor' to verify YAML migration"
                 ),
             ),
         )
@@ -1137,7 +1137,7 @@ def check_phase_readiness(root: Path) -> list[AuditResult]:
     else:
         msg = f"Phase {phase.emoji} {phase.label}: 100% ready"
         if phase.next_phase:
-            msg += f" — run `specsmith phase next` to advance to {phase.next_phase}"
+            msg += f" — next evidence stage: {phase.next_phase}"
         results.append(AuditResult(name="phase-readiness", passed=True, message=msg))
 
     return results

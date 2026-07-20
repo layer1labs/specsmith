@@ -1,7 +1,7 @@
-required_preflight: false
-required_tests: false
+required_preflight: true
+required_tests: true
 required_human_approval: []
-risk_threshold: high
+risk_threshold: critical
 command_allowlist:
   - pytest
   - ruff

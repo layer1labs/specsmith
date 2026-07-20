@@ -13,14 +13,12 @@ import json
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
 
 from specsmith.agent.mcp import (
     MCPServerSpec,
     _read_specs,
     load_mcp_tools,
 )
-from specsmith.cli import main
 
 # ── MCP config parser (REQ-121 / TEST-121) ───────────────────────────
 #
@@ -89,84 +87,6 @@ def test_mcp_server_spec_round_trip() -> None:
     assert spec.name == "x"
     assert spec.args == ["a"]
     assert spec.env == {"k": "v"}
-
-
-def test_notebook_record_with_session_id_captures_turns(tmp_path: Path) -> None:
-    """`--session-id` materialises turns.jsonl as a `## Session turns` section."""
-    sid = "sess_abc"
-    sess_dir = tmp_path / ".specsmith" / "sessions" / sid
-    sess_dir.mkdir(parents=True)
-    turns = [
-        {"role": "user", "utterance": "add hello world", "timestamp": "2026-04-29T00:00:00Z"},
-        {"role": "agent", "utterance": "Plan: write a test", "timestamp": "2026-04-29T00:00:01Z"},
-    ]
-    (sess_dir / "turns.jsonl").write_text(
-        "\n".join(json.dumps(t) for t in turns) + "\n",
-        encoding="utf-8",
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        [
-            "notebook",
-            "record",
-            "demo",
-            "--project-dir",
-            str(tmp_path),
-            "--session-id",
-            sid,
-        ],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 0, result.output
-
-    nb = (tmp_path / "docs" / "notebooks" / "demo.md").read_text(encoding="utf-8")
-    assert "# Notebook" in nb
-    assert sid in nb
-    assert "## Session turns" in nb
-    assert "add hello world" in nb
-    assert "Plan: write a test" in nb
-
-
-def test_notebook_record_with_no_artifacts_writes_a_helpful_placeholder(
-    tmp_path: Path,
-) -> None:
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["notebook", "record", "empty", "--project-dir", str(tmp_path)],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 0, result.output
-    nb = (tmp_path / "docs" / "notebooks" / "empty.md").read_text(encoding="utf-8")
-    assert "No artifacts captured" in nb
-
-
-def test_notebook_replay_prints_recorded_notebook(tmp_path: Path) -> None:
-    nb_dir = tmp_path / "docs" / "notebooks"
-    nb_dir.mkdir(parents=True)
-    (nb_dir / "demo.md").write_text("# Notebook — demo\nhello\n", encoding="utf-8")
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["notebook", "replay", "demo", "--project-dir", str(tmp_path)],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 0
-    assert "hello" in result.output
-
-
-def test_notebook_replay_missing_slug_exits_non_zero(tmp_path: Path) -> None:
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["notebook", "replay", "ghost", "--project-dir", str(tmp_path)],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 1
-    assert "No notebook" in result.output
 
 
 # ── Perf smoke (REQ-124 / TEST-124) ──────────────────────────────────────────

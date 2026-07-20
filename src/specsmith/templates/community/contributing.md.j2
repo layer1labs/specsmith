@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This project uses the [Agentic AI D
 
 1. Fork the repository and clone your fork
 {% if project.branching_strategy == "single-branch" %}
-2. Work directly on `{{ project.default_branch }}`; branch and PR workflows stay disabled until explicitly enabled with `specsmith branch workflow <strategy>`
+2. Work directly on `{{ project.default_branch }}` unless the repository's native Git policy requires a branch and pull request
 3. Make, verify, and commit your changes on `{{ project.default_branch }}`
 4. Push the governed commit to `{{ project.default_branch }}`
 {% else %}

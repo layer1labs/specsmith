@@ -57,7 +57,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-070
-  title: Nexus Must Normalize File Paths
+  title: Grace Must Normalize File Paths
   description: normalize_path returns absolute resolved paths.
   requirement_id: REQ-070
   type: unit
@@ -66,7 +66,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-071
-  title: Nexus Must Index the Repository
+  title: Grace Must Index the Repository
   description: generate_index populates files.json, architecture.md, and conventions.md
     in .repo-index/.
   requirement_id: REQ-071
@@ -76,7 +76,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-072
-  title: Nexus REPL Must Support Slash Commands
+  title: Grace REPL Must Support Slash Commands
   description: repl.py source defines /plan, /ask, /fix, /test, /commit, /pr, /undo,
     /context, /exit handlers.
   requirement_id: REQ-072
@@ -86,7 +86,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-073
-  title: Nexus Output Contract
+  title: Grace Output Contract
   description: Orchestrator.run_task issues an initial message containing the required
     sections.
   requirement_id: REQ-073
@@ -115,7 +115,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-076
-  title: Nexus Tool Executor Registration Must Be Unique
+  title: Grace Tool Executor Registration Must Be Unique
   description: Orchestrator.register_tools calls executor.register_for_execution exactly
     once per tool.
   requirement_id: REQ-076
@@ -228,7 +228,7 @@
   confidence: 1.0
 - id: TEST-086
   title: REPL Gates Execution on Preflight Acceptance
-  description: The Nexus REPL source must guard the orchestrator call so that `run_task`
+  description: The Grace REPL source must guard the orchestrator call so that `run_task`
     is only invoked when the preflight decision is `accepted`; any other decision
     must short-circuit and return to the prompt.
   requirement_id: REQ-086
@@ -262,7 +262,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-089
-  title: Nexus Live l1-nexus Smoke Test Script
+  title: Grace Live Legacy l1-nexus Smoke Test Script
   description: '`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)`
     function that POSTs a chat-completions request and returns a dict with `ok`, `content`,
     and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked
@@ -275,8 +275,8 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-090
-  title: Nexus Documentation Surfaces Broker, Preflight, and Gated Execution
-  description: '`ARCHITECTURE.md` and `README.md` must each contain a ''Nexus'' section
+  title: Grace Documentation Surfaces Broker, Preflight, and Gated Execution
+  description: '`ARCHITECTURE.md` and `README.md` must each contain a ''Grace'' section
     that mentions the broker, `specsmith preflight`, the REPL execution gate, and
     the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens
     outside fenced governance examples.'
@@ -335,7 +335,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-095
-  title: Nexus Live Smoke Evidence Captured
+  title: Grace Live Smoke Evidence Captured
   description: '`.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either
     a successful live smoke (`ok: true`) or an honest reason the live container could
     not be reached.'
@@ -508,7 +508,7 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-110
-  title: End-to-End Nexus Path Reaches Equilibrium
+  title: End-to-End Grace Path Reaches Equilibrium
   description: Driving a `FakeOrchestrator` through `execute_with_governance` with
     scripted attempt-1 failure and attempt-2 success yields `RunResult.success=True`,
     ledger gains a preflight + work_proposal entry, and retry strategy is empty.

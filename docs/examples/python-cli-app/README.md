@@ -3,9 +3,10 @@
 Command-line Python application with governed requirements and tests.
 
 ## Governance setup steps
-1. `specsmith init`
-2. `specsmith sync`
-3. `specsmith audit`
+1. `specsmith import --project-dir . --yes`
+2. `specsmith req add --title "Document one CLI behavior"`
+3. `specsmith test add --req REQ-001 --title "Exercise that behavior" --type cli`
+4. `specsmith preflight "Implement the CLI behavior. Scope: REQ-001" --json`
 
 ## Requirements file example
 `docs/requirements/cli.yml`
@@ -17,9 +18,10 @@ Command-line Python application with governed requirements and tests.
 ```yaml
 - name: Governance checks
   run: |
-    specsmith sync --check
-    specsmith audit
+    ruff check .
+    pytest -q
+    specsmith audit --project-dir .
 ```
 
 ## Agent integration file example
-`AGENTS.md`
+`AGENTS.md` or `specsmith run` (Grace local fallback)

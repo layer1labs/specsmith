@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import yaml
 from click.testing import CliRunner
 
 from specsmith.cli import main
@@ -50,25 +49,6 @@ def test_esdb_enable_same_path_skips_copy2(monkeypatch, tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     assert payload["ok"] is True
-
-
-def test_phase_next_skips_suppressed_phases(tmp_path: Path) -> None:
-    """#254: phase next should skip phases listed in suppressed_phases."""
-    scaffold = {
-        "name": "phase-regression",
-        "type": "cli-python",
-        "language": "python",
-        "aee_phase": "requirements",
-        "suppressed_phases": ["test_spec"],
-    }
-    (tmp_path / "scaffold.yml").write_text(yaml.safe_dump(scaffold), encoding="utf-8")
-
-    result = _invoke(["phase", "next", "--force", "--project-dir", str(tmp_path)])
-    assert result.exit_code == 0, result.output
-
-    updated = yaml.safe_load((tmp_path / "scaffold.yml").read_text(encoding="utf-8"))
-    assert updated["aee_phase"] == "implementation"
-    assert "Skipped suppressed phase" in result.output
 
 
 def test_doctor_json_outputs_overall_key(tmp_path: Path) -> None:

@@ -27,7 +27,7 @@ Until the project is stamped 1.0, the following surfaces may evolve. Each
 change ships with a CHANGELOG entry but does not require a major bump.
 - `src/specsmith/agent/*` Python APIs (verifier, events, memory, mcp,
   router, rules). Their **shape** is stable but signatures may grow.
-- The `specsmith chat` CLI flags. New event kinds and flags may be added;
+- The internal chat event protocol consumed by Grace and integrations. New event kinds may be added;
   existing keys will not be removed without a deprecation cycle.
 - `.specsmith/sessions/<id>/turns.jsonl` schema (REQ-120). Fields will be
   additive, but the file format itself may switch from JSONL to a
@@ -61,7 +61,7 @@ The payload has three top-level keys:
 - `exit_codes` — the semantic exit codes for `preflight` (0/2/3) and
   `verify` (0/2/3). These are part of the contract and downstream
   automation depends on them.
-- `event_types` — the JSONL event kinds emitted by `specsmith chat` and
+- `event_types` — the JSONL event kinds emitted to supported integrations and
   the `serve` SSE endpoint: `block_start`, `block_complete`, `token`,
   `plan_step`, `tool_call`, `tool_request`, `tool_result`, `diff`,
   `task_complete`. Adding new event types is non-breaking.

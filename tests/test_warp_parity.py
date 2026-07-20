@@ -223,59 +223,6 @@ def test_history_search_semantic_falls_back_to_keyword(tmp_path: Path) -> None:
     assert hits and hits[0].session_id == "alpha"
 
 
-# ---------------------------------------------------------------------------
-# CLI wiring — chat export-block / api-surface (REQ-140)
-# ---------------------------------------------------------------------------
-
-
-def test_cli_chat_export_block(tmp_path: Path) -> None:
-    project = tmp_path / "p"
-    project.mkdir()
-    _seed_session(
-        project,
-        "sess1",
-        [{"type": "token", "block_id": "blk_a", "text": "hello world"}],
-    )
-    runner = CliRunner()
-    res = runner.invoke(
-        main,
-        [
-            "chat-export-block",
-            "--project-dir",
-            str(project),
-            "--session-id",
-            "sess1",
-            "--block-id",
-            "blk_a",
-            "--format",
-            "json",
-        ],
-    )
-    assert res.exit_code == 0, res.output
-    payload = json.loads(res.output)
-    assert payload[0]["text"] == "hello world"
-
-
-def test_cli_chat_export_block_missing_block_exits_nonzero(tmp_path: Path) -> None:
-    project = tmp_path / "p"
-    project.mkdir()
-    _seed_session(project, "sess1", [{"type": "token", "block_id": "other"}])
-    runner = CliRunner()
-    res = runner.invoke(
-        main,
-        [
-            "chat-export-block",
-            "--project-dir",
-            str(project),
-            "--session-id",
-            "sess1",
-            "--block-id",
-            "missing",
-        ],
-    )
-    assert res.exit_code != 0
-
-
 def test_cli_api_surface_emits_stable_keys(tmp_path: Path) -> None:
     runner = CliRunner()
     snapshot = tmp_path / "surface.json"
@@ -289,22 +236,19 @@ def test_cli_api_surface_emits_stable_keys(tmp_path: Path) -> None:
     # File snapshot should match the printed output byte-for-byte.
     assert snapshot.read_text(encoding="utf-8") == res.output.strip()
 
-    # Required commands the 1.0 contract promises must remain present.
+    # Mission-essential and hidden CI commands remain in the frozen surface.
     required = {
         "preflight",
         "verify",
         "audit",
         "validate",
-        "scan",
         "doctor",
         "init",
         "import",
-        "ledger",
-        "drive",
-        "history",
-        "chat",
-        "chat-export-block",
+        "req",
+        "test",
+        "run",
+        "integrate",
         "api-surface",
-        "suggest-command",
     }
     assert required.issubset(set(payload["cli_commands"]))

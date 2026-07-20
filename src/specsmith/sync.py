@@ -573,12 +573,12 @@ def run_sync(root: Path, *, dry_run: bool = False) -> SyncResult:
     else:
         # ── Legacy Markdown mode (DEPRECATED — REQ-373) ──────────────────────
         # Markdown mode will be removed in a future release.
-        # Run 'specsmith migrate run' to upgrade to YAML-first mode.
+        # Forward migration is automatic and non-destructive.
         import warnings as _warnings
 
         _warnings.warn(
             "specsmith: markdown governance mode is deprecated. "
-            "Run 'specsmith migrate run' to migrate to YAML-first mode. "
+            "Run 'specsmith doctor' to verify automatic migration to YAML-first mode. "
             "Markdown mode will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,

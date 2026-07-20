@@ -859,7 +859,7 @@ Reads YAML sources and regenerates Markdown artifacts. Does not rewrite the JSON
 | File | REQ range | Domain |
 |---|---|---|
 | `docs/requirements/governance.yml` | REQ-001..064 | Core AEE governance |
-| `docs/requirements/agent.yml` | REQ-065..129 | Nexus + CI |
+| `docs/requirements/agent.yml` | REQ-065..129 | Grace + CI |
 | `docs/requirements/harness.yml` | REQ-130..160 | Slash commands + subagents |
 | `docs/requirements/intelligence.yml` | REQ-161..220 | Instinct, eval, memory |
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
@@ -944,15 +944,15 @@ Appends a "Governance commands (specsmith_run / /specsmith)" section documenting
 
 Both steps support `dry_run=True` (reports what would change without writing) and `rollback()` (restores backup, removes `agent-tools.json`). M005 is registered in `MigrationRegistry` and runs automatically via `specsmith migrate-project`.
 
-## 35. Nexus REPL — /specsmith Slash-Command Handler
+## 35. Grace REPL — /specsmith Slash-Command Handler
 Source: `src/specsmith/agent/repl.py` §`/specsmith` handler
 
-The Nexus REPL (`specsmith run`) handles `/specsmith <args>` as a first-class slash command (REQ-340):
+The Grace REPL (`specsmith run`) handles `/specsmith <args>` as a first-class slash command (REQ-340):
 
 ```
-nexus> /specsmith save
-nexus> /specsmith audit --strict
-nexus> /specsmith status
+grace> /specsmith save
+grace> /specsmith audit --strict
+grace> /specsmith status
 ```
 
 Implementation:

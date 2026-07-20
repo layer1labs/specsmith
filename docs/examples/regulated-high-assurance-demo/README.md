@@ -3,10 +3,11 @@
 High-assurance project with strict traceability and evidence export requirements.
 
 ## Governance setup steps
-1. `specsmith init`
-2. `specsmith preflight "regulated change"`
-3. `specsmith verify`
-4. `specsmith export`
+1. `specsmith import --project-dir . --yes`
+2. Copy `examples/policies/strict-policy.yml` to `.specsmith/policy.yml`.
+3. Add one requirement and its linked test.
+4. `specsmith preflight "Implement the governed behavior. Scope: REQ-001" --json`
+5. Run native tests, `specsmith audit`, and obtain the configured release approval.
 
 ## Requirements file example
 `docs/requirements/compliance.yml`
@@ -18,9 +19,10 @@ High-assurance project with strict traceability and evidence export requirements
 ```yaml
 - name: High-assurance governance gate
   run: |
-    specsmith audit
-    specsmith export --format json > compliance.json
+    pytest -q
+    specsmith audit --project-dir .
+    specsmith checkpoint --project-dir .
 ```
 
 ## Agent integration file example
-`docs/skills/specsmith-audit/SKILL.md`
+`AGENTS.md`; add only the focused Specsmith integration skill required by the host.

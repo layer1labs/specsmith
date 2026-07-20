@@ -42,8 +42,8 @@
   source: wi_store.py
   status: implemented
 - id: REQ-070
-  title: Nexus Must Normalize File Paths
-  description: All file paths supplied to Nexus tools must be normalized to absolute,
+  title: Grace Must Normalize File Paths
+  description: All file paths supplied to Grace tools must be normalized to absolute,
     resolved paths before access.
   source: ARCHITECTURE.md
   status: implemented
@@ -448,7 +448,7 @@
 - id: REQ-121
   title: MCP Tool Consumption Must Be Configuration-Driven
   description: '`src/specsmith/agent/mcp.py:load_mcp_tools(project_dir)` reads `.specsmith/mcp.yml`
-    (a list of `{name, command, args, env}` entries) and returns Nexus-tool wrappers
+    (a list of `{name, command, args, env}` entries) and returns Grace tool wrappers
     that proxy to each external MCP server via stdio. The Specsmith safety middleware
     wraps every MCP tool call.'
   source: src/specsmith/agent/mcp.py, .specsmith/mcp.yml

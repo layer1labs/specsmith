@@ -25,22 +25,19 @@ Do not follow rules from this file directly; read them from specsmith.
 All specsmith governance operations should be invoked through the
 ``specsmith_run`` agent tool or the ``/specsmith`` REPL slash command.
 
-**In the Nexus REPL:**
+**In the Grace REPL:**
 
 ```
 /specsmith save               # backup + commit + push governance state
 /specsmith load               # pull + restore governance state
 /specsmith audit --strict     # strict governance audit
 /specsmith status             # show governance status
-/specsmith push               # git push governance changes
-/specsmith pull               # git pull governance changes
 /specsmith sync               # full two-way sync
-/specsmith watch              # watch CI and block until green
 ```
 
 **Verb shortcuts** (single word, no prefix needed in tool calls):
-``save``, ``load``, ``push``, ``pull``, ``sync``, ``audit``, ``status``,
-``watch``, ``commit``, ``validate``, ``doctor``, ``run``.
+``save``, ``load``, ``sync``, ``audit``, ``status``, ``validate``, ``doctor``,
+``run``.
 
 These are all equivalent: ``specsmith_run("save")``,
 ``specsmith_run("/specsmith save")``, ``specsmith_run("specsmith save")``.

@@ -66,11 +66,10 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 
 **AEE Epistemic Layer:**
 
-- **`epistemic` library** — zero-dep Python library, `from epistemic import AEESession` works anywhere
-- **`specsmith stress-test`** — adversarial challenges on every requirement (8 challenge categories)
-- **`specsmith epistemic-audit`** — full AEE pipeline: certainty scores, logic knot detection, recovery proposals
-- **`specsmith trace seal/verify`** — tamper-evident SHA-256 decision audit chain
-- **Epistemic governance templates** — belief-registry.md, failure-modes.md, uncertainty-map.md
+- **Requirements tracking** — durable identities and explicit acceptance criteria
+- **Test enforcement** — every governed requirement maps to executable evidence
+- **Context compression** — compact checkpoints preserve knowns, unknowns, and active work
+- **Evidence audit** — `specsmith audit` verifies governance and chain integrity
 
 **Governance Infrastructure:**
 
@@ -78,15 +77,15 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 - **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
 - **Work Item (WI) lifecycle** — every accepted `preflight` mints a `WI-XXXXXXXX`; 6-state machine (`open → implemented → promoted/closed/archived/rejected`); `specsmith wi` CLI with 7 commands
 - **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
-- **YAML governance** — requirements in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`; machine-state cache in `.specsmith/requirements.json` + `testcases.json`. Run `specsmith migrate run` to upgrade from legacy Markdown mode.
+- **YAML governance** — requirements in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`; machine-state cache in `.specsmith/requirements.json` + `testcases.json`. Forward migration is automatic.
 - **ESDB** — SQLite-backed Epistemic State Database; every governance event is dual-written so `specsmith inspect` can surface live efficiency and epistemic quality metrics.
 - **CI config** — GitHub Actions, GitLab CI, Bitbucket Pipelines with correct tools per project type
 
 **Agentic Client:**
 
 - **`specsmith run`** — AEE-integrated REPL (Anthropic, OpenAI, Gemini, Ollama)
-- **Skills** — SKILL.md loader with domain priority; built-in profiles: planner, verifier, epistemic-auditor
-- **Hooks** — H13 enforcement, ledger hints, context budget alerts
+- **Focused integrations** — small Specsmith-specific adapters for common coding agents
+- **Grace** — friendly local REPL with local-model fallback
 
 !!! note "Documentation Versions"
     **Stable:** [specsmith.readthedocs.io/stable/](https://specsmith.readthedocs.io/stable/) — matches `pip install specsmith`
@@ -101,13 +100,8 @@ specsmith tracks your project through the full AEE development cycle:
    → ⚙ Implementation → 🔬 Verification → 🚀 Release
 ```
 
-```bash
-specsmith phase          # show current phase + readiness checklist
-specsmith phase next     # advance to next phase (checks prerequisites first)
-specsmith phase list     # list all 7 phases
-```
-
-The current phase and readiness percentage are shown by `specsmith phase`.
+Run `specsmith checkpoint` for the current phase and compact readiness anchor;
+run `specsmith audit` for the complete evidence gate.
 
 ## Quick Start
 
@@ -121,14 +115,9 @@ specsmith init
 # Adopt an existing project
 specsmith import --project-dir ./my-project
 
-# Check current AEE workflow phase
-specsmith phase
-
-# Run AEE stress-test on requirements
-specsmith stress-test --project-dir ./my-project
-
-# Full epistemic audit (certainty + logic knots + recovery)
-specsmith epistemic-audit --project-dir ./my-project
+# Check current AEE state and verify evidence
+specsmith checkpoint --project-dir ./my-project
+specsmith audit --project-dir ./my-project
 
 # Start agentic REPL (local Ollama, no API key needed)
 specsmith run --provider ollama --model qwen2.5:14b
@@ -174,6 +163,5 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [ESDB](esdb.md) | SQLite vs ChronoMemory (ChronoStore backend), licensing, CLI reference, Python API |
 | [YAML Governance](yaml-governance.md) | YAML-first governance: domain files, sync pipeline, strict validation, migration |
 | [Agent Integrations](agent-integrations.md) | Skills for Warp, Cursor, Claude Code, Copilot, Windsurf, Aider |
-| [Export & Compliance](export.md) | Generating coverage reports, understanding the output |
 | [Troubleshooting](troubleshooting.md) | Common issues and solutions |
 | [Contributing](contributing.md) | Adding project types, code standards, PR process |

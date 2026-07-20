@@ -5,7 +5,7 @@
 #
 # PID files: .specsmith/pids/<pid>.json (for specsmith ps / specsmith abort)
 # Logs:      .specsmith/logs/exec_<timestamp>.stdout/.stderr
-# Prefer:    specsmith exec "<command>" --timeout <N>  (Python-based, full tracking)
+# Use this shim when the host agent does not provide bounded command execution.
 set -uo pipefail
 
 TIMEOUT_SECONDS="${1:?Usage: exec.sh <timeout_seconds> <command...>}"

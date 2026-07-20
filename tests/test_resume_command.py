@@ -95,62 +95,6 @@ def test_resume_cmd_json_has_efficiency_when_eff_current_present(
 # ---------------------------------------------------------------------------
 
 
-def test_ledger_export_esdb_source(tmp_project: Path) -> None:
-    """ledger export --source esdb --json returns ledger_event records from ESDB."""
-    from specsmith.cli import main
-    from specsmith.esdb_writer import write_ledger_event
-
-    write_ledger_event(tmp_project, description="ledger entry A", author="test")
-    write_ledger_event(tmp_project, description="ledger entry B", author="test")
-    write_ledger_event(tmp_project, description="ledger entry C", author="test")
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["ledger", "export", "--json", "--source", "esdb", "--project-dir", str(tmp_project)],
-    )
-    assert result.exit_code == 0
-    entries = json.loads(result.output)
-    assert len(entries) == 3
-    descs = {e["description"] for e in entries}
-    assert "ledger entry A" in descs
-    assert "ledger entry C" in descs
-
-
-def test_ledger_export_file_source(tmp_project: Path) -> None:
-    """ledger export --source file reads from LEDGER.md."""
-    from specsmith.cli import main
-
-    ledger_path = tmp_project / "LEDGER.md"
-    ledger_path.write_text(
-        "# Change Ledger\n"
-        "\n## 2026-06-01T10:00 — entry one\n- **Author**: test\n"
-        "\n## 2026-06-02T11:00 — entry two\n- **Author**: test\n",
-        encoding="utf-8",
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["ledger", "export", "--json", "--source", "file", "--project-dir", str(tmp_project)],
-    )
-    assert result.exit_code == 0
-    entries = json.loads(result.output)
-    assert len(entries) >= 2
-
-
-def test_ledger_export_no_entries_exits_ok(tmp_project: Path) -> None:
-    """ledger export exits 0 with a message when no entries are found."""
-    from specsmith.cli import main
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["ledger", "export", "--project-dir", str(tmp_project)],
-    )
-    assert result.exit_code == 0
-
-
 # ---------------------------------------------------------------------------
 # specsmith esdb sweep
 # ---------------------------------------------------------------------------

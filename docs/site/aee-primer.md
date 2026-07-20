@@ -35,7 +35,7 @@ quality of these claims, you cannot know:
 - Whether a critical requirement has any experimental or test coverage
 - Whether a decision was made with explicit awareness of its assumptions
 
-AEE provides that framework. When you run `specsmith epistemic-audit`, you are running
+AEE provides that framework. When you run `specsmith audit`, you are running
 a formal epistemic quality check on everything the project claims to know.
 
 ---
@@ -87,7 +87,7 @@ Systematic application of the Stress-Test operator (S) and Recovery operator (R)
 converges to an Equilibrium Point E where S(G) yields no new failure modes.
 
 In practice: `FailureModeGraph.equilibrium_check()` returns True when the system has
-reached E. You can confirm this with `specsmith epistemic-audit`.
+reached E. You can confirm this with `specsmith audit`.
 
 ### The Key Operators
 
@@ -227,7 +227,7 @@ specsmith's REQUIREMENTS.md format is designed to be directly parseable as Belie
 - **Test**: TEST-CLI-002
 ```
 
-Run `specsmith belief-graph` to see all your requirements as BeliefArtifacts.
+Run `specsmith req list` to inspect governed requirements and their identities.
 
 ---
 
@@ -355,11 +355,9 @@ all subsequent records' `prev_hash` references. Verification is O(n) in the numb
 | Stress-test run complete | stress-test |
 | Any significant epistemic state change | epistemic |
 
-```bash
-specsmith trace seal decision "Adopted PostgreSQL as primary database"
-specsmith trace seal audit-gate "Phase 1 epistemic audit passed — equilibrium reached"
-specsmith trace verify
-```
+Important decisions become durable evidence when requirements, tests, and work
+items are synchronized. Run `specsmith audit` to verify the complete evidence
+chain and `specsmith checkpoint` to emit a compact continuity anchor.
 
 ---
 
@@ -367,20 +365,20 @@ specsmith trace verify
 
 ### The AEE Development Loop
 
-1. **Write requirements** in `docs/REQUIREMENTS.md`
-2. **Run** `specsmith stress-test` — surface failure modes
-3. **Review** failure modes — which are real, which are acceptable?
-4. **Fix** the real failures (add tests, split requirements, add boundaries)
-5. **Run** `specsmith epistemic-audit` — check certainty and equilibrium
-6. **Seal** the state: `specsmith trace seal audit-gate "Sprint 3 complete"`
-7. **Commit** with `specsmith commit` (pre-commit audit runs automatically)
+1. **Write requirements** in `docs/requirements/*.yml`.
+2. **Register tests** in `docs/tests/*.yml` and link every requirement.
+3. **Preflight** the intended change before editing.
+4. **Implement and run** the repository's native test suite.
+5. **Verify** the work item and synchronize governance state.
+6. **Audit** the evidence chain and emit a checkpoint.
+7. Commit with the repository's native Git tooling.
 
 ### Integration with CI/CD
 
 Add to your CI pipeline:
 ```yaml
-- name: Epistemic audit
-  run: specsmith epistemic-audit --threshold 0.6
+- name: Specsmith governance audit
+  run: specsmith audit --strict
 ```
 
 This will fail the build if the belief system falls below 60% overall certainty.

@@ -50,13 +50,8 @@ If a cheaper check fails, fix that before running more expensive checks.
 - **medium** — multi-file implementation, routine refactors, standard test runs
 - **high** — architecture changes, large builds, broad audits
 
-## Credit tracking
+## Cost awareness
 
-This project tracks AI credit spend automatically. At the end of each session:
-
-1. Record usage: `specsmith credits record --model <model> --provider <provider> --tokens-in <N> --tokens-out <N> --task "<description>"`
-2. Check budget: `specsmith credits summary`
-3. If budget alerts appear, review with: `specsmith credits analyze`
-
-Budget configuration: `specsmith credits budget --cap <USD> --alert-pct 80`
-Credit data stored in `.specsmith/credits.json` (gitignored).
+Use the model provider's native usage controls for billing limits. Specsmith
+focuses on reducing context through `checkpoint`, `context`, and `compress`, and
+reports governance efficiency through `inspect`.

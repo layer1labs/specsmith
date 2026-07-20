@@ -18,8 +18,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from click.testing import CliRunner
-
 from specsmith.architect import (
     _ARCH_SNAPSHOT_FILE,
     _INTERVIEW_STATE_FILE,
@@ -30,7 +28,6 @@ from specsmith.architect import (
     run_interview,
     score_answer,
 )
-from specsmith.cli import main
 
 
 class TestScoreAnswer:
@@ -279,110 +276,3 @@ class TestRunArchUpdate:
 
         result = run_arch_update(tmp_path, non_interactive=True)
         assert "gap" in result, "result should include gap analysis output"
-
-
-class TestArchitectInterviewCLI:
-    """CLI: specsmith architect interview --non-interactive."""
-
-    def test_interview_non_interactive_exits_zero(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["architect", "interview", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert result.exit_code == 0, (
-            f"Expected exit_code=0, got {result.exit_code}\nOutput: {result.output}"
-        )
-
-    def test_interview_creates_architecture_md(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        runner.invoke(
-            main,
-            ["architect", "interview", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert (tmp_path / "docs" / "ARCHITECTURE.md").exists(), (
-            "docs/ARCHITECTURE.md must be created by interview command"
-        )
-
-    def test_interview_creates_proposed_reqs(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        runner.invoke(
-            main,
-            ["architect", "interview", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert (tmp_path / "docs" / "requirements" / "proposed.yml").exists(), (
-            "docs/requirements/proposed.yml must be created"
-        )
-
-    def test_interview_output_mentions_architecture(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["architect", "interview", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert result.exit_code == 0
-        output_lower = result.output.lower()
-        assert "architecture" in output_lower or "interview" in output_lower
-
-
-class TestArchitectGapCLI:
-    """CLI: specsmith architect gap."""
-
-    def test_gap_saves_snapshot_on_first_call(self, tmp_path: Path) -> None:
-        arch_path = tmp_path / "docs" / "ARCHITECTURE.md"
-        arch_path.parent.mkdir(parents=True, exist_ok=True)
-        arch_path.write_text("# Architecture\n\n## Overview\nSystem overview.\n", encoding="utf-8")
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["architect", "gap", "--project-dir", str(tmp_path)])
-        assert result.exit_code == 0, (
-            f"Expected exit_code=0, got {result.exit_code}\nOutput: {result.output}"
-        )
-
-    def test_gap_save_flag_creates_snapshot(self, tmp_path: Path) -> None:
-        arch_path = tmp_path / "docs" / "ARCHITECTURE.md"
-        arch_path.parent.mkdir(parents=True, exist_ok=True)
-        arch_path.write_text("# Architecture\n\n## Overview\nSystem overview.\n", encoding="utf-8")
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["architect", "gap", "--project-dir", str(tmp_path), "--save"])
-        assert result.exit_code == 0
-        assert (tmp_path / _ARCH_SNAPSHOT_FILE).exists()
-
-    def test_gap_no_arch_exits_cleanly(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(main, ["architect", "gap", "--project-dir", str(tmp_path)])
-        # Should complete without crash
-        assert result.exit_code == 0
-
-
-class TestArchitectUpdateCLI:
-    """CLI: specsmith architect update --non-interactive."""
-
-    def test_update_non_interactive_exits_zero(self, tmp_path: Path) -> None:
-        arch_path = tmp_path / "docs" / "ARCHITECTURE.md"
-        arch_path.parent.mkdir(parents=True, exist_ok=True)
-        arch_path.write_text("# Architecture\n\n## Overview\nExisting system.\n", encoding="utf-8")
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["architect", "update", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert result.exit_code == 0, (
-            f"Expected exit_code=0, got {result.exit_code}\nOutput: {result.output}"
-        )
-
-    def test_update_saves_snapshot(self, tmp_path: Path) -> None:
-        arch_path = tmp_path / "docs" / "ARCHITECTURE.md"
-        arch_path.parent.mkdir(parents=True, exist_ok=True)
-        arch_path.write_text("# Architecture\n\n## Overview\nExisting system.\n", encoding="utf-8")
-
-        runner = CliRunner()
-        runner.invoke(
-            main,
-            ["architect", "update", "--project-dir", str(tmp_path), "--non-interactive"],
-        )
-        assert (tmp_path / _ARCH_SNAPSHOT_FILE).exists(), (
-            "arch-snapshot.md must be created by update command"
-        )

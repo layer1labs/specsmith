@@ -3,9 +3,10 @@
 Frontend React application with requirements, test mapping, and governance checkpoints.
 
 ## Governance setup steps
-1. `specsmith init`
-2. `specsmith sync`
-3. `specsmith preflight "implement UI change"`
+1. `specsmith import --project-dir . --yes`
+2. `specsmith req add --title "Describe the visible UI behavior"`
+3. `specsmith test add --req REQ-001 --title "Verify the UI behavior" --type e2e`
+4. `specsmith preflight "Implement the UI behavior. Scope: REQ-001" --json`
 
 ## Requirements file example
 `docs/requirements/frontend.yml`
@@ -17,8 +18,8 @@ Frontend React application with requirements, test mapping, and governance check
 ```yaml
 - name: Governed frontend pipeline
   run: |
-    specsmith audit
     npm test -- --runInBand
+    specsmith audit --project-dir .
 ```
 
 ## Agent integration file example

@@ -171,24 +171,6 @@ def test_voice_is_available_with_stub(monkeypatch: pytest.MonkeyPatch) -> None:
     assert is_available() is True
 
 
-def test_voice_cli_transcribe_stub(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SPECSMITH_VOICE_STUB", "transcribed text")
-    audio = tmp_path / "audio.wav"
-    audio.write_bytes(b"\0")
-    runner = CliRunner()
-    res = runner.invoke(main, ["voice", "transcribe", str(audio)])
-    assert res.exit_code == 0
-    assert "transcribed text" in res.output
-
-
-def test_voice_cli_status_with_stub(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SPECSMITH_VOICE_STUB", "1")
-    runner = CliRunner()
-    res = runner.invoke(main, ["voice", "status"])
-    assert res.exit_code == 0
-    assert "available" in res.output
-
-
 # ---------------------------------------------------------------------------
 # REQ-140: api-surface stability snapshot
 # ---------------------------------------------------------------------------
@@ -240,8 +222,8 @@ def test_package_module_api_surface_matches_fixture() -> None:
     assert json.loads(result.stdout) == json.loads(_FIXTURE.read_text(encoding="utf-8"))
 
 
-def test_api_surface_contains_required_1_0_commands() -> None:
-    """Spot-check that the 1.0 contract commands are still in the surface."""
+def test_api_surface_contains_required_focused_commands() -> None:
+    """Spot-check that the focused public contract remains in the surface."""
     runner = CliRunner()
     res = runner.invoke(main, ["api-surface"])
     payload = json.loads(res.output)
@@ -251,17 +233,13 @@ def test_api_surface_contains_required_1_0_commands() -> None:
         "audit",
         "validate",
         "doctor",
-        "scan",
         "init",
         "import",
-        "ledger",
-        "drive",
-        "history",
-        "chat",
-        "chat-export-block",
-        "voice",
+        "req",
+        "test",
+        "run",
+        "integrate",
         "api-surface",
-        "suggest-command",
         "serve",
     }
     assert required.issubset(set(payload["cli_commands"]))

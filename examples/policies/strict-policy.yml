@@ -1,14 +1,16 @@
 required_preflight: true
 required_tests: true
 required_human_approval:
-  - plan
-  - implementation
-  - verification
-risk_threshold: medium
+  - release
+risk_threshold: high
 agent_allowlist:
-  - nexus
+  - grace
 command_denylist:
   - rm -rf
+  - git reset --hard
+  - git push --force
+  - Remove-Item -Recurse -Force
 evidence_requirements:
-  - transcripts
-  - approvals
+  - diff
+  - tests
+  - audit

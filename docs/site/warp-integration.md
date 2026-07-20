@@ -160,19 +160,19 @@ Opening the specsmith repo in Warp automatically makes seven governance workflow
 
 | Workflow name | What it runs | When to use |
 |---|---|---|
-| specsmith — Session Start | kill → migrate → audit → sync → checkpoint | Start of every session |
+| specsmith — Session Start | kill → doctor → audit → sync → checkpoint | Start of every session |
 | specsmith — Audit | `specsmith audit` | Check governance health |
 | specsmith — Checkpoint | `specsmith checkpoint` | Every 8–10 turns, or before a context summary |
 | specsmith — Preflight | `specsmith preflight "{{intent}}" --json` | Before any code change |
 | specsmith — Save | `specsmith save` | After completing a feature or fix |
-| specsmith — Phase Status | `specsmith phase show` | See current AEE phase + failing checks |
+| specsmith — Status | `specsmith status` | See current AEE phase and governance state |
 | specsmith — Session End | `specsmith save && specsmith kill-session` | End of every session |
 
 ### Session workflow
 
 ```
 1. Ctrl+Shift+R → "specsmith session start" → Enter
-   (runs: kill → migrate → audit → sync → checkpoint)
+   (runs: kill → doctor → audit → sync → checkpoint)
 
 2. Make your changes, using Preflight before each one
 
