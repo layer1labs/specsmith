@@ -448,3 +448,23 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `a4628b67dbf78bda...`
+
+## 2026-07-20T14:35 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `7f5fbc689befee88...`
+
+## 2026-07-20T14:41 — wi_archive WI-BE5F37C67276: Superseded by explicit maintainer confirmation and accepted release preflight WI-2C46E6D43D25.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `1e8dcb93f8f2fe02...`
+
+## 2026-07-20T14:42 — wi_close WI-2C46E6D43D25: v0.25.0 tag and trusted publication completed; GitHub Release, PyPI artifacts, release seal, checksums, and publication receipt verified.
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `aa24294cf6eceb4d...`
