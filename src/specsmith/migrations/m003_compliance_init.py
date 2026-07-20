@@ -39,7 +39,7 @@ Each file overrides the built-in regulation status for this project:
   # Store results to ESDB audit trail
   specsmith compliance audit
 
-See: https://specsmith.readthedocs.io/en/stable/compliance/
+See: https://specsmith.readthedocs.io/stable/compliance/
 """
 
 _EU_OVERLAY = """\

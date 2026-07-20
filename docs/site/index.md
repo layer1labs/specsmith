@@ -89,8 +89,8 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 - **Hooks** — H13 enforcement, ledger hints, context budget alerts
 
 !!! note "Documentation Versions"
-    **Stable:** [specsmith.readthedocs.io/en/stable/](https://specsmith.readthedocs.io/en/stable/) — matches `pip install specsmith`
-    **Dev (latest):** [specsmith.readthedocs.io/en/latest/](https://specsmith.readthedocs.io/en/latest/) — matches `pip install --pre specsmith`
+    **Stable:** [specsmith.readthedocs.io/stable/](https://specsmith.readthedocs.io/stable/) — matches `pip install specsmith`
+    **Dev (latest):** [specsmith.readthedocs.io/latest/](https://specsmith.readthedocs.io/latest/) — matches `pip install --pre specsmith`
 
 ## The AEE Workflow — 7 Phases
 

@@ -80,7 +80,7 @@ specsmith esdb status
 ```
 
 Obtain a license: [licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) ·
-[ESDB licensing docs](https://specsmith.readthedocs.io/en/stable/esdb/#licensing)
+[ESDB licensing docs](https://specsmith.readthedocs.io/stable/esdb/#licensing)
 
 Full backend comparison, Python API, and CLI reference: [ESDB docs](esdb.md)
 

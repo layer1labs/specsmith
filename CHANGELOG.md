@@ -10,6 +10,10 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Fixed
+- Public documentation links now use Read the Docs' active translation-free
+  `/stable/` and `/latest/` routes instead of obsolete `/en/` routes.
+
 ## [0.24.0] - 2026-07-20
 
 ### Added
