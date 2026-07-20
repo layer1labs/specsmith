@@ -8,7 +8,7 @@ items.
 
 Boundary
 --------
-Per ARCHITECTURE.md "Nexus Broker Boundary":
+Per ARCHITECTURE.md "Grace Broker Boundary":
 
 * Specsmith is the only source of governance truth. The broker calls
   ``specsmith preflight`` and ``specsmith verify`` and renders their JSON
@@ -115,6 +115,8 @@ _REFACTOR_PATTERNS = (
 _CHANGE_PATTERNS = (
     re.compile(r"\b(fix|repair|patch)\b", re.IGNORECASE),
     re.compile(r"\b(add|implement|create|introduce|build)\b", re.IGNORECASE),
+    re.compile(r"\b(optimi[sz]e|improve|speed\s+up)\b", re.IGNORECASE),
+    re.compile(r"\bmake\b.+\b(faster|safer|clearer|smaller|more\s+reliable)\b", re.IGNORECASE),
     re.compile(r"\b(rename)\b", re.IGNORECASE),
     re.compile(r"\b(update|migrate|upgrade|edit)\b", re.IGNORECASE),
     re.compile(r"\b(remove|delete)\s+(the\s+)?(unused|stale|legacy)\b", re.IGNORECASE),
@@ -720,7 +722,7 @@ def broker_step(
     """Single-shot, side-effect-free broker pipeline used by the REPL.
 
     This intentionally stops *before* execute_with_governance because actually
-    performing the work requires a wired-up Nexus orchestrator, which the REPL
+    performing the work requires a wired-up Grace orchestrator, which the REPL
     constructs separately. ``broker_step`` is the deterministic preflight +
     narrate pipeline.
     """

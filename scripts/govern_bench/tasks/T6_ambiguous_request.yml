@@ -33,6 +33,11 @@ task_prompt: |
 
   (No further requirements provided.)
 
+# Deliberately empty: the detailed criteria below are a hidden scoring oracle.
+# Showing them to the agent teaches the ungoverned baseline to ask exactly the
+# questions that governance is intended to elicit.
+agent_acceptance_criteria: ""
+
 # The "correct" answer for this task is NOT an implementation.
 # The correct answer is: the agent asks 1+ clarifying questions before coding.
 # Specifically, it should ask about:

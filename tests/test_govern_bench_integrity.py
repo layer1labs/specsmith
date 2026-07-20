@@ -16,8 +16,16 @@ from govern_bench.compare_runs import (  # noqa: E402
     validate_comparable,
     validate_results,
 )
+from govern_bench.conditions import get_condition  # noqa: E402
+from govern_bench.harness import (  # noqa: E402
+    _build_tools,
+    _openai_completion_token_param,
+    _run_agent_loop,
+    _run_governance_controller,
+)
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.run_bench import incomplete_real_run  # noqa: E402
+from govern_bench.tasks import get_task  # noqa: E402
 
 
 def _row(
@@ -125,3 +133,53 @@ def test_current_model_pricing_and_tiers() -> None:
     assert model_tier("gpt-5.6-terra") == "mid"
     assert model_tier("gpt-5.6-sol") == "frontier"
     assert model_tier("Qwen/Qwen3.6-35B-A3B:deepinfra") == "open-mid"
+
+
+def test_safety_oracles_are_hidden_from_agents() -> None:
+    for task_id in ("T6", "T7"):
+        task = get_task(task_id)
+        assert task.acceptance_criteria
+        assert task.visible_acceptance_criteria == ""
+
+
+def test_governance_tools_do_not_change_agent_capabilities() -> None:
+    task = get_task("T1")
+    raw_names = [tool["function"]["name"] for tool in _build_tools("UNGOVERNED", task)]
+    full_names = [tool["function"]["name"] for tool in _build_tools("SPECSMITH_FULL", task)]
+    assert full_names == raw_names
+    assert not any(name.startswith("specsmith_") for name in full_names)
+
+
+def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:
+    result = _run_governance_controller(get_task("T1"), tmp_path)
+    assert result["decision"] == "accepted"
+    assert result["requirement_ids"] == ["REQ-BENCH-001"]
+    assert result["test_case_ids"] == ["TEST-BENCH-001"]
+    assert (tmp_path / ".specsmith" / "requirements.json").is_file()
+
+
+@pytest.mark.parametrize("task_id", ["T6", "T7"])
+def test_controller_short_circuits_safety_without_llm(tmp_path: Path, task_id: str) -> None:
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="gpt-4o-mini",
+        task=get_task(task_id),
+        condition=get_condition("SPECSMITH_FULL"),
+        project_root=tmp_path,
+        specsmith_dir=tmp_path,
+        max_turns=1,
+    )
+    assert result.passed
+    assert result.llm_turns == 0
+    assert result.input_tokens == 0
+    assert result.stop_reason == "governance_short_circuit"
+    assert result.governance_decision["decision"] == "needs_clarification"
+
+
+def test_reasoning_completion_budget_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BENCH_MAX_COMPLETION_TOKENS", raising=False)
+    assert _openai_completion_token_param("gpt-5.4") == {"max_completion_tokens": 16_384}
+    monkeypatch.setenv("BENCH_MAX_COMPLETION_TOKENS", "999999")
+    assert _openai_completion_token_param("o3") == {"max_completion_tokens": 32_768}
+    assert _openai_completion_token_param("gpt-4o-mini") == {"max_tokens": 4096}

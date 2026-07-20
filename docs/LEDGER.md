@@ -379,3 +379,41 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `a25b7b6f3dade264...`
+
+## 2026-07-19T17:51 — wi_archive WI-84F159747478: Completed one-time merged release-branch cleanup; superseded by verified final branch inventory and not an enduring product requirement.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `1e5477eeb7daf505...`
+
+## 2026-07-19T17:51 — wi_archive WI-EA9A0DEE9C7B: Duplicate confirmation record for completed release-branch cleanup; no enduring product behavior or test applies.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `8414c016e736ccc6...`
+
+## 2026-07-19T17:51 — wi_archive WI-ACB1C7B2BB73: Completed verified local release-ref cleanup; this transient operational record is retired.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `b1d4afffb7a9a2eb...`
+
+## 2026-07-20T07:40 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `d47754c9cbc3776e...`
+
+## 2026-07-20T08:03 — wi_archive WI-1E2058B99D27: Duplicate naming-cleanup preflight was classified as read-only; implementation and tests are covered by WI-A612CD84A61D and the Grace runtime test suite.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `25db5255c1b4f69a...`
+
+## 2026-07-20T08:05 — wi_archive WI-CA5C67C11D9C: Git publication preflight was classified as read-only and created no requirement/test links; the implementation remains covered by WI-1D103E0FF6EF, WI-290309DCF2FB, and WI-A612CD84A61D.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `ddbf1e59c1a0dcc2...`

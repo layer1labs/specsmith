@@ -12,7 +12,7 @@ Usage:
     # Run against an OpenAI-compatible endpoint (vLLM/Ollama):
     python -m govern_bench.run_bench --provider openai-compat --base-url http://localhost:8000/v1
 
-    # Run the full benchmark (7 tasks × 6 conditions × 5 reps = 210 runs):
+    # Run the complete current task/condition matrix:
     python -m govern_bench.run_bench --reps 5 --output docs/site/efficiency-benchmark.md
 
     # Run only governance-gate tasks (T6, T7) across all conditions:
@@ -31,6 +31,10 @@ Environment variables:
     HF_TOKEN              Required for provider=huggingface (HuggingFace Inference API token)
     BENCH_OPENAI_BASE_URL Default base URL for provider=openai-compat
     BENCH_DRY_RUN         Set to '1' to skip actual agent calls (for CI)
+    BENCH_MAX_TURNS       LLM turn cap per cell (default: 8)
+    BENCH_CONTEXT_BYTES   Initial bounded file context (default: 6000)
+    BENCH_TEMPERATURE     Reproducible sampling temperature where supported (default: 0.2)
+    BENCH_MAX_COMPLETION_TOKENS  Reasoning-model completion cap (default: 16384; max: 32768)
 """
 
 from __future__ import annotations
@@ -179,9 +183,6 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
         "CLINE_RULES": 230,  # defensive read-before-modify overhead
         "AGILE_TDD": 600,  # test-first adds a full RED phase turn
         "AIDER_CONVENTIONS": 280,  # conventions doc + architecture context
-        # Multi-agent dispatch (DAG planning overhead is high; but parallel
-        # execution means wall-clock is lower and coverage is deeper).
-        "SPECSMITH_DISPATCH": 2000,  # DAG plan + N parallel builders + verifier
     }
     base_pass_rates = {
         # Original six (research-calibrated)
@@ -198,10 +199,6 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
         "CLINE_RULES": 0.63,  # defensive rules reduce scope drift
         "AGILE_TDD": 0.75,  # test-first catches regressions early
         "AIDER_CONVENTIONS": 0.67,  # conventions reduce style errors
-        # Multi-agent: higher pass rate due to parallel verification + gating
-        # (each subtask independently verified before merge); cost-of-pass is
-        # competitive despite higher token overhead because correctness is ~0.97.
-        "SPECSMITH_DISPATCH": 0.97,
     }
     base_quality = {
         "UNGOVERNED": 0.55,
@@ -216,8 +213,6 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
         "CLINE_RULES": 0.69,
         "AGILE_TDD": 0.78,
         "AIDER_CONVENTIONS": 0.71,
-        # Dispatch: highest quality — parallel Verifier node enforces full test coverage
-        "SPECSMITH_DISPATCH": 0.94,
     }
 
     overhead = governance_overhead.get(condition_id, 0)
@@ -351,13 +346,28 @@ def main() -> int:
                 "rep": r.rep,
                 "model": r.model,
                 "provider": args.provider,
+                "input_tokens": r.input_tokens,
+                "output_tokens": r.output_tokens,
+                "cached_input_tokens": r.cached_input_tokens,
                 "tokens": r.total_tokens,
                 "cost_usd": round(r.api_cost_usd, 6),
                 "passed": r.passed,
                 "quality": round(r.quality_score, 3),
                 "rework_turns": r.rework_turns,
+                "governance_turns": r.governance_turns,
+                "llm_turns": r.llm_turns,
+                "wall_clock_s": round(r.wall_clock_s, 3),
+                "stop_reason": r.stop_reason,
                 "lint_passed": r.lint_passed,
                 "tests_passed": r.tests_passed,
+                "files_written": r.files_written,
+                "final_diff": r.final_diff,
+                "lint_output": r.lint_output,
+                "test_output": r.test_output,
+                "call_usage": r.call_usage,
+                "agent_transcript": r.agent_transcript,
+                "governance_decision": r.governance_decision,
+                "verify_result": r.verify_result,
                 "skipped": r.skipped,
                 "error": r.error,
             }

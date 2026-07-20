@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Real verifier signal for the Nexus orchestrator (REQ-108).
+"""Real verifier signal for the Grace orchestrator (REQ-108).
 
 Replaces the hardcoded ``0.85 / 0.4 / 0.0`` confidence in
 ``Orchestrator._build_task_result`` with a real signal derived from:
@@ -78,7 +78,7 @@ def report_from_chat_sections(
     *,
     files_changed: list[str] | None = None,
 ) -> VerifierReport:
-    """Build a :class:`VerifierReport` from parsed Nexus output-contract sections.
+    """Build a :class:`VerifierReport` from parsed Grace output-contract sections.
 
     The orchestrator's ``_parse_output_contract`` produces a dict keyed by
     ``plan``, ``commands_to_run``, ``files_changed``, ``diff``,

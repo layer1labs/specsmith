@@ -47,7 +47,7 @@ Requirements and test cases are split into domain files. Add a new requirement b
 | File | REQ range | Domain |
 |---|---|---|
 | `docs/requirements/governance.yml` | REQ-001..064 | Core AEE governance |
-| `docs/requirements/agent.yml` | REQ-065..129 | Nexus + CI |
+| `docs/requirements/agent.yml` | REQ-065..129 | Grace + CI |
 | `docs/requirements/harness.yml` | REQ-130..160 | Slash commands + subagents |
 | `docs/requirements/intelligence.yml` | REQ-161..220 | Instinct, eval, memory |
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |

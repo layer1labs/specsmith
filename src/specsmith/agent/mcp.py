@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Real MCP (Model Context Protocol) client for Nexus (REQ-121, REQ-130).
+"""Real MCP (Model Context Protocol) client for Grace (REQ-121, REQ-130).
 
 Replaces the prior loader-only stub with a working JSON-RPC 2.0 client
 that drives the official MCP handshake over stdio:
@@ -13,7 +13,7 @@ that drives the official MCP handshake over stdio:
 The Specsmith safety middleware still wraps every call: see
 ``MCPTool.invoke_with_safety``. Servers configured via ``.specsmith/mcp.yml``
 are listed at the top of every ``specsmith chat`` session and exposed to
-the orchestrator as additional Nexus tools.
+the orchestrator as additional Grace tools.
 
 Protocol pin: 2024-11-05 (current stable). Servers that advertise a newer
 version still work because MCP guarantees backwards compatibility within
@@ -265,7 +265,7 @@ def _format_content(blocks: Any) -> str:
 
 @dataclass
 class MCPTool:
-    """A Nexus-side handle that wraps one descriptor + an open session."""
+    """A Grace-side handle that wraps one descriptor + an open session."""
 
     descriptor: MCPToolDescriptor
     session: MCPSession

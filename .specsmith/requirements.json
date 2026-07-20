@@ -4196,10 +4196,10 @@
   {
     "id": "REQ-423",
     "version": 1,
-    "title": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
-    "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps",
+    "title": "Governed benchmark claims must be statistically supported",
+    "description": "GovernanceBench MUST report observed pass rate, confidence intervals, token use, and global cost-of-pass without assuming a stochastic model achieves 100% correctness. Publication claims require complete comparable cells and enough repetitions to distinguish signal from sampling noise. A zero-pass task MUST remain in aggregate cost-of-pass rather than being silently excluded.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-433"
     ]
@@ -4218,10 +4218,10 @@
   {
     "id": "REQ-425",
     "version": 1,
-    "title": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
-    "description": "Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation",
+    "title": "Deterministic benchmark governance must fail safely on unclear scope",
+    "description": "The benchmark harness MUST run governance outside the model token path against isolated task state. Accepted coding tasks receive only linked requirement, test, confidence, and uncertainty evidence. Ambiguous or destructive tasks MUST short-circuit safely on needs_clarification; the harness MUST never fabricate a requirement, bypass the decision, or prompt a model to implement anyway.",
     "source": "WI-B73B339B",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-435"
     ]
@@ -4229,10 +4229,10 @@
   {
     "id": "REQ-426",
     "version": 1,
-    "title": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
-    "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
+    "title": "Benchmark completion budgets must be bounded and model-compatible",
+    "description": "The harness MUST use each provider's compatible completion-budget parameter, keep a bounded default sufficient for tool calls, cap agent turns and context, and allow explicit environment overrides for diagnostic runs. It MUST NOT grant an unconditional oversized output budget merely because a model can reason.",
     "source": "docs/requirements/",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-436"
     ]
@@ -4877,11 +4877,22 @@
     "id": "REQ-484",
     "version": 1,
     "title": "Governance Efficiency Benchmark Harness Integrity",
-    "description": "The governance efficiency benchmark under scripts/govern_bench MUST produce trustworthy, reproducible multi-provider results. It MUST call current, supported provider endpoints (including the HuggingFace Inference Providers OpenAI-compatible router at https://router.huggingface.co/v1) so open-model runs return real token usage and cost. It MUST surface per-cell provider/model errors and missing API keys loudly in both the JSON output and the process/CI exit status, rather than skipping silently or reporting false success. Any real run with an errored or skipped cell MUST fail. Comparison generation MUST reject invalid rows, duplicate cells, uneven repetition sets, differing model cell sets, and absent result artifacts. It MUST attribute cost-of-pass and model tier from per-model pricing keyed by the exact model id used, with a size-based tier spread for open models. It MUST allow the run matrix to be selected by model group/tier via workflow inputs so subsets such as open-only and later open-plus-frontier can run without code edits. It MUST install each demo project's dependencies and verify test collection so coding-task grading reflects real pass/fail rather than import errors. It MUST verify that each selected model has a live inference provider before a full run, failing fast otherwise.",
+    "description": "The governance efficiency benchmark under scripts/govern_bench MUST produce trustworthy, reproducible multi-provider results. It MUST call current, supported provider endpoints (including the HuggingFace Inference Providers OpenAI-compatible router at https://router.huggingface.co/v1) so open-model runs return real token usage and cost. It MUST surface per-cell provider/model errors and missing API keys loudly in both the JSON output and the process/CI exit status, rather than skipping silently or reporting false success. Any real run with an errored or skipped cell MUST fail. Comparison generation MUST reject invalid rows, duplicate cells, uneven repetition sets, differing model cell sets, and absent result artifacts. It MUST attribute cost-of-pass and model tier from per-model pricing keyed by the exact model id used, with a size-based tier spread for open models. It MUST allow the run matrix to be selected by model group/tier via workflow inputs so subsets such as open-only and later open-plus-frontier can run without code edits. It MUST install each demo project's dependencies and verify test collection so coding-task grading reflects real pass/fail rather than import errors. It MUST verify that each selected model has a live inference provider before a full run, failing fast otherwise. Safety and ambiguity criteria MUST remain hidden scoring oracles. Every cell MUST use disposable task-scoped governance state. Deterministic preflight and verify operations MUST remain outside LLM token counts. Agent context and tool history MUST be bounded, and raw results MUST retain per-call token/cache usage, LLM and governance turns, stop reason, transcript, validator output, written files, final diff, and controller decisions. Conditions that do not invoke the real advertised implementation, including simulated dispatch, MUST be excluded from published comparisons.",
     "source": "scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)",
     "status": "implemented",
     "test_ids": [
       "TEST-510"
+    ]
+  },
+  {
+    "id": "REQ-485",
+    "version": 1,
+    "title": "Slim adaptive AEE kernel and focused integration surface",
+    "description": "Specsmith's default agent path MUST center on deterministic requirements scope, linked test enforcement, epistemic context compression, and durable verification evidence. Governance ceremony MUST stay outside the model token path and expand only when risk or uncertainty requires it. The local REPL remains a friendly optional fallback. The default skill catalog MUST contain only differentiated Specsmith capabilities; generic framework, Git, testing, and productivity skills remain the host agent's responsibility. Host integrations SHOULD use native rules, MCP, or adapter formats and exchange the smallest sufficient AEE contract.",
+    "source": "GovernanceBench token-efficiency corrective design",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-511"
     ]
   }
 ]

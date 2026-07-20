@@ -1,108 +1,104 @@
-# Five-Minute Quickstart
-This page is the **reproducible** version of the README's elevator pitch:
-copy the commands top-to-bottom and you'll end up with a fresh project,
-a multi-agent profile set, a routed `/plan` → architect → coder pipeline,
-and a TraceVault sealed audit chain you can verify after the fact.
+# Quick Start
 
-> **GIF placeholder.** A 30-second screen recording showing the same
-> commands running end-to-end will live at
-> `docs/site/_static/quickstart.gif`. Until that lands, the script in
-> [scripts/quickstart.sh](#reproduction-script) is the source of truth.
+Specsmith is the requirements, test, and evidence layer around your preferred AI
+tool. Choose one path: integrate an agent you already use, or start **Grace**, the
+optional local REPL.
 
----
+## 1. Install and adopt a project
 
-## Prerequisites
-- Python 3.10+ (`pipx install specsmith` or `pip install specsmith`)
-- One LLM provider configured (any of):
-  - `ANTHROPIC_API_KEY=sk-…` for Claude
-  - `OPENAI_API_KEY=sk-…` for GPT/O-series
-  - `GOOGLE_API_KEY=…` for Gemini
-  - Ollama running locally (`ollama serve`) — no key needed
-
-The reproduction script intentionally has *no* timing-sensitive steps so
-it's safe to run unattended in CI.
-
----
-
-## Reproduction script
 ```bash
-#!/usr/bin/env bash
-# scripts/quickstart.sh — five-minute walkthrough, idempotent.
-set -euo pipefail
-export SPECSMITH_NO_AUTO_UPDATE=1
-export SPECSMITH_PYPI_CHECKED=1
-
-# 1. Scaffold a fresh project.
-specsmith init --output-dir /tmp \
-  --config <(cat <<'YAML'
-name: quickstart-demo
-type: cli-python
-language: python
-description: "specsmith multi-agent quickstart demo"
-YAML
-)
-cd /tmp/quickstart-demo
-
-# 2. Install the recommended profile preset.
-specsmith agents preset apply default
-specsmith agents list
-specsmith agents route show
-
-# 3. Add a custom local-coder profile (diversity guard fires).
-specsmith agents add \
-  --id local-coder \
-  --role coder \
-  --provider ollama \
-  --model qwen2.5-coder:32b \
-  --capability code \
-  --fallback ollama/qwen2.5-coder:7b
-
-# 4. Filter by capability — handy for finding "what can do X".
-specsmith agents list --capability code --json
-
-# 5. Optional: register a self-hosted endpoint (BYOE).
-# specsmith endpoints add \
-#   --id home-vllm \
-#   --base-url http://10.0.0.4:8000/v1 \
-#   --default-model qwen2.5-coder \
-#   --auth bearer-keyring
-
-# 6. Drive a single turn through the routing table.
-echo "/plan add a hello-world handler" | \
-  specsmith run --json-events --task "/plan add a hello-world handler"
-
-# 7. Pin a profile mid-session — emits a TraceVault decision seal.
-echo "/agent opus-reviewer" | specsmith run --json-events
-specsmith trace log --type decision
-
-# 8. Advance the AEE phase — auto-routes phase:active to the new phase.
-specsmith phase next --force
-specsmith agents route show | grep phase:active
+pipx install specsmith
+cd your-project
+specsmith import --project-dir .   # use `specsmith init` for a new project
+specsmith audit --project-dir .
 ```
 
-Save the script anywhere on your machine and run it; the only side
-effects are inside `/tmp/quickstart-demo`, `~/.specsmith/agents.json`,
-and (if you uncomment step 5) `~/.specsmith/endpoints.json`.
+If the audit reports a repairable old configuration, run:
 
----
+```bash
+specsmith sync --project-dir .
+specsmith audit --project-dir .
+```
 
-## What you should see
-| Step | Expected output                                                                 |
-|------|---------------------------------------------------------------------------------|
-| 1    | `Done. N files created in /tmp/quickstart-demo`                                 |
-| 2    | `✓ applied preset default — 7 profiles, 22 routes`                              |
-| 3    | `✓ saved profile local-coder` *plus* a yellow `⚠ … shares the 'ollama' family…` diversity warning if a same-family reviewer exists. |
-| 4    | A JSON document with one entry whose `id` is `local-coder`.                     |
-| 6    | A JSONL stream beginning with `{"type": "ready", …}` followed by `block_start`, `token`, `block_complete`, `task_complete`. |
-| 7    | `✓ Sealed as SEAL-0001` (or whichever sequence number is next).                |
-| 8    | A `phase:active` line in the routing table pointing at the new phase's profile. |
+## 2A. Use an existing agent (recommended)
 
-If any step fails, run `specsmith doctor --onboarding` to surface what's
-missing and re-run from that step.
+Generate the host's native rules or MCP configuration:
 
----
+```bash
+specsmith integrate claude-code   # or cursor, copilot, gemini, aider, warp, windsurf
+specsmith mcp serve --project-dir .
+```
+
+Restart the host agent so it discovers the generated integration. The agent keeps
+its own code, Git, test, browser, and framework tools. Specsmith adds only the AEE
+contract: scoped requirements, linked tests, uncertainty, and verification evidence.
+
+For Zoo Code / Roo Code, use:
+
+```bash
+specsmith zoo-code setup --project-dir .
+specsmith zoo-code doctor --project-dir .
+```
+
+The setup flow safely repairs malformed or obsolete Specsmith-managed assets while
+preserving user-owned settings and secrets.
+
+## 2B. Use Grace, the local fallback REPL
+
+Grace is useful when you want a terminal-only workflow or a private local model.
+
+```bash
+ollama serve
+specsmith run --provider ollama
+```
+
+Inside Grace:
+
+```text
+grace> /help
+grace> /status
+grace> explain the current requirements and missing tests
+grace> /fix repair the pagination boundary bug
+grace> /why
+grace> /exit
+```
+
+Use `/models`, `/model NAME`, or `/provider NAME` to change the active model. Grace
+compresses older epistemic context before it enters the model token path and reports
+whether compression occurred in `/status`.
+
+If no provider is available, start Ollama or configure one cloud provider:
+
+```bash
+pipx inject specsmith openai       # then set OPENAI_API_KEY
+pipx inject specsmith anthropic    # then set ANTHROPIC_API_KEY
+pipx inject specsmith google-genai # then set GOOGLE_API_KEY
+```
+
+## 3. Complete one governed change
+
+Whether a host agent or Grace performs the work, the essential loop is the same:
+
+```bash
+specsmith preflight "fix pagination boundary behavior; scope REQ-123" --json
+# Make the accepted change with your native agent and run its normal tests.
+specsmith verify --project-dir .
+specsmith checkpoint --project-dir .
+```
+
+- `accepted`: implement only the linked scope.
+- `needs_clarification`: answer the instruction; do not bypass it.
+- destructive or ambiguous work stops before mutation.
+- completion requires passing relevant tests and durable evidence.
+
+That is the bare AEE kernel. Audit, release, and compliance controls remain
+available, but they should not occupy model context unless the task or risk calls for
+them.
 
 ## Next steps
-- [`docs/site/agents.md`](agents.md) — the full multi-agent walkthrough
-- [`docs/site/api-stability.md`](api-stability.md) — the public surface contract
-- [`docs/site/dispatch.md`](dispatch.md) — multi-agent DAG dispatcher
+
+- [Agent integrations](agent-integrations.md)
+- [Grace and the standalone CLI](standalone-cli.md)
+- [Zoo Code / Roo Code](zoo-code-roo.md)
+- [Focused skills](skills-index.md)
+- [Invocation strategy](invocation-strategy.md)

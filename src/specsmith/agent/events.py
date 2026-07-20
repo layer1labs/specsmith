@@ -3,7 +3,7 @@
 """Block-based JSONL event protocol for `specsmith chat` (REQ-112, REQ-113, REQ-114).
 
 The protocol is the contract between the Specsmith chat backend and any
-client (the Nexus REPL itself, Kairos, or future TUIs).
+client (the Grace REPL itself, Kairos, or future TUIs).
 Every event is a single JSON object on its own line with a ``type`` key.
 
 Event kinds
@@ -66,7 +66,7 @@ class EventEmitter:
     def ready(
         self,
         *,
-        agent: str = "nexus",
+        agent: str = "grace",
         version: str = "",
         project_dir: str = "",
         provider: str = "",
@@ -118,7 +118,7 @@ class EventEmitter:
 
     # ── Block helpers ────────────────────────────────────────────────────
 
-    def block_start(self, kind: str, *, agent: str = "nexus", **payload: Any) -> str:
+    def block_start(self, kind: str, *, agent: str = "grace", **payload: Any) -> str:
         """Open a new block of ``kind`` and return its id."""
         block_id = _new_block_id()
         self.emit(

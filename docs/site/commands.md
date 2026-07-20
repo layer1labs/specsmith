@@ -107,7 +107,7 @@ specsmith skill install diff-reviewer --project-dir ./my-project
 
 - `list` \u2014 print the built-in catalog (`verifier`, `planner`, `diff-reviewer`, `onboarding-coach`, `release-pilot`).
 - `search QUERY` \u2014 fuzzy-match the catalog by slug, name, or description.
-- `install SLUG` \u2014 write the skill's `SKILL.md` to `.agents/skills/<slug>/SKILL.md` so the local Nexus runtime picks it up at session start. Existing files are preserved unless `--force` is passed.
+- `install SLUG` \u2014 write a focused Specsmith skill to `.agents/skills/<slug>/SKILL.md` for compatible hosts and Grace. Existing files are preserved unless `--force` is passed.
 
 ## `specsmith init`
 

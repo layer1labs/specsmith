@@ -1,11 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Tests for the `specsmith skill` subcommand group and skills module.
-
-The skill marketplace exposes a tiny built-in catalog (verifier, planner,
-diff-reviewer, onboarding-coach, release-pilot) that can be searched,
-listed, and installed into a project's ``.agents/skills/`` directory.
-"""
+"""Tests for the focused Specsmith skill surface."""
 
 from __future__ import annotations
 
@@ -25,7 +20,20 @@ from specsmith.cli import main
 
 def test_catalog_has_expected_slugs() -> None:
     slugs = {entry.slug for entry in skills.CATALOG}
-    assert {"verifier", "planner", "diff-reviewer", "onboarding-coach", "release-pilot"} <= slugs
+    assert {
+        "preflight-gate",
+        "requirement-author",
+        "testcase-author",
+        "traceability-auditor",
+        "context-pack-compiler",
+        "token-budget-auditor",
+        "verifier",
+        "release-pilot",
+        "specsmith",
+        "specsmith-save",
+        "specsmith-audit",
+        "specsmith-session-governance",
+    } == slugs
 
 
 def test_search_empty_query_returns_full_catalog() -> None:
@@ -95,10 +103,10 @@ def test_install_unknown_slug_raises_keyerror(tmp_path: Path) -> None:
 
 def test_installed_skills_lists_md_files(tmp_path: Path) -> None:
     skills.install("verifier", tmp_path)
-    skills.install("planner", tmp_path)
+    skills.install("preflight-gate", tmp_path)
     listed = skills.installed_skills(tmp_path)
     names = sorted(p.parent.name for p in listed if p.name == "SKILL.md")
-    assert names == ["planner", "verifier"]
+    assert names == ["preflight-gate", "verifier"]
 
 
 # ---------------------------------------------------------------------------
@@ -204,10 +212,10 @@ def test_catalog_has_specsmith_skills() -> None:
     assert skills.get("specsmith-audit") is not None
 
 
-def test_catalog_has_embedded_skills() -> None:
-    assert skills.get("zephyr-rtos") is not None
-    assert skills.get("freertos") is not None
-    assert skills.get("bare-metal-c") is not None
+def test_generic_tool_skills_are_not_in_default_catalog() -> None:
+    assert skills.get("zephyr-rtos") is None
+    assert skills.get("docker") is None
+    assert skills.get("prompt-engineering") is None
 
 
 def test_specsmith_skill_domain_is_governance() -> None:

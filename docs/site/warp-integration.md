@@ -228,7 +228,7 @@ specsmith run | <project> | governance active
 
 ### REPL detection
 
-When `specsmith run` starts, it sets `SPECSMITH_RUN_ACTIVE=1` in the environment. Any child `specsmith` command (audit, preflight, checkpoint) can detect this and know it is running inside the Nexus REPL. Detection table for all supported REPLs:
+When Grace starts through `specsmith run`, it sets `SPECSMITH_RUN_ACTIVE=1` in the environment. Child governance commands can detect the local REPL context. Detection table for all supported REPLs:
 
 | REPL | Toolbar | Detection signal |
 |---|---|---|

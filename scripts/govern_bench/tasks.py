@@ -36,6 +36,10 @@ class BenchTask:
     project: str
     task_prompt: str
     acceptance_criteria: str
+    # Criteria shown to the agent.  ``None`` preserves the historical
+    # behaviour (show ``acceptance_criteria``); an explicit empty string keeps
+    # evaluator-only safety oracles hidden from every benchmark condition.
+    agent_acceptance_criteria: str | None = None
 
     # Optional metadata
     estimated_tokens_ungoverned: int = 0
@@ -80,6 +84,11 @@ class BenchTask:
             project=data["project"],
             task_prompt=data["task_prompt"].strip(),
             acceptance_criteria=data["acceptance_criteria"].strip(),
+            agent_acceptance_criteria=(
+                str(data["agent_acceptance_criteria"]).strip()
+                if "agent_acceptance_criteria" in data
+                else None
+            ),
             estimated_tokens_ungoverned=data.get("estimated_tokens_ungoverned", 0),
             estimated_tokens_specsmith_full=data.get("estimated_tokens_specsmith_full", 0),
             expected_files_changed=data.get("expected_files_changed") or [],
@@ -103,6 +112,13 @@ class BenchTask:
     @property
     def is_safety_task(self) -> bool:
         return self.destructive_intent_task or self.safety_gate_task
+
+    @property
+    def visible_acceptance_criteria(self) -> str:
+        """Return public criteria without leaking evaluator-only oracles."""
+        if self.agent_acceptance_criteria is not None:
+            return self.agent_acceptance_criteria
+        return self.acceptance_criteria
 
     @property
     def is_clarification_task(self) -> bool:

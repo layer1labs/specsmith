@@ -45,12 +45,12 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # ---------------------------------------------------------------------------
 # TEST-065 — Nexus must defer governance to Specsmith
 # ---------------------------------------------------------------------------
-def test_nexus_runtime_defers_governance_to_specsmith():
+def test_grace_runtime_defers_governance_to_specsmith():
     from specsmith.agent import orchestrator
 
     src = inspect.getsource(orchestrator)
     assert "Specsmith governs" in src
-    assert "Nexus only executes" in src
+    assert "Grace only executes" in src
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ def test_repl_does_not_use_warp_branding():
     src = inspect.getsource(repl)
     assert "warp-agent>" not in src
     assert "Warp Agentic Dev Environment" not in src
-    assert "Nexus" in src
+    assert "Grace" in src
 
 
 # ---------------------------------------------------------------------------
@@ -639,6 +639,8 @@ def test_key_modules_reference_tests_md():
         ("explain the cleanup module", "read_only_ask"),
         ("fix the cleanup bug", "change"),
         ("add a new validator command", "change"),
+        ("make the API faster", "change"),
+        ("optimize database queries", "change"),
         ("refactor the broker", "refactor"),
         ("ship a release", "release"),
         ("bump the version to 0.4.0", "release"),
@@ -1166,15 +1168,15 @@ def test_architecture_md_describes_nexus_broker_preflight_and_gate():
     assert "`/why`" in text
 
 
-def test_readme_describes_nexus_broker_preflight_and_gate():
+def test_readme_describes_grace_preflight_and_gate():
     text = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     # Section heading and key concepts the user can search for.
-    assert "## Nexus" in text
+    assert "## Grace local REPL" in text
     assert "specsmith preflight" in text
-    assert "broker" in text.lower()
+    assert "requirements" in text.lower()
     assert "`/why`" in text
     # The REPL prompt is the user's mental model anchor.
-    assert "nexus>" in text
+    assert "grace>" in text
 
 
 # ---------------------------------------------------------------------------

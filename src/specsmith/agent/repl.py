@@ -12,12 +12,12 @@ from specsmith.agent.broker import (
 )
 from specsmith.agent.orchestrator import Orchestrator
 
-NEXUS_BANNER = "Nexus — Local-first Agentic Development Environment (Specsmith-governed)"
+NEXUS_BANNER = "Grace — Local Specsmith REPL (requirements, tests, evidence)"
 
 
 def main():
     print(NEXUS_BANNER)
-    print("Initializing Nexus runtime...")
+    print("Starting Grace local fallback...")
 
     try:
         orchestrator = Orchestrator()
@@ -38,7 +38,7 @@ def main():
 
     while True:
         try:
-            user_input = input("\nnexus> ").strip()
+            user_input = input("\ngrace> ").strip()
         except (KeyboardInterrupt, EOFError):
             print("\nExiting.")
             break

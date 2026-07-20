@@ -41,10 +41,13 @@ AI Agents / IDE Clients
 
 ### Governance efficiency benchmark
 
-The latest [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
-compares 13 governance/scaffolding conditions across seven coding and safety
-tasks. GPT-4o-mini completed all 182 cells; the Qwen run was interrupted by
+The latest completed [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
+was a historical 13-condition run across seven coding and safety tasks.
+GPT-4o-mini completed all 182 cells; the Qwen run was interrupted by
 provider credit and rate-limit errors and is excluded from model comparisons.
+The simulated DISPATCH condition is now excluded because it did not invoke the
+real dispatcher, and hidden safety oracles, isolated governance, bounded context,
+and global cost-of-pass aggregation have been corrected before the next run.
 
 | Condition | Aggregate pass rate | Mean tokens | Cost/run | Cost-of-pass |
 |---|---|---|---|---|
@@ -54,7 +57,6 @@ provider credit and rate-limit errors and is excluded from model comparisons.
 | OpenSpec-style | 71% | 63.1k | $0.01087 | $0.01521 |
 | **specsmith LIGHT** | **57%** | 52.0k | $0.00857 | $0.01500 |
 | **specsmith FULL** | **57%** | 59.9k | $0.00951 | $0.01665 |
-| **specsmith DISPATCH** | **57%** | 63.6k | $0.01070 | $0.01872 |
 
 **Key finding:** governance effects were task-dependent. LIGHT and FULL improved
 T10 from 0% to 100%, while governed conditions underperformed on T1 and T13.
@@ -65,8 +67,7 @@ data so unavailable cells cannot appear as 0%-pass/$0-cost model results.
 ## Current Stats
 
 - **52+ model profiles** in registry (including Qwen3.6-35B-A3B)
-- **127 canonical skills** available across all domains
-- **10 governance skills** (including improvement-reporter, agent-flow-controller, model-runtime-optimizer)
+- **12 focused Specsmith skills**; generic capabilities stay with the host agent
 - **Development mode** with improvement tracking and session analysis
 
 See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
@@ -292,43 +293,40 @@ work item, ledger entry, or ESDB record. All `--help` invocations are read-only.
 ## Quick Start
 
 ```bash
-# 1. Install
 pipx install specsmith
-
-# 2. Start a new project (or import an existing one)
-specsmith init                           # interactive scaffold wizard
-specsmith import --project-dir ./my-project  # adopt an existing repo
-
-# 3. Bootstrap every session (run once at the start of each work session)
-specsmith migrate run                    # apply any pending schema migrations
-specsmith audit                          # verify governance health
-specsmith sync                           # YAML → JSON → MD sync
-specsmith checkpoint                     # emit GOVERNANCE ANCHOR
-
-# 4. Before every code change: preflight
-specsmith preflight "add paginated GET /todos endpoint"  # gate the intent
-# → decision: accepted | needs_clarification  +  work_item_id: WI-XXXXXXXX
-
-# 5. After making changes: verify + save
-specsmith verify                         # check equilibrium
-specsmith save                           # commit governance state + push
-
-# 6. Check AEE workflow phase and health
-specsmith phase                          # current phase + readiness %
-specsmith audit                          # full governance health check
+cd your-project
+specsmith import --project-dir .   # or `specsmith init` for a new project
+specsmith audit --project-dir .
 ```
 
-> **Session Bootstrap**: For a more streamlined session start, you can also use:
-> ```bash
-> specsmith load                           # run migrate, audit, sync, and checkpoint in sequence
-> ```
-> This command combines the essential bootstrap steps for a clean session start.
->
-> **Note**: The `specsmith load` command is particularly useful for quickly setting up a new session with all governance checks in place.
+Then choose one agent path:
 
-> **Agentic REPL:** run `specsmith run` to start the Nexus governance-gated LLM REPL.
-> Every utterance is preflighted automatically. Use `/why` to see the governance trace.
-> For the multi-agent DAG dispatcher, see `specsmith dispatch run "<task>"`.
+```bash
+# Recommended: keep your existing agent and add native governance/MCP
+specsmith integrate claude-code    # or cursor, copilot, gemini, aider, warp, windsurf
+specsmith mcp serve --project-dir .
+
+# Optional local fallback: start Grace with Ollama
+specsmith run --provider ollama
+```
+
+The essential AEE loop is intentionally small:
+
+```bash
+specsmith preflight "describe the change; scope REQ-123" --json
+# Implement with your native agent or Grace; run the project's normal tests.
+specsmith verify --project-dir .
+specsmith checkpoint --project-dir .
+```
+
+Inside Grace, start with `/help` and `/status`; use `/why` to inspect the
+governance trace. Older epistemic context is compressed before it enters the model
+token path. If you already use an AI coding tool, the native integration is preferred:
+Specsmith supplies requirements, linked tests, uncertainty, and evidence while the
+host retains its own Git, test, browser, and framework tools.
+
+See the [five-minute quick start](https://specsmith.readthedocs.io/en/stable/quickstart/)
+for provider setup, Zoo/Roo repair, first-run errors, and the integration matrix.
 
 ### Standalone CLI (no AI agent)
 
@@ -342,7 +340,7 @@ specsmith save                      # ESDB backup + commit + push
 specsmith kill-session              # clean shutdown
 ```
 
-For the full standalone session workflow, Nexus REPL usage, multi-agent dispatcher, and CI integration: **[Standalone CLI docs →](https://specsmith.readthedocs.io/en/stable/standalone-cli/)**
+For Grace, headless use, and CI: **[Standalone CLI docs →](https://specsmith.readthedocs.io/en/stable/standalone-cli/)**
 
 ---
 
@@ -373,7 +371,7 @@ be overwritten by the next sync.
 | File | REQ range | Domain |
 |---|---|---|
 | `docs/requirements/governance.yml` | REQ-001..064 | Core AEE governance |
-| `docs/requirements/agent.yml` | REQ-065..129 | Nexus + CI |
+| `docs/requirements/agent.yml` | REQ-065..129 | Grace + CI |
 | `docs/requirements/harness.yml` | REQ-130..160 | Slash commands + subagents |
 | `docs/requirements/intelligence.yml` | REQ-161..220 | Instinct, eval, memory |
 | `docs/requirements/context.yml` | REQ-244..247 | Context window |
@@ -434,7 +432,7 @@ human oversight, and robustness. specsmith implements:
 |---|---|
 | Art. 9 — Risk Management System | AEE verification loop with confidence scoring and equilibrium checks |
 | Art. 12 — Logging & Record-Keeping | `TraceVault` SHA-256 chained ledger (tamper-evident, append-only) |
-| Art. 13 — Transparency & Explainability | `ai_disclosure` block in every preflight response; `/why` in Nexus REPL |
+| Art. 13 — Transparency & Explainability | `ai_disclosure` block in every preflight response; `/why` in Grace |
 | Art. 14 — Human Oversight | Human escalation threshold (`--escalate-threshold`); kill-switch CLI |
 | Art. 15 — Accuracy & Robustness | Bounded retry (max 3×), confidence gates, hard context ceiling (REQ-247) |
 | Art. 53 — GPAI Model Transparency | Provider + model name emitted in every `ai_disclosure` block |
@@ -697,45 +695,26 @@ Full documentation: [`docs/site/wi-lifecycle.md`](https://specsmith.readthedocs.
 
 ---
 
-## Nexus
+## Grace local REPL
 
-The Nexus runtime is specsmith's local-first agentic REPL — a
-governance-gated broker that sits between you and the LLM.
-
-Every utterance passes through `specsmith preflight` before execution.
-The broker classifies intent, matches requirements, and gates the action.
-After execution, `specsmith verify` checks equilibrium. The `/why` command
-shows the full governance trace.
+Grace is Specsmith's optional local fallback for terminal-only or private-model
+work. Existing agent integrations remain the recommended path. Grace keeps its
+interface small, compresses older epistemic context before model calls, and applies
+the same requirement, test, uncertainty, and evidence contract as MCP integrations.
 
 ```bash
 # Interactive REPL with governance
 specsmith run
-nexus> fix the cleanup bug         # broker classifies → accepts → executes → verifies
-nexus> /why                         # show governance trace for last action
-nexus> /exit
+grace> /help
+grace> /status
+grace> fix the cleanup bug
+grace> /why
+grace> /exit
 ```
 
-The Nexus broker:
-- **Preflight gate**: every change goes through `specsmith preflight`
-- **Bounded retry**: failed actions retry up to 3× with strategy classification
-- **Execution trace**: every action is sealed in the cryptographic trace vault
-- **`/why` toggle**: shows governance rationale in human-readable form
-
-**How it works.** A natural-language **broker** classifies intent, infers scope from
-your requirements, and asks Specsmith to **preflight** the request. Only when the
-preflight decision is `accepted` does Nexus drive the AG2 orchestrator — and it does so
-through a **bounded-retry harness** so you can never accidentally run away. By default,
-Nexus speaks plain English; toggle `/why` in the REPL to surface the underlying
-requirement, test, and work-item identifiers Specsmith assigned.
-
-**Pieces in this repo.**
-- `specsmith preflight` — CLI subcommand emitting a deterministic governance JSON payload
-  (`decision`, `requirement_ids`, `test_case_ids`, `confidence_target`, `instruction`).
-- `src/specsmith/agent/broker.py` — natural-language broker (intent + scope + narration).
-- `src/specsmith/agent/repl.py` — Nexus REPL with the `/why` toggle and execution gate.
-- `docker-compose.yml` — pinned vLLM `l1-nexus` model server with the Hermes tool-call parser.
-- `scripts/nexus_smoke.py` — opt-in live smoke test (`NEXUS_LIVE=1` to run against
-  a running container).
+`/status` reports the provider, model, history size, and whether context was
+compressed. `/models`, `/model NAME`, and `/provider NAME` handle routing. If no
+provider is available, Grace explains how to start Ollama or configure one cloud SDK.
 
 ---
 
@@ -1086,69 +1065,25 @@ See the `codity-ai-review` governance skill (`specsmith skill install codity-ai-
 
 ## Skills
 
-specsmith ships **138 built-in skills** across 16 domains that AI agents (Warp, Claude Code, Codex, Cursor) can install and use.
+Specsmith has a deliberately small default catalog: 12 skills covering only its
+differentiated AEE capabilities—preflight, requirements, linked tests,
+traceability, epistemic context, token budgets, verification, release evidence,
+and compact Specsmith references.
 
 ```bash
-# List all available skills
 specsmith skill list
-
-# Search by keyword
-specsmith skill search zephyr
-
-# Install a skill into .agents/skills/
+specsmith skill search context
 specsmith skill install specsmith
-specsmith skill install specsmith-save
-specsmith skill install specsmith-audit
 ```
 
-Skills are installed as `.agents/skills/<slug>/SKILL.md` and are auto-discovered by any AI tool that scans `.agents/skills/`.
+Skills install to `.agents/skills/<slug>/SKILL.md`, but they are optional.
+Prefer `specsmith integrate <host>` or the MCP server so Claude Code, Codex,
+Cursor, Copilot, Gemini, Aider, Warp, Windsurf, and Zoo/Roo keep their native
+tools. Specsmith supplies only the AEE governance contract; it does not duplicate
+generic Git, testing, framework, or document skills.
 
-### Skill Policy
-
-If a skill is reusable across projects, it belongs in `src/specsmith/skills/<domain>.py`.
-
-If a skill is project-specific, generated by the user, or experimental, it belongs in `.specsmith/skills/<skill-id>/`.
-
-If a skill needs to be read by Claude Code, Warp, Cursor, Aider, etc., it is exported/materialized into `.agents/skills/<slug>/SKILL.md`.
-
-Do not hand-edit `.agents/skills/` as a canonical source.
-
-### Skill domains
-
-| Domain | Count | Coverage |
-|--------|-------|----------|
-| `governance` | 21 | AEE workflows, verification, release, CI polling, patent prosecution, client integrations |
-| `ai-agents` | 14 | LLM apps, MCP servers, agent orchestration, RAG, prompt engineering, fine-tuning, MLOps |
-| `software-engineering` | 14 | Code review, TDD, debugging, security hardening, API design, ADRs, Brief lang |
-| `web-backend` | 11 | Frontend UI, Next.js, REST/GraphQL, PostgreSQL, Redis, WebSockets |
-| `platform-engineering` | 10 | Helm, observability, GitOps, secrets, OAuth2, chaos engineering |
-| `embedded` | 11 | Zephyr, Yocto, FreeRTOS, bare-metal C, NuttX, Buildroot, Azure RTOS |
-| `docs` | 10 | MkDocs, Sphinx, Doxygen, JSDoc, OpenAPI, mdBook |
-| `data-engineering` | 8 | ETL/ELT, dbt, Spark, data quality, feature stores, Delta Lake |
-| `hardware` | 9 | KiCad, Altium, Vivado, Quartus, GTKWave, JTAG |
-| `corporate` | 7 | Budgets, fundraising, marketing, HR, legal |
-| `devops` | 6 | Docker, Kubernetes, Terraform, GitHub Actions |
-| `cloud` | 4 | AWS, Azure, GCP, GitHub CLI |
-| `mobile` | 4 | iOS, Android, Flutter, React Native |
-| `ssh` | 3 | SSH, WSL2, remote dev |
-| `cross-platform` | 3 | CMake, package managers, terminal awareness |
-| `productivity` | 3 | Email, presentations, MS Office |
-
-### Self-referential governance skills
-
-Three skills document specsmith itself:
-
-| Slug | Purpose |
-|------|--------|
-| `specsmith` | Master CLI reference — session workflow, commands, audit codes |
-| `specsmith-save` | When and how to run `specsmith save` |
-| `specsmith-audit` | Running audits and interpreting results |
-
-### Remote reference (Warp Oz cloud agents)
-
-```bash
-oz agent run-cloud --skill "layer1labs/specsmith:specsmith-save" --prompt "save my work"
-```
+See the [focused skills index](docs/site/skills-index.md) for the complete list
+and integration boundary.
 
 ---
 

@@ -18,14 +18,14 @@ except ImportError:
 
 from specsmith.agent.tools import AVAILABLE_TOOLS
 
-NEXUS_NAME = "Nexus"
+NEXUS_NAME = "Grace"  # Backward-compatible constant name; public REPL brand is Grace.
 
 
 @dataclass
 class TaskResult:
     """Structured outcome of an orchestrator run (REQ-091).
 
-    The Nexus REPL's bounded-retry harness (REQ-087) consumes this directly
+    The Grace REPL's bounded-retry harness (REQ-087) consumes this directly
     instead of synthesizing equilibrium from a boolean cast of a free-form
     summary string. Each field is a contract:
 
@@ -34,7 +34,7 @@ class TaskResult:
     - ``confidence``: numeric verifier/orchestrator confidence in the result
       (0.0 - 1.0). Used by ``execute_with_governance`` to compare against the
       preflight ``confidence_target`` before retrying.
-    - ``summary``: human-readable summary; matches the existing Nexus output
+    - ``summary``: human-readable summary; matches the existing Grace output
       contract (REQ-073).
     - ``files_changed``: paths the orchestrator believes it modified.
     - ``test_results``: free-form dict (e.g. {"passed": int, "failed": int}).
@@ -57,9 +57,9 @@ class TaskResult:
 
 
 class Orchestrator:
-    """Nexus orchestrator: AG2-based local-first agentic development runtime.
+    """Grace orchestrator: AG2-based local-first agentic development runtime.
 
-    Specsmith governs all work; Nexus only executes within governance bounds.
+    Specsmith governs all work; Grace only executes within governance bounds.
     """
 
     def __init__(
@@ -177,7 +177,7 @@ class Orchestrator:
         method falls back to the existing flat GroupChat path with a warning.
         The Orchestrator remains the sole entry point in both paths (REQ-321).
 
-        Returns a :class:`TaskResult` so the Nexus REPL's bounded-retry
+        Returns a :class:`TaskResult` so the Grace REPL's bounded-retry
         harness can compare ``confidence`` against the preflight target and
         retry on non-equilibrium outcomes without inventing signal.
         """
@@ -322,7 +322,7 @@ Next action:
 
         AG2's ``initiate_chat`` returns a ``ChatResult`` whose ``summary`` is
         the last assistant message and whose ``chat_history`` lists every
-        turn. We parse the Nexus output contract out of the summary and feed
+        turn. We parse the Grace output contract out of the summary and feed
         the structured signal through :func:`specsmith.agent.verifier.score`
         (REQ-108) so ``equilibrium`` and ``confidence`` reflect real test /
         ruff / mypy state instead of a hardcoded heuristic. When the LLM
@@ -377,7 +377,7 @@ Next action:
 
     @staticmethod
     def _parse_output_contract(text: str) -> dict[str, str]:
-        """Parse the Nexus output contract sections out of a free-form summary.
+        """Parse the Grace output contract sections out of a free-form summary.
 
         Returns a dict keyed by lowercase, underscore-joined section names
         (``plan``, ``commands_to_run``, ``files_changed``, ``diff``,
