@@ -17,3 +17,20 @@ def test_mkdocs_site_output_is_ignored_for_projects_and_scaffolds() -> None:
 
     assert "/site/" in project_lines
     assert "/site/" in template_lines
+
+
+def test_public_rtd_links_use_translation_free_routes() -> None:
+    """Published links must match the project's active RTD versioning scheme."""
+    root = Path(__file__).parents[1]
+    candidates = [root / "README.md"]
+    candidates.extend((root / "docs" / "site").rglob("*.md"))
+    candidates.extend((root / "src" / "specsmith").rglob("*.py"))
+    candidates.extend((root / "src" / "specsmith").rglob("*.j2"))
+
+    obsolete = "specsmith.readthedocs.io/en/"
+    offenders = [
+        str(path.relative_to(root))
+        for path in candidates
+        if obsolete in path.read_text(encoding="utf-8")
+    ]
+    assert offenders == []

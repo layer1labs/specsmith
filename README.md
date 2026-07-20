@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/layer1labs/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/layer1labs/specsmith/actions/workflows/ci.yml)
 [![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=github)](https://github.com/sponsors/layer1labs)
-[![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
+[![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/stable/)
 [![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/layer1labs/specsmith/blob/main/LICENSE)
@@ -10,7 +10,7 @@
 SpecSmith is the governance layer for AI-assisted development: it sits between agents and your repo, enforces preflight decisions, and records requirement/test traceability with auditable evidence. It is **not** an IDE, autonomous coding agent, CI runner, or legal-compliance certifier. Use SpecSmith when changes need repeatable controls, work-item lineage, and review-ready artifacts; do not use it for throwaway prototyping where governance overhead is unnecessary. Compared with GitHub Spec Kit, OpenSpec, and BMAD, SpecSmith adds execution-time policy gates and trace chains. Compared with Aider, Claude Code, and Cursor, SpecSmith governs those clients instead of replacing them. Compared with LangGraph and AutoGen, SpecSmith prioritizes software-governance outcomes and evidence quality over general-purpose multi-agent orchestration.
 
 For Zoo Code / Roo Code, use the canonical
-[setup, repair, and governed-context guide](https://specsmith.readthedocs.io/en/stable/zoo-code-roo/).
+[setup, repair, and governed-context guide](https://specsmith.readthedocs.io/stable/zoo-code-roo/).
 
 ## Architecture at a glance
 
@@ -41,7 +41,7 @@ AI Agents / IDE Clients
 
 ### Governance efficiency benchmark
 
-The latest completed [multi-condition benchmark](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
+The latest completed [multi-condition benchmark](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
 was a historical 13-condition run across seven coding and safety tasks.
 GPT-4o-mini completed all 182 cells; the Qwen run was interrupted by
 provider credit and rate-limit errors and is excluded from model comparisons.
@@ -70,8 +70,8 @@ data so unavailable cells cannot appear as 0%-pass/$0-cost model results.
 - **12 focused Specsmith skills**; generic capabilities stay with the host agent
 - **Development mode** with improvement tracking and session analysis
 
-See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
-and [comparison validity report](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+See the [full benchmark report](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
+and [comparison validity report](https://specsmith.readthedocs.io/stable/model-comparison/).
 
 ### Development Mode Features
 
@@ -85,8 +85,8 @@ When enabled in project configuration, development mode provides:
 
 To enable development mode, set `enable_development_mode: true` in your project's `.specsmith/config.yml` file.
 
-See the [full benchmark report](https://specsmith.readthedocs.io/en/stable/efficiency-benchmark/)
-and [comparison validity report](https://specsmith.readthedocs.io/en/stable/model-comparison/).
+See the [full benchmark report](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
+and [comparison validity report](https://specsmith.readthedocs.io/stable/model-comparison/).
 
 **v0.23.0** — Guided context compression, resilient SpecSmith/Zoo-Code config
 repair, replicated ESDB evidence, cross-platform release closure, and
@@ -273,9 +273,9 @@ specsmith esdb status
 ```
 
 To obtain a chronomemory ESDB license:
-[licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) · [ESDB licensing docs](https://specsmith.readthedocs.io/en/stable/esdb/#licensing)
+[licensing@layer1labs.ai](mailto:licensing@layer1labs.ai) · [ESDB licensing docs](https://specsmith.readthedocs.io/stable/esdb/#licensing)
 · [ChronoMemory commercial terms](https://github.com/layer1labs/specsmith/blob/develop/COMMERCIAL-LICENSE.md)
-See the [full ESDB docs](https://specsmith.readthedocs.io/en/stable/esdb/) for a feature comparison and Python API reference.
+See the [full ESDB docs](https://specsmith.readthedocs.io/stable/esdb/) for a feature comparison and Python API reference.
 
 **Upgrading specsmith:**
 
@@ -325,7 +325,7 @@ token path. If you already use an AI coding tool, the native integration is pref
 Specsmith supplies requirements, linked tests, uncertainty, and evidence while the
 host retains its own Git, test, browser, and framework tools.
 
-See the [five-minute quick start](https://specsmith.readthedocs.io/en/stable/quickstart/)
+See the [five-minute quick start](https://specsmith.readthedocs.io/stable/quickstart/)
 for provider setup, Zoo/Roo repair, first-run errors, and the integration matrix.
 
 ### Standalone CLI (no AI agent)
@@ -340,7 +340,7 @@ specsmith save                      # ESDB backup + commit + push
 specsmith kill-session              # clean shutdown
 ```
 
-For Grace, headless use, and CI: **[Standalone CLI docs →](https://specsmith.readthedocs.io/en/stable/standalone-cli/)**
+For Grace, headless use, and CI: **[Standalone CLI docs →](https://specsmith.readthedocs.io/stable/standalone-cli/)**
 
 ---
 
@@ -691,7 +691,7 @@ specsmith wi import --from-ledger
 behaviour not covered by any existing REQ and the pattern is expected to recur.
 Close (`wi close`) for bug fixes, refactors, and chores that already have a matching REQ.
 
-Full documentation: [`docs/site/wi-lifecycle.md`](https://specsmith.readthedocs.io/en/stable/wi-lifecycle/)
+Full documentation: [`docs/site/wi-lifecycle.md`](https://specsmith.readthedocs.io/stable/wi-lifecycle/)
 
 ---
 
@@ -1198,7 +1198,7 @@ specsmith integrate copilot   # writes .github/copilot-instructions.md
 
 Copilot reads `.github/copilot-instructions.md` for all workspace interactions. MCP not yet natively supported; governance is enforced through the instructions file and `AGENTS.md`.
 
-Full per-tool setup: **[Agent Integrations docs →](https://specsmith.readthedocs.io/en/stable/agent-integrations/)**
+Full per-tool setup: **[Agent Integrations docs →](https://specsmith.readthedocs.io/stable/agent-integrations/)**
 
 ---
 
