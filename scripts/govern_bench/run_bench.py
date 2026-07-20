@@ -40,6 +40,7 @@ Environment variables:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import sys
@@ -59,6 +60,15 @@ from govern_bench.tasks import load_all_tasks  # noqa: E402
 def incomplete_real_run(*, dry_run: bool, skipped: int, errored: int) -> bool:
     """Return whether publishable benchmark completeness has been violated."""
     return not dry_run and bool(skipped or errored)
+
+
+def _configure_console_output(*streams: object) -> None:
+    """Keep Unicode-rich progress output from crashing legacy Windows consoles."""
+    for stream in streams:
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            with contextlib.suppress(OSError, ValueError):
+                reconfigure(errors="replace")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -246,6 +256,7 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
 
 
 def main() -> int:
+    _configure_console_output(sys.stdout, sys.stderr)
     args = _parse_args()
 
     if args.list:
@@ -381,22 +392,24 @@ def main() -> int:
     write_report(report, conditions, tasks, output_path, model=args.model, reps=args.reps)
 
     # Print summary
-    print("\n=== SUMMARY (sorted by cost-of-pass) ===")
+    print("\n=== SUMMARY (sorted by tokens per correct answer) ===")
     summary = report.condition_summary()
     header = (
         f"{'Condition':<26} {'Pass%':>5} "
         f"{'In-tok':>7} {'Out-tok':>7} "
         f"{'In-$':>8} {'Out-$':>8} {'Total-$':>9} "
-        f"{'Quality':>7} {'CoP':>10} {'vs-Base':>8} {'$/mo@20':>9}"
+        f"{'Quality':>7} {'TPCA':>9} {'CoP':>10} {'vs-Base':>8} {'$/mo@20':>9}"
     )
     print(header)
     print("-" * len(header))
 
-    def _sort_by_cop(item: tuple) -> float:
-        cop = item[1]["mean_cost_of_pass"]
-        return cop if cop < float("inf") else 1e9
+    def _sort_by_tpca(item: tuple) -> float:
+        tpca = item[1]["mean_tokens_per_correct_answer"]
+        return tpca if tpca < float("inf") else 1e18
 
-    for cid, s in sorted(summary.items(), key=_sort_by_cop):
+    for cid, s in sorted(summary.items(), key=_sort_by_tpca):
+        tpca = s["mean_tokens_per_correct_answer"]
+        tpca_str = f"{tpca:.0f}" if tpca < float("inf") else "inf"
         cop = s["mean_cost_of_pass"]
         cop_str = f"${cop:.5f}" if cop < float("inf") else "inf"
         delta = s.get("cost_delta_vs_ungoverned")
@@ -411,12 +424,14 @@ def main() -> int:
             f"${s['mean_output_cost_usd']:>7.5f} "
             f"${s['mean_api_cost_usd']:>8.5f} "
             f"{s['mean_quality_score']:>7.2f} "
+            f"{tpca_str:>9} "
             f"{cop_str:>10} "
             f"{delta_str:>8} "
             f"${monthly:>8.2f}"
         )
     print()
-    print("CoP = cost-of-pass (USD to get one correct answer) | vs-Base = ratio vs UNGOVERNED")
+    print("TPCA = tokens per correct answer (primary, provider-neutral)")
+    print("CoP = estimated USD cost-of-pass | vs-Base = ratio vs UNGOVERNED")
     print("$/mo@20 = estimated monthly spend at 20 tasks/day, 22 working days")
 
     # Loud-fail accounting: a benchmark run with any missing provider result is

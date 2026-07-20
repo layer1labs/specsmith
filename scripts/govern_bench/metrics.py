@@ -3,7 +3,7 @@
 A RunResult captures everything recorded during a single task x condition run.
 BenchReport aggregates multiple RunResults into comparison tables.
 
-Primary metric: cost_of_pass = total_cost_usd / pass_rate
+Primary metric: tokens_per_correct_answer = mean_total_tokens / pass_rate
   where pass_rate = fraction of runs for this (task, condition) that pass.
 
 Cost concepts:
@@ -11,10 +11,12 @@ Cost concepts:
   input_cost_usd    – USD cost of prompt/context tokens
   output_cost_usd   – USD cost of generated tokens
   api_cost_usd      – total USD = input + output
+  tokens_per_correct_answer – provider-neutral tokens consumed per correct answer
   cost_of_pass      – api_cost_usd / pass_rate (expected cost per correct answer)
   cost_delta        – ratio vs UNGOVERNED baseline (1.0 = same cost; <1 = cheaper)
 
-All prices are list prices from provider pricing pages, Q2 2026.
+Dollar prices are versioned benchmark estimates, not billing records. Provider
+routes and prices can drift, which is why token efficiency is the primary metric.
 Per-million-token pricing is the industry standard unit — convert to $/token
 for calculations: price_per_token = price_per_million / 1_000_000.
 """
@@ -29,7 +31,7 @@ from dataclasses import dataclass, field
 
 # ---------------------------------------------------------------------------
 # Pricing table: (input_usd_per_1m, output_usd_per_1m)
-# Source: provider pricing pages, Q2 2026.
+# Versioned estimates; verify against provider pricing before publication.
 # ---------------------------------------------------------------------------
 
 MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
@@ -39,7 +41,7 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "gpt-4.1": (2.00, 8.00),
     "gpt-4.1-mini": (0.40, 1.60),
     "gpt-4.1-nano": (0.10, 0.40),
-    # ── OpenAI GPT-5 family (prices verified Q3–Q4 2025 / Q1–Q2 2026) ───
+    # ── OpenAI GPT-5 family registry estimates ──────────────────────────
     "gpt-5": (15.00, 60.00),
     "gpt-5-mini": (2.00, 8.00),
     "gpt-5-nano": (0.50, 2.00),
@@ -82,8 +84,8 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "DeepSeek-Coder-V3": (0.70, 0.70),
     "deepseek-coder-v3": (0.70, 0.70),
     # ── HuggingFace Inference Providers — open-model tier spread ──────
-    # Seed estimates from the HF Inference Providers router; probe_models.py
-    # reconciles these against live per-provider pricing before a full run.
+    # Seed estimates from the HF Inference Providers router. probe_models.py
+    # displays live route pricing for review but does not mutate these values.
     # Keyed by exact repo id AND lowercased alias (estimate_cost is
     # case-sensitive; model ids passed via --model are full HF repo ids).
     "meta-llama/Llama-3.1-8B-Instruct": (0.05, 0.08),
@@ -392,6 +394,7 @@ class SliceStats:
     std_quality_score: float | None = None
 
     # Primary metric: expected USD to get one correct answer
+    tokens_per_correct_answer: float = float("inf")
     cost_of_pass: float = float("inf")
     ci_cop_low: float = float("inf")
     ci_cop_high: float = float("inf")
@@ -424,6 +427,7 @@ class SliceStats:
         pass_rate = pass_count / len(valid)
         ci_pass_low, ci_pass_high = wilson_pass_rate_ci(pass_count, len(valid))
         mean_cost = statistics.mean(r.api_cost_usd for r in valid)
+        mean_tokens = statistics.mean(r.total_tokens for r in valid)
         ci_cop_low, ci_cop_high = bootstrap_cost_of_pass_ci(valid)
         first_pass_rate = sum(1 for r in valid if r.rework_turns <= 1) / len(valid)
         pass_values = [1.0 if r.passed else 0.0 for r in valid]
@@ -431,6 +435,7 @@ class SliceStats:
             1.0 if len(pass_values) < 2 else max(0.0, 1.0 - statistics.pstdev(pass_values))
         )
 
+        tokens_per_correct_answer = mean_tokens / pass_rate if pass_rate > 0 else float("inf")
         cost_of_pass = (mean_cost / pass_rate) if pass_rate > 0 else float("inf")
 
         stats = cls(
@@ -443,7 +448,7 @@ class SliceStats:
             ci_pass_rate_high=ci_pass_high,
             mean_input_tokens=statistics.mean(r.input_tokens for r in valid),
             mean_output_tokens=statistics.mean(r.output_tokens for r in valid),
-            mean_total_tokens=statistics.mean(r.total_tokens for r in valid),
+            mean_total_tokens=mean_tokens,
             mean_input_cost_usd=statistics.mean(r.input_cost_usd for r in valid),
             mean_output_cost_usd=statistics.mean(r.output_cost_usd for r in valid),
             mean_api_cost_usd=mean_cost,
@@ -453,6 +458,7 @@ class SliceStats:
             mean_rework_turns=statistics.mean(r.rework_turns for r in valid),
             mean_governance_turns=statistics.mean(r.governance_turns for r in valid),
             mean_wall_clock_s=statistics.mean(r.wall_clock_s for r in valid),
+            tokens_per_correct_answer=tokens_per_correct_answer,
             cost_of_pass=cost_of_pass,
             ci_cop_low=ci_cop_low,
             ci_cop_high=ci_cop_high,
@@ -521,7 +527,9 @@ class BenchReport:
         for (model, condition), grouped_runs in grouped.items():
             pass_rate = sum(1 for run in grouped_runs if run.passed) / len(grouped_runs)
             mean_cost = statistics.mean(run.api_cost_usd for run in grouped_runs)
+            mean_tokens = statistics.mean(run.total_tokens for run in grouped_runs)
             mean_cop = mean_cost / pass_rate if pass_rate > 0 else float("inf")
+            mean_tpca = mean_tokens / pass_rate if pass_rate > 0 else float("inf")
             lifts = lifts_by_model_condition[(model, condition)]
             rows.append(
                 {
@@ -533,6 +541,7 @@ class BenchReport:
                         run.quality_score for run in grouped_runs
                     ),
                     "mean_cost_of_pass": mean_cop,
+                    "mean_tokens_per_correct_answer": mean_tpca,
                     "mean_scaffold_lift": statistics.mean(lifts) if lifts else None,
                     "n_tasks": len(tasks_by_model_condition[(model, condition)]),
                 }
@@ -684,6 +693,11 @@ class BenchReport:
                     "task_suite": task_suite,
                     "pass_rate": round(float(row["mean_pass_rate"]), 6),
                     "cop_usd": None if cop == float("inf") else round(cop, 6),
+                    "tokens_per_correct_answer": (
+                        None
+                        if float(row["mean_tokens_per_correct_answer"]) == float("inf")
+                        else round(float(row["mean_tokens_per_correct_answer"]), 3)
+                    ),
                     "scaffold_lift": (
                         round(float(row["mean_scaffold_lift"]), 6)
                         if row["mean_scaffold_lift"] is not None
@@ -717,7 +731,9 @@ class BenchReport:
             pass_rate = pass_count / len(runs)
             ci_pass_low, ci_pass_high = wilson_pass_rate_ci(pass_count, len(runs))
             mean_cost = statistics.mean(run.api_cost_usd for run in runs)
+            mean_tokens = statistics.mean(run.total_tokens for run in runs)
             mean_cop = mean_cost / pass_rate if pass_rate > 0 else float("inf")
+            mean_tpca = mean_tokens / pass_rate if pass_rate > 0 else float("inf")
             ci_cop_low, ci_cop_high = bootstrap_cost_of_pass_ci(runs)
             scaffold_lifts = [s.scaffold_lift for s in slices if s.scaffold_lift is not None]
             summary[cid] = {
@@ -726,7 +742,8 @@ class BenchReport:
                 "ci_pass_rate_high": ci_pass_high,
                 "mean_input_tokens": statistics.mean(run.input_tokens for run in runs),
                 "mean_output_tokens": statistics.mean(run.output_tokens for run in runs),
-                "mean_total_tokens": statistics.mean(run.total_tokens for run in runs),
+                "mean_total_tokens": mean_tokens,
+                "mean_tokens_per_correct_answer": mean_tpca,
                 "mean_input_cost_usd": statistics.mean(run.input_cost_usd for run in runs),
                 "mean_output_cost_usd": statistics.mean(run.output_cost_usd for run in runs),
                 "mean_api_cost_usd": mean_cost,

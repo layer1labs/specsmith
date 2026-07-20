@@ -1,21 +1,20 @@
-"""probe_models.py — verify selected models have a live inference provider.
+"""Verify selected models through the endpoints used by GovernanceBench.
 
-For every HuggingFace model in the selection, this queries the Inference
-Providers router:
+Hugging Face selections are checked against the Inference Providers metadata
+router. OpenAI selections are checked against the model endpoint. With
+``--live-call``, every supported provider also receives one tiny tool-enabled
+chat request, catching exhausted credits and runtime incompatibilities before
+an expensive matrix starts.
 
     GET https://router.huggingface.co/v1/models/<repo_id>   (Bearer HF_TOKEN)
 
-and reports the live provider(s), context length, tool support, and per-token
-pricing. It exits non-zero if any HuggingFace model has no live provider, so a
-full benchmark run can be gated behind a fast, free availability check instead
-of discovering dead models mid-run.
+The command exits non-zero if any selected model cannot be verified. Secrets
+are read from environment variables and are never printed.
 
 Model selection (first match wins):
     positional MODEL ids ...        explicit repo ids to probe
     --matrix PATH | -               read select_models.py JSON ({"include": [...]})
     --groups/--providers/--tiers    filter models.yml directly (see select_models)
-
-Non-HuggingFace entries are listed but not probed (the router only covers HF).
 
 Usage:
     python scripts/govern_bench/select_models.py --groups open \\
@@ -30,6 +29,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -39,6 +39,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from select_models import _csv_set, load_registry, select  # noqa: E402
 
 _ROUTER_MODEL_URL = "https://router.huggingface.co/v1/models/"
+_HF_CHAT_URL = "https://router.huggingface.co/v1/chat/completions"
+_OPENAI_MODEL_URL = "https://api.openai.com/v1/models/"
+_OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
 _HF_PROVIDER = "huggingface"
 
 
@@ -124,6 +127,94 @@ def _probe_one(model_id: str, token: str | None, timeout: float) -> dict:
     }
 
 
+def _probe_openai_model(model_id: str, token: str | None, timeout: float) -> dict:
+    """Confirm that an OpenAI credential can access an exact model id."""
+    if not token:
+        return {"model": model_id, "ok": False, "error": "OPENAI_API_KEY is not set"}
+    quoted = urllib.parse.quote(model_id, safe="")
+    req = urllib.request.Request(
+        _OPENAI_MODEL_URL + quoted,
+        headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return {"model": model_id, "ok": False, "error": f"HTTP {exc.code} {exc.reason}"}
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        return {"model": model_id, "ok": False, "error": str(exc)}
+    returned_id = payload.get("id") if isinstance(payload, dict) else None
+    return {
+        "model": model_id,
+        "ok": returned_id == model_id,
+        "error": None if returned_id == model_id else "model lookup returned an unexpected id",
+    }
+
+
+def _chat_probe_payload(model_id: str) -> dict:
+    """Build a minimal tool-enabled request matching the benchmark API surface."""
+    payload: dict = {
+        "model": model_id,
+        "messages": [{"role": "user", "content": "Reply with OK."}],
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "ping",
+                    "description": "Return a health-check value.",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        ],
+        "tool_choice": "auto",
+        "temperature": 0,
+    }
+    lowered = model_id.lower()
+    if lowered.startswith(("gpt-5", "o1", "o3", "o4")):
+        payload["max_completion_tokens"] = 32
+        payload.pop("temperature", None)
+    else:
+        payload["max_tokens"] = 32
+    return payload
+
+
+def _probe_chat_endpoint(
+    model_id: str,
+    token: str | None,
+    endpoint: str,
+    timeout: float,
+) -> dict:
+    """Make one tiny paid call to detect auth, billing, and tool failures."""
+    if not token:
+        return {"model": model_id, "ok": False, "error": "API credential is not set"}
+    body = json.dumps(_chat_probe_payload(model_id)).encode("utf-8")
+    req = urllib.request.Request(
+        endpoint,
+        data=body,
+        headers={
+            "Accept": "application/json",
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        return {"model": model_id, "ok": False, "error": f"HTTP {exc.code} {exc.reason}"}
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        return {"model": model_id, "ok": False, "error": str(exc)}
+    choices = payload.get("choices") if isinstance(payload, dict) else None
+    usage = payload.get("usage", {}) if isinstance(payload, dict) else {}
+    return {
+        "model": model_id,
+        "ok": isinstance(choices, list) and bool(choices),
+        "usage": usage if isinstance(usage, dict) else {},
+        "error": None if isinstance(choices, list) and choices else "response had no choices",
+    }
+
+
 def _money(value: object) -> str:
     """Render a per-1M price, rounding floats and passing through unknowns."""
     if isinstance(value, (int, float)):
@@ -179,6 +270,14 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--providers")
     parser.add_argument("--tiers")
     parser.add_argument("--timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--live-call",
+        action="store_true",
+        help=(
+            "make one tiny tool-enabled request per model to verify auth, "
+            "credits, and runtime support"
+        ),
+    )
     args = parser.parse_args()
     if args.registry is None:
         args.registry = str(Path(__file__).with_name("models.yml"))
@@ -187,47 +286,81 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = _parse_args()
-    token = os.environ.get("HF_TOKEN")
-    if not token:
-        print("Warning: HF_TOKEN not set; probing unauthenticated may fail.", file=sys.stderr)
-
     try:
         rows = _resolve_models(args)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"Error resolving models: {exc}", file=sys.stderr)
         return 1
 
-    hf_rows = [r for r in rows if r.get("provider", _HF_PROVIDER) == _HF_PROVIDER]
-    other = [r for r in rows if r.get("provider") not in (None, _HF_PROVIDER)]
-    for r in other:
-        print(f"  skip (not huggingface): {r['provider']}/{r['model']}")
-
-    if not hf_rows:
-        print("No HuggingFace models to probe.", file=sys.stderr)
-        return 0
-
     failures: list[str] = []
-    print(f"Probing {len(hf_rows)} HuggingFace model(s) via the Inference Providers router:\n")
-    for r in hf_rows:
-        model_id = r["model"]
-        result = _probe_one(model_id, token, args.timeout)
-        if result["ok"]:
-            print(f"✓ {model_id}  ({result['n_providers']} provider(s))")
-            for p in result["live"]:
-                print(f"    {_fmt_provider(p)}")
+    print(f"Probing {len(rows)} selected model(s):\n")
+    for row in rows:
+        model_id = str(row["model"])
+        provider = str(row.get("provider") or _HF_PROVIDER)
+        result: dict
+        if provider == _HF_PROVIDER:
+            token = os.environ.get("HF_TOKEN")
+            result = _probe_one(model_id, token, args.timeout)
+            if result["ok"]:
+                print(f"OK {provider}/{model_id} ({result['n_providers']} provider(s))")
+                for live_provider in result["live"]:
+                    print(f"    {_fmt_provider(live_provider)}")
+                if args.live_call:
+                    result = _probe_chat_endpoint(
+                        model_id,
+                        token,
+                        _HF_CHAT_URL,
+                        args.timeout,
+                    )
+            if result["ok"] and args.live_call:
+                print("    live tool call: OK")
+        elif provider == "openai":
+            token = os.environ.get("OPENAI_API_KEY")
+            result = _probe_openai_model(model_id, token, args.timeout)
+            if result["ok"]:
+                print(f"OK {provider}/{model_id} (model access)")
+                if args.live_call:
+                    result = _probe_chat_endpoint(
+                        model_id,
+                        token,
+                        _OPENAI_CHAT_URL,
+                        args.timeout,
+                    )
+            if result["ok"] and args.live_call:
+                print("    live tool call: OK")
+        elif provider == "openai-compat" and args.live_call:
+            base_url = os.environ.get(
+                "BENCH_OPENAI_BASE_URL",
+                "https://openrouter.ai/api/v1",
+            ).rstrip("/")
+            result = _probe_chat_endpoint(
+                model_id,
+                os.environ.get("BENCH_OPENAI_COMPAT_API_KEY"),
+                f"{base_url}/chat/completions",
+                args.timeout,
+            )
+            if result["ok"]:
+                print(f"OK {provider}/{model_id} (live tool call)")
         else:
-            print(f"✗ {model_id}  — {result['error']}", file=sys.stderr)
-            failures.append(model_id)
+            result = {
+                "model": model_id,
+                "ok": False,
+                "error": f"no fail-closed endpoint probe is implemented for provider '{provider}'",
+            }
+
+        if not result["ok"]:
+            print(f"FAIL {provider}/{model_id}: {result['error']}", file=sys.stderr)
+            failures.append(f"{provider}/{model_id}")
 
     print()
     if failures:
         print(
-            f"[FATAL] {len(failures)} model(s) have no live provider: {failures}. "
-            "Refusing to start a full run against dead endpoints.",
+            f"[FATAL] {len(failures)} model probe(s) failed: {failures}. "
+            "Refusing to start a full run against unavailable endpoints.",
             file=sys.stderr,
         )
         return 1
-    print(f"All {len(hf_rows)} HuggingFace model(s) have a live provider.")
+    print(f"All {len(rows)} selected model(s) passed their available probes.")
     return 0
 
 

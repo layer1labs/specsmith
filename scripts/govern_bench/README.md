@@ -32,9 +32,9 @@ python -m govern_bench.run_bench --reps 5 --model claude-sonnet-4-5
 
 ## Benchmark Scope
 
-### 13 governance conditions
+### 12 governance conditions
 
-GovernanceBench compares 13 conditions spanning ungoverned baselines, context-only tool
+GovernanceBench compares 12 conditions spanning ungoverned baselines, context-only tool
 styles, and specsmith governance workflows.
 
 | ID | Condition | Expected Overhead Turns | Family |
@@ -51,7 +51,11 @@ styles, and specsmith governance workflows.
 | `CLINE_RULES` | Cline `.clinerules` style | 0 | Tool-native |
 | `AGILE_TDD` | Test-first (RED→GREEN→REFACTOR) protocol | 1 | Process scaffold |
 | `AIDER_CONVENTIONS` | Aider `CONVENTIONS.md` style | 0 | Tool-native |
-| `SPECSMITH_DISPATCH` | specsmith multi-agent DAG dispatch | 5 | specsmith |
+
+The former `SPECSMITH_DISPATCH` condition is excluded from the executable
+matrix because it simulated dispatch rather than running an equivalent agent
+capability. Historical reports label it explicitly and do not carry it into new
+comparative claims.
 
 ### Multi-domain task suites
 
@@ -61,11 +65,12 @@ code-only benchmarks.
 | Suite | Task IDs | Domain(s) | Status |
 |------|----------|-----------|--------|
 | Core suite | `T1`–`T13` | `todo_api`, `cli_tool` | Available |
-| Wave 1 expansion | `T14`–`T22` | `todo_api`, `data_pipeline`, `verilog_module`, `patent_draft` | Planned |
-| Shell hardening suite | `T23`–`T27` | `shell_scripts` | Planned |
+| Wave 1 expansion | `T14`–`T22` | `todo_api`, `data_pipeline`, `verilog_module`, `patent_draft` | Available |
+| Shell hardening suite | `T23`–`T27` | `shell_scripts` | Available |
 | Wave 2 expansion | TBD | `ee_schematic`, `business_requirements`, `regulatory_doc`, `fpga_constraints` | Planned |
 
-No benchmark claims should be made from planned suites until task artifacts and run data exist.
+Task availability does not imply empirical coverage. Claims must identify the exact
+tasks included in the matched run.
 
 ---
 
@@ -73,7 +78,7 @@ No benchmark claims should be made from planned suites until task artifacts and 
 
 GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons.
 
-### Provider examples
+### Registry candidates
 
 - **OpenAI**: `gpt-4o-mini`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`
 - **Anthropic**: `claude-haiku-4-5`, `claude-sonnet-4-5`, `claude-opus-4-5`
@@ -90,8 +95,17 @@ GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons
 | Frontier | `> $15` blended | `gpt-5.6-sol`, `claude-opus-4-5` |
 | Open-source | Infra-dependent | `Qwen/Qwen3.6-35B-A3B`, `Llama-3.3-70B`, `gpt-oss-120b` |
 
-Use these as comparison tiers, not fixed coverage requirements. Final model lists should be
-recorded in run metadata and report headers.
+Registry entries are candidates, not availability claims. The GitHub workflow
+live-probes exact model access, billing, and tool-call compatibility before any
+paid matrix begins. Final model ids must be recorded in run metadata and report
+headers.
+
+Use the workflow's `probe_only` input for a low-cost credential/model check. It
+makes one tiny tool-enabled request per OpenAI or Hugging Face model and does not
+start benchmark cells. OpenAI-compatible endpoints are also supported when their
+secret is configured. Other registry providers fail closed until an equivalent
+endpoint probe is implemented; they are examples, not currently runnable CI
+targets.
 
 ### Running open models without HuggingFace credits
 
@@ -122,19 +136,22 @@ different OpenAI-compatible provider (DeepInfra, Together, Groq, etc.).
 
 ### Primary metric
 
-`cost_of_pass = mean_api_cost_usd / pass_rate`
+`tokens_per_correct_answer = mean_total_tokens / pass_rate`
 
-Lower is better. If `pass_rate == 0`, cost-of-pass is treated as non-finite.
+Lower is better. This provider-neutral metric directly measures the stated goal:
+the fewest tokens consumed for each correct answer. If `pass_rate == 0`, it is
+non-finite.
 
 ### Core secondary metrics
 
 - `pass_rate`
+- `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
 - `rework_turns`, `governance_turns`, `wall_clock_s`
 - governance-specific rates for clarification/safety tasks
 
-### Expansion statistics (planned report fields)
+### Statistical report fields
 
 - 95% Wilson confidence interval for `pass_rate`
 - 95% bootstrap confidence interval for `cost_of_pass` (1,000 resamples)
@@ -180,7 +197,7 @@ scripts/govern_bench/
 ├── leaderboard_schema.json        ← HF leaderboard schema (new)
 ├── __init__.py
 ├── compare_runs.py
-├── conditions.py                  ← 13 condition definitions
+├── conditions.py                  ← 12 executable condition definitions
 ├── harness.py
 ├── judge.py
 ├── metrics.py
@@ -188,15 +205,14 @@ scripts/govern_bench/
 ├── run_bench.py
 ├── tasks.py
 ├── tasks/
-│   ├── T1_*.yml ... T13_*.yml     ← current core suite
-│   └── T14+                        ← planned multi-domain expansion
+│   └── T1_*.yml ... T27_*.yml     ← available multi-domain suites
 └── projects/
     ├── todo_api/                  ← current
     ├── cli_tool/                  ← current
-    ├── data_pipeline/             ← planned
-    ├── verilog_module/            ← planned
-    ├── patent_draft/              ← planned
-    └── shell_scripts/             ← planned
+    ├── data_pipeline/             ← available
+    ├── verilog_module/            ← available
+    ├── patent_draft/              ← available
+    └── shell_scripts/             ← available
 ```
 
 ---

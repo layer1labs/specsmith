@@ -19,7 +19,7 @@ Quantify governance/scaffolding impact on:
 Each benchmark observation is a run over the Cartesian product:
 
 - task (`T*`),
-- governance condition (`13` conditions),
+- governance condition (`12` executable conditions),
 - model/provider pair,
 - repetition index (`rep`).
 
@@ -34,19 +34,20 @@ Cells with fewer repetitions should be reported as provisional.
 
 ### 3.1 Primary metric
 
-`cost_of_pass = mean_api_cost_usd / pass_rate`
+`tokens_per_correct_answer = mean_total_tokens / pass_rate`
 
 where:
 
-- `mean_api_cost_usd` is the average per-run API cost within a slice,
+- `mean_total_tokens` is the average input plus output tokens within a slice,
 - `pass_rate` is fraction of passing runs in that slice.
 
-If `pass_rate = 0`, `cost_of_pass` is non-finite and should be represented as null/non-finite
+If `pass_rate = 0`, the metric is non-finite and should be represented as null/non-finite
 in leaderboard exports.
 
 ### 3.2 Secondary metrics
 
 - `pass_rate`
+- `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
 - `rework_turns`, `governance_turns`, `wall_clock_s`
@@ -121,6 +122,12 @@ All benchmark reports should include:
 4. explicit treatment of non-finite CoP values,
 5. raw run artifact references.
 
+Runs below five repetitions per matched slice are diagnostic only and must not
+produce superiority claims. Five repetitions support screening observations;
+ten support release-quality publication. Comparative claims additionally
+require complete identical cell sets and must preserve or improve correctness,
+not merely reduce tokens or estimated cost.
+
 Do not publish absolute performance claims without confidence intervals.
 Do not publish comparative claims when intervals overlap substantially without caveats.
 
@@ -133,7 +140,9 @@ Do not publish comparative claims when intervals overlap substantially without c
 
 ## 8) Limitations
 
-- Provider pricing and model behavior can drift over time.
+- Provider pricing and model behavior can drift over time. Dollar cost is a
+  secondary estimate based on the versioned pricing table; token efficiency is
+  the provider-neutral primary measure.
 - LLM judge components can add evaluator variance.
 - Cross-domain comparability depends on validator quality per domain.
 

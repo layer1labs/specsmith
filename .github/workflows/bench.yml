@@ -32,7 +32,7 @@ on:
         required: false
         default: "T1,T2,T6,T7,T10,T11,T13"
       conditions:
-        description: "Condition IDs (comma-separated). Blank = all 13."
+        description: "Condition IDs (comma-separated). Blank = all 12."
         required: false
         default: ""
       reps:
@@ -41,6 +41,11 @@ on:
         default: "5"
       dry_run:
         description: "Dry-run mode — no real API calls, deterministic dummy data"
+        required: false
+        type: boolean
+        default: false
+      probe_only:
+        description: "Validate exact model access, billing, and tool calls without starting the matrix"
         required: false
         type: boolean
         default: false
@@ -136,7 +141,7 @@ jobs:
 
   # ──────────────────────────────────────────────────────────────────────────
   # setup — build the run matrix from models.yml (toggleable groups/tiers) and
-  # gate the run behind a live-provider probe (HF models only).
+  # gate the run behind exact model-access and live tool-call probes.
   # ──────────────────────────────────────────────────────────────────────────
   setup:
     name: Select models + probe availability
@@ -171,11 +176,14 @@ jobs:
           echo "$MATRIX" > matrix.json
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
-      - name: Probe live provider availability (HuggingFace models)
+      - name: Probe model access, credits, and tool-call compatibility
         if: github.event.inputs.dry_run != 'true'
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python scripts/govern_bench/probe_models.py --matrix matrix.json
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          BENCH_OPENAI_COMPAT_API_KEY: ${{ secrets.BENCH_OPENAI_COMPAT_API_KEY }}
+          BENCH_OPENAI_BASE_URL: ${{ vars.BENCH_OPENAI_BASE_URL || 'https://openrouter.ai/api/v1' }}
+        run: python scripts/govern_bench/probe_models.py --matrix matrix.json --live-call
 
   # ──────────────────────────────────────────────────────────────────────────
   # bench-matrix — one job per selected model. No continue-on-error: a model
@@ -185,7 +193,7 @@ jobs:
     name: "Bench [${{ matrix.tier }}] ${{ matrix.label }}"
     runs-on: ubuntu-latest
     needs: setup
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.probe_only != 'true'
     permissions:
       contents: read
     strategy:
@@ -316,7 +324,7 @@ jobs:
     name: Cross-model comparison
     runs-on: ubuntu-latest
     needs: bench-matrix
-    if: always() && github.event_name == 'workflow_dispatch'
+    if: always() && github.event_name == 'workflow_dispatch' && github.event.inputs.probe_only != 'true'
     permissions:
       contents: read
     steps:

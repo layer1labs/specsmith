@@ -127,6 +127,7 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
         consistency_score = (
             1.0 if len(pass_values) < 2 else max(0.0, 1.0 - statistics.pstdev(pass_values))
         )
+        tpca = avg_tokens / pass_rate if pass_rate > 0 else float("inf")
         cop = avg_cost / pass_rate if pass_rate > 0 else float("inf")
         result[task][cond] = {
             "pass_rate": pass_rate,
@@ -137,6 +138,7 @@ def rollup(rows: list[dict]) -> dict[str, dict[str, dict]]:
             "first_pass_rate": first_pass_rate,
             "consistency_score": consistency_score,
             "cost_of_pass": cop,
+            "tokens_per_correct_answer": tpca,
             "n_reps": len(reps),
         }
 
@@ -249,6 +251,8 @@ def _pct(v: float) -> str:
 
 
 def _tok(v: float) -> str:
+    if v == float("inf"):
+        return "∞"
     return f"{v / 1000:.1f}k"
 
 
@@ -290,8 +294,9 @@ def render_comparison(
         "",
         "**Models compared:** " + " · ".join(f"{m} ({model_tier(m)})" for m, _ in models),
         "",
-        "> **Cost-of-pass (CoP)** = mean_cost_per_run ÷ pass_rate.",
-        "> Lower = cheaper per correct answer. ∞ = condition never passed.",
+        "> **Primary:** tokens per correct answer (TPCA) = mean_tokens ÷ pass_rate.",
+        "> **Secondary:** cost-of-pass (CoP) = estimated mean_cost_per_run ÷ pass_rate.",
+        "> Lower is better. ∞ = condition never passed.",
         "",
     ]
 
@@ -304,8 +309,8 @@ def render_comparison(
         header_parts = ["| Condition"]
         sep_parts = ["|----------"]
         for mname, _ in models:
-            header_parts += [f" {mname} Pass%", "Tokens", "Cost/run", "CoP"]
-            sep_parts += ["------:", "------:", "--------:", "--------:"]
+            header_parts += [f" {mname} Pass%", "Tokens", "TPCA", "Cost/run", "CoP"]
+            sep_parts += ["------:", "------:", "------:", "--------:", "--------:"]
         header_parts.append("")
         sep_parts.append("")
         lines.append("|".join(header_parts))
@@ -318,12 +323,13 @@ def render_comparison(
                 task_data = data.get(task, {})
                 s = task_data.get(cond)
                 if s is None:
-                    row += [" —", " —", " —", " —"]
+                    row += [" —", " —", " —", " —", " —"]
                 else:
                     bold_s = "**" if cond.startswith("SPECSMITH") else ""
                     bold_e = "**" if cond.startswith("SPECSMITH") else ""
                     row.append(f" {bold_s}{_pct(s['pass_rate'])}{bold_e}")
                     row.append(f" {_tok(s['avg_tokens'])}")
+                    row.append(f" {_tok(s['tokens_per_correct_answer'])}")
                     row.append(f" {_usd(s['avg_cost'])}")
                     row.append(f" {bold_s}{_cop(s['cost_of_pass'])}{bold_e}")
             row.append("")
@@ -340,8 +346,8 @@ def render_comparison(
     header_parts = ["| Condition"]
     sep_parts = ["|----------"]
     for mname, _ in models:
-        header_parts += [f" {mname} Pass%", "Mean CoP", "$/mo @20/day"]
-        sep_parts += ["------:", "--------:", "-----------:"]
+        header_parts += [f" {mname} Pass%", "Mean TPCA", "Mean CoP", "$/mo @20/day"]
+        sep_parts += ["------:", "--------:", "--------:", "-----------:"]
     header_parts.append("")
     sep_parts.append("")
     lines.append("|".join(header_parts))
@@ -354,6 +360,7 @@ def render_comparison(
             total_runs = 0
             total_passes = 0.0
             total_cost = 0.0
+            total_tokens = 0.0
             for task in all_tasks:
                 s = data.get(task, {}).get(cond)
                 if s:
@@ -361,16 +368,20 @@ def render_comparison(
                     total_runs += reps
                     total_passes += s["pass_rate"] * reps
                     total_cost += s["avg_cost"] * reps
+                    total_tokens += s["avg_tokens"] * reps
             if not total_runs:
-                row += [" —", " —", " —"]
+                row += [" —", " —", " —", " —"]
                 continue
             mean_pr = total_passes / total_runs
             mean_cost = total_cost / total_runs
+            mean_tokens = total_tokens / total_runs
+            mean_tpca = mean_tokens / mean_pr if mean_pr > 0 else float("inf")
             mean_cop = mean_cost / mean_pr if mean_pr > 0 else float("inf")
             monthly = mean_cost * 20 * 22  # 20 tasks/day, 22 days/month
             bold_s = "**" if cond.startswith("SPECSMITH") else ""
             bold_e = "**" if cond.startswith("SPECSMITH") else ""
             row.append(f" {bold_s}{_pct(mean_pr)}{bold_e}")
+            row.append(f" {bold_s}{_tok(mean_tpca)}{bold_e}")
             row.append(f" {bold_s}{_cop(mean_cop)}{bold_e}")
             row.append(f" {bold_s}${monthly:.2f}{bold_e}")
         row.append("")
@@ -382,6 +393,18 @@ def render_comparison(
         "## Headline findings",
         "",
     ]
+    screening_ready = all(
+        stats["n_reps"] >= 5
+        for _model, data in models
+        for conditions in data.values()
+        for stats in conditions.values()
+    )
+    if not screening_ready:
+        lines += [
+            "No superiority claim is made: every matched slice needs at least 5 "
+            "repetitions for screening evidence.",
+            "",
+        ]
 
     # Headline uses the first available coding task (T1, T2, T10, T11, T13) so
     # an open-model run that omits T1 still produces a meaningful headline.
@@ -395,7 +418,7 @@ def render_comparison(
                     best.append((s["cost_of_pass"], mname, cond))
         best.sort()
 
-        if best:
+        if best and screening_ready:
             cheapest_cop, cheapest_model, cheapest_cond = best[0]
             lines.append(
                 f"**Cheapest cost-of-pass on {headline_task}:** "
@@ -440,13 +463,17 @@ def render_comparison(
             if sf:
                 lines.append(
                     f"- **{mname} + SPECSMITH_FULL**: {_pct(sf['pass_rate'])} pass, "
-                    f"{_tok(sf['avg_tokens'])} tokens, {_usd(sf['avg_cost'])}/run, "
+                    f"{_tok(sf['avg_tokens'])} tokens/run, "
+                    f"TPCA {_tok(sf['tokens_per_correct_answer'])}, "
+                    f"{_usd(sf['avg_cost'])}/run, "
                     f"CoP {_cop(sf['cost_of_pass'])}"
                 )
             if ug:
                 lines.append(
                     f"- **{mname} + UNGOVERNED**: {_pct(ug['pass_rate'])} pass, "
-                    f"{_tok(ug['avg_tokens'])} tokens, {_usd(ug['avg_cost'])}/run, "
+                    f"{_tok(ug['avg_tokens'])} tokens/run, "
+                    f"TPCA {_tok(ug['tokens_per_correct_answer'])}, "
+                    f"{_usd(ug['avg_cost'])}/run, "
                     f"CoP {_cop(ug['cost_of_pass'])}"
                 )
     lines += ["", "---", "", "_Generated by `scripts/govern_bench/compare_runs.py`_", ""]

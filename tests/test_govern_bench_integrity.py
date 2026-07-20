@@ -12,6 +12,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from govern_bench.compare_runs import (  # noqa: E402
+    rollup,
     split_input_spec,
     validate_comparable,
     validate_results,
@@ -24,7 +25,11 @@ from govern_bench.harness import (  # noqa: E402
     _run_governance_controller,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
-from govern_bench.run_bench import incomplete_real_run  # noqa: E402
+from govern_bench.probe_models import (  # noqa: E402
+    _chat_probe_payload,
+    _probe_chat_endpoint,
+)
+from govern_bench.run_bench import _configure_console_output, incomplete_real_run  # noqa: E402
 from govern_bench.tasks import get_task  # noqa: E402
 
 
@@ -101,6 +106,13 @@ def test_cross_model_cell_mismatch_is_rejected() -> None:
         validate_comparable([reference, incomplete])
 
 
+def test_comparison_rollup_reports_tokens_per_correct_answer() -> None:
+    rows = [_row(rep=1), _row(rep=2)]
+    rows[1]["passed"] = False
+    stats = rollup(rows)["T1"]["UNGOVERNED"]
+    assert stats["tokens_per_correct_answer"] == pytest.approx(200.0)
+
+
 def test_comparison_input_parser_preserves_windows_drive_path() -> None:
     assert split_input_spec(r"C:\tmp\bench-results.json") == (
         r"C:\tmp\bench-results.json",
@@ -120,6 +132,39 @@ def test_real_run_fails_on_any_incomplete_cell(skipped: int, errored: int) -> No
 
 def test_complete_real_run_remains_publishable() -> None:
     assert not incomplete_real_run(dry_run=False, skipped=0, errored=0)
+
+
+def test_windows_console_output_uses_replacement_errors() -> None:
+    class LegacyConsole:
+        errors: str | None = None
+
+        def reconfigure(self, *, errors: str) -> None:
+            self.errors = errors
+
+    stream = LegacyConsole()
+    _configure_console_output(stream)
+    assert stream.errors == "replace"
+
+
+def test_live_probe_requires_credential_without_network() -> None:
+    result = _probe_chat_endpoint(
+        "gpt-4o-mini",
+        None,
+        "https://api.openai.com/v1/chat/completions",
+        1.0,
+    )
+    assert not result["ok"]
+    assert "credential" in result["error"]
+
+
+def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
+    regular = _chat_probe_payload("gpt-4o-mini")
+    reasoning = _chat_probe_payload("gpt-5.6-sol")
+    assert regular["max_tokens"] == 32
+    assert regular["temperature"] == 0
+    assert reasoning["max_completion_tokens"] == 32
+    assert "temperature" not in reasoning
+    assert regular["tools"][0]["function"]["name"] == "ping"
 
 
 def test_current_model_pricing_and_tiers() -> None:

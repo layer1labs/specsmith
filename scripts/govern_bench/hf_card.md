@@ -33,23 +33,24 @@ Benchmark publication status: **TBD** (no final leaderboard claims in this card 
 Task suites:
 
 - Core suite: `T1`–`T13` (currently available)
-- Planned expansion suites: `T14`–`T27` and additional domain waves (status: planned)
+- Multi-domain suites: `T14`–`T27` (available; empirical coverage depends on the run)
 
 ## Metrics
 
 Primary metric:
 
-- `cost_of_pass = mean_api_cost_usd / pass_rate`
+- `tokens_per_correct_answer = mean_total_tokens / pass_rate`
 
 Secondary metrics:
 
 - `pass_rate`
+- `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
 - `rework_turns`, `governance_turns`, `wall_clock_s`
-- `first_pass_rate`, `consistency_score` (planned)
-- `scaffold_lift` vs `UNGOVERNED` (planned)
-- `democratization_score` (planned)
+- `first_pass_rate`, `consistency_score`
+- `scaffold_lift` vs `UNGOVERNED`
+- `democratization_score`
 
 Confidence and inference methodology is documented in `scripts/govern_bench/METHODOLOGY.md`.
 

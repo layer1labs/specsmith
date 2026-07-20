@@ -33,6 +33,8 @@ def _fmt_pct(rate: float) -> str:
 
 
 def _fmt_tokens(n: float) -> str:
+    if n == float("inf"):
+        return "∞"
     if n >= 1000:
         return f"{n / 1000:.1f}k"
     return str(int(n))
@@ -153,34 +155,65 @@ def render_pareto_scatter_data(report: BenchReport) -> str:
 
 
 def render_key_claims(report: BenchReport) -> str:
-    """Render the three headline claims for HF-facing narrative."""
+    """Render guarded observations without overstating undersampled results."""
     summary = report.condition_summary()
     lines = [
         "## Key Claims",
         "",
     ]
 
-    specsmith_cops = [
-        s["mean_cost_of_pass"]
+    reps_by_slice: dict[tuple[str, str], int] = {}
+    for run in report.runs:
+        if not run.skipped:
+            key = (run.task_id, run.condition_id)
+            reps_by_slice[key] = reps_by_slice.get(key, 0) + 1
+    minimum_reps = min(reps_by_slice.values(), default=0)
+    if minimum_reps < 5:
+        lines += [
+            f"- No superiority claim: the minimum slice has {minimum_reps} repetition(s); "
+            "at least 5 are required for screening evidence.",
+            "",
+        ]
+        return "\n".join(lines)
+
+    specsmith_rows = [
+        (cid, s)
         for cid, s in summary.items()
-        if cid.startswith("SPECSMITH") and s["mean_cost_of_pass"] < float("inf")
+        if cid.startswith("SPECSMITH") and s["mean_tokens_per_correct_answer"] < float("inf")
     ]
-    non_specsmith_cops = [
-        s["mean_cost_of_pass"]
+    non_specsmith_rows = [
+        (cid, s)
         for cid, s in summary.items()
-        if not cid.startswith("SPECSMITH") and s["mean_cost_of_pass"] < float("inf")
+        if not cid.startswith("SPECSMITH") and s["mean_tokens_per_correct_answer"] < float("inf")
     ]
-    if specsmith_cops and non_specsmith_cops:
-        best_specsmith = min(specsmith_cops)
-        best_non_specsmith = min(non_specsmith_cops)
-        ratio = best_non_specsmith / best_specsmith if best_specsmith > 0 else float("inf")
-        lines.append(
-            "- Best specsmith CoP is "
-            f"{_fmt_ratio(ratio)} better than best non-specsmith CoP "
-            f"({_fmt_cost(best_specsmith)} vs {_fmt_cost(best_non_specsmith)})."
+    if specsmith_rows and non_specsmith_rows:
+        spec_id, best_specsmith = min(
+            specsmith_rows,
+            key=lambda item: float(item[1]["mean_tokens_per_correct_answer"]),
         )
+        non_id, best_non_specsmith = min(
+            non_specsmith_rows,
+            key=lambda item: float(item[1]["mean_tokens_per_correct_answer"]),
+        )
+        spec_tpca = float(best_specsmith["mean_tokens_per_correct_answer"])
+        non_tpca = float(best_non_specsmith["mean_tokens_per_correct_answer"])
+        noninferior = float(best_specsmith["mean_pass_rate"]) >= float(
+            best_non_specsmith["mean_pass_rate"]
+        )
+        if spec_tpca < non_tpca and noninferior:
+            ratio = non_tpca / spec_tpca if spec_tpca > 0 else float("inf")
+            lines.append(
+                f"- Screening result: `{spec_id}` used {_fmt_ratio(ratio)} fewer tokens per "
+                f"correct answer than `{non_id}` ({_fmt_tokens(spec_tpca)} vs "
+                f"{_fmt_tokens(non_tpca)}) without a lower aggregate pass rate."
+            )
+        else:
+            lines.append(
+                "- No Specsmith token-efficiency advantage was observed under the "
+                "non-inferior-correctness requirement."
+            )
     else:
-        lines.append("- Best specsmith vs non-specsmith CoP claim: pending sufficient data.")
+        lines.append("- Specsmith vs non-specsmith comparison: pending sufficient data.")
 
     democratization = [r for r in report.democratization_table() if r["cheapest_model"]]
     if democratization:
@@ -246,7 +279,8 @@ def render_report(
         f"**Tasks:** {len(tasks)} (T1–T{len(tasks)})  ",
         f"**Conditions:** {len(conditions)}  ",
         "",
-        "> **Primary metric:** cost-of-pass = mean_api_cost_usd ÷ pass_rate  ",
+        "> **Primary metric:** tokens per correct answer = mean_total_tokens ÷ pass_rate  ",
+        "> **Secondary metric:** cost-of-pass = estimated mean_api_cost_usd ÷ pass_rate  ",
         "> Lower is better. ∞ = condition never passed this task.",
         "",
     ]
@@ -265,7 +299,7 @@ def render_report(
     cids = [c.id for c in conditions]
 
     # Build rows
-    rows: list[tuple[str, str, str, str, str, str, str, str, str]] = []
+    rows: list[tuple[str, str, str, str, str, str, str, str, str, str]] = []
     for cid in cids:
         if cid not in summary:
             continue
@@ -277,6 +311,7 @@ def render_report(
                 f"{_fmt_pct(s['mean_pass_rate'])} "
                 f"({_fmt_ci_pct(s['ci_pass_rate_low'], s['ci_pass_rate_high'])})",
                 _fmt_tokens(s["mean_total_tokens"]),
+                _fmt_tokens(s["mean_tokens_per_correct_answer"]),
                 _fmt_cost(s["mean_api_cost_usd"]),
                 f"{s['mean_quality_score']:.2f}",
                 f"{_fmt_cost(s['mean_cost_of_pass'])} "
@@ -290,11 +325,11 @@ def render_report(
     # Best-value variables reserved for future bolding logic (not yet applied)
 
     header = (
-        "| Condition | Pass Rate (95% CI) | Mean Tokens | Mean Cost | Quality | "
+        "| Condition | Pass Rate (95% CI) | Mean Tokens | Tokens/Correct | Mean Cost | Quality | "
         "Cost-of-Pass (95% CI) | First Pass | Consistency | Scaffold Lift |"
     )
     sep = (
-        "|-----------|---------------------|-------------|-----------|---------|"
+        "|-----------|---------------------|-------------|----------------|-----------|---------|"
         "------------------------|------------|-------------|---------------|"
     )
     lines += [header, sep]
@@ -333,10 +368,11 @@ def render_report(
             continue
 
         lines.append(
-            "| Condition | Pass Rate | Tokens | Cost | Quality | CoP | First Pass | Lift |"
+            "| Condition | Pass Rate | Tokens | Tokens/Correct | Cost | Quality | "
+            "CoP | First Pass | Lift |"
         )
         lines.append(
-            "|-----------|-----------|--------|------|---------|-----|------------|------|"
+            "|-----------|-----------|--------|----------------|------|---------|-----|------------|------|"
         )
 
         def _slice_order(s: SliceStats) -> int:
@@ -348,6 +384,7 @@ def render_report(
                 f"| {cname} "
                 f"| {_fmt_pct(s.pass_rate)} "
                 f"| {_fmt_tokens(s.mean_total_tokens)} "
+                f"| {_fmt_tokens(s.tokens_per_correct_answer)} "
                 f"| {_fmt_cost(s.mean_api_cost_usd)} "
                 f"| {s.mean_quality_score:.2f} "
                 f"| {_fmt_cost(s.cost_of_pass)} "

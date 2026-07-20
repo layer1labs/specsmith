@@ -28,6 +28,7 @@ loaded from disk when present but skipped gracefully if unavailable.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -48,6 +49,7 @@ from govern_bench.metrics import (  # noqa: E402
     estimate_cost,
     estimate_cost_breakdown,
 )
+from govern_bench.report import render_key_claims  # noqa: E402
 
 
 def test_removed_model_facing_governance_tools_do_not_return() -> None:
@@ -262,6 +264,14 @@ class TestSliceStats:
         # cost_of_pass = 0.15 / 0.5 = 0.30
         assert abs(stats.cost_of_pass - 0.30) < 1e-6
 
+    def test_tokens_per_correct_answer(self) -> None:
+        runs = [
+            _run(rep=1, input_tokens=2000, output_tokens=1000),
+            _run(rep=2, input_tokens=2000, output_tokens=1000, lint_passed=False),
+        ]
+        stats = SliceStats.from_runs(runs)
+        assert stats.tokens_per_correct_answer == pytest.approx(6000.0)
+
     def test_cost_of_pass_inf_when_no_passes(self) -> None:
         runs = [_run(rep=i, lint_passed=False) for i in range(3)]
         stats = SliceStats.from_runs(runs)
@@ -436,6 +446,22 @@ class TestBenchReport:
         assert summary["mean_pass_rate"] == 0.5
         assert summary["mean_api_cost_usd"] == pytest.approx(0.15)
         assert summary["mean_cost_of_pass"] == pytest.approx(0.30)
+        assert summary["mean_tokens_per_correct_answer"] == pytest.approx(2_000_000.0)
+
+    def test_key_claims_suppress_undersampled_superiority(self) -> None:
+        report = self._make_report()
+        claims = render_key_claims(report)
+        assert "No superiority claim" in claims
+        assert "at least 5" in claims
+
+    def test_hf_leaderboard_rows_match_declared_schema_fields(self) -> None:
+        row = self._make_report().hf_leaderboard_json()[0]
+        schema = json.loads(
+            (_SCRIPTS_DIR / "govern_bench" / "leaderboard_schema.json").read_text(encoding="utf-8")
+        )
+        row_schema = schema["$defs"]["leaderboard_row"]
+        assert set(row) == set(row_schema["required"])
+        assert set(row) <= set(row_schema["properties"])
 
 
 # ---------------------------------------------------------------------------
