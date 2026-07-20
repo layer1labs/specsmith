@@ -1,167 +1,75 @@
-# specsmith Documentation
+# Specsmith
 
-**Applied Epistemic Engineering toolkit for AI-assisted development.**
+**Lean Applied Epistemic Engineering governance for AI-assisted development.**
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
 
-specsmith treats belief systems like code: **codable, testable, and deployable**. It scaffolds
-epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
-cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
+Specsmith sits around the coding agent and tools you already use. It keeps
+requirements durable, links them to enforceable tests, bounds epistemic context,
+and records evidence so a plausible model answer cannot silently become a fact.
 
-It also co-installs the **standalone `epistemic` Python library** for direct use in any project:
+## The essential loop
 
-```python
-from epistemic import AEESession          # zero deps, works anywhere
-session = AEESession("my-project")
-session.add_belief("HYP-001", ["The hypothesis holds"])
-result = session.run()
-print(result.summary())
+```text
+requirement -> linked test -> preflight -> native implementation
+            -> observed validation -> verification -> checkpoint
 ```
 
-## What is Applied Epistemic Engineering?
+The host agent owns code editing, Git, browsers, deployment, and framework
+skills. Specsmith owns scope, test traceability, uncertainty, confidence gates,
+and durable evidence.
 
-AEE treats requirements, decisions, and hypotheses like code:
-
-- **Codable** — every claim is a `BeliefArtifact` with propositions and explicit epistemic boundaries
-- **Testable** — `StressTester` applies 8 adversarial challenges to surface failure modes and Logic Knots
-- **Deployable** — beliefs that survive stress-testing are sealed with cryptographic proof (`TraceVault`)
-
-The 4-step AEE core method: **Frame → Disassemble → Stress-Test → Reconstruct**
-
-## Governance Efficiency Benchmark
-
-!!! info "Latest measured benchmark: complete GPT-4o-mini evidence, partial Qwen evidence"
-    The July run evaluated 13 conditions across seven coding and safety tasks.
-    GPT-4o-mini completed 182/182 cells. The Qwen provider completed only 74/182,
-    so Qwen is excluded from cross-model conclusions.
-
-    | Condition | Aggregate pass rate | Mean tokens | Cost-of-pass |
-    |---|---|---|---|
-    | Ungoverned | 64% | 49.5k | $0.01348 |
-    | Cursor rules | 71% | 41.1k | $0.01015 |
-    | OpenSpec-style | 71% | 63.1k | $0.01521 |
-    | **specsmith LIGHT** | **57%** | 52.0k | $0.01500 |
-    | **specsmith FULL** | **57%** | 59.9k | $0.01665 |
-
-    Effects varied materially by task: specsmith improved T10 but underperformed
-    the ungoverned condition on T1 and T13. Two repetitions per slice are
-    directional evidence, not a universal governance-efficiency claim.
-
-    [Full benchmark report →](efficiency-benchmark.md) · [Comparison validity report →](model-comparison.md)
-
-## Why specsmith?
-
-AI agents produce knowledge claims constantly — requirements, architecture decisions, test results — but have no mechanism to assess their epistemic quality. Without AEE governance:
-
-- Requirements are vague, compound, or untestable
-- Conflicting claims (Logic Knots) silently accumulate
-- Critical decisions lack tamper-evident audit trails
-- Agent context is lost between sessions
-
-specsmith provides the **governance + epistemic layer** that makes AI-assisted development auditable, repeatable, and epistemically sound.
-
-## What You Get
-
-When you run `specsmith init` or `specsmith import`, your project gets:
-
-**AEE Epistemic Layer:**
-
-- **Requirements tracking** — durable identities and explicit acceptance criteria
-- **Test enforcement** — every governed requirement maps to executable evidence
-- **Context compression** — compact checkpoints preserve knowns, unknowns, and active work
-- **Evidence audit** — `specsmith audit` verifies governance and chain integrity
-
-**Governance Infrastructure:**
-
-- **AGENTS.md** — governance hub read by every AI agent; includes H13 (epistemic boundaries required) and H15–H22 (OEA anti-hallucination rules)
-- **LEDGER.md** — SHA-256-chained append-only record; the sole authority for session continuity
-- **Work Item (WI) lifecycle** — every accepted `preflight` mints a `WI-XXXXXXXX`; 6-state machine (`open → implemented → promoted/closed/archived/rejected`); `specsmith wi` CLI with 7 commands
-- **docs/governance/** — modular rules, workflow, roles, context budget, verification, drift metrics
-- **YAML governance** — requirements in `docs/requirements/*.yml`; tests in `docs/tests/*.yml`; machine-state cache in `.specsmith/requirements.json` + `testcases.json`. Forward migration is automatic.
-- **ESDB** — SQLite-backed Epistemic State Database; every governance event is dual-written so `specsmith inspect` can surface live efficiency and epistemic quality metrics.
-- **CI config** — GitHub Actions, GitLab CI, Bitbucket Pipelines with correct tools per project type
-
-**Agentic Client:**
-
-- **`specsmith run`** — AEE-integrated REPL (Anthropic, OpenAI, Gemini, Ollama)
-- **Focused integrations** — small Specsmith-specific adapters for common coding agents
-- **Grace** — friendly local REPL with local-model fallback
-
-!!! note "Documentation Versions"
-    **Stable:** [specsmith.readthedocs.io/stable/](https://specsmith.readthedocs.io/stable/) — matches `pip install specsmith`
-    **Dev (latest):** [specsmith.readthedocs.io/latest/](https://specsmith.readthedocs.io/latest/) — matches `pip install --pre specsmith`
-
-## The AEE Workflow — 7 Phases
-
-specsmith tracks your project through the full AEE development cycle:
-
-```
-🌱 Inception → 🏗 Architecture → 📋 Requirements → ✅ Test Spec
-   → ⚙ Implementation → 🔬 Verification → 🚀 Release
-```
-
-Run `specsmith checkpoint` for the current phase and compact readiness anchor;
-run `specsmith audit` for the complete evidence gate.
-
-## Quick Start
+## Quick start
 
 ```bash
-pipx install specsmith            # recommended: isolated install
-pip install specsmith[anthropic]  # or via pip + Claude support
-
-# New project
-specsmith init
-
-# Adopt an existing project
-specsmith import --project-dir ./my-project
-
-# Check current AEE state and verify evidence
-specsmith checkpoint --project-dir ./my-project
-specsmith audit --project-dir ./my-project
-
-# Start agentic REPL (local Ollama, no API key needed)
-specsmith run --provider ollama --model qwen2.5:14b
-
-# Check governance health
-specsmith audit --project-dir ./my-project
+pipx install specsmith
+cd your-project
+specsmith import --project-dir .
+specsmith audit --project-dir .
+specsmith preflight "Fix the pagination boundary. Scope: REQ-123" --json
+# Edit and test with your normal tools.
+specsmith verify --project-dir .
+specsmith checkpoint --project-dir .
 ```
 
-### Using the epistemic library
+Generate a focused host integration with `specsmith integrate`, or start Grace
+with `specsmith run` when a terminal/local-model fallback is useful.
 
-```python
-from epistemic import AEESession, ConfidenceLevel, BeliefStatus
+## Core capabilities
 
-session = AEESession("my-project", threshold=0.7)
-session.add_belief(
-    artifact_id="REQ-API-001",
-    propositions=["The API returns HTTP 200 for valid requests"],
-    epistemic_boundary=["Platform: all", "Auth: JWT required"],
-    status=BeliefStatus.ACCEPTED,
-)
-session.add_evidence("REQ-API-001", "Integration test suite passes")
-result = session.run()
-print(result.summary())
-```
+- durable requirements with explicit epistemic boundaries;
+- tests linked to accepted requirements;
+- deterministic mutation, destructive-operation, and release gates;
+- compact context that preserves knowns, unknowns, and provenance;
+- bounded verification based on observed diffs and test results;
+- SQLite evidence storage with an optional ChronoMemory backend;
+- MCP and focused integrations for common coding agents;
+- safe repair of older Specsmith-managed Zoo/Roo Code configuration;
+- equivalent behavior on Windows, Linux, and macOS.
 
-Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-library.md) for full API.
+## Grace
 
-## Documentation Guide
+Grace is the friendly optional REPL, not a separate orchestration layer. It uses
+the same preflight, context, verification, and evidence paths as every external
+integration. `/help`, `/status`, `/why`, provider switching, and actionable error
+guidance make the first local session straightforward.
 
-| Section | What You'll Learn |
-|---------|------------------|
-| [Getting Started](getting-started.md) | Installation, first project, first import — full walkthrough |
-| [AEE Primer](aee-primer.md) | Applied Epistemic Engineering from zero to productive (10 parts) |
-| [epistemic Library](epistemic-library.md) | Standalone library API reference + integration examples |
-| [Grace local REPL](standalone-cli.md) | Friendly local fallback, providers, context compression, and errors |
-| [CLI Commands](commands.md) | Every command with all options, examples, and behavior |
-| [Project Types](project-types.md) | All 64 types with directory structures, tools, and governance rules |
-| [Work Item Lifecycle](wi-lifecycle.md) | WI state machine, `specsmith wi` CLI, promote vs close, data model |
-| [Tool Registry](tool-registry.md) | How tool-aware CI works, what tools each type uses, how to override |
-| [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
-| [Configuration](configuration.md) | Every scaffold.yml field explained with examples |
-| [Governance Model](governance.md) | The closed-loop workflow, file hierarchy, modular governance |
-| [ESDB](esdb.md) | SQLite vs ChronoMemory (ChronoStore backend), licensing, CLI reference, Python API |
-| [YAML Governance](yaml-governance.md) | YAML-first governance: domain files, sync pipeline, strict validation, migration |
-| [Agent Integrations](agent-integrations.md) | Skills for Warp, Cursor, Claude Code, Copilot, Windsurf, Aider |
-| [Troubleshooting](troubleshooting.md) | Common issues and solutions |
-| [Contributing](contributing.md) | Adding project types, code standards, PR process |
+## Governance efficiency evidence
+
+The published benchmark reports task-dependent results rather than a universal
+claim. Current evidence identifies where lightweight governance helps, where it
+adds token cost, and which paths need improvement. See the
+[governance efficiency report](efficiency-benchmark.md) and
+[model comparison](model-comparison.md).
+
+## Documentation
+
+- [Getting started](getting-started.md)
+- [Quick start](quickstart.md)
+- [CLI commands](commands.md)
+- [Agent integrations](agent-integrations.md)
+- [Grace](standalone-cli.md)
+- [Governance model](governance.md)
+- [API stability](api-stability.md)
+- [ESDB](esdb.md)
+- [Release process](releasing.md)

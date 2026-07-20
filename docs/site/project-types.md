@@ -128,7 +128,9 @@ In addition to the generic `fpga-rtl` type, vendor-specific types set the correc
 |------|-----|------|------------|
 | Patent prosecution repository | `patent-prosecution` | vale, cspell | specsmith audit, claim-ref-check |
 
-**Governance rules:** Integrates with USPTO MCP and prior-art research workflows. All claim changes require a preflight with explicit epistemic boundaries. See the `patent-prosecution-workflow` skill.
+**Governance rules:** Domain-specific research remains the host tool's responsibility.
+Specsmith records explicit epistemic boundaries, requirements, linked checks, and
+evidence for any governed claim change.
 
 ## AI / LLM / Agents
 
