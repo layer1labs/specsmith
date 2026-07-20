@@ -126,7 +126,7 @@ In addition to the generic `fpga-rtl` type, vendor-specific types set the correc
 
 | Type | Key | Lint | Compliance |
 |------|-----|------|------------|
-| Patent prosecution repository | `patent-prosecution` | vale, cspell | specsmith trace verify, claim-ref-check |
+| Patent prosecution repository | `patent-prosecution` | vale, cspell | specsmith audit, claim-ref-check |
 
 **Governance rules:** Integrates with USPTO MCP and prior-art research workflows. All claim changes require a preflight with explicit epistemic boundaries. See the `patent-prosecution-workflow` skill.
 

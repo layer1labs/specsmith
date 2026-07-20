@@ -36,17 +36,13 @@ from specsmith.migrations import Migration, MigrationResult
 #: Verb shortcuts that specsmith_run recognises (must stay in sync with tools.py)
 _VERB_SHORTCUTS = [
     "audit",
-    "commit",
     "doctor",
     "load",
-    "pull",
-    "push",
     "run",
     "save",
     "status",
     "sync",
     "validate",
-    "watch",
 ]
 
 _AGENT_TOOLS_CONTENT = {
@@ -56,7 +52,7 @@ _AGENT_TOOLS_CONTENT = {
     "verb_shortcuts": _VERB_SHORTCUTS,
     "description": (
         "Use specsmith_run() or /specsmith <args> in the Grace REPL for all "
-        "governance operations (save, load, push, pull, audit, status, …). "
+        "governance operations (save, load, sync, audit, status, …). "
         "REQ-SM-001: agents must not invoke the specsmith binary directly via "
         "run_shell when specsmith_run is available."
     ),
@@ -75,15 +71,12 @@ All specsmith governance operations should be invoked through the
 /specsmith load               # pull + restore governance state
 /specsmith audit --strict     # strict governance audit
 /specsmith status             # show governance status
-/specsmith push               # git push governance changes
-/specsmith pull               # git pull governance changes
 /specsmith sync               # full two-way sync
-/specsmith watch              # watch CI and block until green
 ```
 
 **Verb shortcuts** (single word, no prefix needed in tool calls):
-``save``, ``load``, ``push``, ``pull``, ``sync``, ``audit``, ``status``,
-``watch``, ``commit``, ``validate``, ``doctor``, ``run``.
+``save``, ``load``, ``sync``, ``audit``, ``status``, ``validate``,
+``doctor``, ``run``.
 
 These are all equivalent: ``specsmith_run("save")``,
 ``specsmith_run("/specsmith save")``, ``specsmith_run("specsmith save")``.

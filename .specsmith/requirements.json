@@ -762,8 +762,8 @@
   {
     "id": "REQ-070",
     "version": 1,
-    "title": "Nexus Must Normalize File Paths",
-    "description": "All file paths supplied to Nexus tools must be normalized to absolute, resolved paths before access.",
+    "title": "Grace Must Normalize File Paths",
+    "description": "All file paths supplied to Grace tools must be normalized to absolute, resolved paths before access.",
     "source": "ARCHITECTURE.md",
     "status": "implemented",
     "test_ids": [
@@ -1324,7 +1324,7 @@
     "id": "REQ-121",
     "version": 1,
     "title": "MCP Tool Consumption Must Be Configuration-Driven",
-    "description": "`src/specsmith/agent/mcp.py:load_mcp_tools(project_dir)` reads `.specsmith/mcp.yml` (a list of `{name, command, args, env}` entries) and returns Nexus-tool wrappers that proxy to each external MCP server via stdio. The Specsmith safety middleware wraps every MCP tool call.",
+    "description": "`src/specsmith/agent/mcp.py:load_mcp_tools(project_dir)` reads `.specsmith/mcp.yml` (a list of `{name, command, args, env}` entries) and returns Grace tool wrappers that proxy to each external MCP server via stdio. The Specsmith safety middleware wraps every MCP tool call.",
     "source": "src/specsmith/agent/mcp.py, .specsmith/mcp.yml",
     "status": "implemented",
     "test_ids": [
@@ -3277,8 +3277,8 @@
     "id": "REQ-340",
     "version": 1,
     "title": "/specsmith REPL Slash-Command Handler",
-    "description": "The Nexus REPL (agent/repl.py) MUST handle `/specsmith <args>` as a first-class slash command that passes args verbatim to the specsmith CLI subprocess and streams output directly to the terminal without buffering. The handler MUST gracefully handle subprocess timeout (120 s default) and unexpected exceptions without crashing the REPL. The REPL startup banner MUST advertise the /specsmith command. Invoking `/specsmith` with no args MUST display specsmith --help.",
-    "source": "ARCHITECTURE.md §Nexus REPL — /specsmith Handler",
+    "description": "The Grace REPL (agent/repl.py) MUST handle `/specsmith <args>` as a first-class slash command that passes args verbatim to the specsmith CLI subprocess and streams output directly to the terminal without buffering. The handler MUST gracefully handle subprocess timeout (120 s default) and unexpected exceptions without crashing the REPL. The REPL startup banner MUST advertise the /specsmith command. Invoking `/specsmith` with no args MUST display specsmith --help.",
+    "source": "ARCHITECTURE.md §Grace REPL — /specsmith Handler",
     "status": "implemented",
     "test_ids": [
       "TEST-340"
@@ -3600,7 +3600,7 @@
     "id": "REQ-369",
     "version": 1,
     "title": "Scaffolded AGENTS.md bootstrap must auto-accept specsmith forward migration without prompting",
-    "description": "The scaffolded `AGENTS.md` template (agents.md.j2) MUST instruct agents to run `specsmith migrate run` unconditionally at session start without any Y/n prompt. The `_maybe_prompt_project_update()` function in cli.py MUST auto-run `run_migration()` silently when the installed specsmith version is newer than the project spec_version, printing the list of updated files without asking for confirmation. No interactive prompt may be shown for forward migration in any code path. The template MUST NOT contain `pip install` instructions for specsmith; `pipx upgrade specsmith` is the only permitted upgrade mechanism.",
+    "description": "The scaffolded `AGENTS.md` template (agents.md.j2) MUST explain that forward migration is automatic and use `specsmith doctor` to verify the migrated project. `_maybe_prompt_project_update()` in cli.py MUST auto-run `run_migration()` when the installed Specsmith version is newer than the project spec_version, printing updated files without asking for confirmation. No interactive prompt or public migrate command is permitted. The template MUST NOT contain `pip install` instructions; `pipx upgrade specsmith` is the supported upgrade mechanism.",
     "source": "user requirement",
     "status": "accepted",
     "test_ids": [
@@ -3612,7 +3612,7 @@
     "id": "REQ-370",
     "version": 1,
     "title": "Backward migration (downgrade) must be a hard error at every specsmith enforcement layer",
-    "description": "When the installed specsmith version is older than the project spec_version (i.e. a downgrade is attempted), ALL of the following MUST produce a hard error with exit code 1 and no file mutations. (1) run_upgrade() in upgrader.py returns UpgradeResult with downgrade_error=True and a descriptive message. (2) run_migration() in updater.py returns an error-prefixed string immediately. (3) _maybe_prompt_project_update() in cli.py prints the error and calls sys.exit(1). (4) the specsmith upgrade --spec-version <older> CLI command detects the downgrade before calling run_upgrade() and exits 1 with an explanatory message. No partial migration may occur. The scaffolded AGENTS.md template MUST state that downgrading specsmith on a governed project is not supported and agents MUST surface the error to the user immediately.",
+    "description": "When the installed specsmith version is older than the project spec_version (i.e. a downgrade is attempted), ALL of the following MUST produce a hard error with exit code 1 and no file mutations. (1) run_upgrade() in upgrader.py returns UpgradeResult with downgrade_error=True and a descriptive message. (2) run_migration() in updater.py returns an error-prefixed string immediately. (3) _maybe_prompt_project_update() in cli.py prints the error and calls sys.exit(1). No legacy public upgrade command may bypass this protection. No partial migration may occur. The scaffolded AGENTS.md template MUST state that downgrading specsmith on a governed project is not supported and agents MUST surface the error to the user immediately.",
     "source": "user requirement",
     "status": "accepted",
     "test_ids": [

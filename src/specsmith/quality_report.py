@@ -388,24 +388,14 @@ def _read_project_name(root: Path) -> str:
 
 
 def _read_phase(root: Path) -> tuple[str, float | None]:
-    """Return (phase_name, readiness_pct) by running specsmith phase."""
+    """Return phase and readiness from the internal evidence model."""
     try:
-        result = subprocess.run(
-            ["specsmith", "phase", "--project-dir", str(root)],
-            capture_output=True,
-            text=True,
-            timeout=20,
-        )
-        if result.returncode == 0:
-            output = result.stdout.strip()
-            # Parse "Phase: construction (72% ready)" style output
-            import re
+        from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
 
-            m_phase = re.search(r"(?:Phase:|phase:)\s*([a-z_]+)", output, re.IGNORECASE)
-            m_pct = re.search(r"(\d+(?:\.\d+)?)\s*%", output)
-            phase = m_phase.group(1) if m_phase else output.split()[0] if output else ""
-            readiness = float(m_pct.group(1)) if m_pct else None
-            return phase, readiness
+        phase_name = read_phase(root)
+        phase = PHASE_MAP.get(phase_name)
+        readiness = float(phase_progress_pct(phase, root)) if phase else None
+        return phase_name, readiness
     except Exception:  # noqa: BLE001
         pass
     return "", None

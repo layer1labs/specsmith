@@ -114,8 +114,8 @@ start      — sync + update check + load AGENTS.md + LEDGER.md
 resume     — load last LEDGER.md entry and propose next task
 save       — write ledger entry
 audit      — run specsmith audit --fix
-commit     — run specsmith commit
-push       — run specsmith push
+status     — show provider, model, context pressure, and governance state
+specsmith  — invoke a focused Specsmith governance command
 sync       — run specsmith sync
 epistemic  — run full epistemic audit
 stress     — run stress-test on requirements
@@ -169,7 +169,7 @@ Hooks fire automatically at lifecycle events:
 ## Inspect Configuration
 
 ```bash
-specsmith agent providers    # check LLM provider status
-specsmith agent tools        # list all 20+ tools
-specsmith agent skills       # list loaded skills
+specsmith providers          # inspect configured model providers
+specsmith mcp                # inspect MCP integration
+specsmith skill              # inspect Specsmith-specific integration skills
 ```

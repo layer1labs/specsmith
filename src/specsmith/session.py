@@ -88,7 +88,7 @@ def run_session_end(root: Path, ctx: Any = None) -> SessionReport:
             SessionCheck(
                 name="uncommitted",
                 status="action",
-                message="Uncommitted changes — run: specsmith commit",
+                message="Uncommitted changes — commit with your native Git workflow",
             ),
         )
     else:
@@ -102,7 +102,7 @@ def run_session_end(root: Path, ctx: Any = None) -> SessionReport:
             SessionCheck(
                 name="unpushed",
                 status="action",
-                message="Unpushed commits — run: specsmith push",
+                message="Unpushed commits — push with your native Git workflow",
             ),
         )
     else:

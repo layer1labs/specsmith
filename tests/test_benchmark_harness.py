@@ -49,6 +49,14 @@ from govern_bench.metrics import (  # noqa: E402
     estimate_cost_breakdown,
 )
 
+
+def test_removed_model_facing_governance_tools_do_not_return() -> None:
+    """Governance stays in the deterministic controller, not model tool calls."""
+    source = (_SCRIPTS_DIR / "govern_bench" / "harness.py").read_text(encoding="utf-8")
+    assert '"name": "specsmith_preflight"' not in source
+    assert '"name": "specsmith_verify"' not in source
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

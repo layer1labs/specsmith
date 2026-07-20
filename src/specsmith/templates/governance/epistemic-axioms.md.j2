@@ -18,7 +18,7 @@ are a stop condition (Hard Rule H13).
 - Technology decisions must declare what alternatives were considered and rejected
 - All epistemic boundaries must be stated before a belief is ACCEPTED
 
-**Enforcement:** `specsmith stress-test` flags missing boundaries.
+**Enforcement:** `specsmith audit` flags missing governance boundaries.
 
 ---
 
@@ -32,7 +32,7 @@ result that could potentially disprove it. Unchallenged claims are not engineeri
 - Tests must be designed to falsify, not merely confirm
 - Passing tests elevate confidence; gaps reduce it
 
-**Enforcement:** `specsmith epistemic-audit` detects untested accepted requirements.
+**Enforcement:** `specsmith audit` detects untested accepted requirements.
 
 ---
 
@@ -46,7 +46,7 @@ multiple independently falsifiable sub-claims into a single artifact often hide 
 - Claims joined by "and" that cover different subjects should be separate requirements
 - Each requirement should be independently verifiable
 
-**Enforcement:** `specsmith stress-test` detects compound claim patterns.
+**Enforcement:** requirement review and `specsmith audit` detect compound claims.
 
 ---
 
@@ -61,7 +61,7 @@ Axioms 1 and 2. Recovery is always possible — scope may need to narrow.
 - Deprecated beliefs are preserved in the ledger — never deleted
 - A reconstructed belief is marked RECONSTRUCTED after human review
 
-**Enforcement:** `specsmith epistemic-audit` emits recovery proposals for all failure modes.
+**Enforcement:** `specsmith audit` emits actionable failures for evidence gaps.
 
 ---
 
@@ -71,12 +71,12 @@ Systematic application of the Stress-Test (S) and Recovery (R) operators on {{ p
 belief system will converge to an Equilibrium Point E where S(G) yields no new failure modes.
 
 **In practice:**
-- Run `specsmith stress-test` after every batch of new requirements
+- Run `specsmith audit` after every batch of new requirements
 - Resolve critical failure modes before adding more requirements
-- A passing `specsmith epistemic-audit` with equilibrium=YES is the milestone gate
+- A passing strict `specsmith audit` is the milestone gate
 
 **Current status:**
-Run `specsmith epistemic-audit` to check current equilibrium status.
+Run `specsmith audit` to check current equilibrium status.
 
 ---
 

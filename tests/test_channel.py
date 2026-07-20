@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import pytest
-from click.testing import CliRunner
 
 from specsmith.channel import (
     VALID_CHANNELS,
@@ -16,7 +15,6 @@ from specsmith.channel import (
     get_persisted_channel,
     set_persisted_channel,
 )
-from specsmith.cli import main  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Unit tests for channel module
@@ -123,83 +121,3 @@ class TestEffectiveChannelWithSource:
 # ---------------------------------------------------------------------------
 # CLI integration tests
 # ---------------------------------------------------------------------------
-
-
-class TestChannelCLI:
-    def test_channel_get(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "get"])
-        assert result.exit_code == 0
-        assert "Channel" in result.output or "stable" in result.output or "dev" in result.output
-
-    def test_channel_get_json(self, tmp_path, monkeypatch) -> None:
-        import json
-
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "get", "--json"])
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["channel"] in VALID_CHANNELS
-        assert data["source"] in ("user", "version")
-
-    def test_channel_set_stable(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "set", "stable"])
-        assert result.exit_code == 0
-        assert "stable" in result.output
-
-    def test_channel_set_dev(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "set", "dev"])
-        assert result.exit_code == 0
-        assert "dev" in result.output
-
-    def test_channel_set_persists(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        runner.invoke(main, ["channel", "set", "dev"])
-        assert get_persisted_channel() == "dev"
-
-    def test_channel_clear(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        set_persisted_channel("dev")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "clear"])
-        assert result.exit_code == 0
-        assert get_persisted_channel() is None
-
-    def test_channel_set_invalid(self, tmp_path, monkeypatch) -> None:
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "set", "nightly"])
-        assert result.exit_code != 0
-
-    def test_channel_get_shows_source(self, tmp_path, monkeypatch) -> None:
-        """After set, get should show 'user preference'."""
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        runner.invoke(main, ["channel", "set", "stable"])
-        result = runner.invoke(main, ["channel", "get"])
-        assert result.exit_code == 0
-        assert "user preference" in result.output
-
-    def test_channel_get_shows_version_source(self, tmp_path, monkeypatch) -> None:
-        """Without a persisted channel, get should show 'version inference'."""
-        monkeypatch.setattr("specsmith.channel._CHANNEL_FILE", tmp_path / "no_channel")
-        monkeypatch.setenv("SPECSMITH_NO_AUTO_UPDATE", "1")
-        runner = CliRunner()
-        result = runner.invoke(main, ["channel", "get"])
-        assert result.exit_code == 0
-        assert "version inference" in result.output

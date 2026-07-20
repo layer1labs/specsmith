@@ -6,8 +6,8 @@ Priority:
   1. .specsmith/governance/*.yaml  (preferred — structured, machine-readable)
   2. docs/governance/*.md           (fallback — for legacy projects)
 
-This allows a smooth migration path: run `specsmith migrate run --version 1`
-to create the YAML files, then specsmith automatically uses them.
+Forward migration creates the YAML files automatically, then Specsmith uses
+them without a separate migration command.
 
 REQ-316: Governance data MUST be readable from .specsmith/governance/ YAML
          when present, with fallback to docs/governance/ MD.

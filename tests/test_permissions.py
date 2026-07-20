@@ -13,18 +13,15 @@ Covers:
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 import yaml
-from click.testing import CliRunner
 
 from specsmith.agent.permissions import (
     AgentPermissions,
     load_permissions,
 )
-from specsmith.cli import main
 
 # ---------------------------------------------------------------------------
 # AgentPermissions.is_allowed
@@ -276,173 +273,6 @@ class TestSummary:
 # ---------------------------------------------------------------------------
 
 
-class TestCLIPermissionsShow:
-    def test_permissions_show_human_readable(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(main, ["agent", "permissions", "--project-dir", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Permission Profile" in result.output
-        assert "standard" in result.output.lower()
-
-    def test_permissions_show_json(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main, ["agent", "permissions", "--project-dir", str(tmp_path), "--json"]
-        )
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert "label" in data
-        assert "allow" in data
-        assert "deny" in data
-
-    def test_permissions_respects_preset_in_config(self, tmp_path: Path) -> None:
-        docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
-        (docs / "SPECSMITH.yml").write_text(
-            yaml.dump({"name": "x", "agent": {"permissions": {"preset": "read_only"}}}),
-            encoding="utf-8",
-        )
-        runner = CliRunner()
-        result = runner.invoke(
-            main, ["agent", "permissions", "--project-dir", str(tmp_path), "--json"]
-        )
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["label"] == "read-only"
-
-
 # ---------------------------------------------------------------------------
 # CLI: specsmith agent permissions-check <tool>
 # ---------------------------------------------------------------------------
-
-
-class TestCLIPermissionsCheck:
-    def test_allowed_tool_exits_0(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["agent", "permissions-check", "read_file", "--project-dir", str(tmp_path)],
-        )
-        assert result.exit_code == 0
-        assert "allowed" in result.output.lower()
-
-    def test_denied_tool_exits_3(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "git_push",
-                "--project-dir",
-                str(tmp_path),
-                "--no-log",
-            ],
-        )
-        assert result.exit_code == 3
-        assert "denied" in result.output.lower()
-
-    def test_json_output_allowed(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "grep",
-                "--project-dir",
-                str(tmp_path),
-                "--json",
-            ],
-        )
-        assert result.exit_code == 0
-        data = json.loads(result.output)
-        assert data["tool"] == "grep"
-        assert data["allowed"] is True
-        assert data["reason"] == ""
-
-    def test_json_output_denied(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "git_commit",
-                "--project-dir",
-                str(tmp_path),
-                "--json",
-                "--no-log",
-            ],
-        )
-        assert result.exit_code == 3
-        data = json.loads(result.output)
-        assert data["allowed"] is False
-        assert "git_commit" in data["reason"]
-
-    def test_denied_tool_logs_to_ledger(self, tmp_path: Path) -> None:
-        docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
-        ledger = docs / "LEDGER.md"
-        ledger.write_text("# Ledger\n", encoding="utf-8")
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "open_url",
-                "--project-dir",
-                str(tmp_path),
-                # Note: no --no-log, so ledger write should happen
-            ],
-        )
-        assert result.exit_code == 3
-        # The ledger should contain a denial entry
-        content = ledger.read_text(encoding="utf-8")
-        assert "open_url" in content or "REG-012" in content
-
-    def test_no_log_suppresses_ledger_write(self, tmp_path: Path) -> None:
-        docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
-        ledger = docs / "LEDGER.md"
-        original = "# Ledger\n"
-        ledger.write_text(original, encoding="utf-8")
-
-        runner = CliRunner()
-        runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "git_push",
-                "--project-dir",
-                str(tmp_path),
-                "--no-log",
-            ],
-        )
-        # Ledger must be unchanged
-        assert ledger.read_text(encoding="utf-8") == original
-
-    def test_admin_preset_allows_git_commit(self, tmp_path: Path) -> None:
-        docs = tmp_path / "docs"
-        docs.mkdir(parents=True)
-        (docs / "SPECSMITH.yml").write_text(
-            yaml.dump({"name": "x", "agent": {"permissions": {"preset": "admin"}}}),
-            encoding="utf-8",
-        )
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "git_commit",
-                "--project-dir",
-                str(tmp_path),
-                "--no-log",
-            ],
-        )
-        assert result.exit_code == 0
-        assert "allowed" in result.output.lower()

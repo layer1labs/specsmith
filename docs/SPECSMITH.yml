@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: MIT
-# specsmith - AEE toolkit for epistemically-governed project development
+# Specsmith - lean governance for AI-assisted development
 
 name: specsmith
 description: |
-  Specsmith is a tool for Applied Epistemic Engineering (AEE) that helps
-  create, manage, and govern AI-assisted software development projects.
-  It provides a framework for epistemically-safe development practices
-  through governance, traceability, and automated compliance checking.
+  Specsmith tracks requirements and linked tests, enforces preflight and
+  verification, compresses epistemic context, and records auditable evidence
+  around the coding agents and developer tools a project already uses.
 
 type: python
 version: 0.24.0

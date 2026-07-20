@@ -1,14 +1,12 @@
-# Kairos Terminal
+# Grace REPL
 
-The Kairos Terminal is a specialized interface for managing and monitoring Specsmith agent sessions. It provides a terminal-based environment for running Specsmith commands and monitoring agent activities.
+Kairos was retired with the legacy CLI. The supported local experience is
+**Grace**, started with:
 
-## Features
+```bash
+specsmith run
+```
 
-- Real-time session monitoring
-- Command execution interface
-- Agent status tracking
-- Performance metrics display
-
-## Usage
-
-The Kairos Terminal can be accessed through the `specsmith gui` command or via the dedicated terminal interface.
+Grace provides a friendly first-run path, local-model fallback, compact context
+reporting, and actionable error guidance. See [Grace local REPL](standalone-cli.md)
+for setup and commands.

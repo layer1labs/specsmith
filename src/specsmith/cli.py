@@ -23,6 +23,51 @@ from specsmith.scaffolder import scaffold_project
 
 console = make_console()
 
+_CORE_COMMANDS = (
+    "init",
+    "import",
+    "run",
+    "preflight",
+    "verify",
+    "req",
+    "test",
+    "audit",
+    "checkpoint",
+    "status",
+    "sync",
+    "save",
+    "integrate",
+    "doctor",
+    "kill-session",
+    "commands",
+)
+
+_PUBLIC_COMMANDS = frozenset(
+    {
+        *_CORE_COMMANDS,
+        "approve",
+        "auth",
+        "compress",
+        "config",
+        "context",
+        "endpoints",
+        "esdb",
+        "inspect",
+        "load",
+        "local-model",
+        "mcp",
+        "policy",
+        "providers",
+        "serve",
+        "skill",
+        "update",
+        "validate",
+        "wi",
+        "zoo-code",
+    }
+)
+_INTERNAL_COMMANDS = frozenset({"api-surface", "governed-pr", "verify-release"})
+
 
 def _load_project_env(path: str | None = None) -> None:
     """Load a .env file from the project root into os.environ.
@@ -76,7 +121,7 @@ PROJECT_TYPE_LABELS = {str(i + 1): label for i, (t, label) in enumerate(_TYPE_LA
 
 
 class _AutoUpdateGroup(click.Group):
-    """Click group that checks project spec_version on every command invocation.
+    """Click group with focused help and project-version checks.
 
     If the project's scaffold.yml spec_version doesn't match the installed
     specsmith version, prompts the user to migrate. Skippable with
@@ -90,7 +135,22 @@ class _AutoUpdateGroup(click.Group):
         "plugin",
         "--version",
         "help",
+        "commands",
     }
+
+    def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """Show the mission-essential workflow instead of the legacy catalog."""
+        rows: list[tuple[str, str]] = []
+        for name in _CORE_COMMANDS:
+            command = self.get_command(ctx, name)
+            if command is None or command.hidden:
+                continue
+            rows.append((name, command.get_short_help_str(limit=formatter.width - 6)))
+        if rows:
+            with formatter.section("Core commands"):
+                formatter.write_dl(rows)
+        formatter.write_paragraph()
+        formatter.write_text("Run 'specsmith commands' for the complete supported command list.")
 
     def invoke(self, ctx: click.Context) -> object:
         import os
@@ -225,7 +285,30 @@ def _maybe_prompt_project_update() -> None:
 @click.group(cls=_AutoUpdateGroup)
 @click.version_option(version=__version__, prog_name="specsmith")
 def main() -> None:
-    """Specsmith — AEE toolkit. Forge epistemically-governed project scaffolds."""
+    """Lean governance for requirements, tests, evidence, and AI-assisted changes."""
+
+
+@main.command(name="commands")
+@click.pass_context
+def commands_cmd(ctx: click.Context) -> None:
+    """List the complete, focused Specsmith command surface."""
+    parent = ctx.parent
+    assert parent is not None
+    available = [
+        name
+        for name in main.list_commands(parent)
+        if name != "commands"
+        and (command := main.get_command(parent, name)) is not None
+        and not command.hidden
+    ]
+    core = [name for name in _CORE_COMMANDS if name in available]
+    supporting = [name for name in available if name not in _CORE_COMMANDS]
+
+    click.echo("Core workflow:")
+    click.echo("  " + "  ".join(core))
+    click.echo("\nSupporting commands:")
+    click.echo("  " + "  ".join(supporting))
+    click.echo("\nUse 'specsmith COMMAND --help' for command-specific guidance.")
 
 
 @main.command()
@@ -1538,7 +1621,7 @@ def upgrade(spec_version: str | None, project_dir: str, full: bool) -> None:
     help="Project root directory.",
 )
 def status(project_dir: str) -> None:
-    """Show VCS platform status (CI, alerts, PRs)."""
+    """Show project governance and integration status."""
     root = Path(project_dir).resolve()
     scaffold_path = root / "scaffold.yml"
 
@@ -4750,7 +4833,7 @@ def run_cmd(
     endpoint_id: str,
     profile_id: str,
 ) -> None:
-    """Start the AEE-integrated agentic client REPL.
+    """Start Grace, the optional local fallback REPL.
 
     Auto-detects LLM provider from environment:
       ANTHROPIC_API_KEY → Claude
@@ -5536,7 +5619,7 @@ main.add_command(trace_group)
     help="Emit impact report without generating adapter files.",
 )
 def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
-    """Analyze epistemic impact of integrating a tool, then scaffold its adapter.
+    """Generate a focused Specsmith adapter for an existing host tool.
 
     Before generating an adapter file, emits an epistemic impact report:
     what belief artifacts this tool provides evidence for, what its
@@ -14780,6 +14863,20 @@ def dev_session_report_cmd(session_id: str | None, project_dir: str, as_json: bo
                     click.echo(f"  - {imp.description} ({imp.severity})")
             else:
                 click.echo("No recent improvements recorded.")
+
+
+def _prune_legacy_commands() -> None:
+    """Remove superseded product surfaces from the public CLI registry."""
+    for name in _INTERNAL_COMMANDS:
+        command = main.commands.get(name)
+        if command is not None:
+            command.hidden = True
+    for name in tuple(main.commands):
+        if name not in _PUBLIC_COMMANDS and name not in _INTERNAL_COMMANDS:
+            main.commands.pop(name)
+
+
+_prune_legacy_commands()
 
 
 if __name__ == "__main__":

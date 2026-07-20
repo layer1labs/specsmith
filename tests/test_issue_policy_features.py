@@ -112,19 +112,6 @@ def test_plugin_manifest_validation() -> None:
     assert errors == []
 
 
-def test_plugin_validate_cli(tmp_path: Path) -> None:
-    runner = CliRunner()
-    manifest = Path("examples/plugins/example-verifier/specsmith.plugin.yml").resolve()
-    result = runner.invoke(
-        main,
-        ["plugin", "validate", str(manifest), "--json"],
-        env={"SPECSMITH_ALLOW_NON_PIPX": "1"},
-    )
-    assert result.exit_code == 0
-    payload = json.loads(result.output)
-    assert payload["valid"] is True
-
-
 def test_governed_pr_evaluation(tmp_path: Path) -> None:
     _seed_project(tmp_path)
     store = WorkItemStore(tmp_path)

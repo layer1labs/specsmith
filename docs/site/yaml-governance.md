@@ -14,8 +14,6 @@ specsmith sync
 # Strict schema validation
 specsmith validate --strict
 
-# Regenerate Markdown only (faster)
-specsmith generate docs
 ```
 
 ---
@@ -102,18 +100,6 @@ specsmith sync --project-dir /path/to/project
 ```
 
 **When to run:** after editing any `docs/requirements/*.yml` or `docs/tests/*.yml` file.
-
-### `specsmith generate docs`
-
-Regenerate `REQUIREMENTS.md` and `TESTS.md` from YAML without touching the JSON cache.
-
-```bash
-specsmith generate docs            # regenerate Markdown
-specsmith generate docs --check    # dry-run: report what would change
-specsmith generate docs --json     # structured {ok, reqs, tests}
-```
-
-**When to use:** when you only want to refresh Markdown (e.g. after CI generates the cache).
 
 ### `specsmith validate --strict`
 
@@ -267,7 +253,7 @@ Your JSON cache is out of sync with the YAML files. Run `specsmith sync` to rege
 
 A test case references a `requirement_id` that doesn't exist. Either add the missing REQ or fix the `requirement_id` in the test YAML file.
 
-**`specsmith generate docs` says "not in YAML mode"**
+**`specsmith sync` says "not in YAML mode"**
 
 The `.specsmith/governance-mode` file is missing or contains `markdown`. Run the migration script, or create the file manually:
 

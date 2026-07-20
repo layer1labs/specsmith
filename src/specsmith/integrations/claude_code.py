@@ -67,21 +67,11 @@ Never modify code without a proposal in the ledger first.
 ## Verification
 Before marking any task complete, run: {verify_line}
 
-## Session Start
-Before any work, run: `specsmith update --check --project-dir .`
-If outdated, run: `specsmith update --yes`
-
-## Commands
-When user says `commit`: run `specsmith commit --project-dir .`
-When user says `push`: run `specsmith push --project-dir .`
-When user says `sync`: run `specsmith sync --project-dir .`
-When user says `pr`: run `specsmith pr --project-dir .`
-When user says `audit`: run `specsmith audit --project-dir .`
-When user says `session-end`: run `specsmith session-end --project-dir .`
-
-## Credit Tracking
-At session end, record token usage:
-`specsmith credits record --model <model> --provider anthropic \
-  --tokens-in <N> --tokens-out <N> --task "<desc>"`
-Check budget: `specsmith credits summary`
+## Session Commands
+- Start: `specsmith audit --project-dir .`, then `specsmith sync --project-dir .`
+- Before a change: `specsmith preflight "<intent>" --json`
+- Re-anchor context: `specsmith checkpoint --project-dir .`
+- Verify: `specsmith audit --project-dir .`
+- End: `specsmith save --project-dir .`, then `specsmith kill-session`
+- Use Claude Code's native Git and pull-request workflow for source control.
 """

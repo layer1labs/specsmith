@@ -10,9 +10,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-from click.testing import CliRunner
+from unittest.mock import patch
 
 # ---------------------------------------------------------------------------
 # REQ-381 — project_type dimension
@@ -187,93 +185,6 @@ class TestRunFeatureGapAnalysis:
 # ---------------------------------------------------------------------------
 
 
-class TestArchitectIssuesCLI:
-    def test_no_gaps_prints_success(self, tmp_path: Path) -> None:
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        with runner.isolated_filesystem(temp_dir=tmp_path):
-            (Path(".specsmith")).mkdir()
-            with patch("specsmith.architect.run_feature_gap_analysis", return_value=[]):
-                result = runner.invoke(
-                    main, ["architect", "issues", "--project-dir", str(tmp_path)]
-                )
-        assert result.exit_code == 0
-        assert "No specsmith feature gaps" in result.output
-
-    def test_gaps_are_listed(self, tmp_path: Path) -> None:
-        from specsmith.architect import FeatureGap
-        from specsmith.cli import main
-
-        fake_gap = FeatureGap(
-            title="Test Gap",
-            description="A test gap description.",
-            project_type="embedded-hardware",
-            labels=["embedded"],
-        )
-        runner = CliRunner()
-        with patch("specsmith.architect.run_feature_gap_analysis", return_value=[fake_gap]):
-            result = runner.invoke(main, ["architect", "issues", "--project-dir", str(tmp_path)])
-        assert result.exit_code == 0
-        assert "Test Gap" in result.output
-
-    def test_json_output_is_parseable(self, tmp_path: Path) -> None:
-        from specsmith.architect import FeatureGap
-        from specsmith.cli import main
-
-        fake_gap = FeatureGap(
-            title="JSON Gap",
-            description="Desc.",
-            project_type="llm-app",
-            labels=["llm"],
-        )
-        runner = CliRunner()
-        with patch("specsmith.architect.run_feature_gap_analysis", return_value=[fake_gap]):
-            result = runner.invoke(
-                main, ["architect", "issues", "--project-dir", str(tmp_path), "--json"]
-            )
-        assert result.exit_code == 0
-        parsed = json.loads(result.output)
-        assert isinstance(parsed, list)
-        assert parsed[0]["title"] == "JSON Gap"
-
-    def test_create_flag_calls_gh(self, tmp_path: Path) -> None:
-        from specsmith.architect import FeatureGap
-        from specsmith.cli import main
-
-        fake_gap = FeatureGap(
-            title="Create Test Gap",
-            description="Desc.",
-            project_type="embedded-hardware",
-            labels=["embedded"],
-        )
-        runner = CliRunner()
-        with (
-            patch("specsmith.architect.run_feature_gap_analysis", return_value=[fake_gap]),
-            patch("shutil.which", return_value="/usr/bin/gh"),
-            patch("subprocess.run") as mock_run,
-        ):
-            # Mock gh repo view
-            mock_run.side_effect = [
-                MagicMock(returncode=0, stdout="owner/repo\n"),
-                MagicMock(returncode=0, stdout="https://github.com/owner/repo/issues/1\n"),
-            ]
-            result = runner.invoke(
-                main,
-                [
-                    "architect",
-                    "issues",
-                    "--project-dir",
-                    str(tmp_path),
-                    "--create",
-                    "--repo",
-                    "owner/repo",
-                ],
-            )
-        assert result.exit_code == 0
-        assert mock_run.called
-
-
 # ---------------------------------------------------------------------------
 # REQ-380 — session_init YAML-first fix
 # ---------------------------------------------------------------------------
@@ -333,42 +244,3 @@ class TestSessionInitYamlFirst:
         from specsmith.session_init import _is_yaml_first_mode
 
         assert _is_yaml_first_mode(tmp_path) is False
-
-
-# ---------------------------------------------------------------------------
-# REQ-384 — specsmith resume CLI
-# ---------------------------------------------------------------------------
-
-
-class TestResumeCLI:
-    def test_resume_command_is_registered(self) -> None:
-        from specsmith.cli import main
-
-        assert "resume" in main.commands  # type: ignore[attr-defined]
-
-    def test_resume_help_contains_expected_text(self) -> None:
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        result = runner.invoke(main, ["resume", "--help"])
-        assert result.exit_code == 0
-        assert "load" in result.output.lower() or "run" in result.output.lower()
-
-    def test_resume_calls_run_sync_and_runner(self, tmp_path: Path) -> None:
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        mock_sync = MagicMock()
-        mock_sync.success = True
-        mock_sync.message = "Already up to date."
-        with (
-            patch("specsmith.vcs_commands.run_sync", return_value=mock_sync),
-            patch("specsmith.agent.runner.AgentRunner") as mock_runner_cls,
-            patch("specsmith.esdb.bridge.EsdbBridge"),
-        ):
-            mock_runner_instance = MagicMock()
-            mock_runner_cls.return_value = mock_runner_instance
-            result = runner.invoke(main, ["resume", "--project-dir", str(tmp_path)])
-
-        # run_interactive is called (may raise since it's mocked)
-        assert mock_runner_instance.run_interactive.called or result.exit_code in (0, 1)

@@ -1495,8 +1495,8 @@ def generate_overlay(
     _write(
         "docs/governance/LIFECYCLE.md",
         "# Project Lifecycle\n\n"
-        "See `specsmith phase show` for current phase readiness.\n"
-        "See `specsmith phase list` for the full AEE lifecycle.\n",
+        "Run `specsmith checkpoint` for current phase readiness.\n"
+        "Run `specsmith audit` for the complete evidence gate.\n",
     )
     _write("docs/governance/ROLES.md", gov["roles"])
     _write("docs/governance/CONTEXT-BUDGET.md", gov["context-budget"])

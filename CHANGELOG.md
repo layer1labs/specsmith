@@ -10,6 +10,21 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Changed
+- The public CLI now presents only the mission-essential requirements, linked
+  tests, preflight/verification, epistemic context, Grace, ESDB, policy, and
+  integration workflow. Release/API maintenance commands remain internal.
+- README, RTD navigation, policies, and project examples now use the same lean
+  governed-change loop and delegate Git, native tests, browsers, deployment,
+  and generic agent skills to the host tool.
+
+### Removed
+- Legacy public CLI products for Git hosting, generic multi-agent dispatch,
+  model leaderboards, dashboards, credits, patents, voice, wireframes,
+  workspaces, and other duplicated host-tool capabilities.
+- Obsolete CLI documentation, the historical executable release plan, and dead
+  model-facing benchmark governance tool definitions.
+
 ### Fixed
 - Public documentation links now use Read the Docs' active translation-free
   `/stable/` and `/latest/` routes instead of obsolete `/en/` routes.

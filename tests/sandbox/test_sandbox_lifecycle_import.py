@@ -102,33 +102,6 @@ class TestLifecycleImport:
         assert not (gov / "WORKFLOW.md").exists()
         assert not (root / "docs" / "WORKFLOW.md").exists()
 
-    def test_import_then_phase_operations(self, tmp_path: Path) -> None:
-        root = tmp_path / "importme"
-        root.mkdir()
-        _create_test_project(root)
-
-        runner = CliRunner()
-        runner.invoke(main, ["import", "--project-dir", str(root), "--yes"])
-
-        # Phase show
-        r = runner.invoke(main, ["phase", "show", "--project-dir", str(root)])
-        assert r.exit_code == 0, f"phase show failed: {r.output}\n{r.exception}"
-        assert "Inception" in r.output
-
-        # Phase list
-        r = runner.invoke(main, ["phase", "list", "--project-dir", str(root)])
-        assert r.exit_code == 0, f"phase list failed: {r.output}\n{r.exception}"
-        assert "inception" in r.output
-
-        # Advance with --force
-        r = runner.invoke(main, ["phase", "next", "--force", "--project-dir", str(root)])
-        assert r.exit_code == 0
-        assert "Architecture" in r.output
-
-        with open(root / "scaffold.yml") as f:
-            cfg = yaml.safe_load(f)
-        assert cfg["aee_phase"] == "architecture"
-
     def test_import_audit_includes_phase_readiness(self, tmp_path: Path) -> None:
         root = tmp_path / "importme"
         root.mkdir()

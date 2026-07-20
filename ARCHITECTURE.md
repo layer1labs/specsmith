@@ -5,30 +5,30 @@
 specsmith is a CLI tool + governance engine for AI-assisted development.
 It treats belief systems like code: codable, testable, deployable.
 
-## Nexus Runtime
+## Grace Runtime
 
-The Nexus runtime is the local-first agentic REPL that integrates with
+The Grace runtime is the local-first fallback REPL that integrates with
 the governance broker for safe, auditable AI-assisted development.
 
-### Nexus Broker Boundary
+### Grace Broker Boundary
 
 The broker (`specsmith.agent.broker`) classifies natural-language
 utterances into intents (read_only_ask, change, release, destructive)
 and maps them to governance requirements via `infer_scope()`.
 
-### Nexus Preflight CLI Subcommand
+### Grace Preflight CLI Subcommand
 
 `specsmith preflight "<utterance>"` gates every change through the
 governance broker. It returns a JSON payload with decision, work_item_id,
 requirement_ids, test_case_ids, and confidence_target.
 
-### Nexus REPL Execution Gate
+### Grace REPL Execution Gate
 
 The REPL (`specsmith.agent.repl`) uses `execute_with_governance()` to
 wrap every agent action in a preflight → execute → verify cycle. The
 `/why` toggle shows the governance trace in human-readable form.
 
-### Nexus Bounded-Retry Harness
+### Grace Bounded-Retry Harness
 
 The harness (`specsmith.agent.broker.execute_with_governance`) retries
 failed actions up to `DEFAULT_RETRY_BUDGET` times using strategy
@@ -224,7 +224,7 @@ Requirements and tests are grouped into domain files under
 | Stem | REQ Range | Domain |
 |---|---|---|
 | governance | REQ-001..064 | Core AEE governance |
-| agent | REQ-065..129 | Nexus + CI |
+| agent | REQ-065..129 | Grace + CI |
 | harness | REQ-130..160 | Slash commands + subagents |
 | intelligence | REQ-161..220 | Instinct, eval, memory |
 | context | REQ-244..247 | Context window management |
@@ -264,4 +264,3 @@ Legacy Markdown mode (steps 1–4 only, MD → JSON).
 2. Re-syncs machine state from cleaned MD
 3. Exports JSON → grouped YAML files
 4. Writes `.specsmith/governance-mode = yaml`
-

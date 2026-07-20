@@ -1,223 +1,122 @@
-# Standalone CLI
+# Standalone CLI and Grace
 
-Use Specsmith entirely from the terminal—no IDE or agent client required. The
-governance CLI and Grace local fallback install together with `pipx install specsmith`.
+Use the standalone CLI when an editor integration is unavailable, a local model
+is preferred, or CI needs deterministic governance commands. If a coding agent
+already provides Git, browser, test, and framework tools, keep using them.
 
----
+## Install
 
-## When to use the standalone CLI
+```bash
+pipx install specsmith
+specsmith doctor --onboarding
+```
 
-| Situation | Recommendation |
+`pipx` keeps the executable isolated. Library imports work from a normal
+`pip install specsmith` environment.
+
+## Choose a path
+
+| Need | Start here |
 |---|---|
-| CI pipelines and automation | Standalone CLI — no agent session needed |
-| Terminal-first workflows (no IDE) | Standalone CLI + `specsmith run` REPL |
-| Governance checks on a headless server | Standalone CLI |
-| You use Warp, Cursor, Claude Code, etc. | [Agent Integrations](agent-integrations.md) instead |
-| You want governance + a local LLM in one command | `specsmith run` (Grace) |
-| Larger projects needing controlled AI changes | Governance adds explicit policy gates, requirement/test traceability, and release evidence; measured efficiency varies by task and model |
-| Local LLMs (LMStudio, vLLM, llama.cpp) | Bring your own endpoint support for maximum cost control and privacy |
-| You want to use LMStudio or other local LLM tools | Native support for Bring-Your-Own-Endpoint (BYOE) workflows |
+| Add governance to an existing repository | `specsmith import --project-dir . --yes` |
+| Create a new repository | `specsmith init` |
+| Use an existing coding agent | `specsmith integrate <tool>` |
+| Run locally without another agent | `specsmith run` |
+| Expose governance over MCP/HTTP | `specsmith mcp --help` or `specsmith serve` |
 
----
-
-## Session workflow
-
-The same governance protocol applies whether you are an AI agent or a human at a terminal.
-
-### Session start
-
-Run once at the beginning of every work session:
+## First change
 
 ```bash
-specsmith kill-session                        # idempotent; safe when no processes exist
-specsmith migrate run                         # apply pending schema migrations
-specsmith audit --project-dir .              # verify governance health
-specsmith sync  --project-dir .              # YAML → JSON → MD sync
-specsmith checkpoint --project-dir .         # emit GOVERNANCE ANCHOR
+specsmith req add --title "Describe an observable behavior"
+specsmith test add --req REQ-001 --title "Prove the behavior" --type unit
+specsmith preflight "Implement the behavior. Scope: REQ-001" --json
 ```
 
-The `specsmith checkpoint` output is your session anchor — keep it visible.
-If you lose track of the current phase or active work items, re-run it.
-
-### Before every code change
+Run the repository's native formatter and tests after editing, then:
 
 ```bash
-specsmith preflight "<describe the change>" --json
+specsmith audit --project-dir .
+specsmith checkpoint --project-dir .
 ```
 
-- `decision == "accepted"` → proceed; note the `work_item_id`
-- `decision == "environment_only"` → proceed with local `pipx` maintenance only;
-  no work item, ledger entry, or ESDB record is created
-- `decision == "needs_clarification"` → read the `instruction` field and refine your intent
-
-Never make a code change without an accepted preflight. The work item ID links the change to governance.
-
-All `--help` invocations are read-only: they do not migrate a project, check for updates,
-or create governance files.
-
-### During work
+## Grace
 
 ```bash
-specsmith wi list --status open       # see all open work items
-specsmith wi show WI-XXXXXXXX         # inspect a specific work item
-specsmith phase                       # check current AEE phase + readiness %
-specsmith audit --project-dir .       # re-check governance health at any time
+specsmith run
 ```
 
-### After making changes
+Grace starts with a compact project summary and explains provider recovery if no
+model is reachable.
 
-```bash
-specsmith verify                      # check requirement equilibrium
-specsmith checkpoint --project-dir .  # emit heartbeat anchor (every 8–10 significant changes)
-```
-
-### Session end
-
-```bash
-specsmith save            # ESDB backup + commit + push
-specsmith kill-session    # stop governance-serve and tracked processes
-```
-
-Never end a session with uncommitted governance changes.
-
----
-
-## Grace — friendly local fallback
-
-`specsmith run` starts Grace. Use it for a private local model, a terminal-only
-workflow, or when your preferred host agent is unavailable. It is optional; native
-agent integrations and MCP are preferred when you already use another coding tool.
-
-```bash
-# Start with a local Ollama model (no API key needed)
-specsmith run --provider ollama --model qwen2.5:14b
-
-# Start with a cloud provider
-specsmith run --provider anthropic   # requires ANTHROPIC_API_KEY
-specsmith run --provider openai      # requires OPENAI_API_KEY
-specsmith run --provider google      # requires GOOGLE_API_KEY
-
-# Start with a local LLM via BYOE (Bring Your Own Endpoint)
-specsmith run --provider local --endpoint http://localhost:1234/v1/chat/completions
-```
-
-Inside the REPL:
-
-```
+```text
 grace> /help
 grace> /status
-grace> fix the cleanup dry-run regression
-grace> what does the audit module do?
-grace> delete the dist directory
 grace> /why
-grace> /exit
+grace> /specsmith audit --project-dir .
 ```
 
-`/status` shows the provider, model, retained history, and compression state.
-Grace compresses older epistemic history before it enters the paid token path.
-Ambiguous and destructive requests stop for clarification rather than being forced
-through implementation.
+- `/help` lists the small local command set.
+- `/status` reports provider, model, context pressure, and governance state.
+- `/why` reveals the requirement/test/work-item basis for decisions.
+- `/specsmith` invokes the same governed CLI contract used by integrations.
 
-### Inject LLM SDKs into the pipx environment
+Long histories are compressed into evidence-linked summaries before model calls.
+Recent turns stay verbatim; unsupported claims remain marked unknown.
 
-If you installed via pipx, inject the provider SDK only for cloud LLM use:
+## Provider recovery
+
+Grace tries configured providers and explains the missing prerequisite. Common
+recovery paths:
 
 ```bash
-pipx inject specsmith anthropic     # for ANTHROPIC_API_KEY
-pipx inject specsmith openai        # for OPENAI_API_KEY
-pipx inject specsmith google-genai  # for GOOGLE_API_KEY
+specsmith doctor --onboarding
+specsmith endpoints --help
+specsmith local-model recommend
+specsmith local-model setup
 ```
 
-Ollama requires no injection — specsmith uses stdlib HTTP.
+Secrets belong in environment variables or the supported credential store, not
+in committed configuration.
 
-### VRAM-aware model selection (local models)
+## Session protocol
 
-```bash
-specsmith ollama gpu                   # detect GPU VRAM tier
-specsmith ollama available             # list models that fit your VRAM budget
-specsmith local-model recommend        # per-role lineup with fits/tight/spills assessment
-specsmith local-model setup            # download the best hardware-appropriate model
-```
-
----
-
-## Multi-agent dispatcher
-
-Decompose a task into a DAG of agent work items and run them concurrently:
+At the beginning:
 
 ```bash
-specsmith dispatch run "add API endpoint with tests" --max-workers 4
-specsmith dispatch run "refactor auth module" --json   # stream JSONL events
-specsmith dispatch status --dag-id <id>                # check run status
-specsmith dispatch list                                 # list all runs
-specsmith dispatch retry --node impl --dag-id <id>     # retry a failed node
-```
-
-Combine with governance: `specsmith preflight` the top-level task before dispatching,
-and the dispatcher propagates the work item context to each node automatically.
-
----
-
-## Key commands at a glance
-
-```bash
-# Governance
-specsmith audit                       # full health check (48+ checks)
-specsmith validate --strict           # schema: dup IDs, orphans, coverage gaps
-specsmith preflight "<intent>" --json # gate a change
-specsmith checkpoint                  # emit GOVERNANCE ANCHOR
-specsmith sync                        # YAML → JSON → MD
-specsmith save                        # ESDB backup + commit + push
-specsmith export --format markdown    # compliance report
-
-# Phase management
-specsmith phase                       # current phase + readiness %
-specsmith phase next                  # advance to next phase
-specsmith phase list                  # all 7 phases
-
-# Work items
-specsmith wi list --status open
-specsmith wi show WI-XXXXXXXX
-specsmith wi close WI-XXXXXXXX --reason "covered by REQ-042"
-specsmith wi promote WI-XXXXXXXX --title "..." --domain governance
-
-# Requirements
-specsmith req list
-specsmith req gaps                    # uncovered requirements
-specsmith stress-test                 # adversarial AEE challenges on all REQs
-specsmith epistemic-audit             # certainty scores + logic knot detection
-
-# Session
 specsmith kill-session
-specsmith migrate run
-specsmith doctor                      # tool availability check
+specsmith audit --project-dir .
+specsmith sync --project-dir .
+specsmith checkpoint --project-dir .
 ```
 
----
+Before an edit:
 
-## CI usage
-
-The standalone CLI is designed for headless CI. All commands exit with code 0 on success, non-zero on failure.
-
-```yaml
-# GitHub Actions example
-- name: Governance health check
-  run: |
-    pipx install specsmith
-    specsmith migrate run
-    specsmith audit --project-dir .
-    specsmith sync --check             # exits 1 if YAML cache is out of sync
-    specsmith validate --strict
+```bash
+specsmith preflight "Describe the exact change. Scope: REQ-001" --json
 ```
 
-The `specsmith audit` step is a complete governance gate — it checks file existence, YAML validity,
-requirement coverage, WI gate satisfaction, and ESDB chain integrity.
+At the end:
 
----
+```bash
+specsmith save --project-dir .
+specsmith kill-session
+```
 
-## Next steps
+## Windows and Linux
 
-- [Agent Integrations](agent-integrations.md) — add an AI agent client (Warp, Claude Code, Cursor, etc.)
-- [Warp Integration](warp-integration.md) — native MCP server + Ctrl+Shift+R workflows
-- [CLI Commands](commands.md) — full command reference
-- [Getting Started](getting-started.md) — new project or import an existing one
+Commands accept `--project-dir` instead of relying on shell-specific path
+expansion. Use quoted paths when they contain spaces. Zoo Code/Roo Code config
+repair normalizes path separators and preserves unrelated user settings on both
+platforms.
+
+## Complete surface
+
+```bash
+specsmith --help       # mission-essential workflow
+specsmith commands     # every supported command
+specsmith COMMAND --help
+```
+
+The CLI intentionally does not wrap Git hosting, deployment, browsers, patent
+search, voice, wireframes, generic multi-agent orchestration, or model
+leaderboards. Use the native host tool for those jobs.

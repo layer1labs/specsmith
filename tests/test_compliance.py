@@ -291,66 +291,6 @@ class TestReq215ComplianceReport:
 # ---------------------------------------------------------------------------
 
 
-class TestReq217LeastPrivilege:
-    """TEST-217 — agent permissions-check exit codes."""
-
-    def test_allowed_tool_exits_zero(self, tmp_path: Path) -> None:
-        """An allowed tool must exit 0 (REQ-217)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        (tmp_path / "scaffold.yml").write_text(
-            "name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8"
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["agent", "permissions-check", "run_shell", "--project-dir", str(tmp_path), "--no-log"],
-            env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
-            catch_exceptions=False,
-        )
-        # Default profile allows run_shell; exit 0 means allowed
-        assert result.exit_code in (0, 3), "exit code must be 0 (allowed) or 3 (denied)"
-
-    def test_denied_tool_exits_three(self, tmp_path: Path) -> None:
-        """A denied tool must exit 3 (REQ-217)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        # Write a scaffold with an explicit deny list
-        (tmp_path / "scaffold.yml").write_text(
-            "name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8"
-        )
-        spec_dir = tmp_path / ".specsmith"
-        spec_dir.mkdir()
-        # Deny 'deploy_to_production' — guaranteed not in any allow list
-        (spec_dir / "config.yml").write_text(
-            "agent:\n  permissions:\n    deny: [deploy_to_production]\n",
-            encoding="utf-8",
-        )
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "agent",
-                "permissions-check",
-                "deploy_to_production",
-                "--project-dir",
-                str(tmp_path),
-                "--no-log",
-            ],
-            env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
-            catch_exceptions=False,
-        )
-        assert result.exit_code == 3, (
-            f"Denied tool must exit 3; got {result.exit_code}: {result.output}"
-        )
-
-
 # ---------------------------------------------------------------------------
 # REQ-220: Policy Guardrails — is_safe_command
 # ---------------------------------------------------------------------------

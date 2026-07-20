@@ -3,9 +3,10 @@
 Documentation-centric repository governed for consistency and traceability.
 
 ## Governance setup steps
-1. `specsmith init`
-2. `specsmith preflight "update docs set"`
-3. `specsmith audit`
+1. `specsmith import --project-dir . --yes`
+2. `specsmith req add --title "Describe the documentation contract"`
+3. `specsmith test add --req REQ-001 --title "Build and check links" --type build`
+4. `specsmith preflight "Update the documentation. Scope: REQ-001" --json`
 
 ## Requirements file example
 `docs/requirements/docs.yml`
@@ -17,8 +18,8 @@ Documentation-centric repository governed for consistency and traceability.
 ```yaml
 - name: Governed docs checks
   run: |
-    specsmith sync --check
-    specsmith audit
+    mkdocs build --strict
+    specsmith audit --project-dir .
 ```
 
 ## Agent integration file example

@@ -10,7 +10,7 @@ import yaml
 from click.testing import CliRunner
 
 from specsmith.cli import main
-from specsmith.config import ProjectConfig, ProjectType
+from specsmith.config import ProjectType
 from specsmith.scaffolder import scaffold_project
 
 
@@ -35,30 +35,6 @@ def _scaffold_governed(tmp_path: Path) -> Path:
     return target
 
 
-def _older_version(version: str) -> str:
-    """Return a semantic version strictly older than ``version``.
-
-    Decrements the least-significant non-zero component so the result is always
-    a valid forward-upgrade target regardless of which release ``__version__``
-    resolves to at runtime. Hardcoding a constant breaks whenever ``__version__``
-    resolves to an equal-or-older release and the backward-migration guard
-    (REQ-370) then refuses the upgrade.
-    """
-    import re
-
-    match = re.match(r"(\d+)\.(\d+)(?:\.(\d+))?", version or "")
-    if not match:
-        return "0.0.0"
-    major, minor, patch = (int(part) if part is not None else 0 for part in match.groups())
-    if patch > 0:
-        patch -= 1
-    elif minor > 0:
-        minor -= 1
-    elif major > 0:
-        major -= 1
-    return f"{major}.{minor}.{patch}"
-
-
 class TestCLIVersion:
     def test_version_flag(self) -> None:
         from specsmith import __version__
@@ -71,6 +47,45 @@ class TestCLIVersion:
 
 
 class TestCLIHelp:
+    def test_root_help_is_mission_focused(self) -> None:
+        result = CliRunner().invoke(
+            main,
+            ["--help"],
+            env={"SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"},
+        )
+
+        assert result.exit_code == 0, result.output
+        for command in ("preflight", "verify", "req", "test", "run", "integrate"):
+            assert command in result.output
+        for removed in ("dispatch", "patent", "wireframes", "workspace", "credits"):
+            assert removed not in result.output
+        assert "specsmith commands" in result.output
+
+    def test_commands_lists_only_supported_public_surface(self) -> None:
+        result = CliRunner().invoke(
+            main,
+            ["commands"],
+            env={"SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"},
+        )
+
+        assert result.exit_code == 0, result.output
+        for command in ("preflight", "verify", "esdb", "mcp", "zoo-code"):
+            assert command in result.output
+        for removed in ("dispatch", "patent", "wireframes", "workspace", "credits"):
+            assert removed not in result.output
+        for internal in ("api-surface", "governed-pr", "verify-release"):
+            assert internal not in result.output
+
+    def test_removed_cli_surface_is_not_invokable(self) -> None:
+        result = CliRunner().invoke(
+            main,
+            ["dispatch", "--help"],
+            env={"SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"},
+        )
+
+        assert result.exit_code == 2
+        assert "No such command 'dispatch'" in result.output
+
     def test_preflight_help_does_not_migrate_or_write_project_files(
         self, tmp_path, monkeypatch
     ) -> None:
@@ -181,82 +196,3 @@ class TestCLICompress:
         result = runner.invoke(main, ["compress", "--project-dir", str(target)])
         assert result.exit_code == 0
         assert "No compression needed" in result.output
-
-
-class TestCLIUpgrade:
-    def test_upgrade_already_current(self, tmp_path: Path) -> None:
-        target = _scaffold_governed(tmp_path)
-        config = ProjectConfig(
-            name="test-cli-project", type=ProjectType.CLI_PYTHON, language="python"
-        )
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            ["upgrade", "--project-dir", str(target), "--spec-version", config.spec_version],
-        )
-        assert result.exit_code == 0
-        assert "Already at spec version" in result.output
-
-    def test_upgrade_to_new_version(self, tmp_path: Path) -> None:
-        from specsmith import __version__
-
-        target = _scaffold_governed(tmp_path)
-        # Backdate spec_version so there is an actual upgrade to perform.
-        # Derive it dynamically from __version__ so the value is always strictly
-        # older than the upgrade target; otherwise the backward-migration guard
-        # (REQ-370) refuses the upgrade whenever __version__ resolves to an
-        # equal-or-older release than the previously hardcoded constant.
-        scaffold_yml = target / "scaffold.yml"
-        with open(scaffold_yml) as fh:
-            data = yaml.safe_load(fh)
-        data["spec_version"] = _older_version(__version__)
-        with open(scaffold_yml, "w") as fh:
-            yaml.dump(data, fh, default_flow_style=False)
-        runner = CliRunner()
-        result = runner.invoke(
-            main, ["upgrade", "--project-dir", str(target), "--spec-version", __version__]
-        )
-        assert result.exit_code == 0
-        assert "Upgraded" in result.output
-        # Verify scaffold.yml spec_version was updated to the target version
-        with open(target / "scaffold.yml") as fh:
-            data = yaml.safe_load(fh)
-        assert data["spec_version"] == __version__
-
-
-class TestCLICreditsLimits:
-    def test_set_and_list_limits_profile(self, tmp_path: Path) -> None:
-        runner = CliRunner()
-
-        set_result = runner.invoke(
-            main,
-            [
-                "credits",
-                "limits",
-                "set",
-                "--project-dir",
-                str(tmp_path),
-                "--provider",
-                "openai",
-                "--model",
-                "gpt-5.4",
-                "--rpm",
-                "60",
-                "--tpm",
-                "500000",
-                "--target",
-                "0.7",
-                "--concurrency",
-                "4",
-            ],
-        )
-        assert set_result.exit_code == 0
-        assert "Saved openai/gpt-5.4" in set_result.output
-
-        list_result = runner.invoke(
-            main,
-            ["credits", "limits", "list", "--project-dir", str(tmp_path)],
-        )
-        assert list_result.exit_code == 0
-        assert "openai/gpt-5.4" in list_result.output
-        assert "RPM=60 TPM=500000" in list_result.output

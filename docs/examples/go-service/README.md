@@ -3,9 +3,10 @@
 Go microservice with governed change intent and verification.
 
 ## Governance setup steps
-1. `specsmith init`
-2. `specsmith preflight "add go service endpoint"`
-3. `specsmith audit`
+1. `specsmith import --project-dir . --yes`
+2. `specsmith req add --title "Define the service behavior"`
+3. `specsmith test add --req REQ-001 --title "Verify the service behavior" --type integration`
+4. `specsmith preflight "Implement the service behavior. Scope: REQ-001" --json`
 
 ## Requirements file example
 `docs/requirements/service.yml`
@@ -18,7 +19,7 @@ Go microservice with governed change intent and verification.
 - name: Governed Go service checks
   run: |
     go test ./...
-    specsmith verify
+    specsmith audit --project-dir .
 ```
 
 ## Agent integration file example

@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-from click.testing import CliRunner
-
-from specsmith.cli import main
 from specsmith.config import ProjectConfig
 from specsmith.vcs_commands import GitResult, create_branch, create_pr
 
@@ -55,34 +51,3 @@ def test_missing_scaffold_uses_single_branch_default(tmp_path: Path) -> None:
 
     assert not result.success
     assert "Pull requests are disabled" in result.message
-
-
-def test_branch_workflow_command_enables_gitflow(tmp_path: Path) -> None:
-    (tmp_path / "scaffold.yml").write_text(
-        "name: workflow-test\nbranching_strategy: single-branch\n",
-        encoding="utf-8",
-    )
-
-    result = CliRunner().invoke(
-        main,
-        ["branch", "workflow", "gitflow", "--project-dir", str(tmp_path)],
-    )
-
-    assert result.exit_code == 0, result.output
-    config = yaml.safe_load((tmp_path / "scaffold.yml").read_text(encoding="utf-8"))
-    assert config["branching_strategy"] == "gitflow"
-
-
-def test_branch_workflow_command_reports_current_strategy(tmp_path: Path) -> None:
-    (tmp_path / "scaffold.yml").write_text(
-        "branching_strategy: single-branch\n",
-        encoding="utf-8",
-    )
-
-    result = CliRunner().invoke(
-        main,
-        ["branch", "workflow", "--project-dir", str(tmp_path)],
-    )
-
-    assert result.exit_code == 0, result.output
-    assert "Branch workflow: single-branch" in result.output

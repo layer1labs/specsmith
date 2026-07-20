@@ -420,65 +420,6 @@ def test_safe_cleanup_emits_structured_report(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# TEST-081 — specsmith clean CLI subcommand (dry-run, --apply, --json)
-# ---------------------------------------------------------------------------
-def test_specsmith_clean_cli_dry_run(tmp_path):
-    from click.testing import CliRunner
-
-    from specsmith.cli import main
-
-    _seed_repo(tmp_path)
-    # Need a scaffold.yml with the current spec_version so the auto-update prompt
-    # in the CLI group does not trigger interactive input during the test.
-    (tmp_path / "scaffold.yml").write_text(
-        "name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8"
-    )
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["clean", "--project-dir", str(tmp_path), "--json"],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0, result.output
-    data = json.loads(result.output)
-    assert data["dry_run"] is True
-    assert isinstance(data["removed"], list)
-    # Dry-run must NOT delete: __pycache__ still present
-    assert (tmp_path / "__pycache__").is_dir()
-
-
-def test_specsmith_clean_cli_apply_records_ledger_entry(tmp_path):
-    from click.testing import CliRunner
-
-    from specsmith.cli import main
-
-    _seed_repo(tmp_path)
-    (tmp_path / "scaffold.yml").write_text(
-        "name: test\ntype: cli-python\nspec_version: 0.3.13\n", encoding="utf-8"
-    )
-    ledger_before = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["clean", "--project-dir", str(tmp_path), "--apply"],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1"},
-        catch_exceptions=False,
-    )
-    assert result.exit_code == 0, result.output
-    # Targets removed
-    assert not (tmp_path / "__pycache__").exists()
-    assert not (tmp_path / ".mypy_cache").exists()
-    # Ledger entry appended
-    ledger_after = (tmp_path / "LEDGER.md").read_text(encoding="utf-8")
-    assert len(ledger_after) > len(ledger_before)
-    assert "specsmith clean" in ledger_after
-    assert "REQ-077" in ledger_after
-
-
-# ---------------------------------------------------------------------------
 # TEST-082 — UTF-8 safe console factory
 # ---------------------------------------------------------------------------
 def test_make_console_handles_utf8_glyphs():
@@ -1156,14 +1097,14 @@ def test_nexus_smoke_test_against_live_container():
 
 
 # ---------------------------------------------------------------------------
-# TEST-090 — Nexus documentation surfaces broker, preflight, gated execution
+# TEST-090 — Grace documentation surfaces broker, preflight, gated execution
 # ---------------------------------------------------------------------------
-def test_architecture_md_describes_nexus_broker_preflight_and_gate():
+def test_architecture_md_describes_grace_broker_preflight_and_gate():
     text = (REPO_ROOT / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "Nexus Broker Boundary" in text
-    assert "Nexus Preflight CLI Subcommand" in text
-    assert "Nexus REPL Execution Gate" in text
-    assert "Nexus Bounded-Retry Harness" in text
+    assert "Grace Broker Boundary" in text
+    assert "Grace Preflight CLI Subcommand" in text
+    assert "Grace REPL Execution Gate" in text
+    assert "Grace Bounded-Retry Harness" in text
     assert "specsmith preflight" in text
     assert "`/why`" in text
 

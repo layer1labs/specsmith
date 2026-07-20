@@ -4,13 +4,9 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from click.testing import CliRunner
-
 from specsmith.agent.suggester import classify, suggest_command
-from specsmith.cli import main
 
 
 def test_classify_passthrough_for_short_input() -> None:
@@ -73,16 +69,3 @@ def test_suggest_command_passthrough_for_short_text() -> None:
     out = suggest_command("a")
     assert out.kind == "passthrough"
     assert out.suggestion == "a"
-
-
-def test_cli_suggest_command_emits_json(tmp_path: Path) -> None:
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["suggest-command", "git status", "--project-dir", str(tmp_path)],
-        env={"SPECSMITH_NO_AUTO_UPDATE": "1", "SPECSMITH_PYPI_CHECKED": "1"},
-    )
-    assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
-    assert payload["kind"] == "command"
-    assert payload["suggestion"] == "git --no-pager status"

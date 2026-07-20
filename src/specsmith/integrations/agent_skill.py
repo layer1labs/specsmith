@@ -79,28 +79,16 @@ All changes follow: **propose → check → execute → verify → record**.
 - `docs/TESTS.md` — test specifications
 - `docs/ARCHITECTURE.md` — system architecture
 
-## Session Start
-Before any work, run: `specsmith update --check --project-dir .`
-If outdated, run: `specsmith update --yes`
-
-## Commands
-When user says `commit`: run `specsmith commit --project-dir .`
-When user says `push`: run `specsmith push --project-dir .`
-When user says `sync`: run `specsmith sync --project-dir .`
-When user says `pr`: run `specsmith pr --project-dir .`
-When user says `audit`: run `specsmith audit --project-dir .`
-When user says `session-end`: run `specsmith session-end --project-dir .`
+## Session Commands
+- Start: `specsmith audit --project-dir .`, then `specsmith sync --project-dir .`
+- Before a change: `specsmith preflight "<intent>" --json`
+- Re-anchor context: `specsmith checkpoint --project-dir .`
+- Verify: `specsmith audit --project-dir .`
+- End: `specsmith save --project-dir .`, then `specsmith kill-session`
+- Use the host tool's native Git and pull-request workflow for source control.
 
 ## Verification
 Before marking any task complete, run: {verify_line}
-
-## Credit Tracking
-After completing tasks, record token usage:
-```
-specsmith credits record --model <model> --provider <provider> \\
-  --tokens-in <N> --tokens-out <N> --task "<desc>"
-```
-Check budget: `specsmith credits summary`
 
 ## Rules
 - Proposals before changes (no exceptions)
@@ -108,5 +96,4 @@ Check budget: `specsmith credits summary`
 - Use execution shims (`scripts/exec.cmd` / `scripts/exec.sh`) for external commands
 - Keep AGENTS.md under 200 lines
 - Record every session in the ledger
-- Record credit usage at session end
 """

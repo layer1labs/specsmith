@@ -480,7 +480,7 @@
   confidence: 0.95
 - id: TEST-340
   title: /specsmith REPL Handler Streams CLI Output
-  description: In the Nexus REPL, entering `/specsmith status` MUST invoke `specsmith
+  description: In the Grace REPL, entering `/specsmith status` MUST invoke `specsmith
     status` as a subprocess with shell=True, streaming output to the terminal (capture_output=False).
     `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout
     MUST print a timeout message without crashing the REPL loop. The REPL startup
@@ -863,23 +863,20 @@
     and a runner entry-point
   confidence: 0.8
 - id: TEST-370
-  title: Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt
-    and without pip install
+  title: Scaffolded AGENTS.md template documents automatic migration and doctor verification
   requirement_id: REQ-369
   type: unit
   verification_method: pytest tests/test_migration_direction.py::test_agents_template_no_pip_install
-    and ::test_agents_template_uses_migrate_run — read src/specsmith/templates/agents.md.j2,
-    assert 'pip install' not present, assert 'specsmith migrate run' present, assert
-    '[Y/n]' not present in migration context
+    and ::test_agents_template_uses_current_health_check — read src/specsmith/templates/agents.md.j2,
+    assert 'pip install' and legacy migrate commands are absent, assert `specsmith doctor`
+    is present, and assert '[Y/n]' is absent
   confidence: 1.0
 - id: TEST-371
-  title: Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt,
-    and upgrade command
+  title: Backward migration is a hard error in run_upgrade, run_migration, and CLI auto-update
   requirement_id: REQ-370
   type: unit
-  verification_method: pytest tests/test_migration_direction.py — four sub-tests cover
-    run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version
-    older exit 1, and auto-prompt downgrade hard error
+  verification_method: pytest tests/test_migration_direction.py — tests cover run_upgrade
+    downgrade_error=True, run_migration ERROR string, and auto-update downgrade hard error
   confidence: 1.0
 - id: TEST-372
   title: esdb status --json reports active ChronoStore (ChronoMemory backend) and

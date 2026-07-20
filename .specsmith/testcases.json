@@ -830,7 +830,7 @@
   {
     "id": "TEST-070",
     "version": 1,
-    "title": "Nexus Must Normalize File Paths",
+    "title": "Grace Must Normalize File Paths",
     "description": "normalize_path returns absolute resolved paths.",
     "requirement_id": "REQ-070",
     "type": "unit",
@@ -842,7 +842,7 @@
   {
     "id": "TEST-071",
     "version": 1,
-    "title": "Nexus Must Index the Repository",
+    "title": "Grace Must Index the Repository",
     "description": "generate_index populates files.json, architecture.md, and conventions.md in .repo-index/.",
     "requirement_id": "REQ-071",
     "type": "unit",
@@ -854,7 +854,7 @@
   {
     "id": "TEST-072",
     "version": 1,
-    "title": "Nexus REPL Must Support Slash Commands",
+    "title": "Grace REPL Must Support Slash Commands",
     "description": "repl.py source defines /plan, /ask, /fix, /test, /commit, /pr, /undo, /context, /exit handlers.",
     "requirement_id": "REQ-072",
     "type": "unit",
@@ -866,7 +866,7 @@
   {
     "id": "TEST-073",
     "version": 1,
-    "title": "Nexus Output Contract",
+    "title": "Grace Output Contract",
     "description": "Orchestrator.run_task issues an initial message containing the required sections.",
     "requirement_id": "REQ-073",
     "type": "unit",
@@ -902,7 +902,7 @@
   {
     "id": "TEST-076",
     "version": 1,
-    "title": "Nexus Tool Executor Registration Must Be Unique",
+    "title": "Grace Tool Executor Registration Must Be Unique",
     "description": "Orchestrator.register_tools calls executor.register_for_execution exactly once per tool.",
     "requirement_id": "REQ-076",
     "type": "unit",
@@ -1023,7 +1023,7 @@
     "id": "TEST-086",
     "version": 1,
     "title": "REPL Gates Execution on Preflight Acceptance",
-    "description": "The Nexus REPL source must guard the orchestrator call so that `run_task` is only invoked when the preflight decision is `accepted`; any other decision must short-circuit and return to the prompt.",
+    "description": "The Grace REPL source must guard the orchestrator call so that `run_task` is only invoked when the preflight decision is `accepted`; any other decision must short-circuit and return to the prompt.",
     "requirement_id": "REQ-086",
     "type": "unit",
     "verification_method": "pytest",
@@ -1058,7 +1058,7 @@
   {
     "id": "TEST-089",
     "version": 1,
-    "title": "Nexus Live l1-nexus Smoke Test Script",
+    "title": "Grace Live Legacy l1-nexus Smoke Test Script",
     "description": "`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.",
     "requirement_id": "REQ-089",
     "type": "unit",
@@ -1070,8 +1070,8 @@
   {
     "id": "TEST-090",
     "version": 1,
-    "title": "Nexus Documentation Surfaces Broker, Preflight, and Gated Execution",
-    "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
+    "title": "Grace Documentation Surfaces Broker, Preflight, and Gated Execution",
+    "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Grace' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
     "requirement_id": "REQ-090",
     "type": "unit",
     "verification_method": "pytest",
@@ -1130,7 +1130,7 @@
   {
     "id": "TEST-095",
     "version": 1,
-    "title": "Nexus Live Smoke Evidence Captured",
+    "title": "Grace Live Smoke Evidence Captured",
     "description": "`.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either a successful live smoke (`ok: true`) or an honest reason the live container could not be reached.",
     "requirement_id": "REQ-095",
     "type": "unit",
@@ -1310,7 +1310,7 @@
   {
     "id": "TEST-110",
     "version": 1,
-    "title": "End-to-End Nexus Path Reaches Equilibrium",
+    "title": "End-to-End Grace Path Reaches Equilibrium",
     "description": "Driving a `FakeOrchestrator` through `execute_with_governance` with scripted attempt-1 failure and attempt-2 success yields `RunResult.success=True`, ledger gains a preflight + work_proposal entry, and retry strategy is empty.",
     "requirement_id": "REQ-110",
     "type": "integration",
@@ -3603,7 +3603,7 @@
     "id": "TEST-340",
     "version": 1,
     "title": "/specsmith REPL Handler Streams CLI Output",
-    "description": "In the Nexus REPL, entering `/specsmith status` MUST invoke `specsmith status` as a subprocess with shell=True, streaming output to the terminal (capture_output=False). `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout MUST print a timeout message without crashing the REPL loop. The REPL startup banner MUST contain the string '/specsmith'.",
+    "description": "In the Grace REPL, entering `/specsmith status` MUST invoke `specsmith status` as a subprocess with shell=True, streaming output to the terminal (capture_output=False). `/specsmith` with no args MUST invoke `specsmith --help`. A subprocess timeout MUST print a timeout message without crashing the REPL loop. The REPL startup banner MUST contain the string '/specsmith'.",
     "requirement_id": "REQ-340",
     "type": "unit",
     "verification_method": "pytest",
@@ -3962,11 +3962,11 @@
   {
     "id": "TEST-370",
     "version": 1,
-    "title": "Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt and without pip install",
+    "title": "Scaffolded AGENTS.md template documents automatic migration and doctor verification",
     "description": "",
     "requirement_id": "REQ-369",
     "type": "unit",
-    "verification_method": "pytest tests/test_migration_direction.py::test_agents_template_no_pip_install and ::test_agents_template_uses_migrate_run — read src/specsmith/templates/agents.md.j2, assert 'pip install' not present, assert 'specsmith migrate run' present, assert '[Y/n]' not present in migration context",
+    "verification_method": "pytest tests/test_migration_direction.py::test_agents_template_no_pip_install and ::test_agents_template_uses_current_health_check — read src/specsmith/templates/agents.md.j2, assert 'pip install' and legacy migrate commands are absent, assert `specsmith doctor` is present, and assert '[Y/n]' is absent",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -3974,11 +3974,11 @@
   {
     "id": "TEST-371",
     "version": 1,
-    "title": "Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt, and upgrade command",
+    "title": "Backward migration is a hard error in run_upgrade, run_migration, and CLI auto-update",
     "description": "",
     "requirement_id": "REQ-370",
     "type": "unit",
-    "verification_method": "pytest tests/test_migration_direction.py — four sub-tests cover run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version older exit 1, and auto-prompt downgrade hard error",
+    "verification_method": "pytest tests/test_migration_direction.py — tests cover run_upgrade downgrade_error=True, run_migration ERROR string, and auto-update downgrade hard error",
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
@@ -5583,7 +5583,7 @@
     "id": "TEST-511",
     "version": 1,
     "title": "Verify slim adaptive AEE and focused integrations",
-    "description": "Tests verify hidden benchmark oracles, isolated controller decisions, bounded context and history, complete diagnostics, automatic REPL history compression, a concise evidence-first Nexus prompt, and a default catalog limited to the 12 differentiated Specsmith skills.",
+    "description": "Tests verify hidden benchmark oracles, isolated controller decisions, bounded context and history, complete diagnostics, automatic REPL history compression, a concise evidence-first Grace prompt, and a default catalog limited to the 12 differentiated Specsmith skills.",
     "requirement_id": "REQ-485",
     "type": "integration",
     "verification_method": "pytest tests/test_govern_bench_integrity.py tests/test_agent_runner.py tests/test_skill_marketplace.py",

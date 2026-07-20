@@ -42,12 +42,11 @@ class TestAgentsTemplate:
             "agents.md.j2 must not contain 'pip install'. specsmith is installed via pipx only."
         )
 
-    def test_agents_template_uses_migrate_run(self) -> None:
-        """agents.md.j2 must use 'specsmith migrate run' for forward migration (REQ-369)."""
+    def test_agents_template_uses_current_health_check(self) -> None:
+        """The agent template must use the focused CLI for migration health (REQ-369)."""
         content = _TEMPLATE_PATH.read_text(encoding="utf-8")
-        assert "specsmith migrate run" in content, (
-            "agents.md.j2 must contain 'specsmith migrate run' for forward migration."
-        )
+        assert "specsmith doctor" in content
+        assert "specsmith migrate" not in content
 
     def test_agents_template_no_yn_prompt_for_migration(self) -> None:
         """agents.md.j2 must not contain a Y/n prompt for migration (REQ-369)."""
@@ -144,43 +143,6 @@ class TestMigrationDowngrade:
 # ---------------------------------------------------------------------------
 # TEST-371 / REQ-370: upgrade CLI command rejects downgrade
 # ---------------------------------------------------------------------------
-
-
-class TestUpgradeCLIDowngrade:
-    def test_upgrade_cli_rejects_downgrade(self, tmp_path: Path) -> None:
-        """specsmith upgrade --spec-version <older> exits 1 when project is newer (REQ-370)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        _make_scaffold(tmp_path, spec_version="99.99.0")
-
-        runner = CliRunner()
-        result = runner.invoke(
-            main,
-            [
-                "upgrade",
-                "--project-dir",
-                str(tmp_path),
-                "--spec-version",
-                "0.1.0",
-            ],
-            env={"SPECSMITH_ALLOW_NON_PIPX": "1", "SPECSMITH_NO_AUTO_UPDATE": "1"},
-        )
-
-        assert result.exit_code == 1, (
-            f"upgrade --spec-version <older> must exit 1; got {result.exit_code}\n"
-            f"Output: {result.output}"
-        )
-        combined = (result.output or "") + (str(result.exception) if result.exception else "")
-        has_msg = (
-            "not supported" in combined.lower()
-            or "downgrade" in combined.lower()
-            or "ERROR" in combined
-        )
-        assert has_msg, (
-            f"upgrade CLI must mention downgrade/not-supported on error; output: {combined!r}"
-        )
 
 
 # ---------------------------------------------------------------------------

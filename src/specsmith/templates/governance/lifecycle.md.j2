@@ -22,14 +22,11 @@ inception → architecture → requirements → test_spec → implementation →
                                                                                   (next cycle)
 ```
 
-## Advancing Phases
+## Phase Readiness
 
-Check readiness: `specsmith phase show`
-Advance to next: `specsmith phase next`
-Force-set phase: `specsmith phase set <phase> --force`
-
-All checks for the current phase must pass before `phase next` will advance.
-Use `--force` to override (e.g. during rapid prototyping).
+Run `specsmith checkpoint` for the current phase and readiness summary. Run
+`specsmith audit` for the complete evidence gate. Phase state advances from
+accepted work and verified evidence; it is not changed through a separate CLI.
 
 ## Phase Artifacts
 

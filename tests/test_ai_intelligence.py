@@ -155,46 +155,6 @@ class TestModelRecommendations:
 # ---------------------------------------------------------------------------
 
 
-class TestModelIntelCLI:
-    def test_scores_json_output(self, tmp_path: Path) -> None:
-        """TEST-267: specsmith model-intel scores --json exits 0 with scores list."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        # First seed the static scores
-        from specsmith.agent.hf_leaderboard import sync_from_huggingface_blocking
-
-        sync_from_huggingface_blocking(scores_path=tmp_path / "scores.json", force_static=True)
-
-        with patch.dict(os.environ, {}):
-            result = runner.invoke(main, ["model-intel", "scores", "--json"])
-        assert result.exit_code == 0
-        import json
-
-        data = json.loads(result.output)
-        assert "scores" in data
-
-    def test_sync_exits_0_without_network(self) -> None:
-        """TEST-268: model-intel sync exits 0 even without HF network (static fallback)."""
-        from click.testing import CliRunner
-
-        from specsmith.cli import main
-
-        runner = CliRunner()
-        with patch(
-            "specsmith.agent.hf_leaderboard.sync_from_huggingface_blocking",
-            return_value={"synced": 40, "errors": 0, "message": "Loaded 40 static model scores"},
-        ):
-            result = runner.invoke(main, ["model-intel", "sync", "--json"])
-        assert result.exit_code == 0
-        import json
-
-        data = json.loads(result.output)
-        assert data.get("synced", 0) >= 0
-
-
 # ---------------------------------------------------------------------------
 # TEST-269 — Model capability profiles (REQ-270)
 # ---------------------------------------------------------------------------

@@ -11,17 +11,15 @@ Run these steps at the start of **every** session before touching any code:
 # 0. Kill any orphaned processes from previous sessions
 specsmith kill-session                        # idempotent; safe when no processes exist
 
-# 1. Apply any pending forward migrations (always auto-accepted — no prompt)
-specsmith migrate run --project-dir .
-
-# 2. Verify governance health + sync machine state
+# 1. Verify the installed CLI and governance health
+specsmith doctor --project-dir .
 specsmith audit --project-dir .
 specsmith sync --project-dir .
 
-# 3. Emit the initial GOVERNANCE ANCHOR
+# 2. Emit the initial GOVERNANCE ANCHOR
 specsmith checkpoint --project-dir .
 
-# 4. Emit session efficiency + epistemic quality snapshot (REQ-409)
+# 3. Emit session efficiency + epistemic quality snapshot (REQ-409)
 specsmith inspect --project-dir .
 ```
 
@@ -29,8 +27,8 @@ Output the `specsmith checkpoint` result verbatim as your **first response**,
 followed by the `specsmith inspect` block.
 Only proceed once all steps complete without errors.
 
-> **Migration policy:** Forward migration (installing a newer specsmith) is always
-> auto-accepted — run `specsmith migrate run` and continue. Backward migration
+> **Migration policy:** Forward migration is applied automatically by the current
+> Specsmith CLI; run `specsmith doctor` to verify the project afterward. Backward migration
 > (running an older specsmith on a project scaffolded with a newer version) is
 > **not supported** and will produce a hard error. If you see a downgrade error,
 > surface it to the user immediately and **do not proceed** until the specsmith
@@ -109,12 +107,12 @@ Routing reference:
 | `/fix`, `phase:implementation`, `phase:test_spec`, `phase:verification` | `coder-14b` | `ollama/qwen2.5-coder:14b` |
 | `/plan`, `phase:architecture`, `phase:requirements`, `phase:active`, `phase:release` | `planner-30b` | `ollama/qwen3:30b-a3b` |
 
-The default profile (`*`) is `coder-14b`.  Verify profiles at any time:
+The default profile (`*`) is `coder-14b`. Verify provider and local-model
+availability with:
 
 ```bash
-specsmith agents list
-specsmith agents test coder-14b
-specsmith agents test planner-30b
+specsmith providers
+specsmith local-model
 ```
 
 ## Quick reference
@@ -199,4 +197,4 @@ To set up Codity: `specsmith integrate codity --project-dir .`
 **Project:** {{ project.name }}
 **Type:** {{ project.type_label }}
 **Platforms:** {{ project.platform_names | join(', ') }}
-**Phase:** {{ aee_phase_emoji }} {{ aee_phase_label }} (`specsmith phase` to check readiness)
+**Phase:** {{ aee_phase_emoji }} {{ aee_phase_label }} (`specsmith checkpoint` reports readiness)

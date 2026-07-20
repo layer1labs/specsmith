@@ -24,7 +24,7 @@
   title: Verify slim adaptive AEE and focused integrations
   description: Tests verify hidden benchmark oracles, isolated controller decisions,
     bounded context and history, complete diagnostics, automatic REPL history
-    compression, a concise evidence-first Nexus prompt, and a default catalog limited
+    compression, a concise evidence-first Grace prompt, and a default catalog limited
     to the 12 differentiated Specsmith skills.
   requirement_id: REQ-485
   type: integration

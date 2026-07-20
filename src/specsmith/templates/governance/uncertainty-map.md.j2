@@ -6,8 +6,8 @@ are far less dangerous.
 
 An entry here means: "We know we don't know this. Here is what we're doing about it."
 
-Artifacts below the certainty threshold are automatically surfaced by:
-`specsmith epistemic-audit`
+Evidence gaps and unresolved uncertainty are surfaced by `specsmith audit` and
+summarized by `specsmith inspect`.
 
 ---
 
@@ -15,10 +15,10 @@ Artifacts below the certainty threshold are automatically surfaced by:
 
 | Status | Count |
 |--------|-------|
-| UNKNOWN confidence artifacts | [run epistemic-audit] |
-| LOW confidence artifacts | [run epistemic-audit] |
-| P1 requirements below MEDIUM | [run epistemic-audit] |
-| Logic Knots unresolved | [run stress-test] |
+| UNKNOWN confidence artifacts | [run audit] |
+| LOW confidence artifacts | [run audit] |
+| P1 requirements below MEDIUM | [run audit] |
+| Logic Knots unresolved | [review audit output] |
 
 ---
 
@@ -62,14 +62,13 @@ acceptance of the risk.
 Project threshold: **{{ project.epistemic_threshold | default('0.70') }}**
 
 Artifacts are tracked here when their certainty score falls below this threshold.
-Run `specsmith epistemic-audit --threshold {{ project.epistemic_threshold | default('0.70') }}`
-to get the current list.
+Run `specsmith audit` to get the current list.
 
 ---
 
 ## Update Protocol
 
-1. After every `specsmith epistemic-audit`, review the below-threshold list
+1. After every `specsmith audit`, review the below-threshold list
 2. For each below-threshold artifact: decide whether to track it as a Known Unknown
    or accept it explicitly
 3. Add entries to the appropriate section above
