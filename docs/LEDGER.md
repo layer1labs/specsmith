@@ -400,3 +400,15 @@
 - **Type**: wi_close
 - **Status**: complete
 - **Chain hash**: `58082c054b385ac6...`
+
+## 2026-07-20T12:30 — wi_archive WI-C75FAEE12E60: Clarification preflight superseded by exact issue #357 behavior WI-1D0C052BED88
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `40158f57492320ba...`
+
+## 2026-07-20T12:30 — wi_close WI-1D0C052BED88: Issue #357 implementation verified by 2273-test full suite
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `fd57d284e58c9b13...`

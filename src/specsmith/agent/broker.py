@@ -120,6 +120,19 @@ _CHANGE_PATTERNS = (
     re.compile(r"\b(rename)\b", re.IGNORECASE),
     re.compile(r"\b(update|migrate|upgrade|edit)\b", re.IGNORECASE),
     re.compile(r"\b(remove|delete)\s+(the\s+)?(unused|stale|legacy)\b", re.IGNORECASE),
+    # Explicit mutation requests must never fall through to READ_ONLY_ASK.
+    # Anchor the bare verbs so informational questions such as "how do I
+    # remove X?" remain read-only while direct imperatives are governed.
+    re.compile(
+        r"^\s*(?:(?:please|kindly)\s+)?"
+        r"(remove|enforce|preserve|modify|change|replace|disable|enable|configure)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*(?:can|could|would|will)\s+you\s+"
+        r"(remove|enforce|preserve|modify|change|replace|disable|enable|configure)\b",
+        re.IGNORECASE,
+    ),
 )
 
 _READ_ONLY_PATTERNS = (
