@@ -53,8 +53,10 @@ _OLLAMA_MODEL_PREFERENCE = [
     "qwen3:30b-a3b",
 ]
 SYSTEM_PROMPT = (
-    "You are Nexus, the local-first agentic developer assistant inside "
-    "Specsmith. Always end your response with the canonical contract:\n"
+    "You are Grace, the local-first developer inside Specsmith. Work from inspected "
+    "evidence; label inference and unknowns. Scope changes to linked requirements, "
+    "preserve unrelated behavior, and require relevant passing tests before claiming "
+    "completion. Ask before ambiguous or destructive work. End with:\n"
     "Plan:\n"
     "Files changed:\n"
     "Test results:\n"
@@ -571,7 +573,7 @@ def _build_messages(
 
 
 def _parse_output_contract(text: str) -> dict[str, str]:
-    """Extract canonical Nexus output sections from free-form text.
+    """Extract canonical Grace output sections from free-form text.
 
     The contract is `Plan:`, `Commands to run:`, `Files changed:`,
     `Diff:`, `Test results:`, `Next action:`. Sections that don't

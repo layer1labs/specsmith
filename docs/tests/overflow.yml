@@ -351,19 +351,15 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-433
-  title: Governed benchmark agents achieve 100% pass rate across all tasks and conditions
-  description: All specsmith conditions (LIGHT, FULL, DISPATCH) must achieve 100%
-    pass rate across all benchmark tasks (T1, T2, T6, T7, T10, T11, T13). T13 requires
-    correct stdout discipline (click.echo err=True) and T10 requires correct route
-    ordering.
+  title: Benchmark aggregation retains failures and reports uncertainty
+  description: Aggregate cost-of-pass is computed from all valid cells, including
+    zero-pass task slices, with Wilson pass-rate and bootstrap cost-of-pass intervals.
   requirement_id: REQ-423
   type: script
-  verification_method: scripts/govern_bench/run_benchmark.py
-  input: SPECSMITH_LIGHT, SPECSMITH_FULL, SPECSMITH_DISPATCH conditions × all tasks
-    × 3 reps
-  expected_behavior: pass_rate == 1.0 for every (task, condition) pair; zero CoP drift
-    from baseline
-  confidence: 0.9
+  verification_method: pytest tests/test_benchmark_harness.py
+  input: Mixed passing and zero-pass task slices
+  expected_behavior: Global pass rate and cost-of-pass include every valid cell
+  confidence: 1.0
 - id: TEST-434
   title: CI CodeQL scan produces zero alerts on every run
   description: The GitHub Actions CodeQL workflow must complete with zero open alerts
@@ -376,29 +372,23 @@
   expected_behavior: Zero open CodeQL alerts; workflow exits with code 0
   confidence: 0.95
 - id: TEST-435
-  title: Governed agent autonomously resolves preflight needs_clarification without
-    blocking
-  description: When specsmith preflight returns needs_clarification, a governed benchmark
-    agent must add a requirement via 'specsmith req add --title ...' and retry the
-    preflight without human intervention. The agent must never block or deadlock waiting
-    for clarification. Validated by T13 SPECSMITH_LIGHT and SPECSMITH_FULL benchmark
-    conditions.
+  title: Governance controller short-circuits unclear or destructive benchmark work
+  description: Isolated deterministic preflight accepts explicitly scoped coding tasks
+    and returns needs_clarification for ambiguous or destructive tasks before any LLM
+    call, without fabricating requirements or mutating repository governance state.
   requirement_id: REQ-425
   type: integration
-  verification_method: scripts/govern_bench/run_benchmark.py (T13 condition)
-  input: T13 benchmark task with SPECSMITH_LIGHT and SPECSMITH_FULL conditions; preflight
-    intentionally returns needs_clarification on first call
-  expected_behavior: Agent adds requirement and retries; task completes with pass_rate
-    == 1.0; no deadlock
-  confidence: 0.9
+  verification_method: pytest tests/test_govern_bench_integrity.py
+  input: T6, T7, and one standard coding task
+  expected_behavior: Safety tasks stop with zero LLM turns; standard task receives linked evidence
+  confidence: 1.0
 - id: TEST-436
-  title: Harness max_completion_tokens >= 32768 for reasoning models
+  title: Harness uses bounded provider-compatible completion budgets
   requirement_id: REQ-426
   type: script
-  verification_method: grep -r 'max_completion_tokens' scripts/govern_bench/harness.py
-    | grep '32768\|65536'
-  description: harness.py must set max_completion_tokens >= 32768 for gpt-5.x and
-    o-series models to prevent reasoning token exhaustion
+  verification_method: pytest tests/test_govern_bench_integrity.py
+  description: Reasoning and non-reasoning providers receive the correct bounded
+    completion parameter, and turns/context have explicit caps.
 - id: TEST-437
   title: GovernanceBench metrics include Wilson CI and bootstrap CoP confidence intervals
   requirement_id: REQ-427

@@ -10,9 +10,29 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Added
+- Grace, the renamed and simplified local fallback REPL, now provides local
+  `/help` and `/status`, clearer provider recovery, and automatic epistemic
+  history compression before model calls.
+- A decision-oriented quick start for Grace, native host integrations, MCP, and
+  the first requirement-scoped/test-gated change.
+
 ### Changed
 - PyPI post-publication verification now allows a bounded three-minute
   propagation window before failing.
+- The default product path is a slim adaptive AEE kernel: deterministic
+  preflight/verify, requirements, linked tests, bounded epistemic context, and
+  durable evidence. Benchmark controller ceremony no longer consumes LLM turns.
+- GovernanceBench now hides safety scoring oracles, isolates governance per cell,
+  bounds turns/context/history, records complete diagnostics, aggregates global
+  cost-of-pass without dropping zero-pass tasks, and excludes simulated dispatch.
+- The default skill catalog now contains 12 differentiated Specsmith skills;
+  native host integrations retain their own generic tools.
+
+### Removed
+- Sixteen generic skill-domain Python modules (15,000+ lines) that duplicated
+  framework, cloud, DevOps, hardware, productivity, and agent capabilities
+  already supplied by host tools.
 
 ## [0.23.3] - 2026-07-18
 

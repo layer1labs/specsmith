@@ -1,7 +1,7 @@
 # Standalone CLI
 
-Use specsmith entirely from the terminal — no IDE, no AI agent client required.
-The governance CLI, Nexus REPL, and multi-agent dispatcher all work standalone with just `pipx install specsmith`.
+Use Specsmith entirely from the terminal—no IDE or agent client required. The
+governance CLI and Grace local fallback install together with `pipx install specsmith`.
 
 ---
 
@@ -13,7 +13,7 @@ The governance CLI, Nexus REPL, and multi-agent dispatcher all work standalone w
 | Terminal-first workflows (no IDE) | Standalone CLI + `specsmith run` REPL |
 | Governance checks on a headless server | Standalone CLI |
 | You use Warp, Cursor, Claude Code, etc. | [Agent Integrations](agent-integrations.md) instead |
-| You want governance + an LLM in one command | `specsmith run` (Nexus REPL) |
+| You want governance + a local LLM in one command | `specsmith run` (Grace) |
 | Larger projects needing controlled AI changes | Governance adds explicit policy gates, requirement/test traceability, and release evidence; measured efficiency varies by task and model |
 | Local LLMs (LMStudio, vLLM, llama.cpp) | Bring your own endpoint support for maximum cost control and privacy |
 | You want to use LMStudio or other local LLM tools | Native support for Bring-Your-Own-Endpoint (BYOE) workflows |
@@ -82,10 +82,11 @@ Never end a session with uncommitted governance changes.
 
 ---
 
-## Nexus REPL — governance-gated LLM terminal
+## Grace — friendly local fallback
 
-`specsmith run` starts the Nexus REPL: a local-first agentic terminal where every utterance
-is preflighted before execution.
+`specsmith run` starts Grace. Use it for a private local model, a terminal-only
+workflow, or when your preferred host agent is unavailable. It is optional; native
+agent integrations and MCP are preferred when you already use another coding tool.
 
 ```bash
 # Start with a local Ollama model (no API key needed)
@@ -103,12 +104,19 @@ specsmith run --provider local --endpoint http://localhost:1234/v1/chat/completi
 Inside the REPL:
 
 ```
-nexus> fix the cleanup dry-run regression    # change → preflighted → executed → verified
-nexus> what does the audit module do?         # read-only → answered directly
-nexus> delete the dist directory              # destructive → needs_clarification returned
-nexus> /why                                   # show governance trace for last action
-nexus> /exit
+grace> /help
+grace> /status
+grace> fix the cleanup dry-run regression
+grace> what does the audit module do?
+grace> delete the dist directory
+grace> /why
+grace> /exit
 ```
+
+`/status` shows the provider, model, retained history, and compression state.
+Grace compresses older epistemic history before it enters the paid token path.
+Ambiguous and destructive requests stop for clarification rather than being forced
+through implementation.
 
 ### Inject LLM SDKs into the pipx environment
 

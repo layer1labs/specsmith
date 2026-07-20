@@ -202,7 +202,8 @@ class TestRegulationFreshness:
     """
 
     @pytest.fixture(scope="class")
-    def sentinel(self) -> dict[str, int]:
+    @classmethod
+    def sentinel(cls) -> dict[str, int]:
         """Load regulation_versions.yml and return {reg_id: article_count}."""
         assert SENTINEL_FILE.exists(), (
             f"Sentinel file not found: {SENTINEL_FILE}\n"

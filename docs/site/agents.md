@@ -120,7 +120,7 @@ Inside a running session, the slash command `/agent <id>` flips the
 profile mid-session:
 
 ```
-nexus> /agent opus-reviewer
+grace> /agent opus-reviewer
 ℹ profile = opus-reviewer
 ```
 

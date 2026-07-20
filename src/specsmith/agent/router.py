@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Dynamic agent / model routing for the Nexus orchestrator (REQ-122).
+"""Dynamic agent / model routing for the Grace orchestrator (REQ-122).
 
 The orchestrator asks ``choose_tier`` which model tier should run a given
 task. Three tiers are recognized:

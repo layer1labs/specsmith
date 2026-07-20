@@ -55,7 +55,7 @@ _AGENT_TOOLS_CONTENT = {
     "slash_prefix": "/specsmith",
     "verb_shortcuts": _VERB_SHORTCUTS,
     "description": (
-        "Use specsmith_run() or /specsmith <args> in the Nexus REPL for all "
+        "Use specsmith_run() or /specsmith <args> in the Grace REPL for all "
         "governance operations (save, load, push, pull, audit, status, …). "
         "REQ-SM-001: agents must not invoke the specsmith binary directly via "
         "run_shell when specsmith_run is available."
@@ -68,7 +68,7 @@ _AGENTS_MD_PATCH = """
 All specsmith governance operations should be invoked through the
 ``specsmith_run`` agent tool or the ``/specsmith`` REPL slash command.
 
-**In the Nexus REPL:**
+**In the Grace REPL:**
 
 ```
 /specsmith save               # backup + commit + push governance state

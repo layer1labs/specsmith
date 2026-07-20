@@ -19,7 +19,7 @@ release of overlap.
 - Governance machine state: `.specsmith/workitems.json`,
   `.specsmith/testcases.json`, `LEDGER.md` event types
   (`preflight`, `work_proposal`, `cleanup`, `task_complete`, ...).
-- Nexus chat block protocol (REQ-113): `block_start`, `block_complete`,
+- Grace chat block protocol (REQ-113): `block_start`, `block_complete`,
   `token`, `tool_call`, `tool_request`, `tool_result`, `plan`, `plan_step`,
   `diff`, `task_complete` event kinds.
 ## Pre-1.0 caveats (subject to change)
@@ -41,7 +41,7 @@ change ships with a CHANGELOG entry but does not require a major bump.
   classifier until 1.0 ships.
 ## What "1.0" will mean
 We will only stamp 1.0 once:
-1. The Nexus chat block protocol has been used by at least one external
+1. The Grace chat block protocol has been used by at least one external
    IDE integration for two minor releases.
 2. The mypy strict carveout in `pyproject.toml` has been emptied except
    for explicitly third-party-typed modules.

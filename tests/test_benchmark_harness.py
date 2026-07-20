@@ -154,6 +154,20 @@ class TestRunResult:
         r = _run(rework_turns=3, governance_turns=2)
         assert r.total_turns == 5
 
+    def test_explicit_total_cost_still_populates_breakdown(self) -> None:
+        r = RunResult(
+            task_id="T1",
+            condition_id="UNGOVERNED",
+            rep=1,
+            model="gpt-4o-mini",
+            input_tokens=1_000_000,
+            output_tokens=1_000_000,
+            api_cost_usd=0.75,
+        )
+        assert r.input_cost_usd == pytest.approx(0.15)
+        assert r.output_cost_usd == pytest.approx(0.60)
+        assert r.api_cost_usd == pytest.approx(0.75)
+
 
 # ---------------------------------------------------------------------------
 # TEST-BH-12: Outcome validity — partial passes are failures
@@ -385,6 +399,35 @@ class TestBenchReport:
         ]
         summary = report.condition_summary()
         assert summary["SPECSMITH_FULL"]["cost_delta_vs_ungoverned"] is None
+
+    def test_condition_summary_includes_zero_pass_task_cost(self) -> None:
+        report = BenchReport()
+        report.runs = [
+            _run(
+                task_id="T1",
+                condition_id="UNGOVERNED",
+                rep=1,
+                lint_passed=True,
+                tests_passed=True,
+                model="gpt-4o-mini",
+                input_tokens=1_000_000,
+                output_tokens=0,
+            ),
+            _run(
+                task_id="T2",
+                condition_id="UNGOVERNED",
+                rep=1,
+                lint_passed=False,
+                tests_passed=False,
+                model="gpt-4o-mini",
+                input_tokens=1_000_000,
+                output_tokens=0,
+            ),
+        ]
+        summary = report.condition_summary()["UNGOVERNED"]
+        assert summary["mean_pass_rate"] == 0.5
+        assert summary["mean_api_cost_usd"] == pytest.approx(0.15)
+        assert summary["mean_cost_of_pass"] == pytest.approx(0.30)
 
 
 # ---------------------------------------------------------------------------

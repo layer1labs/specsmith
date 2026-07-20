@@ -163,7 +163,7 @@ Works in any Python 3.10+ project. See [epistemic Library Reference](epistemic-l
 | [Getting Started](getting-started.md) | Installation, first project, first import — full walkthrough |
 | [AEE Primer](aee-primer.md) | Applied Epistemic Engineering from zero to productive (10 parts) |
 | [epistemic Library](epistemic-library.md) | Standalone library API reference + integration examples |
-| [Agentic Client](agent-client.md) | `specsmith run` — multi-provider REPL, skills, hooks, model routing |
+| [Grace local REPL](standalone-cli.md) | Friendly local fallback, providers, context compression, and errors |
 | [CLI Commands](commands.md) | Every command with all options, examples, and behavior |
 | [Project Types](project-types.md) | All 64 types with directory structures, tools, and governance rules |
 | [Work Item Lifecycle](wi-lifecycle.md) | WI state machine, `specsmith wi` CLI, promote vs close, data model |

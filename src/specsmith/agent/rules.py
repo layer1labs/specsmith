@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Layer1Labs Silicon, Inc. All rights reserved.
-"""Project rules auto-injection for the Nexus orchestrator (REQ-119).
+"""Project rules auto-injection for the Grace orchestrator (REQ-119).
 
 Combines `docs/governance/*_RULES.md` files and the H-rules from
 `AGENTS.md` into a single deterministic system-prompt prefix that the

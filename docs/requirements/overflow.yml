@@ -248,11 +248,13 @@
   source: ARCHITECTURE.md §ESDB-First Migration
   status: implemented
 - id: REQ-423
-  title: Governed benchmark agents must achieve 100% pass rate across all tasks and
-    conditions
-  status: planned
-  description: All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark
-    tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps
+  title: Governed benchmark claims must be statistically supported
+  status: implemented
+  description: GovernanceBench MUST report observed pass rate, confidence intervals,
+    token use, and global cost-of-pass without assuming a stochastic model achieves
+    100% correctness. Publication claims require complete comparable cells and enough
+    repetitions to distinguish signal from sampling noise. A zero-pass task MUST remain
+    in aggregate cost-of-pass rather than being silently excluded.
   test_ids:
   - TEST-433
 - id: REQ-424
@@ -264,21 +266,23 @@
   test_ids:
   - TEST-434
 - id: REQ-425
-  title: Governed agents must autonomously resolve preflight needs_clarification without
-    blocking
-  description: Promoted from WI-B73B339B. The benchmark harness must never deadlock
-    on preflight needs_clarification — governed agents must autonomously resolve missing
-    requirements and always produce a passing implementation
+  title: Deterministic benchmark governance must fail safely on unclear scope
+  description: The benchmark harness MUST run governance outside the model token path
+    against isolated task state. Accepted coding tasks receive only linked requirement,
+    test, confidence, and uncertainty evidence. Ambiguous or destructive tasks MUST
+    short-circuit safely on needs_clarification; the harness MUST never fabricate a
+    requirement, bypass the decision, or prompt a model to implement anyway.
   source: WI-B73B339B
-  status: planned
+  status: implemented
   test_ids:
   - TEST-435
 - id: REQ-426
-  title: Benchmark harness completion token budget must allow reasoning models to
-    produce tool calls
-  status: planned
-  description: max_completion_tokens must be at least 32768 for gpt-5.x and o-series
-    models to prevent reasoning token exhaustion truncating tool call output
+  title: Benchmark completion budgets must be bounded and model-compatible
+  status: implemented
+  description: The harness MUST use each provider's compatible completion-budget
+    parameter, keep a bounded default sufficient for tool calls, cap agent turns and
+    context, and allow explicit environment overrides for diagnostic runs. It MUST NOT
+    grant an unconditional oversized output budget merely because a model can reason.
 - id: REQ-427
   title: GovernanceBench metrics/report statistical and leaderboard outputs
   status: planned

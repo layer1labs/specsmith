@@ -164,7 +164,6 @@ CONDITION_ORDER = [
     "AGILE_TDD",
     "SPECSMITH_LIGHT",
     "SPECSMITH_FULL",
-    "SPECSMITH_DISPATCH",
 ]
 
 CONDITION_LABELS = {
@@ -180,7 +179,6 @@ CONDITION_LABELS = {
     "AGILE_TDD": "Agile BDD / TDD",
     "SPECSMITH_LIGHT": "specsmith LIGHT (preflight)",
     "SPECSMITH_FULL": "specsmith FULL (governed)",
-    "SPECSMITH_DISPATCH": "specsmith DISPATCH (multi-agent)",
 }
 
 TASK_LABELS = {
@@ -353,22 +351,22 @@ def render_comparison(
         label_c = CONDITION_LABELS.get(cond, cond)
         row = [f"| {label_c}"]
         for _mname, data in models:
-            cops = []
-            pass_rates = []
-            costs = []
+            total_runs = 0
+            total_passes = 0.0
+            total_cost = 0.0
             for task in all_tasks:
                 s = data.get(task, {}).get(cond)
                 if s:
-                    pass_rates.append(s["pass_rate"])
-                    costs.append(s["avg_cost"])
-                    if s["cost_of_pass"] < float("inf"):
-                        cops.append(s["cost_of_pass"])
-            if not pass_rates:
+                    reps = int(s.get("n_reps") or 1)
+                    total_runs += reps
+                    total_passes += s["pass_rate"] * reps
+                    total_cost += s["avg_cost"] * reps
+            if not total_runs:
                 row += [" —", " —", " —"]
                 continue
-            mean_pr = sum(pass_rates) / len(pass_rates)
-            mean_cop = sum(cops) / len(cops) if cops else float("inf")
-            mean_cost = sum(costs) / len(costs)
+            mean_pr = total_passes / total_runs
+            mean_cost = total_cost / total_runs
+            mean_cop = mean_cost / mean_pr if mean_pr > 0 else float("inf")
             monthly = mean_cost * 20 * 22  # 20 tasks/day, 22 days/month
             bold_s = "**" if cond.startswith("SPECSMITH") else ""
             bold_e = "**" if cond.startswith("SPECSMITH") else ""
@@ -410,10 +408,10 @@ def render_comparison(
                 s = data.get(headline_task, {}).get("UNGOVERNED")
                 sf = data.get(headline_task, {}).get("SPECSMITH_FULL")
                 if s and sf and s["cost_of_pass"] < float("inf") and sf["cost_of_pass"] > 0:
-                    ratio = s["cost_of_pass"] / sf["cost_of_pass"]
                     lines.append(
                         f"**`{mname}`: SPECSMITH_FULL vs UNGOVERNED on {headline_task}** — "
-                        f"governance is {ratio:.1f}× cheaper per correct answer "
+                        f"governance is {_delta(s['cost_of_pass'], sf['cost_of_pass'])} "
+                        "per correct answer "
                         f"({_cop(sf['cost_of_pass'])} vs {_cop(s['cost_of_pass'])})"
                     )
             lines.append("")

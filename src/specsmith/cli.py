@@ -1644,7 +1644,7 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
 
     With --onboarding, walks through a 6-step checklist for new users that
     confirms scaffold.yml, governance files, agent provider setup, optional
-    Nexus broker availability, and prints next-step commands (REQ-127).
+    Grace/provider availability, and prints next-step commands (REQ-127).
     """
     root = Path(project_dir).resolve()
 
@@ -1690,7 +1690,8 @@ def doctor(project_dir: str, onboarding: bool, as_json: bool) -> None:
                     or __import__("os").environ.get("GOOGLE_API_KEY")
                     or (root / ".specsmith" / "nexus.yml").is_file(),
                 ),
-                "Set ANTHROPIC_API_KEY / OPENAI_API_KEY or run [bold]specsmith nexus init[/bold].",
+                "Start Ollama and run [bold]specsmith run --provider ollama[/bold], "
+                "or set a cloud API key.",
             ),
         )
         steps.append(
@@ -8709,7 +8710,7 @@ def chat_cmd(
     # Open the message block first so the consumer always sees something.
     msg_block = emitter.block_start(
         "message",
-        agent="nexus",
+        agent="grace",
         session_id=sid,
         parent_session=parent_session or None,
         profile=profile,
@@ -8985,7 +8986,7 @@ def _read_stdin_decision(expected_type: str, timeout_seconds: float) -> dict[str
 
 @main.group(name="notebook")
 def notebook_group() -> None:
-    """Capture and replay Nexus run artifacts as docs/notebooks/<slug>.md."""
+    """Capture and replay Grace run artifacts as docs/notebooks/<slug>.md."""
 
 
 @notebook_group.command(name="record")
@@ -9988,13 +9989,13 @@ main.add_command(drive_group)
 
 @main.group(name="skill")
 def skill_group() -> None:
-    """Discover, list, and install community SKILL.md files.
+    """Discover, list, and install focused Specsmith SKILL.md files.
 
-    specsmith ships a small built-in catalog of reusable skills. Each entry
-    is a short Markdown file describing a workflow the agent should follow
-    (verifier, planner, diff-reviewer, onboarding-coach, release-pilot).
+    Specsmith ships only its differentiated AEE workflows: scope, requirements,
+    linked tests, traceability, epistemic context, token budgets, verification,
+    release evidence, and compact CLI/session references.
     ``specsmith skill install <slug>`` copies the SKILL.md into
-    ``.agents/skills/`` so the local Nexus runtime picks it up alongside any
+    ``.agents/skills/`` so compatible hosts or Grace can discover it alongside
     project-specific skills.
     """
 

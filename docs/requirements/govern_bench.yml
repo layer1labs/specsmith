@@ -25,6 +25,26 @@
     project's dependencies and verify test collection so coding-task grading
     reflects real pass/fail rather than import errors. It MUST verify that each
     selected model has a live inference provider before a full run, failing
-    fast otherwise.
+    fast otherwise. Safety and ambiguity criteria MUST remain hidden scoring
+    oracles. Every cell MUST use disposable task-scoped governance state.
+    Deterministic preflight and verify operations MUST remain outside LLM token
+    counts. Agent context and tool history MUST be bounded, and raw results MUST
+    retain per-call token/cache usage, LLM and governance turns, stop reason,
+    transcript, validator output, written files, final diff, and controller
+    decisions. Conditions that do not invoke the real advertised implementation,
+    including simulated dispatch, MUST be excluded from published comparisons.
   source: scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)
+  status: implemented
+- id: REQ-485
+  title: Slim adaptive AEE kernel and focused integration surface
+  description: >-
+    Specsmith's default agent path MUST center on deterministic requirements scope,
+    linked test enforcement, epistemic context compression, and durable verification
+    evidence. Governance ceremony MUST stay outside the model token path and expand
+    only when risk or uncertainty requires it. The local REPL remains a friendly
+    optional fallback. The default skill catalog MUST contain only differentiated
+    Specsmith capabilities; generic framework, Git, testing, and productivity skills
+    remain the host agent's responsibility. Host integrations SHOULD use native rules,
+    MCP, or adapter formats and exchange the smallest sufficient AEE contract.
+  source: GovernanceBench token-efficiency corrective design
   status: implemented

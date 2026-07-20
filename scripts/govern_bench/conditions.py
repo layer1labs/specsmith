@@ -320,43 +320,20 @@ CONDITIONS: list[Condition] = [
     # -----------------------------------------------------------------------
     Condition(
         id="SPECSMITH_LIGHT",
-        name="specsmith LIGHT (preflight only)",
+        name="specsmith LIGHT (slim AEE gate)",
         description=(
-            "The agent must pass `specsmith preflight` before writing any code. "
-            "The preflight result (requirement_ids, work_item_id, confidence_target) "
-            "is injected into the agent context. No verify or save steps."
+            "The harness runs an isolated deterministic preflight before the model. "
+            "Accepted requirement and test IDs are injected as a compact evidence contract. "
+            "Ambiguous or destructive work short-circuits without an implementation call."
         ),
         system_prompt_template=textwrap.dedent("""\
-            You are operating under specsmith governance (LIGHT mode).
-
-            Before writing any code you must call:
-                specsmith preflight "<describe the change>" --json
-
-            Handling preflight responses:
-            - decision == "accepted" → note the work_item_id and proceed immediately.
-            - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
-              Instead, autonomously resolve it:
-              1. specsmith req add --title "<feature title>" --description "<one-line scope>"
-                 --status planned
-              2. Re-run preflight. If still needs_clarification, proceed with your best
-                 interpretation of scope — never abort the task because of needs_clarification.
-
-            For tasks where the correct response IS to ask a clarifying question
-            (e.g. ambiguous or destructive requests), do so without writing any code.
-
-            Stdout/stderr discipline (CLI tasks):
-            - The command's JSON/data output MUST go to stdout (or --output file) only.
-            - ALL status messages, progress updates, and debug output MUST go to stderr.
-            - Never mix diagnostic text with JSON output on stdout — it corrupts pipelines.
-            - For Click CLI commands: click.echo(msg, err=True) writes to stderr.
-              Bare click.echo(msg) writes to stdout — this corrupts JSON pipe output.
-
-            After implementation:
-            - Run: ruff check .
-            - Run: pytest
-            Both must pass with zero violations before the task is complete.
+            Follow the injected AEE evidence contract.
+            Implement only the linked requirement; preserve unrelated behavior.
+            Treat unverified assumptions as unknown, not fact.
+            Add or update the smallest tests needed for the changed behavior.
+            Do not claim completion unless the available validators pass.
         """),
-        overhead_turns=1,  # preflight turn
+        overhead_turns=0,  # deterministic controller work consumes no LLM turn
         tags=["specsmith", "preflight-only", "light"],
     ),
     # -----------------------------------------------------------------------
@@ -364,43 +341,20 @@ CONDITIONS: list[Condition] = [
     # -----------------------------------------------------------------------
     Condition(
         id="SPECSMITH_FULL",
-        name="specsmith FULL (preflight + verify + save)",
+        name="specsmith FULL (adaptive AEE)",
         description=(
-            "Full specsmith session workflow: "
-            "audit → preflight → implement → verify → save. "
-            "The agent context includes the GOVERNANCE ANCHOR from `specsmith checkpoint`. "
-            "This is the condition being benchmarked as the primary specsmith proposition."
+            "A slim AEE controller performs isolated preflight and post-change verification. "
+            "The model receives only requirement, linked-test, confidence, and uncertainty "
+            "evidence; repository ceremony remains outside the token path."
         ),
         system_prompt_template=textwrap.dedent("""\
-            You are operating under full specsmith governance.
-
-            Session protocol:
-            1. specsmith audit --project-dir .          # verify health
-               Non-critical issues (e.g. missing deprecated docs) do NOT block the task.
-               Proceed to step 2 regardless of audit exit code.
-            2. specsmith preflight "<change>" --json    # gate the change
-               - decision == "accepted" → note work_item_id, proceed.
-               - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
-                 Instead, autonomously resolve it:
-                 a. specsmith req add --title "<title>" --description "<one-line scope>"
-                    --status planned
-                 b. Re-run preflight. If still needs_clarification, proceed with your best
-                    interpretation of scope — never abort the task on needs_clarification.
-            3. Implement the change.
-            4. ruff check . && pytest                   # quality gate
-               Ensure ALL acceptance criteria are covered by tests.
-               A complete implementation has ≥ 4 tests including edge cases
-               (e.g. empty input, type edge cases, boundary conditions).
-               Stdout/stderr discipline: data output → stdout only; diagnostics → stderr.
-               For Click CLI commands, always use click.echo(msg, err=True) for status/debug
-               messages — bare click.echo() writes to stdout and corrupts JSON pipe output.
-            5. specsmith verify --project-dir .         # governance verify
-            6. specsmith save --project-dir .           # commit + ESDB backup
-
-            Never make a code change without an accepted preflight.
-            Never commit without specsmith save.
+            Follow the injected AEE evidence contract.
+            Scope every change to the linked requirement and preserve unrelated behavior.
+            Distinguish evidence, inference, and unknowns; inspect before assuming.
+            Add focused tests for changed behavior and relevant boundaries.
+            Use validator output as the completion gate; repair failures before finishing.
         """),
-        overhead_turns=3,  # audit + preflight + verify/save turns
+        overhead_turns=0,  # preflight/verify are deterministic controller operations
         tags=["specsmith", "full-governance", "primary"],
     ),
     # =======================================================================
@@ -504,60 +458,15 @@ CONDITIONS: list[Condition] = [
         overhead_turns=0,
         tags=["aider", "conventions-md", "real-world"],
     ),
-    # -----------------------------------------------------------------------
-    # M: SPECSMITH_DISPATCH — specsmith multi-agent DAG dispatch
-    # -----------------------------------------------------------------------
-    Condition(
-        id="SPECSMITH_DISPATCH",
-        name="specsmith DISPATCH (multi-agent DAG)",
-        description=(
-            "Full specsmith governance plus multi-agent parallel dispatch via "
-            "`specsmith dispatch run`. The task is decomposed into a dependency "
-            "DAG: a Planner agent produces subtasks, a pool of Builder agents "
-            "implement them in parallel (predecessor context injected "
-            "automatically), and a Verifier agent runs the quality gate. "
-            "Fail-forward BLOCKED propagation is active. Represents the "
-            "specsmith AgentDispatcher + AgentPool workflow (REQ-321..334)."
-        ),
-        system_prompt_template=textwrap.dedent("""\
-            You are operating under specsmith DISPATCH governance.
-
-            Session protocol:
-            1. specsmith audit --project-dir .          # verify governance health
-            2. specsmith preflight "<change>" --json    # gate the change
-               - decision == "accepted" → note work_item_id, proceed.
-               - decision == "needs_clarification" → do NOT stop, wait, or ask the user.
-                 Instead, autonomously resolve it:
-                 a. specsmith req add --title "<title>" --description "<one-line scope>"
-                    --status planned
-                 b. Re-run preflight. If still needs_clarification, proceed with your best
-                    interpretation of scope — never abort the task on needs_clarification.
-            3. Decompose the task into a dependency DAG:
-               - Each node is a self-contained subtask (implement, test, or verify).
-               - Express dependencies explicitly so parallel nodes never conflict.
-               - CRITICAL: If two subtasks modify the same file, make them sequential
-                 (the later one must depend on the earlier) to prevent merge conflicts
-                 and ensure correct ordering (e.g. route registration order in FastAPI).
-               - CRITICAL: Before adding a new route, read the existing route table in
-                 the file and insert BEFORE any parameterised routes (e.g. /{id}) to
-                 prevent FastAPI path-matching conflicts.
-            4. specsmith dispatch run --dag dag.yml --project-dir .
-               - Planner node: produce implementation plan + read existing route table
-               - Builder nodes: implement subtasks in parallel (only for truly independent files)
-               - Verifier node: ruff check . && pytest (runs after all builders)
-            5. specsmith save --project-dir .           # commit + ESDB backup
-
-            Never make a code change without an accepted preflight.
-            Never skip the Verifier node — it is the quality gate.
-            Prefer surgical, non-overlapping subtasks to avoid merge conflicts.
-        """),
-        overhead_turns=5,  # audit + preflight + DAG planning + dispatch + verify/save
-        tags=["specsmith", "multi-agent", "dispatch", "dag", "parallel"],
-    ),
 ]
 
+# DISPATCH is intentionally excluded until the benchmark invokes the real
+# dispatcher.  A prompt that merely describes a DAG is not a valid measurement
+# of multi-agent execution and must not appear in published comparisons.
+EXPERIMENTAL_CONDITIONS: list[Condition] = []
+
 # Lookup by id
-CONDITION_MAP: dict[str, Condition] = {c.id: c for c in CONDITIONS}
+CONDITION_MAP: dict[str, Condition] = {c.id: c for c in CONDITIONS + EXPERIMENTAL_CONDITIONS}
 
 
 def get_condition(condition_id: str) -> Condition:

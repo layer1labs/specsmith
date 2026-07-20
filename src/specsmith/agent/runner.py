@@ -222,6 +222,8 @@ def _capabilities() -> list[str]:
 
 
 SLASH_COMMANDS: dict[str, str] = {
+    "/help": "",
+    "/status": "",
     "/plan": "[PLAN] Break the request into a step-by-step plan: ",
     "/architect": "[ARCHITECT] Propose an architecture for: ",
     "/ask": "[ASK] Clarify intent and answer: ",
@@ -308,7 +310,7 @@ class AgentRunner:
         # banner/ready frame advertises native integration. Read-only.
         # Set SPECSMITH_RUN_ACTIVE so any child specsmith command (audit,
         # preflight, checkpoint, etc.) can detect they are running inside
-        # the Nexus REPL and report context-aware governance notifications.
+        # the Grace REPL and report context-aware governance notifications.
         import os as _os_init
 
         _os_init.environ.setdefault("SPECSMITH_RUN_ACTIVE", "1")
@@ -343,6 +345,8 @@ class AgentRunner:
         # Best-effort: failure silently yields an empty seed so the agent
         # still starts even with a corrupt / missing state store.
         self._history: list[dict[str, Any]] = self._build_context_seed()
+        self._context_compressed = False
+        self._compression_stats: dict[str, Any] = {}
 
         # Best-effort routing-table load. A missing or invalid file falls
         # back to single-profile behaviour so existing setups keep working.
@@ -379,7 +383,7 @@ class AgentRunner:
                 provider_for_ready = active.name if active else self.provider_name
                 model_for_ready = active.model if active else ""
             self._emitter.ready(
-                agent="nexus",
+                agent="grace",
                 version=version,
                 project_dir=self.project_dir,
                 provider=provider_for_ready,
@@ -393,7 +397,7 @@ class AgentRunner:
             statuses = check_providers()
             active_count = sum(1 for s in statuses if s.available)
             lines = [
-                f"Nexus {version} — specsmith run",
+                f"Grace {version} — specsmith run",
                 f"  project : {self.project_dir}",
                 f"  profile : {self.profile_id or '(default)'}",
                 "",
@@ -425,7 +429,7 @@ class AgentRunner:
                     lines.append(self._model_router.table())
                     lines.append("")
                 lines.append(
-                    "  Type plain English, or use /plan /ask /fix /test /commit /pr /models /exit",
+                    "  Local fallback REPL ready. Type /help for commands or plain English.",
                 )
             print("\n".join(lines), flush=True)
 
@@ -480,7 +484,31 @@ class AgentRunner:
         # Lightweight in-process commands the runner handles itself.
         if text.startswith("/clear"):
             self._history = []
+            self._context_compressed = False
+            self._compression_stats = {}
             self._emit_event(type="system", message="History cleared.")
+            return None
+        if text.strip() == "/help":
+            self._emit_event(
+                type="system",
+                message=(
+                    "Grace is the optional local fallback; host-agent integrations and MCP "
+                    "remain the preferred workflow.\n\n"
+                    "Core: /status /models /model NAME /provider NAME /clear /exit\n"
+                    "Work: /ask /plan /fix /code /test /review /why /context\n"
+                    "AEE: changes are requirement-scoped, test-gated, and evidence-backed."
+                ),
+            )
+            return None
+        if text.strip() == "/status":
+            self._emit_event(
+                type="system",
+                message=(
+                    f"provider={self.provider_name} model={self.model or '(auto)'} "
+                    f"history_turns={len(self._history)} "
+                    f"context_compressed={self._context_compressed}"
+                ),
+            )
             return None
         if text.strip() == "/models":
             msg = (
@@ -565,6 +593,7 @@ class AgentRunner:
                 run_chat,
             )
 
+            self._compress_context_if_needed()
             result = run_chat(
                 full_prompt,
                 project_dir=Path(self.project_dir),
@@ -665,6 +694,32 @@ class AgentRunner:
             self._history.append({"role": "user", "text": utterance})
             self._history.append({"role": "agent", "text": result.summary})
         return result
+
+    def _compress_context_if_needed(self) -> dict[str, Any]:
+        """Compress old epistemic context before it enters the paid token path."""
+        import os
+
+        from specsmith.agent.context_compressor import compress_history_elements, should_compress
+
+        try:
+            threshold = int(os.environ.get("SPECSMITH_CONTEXT_COMPRESS_CHARS", "10000"))
+        except ValueError:
+            threshold = 10000
+        if not should_compress(self._history, threshold_chars=max(1, threshold)):
+            return {"ok": True, "skipped": True, "reason": "below threshold"}
+
+        compressed, stats = compress_history_elements(
+            self._history,
+            project_dir=self.project_dir,
+            target_pct=70.0,
+        )
+        self._compression_stats = stats
+        if stats.get("ok") and not stats.get("skipped"):
+            self._history = compressed
+            self._context_compressed = True
+            saved = stats.get("space_saved_pct", 0)
+            self._emit_event(type="system", message=f"context compressed ({saved}% saved)")
+        return stats
 
     # ── Routing helpers ────────────────────────────────────────────────
 

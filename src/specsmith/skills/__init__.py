@@ -115,55 +115,34 @@ class SkillEntry:
 
 _CATALOG: list[SkillEntry] | None = None
 
+# Specsmith is not a generic prompt marketplace.  The default catalog contains
+# only capabilities that implement its differentiated AEE value. Generic
+# domains belong to the host agent and are not packaged or injected.
+_FOCUSED_SKILL_SLUGS = {
+    "preflight-gate",
+    "requirement-author",
+    "testcase-author",
+    "traceability-auditor",
+    "context-pack-compiler",
+    "token-budget-auditor",
+    "verifier",
+    "release-pilot",
+    "specsmith",
+    "specsmith-save",
+    "specsmith-audit",
+    "specsmith-session-governance",
+}
+
 
 def _build_catalog() -> list[SkillEntry]:
-    """Import every domain module and concatenate their SKILLS lists."""
-    from specsmith.skills import (  # noqa: PLC0415
-        ai_agents,
-        cloud,
-        corporate,
-        cross_platform,
-        data_engineering,
-        devops,
-        docs,
-        embedded,
-        governance,
-        hardware,
-        mobile,
-        platform_engineering,
-        productivity,
-        software_engineering,
-        specsmith_core_commands,
-        # specsmith_operations,  # unused import
-        specsmith_skills,
-        ssh,
-        web_backend,
-    )
+    """Build the focused catalog without importing generic skill domains."""
+    from specsmith.skills import governance, specsmith_skills  # noqa: PLC0415
 
-    entries = (
-        governance.SKILLS
-        + embedded.SKILLS
-        + hardware.SKILLS
-        + mobile.SKILLS
-        + cloud.SKILLS
-        + devops.SKILLS
-        + ssh.SKILLS
-        + cross_platform.SKILLS
-        + productivity.SKILLS
-        + corporate.SKILLS
-        + docs.SKILLS
-        + specsmith_skills.SKILLS
-        + specsmith_core_commands.SKILLS
-        # New domains
-        + ai_agents.SKILLS
-        + software_engineering.SKILLS
-        + web_backend.SKILLS
-        + data_engineering.SKILLS
-        + platform_engineering.SKILLS
-    )
+    entries = governance.SKILLS + specsmith_skills.SKILLS
     by_slug: dict[str, SkillEntry] = {}
     for entry in entries:
-        by_slug[entry.slug] = entry
+        if entry.slug in _FOCUSED_SKILL_SLUGS:
+            by_slug[entry.slug] = entry
     return list(by_slug.values())
 
 

@@ -229,6 +229,7 @@ class RunResult:
     # Token usage (credit cost = raw token counts)
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
     model: str = "unknown"
 
     # Monetary cost breakdown (USD)
@@ -245,7 +246,9 @@ class RunResult:
     # Efficiency
     rework_turns: int = 1  # >=1 (1 = first-pass success)
     governance_turns: int = 0  # turns consumed by governance overhead
+    llm_turns: int = 0
     wall_clock_s: float = 0.0
+    stop_reason: str = ""
 
     # Error tracking
     error: str | None = None
@@ -253,15 +256,23 @@ class RunResult:
 
     # Raw outputs for post-hoc analysis
     agent_transcript: list[dict] = field(default_factory=list)
+    call_usage: list[dict] = field(default_factory=list)
+    files_written: list[str] = field(default_factory=list)
+    final_diff: str = ""
+    lint_output: str = ""
+    test_output: str = ""
+    governance_decision: dict = field(default_factory=dict)
+    verify_result: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.api_cost_usd == 0.0 and self.input_tokens > 0:
+        if self.input_tokens > 0 and self.input_cost_usd == 0.0 and self.output_cost_usd == 0.0:
             inp, out, total = estimate_cost_breakdown(
                 self.model, self.input_tokens, self.output_tokens
             )
             self.input_cost_usd = inp
             self.output_cost_usd = out
-            self.api_cost_usd = total
+            if self.api_cost_usd == 0.0:
+                self.api_cost_usd = total
 
     @property
     def total_tokens(self) -> int:
@@ -274,7 +285,8 @@ class RunResult:
 
     @property
     def total_turns(self) -> int:
-        return self.rework_turns + self.governance_turns
+        # Older artifacts used rework_turns as their only model-turn proxy.
+        return (self.llm_turns or self.rework_turns) + self.governance_turns
 
 
 _WILSON_Z_95 = 1.959963984540054
@@ -491,27 +503,38 @@ class BenchReport:
 
     def model_condition_summary(self) -> list[dict[str, float | str | None]]:
         """Return aggregate metrics grouped by (model, condition) across tasks."""
-        grouped: dict[tuple[str, str], list[SliceStats]] = defaultdict(list)
-        for s in self.slices():
-            grouped[(s.model, s.condition_id)].append(s)
+        grouped: dict[tuple[str, str], list[RunResult]] = defaultdict(list)
+        for run in self.runs:
+            if not run.skipped:
+                grouped[(run.model, run.condition_id)].append(run)
+
+        lifts_by_model_condition: dict[tuple[str, str], list[float]] = defaultdict(list)
+        tasks_by_model_condition: dict[tuple[str, str], set[str]] = defaultdict(set)
+        for stats in self.slices():
+            tasks_by_model_condition[(stats.model, stats.condition_id)].add(stats.task_id)
+            if stats.scaffold_lift is not None:
+                lifts_by_model_condition[(stats.model, stats.condition_id)].append(
+                    stats.scaffold_lift
+                )
 
         rows: list[dict[str, float | str | None]] = []
-        for (model, condition), grouped_slices in grouped.items():
-            finite_cop = [s.cost_of_pass for s in grouped_slices if s.cost_of_pass < float("inf")]
-            mean_cop = statistics.mean(finite_cop) if finite_cop else float("inf")
-            lifts = [s.scaffold_lift for s in grouped_slices if s.scaffold_lift is not None]
+        for (model, condition), grouped_runs in grouped.items():
+            pass_rate = sum(1 for run in grouped_runs if run.passed) / len(grouped_runs)
+            mean_cost = statistics.mean(run.api_cost_usd for run in grouped_runs)
+            mean_cop = mean_cost / pass_rate if pass_rate > 0 else float("inf")
+            lifts = lifts_by_model_condition[(model, condition)]
             rows.append(
                 {
                     "model": model,
                     "condition": condition,
                     "model_tier": model_tier(model),
-                    "mean_pass_rate": statistics.mean(s.pass_rate for s in grouped_slices),
+                    "mean_pass_rate": pass_rate,
                     "mean_quality_score": statistics.mean(
-                        s.mean_quality_score for s in grouped_slices
+                        run.quality_score for run in grouped_runs
                     ),
                     "mean_cost_of_pass": mean_cop,
                     "mean_scaffold_lift": statistics.mean(lifts) if lifts else None,
-                    "n_tasks": len(grouped_slices),
+                    "n_tasks": len(tasks_by_model_condition[(model, condition)]),
                 }
             )
         return rows
@@ -678,45 +701,49 @@ class BenchReport:
           <1.0 = cheaper per passing run; >1.0 = more expensive.
           None when UNGOVERNED has no data.
         """
-        per_condition: dict[str, list[SliceStats]] = {}
-        for s in self.slices():
-            per_condition.setdefault(s.condition_id, []).append(s)
+        per_condition: dict[str, list[RunResult]] = defaultdict(list)
+        for run in self.runs:
+            if not run.skipped:
+                per_condition[run.condition_id].append(run)
+
+        slices_by_condition: dict[str, list[SliceStats]] = defaultdict(list)
+        for stats in self.slices():
+            slices_by_condition[stats.condition_id].append(stats)
 
         summary: dict[str, dict] = {}
-        for cid, slices in per_condition.items():
-            finite_cop = [s.cost_of_pass for s in slices if s.cost_of_pass < float("inf")]
-            mean_cop = statistics.mean(finite_cop) if finite_cop else float("inf")
+        for cid, runs in per_condition.items():
+            slices = slices_by_condition[cid]
+            pass_count = sum(1 for run in runs if run.passed)
+            pass_rate = pass_count / len(runs)
+            ci_pass_low, ci_pass_high = wilson_pass_rate_ci(pass_count, len(runs))
+            mean_cost = statistics.mean(run.api_cost_usd for run in runs)
+            mean_cop = mean_cost / pass_rate if pass_rate > 0 else float("inf")
+            ci_cop_low, ci_cop_high = bootstrap_cost_of_pass_ci(runs)
             scaffold_lifts = [s.scaffold_lift for s in slices if s.scaffold_lift is not None]
-            finite_cop_lows = [s.ci_cop_low for s in slices if s.ci_cop_low < float("inf")]
-            finite_cop_highs = [s.ci_cop_high for s in slices if s.ci_cop_high < float("inf")]
             summary[cid] = {
-                "mean_pass_rate": statistics.mean(s.pass_rate for s in slices),
-                "ci_pass_rate_low": statistics.mean(s.ci_pass_rate_low for s in slices),
-                "ci_pass_rate_high": statistics.mean(s.ci_pass_rate_high for s in slices),
-                "mean_input_tokens": statistics.mean(s.mean_input_tokens for s in slices),
-                "mean_output_tokens": statistics.mean(s.mean_output_tokens for s in slices),
-                "mean_total_tokens": statistics.mean(s.mean_total_tokens for s in slices),
-                "mean_input_cost_usd": statistics.mean(s.mean_input_cost_usd for s in slices),
-                "mean_output_cost_usd": statistics.mean(s.mean_output_cost_usd for s in slices),
-                "mean_api_cost_usd": statistics.mean(s.mean_api_cost_usd for s in slices),
-                "mean_quality_score": statistics.mean(s.mean_quality_score for s in slices),
+                "mean_pass_rate": pass_rate,
+                "ci_pass_rate_low": ci_pass_low,
+                "ci_pass_rate_high": ci_pass_high,
+                "mean_input_tokens": statistics.mean(run.input_tokens for run in runs),
+                "mean_output_tokens": statistics.mean(run.output_tokens for run in runs),
+                "mean_total_tokens": statistics.mean(run.total_tokens for run in runs),
+                "mean_input_cost_usd": statistics.mean(run.input_cost_usd for run in runs),
+                "mean_output_cost_usd": statistics.mean(run.output_cost_usd for run in runs),
+                "mean_api_cost_usd": mean_cost,
+                "mean_quality_score": statistics.mean(run.quality_score for run in runs),
                 "mean_first_pass_rate": statistics.mean(s.first_pass_rate for s in slices),
                 "mean_consistency_score": statistics.mean(s.consistency_score for s in slices),
                 "mean_scaffold_lift": (statistics.mean(scaffold_lifts) if scaffold_lifts else None),
                 "mean_cost_of_pass": mean_cop,
-                "ci_cop_low": (
-                    statistics.mean(finite_cop_lows) if finite_cop_lows else float("inf")
-                ),
-                "ci_cop_high": (
-                    statistics.mean(finite_cop_highs) if finite_cop_highs else float("inf")
-                ),
+                "ci_cop_low": ci_cop_low,
+                "ci_cop_high": ci_cop_high,
                 # will be filled below once baseline is known
                 "cost_delta_vs_ungoverned": None,
                 "monthly_cost_20tasks": monthly_cost_projection(
-                    statistics.mean(s.mean_api_cost_usd for s in slices),
+                    mean_cost,
                     tasks_per_day=20,
                 ),
-                "n_tasks": len(slices),
+                "n_tasks": len({run.task_id for run in runs}),
             }
 
         # Fill in cost deltas relative to UNGOVERNED
