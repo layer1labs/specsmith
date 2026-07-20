@@ -310,9 +310,13 @@ def run_preflight(
         decision_str == "needs_clarification" and intent in (Intent.RELEASE, Intent.DESTRUCTIVE)
     )
     if _alloc_wi and not predict_only:
-        # Deterministic work-item ID: hash(utterance + intent + requirement_ids)
-        # so the same preflight call always produces the same WI idempotently.
-        _seed = f"{utterance}|{intent.value}|{','.join(sorted(requirement_ids))}"
+        # Deterministic and project-scoped: the same preflight remains
+        # idempotent inside one repository without colliding across independent
+        # repositories that happen to use the same utterance.
+        _project_identity = os.path.normcase(_safe_root)
+        _seed = (
+            f"{_project_identity}|{utterance}|{intent.value}|{','.join(sorted(requirement_ids))}"
+        )
         work_item_id = f"WI-{hashlib.sha256(_seed.encode('utf-8')).hexdigest()[:12].upper()}"
     else:
         work_item_id = ""

@@ -28,6 +28,9 @@ consolidated into the next published release.
 ### Fixed
 - Public documentation links now use Read the Docs' active translation-free
   `/stable/` and `/latest/` routes instead of obsolete `/en/` routes.
+- Preflight now recognizes direct mutation requests instead of accepting them
+  as read-only, and deterministic work-item IDs are scoped to the canonical
+  project root to prevent cross-repository collisions (#357).
 
 ## [0.24.0] - 2026-07-20
 

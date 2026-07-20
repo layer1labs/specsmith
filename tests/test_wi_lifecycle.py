@@ -795,6 +795,26 @@ def _seed_requirements(tmp_path: Path, content: str = "") -> None:
 
 
 class TestPreflightWiring:
+    def test_work_item_ids_are_idempotent_per_project_and_distinct_across_projects(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Regression for #357: identical intents cannot collide across repositories."""
+        from specsmith.governance_logic import run_preflight
+
+        project_a = tmp_path / "project-a"
+        project_b = tmp_path / "project-b"
+        project_a.mkdir()
+        project_b.mkdir()
+        utterance = "what does the retry module do?"
+
+        first = run_preflight(utterance, project_dir=str(project_a))
+        repeated = run_preflight(utterance, project_dir=str(project_a))
+        other_project = run_preflight(utterance, project_dir=str(project_b))
+
+        assert first["work_item_id"] == repeated["work_item_id"]
+        assert first["work_item_id"] != other_project["work_item_id"]
+
     def test_accepted_preflight_creates_wi(self, tmp_path: Path) -> None:
         """read-only asks are always accepted regardless of project state."""
         from specsmith.governance_logic import run_preflight

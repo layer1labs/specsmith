@@ -6,6 +6,32 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+
+@pytest.mark.parametrize(
+    "utterance",
+    [
+        (
+            "Remove Dependabot configuration and enforce the approved main-only "
+            "GitHub branch model while preserving full commit-pinned private CI actions."
+        ),
+        "Please configure repository branch protection",
+        "Could you replace the stale workflow?",
+    ],
+)
+def test_explicit_mutation_requests_are_not_read_only(utterance: str) -> None:
+    """Regression for #357: imperative edits must enter governance."""
+    from specsmith.agent.broker import Intent, classify_intent
+
+    assert classify_intent(utterance) in {Intent.CHANGE, Intent.DESTRUCTIVE}
+
+
+def test_informational_removal_question_remains_read_only() -> None:
+    from specsmith.agent.broker import Intent, classify_intent
+
+    assert classify_intent("How do I remove a stale workflow?") == Intent.READ_ONLY_ASK
+
 
 def _write_requirements(path: Path) -> None:
     path.write_text(
