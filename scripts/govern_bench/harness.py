@@ -192,6 +192,13 @@ def _openai_sampling_params(model: str) -> dict[str, float]:
     return {"temperature": min(2.0, max(0.0, temperature))}
 
 
+def _openai_reasoning_params(model: str) -> dict[str, str]:
+    """Use the GPT-5.6 Chat Completions mode that supports function tools."""
+    if model.startswith("gpt-5.6"):
+        return {"reasoning_effort": "none"}
+    return {}
+
+
 # ---------------------------------------------------------------------------
 # Tool definitions
 # ---------------------------------------------------------------------------
@@ -1012,6 +1019,7 @@ def _call_openai_provider(
         tools=tools,
         tool_choice="auto",
         **_openai_sampling_params(model),
+        **_openai_reasoning_params(model),
         **_completion_token_param(provider, model),
     )
     usage = getattr(response, "usage", None)

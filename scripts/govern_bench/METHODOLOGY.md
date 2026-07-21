@@ -136,6 +136,9 @@ Do not publish comparative claims when intervals overlap substantially without c
 - Use fixed benchmark definitions from versioned task/condition files.
 - Start runs from clean project fixtures/worktrees.
 - Record model identifiers, provider, run timestamp, and benchmark commit SHA.
+- Record model-specific compatibility parameters. GPT-5.6 Chat Completions
+  runs use `reasoning_effort=none` because that is the function-tool mode
+  supported by the provider; every condition for that model uses the same mode.
 - Preserve raw benchmark output JSON for auditability.
 
 ## 8) Limitations

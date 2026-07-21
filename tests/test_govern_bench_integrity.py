@@ -23,6 +23,7 @@ from govern_bench.conditions import get_condition  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
     _build_tools,
     _openai_completion_token_param,
+    _openai_reasoning_params,
     _run_agent_loop,
     _run_governance_controller,
 )
@@ -166,6 +167,7 @@ def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
     assert regular["max_tokens"] == 32
     assert regular["temperature"] == 0
     assert reasoning["max_completion_tokens"] == 32
+    assert reasoning["reasoning_effort"] == "none"
     assert "temperature" not in reasoning
     assert regular["tools"][0]["function"]["name"] == "ping"
 
@@ -244,3 +246,5 @@ def test_reasoning_completion_budget_is_bounded(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setenv("BENCH_MAX_COMPLETION_TOKENS", "999999")
     assert _openai_completion_token_param("o3") == {"max_completion_tokens": 32_768}
     assert _openai_completion_token_param("gpt-4o-mini") == {"max_tokens": 4096}
+    assert _openai_reasoning_params("gpt-5.6-sol") == {"reasoning_effort": "none"}
+    assert _openai_reasoning_params("gpt-5.4") == {}

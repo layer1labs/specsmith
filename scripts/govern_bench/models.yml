@@ -95,6 +95,9 @@ models:
     tier: mid
   - label: gpt-5.6-sol
     provider: openai
+    # Chat Completions function tools require reasoning_effort=none. The
+    # harness records this compatibility mode by commit and applies it equally
+    # across every condition for this model.
     model: gpt-5.6-sol
     group: openai
     tier: frontier

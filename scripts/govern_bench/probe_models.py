@@ -187,6 +187,8 @@ def _chat_probe_payload(model_id: str) -> dict:
     if lowered.startswith(("gpt-5", "o1", "o3", "o4")):
         payload["max_completion_tokens"] = 32
         payload.pop("temperature", None)
+        if lowered.startswith("gpt-5.6"):
+            payload["reasoning_effort"] = "none"
     else:
         payload["max_tokens"] = 32
     return payload
