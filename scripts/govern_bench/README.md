@@ -65,12 +65,17 @@ code-only benchmarks.
 | Suite | Task IDs | Domain(s) | Status |
 |------|----------|-----------|--------|
 | Core suite | `T1`–`T13` | `todo_api`, `cli_tool` | Available |
-| Wave 1 expansion | `T14`–`T22` | `todo_api`, `data_pipeline`, `verilog_module`, `patent_draft` | Available |
-| Shell hardening suite | `T23`–`T27` | `shell_scripts` | Available |
+| Wave 1 expansion | `T14`–`T22` | `todo_api`, `data_pipeline`, `verilog_module`, `patent_draft` | Definitions available; hidden oracles pending |
+| Shell hardening suite | `T23`–`T27` | `shell_scripts` | Definitions available; hidden oracles pending |
 | Wave 2 expansion | TBD | `ee_schematic`, `business_requirements`, `regulatory_doc`, `fpga_constraints` | Planned |
 
 Task availability does not imply empirical coverage. Claims must identify the exact
 tasks included in the matched run.
+
+The publication-eligible default suite is `T1`, `T2`, `T6`, `T7`, `T10`,
+`T11`, and `T13`. Its coding tasks have evaluator-only acceptance tests that
+are injected after the agent stops. A standard task without an oracle fails
+closed; clean fixtures and no-op responses cannot count as correct.
 
 ---
 
@@ -185,6 +190,10 @@ Provider failures remain diagnostic artifact rows, but the process exits nonzero
 and the comparison generator rejects them instead of treating them as model
 failures or zero-cost observations.
 
+Coding cells additionally require all three gates: clean lint, project tests,
+and the evaluator-only acceptance oracle. Pytest and Ruff caches are disabled so
+validation artifacts do not pollute diffs or scope metrics.
+
 ---
 
 ## File Structure
@@ -201,6 +210,7 @@ scripts/govern_bench/
 ├── harness.py
 ├── judge.py
 ├── metrics.py
+├── oracles/                       ← evaluator-only post-agent acceptance tests
 ├── report.py
 ├── run_bench.py
 ├── tasks.py

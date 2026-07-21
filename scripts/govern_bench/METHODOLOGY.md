@@ -135,6 +135,11 @@ Do not publish comparative claims when intervals overlap substantially without c
 
 - Use fixed benchmark definitions from versioned task/condition files.
 - Start runs from clean project fixtures/worktrees.
+- Inject evaluator-only acceptance tests only after the agent finishes. A
+  standard coding task without a hidden oracle is not scoreable and must fail
+  closed. Passing requires lint, project tests, and the independent oracle.
+- Disable pytest and Ruff caches during grading so generated cache files do not
+  contaminate diffs, scope measurements, or subsequent validation.
 - Record model identifiers, provider, run timestamp, and benchmark commit SHA.
 - Record model-specific compatibility parameters. GPT-5.6 Chat Completions
   runs use `reasoning_effort=none` because that is the function-tool mode

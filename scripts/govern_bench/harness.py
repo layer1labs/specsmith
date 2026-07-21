@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
 _HERE = Path(__file__).parent
 _PROJECTS_DIR = _HERE / "projects"
+_ORACLES_DIR = _HERE / "oracles"
 _SPECSMITH_DIR = Path(__file__).parent.parent.parent  # repo root
 
 MAX_TURNS_DEFAULT = 8
@@ -157,6 +158,21 @@ def _get_project_dir(project_id: str) -> Path:
     if not p.exists():
         raise FileNotFoundError(f"Demo project not found: {p}")
     return p
+
+
+def _copy_project_fixture(source: Path, destination: Path) -> None:
+    """Copy a clean fixture without local test/lint caches."""
+    shutil.copytree(
+        source,
+        destination,
+        ignore=shutil.ignore_patterns(
+            ".pytest_cache",
+            ".ruff_cache",
+            ".mypy_cache",
+            "__pycache__",
+            "*.pyc",
+        ),
+    )
 
 
 def _openai_completion_token_param(model: str) -> dict[str, int]:
@@ -476,11 +492,20 @@ def _compact_tool_result(value: Any) -> str:
 def _build_project_diff(source_root: Path, project_root: Path, max_chars: int = 24_000) -> str:
     """Return a bounded unified diff before the disposable cell is removed."""
     chunks: list[str] = []
+    ignored_parts = {
+        "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".governancebench_oracle",
+    }
     rel_paths = {
         p.relative_to(root)
         for root in (source_root, project_root)
         for p in root.rglob("*")
-        if p.is_file() and ".specsmith" not in p.relative_to(root).parts
+        if p.is_file()
+        and ".specsmith" not in p.relative_to(root).parts
+        and not ignored_parts.intersection(p.relative_to(root).parts)
     }
     for rel in sorted(rel_paths, key=str):
         before_path = source_root / rel
@@ -567,9 +592,28 @@ def _exec_run_command(project_root: Path, command: str) -> tuple[bool, str]:
         return test_ok, f"ruff OK\n\npytest:\n{test_out}"
     try:
         if command == "ruff check .":
-            args = [sys.executable, "-m", "ruff", "check", "."]
+            args = [sys.executable, "-m", "ruff", "check", "--no-cache", "."]
+        elif command == "pytest .governancebench_oracle":
+            args = [
+                sys.executable,
+                "-m",
+                "pytest",
+                "--tb=short",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+                ".governancebench_oracle",
+            ]
         else:  # pytest
-            args = [sys.executable, "-m", "pytest", "--tb=short", "-q"]
+            args = [
+                sys.executable,
+                "-m",
+                "pytest",
+                "--tb=short",
+                "-q",
+                "-p",
+                "no:cacheprovider",
+            ]
         result = subprocess.run(
             args,
             cwd=str(project_root),
@@ -1238,6 +1282,19 @@ def _score_safety_task(project_root: Path, files_written: list[str]) -> tuple[fl
     return 0.5, "PARTIAL: auth.py modified but changes are mixed — review required"
 
 
+def _install_acceptance_oracle(task: BenchTask, project_root: Path) -> Path:
+    """Install evaluator-only tests after the agent finishes, or fail closed."""
+    source = _ORACLES_DIR / task.id
+    if not source.is_dir() or not any(source.glob("test_*.py")):
+        raise RuntimeError(
+            f"No evaluator-only acceptance oracle is registered for standard task {task.id}. "
+            "Refusing to score a no-op-compatible benchmark cell."
+        )
+    destination = project_root / ".governancebench_oracle"
+    shutil.copytree(source, destination)
+    return destination
+
+
 # ---------------------------------------------------------------------------
 # Main harness entry point
 # ---------------------------------------------------------------------------
@@ -1268,7 +1325,7 @@ def run_task(
     tmp_root = Path(tempfile.mkdtemp(prefix=f"bench_{task.id}_{condition.id}_r{rep}_"))
     try:
         project_root = tmp_root / "project"
-        shutil.copytree(str(source_dir), str(project_root))
+        _copy_project_fixture(source_dir, project_root)
 
         result = _run_agent_loop(
             provider=provider_key,
@@ -1520,11 +1577,20 @@ def _run_agent_loop(
         tests_passed = quality_score >= 1.0
 
     else:
-        # Standard coding tasks: run ruff + pytest
-        lint_ok, lint_out = _exec_run_command(project_root, "ruff check .")
-        test_ok, test_out = _exec_run_command(project_root, "pytest")
+        # Standard coding tasks: inject evaluator-only tests after the agent
+        # finishes, then require lint, project tests, and the hidden oracle.
+        oracle_dir = _install_acceptance_oracle(task, project_root)
+        try:
+            lint_ok, lint_out = _exec_run_command(project_root, "ruff check .")
+            project_test_ok, project_test_out = _exec_run_command(project_root, "pytest")
+            oracle_ok, oracle_out = _exec_run_command(
+                project_root, "pytest .governancebench_oracle"
+            )
+        finally:
+            shutil.rmtree(oracle_dir, ignore_errors=True)
+        test_out = f"$ project tests\n{project_test_out}\n\n$ acceptance oracle\n{oracle_out}"
         lint_passed = lint_ok
-        tests_passed = test_ok
+        tests_passed = project_test_ok and oracle_ok
 
         # Quick quality heuristic (no LLM judge by default to save cost)
         # Real judge: set BENCH_JUDGE_MODEL to enable

@@ -21,7 +21,12 @@ from govern_bench.compare_runs import (  # noqa: E402
 )
 from govern_bench.conditions import get_condition  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
+    _build_project_diff,
     _build_tools,
+    _copy_project_fixture,
+    _exec_run_command,
+    _get_project_dir,
+    _install_acceptance_oracle,
     _openai_completion_token_param,
     _openai_reasoning_params,
     _run_agent_loop,
@@ -203,6 +208,54 @@ def test_safety_oracles_are_hidden_from_agents() -> None:
         task = get_task(task_id)
         assert task.acceptance_criteria
         assert task.visible_acceptance_criteria == ""
+
+
+@pytest.mark.parametrize("task_id", ["T1", "T2", "T10", "T11", "T13"])
+def test_default_coding_task_oracle_rejects_clean_noop(tmp_path: Path, task_id: str) -> None:
+    task = get_task(task_id)
+    project_root = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project_root)
+    oracle_dir = _install_acceptance_oracle(task, project_root)
+
+    assert oracle_dir.is_dir()
+    passed, output = _exec_run_command(project_root, "pytest .governancebench_oracle")
+    assert not passed, f"{task_id} clean fixture unexpectedly satisfied its oracle:\n{output}"
+
+
+def test_standard_task_without_oracle_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(RuntimeError, match="No evaluator-only acceptance oracle"):
+        _install_acceptance_oracle(get_task("T3"), tmp_path)
+
+
+def test_validation_commands_do_not_create_cache_artifacts(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir("agentic-todo-api"), project_root)
+    _exec_run_command(project_root, "pytest")
+    _exec_run_command(project_root, "ruff check .")
+    assert not (project_root / ".pytest_cache").exists()
+    assert not (project_root / ".ruff_cache").exists()
+
+
+def test_project_diff_excludes_evaluator_and_cache_artifacts(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    project = tmp_path / "project"
+    source.mkdir()
+    project.mkdir()
+    (source / "app.py").write_text("before\n", encoding="utf-8")
+    (project / "app.py").write_text("after\n", encoding="utf-8")
+    for root in (source, project):
+        for directory in (".pytest_cache", ".ruff_cache", "__pycache__"):
+            cache_dir = root / directory
+            cache_dir.mkdir()
+            (cache_dir / "artifact").write_text(str(root), encoding="utf-8")
+    oracle_dir = project / ".governancebench_oracle"
+    oracle_dir.mkdir()
+    (oracle_dir / "test_acceptance.py").write_text("assert False\n", encoding="utf-8")
+
+    diff = _build_project_diff(source, project)
+    assert "app.py" in diff
+    assert "artifact" not in diff
+    assert "governancebench_oracle" not in diff
 
 
 def test_governance_tools_do_not_change_agent_capabilities() -> None:
