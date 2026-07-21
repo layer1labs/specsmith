@@ -20,6 +20,9 @@ consolidated into the next published release.
   metric.
 
 ### Fixed
+- CI now runs an exception-free dependency audit; the obsolete CVE-2026-3219
+  suppression was removed and a regression test prevents ignored-vulnerability
+  flags from returning.
 - Preflight now treats the full set of direct repository imperatives reported in
   #357—including finish, harden, require, compress, regenerate, align, and
   ensure—as governed mutations, while preserving informational questions as

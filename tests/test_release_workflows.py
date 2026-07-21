@@ -9,6 +9,12 @@ def test_ci_uses_module_pytest_for_repository_private_release_tests() -> None:
     assert "\n          pytest --cov=specsmith" not in text
 
 
+def test_ci_dependency_audit_has_no_vulnerability_suppressions() -> None:
+    text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+    assert "- run: pip-audit" in text
+    assert "--ignore-vuln" not in text
+
+
 def test_prepare_workflow_defaults_to_check_and_protects_refs() -> None:
     text = (ROOT / ".github/workflows/prepare-release.yml").read_text(encoding="utf-8")
     assert "options: [check, prepare]" in text

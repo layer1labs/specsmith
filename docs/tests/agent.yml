@@ -432,10 +432,10 @@
   expected_behavior: {}
   confidence: 1.0
 - id: TEST-103
-  title: Security Job Passes With pip-audit ignore-vuln
-  description: The CI security job upgrades pip to the latest release, installs `pip-audit`,
-    installs specsmith with its runtime dependencies, then runs `pip-audit --ignore-vuln
-    CVE-2026-3219`. The job exits zero on `develop`.
+  title: Security Job Runs a Complete Dependency Audit
+  description: The CI security job upgrades pip, installs `pip-audit`, installs specsmith
+    with its runtime dependencies, and runs an exception-free `pip-audit`. The job exits
+    zero on `develop`.
   requirement_id: REQ-103
   type: integration
   verification_method: ci
@@ -695,7 +695,8 @@
 - id: TEST-128
   title: Cross-Repo Security Sweep Runs in CI
   description: Both `specsmith` and `kairos` CI workflows run security audits (`pip-audit`
-    and `cargo audit` respectively).
+    and `cargo audit` respectively), and the specsmith audit contains no ignored-vulnerability
+    suppression.
   requirement_id: REQ-128
   type: integration
   verification_method: static-check
