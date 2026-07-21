@@ -4899,7 +4899,7 @@
     "id": "REQ-486",
     "version": 1,
     "title": "Project-scoped mutation preflight identity",
-    "description": "Preflight MUST classify explicit imperative repository mutation requests as change, refactor, release, or destructive intent and MUST NOT silently accept them as read-only asks. Informational questions remain read-only. Work-item identifiers MUST be deterministic and idempotent within one canonical project root while remaining distinct for the same utterance in different repositories.",
+    "description": "Preflight MUST classify explicit imperative repository mutation requests, including direct verbs such as finish, harden, require, compress, regenerate, align, and ensure, as change, refactor, release, or destructive intent and MUST NOT silently accept them as read-only asks. Duplicated explicit REQ/TEST identifiers MUST be returned once. Informational questions remain read-only. Work-item identifiers MUST be deterministic and idempotent within one canonical project root while remaining distinct for the same utterance in different repositories.",
     "source": "GitHub issue",
     "status": "implemented",
     "test_ids": [

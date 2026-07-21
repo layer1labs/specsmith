@@ -35,10 +35,11 @@
 - id: TEST-512
   title: Mutation intent and project-scoped work-item identity
   description: >-
-    Exact issue #357 language and common imperative edit requests enter governed
-    mutation handling, informational removal questions remain read-only, and
-    identical accepted utterances are idempotent within one repository but produce
-    distinct work-item IDs across canonical project roots.
+    Exact issue #357 language and the reported finish, harden, require, compress,
+    regenerate, align, and ensure imperatives enter governed mutation handling;
+    duplicate explicit test IDs collapse to one; informational questions remain
+    read-only; and identical accepted utterances are idempotent within one repository
+    but produce distinct work-item IDs across canonical project roots.
   requirement_id: REQ-486
   type: unit
   verification_method: pytest tests/test_broker_scope.py tests/test_wi_lifecycle.py::TestPreflightWiring::test_work_item_ids_are_idempotent_per_project_and_distinct_across_projects

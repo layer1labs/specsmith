@@ -210,7 +210,7 @@ def run_preflight(
         tc_explicit = tc_records
         known_tc_ids = {r["id"] for r in tc_explicit if isinstance(r, dict) and r.get("id")}
         for eid in explicit_test_ids:
-            if eid in known_tc_ids:
+            if eid in known_tc_ids and eid not in test_case_ids:
                 test_case_ids.append(eid)
     if requirement_ids:
         records = tc_records

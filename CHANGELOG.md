@@ -20,6 +20,10 @@ consolidated into the next published release.
   metric.
 
 ### Fixed
+- Preflight now treats the full set of direct repository imperatives reported in
+  #357—including finish, harden, require, compress, regenerate, align, and
+  ensure—as governed mutations, while preserving informational questions as
+  read-only and deduplicating explicit test references.
 - GovernanceBench now requires hidden outcome oracles for default coding tasks,
   enforces fresh Ruff/pytest evidence before FULL completion, contains malformed
   file-tool requests, and isolates evaluator files from project lint/tests.

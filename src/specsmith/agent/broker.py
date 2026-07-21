@@ -112,6 +112,15 @@ _REFACTOR_PATTERNS = (
     re.compile(r"\binline\s+the\b", re.IGNORECASE),
 )
 
+_DIRECT_MUTATION_VERBS = (
+    r"(?:add|address|adopt|align|apply|approve|archive|build|change|clean(?:\s+up)?|"
+    r"close|commit|complete|compress|configure|create|disable|document|edit|enable|"
+    r"enforce|ensure|finish|fix|harden|implement|improve|introduce|mark|merge|migrate|"
+    r"modify|move|optimi[sz]e|patch|prepare|preserve|publish|push|rebuild|regenerate|"
+    r"remove|rename|repair|replace|require|resolve|restore|set|simplify|sync|tackle|"
+    r"update|upgrade|write)"
+)
+
 _CHANGE_PATTERNS = (
     re.compile(r"\b(fix|repair|patch)\b", re.IGNORECASE),
     re.compile(r"\b(add|implement|create|introduce|build)\b", re.IGNORECASE),
@@ -121,16 +130,19 @@ _CHANGE_PATTERNS = (
     re.compile(r"\b(update|migrate|upgrade|edit)\b", re.IGNORECASE),
     re.compile(r"\b(remove|delete)\s+(the\s+)?(unused|stale|legacy)\b", re.IGNORECASE),
     # Explicit mutation requests must never fall through to READ_ONLY_ASK.
-    # Anchor the bare verbs so informational questions such as "how do I
-    # remove X?" remain read-only while direct imperatives are governed.
+    # Anchor direct verbs so informational questions such as "how do I remove
+    # X?" remain read-only while imperative and politely phrased edits are
+    # governed. Keep this vocabulary broad enough for repository, policy,
+    # documentation, release-tooling, and governance-maintenance mutations.
     re.compile(
-        r"^\s*(?:(?:please|kindly)\s+)?"
-        r"(remove|enforce|preserve|modify|change|replace|disable|enable|configure)\b",
+        rf"^\s*(?:(?:please|kindly)\s+)?{_DIRECT_MUTATION_VERBS}\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"^\s*(?:can|could|would|will)\s+you\s+"
-        r"(remove|enforce|preserve|modify|change|replace|disable|enable|configure)\b",
+        r"^\s*(?:(?:can|could|would|will)\s+you\s+|"
+        r"i\s+(?:want|need|asked|told)\s+you\s+to\s+|"
+        r"you\s+(?:must|should|need\s+to)\s+|let'?s\s+|we\s+need\s+to\s+)"
+        rf"{_DIRECT_MUTATION_VERBS}\b",
         re.IGNORECASE,
     ),
 )
