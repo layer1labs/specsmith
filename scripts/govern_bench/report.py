@@ -259,6 +259,11 @@ def write_hf_leaderboard(
     print(f"HF leaderboard written to {output_path}")
 
 
+def _task_list_label(tasks: list[BenchTask]) -> str:
+    """Return the exact selected task IDs without inventing a contiguous range."""
+    return ", ".join(task.id for task in tasks)
+
+
 def render_report(
     report: BenchReport,
     conditions: list[Condition],
@@ -276,7 +281,7 @@ def render_report(
         f"**Date:** {now}  ",
         f"**Model:** {model}  ",
         f"**Repetitions per cell:** {reps}  ",
-        f"**Tasks:** {len(tasks)} (T1–T{len(tasks)})  ",
+        f"**Tasks:** {len(tasks)} ({_task_list_label(tasks)})  ",
         f"**Conditions:** {len(conditions)}  ",
         "",
         "> **Primary metric:** tokens per correct answer = mean_total_tokens ÷ pass_rate  ",

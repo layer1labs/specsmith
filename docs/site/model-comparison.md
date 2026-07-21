@@ -1,53 +1,61 @@
-# specsmith Governance Efficiency — Model Comparison
+# Governance Efficiency Model Comparison
 
-**Run:** [29650915022](https://github.com/layer1labs/specsmith/actions/runs/29650915022)
+## Current evidence levels
 
-**Date:** 2026-07-18
+| Evidence | Models | Repetitions | Status |
+|---|---|---:|---|
+| [Frontier screen 29839696631](https://github.com/layer1labs/specsmith/actions/runs/29839696631) | `gpt-5.6-sol` | 5 | Complete screening evidence |
+| [Route/model diagnostic 29834732303](https://github.com/layer1labs/specsmith/actions/runs/29834732303) | GPT-5.6 Sol, GPT-4o-mini, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
 
-!!! danger "Cross-model ranking withheld"
-    GPT-4o-mini completed all 182 requested cells. Qwen3-Coder completed only
-    74; 108 cells were unavailable because the Hugging Face provider stopped
-    serving requests. A partial provider run cannot support model rankings,
-    relative cost-of-pass claims, or governance-lift comparisons.
+All runs used the same seven tasks and the same four conditions: raw,
+Cursor rules, Specsmith LIGHT, and Specsmith FULL. GPT-5.6 Sol used Chat
+Completions with `reasoning_effort=none` for function-tool compatibility,
+uniformly across conditions.
 
-## Artifact completeness
+## Five-repetition frontier result
 
-| Model | Requested | Valid | Provider errors | Passes among valid | Comparative status |
-|---|---:|---:|---:|---:|---|
-| `gpt-4o-mini` | 182 | 182 | 0 | 111 (61.0%) | Valid single-model evidence |
-| `Qwen/Qwen3-Coder-30B-A3B-Instruct` | 182 | 74 | 108 | 36 (48.6%) | Invalid for comparison |
+| Condition | Pass rate | TPCA | Estimated cost/pass |
+|---|---:|---:|---:|
+| Specsmith FULL | 91% | 21.7k | $0.1508 |
+| Specsmith LIGHT | 94% | 21.8k | $0.1502 |
+| Ungoverned | 86% | 25.4k | $0.1724 |
+| Cursor rules | 83% | 32.3k | $0.2124 |
 
-Qwen failures consisted of 107 HTTP 402 credit-depletion responses and one
-HTTP 429 token-per-minute response. They are infrastructure failures, not
-failed task solutions.
+These mixed-suite point estimates favor Specsmith, but confidence intervals
+overlap. Coding-only correctness favored raw GPT-5.6 Sol: raw passed 25/25,
+Cursor 24/25, LIGHT 23/25, and FULL 22/25. See the
+[full benchmark report](efficiency-benchmark.md) for the task-level explanation.
 
-## Complete-model findings
+## Diagnostic model behavior
 
-For GPT-4o-mini, ungoverned achieved 64% aggregate pass rate. specsmith LIGHT,
-FULL, and DISPATCH each achieved 57%. The results are task-dependent: LIGHT and
-FULL improved T10 from 0% to 100%, while governed conditions underperformed on
-T1 and T13. T6 and T7 were non-discriminating because nearly every condition
-passed.
+| Model | Main observation |
+|---|---|
+| `gpt-5.6-sol` | Strongest overall correctness and the only model advanced to n=5 screening. |
+| `gpt-4o-mini` | FULL improved n=1 correctness over raw, but Cursor had lower TPCA; useful as a degradation test, not a frontier proxy. |
+| `Qwen/Qwen3.6-35B-A3B:scaleway` | Complete but slow and weak on coding cells; retain as a separate open-weight lane. |
 
-See [Governance Efficiency Benchmark](efficiency-benchmark.md) for complete
-condition and task tables.
+The diagnostics demonstrate that governance lift is model-dependent. They do
+not justify combining n=1 model rows into a cross-model ranking.
 
-## Next comparison matrix
+## Qwen FP8 and base variants
 
-| Role | Model | Rationale |
-|---|---|---|
-| Historical baseline | `gpt-4o-mini` | Preserves continuity with prior runs |
-| Open-weight managed route | `Qwen/Qwen3.6-35B-A3B:scaleway` | Current Qwen coding/repository model with a live tool-capable HF route |
-| Cost-conscious current model | `gpt-5.6-luna` | Modern closed-model screening baseline |
-| Frontier anchor | `gpt-5.6-sol` | Upper-bound comparison for complex coding and reasoning |
+`Qwen/Qwen3.6-35B-A3B:scaleway` is the current managed, tool-capable Hugging
+Face route. `Qwen/Qwen3.6-35B-A3B-FP8` has no managed Inference Provider mapping
+at the time of this run. FP8 or base-model testing therefore belongs in a
+self-hosted vLLM/compatible lane with its own hardware, quantization, and
+serving metadata; mixing it into the managed API table would confound model and
+infrastructure effects.
 
-The FP8 repository `Qwen/Qwen3.6-35B-A3B-FP8` is suitable for a separate
-self-hosted experiment. It currently has no managed Hugging Face Inference
-Provider mapping, so combining it with managed API models would also combine
-model-quality and serving-infrastructure effects.
+## Recommended comparison set
 
-## Publication rule
+- Frontier efficacy: GPT-5.6 Sol.
+- Cost/degradation: a current smaller OpenAI model, with no assumption that it
+  represents frontier behavior.
+- Open-weight portability: Qwen3.6 in a separately timed managed or self-hosted
+  lane.
+- Framework breadth: run all twelve scaffolding conditions only after the core
+  raw/Cursor/LIGHT/FULL screen is stable at ten repetitions.
 
-Future reports are generated only when every selected model has the identical
-task/condition/repetition cell set and every cell is valid. Incomplete artifacts
-remain downloadable for diagnosis but cannot produce a successful comparison.
+Future reports must use complete identical cell sets and state their evidence
+level. Five repetitions support screening observations; ten are required for a
+release-quality claim.

@@ -4927,5 +4927,16 @@
     "test_ids": [
       "TEST-514"
     ]
+  },
+  {
+    "id": "REQ-489",
+    "version": 1,
+    "title": "Benchmark publication matches validated evidence",
+    "description": "Public benchmark pages and generated reports must identify the exact model, tasks, conditions, repetitions, completeness, and compatibility settings; distinguish mixed-suite from coding-only outcomes; and avoid claims stronger than the statistical evidence.",
+    "source": "GovernanceBench runs 29834732303 and 29839696631",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-515"
+    ]
   }
 ]

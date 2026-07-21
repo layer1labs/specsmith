@@ -10,6 +10,22 @@ consolidated into the next published release.
 
 ## [Unreleased]
 
+### Added
+- Complete five-repetition GPT-5.6 Sol governance-efficiency screening and
+  matched GPT-4o-mini/Qwen3.6 diagnostics with exact model-route evidence.
+
+### Changed
+- Benchmark documentation now separates mixed-suite gains from coding-only
+  outcomes and treats tokens per correct answer as the provider-neutral primary
+  metric.
+
+### Fixed
+- GovernanceBench now requires hidden outcome oracles for default coding tasks,
+  enforces fresh Ruff/pytest evidence before FULL completion, contains malformed
+  file-tool requests, and isolates evaluator files from project lint/tests.
+- Generated reports list exact non-contiguous task IDs instead of inventing a
+  contiguous range.
+
 ## [0.25.0] - 2026-07-20
 
 ### Changed

@@ -1,14 +1,20 @@
-# Competitive Benchmark Suite
-This benchmark suite defines methodology for comparing governed and non-governed implementation workflows.
+# Benchmark Suites
 
-## Scope
-These are documentation and process scenarios only (not executable harnesses). They define repeatable tasks, measurement expectations, and comparison axes.
+The executable GovernanceBench harness lives in `scripts/govern_bench/`. It
+compares governed and non-governed agent workflows with isolated fixtures,
+hidden acceptance oracles, complete-cell enforcement, token accounting, and
+versioned task/condition definitions.
+
+This directory contains complementary process scenarios for traceability,
+audit, recovery, and multi-agent governance. They are specifications, not
+executable GovernanceBench cells.
 
 ## Core metrics to capture
-- elapsed implementation time
-- trace coverage quality
-- audit completeness
-- interrupted-session recovery fidelity
+
+- tokens per correct answer (primary for executable model runs);
+- estimated cost-of-pass and wall time (secondary);
+- requirement/test trace coverage and audit completeness;
+- interrupted-session recovery fidelity.
 
 ## Comparison axes
 - no governance
@@ -19,4 +25,8 @@ These are documentation and process scenarios only (not executable harnesses). T
 - specsmith governed workflow
 
 ## Scenarios
+
 See `docs/benchmarks/scenarios/` for all scenario definitions.
+
+See the [current executable results](../site/efficiency-benchmark.md) and the
+[model comparison](../site/model-comparison.md).

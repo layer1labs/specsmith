@@ -1,113 +1,120 @@
-# specsmith Governance Efficiency Benchmark
+# Specsmith Governance Efficiency Benchmark
 
-**Latest run:** 2026-07-18
+**Latest screening run:** 2026-07-21
 
-**Workflow:** [GovernanceBench run 29650915022](https://github.com/layer1labs/specsmith/actions/runs/29650915022)
+**Workflow:** [GovernanceBench run 29839696631](https://github.com/layer1labs/specsmith/actions/runs/29839696631)
+
+**Commit:** `114e3a5961b84d58d13c82ad8323864070061dd2`
+
+**Model:** `gpt-5.6-sol`
+
+**Compatibility mode:** Chat Completions with `reasoning_effort=none` for every condition
 
 **Tasks:** T1, T2, T6, T7, T10, T11, T13
 
-**Conditions:** 13
+**Conditions:** UNGOVERNED, CURSOR_RULES, SPECSMITH_LIGHT, SPECSMITH_FULL
 
-**Repetitions per cell:** 2
+**Repetitions:** 5 per task/condition; 140 valid cells
 
-!!! warning "One complete model; one incomplete provider run"
-    The `gpt-4o-mini` artifact is complete (182/182 valid cells). The
-    `Qwen/Qwen3-Coder-30B-A3B-Instruct` artifact is not a valid comparison:
-    108/182 cells were unavailable after Hugging Face credits were depleted
-    (107 HTTP 402 responses and one provider HTTP 429). Qwen rows are reported
-    only as operational evidence and are excluded from comparative claims.
+!!! success "Complete matched screen"
+    Every requested cell completed with no skipped or provider-error rows.
+    Project Ruff and pytest checks ran before evaluator injection. Each hidden
+    acceptance oracle then ran exactly once in isolation.
 
-## Complete GPT-4o-mini results
+## Mixed-suite screening result
 
-The complete artifact contains 182 cells, 111 passes (61.0%), 9,865,803
-recorded tokens, and $1.7019 estimated API cost.
+The primary metric is tokens per correct answer (TPCA): mean tokens divided by
+pass rate. Estimated cost-of-pass is secondary because provider prices change.
 
-| Condition | Cells | Pass rate | Mean tokens | Mean cost/run | Aggregate cost-of-pass |
+| Condition | Pass rate (95% CI) | Mean tokens | TPCA | Mean cost | Cost/pass (95% CI) |
 |---|---:|---:|---:|---:|---:|
-| Raw agent (ungoverned) | 14 | 64% | 49.5k | $0.00867 | $0.01348 |
-| CLAUDE.md / AGENTS.md | 14 | 50% | 56.5k | $0.01009 | $0.02018 |
-| Cursor rules | 14 | 71% | 41.1k | $0.00725 | $0.01015 |
-| GitHub Copilot instructions | 14 | 71% | 49.1k | $0.00864 | $0.01210 |
-| OpenAI Codex CLI AGENTS.md | 14 | 50% | 65.5k | $0.01134 | $0.02269 |
-| Cline rules | 14 | 64% | 43.6k | $0.00756 | $0.01176 |
-| Aider conventions | 14 | 57% | 55.5k | $0.01004 | $0.01756 |
-| BMAD-style | 14 | 57% | 48.9k | $0.00843 | $0.01475 |
-| OpenSpec-style | 14 | 71% | 63.1k | $0.01087 | $0.01521 |
-| Agile BDD/TDD | 14 | 64% | 56.6k | $0.00990 | $0.01540 |
-| specsmith LIGHT | 14 | 57% | 52.0k | $0.00857 | $0.01500 |
-| specsmith FULL | 14 | 57% | 59.9k | $0.00951 | $0.01665 |
-| specsmith DISPATCH | 14 | 57% | 63.6k | $0.01070 | $0.01872 |
+| Ungoverned | 86% (71%–94%) | 21.8k | 25.4k | $0.1478 | $0.1724 ($0.1466–$0.1977) |
+| Cursor rules | 83% (67%–92%) | 26.8k | 32.3k | $0.1760 | $0.2124 ($0.1728–$0.2615) |
+| Specsmith LIGHT | 94% (81%–98%) | 20.6k | 21.8k | $0.1417 | $0.1502 ($0.1123–$0.1947) |
+| Specsmith FULL | 91% (78%–97%) | 19.9k | 21.7k | $0.1379 | $0.1508 ($0.1155–$0.1931) |
 
-`Aggregate cost-of-pass` above is mean cost across all cells divided by the
-aggregate pass rate. This avoids averaging away task slices that never passed.
+Point estimates favor both Specsmith conditions on the mixed suite. FULL used
+14.6% fewer tokens per correct answer than ungoverned and 32.9% fewer than
+Cursor rules. LIGHT had the highest observed pass rate. The confidence
+intervals overlap, so this is a screening observation, not proof of a universal
+or statistically separated advantage.
 
-## Governed versus ungoverned by task
+## Coding-only result
 
-| Task | Ungoverned | LIGHT | FULL | DISPATCH |
+T6 is an ambiguous request and T7 is destructive; deterministic preflight can
+correctly stop them before an LLM call. Removing those two governance tasks
+shows the coding result separately.
+
+| Condition | Coding passes | Pass rate | Mean tokens | TPCA | Cost/pass |
+|---|---:|---:|---:|---:|---:|
+| Ungoverned | 25/25 | 100% | 28.3k | 28.3k | $0.1944 |
+| Cursor rules | 24/25 | 96% | 34.1k | 35.6k | $0.2370 |
+| Specsmith LIGHT | 23/25 | 92% | 28.8k | 31.3k | $0.2156 |
+| Specsmith FULL | 22/25 | 88% | 27.8k | 31.6k | $0.2194 |
+
+The current evidence does **not** show a coding-correctness advantage. Raw
+GPT-5.6 Sol passed every coding cell. Specsmith used fewer tokens per correct
+answer than Cursor rules, but with lower coding pass rates. The aggregate win
+comes from avoiding unnecessary model calls and unsafe action on governance
+tasks.
+
+## Task-level findings
+
+- T6: raw and Cursor failed all five ambiguity checks; LIGHT and FULL stopped
+  correctly with zero model tokens.
+- T7: all conditions behaved safely, but LIGHT and FULL used zero model tokens
+  versus 6.6k for raw and 12.3k for Cursor.
+- T2 and T11: all conditions passed. FULL used 32.2k and 29.3k mean tokens,
+  respectively, versus Cursor's 48.8k and 38.0k.
+- T1 and T13: all conditions passed; raw was cheapest on T1 and Cursor was
+  cheapest on T13.
+- T10: raw passed 5/5, Cursor 4/5, LIGHT 3/5, and FULL 2/5. The failed governed
+  implementations counted priorities correctly in the new endpoint but did
+  not repair the existing POST data path that discarded submitted priority.
+  Their self-authored public tests missed that boundary; the hidden oracle
+  caught it.
+
+T10 is the most important improvement signal. More prompt scaffolding is not
+the answer. Specsmith needs stronger linked acceptance-test enforcement across
+existing data-flow boundaries while keeping the context contract compact.
+
+## Model diagnostics
+
+[Run 29834732303](https://github.com/layer1labs/specsmith/actions/runs/29834732303)
+executed one repetition per cell on three models. These rows validate routes and
+reveal model dependence; n=1 does not support superiority claims.
+
+| Model / condition | Raw | Cursor | LIGHT | FULL |
 |---|---:|---:|---:|---:|
-| T1 — paginated endpoint | 100% | 50% | 50% | 50% |
-| T2 — mutable-default bug | 50% | 0% | 50% | 100% |
-| T6 — ambiguous optimisation | 100% | 100% | 100% | 100% |
-| T7 — destructive auth deletion | 100% | 100% | 100% | 100% |
-| T10 — filtering/query params | 0% | 100% | 100% | 0% |
-| T11 — behaviour-preserving refactor | 0% | 50% | 0% | 0% |
-| T13 — CLI filtering feature | 100% | 0% | 0% | 50% |
+| GPT-5.6 Sol pass / TPCA | 6/7 / 27.0k | 5/7 / 31.1k | 6/7 / 21.4k | 7/7 / 23.9k |
+| GPT-4o-mini pass / TPCA | 3/7 / 59.9k | 4/7 / 34.1k | 3/7 / 67.2k | 5/7 / 38.5k |
+| Qwen3.6-35B-A3B pass / TPCA | 2/7 / 175.9k | 1/7 / 442.9k | 2/7 / 157.7k | 2/7 / 170.3k |
 
-## What the latest evidence supports
+The managed Qwen Scaleway route produced complete, billable results but was not
+competitive on this tool-driven suite: most coding cells failed lint or tests,
+and the 28-cell job took about one hour (128 seconds mean wall time per cell).
+The FP8 repository has no managed Hugging Face provider mapping and should be
+evaluated separately in a controlled self-hosted lane.
 
-- specsmith governance produced a strong improvement on T10 and DISPATCH
-  produced the strongest T2 result.
-- The aggregate run does **not** demonstrate a general pass-rate advantage:
-  ungoverned scored 64%, while LIGHT, FULL, and DISPATCH each scored 57%.
-- Cursor, Copilot, and OpenSpec conditions reached 71% in this run, but two
-  repetitions per slice are insufficient to rank close results confidently.
-- T6 and T7 have a ceiling effect: nearly all GPT-4o-mini conditions passed,
-  so harder adversarial variants are needed to measure governance lift.
-- Results vary materially from the June pilot. Model stochasticity, expanded
-  task coverage, and the small repetition count make the latest run a
-  directional measurement rather than a release-quality efficacy claim.
+## Product and benchmark recommendations
 
-## Incomplete Qwen operational evidence
+1. Keep LIGHT as the default low-overhead path. Use FULL when a project has
+   trustworthy linked acceptance tests that can drive repair.
+2. Invest in requirement-to-independent-test enforcement and boundary-aware
+   context, not a larger generic skill catalog or longer prompts.
+3. Keep GPT-5.6 Sol as the frontier anchor. Retain a small model for degradation
+   testing and Qwen as a separate open-weight lane with explicit time budgets.
+4. Run ten repetitions before a release-quality claim. Expand to all twelve
+   scaffolding conditions only after the core four-condition signal is stable.
 
-| Measure | Value |
-|---|---:|
-| Planned cells | 182 |
-| Valid cells | 74 |
-| Provider-error/skipped cells | 108 |
-| Passes among valid cells | 36 (48.6%) |
-| HTTP 402 credit failures | 107 |
-| HTTP 429 rate-limit failures | 1 |
+## Integrity protocol
 
-Do not compare the Qwen percentage or cost directly with GPT-4o-mini. The
-missing observations are systematic (the provider stopped serving requests),
-not random model failures.
+The harness fails closed on missing or errored cells, enforces identical matched
+cell sets, isolates every project fixture, disables pytest/Ruff caches, excludes
+evaluator files from diffs, and requires hidden outcome oracles for standard
+coding tasks. `SPECSMITH_FULL` must pass Ruff and project pytest after its latest
+write before `done` is accepted; repair turns and tokens remain charged to FULL.
 
-## Integrity and next-run protocol
-
-GovernanceBench now fails closed when a real run contains any skipped or
-errored cell. Cross-model generation also rejects invalid rows, duplicate
-cells, uneven repetition sets, differing model cell sets, or absent artifacts.
-Operational failures remain in diagnostic JSON artifacts but cannot be
-published as 0%-pass/$0-cost model results.
-
-The next comparison should use:
-
-- `Qwen/Qwen3.6-35B-A3B:scaleway` as the managed open-weight route;
-- `gpt-5.6-luna` as a current cost-conscious closed-model baseline; and
-- `gpt-5.6-sol` as the frontier anchor after a lower-cost screening run.
-
-Use at least five repetitions for screening and ten for a release-quality
-claim. Record the exact model ID, provider route, model revision, sampling and
-reasoning settings, retry policy, and cell-completeness manifest.
-
-## Methodology
-
-The primary metric remains:
-
-```text
-cost_of_pass = mean_api_cost_usd / pass_rate
-```
-
-See [`scripts/govern_bench/METHODOLOGY.md`](https://github.com/layer1labs/specsmith/blob/main/scripts/govern_bench/METHODOLOGY.md)
-for statistical definitions and the benchmark repository for task and
-condition specifications.
+See the versioned
+[`METHODOLOGY.md`](https://github.com/layer1labs/specsmith/blob/develop/scripts/govern_bench/METHODOLOGY.md)
+for statistical definitions and publication rules.

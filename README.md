@@ -138,22 +138,22 @@ the [`examples/policies`](examples/policies) directory.
 
 ## Governance efficiency benchmark
 
-The latest completed historical run is directional, not proof that governance
-always saves tokens. GPT-4o-mini completed the matrix; the Qwen run was
-interrupted by provider credit and rate-limit errors and is excluded from model
-comparisons.
+The latest complete screen uses GPT-5.6 Sol across seven tasks, four matched
+conditions, and five repetitions per cell (140/140 valid cells).
 
-| Condition | Pass rate | Mean tokens | Cost of pass |
+| Condition | Pass rate | Tokens/correct | Est. cost/pass |
 |---|---:|---:|---:|
-| Ungoverned | 64% | 49.5k | $0.01348 |
-| Cursor rules | 71% | 41.1k | $0.01015 |
-| Specsmith LIGHT | 57% | 52.0k | $0.01500 |
-| Specsmith FULL | 57% | 59.9k | $0.01665 |
+| Ungoverned | 86% | 25.4k | $0.1724 |
+| Cursor rules | 83% | 32.3k | $0.2124 |
+| Specsmith LIGHT | 94% | 21.8k | $0.1502 |
+| Specsmith FULL | 91% | 21.7k | $0.1508 |
 
-The result drove the current simplification: deterministic governance work no
-longer consumes model turns, context is bounded and compressed, safety oracles
-are hidden, benchmark cells are isolated, and zero-pass conditions remain in
-cost-of-pass calculations. New provider runs must fail closed on missing cells.
+These are mixed governance-and-coding point estimates; confidence intervals
+overlap. Coding-only correctness favored raw GPT-5.6 Sol, while Specsmith's
+aggregate benefit came from deterministic ambiguity/safety gates and lower
+token use than Cursor rules. The result reinforces the lean direction: focus on
+linked independent tests, requirements, and compact epistemic context—not more
+generic skills or prompt ceremony.
 
 - [Benchmark report](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
 - [Comparison validity and limitations](https://specsmith.readthedocs.io/stable/model-comparison/)

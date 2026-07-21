@@ -44,6 +44,7 @@ from govern_bench.probe_models import (  # noqa: E402
     _http_error_message,
     _probe_chat_endpoint,
 )
+from govern_bench.report import _task_list_label  # noqa: E402
 from govern_bench.run_bench import _configure_console_output, incomplete_real_run  # noqa: E402
 from govern_bench.tasks import get_task  # noqa: E402
 
@@ -405,3 +406,8 @@ def test_reasoning_completion_budget_is_bounded(monkeypatch: pytest.MonkeyPatch)
     assert _openai_completion_token_param("gpt-4o-mini") == {"max_tokens": 4096}
     assert _openai_reasoning_params("gpt-5.6-sol") == {"reasoning_effort": "none"}
     assert _openai_reasoning_params("gpt-5.4") == {}
+
+
+def test_report_lists_non_contiguous_task_ids_exactly() -> None:
+    tasks = [get_task(task_id) for task_id in ("T1", "T2", "T6", "T7", "T10", "T11", "T13")]
+    assert _task_list_label(tasks) == "T1, T2, T6, T7, T10, T11, T13"

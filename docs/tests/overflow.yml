@@ -924,3 +924,11 @@
     oracle runs once after injection.
   description: Prevents hidden oracle files from contaminating Ruff or being collected
     by both project pytest and oracle pytest.
+- id: TEST-515
+  title: Benchmark reports label non-contiguous task sets accurately
+  requirement_id: REQ-489
+  type: unit
+  verification_method: Unit tests render selected non-contiguous task IDs and assert
+    the report lists the exact IDs instead of an inferred contiguous range.
+  description: Prevents a seven-task T1,T2,T6,T7,T10,T11,T13 run from being mislabeled
+    as T1-T7.

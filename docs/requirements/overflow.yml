@@ -809,3 +809,11 @@
     evaluator-only files, then execute each hidden acceptance oracle exactly once
     in isolation so evaluator artifacts cannot change project scores.
   source: Live benchmark run 29832926861
+- id: REQ-489
+  title: Benchmark publication matches validated evidence
+  status: implemented
+  description: Public benchmark pages and generated reports must identify the exact
+    model, tasks, conditions, repetitions, completeness, and compatibility settings;
+    distinguish mixed-suite from coding-only outcomes; and avoid claims stronger than
+    the statistical evidence.
+  source: GovernanceBench runs 29834732303 and 29839696631
