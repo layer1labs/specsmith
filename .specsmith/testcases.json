@@ -5602,5 +5602,17 @@
     "input": {},
     "expected_behavior": "Explicit edits cannot bypass governance and work-item evidence cannot collide across projects",
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-513",
+    "version": 1,
+    "title": "File tool boundary errors remain inside benchmark cell",
+    "description": "Regression coverage for live benchmark failures caused by read_file('.') and unsafe path resolution.",
+    "requirement_id": "REQ-487",
+    "type": "unit",
+    "verification_method": "Unit tests pass directory and traversal paths to read, write, and list tools and assert safe error responses without exceptions.",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

@@ -77,6 +77,13 @@ The publication-eligible default suite is `T1`, `T2`, `T6`, `T7`, `T10`,
 are injected after the agent stops. A standard task without an oracle fails
 closed; clean fixtures and no-op responses cannot count as correct.
 
+For standard coding tasks, `SPECSMITH_FULL` also blocks the agent's `done`
+request until both `ruff check .` and `pytest` have passed after its latest
+file write. A failed check sends the agent back through a repair turn; those
+turns and tokens remain part of the measured cost. Other conditions do not
+receive this completion gate. Hidden acceptance tests remain evaluator-only
+and run after the agent stops, so the gate cannot reveal the benchmark answer.
+
 ---
 
 ## Provider Examples and Model Tiers

@@ -868,15 +868,17 @@
   type: unit
   verification_method: pytest tests/test_migration_direction.py::test_agents_template_no_pip_install
     and ::test_agents_template_uses_current_health_check — read src/specsmith/templates/agents.md.j2,
-    assert 'pip install' and legacy migrate commands are absent, assert `specsmith doctor`
-    is present, and assert '[Y/n]' is absent
+    assert 'pip install' and legacy migrate commands are absent, assert `specsmith
+    doctor` is present, and assert '[Y/n]' is absent
   confidence: 1.0
 - id: TEST-371
-  title: Backward migration is a hard error in run_upgrade, run_migration, and CLI auto-update
+  title: Backward migration is a hard error in run_upgrade, run_migration, and CLI
+    auto-update
   requirement_id: REQ-370
   type: unit
   verification_method: pytest tests/test_migration_direction.py — tests cover run_upgrade
-    downgrade_error=True, run_migration ERROR string, and auto-update downgrade hard error
+    downgrade_error=True, run_migration ERROR string, and auto-update downgrade hard
+    error
   confidence: 1.0
 - id: TEST-372
   title: esdb status --json reports active ChronoStore (ChronoMemory backend) and

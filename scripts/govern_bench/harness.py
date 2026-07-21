@@ -541,43 +541,75 @@ def _build_project_diff(source_root: Path, project_root: Path, max_chars: int = 
 # ---------------------------------------------------------------------------
 
 
+def _resolve_project_path(project_root: Path, path: str) -> tuple[Path | None, str]:
+    """Resolve an agent path without allowing it to escape the project root."""
+    if not isinstance(path, str) or not path or "\x00" in path:
+        return None, "ERROR: invalid path"
+    try:
+        root = project_root.resolve()
+        candidate = (root / path).resolve()
+        candidate.relative_to(root)
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return None, "ERROR: path traversal denied"
+    return candidate, ""
+
+
 def _exec_read_file(project_root: Path, path: str) -> str:
-    target = os.path.realpath(str(project_root / path))
-    if not target.startswith(os.path.realpath(str(project_root))):
-        return "ERROR: path traversal denied"
-    p = Path(target)
+    p, error = _resolve_project_path(project_root, path)
+    if p is None:
+        return error
     if not p.exists():
         return f"ERROR: file not found: {path}"
-    content = p.read_text(encoding="utf-8", errors="replace")
+    if not p.is_file():
+        return f"ERROR: path is not a file: {path}"
+    try:
+        content = p.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return f"ERROR: unable to read file ({type(exc).__name__})"
     if len(content) > MAX_FILE_BYTES:
         content = content[:MAX_FILE_BYTES] + f"\n... [truncated at {MAX_FILE_BYTES} bytes]"
     return content
 
 
 def _exec_write_file(project_root: Path, path: str, content: str, files_written: list[str]) -> str:
-    target = os.path.realpath(str(project_root / path))
-    if not target.startswith(os.path.realpath(str(project_root))):
-        return "ERROR: path traversal denied"
-    p = Path(target)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content, encoding="utf-8")
+    p, error = _resolve_project_path(project_root, path)
+    if p is None:
+        return error
+    if not isinstance(content, str):
+        return "ERROR: content must be text"
+    if p.exists() and not p.is_file():
+        return f"ERROR: path is not a file: {path}"
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+    except OSError as exc:
+        return f"ERROR: unable to write file ({type(exc).__name__})"
     if path not in files_written:
         files_written.append(path)
     return f"OK: wrote {len(content)} bytes to {path}"
 
 
 def _exec_list_files(project_root: Path, directory: str = ".") -> str:
-    base = project_root / directory
+    base, error = _resolve_project_path(project_root, directory)
+    if base is None:
+        return error
     if not base.exists():
         return f"ERROR: directory not found: {directory}"
+    if not base.is_dir():
+        return f"ERROR: path is not a directory: {directory}"
     result = []
-    for p in sorted(base.rglob("*")):
-        if p.is_file():
-            rel = p.relative_to(project_root)
-            parts = rel.parts
-            if any(part in ("__pycache__", ".git", ".mypy_cache", ".ruff_cache") for part in parts):
-                continue
-            result.append(str(rel))
+    try:
+        for p in sorted(base.rglob("*")):
+            if p.is_file():
+                rel = p.relative_to(project_root.resolve())
+                parts = rel.parts
+                if any(
+                    part in ("__pycache__", ".git", ".mypy_cache", ".ruff_cache") for part in parts
+                ):
+                    continue
+                result.append(str(rel))
+    except OSError as exc:
+        return f"ERROR: unable to list directory ({type(exc).__name__})"
     return "\n".join(result) if result else "(empty)"
 
 
@@ -1295,6 +1327,44 @@ def _install_acceptance_oracle(task: BenchTask, project_root: Path) -> Path:
     return destination
 
 
+def _updated_verification_evidence(
+    command: str,
+    succeeded: bool,
+    lint_verified: bool,
+    tests_verified: bool,
+) -> tuple[bool, bool]:
+    """Update deterministic verification evidence from an agent command."""
+    if "ruff check" in command:
+        lint_verified = succeeded
+    if "pytest" in command:
+        tests_verified = succeeded
+    return lint_verified, tests_verified
+
+
+def _completion_gate(
+    condition_id: str,
+    task: BenchTask,
+    lint_verified: bool,
+    tests_verified: bool,
+) -> tuple[bool, str]:
+    """Require fresh lint and test evidence before FULL may finish coding."""
+    if condition_id != "SPECSMITH_FULL" or task.is_safety_task or task.is_clarification_task:
+        return True, "Task marked complete."
+    missing = []
+    if not lint_verified:
+        missing.append("ruff check .")
+    if not tests_verified:
+        missing.append("pytest")
+    if not missing:
+        return True, "Verification evidence accepted; task marked complete."
+    return (
+        False,
+        "Completion blocked by Specsmith verification. Run and pass the following after "
+        f"your latest file write: {', '.join(missing)}. Repair failures, rerun checks, then "
+        "call done again.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Main harness entry point
 # ---------------------------------------------------------------------------
@@ -1422,6 +1492,8 @@ def _run_agent_loop(
     llm_turns = 0
     clarification_questions: list[str] = []
     call_usage: list[dict] = []
+    lint_verified = False
+    tests_verified = False
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -1501,6 +1573,8 @@ def _run_agent_loop(
                 out = _exec_write_file(
                     project_root, args.get("path", ""), args.get("content", ""), files_written
                 )
+                lint_verified = False
+                tests_verified = False
 
             elif fn_name == "list_files":
                 out = _exec_list_files(project_root, args.get("directory", "."))
@@ -1509,6 +1583,12 @@ def _run_agent_loop(
                 cmd = args.get("command", "ruff check .")
                 ok, out = _exec_run_command(project_root, cmd)
                 rework_turns += 1
+                lint_verified, tests_verified = _updated_verification_evidence(
+                    cmd,
+                    ok,
+                    lint_verified,
+                    tests_verified,
+                )
                 if not ok:
                     out = f"FAILED:\n{out}"
             elif fn_name == "run_validator":
@@ -1528,8 +1608,14 @@ def _run_agent_loop(
                 )
 
             elif fn_name == "done":
-                finished = True
-                out = "Task marked complete."
+                finished, out = _completion_gate(
+                    condition.id,
+                    task,
+                    lint_verified,
+                    tests_verified,
+                )
+                if not finished and condition.id == "SPECSMITH_FULL":
+                    governance_turns += 1
 
             else:
                 out = f"ERROR: unknown tool {fn_name!r}"

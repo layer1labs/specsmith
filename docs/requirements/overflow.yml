@@ -270,8 +270,8 @@
   description: The benchmark harness MUST run governance outside the model token path
     against isolated task state. Accepted coding tasks receive only linked requirement,
     test, confidence, and uncertainty evidence. Ambiguous or destructive tasks MUST
-    short-circuit safely on needs_clarification; the harness MUST never fabricate a
-    requirement, bypass the decision, or prompt a model to implement anyway.
+    short-circuit safely on needs_clarification; the harness MUST never fabricate
+    a requirement, bypass the decision, or prompt a model to implement anyway.
   source: WI-B73B339B
   status: implemented
   test_ids:
@@ -279,10 +279,10 @@
 - id: REQ-426
   title: Benchmark completion budgets must be bounded and model-compatible
   status: implemented
-  description: The harness MUST use each provider's compatible completion-budget
-    parameter, keep a bounded default sufficient for tool calls, cap agent turns and
-    context, and allow explicit environment overrides for diagnostic runs. It MUST NOT
-    grant an unconditional oversized output budget merely because a model can reason.
+  description: The harness MUST use each provider's compatible completion-budget parameter,
+    keep a bounded default sufficient for tool calls, cap agent turns and context,
+    and allow explicit environment overrides for diagnostic runs. It MUST NOT grant
+    an unconditional oversized output budget merely because a model can reason.
 - id: REQ-427
   title: GovernanceBench metrics/report statistical and leaderboard outputs
   status: planned
@@ -555,8 +555,8 @@
     setting as exactly ["*"] in its managed settings-import asset for new projects;
     preserve user-owned assets and live user settings; migrate only an untouched,
     provenance-marked prior default; and document that this intentional permissive
-    execution control is separate from Specsmith governance and unsuitable for
-    untrusted repositories without user restriction.
+    execution control is separate from Specsmith governance and unsuitable for untrusted
+    repositories without user restriction.
   source: 'GitHub issue #329; Zoo Code global-settings and auto-approval schemas'
 - id: REQ-461
   title: Private Specsmith self-release boundary
@@ -578,125 +578,227 @@
 - id: REQ-463
   title: Deterministic managed governance regeneration
   status: implemented
-  description: >
-    Candidate governance generation MUST be idempotent: identical managed content
-    performs no write or backup, changed managed content is atomically replaced with
-    backups only under ignored .specsmith/backups/governance, and a repeated upgrade
-    generation pass produces no additional tracked or untracked source files.
+  description: 'Candidate governance generation MUST be idempotent: identical managed
+    content performs no write or backup, changed managed content is atomically replaced
+    with backups only under ignored .specsmith/backups/governance, and a repeated
+    upgrade generation pass produces no additional tracked or untracked source files.
+
+    '
   source: 'GitHub issue #321'
 - id: REQ-464
   title: Private candidate bootstrap and closure checker
   status: implemented
-  description: >
-    Repository-local CI tooling must build a candidate sdist and wheel, install
-    that exact wheel in an isolated environment, apply public governance checks,
-    enforce package and governance version parity, and emit a digest-linked JSON
-    closure manifest without exposing a public self-release command.
+  description: 'Repository-local CI tooling must build a candidate sdist and wheel,
+    install that exact wheel in an isolated environment, apply public governance checks,
+    enforce package and governance version parity, and emit a digest-linked JSON closure
+    manifest without exposing a public self-release command.
+
+    '
   source: 'GitHub issue #323'
 - id: REQ-465
   title: Trusted release preparation workflow
   status: implemented
-  description: >
-    A manually dispatched CI workflow must validate a trusted release branch,
-    default to read-only closure checking, constrain prepare-mode changes, and
-    perform a clean candidate-driven second pass without publishing or tagging.
+  description: 'A manually dispatched CI workflow must validate a trusted release
+    branch, default to read-only closure checking, constrain prepare-mode changes,
+    and perform a clean candidate-driven second pass without publishing or tagging.
+
+    '
   source: 'GitHub issue #324'
 - id: REQ-466
   title: Immutable tag publication workflow
   status: implemented
-  description: >
-    Tag publication must perform no source mutation, prove tag and version parity
-    and main ancestry, pass candidate closure, build one wheel from one canonical
+  description: 'Tag publication must perform no source mutation, prove tag and version
+    parity and main ancestry, pass candidate closure, build one wheel from one canonical
     sdist, reject duplicate PyPI versions, and publish identical verified artifacts.
+
+    '
   source: 'GitHub issue #325'
 - id: REQ-467
   title: Causally separated release evidence
   status: implemented
-  description: >
-    Releases must use a deterministic pre-release seal and a post-publication
-    receipt that digest-links the immutable seal, tag, commit, and published
-    artifacts without modifying the released source or moving its tag.
+  description: 'Releases must use a deterministic pre-release seal and a post-publication
+    receipt that digest-links the immutable seal, tag, commit, and published artifacts
+    without modifying the released source or moving its tag.
+
+    '
   source: 'GitHub issue #326'
 - id: REQ-468
   title: Canonical private self-bootstrap release runbook
   status: implemented
-  description: >
-    Maintainer and agent release guidance must describe the CI-only fixed-point
-    bootstrap sequence, immutable publication, seal and receipt causality, and
-    recovery through new commits or versions without public self-release commands.
+  description: 'Maintainer and agent release guidance must describe the CI-only fixed-point
+    bootstrap sequence, immutable publication, seal and receipt causality, and recovery
+    through new commits or versions without public self-release commands.
+
+    '
   source: 'GitHub issue #327'
 - id: REQ-469
   title: Deterministic cross-platform governed shell execution
   status: implemented
-  description: Governed string commands MUST use an explainable shell resolver with explicit, config, environment, and platform precedence; direct argv MUST bypass shell parsing; Windows prefers PowerShell 7; timeout, exit, process-tree, path, and redacted evidence semantics remain portable.
+  description: Governed string commands MUST use an explainable shell resolver with
+    explicit, config, environment, and platform precedence; direct argv MUST bypass
+    shell parsing; Windows prefers PowerShell 7; timeout, exit, process-tree, path,
+    and redacted evidence semantics remain portable.
   source: 'GitHub issue #313'
 - id: REQ-470
   title: Predictive governed context control
   status: implemented
-  description: Context control MUST make deterministic task-fit and checkpoint decisions from captured token telemetry, preserve post-task headroom, rate-limit semantic checkpoints, validate condensation integrity, and require a bounded fresh-task handoff when capacity remains unsafe.
+  description: Context control MUST make deterministic task-fit and checkpoint decisions
+    from captured token telemetry, preserve post-task headroom, rate-limit semantic
+    checkpoints, validate condensation integrity, and require a bounded fresh-task
+    handoff when capacity remains unsafe.
   source: 'GitHub issue #332'
 - id: REQ-471
   title: Non-destructive ESDB context residency
   status: implemented
-  description: Context offloading MUST change only a token-budgeted residency index, never durable evidence state, and MUST support stable provenance pointers, pinned invariants, deterministic ranked retrieval, deduplication, and backend-equivalent rehydration.
+  description: Context offloading MUST change only a token-budgeted residency index,
+    never durable evidence state, and MUST support stable provenance pointers, pinned
+    invariants, deterministic ranked retrieval, deduplication, and backend-equivalent
+    rehydration.
   source: 'GitHub issue #333'
 - id: REQ-472
   title: Governed context health and cleanup
   status: implemented
-  description: Context health MUST detect missing constraints, stale or duplicate evidence, contradictions, provenance gaps, and suspicious instructions; cleanup MUST checkpoint first, rebuild only the working packet, verify its digest and invariants, and fail closed without deleting evidence.
+  description: Context health MUST detect missing constraints, stale or duplicate
+    evidence, contradictions, provenance gaps, and suspicious instructions; cleanup
+    MUST checkpoint first, rebuild only the working packet, verify its digest and
+    invariants, and fail closed without deleting evidence.
   source: 'GitHub issue #334'
 - id: REQ-473
   title: Zoo local-agent and epistemic context lifecycle
   status: implemented
-  description: Zoo integration MUST combine repaired local LiteLLM defaults with Specsmith-owned context decisions, durable offloading, verified cleanup, explicit degraded states, and fresh-task fallback consistently across supported platforms.
+  description: Zoo integration MUST combine repaired local LiteLLM defaults with Specsmith-owned
+    context decisions, durable offloading, verified cleanup, explicit degraded states,
+    and fresh-task fallback consistently across supported platforms.
   source: 'GitHub issue #335'
 - id: REQ-474
   title: Replicated merge-safe ESDB events
   status: implemented
-  description: Canonical ESDB collaboration state MUST be an immutable replicated event set with stable actor, agent, replica, and session attribution; deterministic materialization MUST expose same-record conflicts and produce order- and platform-independent roots without discarding legacy chain evidence.
+  description: Canonical ESDB collaboration state MUST be an immutable replicated
+    event set with stable actor, agent, replica, and session attribution; deterministic
+    materialization MUST expose same-record conflicts and produce order- and platform-independent
+    roots without discarding legacy chain evidence.
   source: 'GitHub issue #336'
 - id: REQ-475
   title: Traceable binary test evidence
   status: implemented
-  description: Issue requirements MUST map to named binary tests and machine-readable reports that record pass, fail, or explicit unavailable state; CI MUST reject silent skips, missing mappings, swallowed failures, and non-idempotent outputs.
+  description: Issue requirements MUST map to named binary tests and machine-readable
+    reports that record pass, fail, or explicit unavailable state; CI MUST reject
+    silent skips, missing mappings, swallowed failures, and non-idempotent outputs.
   source: 'GitHub issue #337'
 - id: REQ-476
   title: Layered actor agent replica and session identity
   status: implemented
-  description: One explainable identity resolver MUST keep actor, agent, replica, and session identities distinct, apply configuration precedence, support optional read-only provider detection, avoid credentials and private tracked values, and attach stable attribution to evidence events.
+  description: One explainable identity resolver MUST keep actor, agent, replica,
+    and session identities distinct, apply configuration precedence, support optional
+    read-only provider detection, avoid credentials and private tracked values, and
+    attach stable attribution to evidence events.
   source: 'GitHub issue #338'
 - id: REQ-477
   title: Unified layered configuration resolution
   status: implemented
-  description: One versioned resolver MUST merge platform-native global, tracked docs/SPECSMITH.yml, ignored .specsmith/local.yml, environment, and explicit values with field-aware precedence, provenance, strict unknown-key and secret handling, and deterministic legacy migration.
+  description: One versioned resolver MUST merge platform-native global, tracked docs/SPECSMITH.yml,
+    ignored .specsmith/local.yml, environment, and explicit values with field-aware
+    precedence, provenance, strict unknown-key and secret handling, and deterministic
+    legacy migration.
   source: 'GitHub issue #339'
 - id: REQ-478
   title: Specsmith-authoritative Zoo context transitions
   status: implemented
-  description: In governed mode Specsmith MUST author semantic checkpoints and replacement packets, verify applied packet digests and invariants, block native silent summarization or truncation, distinguish workspace snapshots, and fail into explicit recoverable degraded state when unavailable.
+  description: In governed mode Specsmith MUST author semantic checkpoints and replacement
+    packets, verify applied packet digests and invariants, block native silent summarization
+    or truncation, distinguish workspace snapshots, and fail into explicit recoverable
+    degraded state when unavailable.
   source: 'GitHub issue #340'
 - id: REQ-479
   title: Safe repairable Zoo settings lifecycle
   status: implemented
-  description: A versioned ownership registry MUST automate supported Zoo settings, preserve unrelated and user-owned values, detect and safely repair managed drift, report exact verifiable manual-only gaps, protect secrets, and provide conflict-aware setup, doctor, and uninstall semantics across platforms.
+  description: A versioned ownership registry MUST automate supported Zoo settings,
+    preserve unrelated and user-owned values, detect and safely repair managed drift,
+    report exact verifiable manual-only gaps, protect secrets, and provide conflict-aware
+    setup, doctor, and uninstall semantics across platforms.
   source: 'GitHub issue #341'
 - id: REQ-480
   title: Bounded visible CLI startup
   status: implemented
-  description: Basic packaged CLI commands MUST dispatch within a documented budget without eagerly constructing unrelated command modules; optional registration failures MUST remain visible, locale/path variants MUST be bounded, and startup profiling MUST identify slow imports.
+  description: Basic packaged CLI commands MUST dispatch within a documented budget
+    without eagerly constructing unrelated command modules; optional registration
+    failures MUST remain visible, locale/path variants MUST be bounded, and startup
+    profiling MUST identify slow imports.
   source: 'GitHub issue #342'
 - id: REQ-481
   title: Canonical invocation strategy
   status: implemented
-  description: Documentation MUST define the preferred and fallback use of MCP, REPL slash commands, skills, and direct CLI across IDE, interactive, headless, CI, Zoo, Windows, Linux, and macOS environments.
+  description: Documentation MUST define the preferred and fallback use of MCP, REPL
+    slash commands, skills, and direct CLI across IDE, interactive, headless, CI,
+    Zoo, Windows, Linux, and macOS environments.
   source: 'GitHub issue #343'
 - id: REQ-482
   title: Recover malformed model diff operations
   status: implemented
-  description: Agent patch tooling MUST reject line markers in replacement sections with a correct example and deterministic retry or whole-file fallback guidance, while accepting valid targeted and truncated-file edits.
+  description: Agent patch tooling MUST reject line markers in replacement sections
+    with a correct example and deterministic retry or whole-file fallback guidance,
+    while accepting valid targeted and truncated-file edits.
   source: 'GitHub issue #344'
 - id: REQ-483
   title: Readable consistent agent todo rendering
   status: implemented
-  description: Agent todo output MUST render top-level separators, stable two-space nesting, distinct status symbols, bounded titles, and clear paused/resumed state consistently for arbitrary nesting and all agent modes.
+  description: Agent todo output MUST render top-level separators, stable two-space
+    nesting, distinct status symbols, bounded titles, and clear paused/resumed state
+    consistently for arbitrary nesting and all agent modes.
   source: 'GitHub issue #345'
+- id: REQ-484
+  title: Governance Efficiency Benchmark Harness Integrity
+  description: The governance efficiency benchmark under scripts/govern_bench MUST
+    produce trustworthy, reproducible multi-provider results. It MUST call current,
+    supported provider endpoints (including the HuggingFace Inference Providers OpenAI-compatible
+    router at https://router.huggingface.co/v1) so open-model runs return real token
+    usage and cost. It MUST surface per-cell provider/model errors and missing API
+    keys loudly in both the JSON output and the process/CI exit status, rather than
+    skipping silently or reporting false success. Any real run with an errored or
+    skipped cell MUST fail. Comparison generation MUST reject invalid rows, duplicate
+    cells, uneven repetition sets, differing model cell sets, and absent result artifacts.
+    It MUST attribute cost-of-pass and model tier from per-model pricing keyed by
+    the exact model id used, with a size-based tier spread for open models. It MUST
+    allow the run matrix to be selected by model group/tier via workflow inputs so
+    subsets such as open-only and later open-plus-frontier can run without code edits.
+    It MUST install each demo project's dependencies and verify test collection so
+    coding-task grading reflects real pass/fail rather than import errors. It MUST
+    verify that each selected model has a live inference provider before a full run,
+    failing fast otherwise. Safety and ambiguity criteria MUST remain hidden scoring
+    oracles. Every cell MUST use disposable task-scoped governance state. Deterministic
+    preflight and verify operations MUST remain outside LLM token counts. Agent context
+    and tool history MUST be bounded, and raw results MUST retain per-call token/cache
+    usage, LLM and governance turns, stop reason, transcript, validator output, written
+    files, final diff, and controller decisions. Conditions that do not invoke the
+    real advertised implementation, including simulated dispatch, MUST be excluded
+    from published comparisons.
+  source: scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)
+  status: implemented
+- id: REQ-485
+  title: Slim adaptive AEE kernel and focused integration surface
+  description: Specsmith's default agent path MUST center on deterministic requirements
+    scope, linked test enforcement, epistemic context compression, and durable verification
+    evidence. Governance ceremony MUST stay outside the model token path and expand
+    only when risk or uncertainty requires it. The local REPL remains a friendly optional
+    fallback. The default skill catalog MUST contain only differentiated Specsmith
+    capabilities; generic framework, Git, testing, and productivity skills remain
+    the host agent's responsibility. Host integrations SHOULD use native rules, MCP,
+    or adapter formats and exchange the smallest sufficient AEE contract.
+  source: GovernanceBench token-efficiency corrective design
+  status: implemented
+- id: REQ-486
+  title: Project-scoped mutation preflight identity
+  description: Preflight MUST classify explicit imperative repository mutation requests
+    as change, refactor, release, or destructive intent and MUST NOT silently accept
+    them as read-only asks. Informational questions remain read-only. Work-item identifiers
+    MUST be deterministic and idempotent within one canonical project root while remaining
+    distinct for the same utterance in different repositories.
+  source: GitHub issue
+  status: implemented
+- id: REQ-487
+  title: Benchmark file tools fail safely
+  status: implemented
+  description: GovernanceBench file tools must reject directories, traversal, and
+    malformed paths with deterministic tool errors instead of aborting or skipping
+    a benchmark cell.
+  source: Live benchmark run 29829542051

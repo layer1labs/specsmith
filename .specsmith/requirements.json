@@ -4905,5 +4905,16 @@
     "test_ids": [
       "TEST-512"
     ]
+  },
+  {
+    "id": "REQ-487",
+    "version": 1,
+    "title": "Benchmark file tools fail safely",
+    "description": "GovernanceBench file tools must reject directories, traversal, and malformed paths with deterministic tool errors instead of aborting or skipping a benchmark cell.",
+    "source": "Live benchmark run 29829542051",
+    "status": "implemented",
+    "test_ids": [
+      "TEST-513"
+    ]
   }
 ]

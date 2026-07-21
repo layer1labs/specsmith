@@ -23,14 +23,19 @@ from govern_bench.conditions import get_condition  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
     _build_project_diff,
     _build_tools,
+    _completion_gate,
     _copy_project_fixture,
+    _exec_list_files,
+    _exec_read_file,
     _exec_run_command,
+    _exec_write_file,
     _get_project_dir,
     _install_acceptance_oracle,
     _openai_completion_token_param,
     _openai_reasoning_params,
     _run_agent_loop,
     _run_governance_controller,
+    _updated_verification_evidence,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.probe_models import (  # noqa: E402
@@ -236,6 +241,38 @@ def test_validation_commands_do_not_create_cache_artifacts(tmp_path: Path) -> No
     assert not (project_root / ".ruff_cache").exists()
 
 
+def test_file_tools_return_safe_errors_for_directories_and_malformed_paths(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    files_written: list[str] = []
+
+    assert _exec_read_file(project_root, ".").startswith("ERROR: path is not a file")
+    assert _exec_write_file(project_root, ".", "content", files_written).startswith(
+        "ERROR: path is not a file"
+    )
+    assert _exec_read_file(project_root, "\x00").startswith("ERROR:")
+    assert _exec_list_files(project_root, "\x00").startswith("ERROR:")
+    assert files_written == []
+
+
+def test_file_tools_reject_prefix_collision_traversal(tmp_path: Path) -> None:
+    project_root = tmp_path / "project"
+    sibling = tmp_path / "project-escape"
+    project_root.mkdir()
+    sibling.mkdir()
+    (sibling / "secret.txt").write_text("secret", encoding="utf-8")
+    traversal = "../project-escape/secret.txt"
+
+    assert _exec_read_file(project_root, traversal) == "ERROR: path traversal denied"
+    assert _exec_write_file(project_root, traversal, "changed", []) == (
+        "ERROR: path traversal denied"
+    )
+    assert _exec_list_files(project_root, "../project-escape") == "ERROR: path traversal denied"
+    assert (sibling / "secret.txt").read_text(encoding="utf-8") == "secret"
+
+
 def test_project_diff_excludes_evaluator_and_cache_artifacts(tmp_path: Path) -> None:
     source = tmp_path / "source"
     project = tmp_path / "project"
@@ -264,6 +301,36 @@ def test_governance_tools_do_not_change_agent_capabilities() -> None:
     full_names = [tool["function"]["name"] for tool in _build_tools("SPECSMITH_FULL", task)]
     assert full_names == raw_names
     assert not any(name.startswith("specsmith_") for name in full_names)
+
+
+def test_full_completion_gate_requires_fresh_lint_and_test_evidence() -> None:
+    task = get_task("T1")
+    accepted, instruction = _completion_gate("SPECSMITH_FULL", task, False, False)
+    assert not accepted
+    assert "ruff check ." in instruction
+    assert "pytest" in instruction
+
+    lint_ok, tests_ok = _updated_verification_evidence(
+        "ruff check . && pytest",
+        True,
+        False,
+        False,
+    )
+    assert (lint_ok, tests_ok) == (True, True)
+    assert _completion_gate("SPECSMITH_FULL", task, lint_ok, tests_ok)[0]
+
+
+def test_completion_gate_does_not_advantage_non_full_conditions() -> None:
+    task = get_task("T1")
+    assert _completion_gate("CURSOR_RULES", task, False, False)[0]
+    assert _completion_gate("SPECSMITH_LIGHT", task, False, False)[0]
+
+
+def test_failed_check_invalidates_only_its_evidence() -> None:
+    evidence = _updated_verification_evidence("ruff check .", False, True, True)
+    assert evidence == (False, True)
+    evidence = _updated_verification_evidence("pytest", False, True, True)
+    assert evidence == (True, False)
 
 
 def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:

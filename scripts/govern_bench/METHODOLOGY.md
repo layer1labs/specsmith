@@ -138,6 +138,10 @@ Do not publish comparative claims when intervals overlap substantially without c
 - Inject evaluator-only acceptance tests only after the agent finishes. A
   standard coding task without a hidden oracle is not scoreable and must fail
   closed. Passing requires lint, project tests, and the independent oracle.
+- For standard coding tasks, require `SPECSMITH_FULL` to pass `ruff check .`
+  and `pytest` after its latest write before accepting `done`. Failed checks
+  trigger measured repair turns. Do not apply this gate to comparison
+  conditions, and never expose the hidden oracle during repair.
 - Disable pytest and Ruff caches during grading so generated cache files do not
   contaminate diffs, scope measurements, or subsequent validation.
 - Record model identifiers, provider, run timestamp, and benchmark commit SHA.
