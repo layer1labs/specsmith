@@ -402,7 +402,7 @@ def render_comparison(
     if not screening_ready:
         lines += [
             "No superiority claim is made: every matched slice needs at least 5 "
-            "repetitions for screening evidence.",
+            + "repetitions for screening evidence.",
             "",
         ]
 

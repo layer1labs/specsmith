@@ -363,11 +363,11 @@
 - id: TEST-434
   title: CI CodeQL scan produces zero alerts on every run
   description: The GitHub Actions CodeQL workflow must complete with zero open alerts
-    for the specsmith codebase. This covers py/unreachable-statement, py/import-and-import-from,
-    and py/path-injection patterns documented in AGENTS.md CodeQL Safe Patterns.
+    for the specsmith codebase, including quality, reliability, control-flow, import,
+    and path-safety findings.
   requirement_id: REQ-424
   type: build
-  verification_method: gh api repos/specsmith-dev/specsmith/code-scanning/alerts
+  verification_method: gh api repos/layer1labs/specsmith/code-scanning/alerts
   input: GitHub Actions CodeQL workflow run on develop branch
   expected_behavior: Zero open CodeQL alerts; workflow exits with code 0
   confidence: 0.95

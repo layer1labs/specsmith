@@ -54,6 +54,7 @@ def _http_error_message(exc: urllib.error.HTTPError) -> str:
         if isinstance(error, dict) and isinstance(error.get("message"), str):
             detail = error["message"].strip()[:500]
     except (UnicodeDecodeError, ValueError):
+        # Malformed optional error bodies fall back to the HTTP status and reason.
         pass
     suffix = f": {detail}" if detail else ""
     return f"HTTP {exc.code} {exc.reason}{suffix}"

@@ -4210,7 +4210,7 @@
     "title": "CI pipeline must produce zero CodeQL static analysis alerts on every run",
     "description": "Promoted from WI-0CEA445B. The codebase must produce zero CodeQL static analysis alerts on every CI run",
     "source": "WI-0CEA445B",
-    "status": "planned",
+    "status": "implemented",
     "test_ids": [
       "TEST-434"
     ]
