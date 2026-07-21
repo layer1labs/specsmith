@@ -37,7 +37,7 @@ condition and task tables.
 | Role | Model | Rationale |
 |---|---|---|
 | Historical baseline | `gpt-4o-mini` | Preserves continuity with prior runs |
-| Open-weight managed route | `Qwen/Qwen3.6-35B-A3B:deepinfra` | Current Qwen coding/repository model with a live tool-capable HF route |
+| Open-weight managed route | `Qwen/Qwen3.6-35B-A3B:scaleway` | Current Qwen coding/repository model with a live tool-capable HF route |
 | Cost-conscious current model | `gpt-5.6-luna` | Modern closed-model screening baseline |
 | Frontier anchor | `gpt-5.6-sol` | Upper-bound comparison for complex coding and reasoning |
 

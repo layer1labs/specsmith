@@ -171,13 +171,13 @@ def test_current_model_pricing_and_tiers() -> None:
     assert estimate_cost("gpt-5.6-luna", 1_000_000, 1_000_000) == 7.0
     assert estimate_cost("gpt-5.6-terra", 1_000_000, 1_000_000) == 17.5
     assert estimate_cost("gpt-5.6-sol", 1_000_000, 1_000_000) == 35.0
-    assert estimate_cost("Qwen/Qwen3.6-35B-A3B:deepinfra", 1_000_000, 1_000_000) == pytest.approx(
-        1.10
+    assert estimate_cost("Qwen/Qwen3.6-35B-A3B:scaleway", 1_000_000, 1_000_000) == pytest.approx(
+        1.995
     )
     assert model_tier("gpt-5.6-luna") == "mini"
     assert model_tier("gpt-5.6-terra") == "mid"
     assert model_tier("gpt-5.6-sol") == "frontier"
-    assert model_tier("Qwen/Qwen3.6-35B-A3B:deepinfra") == "open-mid"
+    assert model_tier("Qwen/Qwen3.6-35B-A3B:scaleway") == "open-mid"
 
 
 def test_safety_oracles_are_hidden_from_agents() -> None:

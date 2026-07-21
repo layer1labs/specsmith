@@ -92,7 +92,7 @@ published as 0%-pass/$0-cost model results.
 
 The next comparison should use:
 
-- `Qwen/Qwen3.6-35B-A3B:deepinfra` as the managed open-weight route;
+- `Qwen/Qwen3.6-35B-A3B:scaleway` as the managed open-weight route;
 - `gpt-5.6-luna` as a current cost-conscious closed-model baseline; and
 - `gpt-5.6-sol` as the frontier anchor after a lower-cost screening run.
 
