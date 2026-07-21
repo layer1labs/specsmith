@@ -137,7 +137,8 @@ Do not publish comparative claims when intervals overlap substantially without c
 - Start runs from clean project fixtures/worktrees.
 - Inject evaluator-only acceptance tests only after the agent finishes. A
   standard coding task without a hidden oracle is not scoreable and must fail
-  closed. Passing requires lint, project tests, and the independent oracle.
+  closed. Run project lint and project tests before injection, then run the
+  independent oracle exactly once in isolation. Passing requires all three.
 - For standard coding tasks, require `SPECSMITH_FULL` to pass `ruff check .`
   and `pytest` after its latest write before accepting `done`. Failed checks
   trigger measured repair turns. Do not apply this gate to comparison

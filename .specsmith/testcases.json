@@ -5614,5 +5614,17 @@
     "input": {},
     "expected_behavior": {},
     "confidence": 1.0
+  },
+  {
+    "id": "TEST-514",
+    "version": 1,
+    "title": "Standard grading orders project checks before isolated oracle",
+    "description": "Prevents hidden oracle files from contaminating Ruff or being collected by both project pytest and oracle pytest.",
+    "requirement_id": "REQ-488",
+    "type": "unit",
+    "verification_method": "Regression test records validation command order and oracle visibility, proving Ruff and project pytest run without evaluator files and the oracle runs once after injection.",
+    "input": {},
+    "expected_behavior": {},
+    "confidence": 1.0
   }
 ]

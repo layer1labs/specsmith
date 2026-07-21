@@ -1365,6 +1365,26 @@ def _completion_gate(
     )
 
 
+def _run_standard_validation(
+    task: BenchTask,
+    project_root: Path,
+) -> tuple[bool, str, bool, str, bool, str]:
+    """Grade project checks first, then run the hidden oracle in isolation."""
+    lint_ok, lint_out = _exec_run_command(project_root, "ruff check .")
+    project_test_ok, project_test_out = _exec_run_command(project_root, "pytest")
+
+    oracle_dir = _install_acceptance_oracle(task, project_root)
+    try:
+        oracle_ok, oracle_out = _exec_run_command(
+            project_root,
+            "pytest .governancebench_oracle",
+        )
+    finally:
+        shutil.rmtree(oracle_dir, ignore_errors=True)
+
+    return lint_ok, lint_out, project_test_ok, project_test_out, oracle_ok, oracle_out
+
+
 # ---------------------------------------------------------------------------
 # Main harness entry point
 # ---------------------------------------------------------------------------
@@ -1663,17 +1683,16 @@ def _run_agent_loop(
         tests_passed = quality_score >= 1.0
 
     else:
-        # Standard coding tasks: inject evaluator-only tests after the agent
-        # finishes, then require lint, project tests, and the hidden oracle.
-        oracle_dir = _install_acceptance_oracle(task, project_root)
-        try:
-            lint_ok, lint_out = _exec_run_command(project_root, "ruff check .")
-            project_test_ok, project_test_out = _exec_run_command(project_root, "pytest")
-            oracle_ok, oracle_out = _exec_run_command(
-                project_root, "pytest .governancebench_oracle"
-            )
-        finally:
-            shutil.rmtree(oracle_dir, ignore_errors=True)
+        # Standard coding tasks: validate the project before installing any
+        # evaluator files, then run the hidden oracle exactly once in isolation.
+        (
+            lint_ok,
+            lint_out,
+            project_test_ok,
+            project_test_out,
+            oracle_ok,
+            oracle_out,
+        ) = _run_standard_validation(task, project_root)
         test_out = f"$ project tests\n{project_test_out}\n\n$ acceptance oracle\n{oracle_out}"
         lint_passed = lint_ok
         tests_passed = project_test_ok and oracle_ok

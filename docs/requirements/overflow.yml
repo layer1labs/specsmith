@@ -802,3 +802,10 @@
     malformed paths with deterministic tool errors instead of aborting or skipping
     a benchmark cell.
   source: Live benchmark run 29829542051
+- id: REQ-488
+  title: Benchmark grading isolates evaluator artifacts
+  status: implemented
+  description: GovernanceBench must run project lint and project tests before injecting
+    evaluator-only files, then execute each hidden acceptance oracle exactly once
+    in isolation so evaluator artifacts cannot change project scores.
+  source: Live benchmark run 29832926861

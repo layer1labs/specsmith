@@ -915,3 +915,12 @@
     and list tools and assert safe error responses without exceptions.
   description: Regression coverage for live benchmark failures caused by read_file('.')
     and unsafe path resolution.
+- id: TEST-514
+  title: Standard grading orders project checks before isolated oracle
+  requirement_id: REQ-488
+  type: unit
+  verification_method: Regression test records validation command order and oracle
+    visibility, proving Ruff and project pytest run without evaluator files and the
+    oracle runs once after injection.
+  description: Prevents hidden oracle files from contaminating Ruff or being collected
+    by both project pytest and oracle pytest.

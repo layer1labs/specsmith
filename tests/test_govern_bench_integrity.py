@@ -13,6 +13,7 @@ _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+import govern_bench.harness as harness_module  # noqa: E402
 from govern_bench.compare_runs import (  # noqa: E402
     rollup,
     split_input_spec,
@@ -271,6 +272,42 @@ def test_file_tools_reject_prefix_collision_traversal(tmp_path: Path) -> None:
     )
     assert _exec_list_files(project_root, "../project-escape") == "ERROR: path traversal denied"
     assert (sibling / "secret.txt").read_text(encoding="utf-8") == "secret"
+
+
+def test_standard_validation_isolates_hidden_oracle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    oracle_dir = project_root / ".governancebench_oracle"
+    events: list[tuple[str, bool]] = []
+
+    def fake_run_command(root: Path, command: str) -> tuple[bool, str]:
+        assert root == project_root
+        events.append((command, oracle_dir.exists()))
+        return True, command
+
+    def fake_install(task: object, root: Path) -> Path:
+        assert task == get_task("T1")
+        assert root == project_root
+        events.append(("install", oracle_dir.exists()))
+        oracle_dir.mkdir()
+        return oracle_dir
+
+    monkeypatch.setattr(harness_module, "_exec_run_command", fake_run_command)
+    monkeypatch.setattr(harness_module, "_install_acceptance_oracle", fake_install)
+
+    result = harness_module._run_standard_validation(get_task("T1"), project_root)
+
+    assert result == (True, "ruff check .", True, "pytest", True, "pytest .governancebench_oracle")
+    assert events == [
+        ("ruff check .", False),
+        ("pytest", False),
+        ("install", False),
+        ("pytest .governancebench_oracle", True),
+    ]
+    assert not oracle_dir.exists()
 
 
 def test_project_diff_excludes_evaluator_and_cache_artifacts(tmp_path: Path) -> None:

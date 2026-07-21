@@ -76,6 +76,8 @@ The publication-eligible default suite is `T1`, `T2`, `T6`, `T7`, `T10`,
 `T11`, and `T13`. Its coding tasks have evaluator-only acceptance tests that
 are injected after the agent stops. A standard task without an oracle fails
 closed; clean fixtures and no-op responses cannot count as correct.
+Project Ruff and pytest checks run before injection; the oracle then runs once
+in its own pytest invocation and is removed before diff construction.
 
 For standard coding tasks, `SPECSMITH_FULL` also blocks the agent's `done`
 request until both `ruff check .` and `pytest` have passed after its latest
