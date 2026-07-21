@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import sys
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -27,6 +29,7 @@ from govern_bench.harness import (  # noqa: E402
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.probe_models import (  # noqa: E402
     _chat_probe_payload,
+    _http_error_message,
     _probe_chat_endpoint,
 )
 from govern_bench.run_bench import _configure_console_output, incomplete_real_run  # noqa: E402
@@ -165,6 +168,19 @@ def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
     assert reasoning["max_completion_tokens"] == 32
     assert "temperature" not in reasoning
     assert regular["tools"][0]["function"]["name"] == "ping"
+
+
+def test_probe_http_error_reports_only_bounded_provider_message() -> None:
+    exc = urllib.error.HTTPError(
+        "https://api.openai.com/v1/chat/completions",
+        400,
+        "Bad Request",
+        {},
+        io.BytesIO(b'{"error":{"message":"Unsupported parameter: max_completion_tokens"}}'),
+    )
+    message = _http_error_message(exc)
+    assert message == "HTTP 400 Bad Request: Unsupported parameter: max_completion_tokens"
+    assert "api.openai.com" not in message
 
 
 def test_current_model_pricing_and_tiers() -> None:

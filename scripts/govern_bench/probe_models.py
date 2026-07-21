@@ -45,6 +45,20 @@ _OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
 _HF_PROVIDER = "huggingface"
 
 
+def _http_error_message(exc: urllib.error.HTTPError) -> str:
+    """Return a bounded provider error message without request headers or secrets."""
+    detail = ""
+    try:
+        payload = json.loads(exc.read().decode("utf-8"))
+        error = payload.get("error", {}) if isinstance(payload, dict) else {}
+        if isinstance(error, dict) and isinstance(error.get("message"), str):
+            detail = error["message"].strip()[:500]
+    except (UnicodeDecodeError, ValueError):
+        pass
+    suffix = f": {detail}" if detail else ""
+    return f"HTTP {exc.code} {exc.reason}{suffix}"
+
+
 def _split_route(model_id: str) -> tuple[str, str | None]:
     """Split an ``org/repo:provider`` id into (repo_id, pinned_provider|None).
 
@@ -104,7 +118,7 @@ def _probe_one(model_id: str, token: str | None, timeout: float) -> dict:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        return {"model": model_id, "ok": False, "error": f"HTTP {exc.code} {exc.reason}"}
+        return {"model": model_id, "ok": False, "error": _http_error_message(exc)}
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
         return {"model": model_id, "ok": False, "error": str(exc)}
 
@@ -140,7 +154,7 @@ def _probe_openai_model(model_id: str, token: str | None, timeout: float) -> dic
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        return {"model": model_id, "ok": False, "error": f"HTTP {exc.code} {exc.reason}"}
+        return {"model": model_id, "ok": False, "error": _http_error_message(exc)}
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
         return {"model": model_id, "ok": False, "error": str(exc)}
     returned_id = payload.get("id") if isinstance(payload, dict) else None
@@ -202,7 +216,7 @@ def _probe_chat_endpoint(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        return {"model": model_id, "ok": False, "error": f"HTTP {exc.code} {exc.reason}"}
+        return {"model": model_id, "ok": False, "error": _http_error_message(exc)}
     except (urllib.error.URLError, TimeoutError, ValueError) as exc:
         return {"model": model_id, "ok": False, "error": str(exc)}
     choices = payload.get("choices") if isinstance(payload, dict) else None
