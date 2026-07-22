@@ -118,6 +118,13 @@ MODEL_CACHE_WRITE_MULTIPLIER: dict[str, float] = {
     "gpt-5.6": 1.25,
 }
 
+# HF router prices can differ by explicitly pinned serving provider. Exact
+# route keys take precedence over the repo-level fallback above.
+MODEL_ROUTE_PRICING_PER_1M: dict[str, tuple[float, float]] = {
+    "Qwen/Qwen3.6-35B-A3B:deepinfra": (0.15, 0.95),
+    "Qwen/Qwen3.6-35B-A3B:scaleway": (0.285, 1.71),
+}
+
 # Backwards-compatible alias — keep old key format working
 MODEL_PRICING: dict[str, tuple[float, float]] = {
     k: (v[0] / 1000, v[1] / 1000)  # convert $/1M → $/1K
@@ -234,7 +241,10 @@ def estimate_cost_breakdown(
 ) -> tuple[float, float, float]:
     """Return (input_cost_usd, output_cost_usd, total_cost_usd)."""
     base = strip_provider_route(model)
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"])
+    inp_per_m, out_per_m = MODEL_ROUTE_PRICING_PER_1M.get(
+        model,
+        MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"]),
+    )
     cached = min(max(0, cached_input_tokens), max(0, input_tokens))
     writes = min(max(0, cache_write_tokens), max(0, input_tokens - cached))
     uncached = max(0, input_tokens - cached - writes)

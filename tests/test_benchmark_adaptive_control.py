@@ -12,10 +12,15 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from govern_bench.harness import (  # noqa: E402
+    _build_active_tools,
     _exec_read_file_with_evidence,
+    _looks_like_nonterminal_narration,
     _milestone_contract,
     _milestone_progress,
+    _openai_sampling_params,
     _replace_adaptive_progress_message,
+    _scope_contract,
+    _scope_progress,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.select_models import load_registry, select  # noqa: E402
@@ -71,6 +76,55 @@ def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> 
     messages = _replace_adaptive_progress_message(messages, "second")
     assert len(messages) == 1
     assert messages[0]["content"].endswith("second")
+
+
+def test_accepted_aee_work_starts_with_minimal_tools_and_bounded_scope() -> None:
+    task = get_task("T1")
+    initial = [tool["function"]["name"] for tool in _build_active_tools("SPECSMITH_FULL", task)]
+    diagnostic = [
+        tool["function"]["name"]
+        for tool in _build_active_tools("SPECSMITH_FULL", task, diagnostics_required=True)
+    ]
+
+    assert initial == ["read_file", "write_file", "done"]
+    assert {"list_files", "run_command", "ask_clarification"}.issubset(diagnostic)
+    assert "app/main.py" in _scope_contract(task)
+    assert "tests/test_main.py" in _scope_progress(task, ["app/main.py"])
+    assert "call done" in _scope_progress(task, task.expected_files_changed)
+
+
+def test_qwen_sampling_uses_official_model_specific_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("BENCH_TEMPERATURE", raising=False)
+
+    assert _openai_sampling_params("Qwen/Qwen3-Coder-Next:novita") == {
+        "temperature": 1.0,
+        "top_p": 0.95,
+    }
+    assert _openai_sampling_params("Qwen/Qwen3-Coder-480B-A35B-Instruct:novita") == {
+        "temperature": 0.7,
+        "top_p": 0.8,
+    }
+    assert _openai_sampling_params("Qwen/Qwen3.6-35B-A3B:deepinfra") == {
+        "temperature": 0.6,
+        "top_p": 0.95,
+    }
+
+    monkeypatch.setenv("BENCH_TEMPERATURE", "0.33")
+    assert _openai_sampling_params("Qwen/Qwen3-Coder-Next:novita") == {"temperature": 0.33}
+
+
+@pytest.mark.parametrize(
+    ("content", "expected"),
+    [
+        ("Let me update the tests next.", True),
+        ("Now I'll run the validator.", True),
+        ("The implementation and tests are complete.", False),
+    ],
+)
+def test_nonterminal_narration_detection_is_narrow(content: str, expected: bool) -> None:
+    assert _looks_like_nonterminal_narration(content) is expected
 
 
 def _audit_row(*, condition: str, passed: bool, transcript: list[dict] | None = None) -> dict:
@@ -139,6 +193,7 @@ def test_qwen_agentic_coding_candidates_have_hf_routes_pricing_and_tiers() -> No
     assert {candidate["label"] for candidate in candidates} == {
         "qwen3-coder-next",
         "qwen3-coder-480b",
+        "qwen3.6-35b-deepinfra",
     }
     assert all(candidate["provider"] == "huggingface" for candidate in candidates)
     assert estimate_cost("Qwen/Qwen3-Coder-Next:novita", 1_000_000, 1_000_000) == pytest.approx(
@@ -146,3 +201,6 @@ def test_qwen_agentic_coding_candidates_have_hf_routes_pricing_and_tiers() -> No
     )
     assert model_tier("Qwen/Qwen3-Coder-Next:novita") == "open-large"
     assert model_tier("Qwen/Qwen3-Coder-480B-A35B-Instruct:novita") == "open-xl"
+    assert estimate_cost("Qwen/Qwen3.6-35B-A3B:deepinfra", 1_000_000, 1_000_000) == pytest.approx(
+        1.10
+    )

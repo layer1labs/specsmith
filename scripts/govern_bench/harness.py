@@ -207,14 +207,28 @@ def _completion_token_param(provider: str, model: str) -> dict[str, int]:
 
 
 def _openai_sampling_params(model: str) -> dict[str, float]:
-    """Return reproducible sampling controls when the model accepts them."""
+    """Return reproducible, model-compatible sampling controls."""
     if model.startswith(("gpt-5", "o1", "o3", "o4")):
         return {}
-    try:
-        temperature = float(os.environ.get("BENCH_TEMPERATURE", "0.2"))
-    except ValueError:
-        temperature = 0.2
-    return {"temperature": min(2.0, max(0.0, temperature))}
+    configured_temperature = os.environ.get("BENCH_TEMPERATURE")
+    if configured_temperature is not None:
+        try:
+            temperature = float(configured_temperature)
+        except ValueError:
+            temperature = 0.2
+        return {"temperature": min(2.0, max(0.0, temperature))}
+
+    # Low-temperature defaults made the Qwen coding models repeat reads and
+    # serial debugging steps. Use each official model card's coding/instruct
+    # recommendation unless a diagnostic run explicitly overrides it.
+    model_id = model.split(":", 1)[0].casefold()
+    if "qwen3-coder-next" in model_id:
+        return {"temperature": 1.0, "top_p": 0.95}
+    if "qwen3-coder-480b" in model_id:
+        return {"temperature": 0.7, "top_p": 0.8}
+    if "qwen3.6" in model_id:
+        return {"temperature": 0.6, "top_p": 0.95}
+    return {"temperature": 0.2}
 
 
 def _openai_reasoning_params(model: str) -> dict[str, str]:
@@ -418,6 +432,20 @@ def _build_tools(condition_id: str, task: BenchTask) -> list[dict]:
     return tools
 
 
+def _build_active_tools(
+    condition_id: str,
+    task: BenchTask,
+    *,
+    diagnostics_required: bool = False,
+) -> list[dict]:
+    """Expose the smallest sufficient tool surface for accepted AEE work."""
+    tools = _build_tools(condition_id, task)
+    if condition_id != "SPECSMITH_FULL" or diagnostics_required:
+        return tools
+    initial_names = {"read_file", "write_file", "done"}
+    return [tool for tool in tools if tool["function"]["name"] in initial_names]
+
+
 def _is_specsmith_condition(condition_id: str) -> bool:
     return condition_id in {"SPECSMITH_LIGHT", "SPECSMITH_FULL"}
 
@@ -494,6 +522,19 @@ def _milestone_contract(task: BenchTask) -> str:
     return "\n".join(lines)
 
 
+def _scope_contract(task: BenchTask) -> str:
+    """Render a compact controller-owned change map for accepted coding work."""
+    files = [str(path) for path in task.expected_files_changed]
+    if not files or task.is_safety_task or task.is_clarification_task:
+        return ""
+    return (
+        "AEE change map (requirement-linked, not evaluator evidence):\n"
+        f"- likely change boundaries: {', '.join(files)}\n"
+        "- inspect each relevant existing file once; do not investigate unrelated defects\n"
+        "- issue independent tool calls in one response when the provider supports batching"
+    )
+
+
 def _milestone_progress(task: BenchTask, files_written: list[str]) -> str:
     """Return the next incomplete milestone without exposing evaluator evidence."""
     written = {_normalized_history_path(path) for path in files_written}
@@ -507,6 +548,19 @@ def _milestone_progress(task: BenchTask, files_written: list[str]) -> str:
                 + ", ".join(remaining)
             )
     return "All declared milestone files have implementation evidence; call done for validation."
+
+
+def _scope_progress(task: BenchTask, files_written: list[str]) -> str:
+    """Return compact progress across the requirement-linked change boundaries."""
+    written = {_normalized_history_path(path) for path in files_written}
+    remaining = [
+        str(path)
+        for path in task.expected_files_changed
+        if _normalized_history_path(str(path)) not in written
+    ]
+    if remaining:
+        return "Requirement-linked boundaries without write evidence: " + ", ".join(remaining)
+    return "All requirement-linked boundaries have write evidence; call done for validation."
 
 
 _ADAPTIVE_PROGRESS_PREFIX = "[Specsmith adaptive progress]"
@@ -526,6 +580,22 @@ def _replace_adaptive_progress_message(
     ]
     compacted.append({"role": "user", "content": f"{_ADAPTIVE_PROGRESS_PREFIX} {content}"})
     return compacted
+
+
+def _looks_like_nonterminal_narration(content: str) -> bool:
+    """Detect provider narration that promises another action but omits its tool call."""
+    normalized = " ".join(content.casefold().split())
+    markers = (
+        "let me ",
+        "now i'll ",
+        "now i will ",
+        "next i'll ",
+        "next i will ",
+        "i need to ",
+        "i'll now ",
+        "i will now ",
+    )
+    return any(marker in normalized for marker in markers)
 
 
 def _compact_completed_tool_exchange(
@@ -1764,7 +1834,7 @@ def _run_agent_loop(
     from govern_bench.metrics import RunResult, estimate_cost
 
     del specsmith_dir  # governance state is isolated inside project_root
-    tools = _build_tools(condition.id, task)
+    tools = _build_active_tools(condition.id, task)
     visible_criteria = task.visible_acceptance_criteria
     system_prompt = condition.render_prompt(
         task_description=task.task_prompt,
@@ -1804,6 +1874,9 @@ def _run_agent_loop(
             )
         contract = _aee_evidence_contract(governance_decision)
         system_prompt = f"{system_prompt.rstrip()}\n\n{contract}" if system_prompt else contract
+        scope_contract = _scope_contract(task)
+        if condition.id == "SPECSMITH_FULL" and scope_contract:
+            system_prompt = f"{system_prompt.rstrip()}\n\n{scope_contract}"
         milestone_contract = _milestone_contract(task)
         if condition.id == "SPECSMITH_FULL" and milestone_contract:
             system_prompt = f"{system_prompt.rstrip()}\n\n{milestone_contract}"
@@ -1838,6 +1911,7 @@ def _run_agent_loop(
     tests_verified = False
     validator_verified: set[str] = set()
     empty_response_retries = 0
+    text_continuation_retries = 0
     verification_retries = 0
     last_single_write_target = ""
     repeated_write_streak = 0
@@ -1926,6 +2000,30 @@ def _run_agent_loop(
                 messages.append({"role": "user", "content": recovery})
                 agent_transcript.append(
                     {"turn": turn + 1, "role": "controller", "recovery": recovery}
+                )
+                continue
+            if (
+                content
+                and condition.id == "SPECSMITH_FULL"
+                and _looks_like_nonterminal_narration(content)
+                and text_continuation_retries < 1
+                and turn + 1 < max_turns
+            ):
+                text_continuation_retries += 1
+                rework_turns += 1
+                recovery = (
+                    "The response described a future action but issued no tool call. "
+                    "Continue now with the promised tool action; call done only when the "
+                    "requirement-linked work is ready for deterministic validation."
+                )
+                messages.append({"role": "user", "content": recovery})
+                agent_transcript.append(
+                    {
+                        "turn": turn + 1,
+                        "role": "controller",
+                        "recovery": recovery,
+                        "nonterminal_narration": True,
+                    }
                 )
                 continue
             # A non-empty pure text response is an intentional model stop. A
@@ -2110,11 +2208,20 @@ def _run_agent_loop(
             }
         )
 
-        if suppressed_unchanged_reads and task.is_long_horizon:
-            progress = (
-                f"Suppressed {len(suppressed_unchanged_reads)} unchanged reread(s). "
-                f"{_milestone_progress(task, files_written)}"
+        if condition.id == "SPECSMITH_FULL" and (
+            successful_write_paths or suppressed_unchanged_reads
+        ):
+            progress_detail = (
+                _milestone_progress(task, files_written)
+                if task.is_long_horizon
+                else _scope_progress(task, files_written)
             )
+            suppression_note = (
+                f"Suppressed {len(suppressed_unchanged_reads)} unchanged reread(s). "
+                if suppressed_unchanged_reads
+                else ""
+            )
+            progress = f"{suppression_note}{progress_detail}"
             messages = _replace_adaptive_progress_message(messages, progress)
             agent_transcript.append(
                 {
@@ -2123,13 +2230,18 @@ def _run_agent_loop(
                     "epistemic_compression": {
                         "suppressed_reads": len(suppressed_unchanged_reads),
                         "paths": suppressed_unchanged_reads,
-                        "progress": _milestone_progress(task, files_written),
+                        "progress": progress_detail,
                     },
                 }
             )
 
         if validation_failed:
             rework_turns += 1
+            tools = _build_active_tools(
+                condition.id,
+                task,
+                diagnostics_required=True,
+            )
 
         current_single_write = (
             tc_targets[0]
