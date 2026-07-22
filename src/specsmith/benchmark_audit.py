@@ -222,6 +222,73 @@ def audit_benchmark_rows(
             )
         )
 
+    exhausted = [row for row in valid if row.get("stop_reason") == "max_turns"]
+    if exhausted:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="turn_budget_exhausted",
+                severity="high",
+                title="Agent exhausted the bounded turn budget",
+                evidence=f"{len(exhausted)} row(s) stopped at max_turns before completion.",
+                recommendation=(
+                    "Inspect tool-target traces for loops, then reduce repeated work or split "
+                    "the task without increasing the cap blindly."
+                ),
+                tasks=sorted({str(row.get("task")) for row in exhausted}),
+                conditions=sorted({str(row.get("condition")) for row in exhausted}),
+            )
+        )
+
+    repeated_loops = [
+        row
+        for row in valid
+        if row.get("stop_reason") == "repeated_tool_loop"
+        or any(
+            isinstance(event, dict) and bool(event.get("repeated_tool_target"))
+            for event in row.get("agent_transcript") or []
+        )
+    ]
+    if repeated_loops:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="repeated_tool_loop",
+                severity=(
+                    "high"
+                    if any(row.get("stop_reason") == "repeated_tool_loop" for row in repeated_loops)
+                    else "medium"
+                ),
+                title="Agent repeated one tool target without making progress",
+                evidence=f"{len(repeated_loops)} row(s) triggered the deterministic loop guard.",
+                recommendation=(
+                    "Review the provider tool-call route and use the bounded controller recovery; "
+                    "do not pay for additional identical turns."
+                ),
+                tasks=sorted({str(row.get("task")) for row in repeated_loops}),
+                conditions=sorted({str(row.get("condition")) for row in repeated_loops}),
+            )
+        )
+
+    verification_exhausted = [
+        row for row in valid if row.get("stop_reason") == "verification_exhausted"
+    ]
+    if verification_exhausted:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="verification_exhausted",
+                severity="high",
+                title="Independent verification did not reach equilibrium",
+                evidence=(
+                    f"{len(verification_exhausted)} FULL row(s) used the bounded repair budget."
+                ),
+                recommendation=(
+                    "Trace the remaining acceptance boundary; improve evidence or task "
+                    "decomposition instead of weakening the oracle."
+                ),
+                tasks=sorted({str(row.get("task")) for row in verification_exhausted}),
+                conditions=sorted({str(row.get("condition")) for row in verification_exhausted}),
+            )
+        )
+
     cell_keys = [
         (
             str(row.get("model") or "unknown"),

@@ -177,14 +177,16 @@ non-finite.
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
 - `cached_input_tokens`, `cache_write_tokens` when exposed by the provider
-- `rework_turns`, `governance_turns`, `wall_clock_s`
+- `rework_turns` (implementation attempts, not individual validator commands),
+  `governance_turns`, `wall_clock_s`
 - governance-specific rates for clarification/safety tasks
 
 ### Statistical report fields
 
 - 95% Wilson confidence interval for `pass_rate`
 - 95% bootstrap confidence interval for `cost_of_pass` (1,000 resamples)
-- `first_pass_rate` (`rework_turns == 1`)
+- `first_pass_rate` (the run passed with `rework_turns <= 1`; failed runs never
+  count as first-pass successes)
 - `consistency_score`
 - `scaffold_lift` relative to `UNGOVERNED` for matched task/model
 - `democratization_score` for nano+scaffold vs frontier+ungoverned comparisons

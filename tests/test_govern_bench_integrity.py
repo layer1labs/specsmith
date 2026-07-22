@@ -311,6 +311,7 @@ def test_t28_oracle_accepts_equivalent_schema_and_empty_state_forms(
     )
     allows_null = oracle["_allows_null"]
     has_empty_state = oracle["_has_empty_state"]
+    has_architecture_record = oracle["_has_architecture_record"]
 
     assert allows_null({"type": ["string", "null"]})
     assert allows_null({"anyOf": [{"type": "string"}, {"type": "null"}]})
@@ -319,6 +320,10 @@ def test_t28_oracle_accepts_equivalent_schema_and_empty_state_forms(
     assert has_empty_state("incidents.length === 0 && <p>No incidents found.</p>")
     assert has_empty_state("return <EmptyState />")
     assert not has_empty_state("return incidents.map(renderIncident)")
+    equivalent_architecture = (
+        "Python Go React schema data flow process-local state. " + "decision " * 95
+    )
+    assert has_architecture_record(equivalent_architecture)
 
 
 def test_comparison_workflow_excludes_audit_json_objects() -> None:
@@ -445,6 +450,16 @@ def test_project_diff_keeps_no_newline_files_replayable(tmp_path: Path) -> None:
     assert "+first\n\\ No newline at end of file\n--- a/b.txt\n" in diff
 
 
+def test_write_file_reports_identical_content_as_noop(tmp_path: Path) -> None:
+    written: list[str] = []
+    first = _exec_write_file(tmp_path, "result.txt", "stable\n", written)
+    second = _exec_write_file(tmp_path, "result.txt", "stable\n", written)
+
+    assert first.startswith("OK:")
+    assert second.startswith("NO-OP:")
+    assert written == ["result.txt"]
+
+
 def test_governance_tools_do_not_change_agent_capabilities() -> None:
     task = get_task("T1")
     raw_names = [tool["function"]["name"] for tool in _build_tools("UNGOVERNED", task)]
@@ -539,8 +554,125 @@ def test_agent_loop_recovers_once_from_empty_provider_response(
 
     assert result.llm_turns == 2
     assert result.stop_reason == "done"
-    assert result.rework_turns == 1
+    assert result.rework_turns == 2
     assert any("recovery" in event for event in result.agent_transcript)
+
+
+def test_agent_loop_stops_repeated_single_file_write_loop(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    repeated = NormalizedLLMResponse(
+        message=NormalizedAssistantMessage(
+            tool_calls=[
+                NormalizedToolCall(
+                    id="write-repeat",
+                    name="write_file",
+                    arguments='{"path":"notes.txt","content":"same\\n"}',
+                )
+            ]
+        ),
+        usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+    )
+    monkeypatch.setattr(harness_module, "_call_llm", lambda **_kwargs: repeated)
+    monkeypatch.setattr(
+        harness_module,
+        "_run_standard_validation",
+        lambda *_args: (True, "", True, "", False, "hidden failure"),
+    )
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("UNGOVERNED"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=10,
+    )
+
+    assert result.stop_reason == "repeated_tool_loop"
+    assert result.llm_turns == 4
+    assert any(event.get("repeated_tool_target") for event in result.agent_transcript)
+
+
+def test_full_agent_loop_retries_until_independent_equilibrium(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import specsmith.governance_logic as governance_logic
+
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    responses = iter(
+        [
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[NormalizedToolCall(id=f"done-{index}", name="done", arguments="{}")]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            )
+            for index in (1, 2)
+        ]
+    )
+    validations = iter(
+        [
+            (True, "", True, "", False, "hidden failure"),
+            (True, "", True, "", True, ""),
+            (True, "", True, "", True, ""),
+        ]
+    )
+    monkeypatch.setattr(harness_module, "_call_llm", lambda **_kwargs: next(responses))
+    monkeypatch.setattr(harness_module, "_completion_gate", lambda *_args: (True, "done"))
+    monkeypatch.setattr(
+        harness_module,
+        "_run_governance_controller",
+        lambda *_args: {
+            "decision": "accepted",
+            "work_item_id": "WI-TEST",
+            "requirement_ids": ["REQ-BENCH-001"],
+            "test_case_ids": ["TEST-BENCH-001"],
+        },
+    )
+    monkeypatch.setattr(
+        harness_module, "_run_standard_validation", lambda *_args: next(validations)
+    )
+
+    def fake_verify(*, test_results: dict, **_kwargs) -> dict:
+        equilibrium = test_results["failed"] == 0
+        return {
+            "equilibrium": equilibrium,
+            "confidence": 0.85 if equilibrium else 0.4,
+            "retry_budget": 3,
+            "retry_strategy": "" if equilibrium else "fix_tests",
+        }
+
+    monkeypatch.setattr(governance_logic, "run_verify", fake_verify)
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("SPECSMITH_FULL"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=4,
+    )
+
+    verification_events = [
+        event["verify"] for event in result.agent_transcript if "verify" in event
+    ]
+    assert [event["equilibrium"] for event in verification_events] == [False, True]
+    assert result.verify_result["equilibrium"] is True
+    assert result.stop_reason == "done"
+    assert result.llm_turns == 2
+    assert result.rework_turns == 2
 
 
 def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:

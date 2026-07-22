@@ -146,6 +146,27 @@ def test_audit_rejects_unreplayable_diff_evidence(final_diff: str) -> None:
     assert weakness.tasks == ["T28"]
 
 
+def test_audit_reports_turn_tool_and_verification_exhaustion() -> None:
+    max_turn = _row(condition="UNGOVERNED", passed=False, input_tokens=100)
+    max_turn["stop_reason"] = "max_turns"
+    repeated = _row(condition="SPECSMITH_LIGHT", passed=False, input_tokens=100)
+    repeated["stop_reason"] = "repeated_tool_loop"
+    repeated["agent_transcript"] = [
+        {"role": "controller", "repeated_tool_target": "write_file:contract.json"}
+    ]
+    verify = _row(condition="SPECSMITH_FULL", passed=False, input_tokens=100)
+    verify["stop_reason"] = "verification_exhausted"
+
+    report = audit_benchmark_rows([max_turn, repeated, verify])
+    codes = {item.code for item in report.weaknesses}
+
+    assert {
+        "turn_budget_exhausted",
+        "repeated_tool_loop",
+        "verification_exhausted",
+    } <= codes
+
+
 def test_default_run_bench_audit_path_tracks_json_output() -> None:
     from govern_bench.run_bench import _default_audit_path
 

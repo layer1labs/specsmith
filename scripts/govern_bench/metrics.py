@@ -473,7 +473,7 @@ class SliceStats:
         mean_cost = statistics.mean(r.api_cost_usd for r in valid)
         mean_tokens = statistics.mean(r.total_tokens for r in valid)
         ci_cop_low, ci_cop_high = bootstrap_cost_of_pass_ci(valid)
-        first_pass_rate = sum(1 for r in valid if r.rework_turns <= 1) / len(valid)
+        first_pass_rate = sum(1 for r in valid if r.passed and r.rework_turns <= 1) / len(valid)
         pass_values = [1.0 if r.passed else 0.0 for r in valid]
         consistency_score = (
             1.0 if len(pass_values) < 2 else max(0.0, 1.0 - statistics.pstdev(pass_values))

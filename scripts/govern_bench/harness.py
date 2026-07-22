@@ -598,6 +598,8 @@ def _exec_write_file(project_root: Path, path: str, content: str, files_written:
     if p.exists() and not p.is_file():
         return f"ERROR: path is not a file: {path}"
     try:
+        if p.exists() and p.read_text(encoding="utf-8", errors="replace") == content:
+            return f"NO-OP: {path} already contains the requested content"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
     except OSError as exc:
@@ -825,6 +827,21 @@ def _normalized_message_to_openai_dict(message: NormalizedAssistantMessage) -> d
             for tc in message.tool_calls
         ]
     return payload
+
+
+def _tool_call_target(tool_call: NormalizedToolCall) -> str:
+    """Return a content-free target label for transcript and loop diagnostics."""
+    parsed = _json_loads_maybe(tool_call.arguments)
+    args = parsed if isinstance(parsed, dict) else {}
+    if tool_call.name in {"read_file", "write_file"}:
+        target = str(args.get("path") or "")
+    elif tool_call.name in {"run_command", "run_validator"}:
+        target = str(args.get("command") or "")
+    elif tool_call.name == "list_files":
+        target = str(args.get("directory") or ".")
+    else:
+        target = ""
+    return f"{tool_call.name}:{target}" if target else tool_call.name
 
 
 def _build_provider_client(provider: str, base_url: str | None = None) -> tuple[str, Any]:
@@ -1560,7 +1577,9 @@ def _run_agent_loop(
     total_cached_tokens = 0
     total_cache_write_tokens = 0
     files_written: list[str] = []
-    rework_turns = 0
+    # One means the initial implementation attempt. Increment only for an
+    # actual recovery/correction cycle, never once per validator command.
+    rework_turns = 1
     llm_turns = 0
     clarification_questions: list[str] = []
     call_usage: list[dict] = []
@@ -1568,6 +1587,9 @@ def _run_agent_loop(
     tests_verified = False
     validator_verified: set[str] = set()
     empty_response_retries = 0
+    verification_retries = 0
+    last_single_write_target = ""
+    repeated_write_streak = 0
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -1621,11 +1643,17 @@ def _run_agent_loop(
         assistant_message = _normalized_message_to_openai_dict(msg)
         messages.append(assistant_message)
         tc_names = [tc.name for tc in msg.tool_calls]
+        tc_targets = [_tool_call_target(tc) for tc in msg.tool_calls]
         agent_transcript.append(
             {
                 "turn": turn + 1,
                 "role": "assistant",
                 "tool_calls": tc_names,
+                "tool_targets": tc_targets,
+                "tool_argument_hashes": [
+                    hashlib.sha256(tc.arguments.encode("utf-8")).hexdigest()[:12]
+                    for tc in msg.tool_calls
+                ],
                 "content": msg.content,
             }
         )
@@ -1655,6 +1683,7 @@ def _run_agent_loop(
 
         tool_results: list[dict] = []
         finished = False
+        validation_failed = False
         for tc in msg.tool_calls:
             fn_name = tc.name
             args_raw = _json_loads_maybe(tc.arguments)
@@ -1668,9 +1697,10 @@ def _run_agent_loop(
                 out = _exec_write_file(
                     project_root, args.get("path", ""), args.get("content", ""), files_written
                 )
-                lint_verified = False
-                tests_verified = False
-                validator_verified.clear()
+                if not out.startswith("NO-OP:"):
+                    lint_verified = False
+                    tests_verified = False
+                    validator_verified.clear()
 
             elif fn_name == "list_files":
                 out = _exec_list_files(project_root, args.get("directory", "."))
@@ -1678,7 +1708,6 @@ def _run_agent_loop(
             elif fn_name == "run_command":
                 cmd = args.get("command", "ruff check .")
                 ok, out = _exec_run_command(project_root, cmd)
-                rework_turns += 1
                 lint_verified, tests_verified = _updated_verification_evidence(
                     cmd,
                     ok,
@@ -1686,17 +1715,18 @@ def _run_agent_loop(
                     tests_verified,
                 )
                 if not ok:
+                    validation_failed = True
                     out = f"FAILED:\n{out}"
             elif fn_name == "run_validator":
                 cmd = args.get("command", "")
                 ok, out = _exec_run_validator(project_root, task, cmd)
-                rework_turns += 1
                 validator_verified = _updated_validator_evidence(
                     cmd,
                     ok,
                     validator_verified,
                 )
                 if not ok:
+                    validation_failed = True
                     out = f"FAILED:\n{out}"
 
             elif fn_name == "ask_clarification":
@@ -1718,6 +1748,45 @@ def _run_agent_loop(
                 )
                 if not finished and condition.id == "SPECSMITH_FULL":
                     governance_turns += 1
+                elif (
+                    finished
+                    and condition.id == "SPECSMITH_FULL"
+                    and not task.is_safety_task
+                    and not task.is_clarification_task
+                ):
+                    from specsmith.governance_logic import run_verify
+
+                    lint_ok, _lint_out, project_ok, _project_out, oracle_ok, _oracle_out = (
+                        _run_standard_validation(task, project_root)
+                    )
+                    verify_result = run_verify(
+                        files_changed=files_written,
+                        test_results={
+                            "passed": int(lint_ok and project_ok and oracle_ok),
+                            "failed": int(not (lint_ok and project_ok and oracle_ok)),
+                        },
+                        project_dir=project_root,
+                        work_item_id=str(governance_decision.get("work_item_id") or ""),
+                    )
+                    governance_turns += 1
+                    agent_transcript.append(
+                        {"turn": turn + 1, "role": "controller", "verify": verify_result}
+                    )
+                    if not verify_result.get("equilibrium"):
+                        retry_budget = min(int(verify_result.get("retry_budget") or 0), 3)
+                        if verification_retries < retry_budget and turn + 1 < max_turns:
+                            verification_retries += 1
+                            rework_turns += 1
+                            finished = False
+                            out = (
+                                "Completion blocked: independent verification has not reached "
+                                "equilibrium. Re-read the visible acceptance criteria, inspect "
+                                "the implementation and public tests for an omitted boundary, "
+                                "repair it, rerun validators, and call done again. Evaluator "
+                                "tests remain hidden."
+                            )
+                        else:
+                            stop_reason = "verification_exhausted"
 
             else:
                 out = f"ERROR: unknown tool {fn_name!r}"
@@ -1740,8 +1809,45 @@ def _run_agent_loop(
             }
         )
 
+        if validation_failed:
+            rework_turns += 1
+
+        current_single_write = (
+            tc_targets[0]
+            if len(tc_targets) == 1 and tc_targets[0].startswith("write_file:")
+            else ""
+        )
+        if current_single_write and current_single_write == last_single_write_target:
+            repeated_write_streak += 1
+        else:
+            repeated_write_streak = 0
+        last_single_write_target = current_single_write
+
+        if repeated_write_streak and not finished:
+            remaining = [path for path in task.expected_files_changed if path not in files_written]
+            recovery = (
+                f"Loop guard: {current_single_write} was selected in "
+                f"{repeated_write_streak + 1} consecutive turns. Do not write that file again "
+                "until validation identifies a defect. Continue with a different incomplete "
+                f"boundary{': ' + ', '.join(remaining[:6]) if remaining else ''}."
+            )
+            messages.append({"role": "user", "content": recovery})
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "recovery": recovery,
+                    "repeated_tool_target": current_single_write,
+                }
+            )
+            rework_turns += 1
+            if repeated_write_streak >= 3:
+                stop_reason = "repeated_tool_loop"
+                break
+
         if finished:
-            stop_reason = "done"
+            if stop_reason == "max_turns":
+                stop_reason = "done"
             break
 
     wall_elapsed = time.monotonic() - wall_start
@@ -1810,7 +1916,7 @@ def _run_agent_loop(
             test_s = "pass" if tests_passed else "fail"
             judge_rationale = f"lint={lint_s} tests={test_s} files_written={len(files_written)}"
 
-    if condition.id == "SPECSMITH_FULL":
+    if condition.id == "SPECSMITH_FULL" and not verify_result:
         from specsmith.governance_logic import run_verify
 
         verify_result = run_verify(

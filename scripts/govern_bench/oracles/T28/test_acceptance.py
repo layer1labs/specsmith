@@ -34,6 +34,13 @@ def _has_empty_state(app: str) -> bool:
     )
 
 
+def _has_architecture_record(architecture: str) -> bool:
+    architecture = architecture.casefold()
+    return len(architecture.split()) >= 100 and all(
+        term in architecture for term in ("python", "go", "react", "schema", "data flow")
+    )
+
+
 def test_shared_schema_is_complete_and_strict() -> None:
     schema = json.loads((ROOT / "contracts" / "incident.schema.json").read_text(encoding="utf-8"))
     fields = {
@@ -187,10 +194,7 @@ def test_ui_has_real_accessible_flow_and_playwright_journey() -> None:
 def test_architecture_and_public_tests_cover_boundaries() -> None:
     architecture = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8").casefold()
     public_tests = (ROOT / "tests" / "test_backend.py").read_text(encoding="utf-8").casefold()
-    for term in ("python", "go", "react", "schema", "data flow"):
-        assert term in architecture
-    assert "in-memory" in architecture or "in memory" in architecture
-    assert len(architecture.split()) >= 100
+    assert _has_architecture_record(architecture)
     assert "post(" in public_tests
     assert "/api/incidents" in public_tests
     assert "/ack" in public_tests

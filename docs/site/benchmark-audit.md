@@ -15,7 +15,10 @@ retain the normal bounded budget. Report its correctness, tokens, cost, turns,
 and weaknesses separately before combining it with any suite.
 
 For `SPECSMITH_FULL`, completion is blocked until Python lint/tests, Go tests,
-and the deterministic UI validator all pass after the final file write.
+and the deterministic UI validator all pass after the final file write. The
+independent evaluator then returns only an equilibrium decision—not hidden test
+content—to a bounded repair loop. A cell cannot claim FULL completion while
+that evidence still contradicts the implementation.
 
 The clean starter passes only its health check. It cannot pass the hidden
 oracle without implementing all of these boundaries:
@@ -30,9 +33,9 @@ oracle without implementing all of these boundaries:
 
 The oracle evaluates behavior rather than one spelling or schema idiom. For
 example, nullable fields may use JSON Schema `type`, `anyOf`, or `oneOf`; a UI
-may express the no-incidents state semantically; and architecture prose may use
-either “in-memory” or “in memory.” This keeps equivalent correct solutions from
-being counted as failures.
+may express the no-incidents state semantically; and architecture prose may
+describe an equivalent process-local design without prescribed wording. This
+keeps correct solutions from being counted as failures.
 
 ## Run it
 
@@ -79,6 +82,9 @@ weaknesses make the audit exit non-zero.
 | `duplicate_cells` | A repetition key appears more than once. | Reject the artifact and regenerate the requested cells. |
 | `uneven_repetitions` | Compared cells do not share one repetition count. | Rerun or filter to an identical matched grid. |
 | `unreplayable_diff` | A stored final patch is malformed or was compacted. | Reject the artifact, repair serialization, and rerun the same cells. |
+| `turn_budget_exhausted` | A cell reached its bounded turn cap without completing. | Inspect tool targets for loops; do not raise the cap blindly. |
+| `repeated_tool_loop` | The same write target recurred without progress. | Check the provider tool route and use bounded recovery rather than paying for duplicate turns. |
+| `verification_exhausted` | FULL used its bounded repair budget without equilibrium. | Trace the unmet boundary or split the task; never weaken the oracle to force a pass. |
 | `undersampled` | Fewer than five repetitions exist in a cell. | Treat as diagnostic; do not publish superiority claims. |
 | `acceptance_gap` | Public tests passed but the independent oracle failed. | Link the missed boundary to an immutable acceptance test. |
 | `correctness_regression` | A Specsmith condition passed less often than raw on a task. | Keep the lighter path and repair that task before expanding governance. |
@@ -87,8 +93,11 @@ weaknesses make the audit exit non-zero.
 
 The report is deterministic. It does not spend tokens on an LLM judge and does
 not infer root causes beyond the evidence present in raw rows. Transcripts,
-diffs, validator output, controller decisions, and task requirements remain the
-sources for the subsequent engineering diagnosis.
+content-free tool targets and argument hashes, diffs, validator output,
+controller decisions, and task requirements remain the sources for the
+subsequent engineering diagnosis. A repeated single-file write receives bounded
+controller guidance and then stops early if it cannot make progress, preventing
+an entire paid turn budget from being spent on one identical action.
 
 ## Improvement loop
 

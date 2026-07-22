@@ -263,6 +263,14 @@ class TestSliceStats:
         stats = SliceStats.from_runs(runs)
         assert abs(stats.pass_rate - 0.5) < 1e-9
 
+    def test_failed_run_never_counts_as_first_pass(self) -> None:
+        runs = [
+            _run(rep=1, rework_turns=1, lint_passed=False),
+            _run(rep=2, rework_turns=1, tests_passed=False),
+        ]
+
+        assert SliceStats.from_runs(runs).first_pass_rate == 0.0
+
     def test_cost_of_pass_correct(self) -> None:
         """cost_of_pass = mean_api_cost_usd / pass_rate."""
         runs = [

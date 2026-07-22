@@ -30,6 +30,10 @@ consolidated into the next published release.
 - GovernanceBench now requires hidden outcome oracles for default coding tasks,
   enforces fresh Ruff/pytest evidence before FULL completion, contains malformed
   file-tool requests, and isolates evaluator files from project lint/tests.
+- Long-horizon evidence now preserves replayable multi-file diffs, accepts
+  semantically equivalent implementations, detects repeated-tool and turn-budget
+  exhaustion, measures rework/first-pass accurately, and gives FULL a bounded
+  independent-verification repair loop without exposing evaluator tests.
 - Generated reports list exact non-contiguous task IDs instead of inventing a
   contiguous range.
 
