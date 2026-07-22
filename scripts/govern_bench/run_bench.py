@@ -32,7 +32,7 @@ Environment variables:
     BENCH_OPENAI_BASE_URL Default base URL for provider=openai-compat
     BENCH_DRY_RUN         Set to '1' to skip actual agent calls (for CI)
     BENCH_MAX_TURNS       LLM turn cap per cell (default: 8)
-    BENCH_CONTEXT_BYTES   Initial bounded file context (default: 6000)
+    BENCH_CONTEXT_BYTES   Opt-in initial file-body context (default: 0; retrieve just in time)
     BENCH_TEMPERATURE     Reproducible sampling temperature where supported (default: 0.2)
     BENCH_MAX_COMPLETION_TOKENS  Reasoning-model completion cap (default: 16384; max: 32768)
 """
@@ -360,6 +360,7 @@ def main() -> int:
                 "input_tokens": r.input_tokens,
                 "output_tokens": r.output_tokens,
                 "cached_input_tokens": r.cached_input_tokens,
+                "cache_write_tokens": r.cache_write_tokens,
                 "tokens": r.total_tokens,
                 "cost_usd": round(r.api_cost_usd, 6),
                 "passed": r.passed,

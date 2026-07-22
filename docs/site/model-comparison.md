@@ -14,7 +14,7 @@ uniformly across conditions.
 
 ## Five-repetition frontier result
 
-| Condition | Pass rate | TPCA | Estimated cost/pass |
+| Condition | Pass rate | TPCA | Conservative list cost/pass |
 |---|---:|---:|---:|
 | Specsmith FULL | 91% | 21.7k | $0.1508 |
 | Specsmith LIGHT | 94% | 21.8k | $0.1502 |
@@ -25,6 +25,10 @@ These mixed-suite point estimates favor Specsmith, but confidence intervals
 overlap. Coding-only correctness favored raw GPT-5.6 Sol: raw passed 25/25,
 Cursor 24/25, LIGHT 23/25, and FULL 22/25. See the
 [full benchmark report](efficiency-benchmark.md) for the task-level explanation.
+
+The historical dollar estimates omit cached-input discounts because the run did
+not capture GPT-5.6 cache-write tokens. They are retained for provenance, not as
+billing records; TPCA is the primary cross-provider comparison.
 
 ## Diagnostic model behavior
 
@@ -59,3 +63,13 @@ infrastructure effects.
 Future reports must use complete identical cell sets and state their evidence
 level. Five repetitions support screening observations; ten are required for a
 release-quality claim.
+
+## Route and failure provenance
+
+Provider and harness failures are reported separately from model quality. Runs
+`29826896259`, `29827597006`, `29827805536`, and `29829542051` were invalidated
+by unavailable routing, request compatibility, or artifact errors. Run
+`29832926861` was cancelled before the Qwen lane completed. None contributes a
+leaderboard row or denominator. This distinction matters especially for hosted
+open-weight models, where routing and serving latency can otherwise be mistaken
+for model capability.

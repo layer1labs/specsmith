@@ -21,7 +21,11 @@ GovernanceBench is a benchmark suite for measuring how governance and scaffoldin
 agentic software-development outcomes. It evaluates task completion quality, safety behavior,
 and cost efficiency across multiple governance conditions, model tiers, and task domains.
 
-Benchmark publication status: **TBD** (no final leaderboard claims in this card yet).
+Benchmark publication status: **screening evidence available**. The current
+complete frontier screen is GitHub Actions run `29839696631`: GPT-5.6 Sol,
+tasks T1, T2, T6, T7, T10, T11, and T13, four matched conditions, five
+repetitions, and 140/140 valid cells. Run `29834732303` is a complete n=1
+model/route diagnostic and is not a superiority result.
 
 ## Supported Tasks and Leaderboards
 
@@ -47,6 +51,7 @@ Secondary metrics:
 - `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
+- `cached_input_tokens`, `cache_write_tokens` where provider telemetry supports them
 - `rework_turns`, `governance_turns`, `wall_clock_s`
 - `first_pass_rate`, `consistency_score`
 - `scaffold_lift` vs `UNGOVERNED`
@@ -68,7 +73,7 @@ Sources are benchmark-internal and generated from the repository artifacts above
 
 ## Dataset Structure
 
-Planned HF export structure:
+HF export structure:
 
 - `leaderboard.json`: aggregate leaderboard rows (schema-validated)
 - `bench-results-*.json`: per-run detailed results
@@ -101,8 +106,20 @@ Third-party model outputs may have additional usage terms from their providers.
 
 - Metric outcomes are sensitive to model snapshots, provider behavior, and pricing updates.
 - LLM judging can introduce evaluator variance; deterministic validators are preferred where possible.
-- Planned suites and metrics should not be treated as empirical findings until benchmark runs are executed.
+- Five repetitions are screening evidence; the methodology requires ten for a
+  release-quality claim.
+- Mixed-suite metrics include deterministic ambiguity and safety gates. Reports
+  must show coding-only results separately.
+- The current coding-only result favors raw GPT-5.6 Sol correctness. Specsmith's
+  mixed-suite TPCA advantage comes from deterministic governance gates and does
+  not establish a universal coding advantage.
+- Failed, cancelled, provider-error, or incomplete runs are provenance only and
+  are excluded from comparisons.
+- Historical run `29839696631` records cache reads but not cache writes. Its
+  dollar figures conservatively price all input at the list rate; exact cached
+  billing is not reconstructable, while TPCA remains valid.
 
 ## Citation
 
-Citation metadata: **TBD**
+Until archival citation metadata is assigned, cite the repository commit and
+the exact GitHub Actions run ID used for a result.

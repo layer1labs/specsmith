@@ -6,16 +6,16 @@ Addresses the gap where ``AgentRunner`` always started with an empty
 history, making the agent blind to prior work in the same project.
 
 ``build_context_seed()`` assembles a compact, token-budget-capped snapshot
-from four sources (newest → oldest priority):
+from four sources (highest → lowest priority):
 
 1. **Session state snapshot** (``session-state.json``) — project health,
    phase, compliance score, requirement coverage.
-2. **Prior conversation turns** (``conversation-history.jsonl``) — the
-   last N turns from the previous session, budget-capped.
-3. **Recent LEDGER entries** — the last ``max_ledger`` lines of LEDGER.md
+2. **Active ESDB records** — current preflight, verification, and work-item
+   evidence needed to resume safely.
+3. **Prior conversation turns** (``conversation-history.jsonl``) — only the
+   most recent turns, budget-capped.
+4. **Recent LEDGER entries** — the last ``max_ledger`` lines of LEDGER.md
    so the agent knows what decisions and changes have been logged.
-4. **Recent ESDB records** — the last ``max_esdb`` ChronoRecords so the
-   agent knows what facts and results are in the epistemic store.
 
 The result is a list of ``{role, content}`` dicts that can be prepended
 to ``AgentRunner._history`` before the first user turn.
@@ -33,19 +33,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-# Maximum total characters injected as seed context.  Raised from 8 000 to
-# 12 000 to accommodate the richer per-kind ESDB query output (REQ-399).
-_SEED_CHAR_BUDGET = 12_000
-_MAX_LEDGER_LINES = 30
-_MAX_PREFLIGHT_RECORDS = 10  # preflight_decision records (conf≥0.6)
-_MAX_VERIFY_RECORDS = 5  # verify_result records (conf≥0.6)
-_MAX_WI_RECORDS = 5  # work_item records (active status only)
+# Default to roughly 1,500 input tokens. Active evidence is selected before
+# chat/ledger history so a bounded seed cannot crowd out the completion gate.
+_SEED_CHAR_BUDGET = 6_000
+_MAX_HISTORY_TURNS = 6
+_MAX_LEDGER_LINES = 12
+_MAX_PREFLIGHT_RECORDS = 3  # preflight_decision records (conf≥0.6)
+_MAX_VERIFY_RECORDS = 3  # verify_result records (conf≥0.6)
+_MAX_WI_RECORDS = 3  # work_item records (active status only)
 
 
 def build_context_seed(
     project_dir: str | Path,
     *,
     char_budget: int = _SEED_CHAR_BUDGET,
+    max_history_turns: int = _MAX_HISTORY_TURNS,
     max_ledger: int = _MAX_LEDGER_LINES,
     max_preflight: int = _MAX_PREFLIGHT_RECORDS,
     max_verify: int = _MAX_VERIFY_RECORDS,
@@ -71,6 +73,7 @@ def build_context_seed(
     Args:
         project_dir: Project root containing ``.specsmith/``.
         char_budget: Maximum total characters across all seed turns.
+        max_history_turns: Maximum recent conversation turns to include.
         max_ledger: Maximum LEDGER.md lines to include.
         max_preflight: Max preflight_decision records to include.
         max_verify: Max verify_result records to include.
@@ -105,42 +108,7 @@ def build_context_seed(
             turns.append({"role": "system", "content": content})
             used += len(content)
 
-    # ── 2. Prior conversation history ────────────────────────────
-    hist_turns = _load_conversation_history(root, budget=char_budget - used)
-    for t in hist_turns:
-        c = json.dumps(t, ensure_ascii=False)
-        if used + len(c) > char_budget:
-            break
-        turns.append(t)
-        used += len(c)
-
-    # ── 3. Recent LEDGER entries — ESDB-first (REQ-407) ─────────────────
-    ledger_block = _load_ledger_snippet(root, max_lines=max_ledger)
-    if ledger_block and used + len(ledger_block) <= char_budget:
-        turns.append(
-            {
-                "role": "system",
-                "content": f"[Recent LEDGER entries — last {max_ledger} lines]\n{ledger_block}",
-            },
-        )
-        used += len(ledger_block)
-
-    # ── 4. Efficiency degradation warning ────────────────────────────────
-    if eff.get("degraded"):
-        eq_score = eff.get("epistemic_quality_score", 0.0)
-        tpc = eff.get("tokens_per_correct_answer")
-        baseline = eff.get("baseline_tokens_per_pass")
-        warn_parts = ["[EFFICIENCY WARNING: context degraded"]
-        if tpc is not None and baseline is not None:
-            warn_parts.append(f"tokens/pass={tpc:.0f} vs baseline={baseline:.0f}")
-        if eq_score:
-            warn_parts.append(f"epistemic_quality={eq_score:.2f}")
-        warn_parts.append("— consider specsmith esdb sweep]")
-        warn_content = " ".join(warn_parts)
-        turns.append({"role": "system", "content": warn_content})
-        used += len(warn_content)
-
-    # ── 5. ESDB records — relevance-based by kind (REQ-399) ──────────────
+    # ── 2. ESDB records — active evidence before narrative history ──────
     esdb_block = _load_esdb_by_kind(
         root,
         max_preflight=max_preflight,
@@ -158,6 +126,46 @@ def build_context_seed(
             },
         )
         used += len(esdb_block)
+
+    # ── 3. Efficiency degradation warning ──────────────────────────────
+    if eff.get("degraded"):
+        eq_score = eff.get("epistemic_quality_score", 0.0)
+        tpc = eff.get("tokens_per_correct_answer")
+        baseline = eff.get("baseline_tokens_per_pass")
+        warn_parts = ["[EFFICIENCY WARNING: context degraded"]
+        if tpc is not None and baseline is not None:
+            warn_parts.append(f"tokens/pass={tpc:.0f} vs baseline={baseline:.0f}")
+        if eq_score:
+            warn_parts.append(f"epistemic_quality={eq_score:.2f}")
+        warn_parts.append("— consider specsmith esdb sweep]")
+        warn_content = " ".join(warn_parts)
+        if used + len(warn_content) <= char_budget:
+            turns.append({"role": "system", "content": warn_content})
+            used += len(warn_content)
+
+    # ── 4. Prior conversation history ──────────────────────────────────
+    hist_turns = _load_conversation_history(
+        root,
+        budget=char_budget - used,
+        max_turns=max_history_turns,
+    )
+    for t in hist_turns:
+        c = json.dumps(t, ensure_ascii=False)
+        if used + len(c) > char_budget:
+            break
+        turns.append(t)
+        used += len(c)
+
+    # ── 5. Recent LEDGER entries — lowest-priority narrative fallback ───
+    ledger_block = _load_ledger_snippet(root, max_lines=max_ledger)
+    if ledger_block and used + len(ledger_block) <= char_budget:
+        turns.append(
+            {
+                "role": "system",
+                "content": f"[Recent LEDGER entries — last {max_ledger} lines]\n{ledger_block}",
+            },
+        )
+        used += len(ledger_block)
 
     # ── 6. Write context_usage record (REQ-416) ──────────────────────────
     _write_context_usage(
@@ -216,6 +224,7 @@ def _load_conversation_history(
     root: Path,
     *,
     budget: int,
+    max_turns: int,
 ) -> list[dict[str, Any]]:
     """Load prior conversation turns within budget."""
     try:
@@ -224,7 +233,8 @@ def _load_conversation_history(
         _, history = load_session(root)
         result: list[dict[str, Any]] = []
         used = 0
-        for turn in reversed(history):
+        selected_history = history[-max_turns:] if max_turns > 0 else []
+        for turn in reversed(selected_history):
             s = json.dumps(turn, ensure_ascii=False)
             if used + len(s) > budget:
                 break

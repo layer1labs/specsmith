@@ -64,7 +64,10 @@ _SPECSMITH_DIR = Path(__file__).parent.parent.parent  # repo root
 MAX_TURNS_DEFAULT = 8
 MAX_FILE_BYTES = 12_000
 MAX_TOOL_RESULT_CHARS = 8_000
-DEFAULT_CONTEXT_BYTES = 6_000
+# File bodies are retrieved just in time. The completed GPT-5.6 screen showed
+# that agents re-read eagerly injected files, multiplying the same context on
+# every turn. BENCH_CONTEXT_BYTES remains an opt-in diagnostic control.
+DEFAULT_CONTEXT_BYTES = 0
 SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat", "huggingface")
 
 # HuggingFace Inference Providers — OpenAI-compatible router endpoint.
@@ -99,6 +102,7 @@ class NormalizedUsage:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     cached_tokens: int = 0
+    cache_write_tokens: int = 0
 
 
 @dataclass(slots=True)
@@ -1089,7 +1093,7 @@ def _call_openai_provider(
     messages: list[dict[str, Any]],
     tools: list[dict[str, Any]],
 ) -> NormalizedLLMResponse:
-    response = client.chat.completions.create(
+    request: dict[str, Any] = dict(
         model=model,
         messages=messages,
         tools=tools,
@@ -1098,6 +1102,11 @@ def _call_openai_provider(
         **_openai_reasoning_params(model),
         **_completion_token_param(provider, model),
     )
+    if provider == "openai" and model.casefold().startswith("gpt-5.6"):
+        request["prompt_cache_key"] = os.environ.get(
+            "BENCH_PROMPT_CACHE_KEY", f"governancebench:{model.casefold()}"
+        )
+    response = client.chat.completions.create(**request)
     usage = getattr(response, "usage", None)
     msg = response.choices[0].message
     tool_calls = [
@@ -1108,6 +1117,7 @@ def _call_openai_provider(
         )
         for tc in (msg.tool_calls or [])
     ]
+    prompt_details = _obj_get(usage, "prompt_tokens_details", None)
     return NormalizedLLMResponse(
         message=NormalizedAssistantMessage(
             content=_stringify_content(getattr(msg, "content", "")),
@@ -1116,8 +1126,13 @@ def _call_openai_provider(
         usage=NormalizedUsage(
             prompt_tokens=_safe_int(_obj_get(usage, "prompt_tokens", 0)),
             completion_tokens=_safe_int(_obj_get(usage, "completion_tokens", 0)),
-            cached_tokens=_safe_int(
-                _obj_get(_obj_get(usage, "prompt_tokens_details", None), "cached_tokens", 0)
+            cached_tokens=_safe_int(_obj_get(prompt_details, "cached_tokens", 0)),
+            cache_write_tokens=_safe_int(
+                _obj_get(
+                    prompt_details,
+                    "cache_write_tokens",
+                    _obj_get(usage, "cache_write_tokens", 0),
+                )
             ),
         ),
     )
@@ -1507,6 +1522,7 @@ def _run_agent_loop(
     total_input_tokens = 0
     total_output_tokens = 0
     total_cached_tokens = 0
+    total_cache_write_tokens = 0
     files_written: list[str] = []
     rework_turns = 0
     llm_turns = 0
@@ -1534,6 +1550,7 @@ def _run_agent_loop(
                 input_tokens=total_input_tokens,
                 output_tokens=total_output_tokens,
                 cached_input_tokens=total_cached_tokens,
+                cache_write_tokens=total_cache_write_tokens,
                 rework_turns=rework_turns,
                 governance_turns=governance_turns,
                 llm_turns=llm_turns,
@@ -1551,12 +1568,14 @@ def _run_agent_loop(
         total_input_tokens += response.usage.prompt_tokens
         total_output_tokens += response.usage.completion_tokens
         total_cached_tokens += response.usage.cached_tokens
+        total_cache_write_tokens += response.usage.cache_write_tokens
         call_usage.append(
             {
                 "turn": llm_turns,
                 "input_tokens": response.usage.prompt_tokens,
                 "output_tokens": response.usage.completion_tokens,
                 "cached_input_tokens": response.usage.cached_tokens,
+                "cache_write_tokens": response.usage.cache_write_tokens,
             }
         )
 
@@ -1741,7 +1760,13 @@ def _run_agent_loop(
             {"turn": llm_turns + 1, "role": "controller", "verify": verify_result}
         )
 
-    api_cost = estimate_cost(model, total_input_tokens, total_output_tokens)
+    api_cost = estimate_cost(
+        model,
+        total_input_tokens,
+        total_output_tokens,
+        total_cached_tokens,
+        total_cache_write_tokens,
+    )
 
     return RunResult(
         task_id=task.id,
@@ -1750,6 +1775,7 @@ def _run_agent_loop(
         input_tokens=total_input_tokens,
         output_tokens=total_output_tokens,
         cached_input_tokens=total_cached_tokens,
+        cache_write_tokens=total_cache_write_tokens,
         model=model,
         api_cost_usd=api_cost,
         lint_passed=lint_passed,

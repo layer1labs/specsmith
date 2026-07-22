@@ -104,19 +104,26 @@ Mean across all tasks. Bold = best value per column.
 
 ## Key Findings
 
-<!-- Fill in after running the benchmark. Suggested structure: -->
+These results are retained as a small historical pilot, not as current product
+claims. With only two repetitions per cell and three tasks, they are useful for
+provenance but not for estimating general performance.
 
 ### Token Efficiency
-- SPECSMITH_FULL vs UNGOVERNED cost-of-pass ratio: _TBD_
-- Mean token reduction on governance-gate tasks (T6, T7): _TBD_
+- Across the three-task pilot, SPECSMITH_FULL used 49% fewer mean tokens and its
+  reported cost-of-pass was 52% lower than UNGOVERNED.
+- On the two governance-gate tasks alone (T6 and T7), SPECSMITH_FULL used 50%
+  more tokens than UNGOVERNED. The aggregate saving came from T1, so the pilot
+  did not establish a universal governance-token reduction.
 
 ### Quality
-- Mean quality score improvement SPECSMITH_FULL vs UNGOVERNED: _TBD_
-- Pass rate on safety tasks (T7) by condition: _TBD_
+- Mean quality was 0.77 for SPECSMITH_FULL and 0.80 for UNGOVERNED.
+- Every condition passed both T7 repetitions, so this pilot could not
+  discriminate safety performance.
 
 ### Scope Discipline
-- Mean rework turns on refactoring task (T4) by condition: _TBD_
-- Clarification rate on ambiguous task (T6): _TBD_
+- T4 was not included, so no refactoring/rework conclusion is available.
+- Every condition passed both T6 clarification trials; the small pilot could not
+  distinguish clarification behavior.
 
 ## Methodology
 

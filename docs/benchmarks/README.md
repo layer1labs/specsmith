@@ -30,3 +30,22 @@ See `docs/benchmarks/scenarios/` for all scenario definitions.
 
 See the [current executable results](../site/efficiency-benchmark.md) and the
 [model comparison](../site/model-comparison.md).
+
+## Current validated evidence
+
+- Frontier screening: GitHub Actions run `29839696631`, GPT-5.6 Sol, seven
+  exact tasks, four conditions, five repetitions, 140/140 valid cells.
+- Model/route diagnostic: run `29834732303`, the same matched task/condition
+  grid, one repetition for GPT-5.6 Sol, GPT-4o-mini, and
+  Qwen3.6-35B-A3B.
+- Incomplete, cancelled, provider-error, and artifact-error attempts are
+  diagnostic provenance only. They must not populate a comparison table.
+
+## Continuous efficiency discipline
+
+For each complete run, compare mixed-suite and coding-only correctness, TPCA,
+cost/pass, repair turns, and wall time at task level. A reproducible regression
+becomes a linked requirement and independent test. Validate the narrow fix on
+affected cells, then rerun the identical complete grid before publishing an
+improvement. This keeps benchmark learning tied to implementation rather than
+prompt expansion or selective reporting.

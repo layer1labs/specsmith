@@ -141,7 +141,7 @@ the [`examples/policies`](examples/policies) directory.
 The latest complete screen uses GPT-5.6 Sol across seven tasks, four matched
 conditions, and five repetitions per cell (140/140 valid cells).
 
-| Condition | Pass rate | Tokens/correct | Est. cost/pass |
+| Condition | Pass rate | Tokens/correct | Conservative list cost/pass |
 |---|---:|---:|---:|
 | Ungoverned | 86% | 25.4k | $0.1724 |
 | Cursor rules | 83% | 32.3k | $0.2124 |
@@ -154,6 +154,17 @@ aggregate benefit came from deterministic ambiguity/safety gates and lower
 token use than Cursor rules. The result reinforces the lean direction: focus on
 linked independent tests, requirements, and compact epistemic context—not more
 generic skills or prompt ceremony.
+
+Only complete matched runs are published. Earlier provider, compatibility, and
+artifact failures are retained as diagnostic provenance but excluded from the
+table. From this release onward, task-level TPCA and correctness regressions are
+treated as product signals: benchmark failures become linked requirements and
+tests before another efficiency claim is made.
+
+The historical dollar column prices all input tokens at the list input rate.
+The run recorded cache reads but predates cache-write telemetry, so exact
+GPT-5.6 cached billing cannot be reconstructed. TPCA is unaffected; new runs
+record cache reads and writes separately.
 
 - [Benchmark report](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
 - [Comparison validity and limitations](https://specsmith.readthedocs.io/stable/model-comparison/)

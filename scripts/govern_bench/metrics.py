@@ -101,6 +101,19 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "unknown": (3.00, 15.00),
 }
 
+# Cached-input prices are versioned separately so the long-standing two-value
+# pricing registry stays backwards compatible. Unknown models conservatively
+# use their normal input rate. GPT-5.6 values are from the official model card.
+MODEL_CACHED_INPUT_PER_1M: dict[str, float] = {
+    "gpt-5.6-sol": 0.50,
+    "gpt-5.6": 0.50,
+}
+
+MODEL_CACHE_WRITE_MULTIPLIER: dict[str, float] = {
+    "gpt-5.6-sol": 1.25,
+    "gpt-5.6": 1.25,
+}
+
 # Backwards-compatible alias — keep old key format working
 MODEL_PRICING: dict[str, tuple[float, float]] = {
     k: (v[0] / 1000, v[1] / 1000)  # convert $/1M → $/1K
@@ -188,20 +201,44 @@ MODEL_TIER.update(
 )
 
 
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+def estimate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int = 0,
+    cache_write_tokens: int = 0,
+) -> float:
     """Return estimated API cost in USD."""
-    base = strip_provider_route(model)
-    inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"])
-    return (input_tokens / 1_000_000 * inp_per_m) + (output_tokens / 1_000_000 * out_per_m)
+    _, _, total = estimate_cost_breakdown(
+        model,
+        input_tokens,
+        output_tokens,
+        cached_input_tokens,
+        cache_write_tokens,
+    )
+    return total
 
 
 def estimate_cost_breakdown(
-    model: str, input_tokens: int, output_tokens: int
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cached_input_tokens: int = 0,
+    cache_write_tokens: int = 0,
 ) -> tuple[float, float, float]:
     """Return (input_cost_usd, output_cost_usd, total_cost_usd)."""
     base = strip_provider_route(model)
     inp_per_m, out_per_m = MODEL_PRICING_PER_1M.get(base, MODEL_PRICING_PER_1M["unknown"])
-    inp_cost = input_tokens / 1_000_000 * inp_per_m
+    cached = min(max(0, cached_input_tokens), max(0, input_tokens))
+    writes = min(max(0, cache_write_tokens), max(0, input_tokens - cached))
+    uncached = max(0, input_tokens - cached - writes)
+    cached_per_m = MODEL_CACHED_INPUT_PER_1M.get(base, inp_per_m)
+    write_per_m = inp_per_m * MODEL_CACHE_WRITE_MULTIPLIER.get(base, 1.0)
+    inp_cost = (
+        uncached / 1_000_000 * inp_per_m
+        + cached / 1_000_000 * cached_per_m
+        + writes / 1_000_000 * write_per_m
+    )
     out_cost = output_tokens / 1_000_000 * out_per_m
     return inp_cost, out_cost, inp_cost + out_cost
 
@@ -232,6 +269,7 @@ class RunResult:
     input_tokens: int = 0
     output_tokens: int = 0
     cached_input_tokens: int = 0
+    cache_write_tokens: int = 0
     model: str = "unknown"
 
     # Monetary cost breakdown (USD)
@@ -269,7 +307,11 @@ class RunResult:
     def __post_init__(self) -> None:
         if self.input_tokens > 0 and self.input_cost_usd == 0.0 and self.output_cost_usd == 0.0:
             inp, out, total = estimate_cost_breakdown(
-                self.model, self.input_tokens, self.output_tokens
+                self.model,
+                self.input_tokens,
+                self.output_tokens,
+                self.cached_input_tokens,
+                self.cache_write_tokens,
             )
             self.input_cost_usd = inp
             self.output_cost_usd = out

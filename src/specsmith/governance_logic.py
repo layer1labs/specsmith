@@ -20,6 +20,80 @@ from typing import Any, cast
 
 from specsmith import __version__
 
+_CONTEXT_CONTRACT_CHAR_BUDGET = 1_200
+
+
+def _compact_context_contract(
+    requirement_ids: list[str],
+    test_case_ids: list[str],
+    requirement_records: list[Any],
+    test_records: list[Any],
+    *,
+    char_budget: int = _CONTEXT_CONTRACT_CHAR_BUDGET,
+) -> dict[str, Any]:
+    """Build the smallest useful requirement/test contract for host agents.
+
+    The contract intentionally omits long requirement prose already present in
+    the user's task.  It surfaces stable titles and independent verification
+    commands so agents do not replace acceptance evidence with self-authored
+    tests that exercise a narrower path.
+    """
+    req_set = set(requirement_ids)
+    test_set = set(test_case_ids)
+    requirements = [
+        {"id": rec["id"], "title": str(rec.get("title") or "")[:160]}
+        for rec in requirement_records
+        if isinstance(rec, dict) and rec.get("id") in req_set
+    ]
+    tests: list[dict[str, str]] = []
+    for rec in test_records:
+        if not isinstance(rec, dict) or rec.get("id") not in test_set:
+            continue
+        item = {
+            "id": str(rec["id"]),
+            "title": str(rec.get("title") or "")[:160],
+        }
+        method = str(rec.get("verification_method") or "").strip()
+        if method and method.casefold() != "evaluator":
+            item["verification"] = method[:320]
+        expected = str(rec.get("expected_behavior") or "").strip()
+        if expected:
+            item["expected"] = expected[:240]
+        tests.append(item)
+
+    contract: dict[str, Any] = {
+        "schema": "specsmith-aee-context-v1",
+        "requirements": requirements,
+        "independent_tests": tests,
+        "instruction": (
+            "Preserve unrelated behavior. Run linked independent tests without editing "
+            "them; self-authored tests are supplementary. Unsupported claims remain unknown."
+        ),
+    }
+
+    # Enforce the public size contract deterministically without adding a token
+    # counter dependency. Drop optional detail before dropping trace IDs.
+    import json as _json
+
+    while len(_json.dumps(contract, ensure_ascii=False)) > max(256, char_budget):
+        expected_item = next((item for item in reversed(tests) if "expected" in item), None)
+        if expected_item is not None:
+            expected_item.pop("expected", None)
+            continue
+        verification_item = next((item for item in reversed(tests) if "verification" in item), None)
+        if verification_item is not None:
+            verification_item.pop("verification", None)
+            continue
+        if len(tests) > 1:
+            tests.pop()
+            continue
+        if len(requirements) > 1:
+            requirements.pop()
+            continue
+        contract["instruction"] = "Run linked independent tests; preserve unrelated behavior."
+        break
+    return contract
+
 
 def _is_environment_only_specsmith_upgrade(utterance: str) -> bool:
     """Return whether an utterance only maintains the local pipx CLI."""
@@ -75,7 +149,8 @@ def run_preflight(
     Returns:
         JSON-serialisable dict matching the PreflightDecision schema:
         ``decision``, ``work_item_id``, ``requirement_ids``, ``test_case_ids``,
-        ``confidence_target``, ``instruction``, ``intent``, ``ai_disclosure``.
+        ``confidence_target``, ``instruction``, ``intent``, ``context_contract``,
+        ``ai_disclosure``.
 
     """
     import json as _json
@@ -329,6 +404,12 @@ def run_preflight(
         "confidence_target": round(confidence_target, 3),
         "instruction": instruction,
         "intent": intent.value,
+        "context_contract": _compact_context_contract(
+            requirement_ids,
+            test_case_ids,
+            rq_records,
+            tc_records,
+        ),
         "ai_disclosure": {
             "governed_by": "specsmith",
             "governance_gated": True,

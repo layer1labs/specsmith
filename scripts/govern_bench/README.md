@@ -162,6 +162,7 @@ non-finite.
 - `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
+- `cached_input_tokens`, `cache_write_tokens` when exposed by the provider
 - `rework_turns`, `governance_turns`, `wall_clock_s`
 - governance-specific rates for clarification/safety tasks
 

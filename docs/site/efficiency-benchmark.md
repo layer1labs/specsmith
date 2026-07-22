@@ -26,7 +26,7 @@
 The primary metric is tokens per correct answer (TPCA): mean tokens divided by
 pass rate. Estimated cost-of-pass is secondary because provider prices change.
 
-| Condition | Pass rate (95% CI) | Mean tokens | TPCA | Mean cost | Cost/pass (95% CI) |
+| Condition | Pass rate (95% CI) | Mean tokens | TPCA | Conservative list cost | List cost/pass (95% CI) |
 |---|---:|---:|---:|---:|---:|
 | Ungoverned | 86% (71%–94%) | 21.8k | 25.4k | $0.1478 | $0.1724 ($0.1466–$0.1977) |
 | Cursor rules | 83% (67%–92%) | 26.8k | 32.3k | $0.1760 | $0.2124 ($0.1728–$0.2615) |
@@ -38,6 +38,32 @@ Point estimates favor both Specsmith conditions on the mixed suite. FULL used
 Cursor rules. LIGHT had the highest observed pass rate. The confidence
 intervals overlap, so this is a screening observation, not proof of a universal
 or statistically separated advantage.
+
+The dollar values above are conservative historical estimates that price every
+input token at the normal list rate. The artifact contains `cached_input_tokens`
+but not GPT-5.6 `cache_write_tokens`, so exact cached billing cannot be
+reconstructed after the fact. This does not change raw token counts, pass rates,
+or TPCA. The corrected harness records cache reads and writes independently and
+uses the model's cached-input and cache-write rates for future reports.
+
+## Where the tokens went
+
+Output was nearly flat across conditions; accumulated input history explains
+almost all of the spread. Each row averages 35 task repetitions, and cached
+input is a subset of input rather than an additional token count.
+
+| Condition | Mean input | Mean output | Mean cached input | Mean LLM turns |
+|---|---:|---:|---:|---:|
+| Ungoverned | 20.2k | 1.55k | 18.2k | 4.97 |
+| Cursor rules | 25.1k | 1.68k | 22.8k | 5.40 |
+| Specsmith LIGHT | 19.0k | 1.56k | 17.2k | 4.17 |
+| Specsmith FULL | 18.3k | 1.55k | 16.6k | 3.97 |
+
+Traces in all four conditions also showed agents reading files whose bodies the
+harness had already preloaded. Because prior messages remain in later requests,
+that duplication was paid repeatedly. This is why the first implementation
+change is just-in-time file retrieval, not shorter model answers: mean output
+varied by only 0.13k tokens while mean input varied by 6.8k.
 
 ## Coding-only result
 
@@ -106,6 +132,110 @@ evaluated separately in a controlled self-hosted lane.
    testing and Qwen as a separate open-weight lane with explicit time budgets.
 4. Run ten repetitions before a release-quality claim. Expand to all twelve
    scaffolding conditions only after the core four-condition signal is stable.
+
+## Benchmark-driven optimization loop
+
+GovernanceBench is now a product feedback loop, not a marketing snapshot:
+
+1. Run the core matched screen and fail closed if any cell is missing or has a
+   provider error.
+2. Separate deterministic governance tasks from coding tasks. Optimize mixed
+   TPCA without hiding coding-correctness regressions.
+3. Inspect task-level failures, token components, repair turns, and wall time.
+   Convert a reproducible product failure into a linked requirement and an
+   independent regression test.
+4. Prefer the smallest deterministic intervention that improves the failed
+   task: reject ambiguity before an LLM call, retrieve only relevant evidence,
+   or run the linked acceptance test. Do not lengthen every prompt to fix one
+   task.
+5. Re-run the affected cells first, then the complete matched screen. Publish a
+   new result only when correctness is preserved or improved and TPCA falls.
+
+The immediate optimization target is T10. Specsmith should expose a compact
+requirement-to-boundary context and enforce an independent test covering the
+existing write path before accepting completion. LIGHT remains the default
+until FULL demonstrates that its extra repair loop earns its token cost.
+
+## Research-backed implementation priorities
+
+The trace data and primary research converge on a small set of changes:
+
+- **Retrieve code just in time.** Every condition re-read files that the old
+  harness eagerly injected, so repeated input history dominated spend. The
+  harness now sends the file index by default and lets the agent retrieve only
+  relevant bodies. This follows Anthropic's
+  [progressive-disclosure guidance](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+  and the localization-first result in
+  [Agentless](https://arxiv.org/abs/2407.01489).
+- **Make the independent test legible and immutable.** Preflight now emits a
+  bounded AEE context contract with linked test commands and instructs the host
+  agent not to edit those tests. This directly addresses T10's public-boundary
+  miss and the low-coverage-test risk identified in OpenAI's
+  [coding-evaluation audit](https://openai.com/index/separating-signal-from-noise-coding-evaluations/).
+- **Preserve active evidence, not bulk history.** Grace now prioritizes active
+  preflight/verification evidence, caps resumed chat at six turns, and uses a
+  6,000-character seed. Longer sessions can use state-preserving compaction;
+  both [OpenAI](https://developers.openai.com/api/docs/guides/compaction) and
+  Anthropic recommend compacting redundant tool output while retaining
+  unresolved state.
+- **Measure caching instead of assuming it.** GPT-5.6 requests now use a stable
+  prompt cache key and record cache reads/writes. OpenAI requires exact reusable
+  prefixes for cache hits and recommends placing stable content first in its
+  [prompt-caching guide](https://developers.openai.com/api/docs/guides/prompt-caching).
+- **Route models only from local evidence.** The diagnostic showed that neither
+  the small OpenAI model nor managed Qwen was a safe default for coding. A
+  learned cascade remains promising—see
+  [RouteLLM](https://arxiv.org/abs/2406.18665) and
+  [FrugalGPT](https://arxiv.org/abs/2305.05176)—but Specsmith should enable it
+  only after enough per-task outcomes exist to bound regression risk.
+
+Prompt compression such as
+[LLMLingua-2](https://arxiv.org/abs/2403.12968) is a candidate for long prose
+and tool output, not source code, JSON, test commands, or provenance IDs. It
+must earn adoption in an ablation because semantic-looking compression can
+still discard a boundary-critical fact. The same caution follows the
+[lost-in-the-middle](https://arxiv.org/abs/2307.03172) result: more context is
+not automatically more usable context.
+
+## Coverage priorities
+
+The post-change Windows validation collected 2,328 tests: 2,314 passed, nine
+were skipped, and five expected failures remained expected. Application line
+coverage was 52%. A separate GovernanceBench measurement was 38% overall;
+its pricing module reached 86%, but the orchestration harness was 33%.
+
+The new regressions cover the paths implicated by this run: bounded preflight
+contracts, trace-ID retention under compression, active-evidence priority,
+resumed-history caps, just-in-time file retrieval, cached-read/write pricing,
+and OpenAI cache telemetry. The CI coverage command now includes
+`govern_bench`, so harness coverage cannot remain invisible behind the
+application-only number.
+
+Next coverage work should follow risk, not inflate a repository-wide number:
+
+1. Add provider-response fixtures and failure injection around benchmark
+   orchestration, artifact completeness, retries, and resume behavior.
+2. Exercise the requirement/retrieval boundary and verification failure paths;
+   those modules currently have materially less coverage than the pricing and
+   condition registries.
+3. Split optional GUI, one-time migrations, and legacy compatibility code from
+   the mission-core coverage view. Either test those surfaces intentionally or
+   remove them; uncovered dormant code should not dilute the signal used to
+   release the governance core.
+
+## Excluded and diagnostic attempts
+
+Failed attempts are evidence about the harness, but not benchmark results:
+
+| Workflow run | Outcome | Publication treatment |
+|---|---|---|
+| `29826896259` | Requested Hugging Face route was not offered by the provider. | Excluded; no model comparison. |
+| `29827597006`, `29827805536` | GPT-5.6 Sol rejected function tools with the requested reasoning setting. | Excluded; compatibility fixed by applying `reasoning_effort=none` uniformly. |
+| `29829542051` | Artifact handling raised `[Errno 21] Is a directory`, leaving incomplete cells. | Excluded; fail-closed comparison correctly refused. |
+| `29832926861` | Run was cancelled while the slow Qwen lane was still executing. | Excluded; partial model outputs are not combined. |
+
+This provenance prevents an incomplete or selectively successful run from being
+mistaken for the complete 140-cell screen.
 
 ## Integrity protocol
 

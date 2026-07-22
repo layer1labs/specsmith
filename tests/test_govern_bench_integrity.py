@@ -6,6 +6,7 @@ import io
 import sys
 import urllib.error
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -22,8 +23,10 @@ from govern_bench.compare_runs import (  # noqa: E402
 )
 from govern_bench.conditions import get_condition  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
+    _build_file_context,
     _build_project_diff,
     _build_tools,
+    _call_openai_provider,
     _completion_gate,
     _copy_project_fixture,
     _exec_list_files,
@@ -74,6 +77,52 @@ def _row(
         "skipped": skipped,
         "error": error,
     }
+
+
+def test_file_bodies_are_just_in_time_by_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "main.py").write_text("SECRET_EAGER_CONTEXT = True\n", encoding="utf-8")
+    monkeypatch.delenv("BENCH_CONTEXT_BYTES", raising=False)
+
+    assert _build_file_context(tmp_path, "main.py") == ""
+
+    monkeypatch.setenv("BENCH_CONTEXT_BYTES", "100")
+    assert "SECRET_EAGER_CONTEXT" in _build_file_context(tmp_path, "main.py")
+
+
+def test_gpt56_openai_call_uses_stable_cache_key_and_records_cache_usage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict = {}
+
+    def create(**kwargs):
+        captured.update(kwargs)
+        usage = SimpleNamespace(
+            prompt_tokens=100,
+            completion_tokens=5,
+            prompt_tokens_details=SimpleNamespace(
+                cached_tokens=80,
+                cache_write_tokens=10,
+            ),
+        )
+        message = SimpleNamespace(content="done", tool_calls=[])
+        return SimpleNamespace(usage=usage, choices=[SimpleNamespace(message=message)])
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setenv("BENCH_PROMPT_CACHE_KEY", "governancebench:test")
+
+    response = _call_openai_provider(
+        "openai",
+        client,
+        "gpt-5.6-sol",
+        [{"role": "user", "content": "repair"}],
+        [],
+    )
+
+    assert captured["prompt_cache_key"] == "governancebench:test"
+    assert response.usage.cached_tokens == 80
+    assert response.usage.cache_write_tokens == 10
 
 
 def test_complete_results_return_cell_signature() -> None:

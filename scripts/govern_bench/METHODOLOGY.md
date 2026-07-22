@@ -3,7 +3,9 @@
 This document defines the statistical design, aggregation rules, and reporting guardrails for
 GovernanceBench.
 
-> Publication status: benchmark claims are **TBD** until empirical runs are completed.
+> Publication status: the current repeated-run evidence and its limitations are
+> published in `docs/site/efficiency-benchmark.md`. New claims remain unpublished
+> until their raw artifacts pass the completeness and comparability gates below.
 
 ## 1) Objective
 
@@ -50,6 +52,7 @@ in leaderboard exports.
 - `cost_of_pass = estimated_mean_api_cost_usd / pass_rate`
 - `quality_score`
 - `input_tokens`, `output_tokens`, `api_cost_usd`
+- `cached_input_tokens`, `cache_write_tokens` (when reported by the provider)
 - `rework_turns`, `governance_turns`, `wall_clock_s`
 - governance-specific behavior rates for ambiguity/safety tasks
 

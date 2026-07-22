@@ -120,6 +120,18 @@ class TestEstimateCost:
         inp, out, total = estimate_cost_breakdown("gpt-4o", 200_000, 80_000)
         assert abs(inp + out - total) < 1e-12
 
+    def test_gpt56_cost_accounts_for_cache_reads_and_writes(self) -> None:
+        # 100k uncached at $5/M + 800k cached at $0.50/M +
+        # 100k cache writes at 1.25 × $5/M.
+        cost = estimate_cost(
+            "gpt-5.6-sol",
+            1_000_000,
+            0,
+            cached_input_tokens=800_000,
+            cache_write_tokens=100_000,
+        )
+        assert cost == pytest.approx(1.525)
+
 
 # ---------------------------------------------------------------------------
 # TEST-BH-01/02/03: RunResult properties
@@ -146,6 +158,18 @@ class TestRunResult:
     def test_post_init_computes_cost(self) -> None:
         r = _run(model="gpt-4o-mini", input_tokens=1_000_000, output_tokens=0)
         assert abs(r.api_cost_usd - 0.15) < 1e-9
+
+    def test_post_init_uses_cache_aware_cost(self) -> None:
+        r = RunResult(
+            task_id="T1",
+            condition_id="UNGOVERNED",
+            rep=1,
+            model="gpt-5.6-sol",
+            input_tokens=1_000_000,
+            cached_input_tokens=800_000,
+            cache_write_tokens=100_000,
+        )
+        assert r.api_cost_usd == pytest.approx(1.525)
 
     def test_post_init_skipped_when_cost_provided(self) -> None:
         """If api_cost_usd is set explicitly, __post_init__ should not override it."""
