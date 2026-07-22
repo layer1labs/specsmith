@@ -324,6 +324,10 @@ def test_t28_oracle_accepts_equivalent_schema_and_empty_state_forms(
         "Python Go React schema data flow process-local state. " + "decision " * 95
     )
     assert has_architecture_record(equivalent_architecture)
+    end_to_end_architecture = (
+        "Python Go React schema components. End-to-end flow and failures. " + "decision " * 95
+    )
+    assert has_architecture_record(end_to_end_architecture)
 
 
 def test_comparison_workflow_excludes_audit_json_objects() -> None:

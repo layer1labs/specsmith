@@ -37,7 +37,7 @@ def _has_empty_state(app: str) -> bool:
 def _has_architecture_record(architecture: str) -> bool:
     architecture = architecture.casefold()
     return len(architecture.split()) >= 100 and all(
-        term in architecture for term in ("python", "go", "react", "schema", "data flow")
+        term in architecture for term in ("python", "go", "react", "schema", "flow")
     )
 
 
