@@ -45,6 +45,7 @@ from govern_bench.harness import (  # noqa: E402
     _openai_reasoning_params,
     _run_agent_loop,
     _run_governance_controller,
+    _run_missing_completion_validators,
     _updated_validator_evidence,
     _updated_verification_evidence,
 )
@@ -437,6 +438,23 @@ def test_file_tools_reject_prefix_collision_traversal(tmp_path: Path) -> None:
     assert (sibling / "secret.txt").read_text(encoding="utf-8") == "secret"
 
 
+def test_model_file_tools_hide_and_protect_controller_state(tmp_path: Path) -> None:
+    state = tmp_path / ".specsmith"
+    state.mkdir()
+    requirement = state / "requirements.json"
+    requirement.write_text('[{"id":"REQ-SECRET"}]', encoding="utf-8")
+
+    assert ".specsmith" not in _exec_list_files(tmp_path)
+    assert "not model-visible" in _exec_read_file(tmp_path, ".specsmith/requirements.json")
+    assert "cannot be changed" in _exec_write_file(
+        tmp_path,
+        ".specsmith/requirements.json",
+        "[]",
+        [],
+    )
+    assert requirement.read_text(encoding="utf-8") == '[{"id":"REQ-SECRET"}]'
+
+
 def test_standard_validation_isolates_hidden_oracle(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -573,6 +591,34 @@ def test_long_horizon_full_gate_requires_fresh_polyglot_validators() -> None:
         evidence,
     )
     assert not _completion_gate("SPECSMITH_FULL", task, True, True, evidence)[0]
+
+
+def test_full_controller_runs_only_missing_completion_validators(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T28")
+    commands: list[str] = []
+
+    def fake_standard(_root: Path, command: str) -> tuple[bool, str]:
+        commands.append(command)
+        return True, "passed"
+
+    def fake_scoped(_root: Path, _task: object, command: str) -> tuple[bool, str]:
+        commands.append(command)
+        return True, "passed"
+
+    monkeypatch.setattr(harness_module, "_exec_run_command", fake_standard)
+    monkeypatch.setattr(harness_module, "_exec_run_validator", fake_scoped)
+    existing = {task.allowed_validator_commands[0]}
+    lint_ok, tests_ok, evidence, failures = _run_missing_completion_validators(
+        tmp_path, task, True, False, existing
+    )
+
+    assert lint_ok and tests_ok
+    assert failures == []
+    assert commands == ["pytest", *task.allowed_validator_commands[1:]]
+    assert evidence == set(task.allowed_validator_commands)
 
 
 def test_completion_gate_does_not_advantage_non_full_conditions() -> None:

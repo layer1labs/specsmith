@@ -352,7 +352,9 @@ CONDITIONS: list[Condition] = [
             Scope every change to the linked requirement and preserve unrelated behavior.
             Distinguish evidence, inference, and unknowns; inspect before assuming.
             Add focused tests for changed behavior and relevant boundaries.
-            Use validator output as the completion gate; repair failures before finishing.
+            Call done when the implementation and focused tests are ready. The deterministic
+            completion gate runs every missing linked validator without another model turn;
+            repair any failures it returns, then call done again.
         """),
         overhead_turns=0,  # preflight/verify are deterministic controller operations
         tags=["specsmith", "full-governance", "primary"],

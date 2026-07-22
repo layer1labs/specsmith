@@ -607,6 +607,18 @@ def _build_project_diff(source_root: Path, project_root: Path, max_chars: int = 
 # ---------------------------------------------------------------------------
 
 
+_MODEL_HIDDEN_DIRECTORIES = frozenset({".chronomemory", ".governancebench_oracle", ".specsmith"})
+
+
+def _model_hidden_path(project_root: Path, path: Path) -> bool:
+    """Return whether *path* is controller state, not model context."""
+    try:
+        relative = path.relative_to(project_root.resolve())
+    except ValueError:
+        return True
+    return any(part.casefold() in _MODEL_HIDDEN_DIRECTORIES for part in relative.parts)
+
+
 def _resolve_project_path(project_root: Path, path: str) -> tuple[Path | None, str]:
     """Resolve an agent path without allowing it to escape the project root."""
     if not isinstance(path, str) or not path or "\x00" in path:
@@ -624,6 +636,8 @@ def _exec_read_file(project_root: Path, path: str) -> str:
     p, error = _resolve_project_path(project_root, path)
     if p is None:
         return error
+    if _model_hidden_path(project_root, p):
+        return "ERROR: controller governance state is not model-visible context"
     if not p.exists():
         return f"ERROR: file not found: {path}"
     if not p.is_file():
@@ -641,6 +655,8 @@ def _exec_write_file(project_root: Path, path: str, content: str, files_written:
     p, error = _resolve_project_path(project_root, path)
     if p is None:
         return error
+    if _model_hidden_path(project_root, p):
+        return "ERROR: controller governance state cannot be changed by model file tools"
     if not isinstance(content, str):
         return "ERROR: content must be text"
     if p.exists() and not p.is_file():
@@ -667,6 +683,8 @@ def _exec_list_files(project_root: Path, directory: str = ".") -> str:
     base, error = _resolve_project_path(project_root, directory)
     if base is None:
         return error
+    if _model_hidden_path(project_root, base):
+        return "ERROR: controller governance state is not model-visible context"
     if not base.exists():
         return f"ERROR: directory not found: {directory}"
     if not base.is_dir():
@@ -678,7 +696,15 @@ def _exec_list_files(project_root: Path, directory: str = ".") -> str:
                 rel = p.relative_to(project_root.resolve())
                 parts = rel.parts
                 if any(
-                    part in ("__pycache__", ".git", ".mypy_cache", ".ruff_cache") for part in parts
+                    part.casefold()
+                    in {
+                        "__pycache__",
+                        ".git",
+                        ".mypy_cache",
+                        ".ruff_cache",
+                        *_MODEL_HIDDEN_DIRECTORIES,
+                    }
+                    for part in parts
                 ):
                     continue
                 result.append(str(rel))
@@ -1485,6 +1511,45 @@ def _completion_gate(
     )
 
 
+def _run_missing_completion_validators(
+    project_root: Path,
+    task: BenchTask,
+    lint_verified: bool,
+    tests_verified: bool,
+    validator_verified: set[str],
+) -> tuple[bool, bool, set[str], list[str]]:
+    """Run missing FULL completion checks without consuming another LLM turn."""
+    failures: list[str] = []
+    for command in ("ruff check .", "pytest"):
+        already_verified = lint_verified if command == "ruff check ." else tests_verified
+        if already_verified:
+            continue
+        succeeded, output = _exec_run_command(project_root, command)
+        lint_verified, tests_verified = _updated_verification_evidence(
+            command,
+            succeeded,
+            lint_verified,
+            tests_verified,
+        )
+        if not succeeded:
+            failures.append(f"{command} FAILED:\n{_compact_tool_result(output)}")
+
+    if task.enforce_completion_validators:
+        for command in _validator_commands_for_task(task):
+            if command in validator_verified:
+                continue
+            succeeded, output = _exec_run_validator(project_root, task, command)
+            validator_verified = _updated_validator_evidence(
+                command,
+                succeeded,
+                validator_verified,
+            )
+            if not succeeded:
+                failures.append(f"{command} FAILED:\n{_compact_tool_result(output)}")
+
+    return lint_verified, tests_verified, validator_verified, failures
+
+
 def _run_standard_validation(
     task: BenchTask,
     project_root: Path,
@@ -1800,6 +1865,39 @@ def _run_agent_loop(
                     tests_verified,
                     validator_verified,
                 )
+                completion_failures: list[str] = []
+                if (
+                    not finished
+                    and condition.id == "SPECSMITH_FULL"
+                    and not task.is_safety_task
+                    and not task.is_clarification_task
+                ):
+                    (
+                        lint_verified,
+                        tests_verified,
+                        validator_verified,
+                        completion_failures,
+                    ) = _run_missing_completion_validators(
+                        project_root,
+                        task,
+                        lint_verified,
+                        tests_verified,
+                        validator_verified,
+                    )
+                    finished, out = _completion_gate(
+                        condition.id,
+                        task,
+                        lint_verified,
+                        tests_verified,
+                        validator_verified,
+                    )
+                    if completion_failures:
+                        validation_failed = True
+                        out = (
+                            "Completion blocked by deterministic validation. Repair these "
+                            "failures, then call done again; the controller will rerun only "
+                            "missing checks.\n\n" + "\n\n".join(completion_failures)
+                        )
                 if not finished and condition.id == "SPECSMITH_FULL":
                     governance_turns += 1
                 elif (

@@ -18,6 +18,9 @@ consolidated into the next published release.
 - Benchmark documentation now separates mixed-suite gains from coding-only
   outcomes and treats tokens per correct answer as the provider-neutral primary
   metric.
+- The FULL benchmark controller now keeps internal governance storage outside
+  model-visible file context and runs missing linked validators when the model
+  calls `done`, preserving fresh evidence while removing validator-only LLM turns.
 
 ### Fixed
 - CI now runs an exception-free dependency audit; the obsolete CVE-2026-3219
