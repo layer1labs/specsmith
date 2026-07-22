@@ -135,6 +135,22 @@ def _tool_targets(row: dict[str, Any], prefix: str) -> list[str]:
     return targets
 
 
+def _assistant_tool_counts(row: dict[str, Any]) -> list[int]:
+    """Return tool-call counts for assistant turns that issued at least one call."""
+    counts: list[int] = []
+    for event in row.get("agent_transcript") or []:
+        if not isinstance(event, dict) or event.get("role") != "assistant":
+            continue
+        calls = event.get("tool_calls") or event.get("tool_targets") or []
+        if isinstance(calls, list) and calls:
+            counts.append(len(calls))
+    return counts
+
+
+def _normalized_path(value: Any) -> str:
+    return str(value or "").replace("\\", "/").removeprefix("./").casefold()
+
+
 def _top_level_components(paths: list[str]) -> set[str]:
     return {path.replace("\\", "/").removeprefix("./").partition("/")[0] for path in paths if path}
 
@@ -265,6 +281,96 @@ def audit_benchmark_rows(
                 ),
                 tasks=sorted({str(row.get("task")) for row in exhausted}),
                 conditions=sorted({str(row.get("condition")) for row in exhausted}),
+            )
+        )
+
+    premature_text_stops = [
+        row for row in valid if not row.get("passed") and row.get("stop_reason") == "text_response"
+    ]
+    if premature_text_stops:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="premature_text_stop",
+                severity="high",
+                title="Model narrated a next step without completing the tool workflow",
+                evidence=(
+                    f"{len(premature_text_stops)} failed row(s) ended on a text-only response."
+                ),
+                recommendation=(
+                    "Use a bounded controller continuation only when narration promises another "
+                    "action; otherwise fail closed rather than treating prose as completion."
+                ),
+                tasks=sorted({str(row.get("task")) for row in premature_text_stops}),
+                conditions=sorted({str(row.get("condition")) for row in premature_text_stops}),
+            )
+        )
+
+    serialized_tools: list[dict[str, Any]] = []
+    for row in valid:
+        counts = _assistant_tool_counts(row)
+        if (
+            not row.get("passed")
+            and row.get("stop_reason") in {"max_turns", "text_response"}
+            and sum(counts) >= 6
+            and len(counts) >= 6
+            and max(counts, default=0) == 1
+        ):
+            serialized_tools.append(row)
+    if serialized_tools:
+        total_calls = sum(sum(_assistant_tool_counts(row)) for row in serialized_tools)
+        total_action_turns = sum(len(_assistant_tool_counts(row)) for row in serialized_tools)
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="tool_call_serialization",
+                severity="high",
+                title="Model spent one turn per independent tool action",
+                evidence=(
+                    f"{len(serialized_tools)} failed row(s) issued {total_calls} tool calls "
+                    f"across {total_action_turns} separate action turns."
+                ),
+                recommendation=(
+                    "Reduce the active tool schema, expose a controller-owned change map, and "
+                    "use a serving route/scaffold that supports batched independent calls."
+                ),
+                tasks=sorted({str(row.get("task")) for row in serialized_tools}),
+                conditions=sorted({str(row.get("condition")) for row in serialized_tools}),
+            )
+        )
+
+    scope_expansions: list[tuple[dict[str, Any], list[str]]] = []
+    for row in valid:
+        expected = {
+            _normalized_path(path) for path in row.get("expected_files_changed") or [] if path
+        }
+        if not expected:
+            continue
+        extras = [
+            str(path)
+            for path in row.get("files_written") or []
+            if path and _normalized_path(path) not in expected
+        ]
+        if extras:
+            scope_expansions.append((row, extras))
+    if scope_expansions:
+        extra_paths = sorted(
+            {path for _row, paths in scope_expansions for path in paths},
+            key=str.casefold,
+        )
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="scope_expansion",
+                severity="medium",
+                title="Implementation wrote beyond declared requirement boundaries",
+                evidence=(
+                    f"{len(scope_expansions)} row(s) wrote {len(extra_paths)} undeclared path(s): "
+                    + ", ".join(extra_paths[:8])
+                ),
+                recommendation=(
+                    "Review whether each extra path is required; otherwise constrain retrieval "
+                    "and edits to the requirement-linked change map."
+                ),
+                tasks=sorted({str(row.get("task")) for row, _paths in scope_expansions}),
+                conditions=sorted({str(row.get("condition")) for row, _paths in scope_expansions}),
             )
         )
 

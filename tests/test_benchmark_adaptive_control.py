@@ -186,6 +186,30 @@ def test_audit_exposes_task_type_reread_and_milestone_inefficiencies() -> None:
     assert report.task_type_metrics["long_horizon_product"]["CURSOR_RULES"]["pass_rate"] == 1.0
 
 
+def test_audit_exposes_tool_serialization_text_stops_and_scope_expansion() -> None:
+    serialized = _audit_row(condition="SPECSMITH_FULL", passed=False)
+    serialized.update(
+        {
+            "stop_reason": "text_response",
+            "expected_files_changed": ["backend/main.py"],
+            "files_written": ["backend/main.py", "notes/debug.txt"],
+            "agent_transcript": [
+                {
+                    "role": "assistant",
+                    "tool_calls": ["read_file"],
+                    "tool_targets": [f"read_file:file-{index}.txt"],
+                }
+                for index in range(6)
+            ],
+        }
+    )
+
+    report = audit_benchmark_rows([serialized])
+    codes = {weakness.code for weakness in report.weaknesses}
+
+    assert {"premature_text_stop", "tool_call_serialization", "scope_expansion"} <= codes
+
+
 def test_qwen_agentic_coding_candidates_have_hf_routes_pricing_and_tiers() -> None:
     registry = load_registry(_SCRIPTS_DIR / "govern_bench" / "models.yml")
     candidates = select(registry, groups={"open-qwen"})

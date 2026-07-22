@@ -289,6 +289,9 @@ def _result_rows(
             "category": task_map[r.task_id].category if r.task_id in task_map else "unknown",
             "task_max_turns": task_map[r.task_id].max_turns if r.task_id in task_map else None,
             "languages": task_map[r.task_id].languages if r.task_id in task_map else [],
+            "expected_files_changed": (
+                task_map[r.task_id].expected_files_changed if r.task_id in task_map else []
+            ),
             "input_tokens": r.input_tokens,
             "output_tokens": r.output_tokens,
             "cached_input_tokens": r.cached_input_tokens,
