@@ -248,7 +248,9 @@ _BASE_TOOLS: list[dict] = [
         "function": {
             "name": "write_file",
             "description": (
-                "Write or overwrite a file in the project. Creates parent directories if needed."
+                "Write or overwrite a file in the project. Content must be the complete "
+                "replacement body; blank content cannot replace a non-empty file. "
+                "Creates parent directories if needed."
             ),
             "parameters": {
                 "type": "object",
@@ -476,19 +478,65 @@ def _aee_evidence_contract(decision: dict[str, Any]) -> str:
     )
 
 
-def _compact_assistant_tool_arguments(message: dict[str, Any]) -> None:
-    """Remove complete file bodies from history after a write is executed."""
-    for tool_call in message.get("tool_calls") or []:
-        fn = tool_call.get("function") or {}
-        if fn.get("name") != "write_file":
+def _compact_completed_tool_exchange(
+    assistant_message: dict[str, Any],
+    tool_calls: list[NormalizedToolCall],
+    tool_results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Keep future Chat history schema-valid while omitting completed write bodies."""
+    serialized_calls = list(assistant_message.get("tool_calls") or [])
+    results_by_id = {str(result.get("tool_call_id") or ""): result for result in tool_results}
+    retained_calls: list[dict[str, Any]] = []
+    retained_results: list[dict[str, Any]] = []
+    write_summaries: list[str] = []
+
+    for call, serialized in zip(tool_calls, serialized_calls, strict=True):
+        result = results_by_id.get(call.id)
+        if call.name != "write_file":
+            retained_calls.append(serialized)
+            if result is not None:
+                retained_results.append(result)
             continue
-        args = _json_loads_maybe(fn.get("arguments"))
-        if not isinstance(args, dict) or not isinstance(args.get("content"), str):
-            continue
-        content = args.pop("content")
-        args["content_bytes"] = len(content.encode("utf-8"))
-        args["content_sha256"] = hashlib.sha256(content.encode("utf-8")).hexdigest()
-        fn["arguments"] = json.dumps(args, separators=(",", ":"))
+
+        parsed = _json_loads_maybe(call.arguments)
+        args = parsed if isinstance(parsed, dict) else {}
+        path = str(args.get("path") or "(missing path)")
+        content = args.get("content")
+        body = content if isinstance(content, str) else ""
+        digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+        outcome = str((result or {}).get("content") or "no tool result").replace("\n", " ")
+        write_summaries.append(
+            f"- {json.dumps(path)}: {outcome[:240]} "
+            f"(requested_bytes={len(body.encode('utf-8'))}, sha256={digest})"
+        )
+
+    history: list[dict[str, Any]] = []
+    assistant_content = assistant_message.get("content")
+    if retained_calls:
+        history.append(
+            {
+                "role": "assistant",
+                "content": assistant_content,
+                "tool_calls": retained_calls,
+            }
+        )
+        history.extend(retained_results)
+    elif assistant_content:
+        history.append({"role": "assistant", "content": assistant_content})
+
+    if write_summaries:
+        history.append(
+            {
+                "role": "user",
+                "content": (
+                    "Completed write_file state summary. File bodies were omitted from "
+                    "history; files on disk are authoritative. Use read_file before repairing "
+                    "an existing file, and send the complete replacement body in "
+                    "write_file.content.\n" + "\n".join(write_summaries)
+                ),
+            }
+        )
+    return history
 
 
 def _compact_tool_result(value: Any) -> str:
@@ -1647,7 +1695,6 @@ def _run_agent_loop(
 
         msg = response.message
         assistant_message = _normalized_message_to_openai_dict(msg)
-        messages.append(assistant_message)
         tc_names = [tc.name for tc in msg.tool_calls]
         tc_targets = [_tool_call_target(tc) for tc in msg.tool_calls]
         agent_transcript.append(
@@ -1665,6 +1712,7 @@ def _run_agent_loop(
         )
 
         if not msg.tool_calls:
+            messages.append(assistant_message)
             content = (msg.content or "").strip()
             if not content and empty_response_retries < 1 and turn + 1 < max_turns:
                 # Some OpenAI-compatible routes occasionally emit an empty
@@ -1805,8 +1853,9 @@ def _run_agent_loop(
                 }
             )
 
-        _compact_assistant_tool_arguments(assistant_message)
-        messages.extend(tool_results)
+        messages.extend(
+            _compact_completed_tool_exchange(assistant_message, msg.tool_calls, tool_results)
+        )
         agent_transcript.append(
             {
                 "turn": turn + 1,

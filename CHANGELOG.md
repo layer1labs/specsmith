@@ -37,6 +37,9 @@ consolidated into the next published release.
 - Benchmark file tools now reject blank overwrites of non-empty files, preserve
   valid verification evidence after rejected writes, and report the contained
   destructive attempt as a deterministic audit weakness.
+- Completed benchmark write calls now compact into protocol-valid state
+  summaries instead of mutating historical tool arguments outside their schema.
+  This removes file bodies without teaching models to imitate content-less writes.
 - Generated reports list exact non-contiguous task IDs instead of inventing a
   contiguous range.
 

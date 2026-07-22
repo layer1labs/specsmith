@@ -32,6 +32,7 @@ from govern_bench.harness import (  # noqa: E402
     _build_project_diff,
     _build_tools,
     _call_openai_provider,
+    _compact_completed_tool_exchange,
     _completion_gate,
     _copy_project_fixture,
     _exec_list_files,
@@ -95,6 +96,55 @@ def test_file_bodies_are_just_in_time_by_default(
 
     monkeypatch.setenv("BENCH_CONTEXT_BYTES", "100")
     assert "SECRET_EAGER_CONTEXT" in _build_file_context(tmp_path, "main.py")
+
+
+def test_completed_write_compaction_keeps_tool_history_schema_valid() -> None:
+    body = "VERY_SECRET_FILE_BODY\n"
+    assistant = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "id": "write-1",
+                "type": "function",
+                "function": {
+                    "name": "write_file",
+                    "arguments": '{"path":"main.py","content":"VERY_SECRET_FILE_BODY\\n"}',
+                },
+            },
+            {
+                "id": "read-1",
+                "type": "function",
+                "function": {"name": "read_file", "arguments": '{"path":"README.md"}'},
+            },
+        ],
+    }
+    calls = [
+        NormalizedToolCall(
+            id="write-1",
+            name="write_file",
+            arguments='{"path":"main.py","content":"VERY_SECRET_FILE_BODY\\n"}',
+        ),
+        NormalizedToolCall(
+            id="read-1",
+            name="read_file",
+            arguments='{"path":"README.md"}',
+        ),
+    ]
+    results = [
+        {"role": "tool", "tool_call_id": "write-1", "content": "OK: wrote 22 bytes"},
+        {"role": "tool", "tool_call_id": "read-1", "content": "README body"},
+    ]
+
+    history = _compact_completed_tool_exchange(assistant, calls, results)
+
+    assert body.strip() not in str(history)
+    assert history[0]["tool_calls"] == [assistant["tool_calls"][1]]
+    assert history[1] == results[1]
+    assert history[2]["role"] == "user"
+    assert "main.py" in history[2]["content"]
+    assert "requested_bytes=22" in history[2]["content"]
+    assert "content_bytes" not in str(history)
 
 
 def test_gpt56_openai_call_uses_stable_cache_key_and_records_cache_usage(
@@ -576,6 +626,66 @@ def test_agent_loop_recovers_once_from_empty_provider_response(
     assert result.stop_reason == "done"
     assert result.rework_turns == 2
     assert any("recovery" in event for event in result.agent_transcript)
+
+
+def test_agent_loop_replays_compact_valid_history_after_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    responses = iter(
+        [
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[
+                        NormalizedToolCall(
+                            id="write-1",
+                            name="write_file",
+                            arguments=(
+                                '{"path":"notes.txt","content":"VERY_SECRET_PROVIDER_BODY\\n"}'
+                            ),
+                        )
+                    ]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(content="stop"),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+        ]
+    )
+    provider_histories: list[str] = []
+
+    def fake_call(**kwargs: object) -> NormalizedLLMResponse:
+        provider_histories.append(repr(kwargs["messages"]))  # type: ignore[index]
+        return next(responses)
+
+    monkeypatch.setattr(harness_module, "_call_llm", fake_call)
+    monkeypatch.setattr(
+        harness_module,
+        "_run_standard_validation",
+        lambda *_args: (True, "", True, "", False, "hidden failure"),
+    )
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("UNGOVERNED"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=2,
+    )
+
+    assert result.stop_reason == "text_response"
+    assert len(provider_histories) == 2
+    assert "VERY_SECRET_PROVIDER_BODY" not in provider_histories[1]
+    assert "Completed write_file state summary" in provider_histories[1]
+    assert "content_bytes" not in provider_histories[1]
 
 
 def test_agent_loop_stops_repeated_single_file_write_loop(
