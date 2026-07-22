@@ -156,14 +156,24 @@ def test_audit_reports_turn_tool_and_verification_exhaustion() -> None:
     ]
     verify = _row(condition="SPECSMITH_FULL", passed=False, input_tokens=100)
     verify["stop_reason"] = "verification_exhausted"
+    blank_write = _row(condition="CURSOR_RULES", passed=False, input_tokens=100)
+    blank_write["agent_transcript"] = [
+        {
+            "role": "tool",
+            "results": [
+                "ERROR: refusing to replace non-empty file backend/main.py with blank content"
+            ],
+        }
+    ]
 
-    report = audit_benchmark_rows([max_turn, repeated, verify])
+    report = audit_benchmark_rows([max_turn, repeated, verify, blank_write])
     codes = {item.code for item in report.weaknesses}
 
     assert {
         "turn_budget_exhausted",
         "repeated_tool_loop",
         "verification_exhausted",
+        "blank_overwrite_rejected",
     } <= codes
 
 

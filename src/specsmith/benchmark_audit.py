@@ -268,6 +268,37 @@ def audit_benchmark_rows(
             )
         )
 
+    rejected_blank_writes = [
+        row
+        for row in valid
+        if any(
+            isinstance(event, dict)
+            and any(
+                isinstance(result, str) and "ERROR: refusing to replace non-empty file" in result
+                for result in event.get("results") or []
+            )
+            for event in row.get("agent_transcript") or []
+        )
+    ]
+    if rejected_blank_writes:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="blank_overwrite_rejected",
+                severity="medium",
+                title="Tool guard rejected a destructive blank overwrite",
+                evidence=(
+                    f"{len(rejected_blank_writes)} row(s) attempted to replace a non-empty "
+                    "project file with blank content."
+                ),
+                recommendation=(
+                    "Inspect the model's write call and recovery trace; keep the guard enabled "
+                    "and require the complete replacement body."
+                ),
+                tasks=sorted({str(row.get("task")) for row in rejected_blank_writes}),
+                conditions=sorted({str(row.get("condition")) for row in rejected_blank_writes}),
+            )
+        )
+
     verification_exhausted = [
         row for row in valid if row.get("stop_reason") == "verification_exhausted"
     ]

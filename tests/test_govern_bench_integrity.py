@@ -464,6 +464,18 @@ def test_write_file_reports_identical_content_as_noop(tmp_path: Path) -> None:
     assert written == ["result.txt"]
 
 
+def test_write_file_rejects_blank_overwrite_of_non_empty_file(tmp_path: Path) -> None:
+    target = tmp_path / "result.txt"
+    target.write_text("stable\n", encoding="utf-8")
+    written: list[str] = []
+
+    result = _exec_write_file(tmp_path, "result.txt", "\n", written)
+
+    assert result.startswith("ERROR: refusing to replace non-empty file")
+    assert target.read_text(encoding="utf-8") == "stable\n"
+    assert written == []
+
+
 def test_governance_tools_do_not_change_agent_capabilities() -> None:
     task = get_task("T1")
     raw_names = [tool["function"]["name"] for tool in _build_tools("UNGOVERNED", task)]

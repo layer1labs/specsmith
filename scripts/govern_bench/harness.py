@@ -598,8 +598,14 @@ def _exec_write_file(project_root: Path, path: str, content: str, files_written:
     if p.exists() and not p.is_file():
         return f"ERROR: path is not a file: {path}"
     try:
-        if p.exists() and p.read_text(encoding="utf-8", errors="replace") == content:
+        existing = p.read_text(encoding="utf-8", errors="replace") if p.exists() else None
+        if existing == content:
             return f"NO-OP: {path} already contains the requested content"
+        if existing and not content.strip():
+            return (
+                f"ERROR: refusing to replace non-empty file {path} with blank content; "
+                "resend the complete file body"
+            )
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
     except OSError as exc:
@@ -1697,7 +1703,7 @@ def _run_agent_loop(
                 out = _exec_write_file(
                     project_root, args.get("path", ""), args.get("content", ""), files_written
                 )
-                if not out.startswith("NO-OP:"):
+                if out.startswith("OK:"):
                     lint_verified = False
                     tests_verified = False
                     validator_verified.clear()

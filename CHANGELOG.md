@@ -34,6 +34,9 @@ consolidated into the next published release.
   semantically equivalent implementations, detects repeated-tool and turn-budget
   exhaustion, measures rework/first-pass accurately, and gives FULL a bounded
   independent-verification repair loop without exposing evaluator tests.
+- Benchmark file tools now reject blank overwrites of non-empty files, preserve
+  valid verification evidence after rejected writes, and report the contained
+  destructive attempt as a deterministic audit weakness.
 - Generated reports list exact non-contiguous task IDs instead of inventing a
   contiguous range.
 

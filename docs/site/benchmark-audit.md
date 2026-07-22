@@ -119,6 +119,7 @@ weaknesses make the audit exit non-zero.
 | `unreplayable_diff` | A stored final patch is malformed or was compacted. | Reject the artifact, repair serialization, and rerun the same cells. |
 | `turn_budget_exhausted` | A cell reached its bounded turn cap without completing. | Inspect tool targets for loops; do not raise the cap blindly. |
 | `repeated_tool_loop` | The same write target recurred without progress. | Check the provider tool route and use bounded recovery rather than paying for duplicate turns. |
+| `blank_overwrite_rejected` | A model tried to replace a non-empty file with blank content. | Inspect the write/recovery trace and require the complete replacement body; keep the truncation guard enabled. |
 | `verification_exhausted` | FULL used its bounded repair budget without equilibrium. | Trace the unmet boundary or split the task; never weaken the oracle to force a pass. |
 | `undersampled` | Fewer than five repetitions exist in a cell. | Treat as diagnostic; do not publish superiority claims. |
 | `acceptance_gap` | Public tests passed but the independent oracle failed. | Link the missed boundary to an immutable acceptance test. |
