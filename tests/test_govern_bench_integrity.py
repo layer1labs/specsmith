@@ -556,6 +556,13 @@ def test_governance_tools_do_not_change_agent_capabilities() -> None:
     assert not any(name.startswith("specsmith_") for name in full_names)
 
 
+def test_full_prompt_delegates_initial_validation_to_controller() -> None:
+    prompt = get_condition("SPECSMITH_FULL").system_prompt_template
+
+    assert "do not call run_command or run_validator before done" in prompt
+    assert "Repair any failures" in prompt
+
+
 def test_full_completion_gate_requires_fresh_lint_and_test_evidence() -> None:
     task = get_task("T1")
     accepted, instruction = _completion_gate("SPECSMITH_FULL", task, False, False)
