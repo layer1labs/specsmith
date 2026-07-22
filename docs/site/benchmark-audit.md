@@ -6,40 +6,38 @@ Playwright browser journey, JSON Schema, CSS, public tests, and architecture
 documentation. It is a separate long-horizon slice, not another cheap task in
 the mixed-suite average.
 
-## Latest corrected diagnostic
+## Latest five-repetition screen
 
-[GitHub Actions run 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611)
-executed commit `678bcaeace81b684c20d2054ed9bd03eced3c239` on 2026-07-22.
-It contains one complete repetition per model and condition, so it validates
-the harness and exposes optimization signals but does **not** establish a
-statistically supported advantage.
+[GitHub Actions run 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095)
+executed commit `636bb1562f843ddfae4a25b41b6f9826f2dccc68` on 2026-07-22.
+It contains five complete matched repetitions for GPT-5.6 Sol under Cursor
+rules and Specsmith FULL. Every cell passed the independent hidden oracle.
 
-| Model | Condition | Correct | Tokens | Cost | Turns | Stop |
-|---|---|---:|---:|---:|---:|---|
-| GPT-5.6 Sol | Ungoverned | Yes | 107,474 | $0.342409 | 17 | done |
-| GPT-5.6 Sol | Specsmith LIGHT | Yes | 112,474 | $0.308803 | 20 | done |
-| GPT-5.6 Sol | Specsmith FULL | Yes | 25,907 | $0.241963 | 5 | done |
-| Qwen3.6-35B-A3B | Ungoverned | No | 128,893 | $0.044209 | 20 | max turns |
-| Qwen3.6-35B-A3B | Specsmith LIGHT | No | 141,230 | $0.057750 | 20 | max turns |
-| Qwen3.6-35B-A3B | Specsmith FULL | No | 122,302 | $0.045886 | 20 | max turns |
+| Condition | Pass rate (95% CI) | Mean tokens | Tokens/correct | Mean cost | Cost/pass | Mean turns |
+|---|---:|---:|---:|---:|---:|---:|
+| Cursor rules | 100% (57%–100%) | 56.3k | 56.3k | $0.3187 | $0.3187 | 9.8 |
+| Specsmith FULL | 100% (57%–100%) | 71.4k | 71.4k | $0.3813 | $0.3813 | 11.0 |
 
-For GPT-5.6 Sol, FULL used 75.9% fewer tokens, 29.3% lower estimated cost, and
-70.6% fewer turns than the correct ungoverned cell. LIGHT amplified tokens by
-4.7% even though cached-input pricing made its estimated cost lower. Qwen has
-no finite tokens-per-correct-answer value because no condition was correct;
-its lower dollar cost is therefore not an efficiency win.
+The screen does **not** show a Specsmith token-efficiency advantage. With equal
+observed correctness, FULL used 26.7% more tokens per correct answer and 19.7%
+more estimated cost per pass than Cursor. Five repetitions support a screening
+observation, not a universal or statistically separated claim; ten repetitions
+remain the release-quality threshold.
 
-The deterministic audit reported no high or critical weakness for the GPT
-artifact. It reported two for Qwen: turn-budget exhaustion and an acceptance
-gap. Both artifacts were undersampled and context-dominated, and repeated tool
-targets were visible in their traces. Earlier 2026-07-22 attempts exposed
-artifact-glob and semantic-oracle defects; those runs remain diagnostic
-provenance and are not included here. The corrected run followed regression
-fixes for both defects.
+The optimization was still material. The immediately preceding matched screen
+used 84.6k tokens/correct for FULL; controller-owned validators and
+protocol-valid compaction of superseded file reads reduced that point estimate
+to 71.4k, a 15.6% improvement. Four FULL repetitions ranged from 46.6k to
+65.9k. The fifth used 127.0k and 17 turns because independent verification
+detected an acceptance gap, withheld completion, and forced a successful
+second repair. The outlier is retained because that repair is governance work,
+not discarded noise.
 
-The next valid claim gate is a matched five-repetition T28 screen. A direct
-Cursor-rules comparison must run in the same grid; this n=1 raw/LIGHT/FULL run
-cannot show that Specsmith outperforms Cursor on long-horizon work.
+The adjacent deterministic audit reported zero weaknesses and zero high or
+critical findings: no missing cells, loops, blank writes, acceptance gaps at
+final scoring, context-dominance threshold, or turn-budget exhaustion. Earlier
+one-repetition raw/LIGHT/FULL and managed-Qwen runs remain diagnostic
+provenance, not current comparison evidence.
 
 ## Why a separate long-horizon slice
 

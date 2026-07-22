@@ -46,22 +46,25 @@ reconstructed after the fact. This does not change raw token counts, pass rates,
 or TPCA. The corrected harness records cache reads and writes independently and
 uses the model's cached-input and cache-write rates for future reports.
 
-## Long-horizon diagnostic
+## Long-horizon screen
 
-The separate T28 polyglot product slice was rerun after fixing artifact replay
-and semantic-oracle false negatives. In corrected
-[run 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611),
-GPT-5.6 Sol produced a correct result in raw, LIGHT, and FULL. FULL used 25.9k
-tokens in 5 turns versus raw's 107.5k in 17 turns, a 75.9% reduction for this
-single repetition. LIGHT used 112.5k tokens. The managed Qwen3.6-35B-A3B route
-failed all three conditions at the 20-turn ceiling, so it has no finite TPCA.
+The separate T28 polyglot slice now has matched five-repetition screening
+evidence. In
+[run 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095),
+GPT-5.6 Sol passed all five hidden oracles under both Cursor rules and Specsmith
+FULL. Cursor used 56.3k tokens/correct and $0.3187/pass; FULL used 71.4k and
+$0.3813. FULL therefore did not demonstrate a token-efficiency advantage on
+this slice.
 
-This is a complete diagnostic, not screening evidence. It is excluded from the
-seven-task aggregate above and cannot support a superiority claim until a
-matched five-repetition screen—including Cursor rules for a Cursor
-comparison—passes the same hidden oracle. See the
-[long-horizon benchmark and weakness audit](benchmark-audit.md) for exact
-tokens, costs, stops, and audit findings.
+FULL nevertheless improved 15.6% from the prior 84.6k-token matched screen
+after internal governance files were removed from model context, missing
+validators moved into the deterministic completion gate, and obsolete
+full-file reads were compacted from protocol-valid history after replacement.
+The current audit found no weaknesses. One FULL repetition incurred 127.0k
+tokens when independent verification caught a real acceptance gap and forced a
+successful repair; it is retained in TPCA and cost/pass. See the
+[long-horizon benchmark and weakness audit](benchmark-audit.md) for rep-level
+evidence and limitations.
 
 ## Where the tokens went
 

@@ -6,6 +6,11 @@ across coding-agent workflows.
 > Status: the current repeated GPT-5.6 Sol screen and all excluded-run
 > provenance are published in `docs/site/efficiency-benchmark.md`.
 
+The current T28 screen is GitHub Actions run `29942515095`: Cursor rules and
+Specsmith FULL both passed 5/5; TPCA was 56.3k and 71.4k respectively. The
+deterministic audit was clean. Five repetitions support screening, not a
+universal superiority claim.
+
 ---
 
 ## Quick Start

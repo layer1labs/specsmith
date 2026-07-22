@@ -172,13 +172,16 @@ journey, JSON Schema, CSS, tests, and architecture documentation. It is reported
 separately from the short-task screen so long-horizon cost cannot be hidden by
 cheap deterministic gates.
 
-A corrected one-repetition T28 diagnostic on GPT-5.6 Sol passed in all three
-conditions. FULL used 25.9k tokens and $0.242 in 5 turns, versus 107.5k tokens
-and $0.342 in 17 turns ungoverned—a 75.9% token reduction and 29.3% cost
-reduction for this run. LIGHT used 112.5k tokens. The matched Qwen3.6 managed
-route reached the 20-turn ceiling without a correct answer in any condition.
-These are diagnostic results, not superiority claims; the long-horizon report
-links the replayable artifact and states the required repetition thresholds.
+The latest matched T28 screen used GPT-5.6 Sol, Cursor rules, Specsmith FULL,
+and five repetitions per condition. Both conditions passed 5/5 hidden oracles.
+Cursor used 56.3k tokens/correct and $0.3187/pass; FULL used 71.4k and $0.3813.
+This does **not** establish a Specsmith token-efficiency advantage: FULL was
+26.7% higher in TPCA. It does show measurable progress from the preceding
+84.6k FULL screen after controller-owned validation and protocol-valid
+superseded-read compaction. The deterministic post-run audit reported no
+weaknesses. One 127k FULL outlier was independent verification catching an
+acceptance gap and successfully forcing another repair; its full cost remains
+in the result. See [run 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095).
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:

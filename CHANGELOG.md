@@ -13,6 +13,9 @@ consolidated into the next published release.
 ### Added
 - Complete five-repetition GPT-5.6 Sol governance-efficiency screening and
   matched GPT-4o-mini/Qwen3.6 diagnostics with exact model-route evidence.
+- Publish a separate five-repetition GPT-5.6 Sol T28 long-horizon
+  Cursor/FULL screen with rep-level costs and a clean deterministic weakness
+  audit, without claiming token superiority where the result does not show it.
 
 ### Changed
 - Benchmark documentation now separates mixed-suite gains from coding-only

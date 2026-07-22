@@ -41,6 +41,10 @@ See the [current executable results](../site/efficiency-benchmark.md) and the
 - Corrected long-horizon diagnostic: run `29930247611`, T28 raw/LIGHT/FULL,
   one repetition for GPT-5.6 Sol and Qwen3.6-35B-A3B. GPT passed all three;
   Qwen reached the bounded turn ceiling in all three. This is diagnostic only.
+- Current long-horizon screen: run `29942515095`, T28 Cursor/FULL, five
+  repetitions for GPT-5.6 Sol. Both passed 5/5; Cursor used 56.3k TPCA and
+  FULL 71.4k. The audit reported no weaknesses, so the result is publishable
+  screening evidence but not a Specsmith token-superiority claim.
 - Incomplete, cancelled, provider-error, and artifact-error attempts are
   diagnostic provenance only. They must not populate a comparison table.
 
