@@ -356,7 +356,10 @@ jobs:
           PYTHONPATH: scripts
         run: |
           shopt -s nullglob
-          FILES=(results/bench-results-*.json)
+          FILES=()
+          for file in results/bench-results-*.json; do
+            [[ "$file" == *.audit.json ]] || FILES+=("$file")
+          done
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No result files found — all model jobs may have failed or been skipped."
             exit 1

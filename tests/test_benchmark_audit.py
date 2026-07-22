@@ -127,6 +127,25 @@ def test_audit_fails_closed_on_missing_rows_and_bad_shape(tmp_path: Path) -> Non
     assert "missing_cells" in {item.code for item in missing_grid.weaknesses}
 
 
+@pytest.mark.parametrize(
+    "final_diff",
+    [
+        "--- a/a.txt\n+++ b/a.txt\n@@ -0,0 +1 @@\n+value--- a/b.txt\n",
+        "--- a/a.txt\n+++ b/a.txt\n... [diff compacted]\n",
+    ],
+)
+def test_audit_rejects_unreplayable_diff_evidence(final_diff: str) -> None:
+    row = _row(condition="UNGOVERNED", passed=True, input_tokens=100)
+    row["final_diff"] = final_diff
+
+    report = audit_benchmark_rows([row])
+
+    assert not report.complete
+    weakness = next(item for item in report.weaknesses if item.code == "unreplayable_diff")
+    assert weakness.severity == "critical"
+    assert weakness.tasks == ["T28"]
+
+
 def test_default_run_bench_audit_path_tracks_json_output() -> None:
     from govern_bench.run_bench import _default_audit_path
 

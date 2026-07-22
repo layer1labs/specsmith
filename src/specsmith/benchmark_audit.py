@@ -134,6 +134,21 @@ def _task_pass_rates(rows: list[dict[str, Any]]) -> dict[tuple[str, str], float]
     return {key: sum(values) / len(values) for key, values in grouped.items()}
 
 
+def _unreplayable_diff(value: Any) -> bool:
+    """Return whether stored patch evidence is known to be structurally incomplete."""
+    if not isinstance(value, str) or not value:
+        return False
+    if "[diff compacted]" in value:
+        return True
+    marker = "--- a/"
+    offset = value.find(marker, 1)
+    while offset >= 0:
+        if value[offset - 1] != "\n":
+            return True
+        offset = value.find(marker, offset + len(marker))
+    return False
+
+
 def audit_benchmark_rows(
     rows: list[dict[str, Any]],
     *,
@@ -183,6 +198,27 @@ def audit_benchmark_rows(
                 recommendation=(
                     "Repair provider or harness failures and rerun the identical cell grid."
                 ),
+            )
+        )
+
+    unreplayable = [row for row in valid if _unreplayable_diff(row.get("final_diff"))]
+    if unreplayable:
+        complete = False
+        affected_tasks = sorted({str(row.get("task")) for row in unreplayable})
+        affected_conditions = sorted({str(row.get("condition")) for row in unreplayable})
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="unreplayable_diff",
+                severity="critical",
+                title="Stored project diff cannot be replayed",
+                evidence=(
+                    f"{len(unreplayable)} row(s) contain a compacted or malformed final_diff."
+                ),
+                recommendation=(
+                    "Reject the artifact, repair diff serialization, and rerun the same cells."
+                ),
+                tasks=affected_tasks,
+                conditions=affected_conditions,
             )
         )
 

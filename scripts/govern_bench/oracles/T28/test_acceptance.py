@@ -11,6 +11,29 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def _allows_null(schema: dict) -> bool:
+    value_type = schema.get("type")
+    if value_type == "null" or (isinstance(value_type, list) and "null" in value_type):
+        return True
+    if schema.get("const", object()) is None or None in schema.get("enum", []):
+        return True
+    return any(
+        _allows_null(option)
+        for keyword in ("anyOf", "oneOf")
+        for option in schema.get(keyword, [])
+        if isinstance(option, dict)
+    )
+
+
+def _has_empty_state(app: str) -> bool:
+    app = app.casefold()
+    return "empty" in app or (
+        "incidents.length" in app
+        and "=== 0" in app
+        and ("no incident" in app or "no matching incident" in app)
+    )
+
+
 def test_shared_schema_is_complete_and_strict() -> None:
     schema = json.loads((ROOT / "contracts" / "incident.schema.json").read_text(encoding="utf-8"))
     fields = {
@@ -33,9 +56,7 @@ def test_shared_schema_is_complete_and_strict() -> None:
     }
     assert set(schema["properties"]["status"]["enum"]) == {"open", "acknowledged"}
     acknowledged = schema["properties"]["acknowledged_at"]
-    assert "null" in acknowledged.get("type", []) or any(
-        item.get("type") == "null" for item in acknowledged.get("anyOf", [])
-    )
+    assert _allows_null(acknowledged)
 
 
 def test_python_api_create_filter_and_acknowledge_flow() -> None:
@@ -146,8 +167,9 @@ def test_ui_has_real_accessible_flow_and_playwright_journey() -> None:
         (ROOT / "ui" / "tests" / "incident-console.spec.ts").read_text(encoding="utf-8").casefold()
     )
 
-    for term in ("loading", "error", "empty", "severity", "status", "acknowledge"):
+    for term in ("loading", "error", "severity", "status", "acknowledge"):
         assert term in app
+    assert _has_empty_state(app)
     assert "usestate" in app and "useeffect" in app
     assert "<label" in app or "aria-label" in app
     assert 'role="alert"' in app or "role={'alert'}" in app or 'role="status"' in app
@@ -165,8 +187,9 @@ def test_ui_has_real_accessible_flow_and_playwright_journey() -> None:
 def test_architecture_and_public_tests_cover_boundaries() -> None:
     architecture = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8").casefold()
     public_tests = (ROOT / "tests" / "test_backend.py").read_text(encoding="utf-8").casefold()
-    for term in ("python", "go", "react", "schema", "data flow", "in-memory"):
+    for term in ("python", "go", "react", "schema", "data flow"):
         assert term in architecture
+    assert "in-memory" in architecture or "in memory" in architecture
     assert len(architecture.split()) >= 100
     assert "post(" in public_tests
     assert "/api/incidents" in public_tests

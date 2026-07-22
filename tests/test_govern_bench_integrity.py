@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import io
+import runpy
 import sys
 import urllib.error
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -23,6 +24,10 @@ from govern_bench.compare_runs import (  # noqa: E402
 )
 from govern_bench.conditions import get_condition  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
+    NormalizedAssistantMessage,
+    NormalizedLLMResponse,
+    NormalizedToolCall,
+    NormalizedUsage,
     _build_file_context,
     _build_project_diff,
     _build_tools,
@@ -293,6 +298,36 @@ def test_long_horizon_task_has_polyglot_ui_scope_and_extended_turn_budget() -> N
     assert (project / "ui" / "src" / "App.tsx").is_file()
 
 
+def test_t28_oracle_accepts_equivalent_schema_and_empty_state_forms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fastapi_module = ModuleType("fastapi")
+    testclient_module = ModuleType("fastapi.testclient")
+    testclient_module.TestClient = object  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "fastapi", fastapi_module)
+    monkeypatch.setitem(sys.modules, "fastapi.testclient", testclient_module)
+    oracle = runpy.run_path(
+        str(_SCRIPTS_DIR / "govern_bench" / "oracles" / "T28" / "test_acceptance.py")
+    )
+    allows_null = oracle["_allows_null"]
+    has_empty_state = oracle["_has_empty_state"]
+
+    assert allows_null({"type": ["string", "null"]})
+    assert allows_null({"anyOf": [{"type": "string"}, {"type": "null"}]})
+    assert allows_null({"oneOf": [{"type": "string"}, {"type": "null"}]})
+    assert not allows_null({"type": "string"})
+    assert has_empty_state("incidents.length === 0 && <p>No incidents found.</p>")
+    assert has_empty_state("return <EmptyState />")
+    assert not has_empty_state("return incidents.map(renderIncident)")
+
+
+def test_comparison_workflow_excludes_audit_json_objects() -> None:
+    workflow = (_SCRIPTS_DIR.parent / ".github" / "workflows" / "bench.yml").read_text(
+        encoding="utf-8"
+    )
+    assert '[[ "$file" == *.audit.json ]] || FILES+=("$file")' in workflow
+
+
 def test_standard_task_without_oracle_fails_closed(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="No evaluator-only acceptance oracle"):
         _install_acceptance_oracle(get_task("T3"), tmp_path)
@@ -397,6 +432,19 @@ def test_project_diff_excludes_evaluator_and_cache_artifacts(tmp_path: Path) -> 
     assert "governancebench_oracle" not in diff
 
 
+def test_project_diff_keeps_no_newline_files_replayable(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    project = tmp_path / "project"
+    source.mkdir()
+    project.mkdir()
+    (project / "a.txt").write_text("first", encoding="utf-8")
+    (project / "b.txt").write_text("second\n", encoding="utf-8")
+
+    diff = _build_project_diff(source, project)
+
+    assert "+first\n\\ No newline at end of file\n--- a/b.txt\n" in diff
+
+
 def test_governance_tools_do_not_change_agent_capabilities() -> None:
     task = get_task("T1")
     raw_names = [tool["function"]["name"] for tool in _build_tools("UNGOVERNED", task)]
@@ -453,6 +501,46 @@ def test_failed_check_invalidates_only_its_evidence() -> None:
     assert evidence == (False, True)
     evidence = _updated_verification_evidence("pytest", False, True, True)
     assert evidence == (True, False)
+
+
+def test_agent_loop_recovers_once_from_empty_provider_response(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    responses = iter(
+        [
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(),
+                usage=NormalizedUsage(prompt_tokens=10),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[NormalizedToolCall(id="done-1", name="done", arguments="{}")]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+        ]
+    )
+    monkeypatch.setattr(harness_module, "_call_llm", lambda **_kwargs: next(responses))
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("UNGOVERNED"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=3,
+    )
+
+    assert result.llm_turns == 2
+    assert result.stop_reason == "done"
+    assert result.rework_turns == 1
+    assert any("recovery" in event for event in result.agent_transcript)
 
 
 def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:

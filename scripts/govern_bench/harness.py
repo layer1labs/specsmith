@@ -531,7 +531,7 @@ def _build_project_diff(source_root: Path, project_root: Path, max_chars: int = 
         )
         if before == after:
             continue
-        chunks.extend(
+        file_diff = list(
             difflib.unified_diff(
                 before,
                 after,
@@ -539,6 +539,15 @@ def _build_project_diff(source_root: Path, project_root: Path, max_chars: int = 
                 tofile=f"b/{rel}",
             )
         )
+        for line in file_diff:
+            if line.endswith("\n"):
+                chunks.append(line)
+                continue
+            # difflib preserves the missing final newline on content lines but
+            # does not emit the standard patch marker. Without it, the next
+            # file header is glued to the content and the evidence cannot be
+            # replayed. Emit the marker understood by git/patch explicitly.
+            chunks.extend((f"{line}\n", "\\ No newline at end of file\n"))
         if sum(len(chunk) for chunk in chunks) >= max_chars:
             chunks.append("\n... [diff compacted]\n")
             break
@@ -1558,6 +1567,7 @@ def _run_agent_loop(
     lint_verified = False
     tests_verified = False
     validator_verified: set[str] = set()
+    empty_response_retries = 0
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -1621,8 +1631,26 @@ def _run_agent_loop(
         )
 
         if not msg.tool_calls:
-            # Pure text response — agent finished without calling done()
-            stop_reason = "text_response"
+            content = (msg.content or "").strip()
+            if not content and empty_response_retries < 1 and turn + 1 < max_turns:
+                # Some OpenAI-compatible routes occasionally emit an empty
+                # assistant message immediately after a large tool-result batch.
+                # One provider-neutral recovery turn avoids treating transport
+                # silence as task completion while keeping the budget bounded.
+                empty_response_retries += 1
+                rework_turns += 1
+                recovery = (
+                    "Your previous response contained no action or explanation. "
+                    "Continue the task using the available tools, or call done when complete."
+                )
+                messages.append({"role": "user", "content": recovery})
+                agent_transcript.append(
+                    {"turn": turn + 1, "role": "controller", "recovery": recovery}
+                )
+                continue
+            # A non-empty pure text response is an intentional model stop. A
+            # second empty response fails closed rather than spending the budget.
+            stop_reason = "text_response" if content else "empty_response"
             break
 
         tool_results: list[dict] = []

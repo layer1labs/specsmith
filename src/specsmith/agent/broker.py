@@ -118,7 +118,7 @@ _DIRECT_MUTATION_VERBS = (
     r"enforce|ensure|finish|fix|harden|implement|improve|introduce|mark|merge|migrate|"
     r"modify|move|optimi[sz]e|patch|prepare|preserve|publish|push|rebuild|regenerate|"
     r"remove|rename|repair|replace|require|resolve|restore|set|simplify|sync|tackle|"
-    r"update|upgrade|write)"
+    r"strengthen|update|upgrade|write)"
 )
 
 _CHANGE_PATTERNS = (

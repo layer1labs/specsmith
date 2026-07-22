@@ -31,6 +31,7 @@ import pytest
             "evidence in the physical acceptance release gate"
         ),
         "Compress the governance ledger below its configured context budget",
+        "Strengthen REQ-490 benchmark evidence replayability",
         "I need you to ensure repository policy and documentation stay aligned",
         "You must regenerate the governed configuration",
     ],
@@ -52,6 +53,7 @@ def test_informational_removal_question_remains_read_only() -> None:
     "utterance",
     [
         "How should I harden the release workflow?",
+        "How should I strengthen benchmark evidence?",
         "What does requiring two boards protect against?",
         "Explain how to compress the governance ledger",
     ],

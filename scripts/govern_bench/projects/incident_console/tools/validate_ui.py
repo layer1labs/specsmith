@@ -15,6 +15,15 @@ def main() -> int:
     if missing:
         print(f"App.tsx missing UI states/actions: {', '.join(missing)}")
         return 1
+    folded_app = app.casefold()
+    has_empty_state = "empty" in folded_app or (
+        "incidents.length" in folded_app
+        and "=== 0" in folded_app
+        and ("no incident" in folded_app or "no matching incident" in folded_app)
+    )
+    if not has_empty_state:
+        print("App.tsx lacks a deterministic empty-result state")
+        return 1
     if "/api/incidents" not in api:
         print("api.ts does not call /api/incidents")
         return 1

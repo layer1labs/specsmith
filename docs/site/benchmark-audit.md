@@ -28,6 +28,12 @@ oracle without implementing all of these boundaries:
 - meaningful public boundary tests; and
 - an architecture record covering the end-to-end data flow.
 
+The oracle evaluates behavior rather than one spelling or schema idiom. For
+example, nullable fields may use JSON Schema `type`, `anyOf`, or `oneOf`; a UI
+may express the no-incidents state semantically; and architecture prose may use
+either “in-memory” or “in memory.” This keeps equivalent correct solutions from
+being counted as failures.
+
 ## Run it
 
 Start with one matched diagnostic repetition because a long-horizon cell is
@@ -72,6 +78,7 @@ weaknesses make the audit exit non-zero.
 | `missing_cells` | A model/task/condition combination is absent. | Rerun every missing cell with the same repetition set. |
 | `duplicate_cells` | A repetition key appears more than once. | Reject the artifact and regenerate the requested cells. |
 | `uneven_repetitions` | Compared cells do not share one repetition count. | Rerun or filter to an identical matched grid. |
+| `unreplayable_diff` | A stored final patch is malformed or was compacted. | Reject the artifact, repair serialization, and rerun the same cells. |
 | `undersampled` | Fewer than five repetitions exist in a cell. | Treat as diagnostic; do not publish superiority claims. |
 | `acceptance_gap` | Public tests passed but the independent oracle failed. | Link the missed boundary to an immutable acceptance test. |
 | `correctness_regression` | A Specsmith condition passed less often than raw on a task. | Keep the lighter path and repair that task before expanding governance. |
