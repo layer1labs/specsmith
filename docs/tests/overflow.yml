@@ -399,13 +399,13 @@
   description: govern_bench/metrics.py must export wilson_ci() and bootstrap_cop_ci()
     functions that return (lower, upper) tuples
 - id: TEST-438
-  title: GovernanceBench tasks.py defines all 27 tasks across expanded project domains
+  title: GovernanceBench tasks.py defines at least 28 tasks across expanded project domains
   requirement_id: REQ-427
   type: script
   verification_method: python -c 'from govern_bench.tasks import TASK_CATALOGUE; assert
     len(TASK_CATALOGUE) >= 27'
-  description: 'tasks.py must define tasks T1-T27 including new domains: data_pipeline,
-    verilog_module, patent_draft, shell_scripts'
+  description: 'tasks.py must define tasks T1-T28 including data_pipeline,
+    verilog_module, patent_draft, shell_scripts, and the long-horizon polyglot UI project'
 - id: TEST-439
   title: gitignore normalizer enforces disjoint allow/deny policy and untracks diverged
     paths

@@ -1,0 +1,107 @@
+# T28 — Long-horizon polyglot incident command console
+
+id: T28
+title: "Build a polyglot incident command console across API, worker, contract, and UI"
+category: long_horizon_product
+difficulty: expert
+project: agentic-incident-console
+horizon: long
+max_turns: 20
+enforce_completion_validators: true
+languages:
+  - python
+  - go
+  - typescript
+  - json-schema
+  - css
+estimated_tokens_ungoverned: 32000
+estimated_tokens_specsmith_full: 28000
+
+task_prompt: |
+  Complete the starter incident-command-console as one coherent product slice.
+  The repository deliberately contains incomplete boundaries across several languages.
+
+  Shared contract:
+  - contracts/incident.schema.json is authoritative
+  - Incident fields are id, title, service, severity, status, created_at, and acknowledged_at
+  - severity is one of low, medium, high, critical
+  - status is one of open or acknowledged
+  - acknowledged_at is nullable until acknowledgement
+
+  Python API:
+  - POST /api/incidents creates an incident and returns HTTP 201
+  - GET /api/incidents lists incidents and supports optional severity and status filters
+  - PATCH /api/incidents/{id}/ack acknowledges an incident and returns 404 for an unknown id
+  - preserve GET /health and keep state deterministic and testable
+
+  Go worker:
+  - implement exported NormalizeAlert(raw []byte) (Incident, error) in worker/main.go
+  - accept alert JSON with title, service, and severity
+  - reject missing fields and invalid severity
+  - emit the shared incident field names with status=open
+
+  TypeScript/React UI:
+  - load and display incidents from /api/incidents
+  - filter by severity and status without discarding the other filter
+  - show loading, empty, and error states
+  - provide an accessible acknowledge action and refresh state after success
+  - add a Playwright user-flow test covering load, filter, and acknowledge
+
+  Cross-boundary quality:
+  - update docs/architecture.md with component and data-flow decisions
+  - add meaningful public tests rather than weakening validators
+  - do not add network services, databases, generated bundles, or unrelated frameworks
+  - run ruff check ., pytest, and go -C worker test ./...
+
+acceptance_criteria: |
+  - [ ] Python create/list/filter/ack behavior matches the shared contract
+  - [ ] Go NormalizeAlert validates input and emits the same field names/enums
+  - [ ] React UI has accessible loading/error/empty/list/filter/acknowledge flows
+  - [ ] Playwright covers the primary browser user journey
+  - [ ] JSON Schema, API, worker, and UI agree on incident fields and enums
+  - [ ] Architecture documentation explains the end-to-end data flow
+  - [ ] Existing health behavior remains intact
+  - [ ] ruff check ., pytest, and go -C worker test ./... pass
+
+expected_files_changed:
+  - backend/main.py
+  - contracts/incident.schema.json
+  - worker/main.go
+  - worker/main_test.go
+  - ui/src/App.tsx
+  - ui/src/api.ts
+  - ui/src/styles.css
+  - ui/tests/incident-console.spec.ts
+  - tests/test_backend.py
+  - docs/architecture.md
+
+regression_risk: critical
+scope_discipline_metric: true
+
+known_failure_modes:
+  - "Components implement different field names or enum values"
+  - "Backend works but UI has only static markup"
+  - "UI filters overwrite rather than compose query parameters"
+  - "Acknowledge changes the UI optimistically without persisting through the API"
+  - "Go normalizer accepts invalid severity or omits shared fields"
+  - "Agent edits tests or validators to accept an incomplete implementation"
+  - "Agent exhausts turns after polishing one component and leaves another as a stub"
+
+governance_signals:
+  preflight_expected_req_match: true
+  preflight_expected_intent: "change"
+  verify_expected_to_catch:
+    - "cross-language contract drift"
+    - "missing browser interaction coverage"
+    - "partial component completion"
+    - "public tests weaker than independent acceptance evidence"
+
+validator:
+  shell: auto
+  commands:
+    - "go -C worker test ./..."
+    - "python tools/validate_ui.py"
+  allowed_patterns:
+    - "^pytest( .*)?$"
+    - "^go -C worker test( .*)?$"
+    - "^python tools/validate_ui.py$"

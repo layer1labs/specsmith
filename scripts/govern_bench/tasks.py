@@ -22,6 +22,7 @@ PROJECT_SUBDIR_MAP: dict[str, str] = {
     "agentic-verilog-module": "verilog_module",
     "agentic-shell-scripts": "shell_scripts",
     "agentic-patent-draft": "patent_draft",
+    "agentic-incident-console": "incident_console",
 }
 
 
@@ -51,6 +52,10 @@ class BenchTask:
     scoring_override: dict | None = None
     validator: dict | None = None
     allowed_validator_commands: list[str] = field(default_factory=list)
+    horizon: str = "standard"
+    max_turns: int | None = None
+    languages: list[str] = field(default_factory=list)
+    enforce_completion_validators: bool = False
 
     # Task-type flags
     scope_discipline_metric: bool = False
@@ -102,6 +107,10 @@ class BenchTask:
                 or (data.get("validator") or {}).get("commands")
                 or []
             ),
+            horizon=str(data.get("horizon", "standard")),
+            max_turns=(int(data["max_turns"]) if data.get("max_turns") is not None else None),
+            languages=[str(item) for item in (data.get("languages") or [])],
+            enforce_completion_validators=bool(data.get("enforce_completion_validators", False)),
             scope_discipline_metric=bool(data.get("scope_discipline_metric", False)),
             clarification_rate_task=bool(data.get("clarification_rate_task", False)),
             destructive_intent_task=bool(data.get("destructive_intent_task", False)),
@@ -147,6 +156,10 @@ class BenchTask:
     @property
     def uses_patent_draft(self) -> bool:
         return self.project == "agentic-patent-draft"
+
+    @property
+    def is_long_horizon(self) -> bool:
+        return self.horizon.casefold() == "long"
 
     @property
     def project_subdir(self) -> str:
@@ -202,6 +215,8 @@ def task_summary() -> None:  # pragma: no cover
             flags.append("CLARIFY")
         if t.scope_discipline_metric:
             flags.append("SCOPE")
+        if t.is_long_horizon:
+            flags.append("LONG")
         flag_str = f"[{','.join(flags)}]" if flags else ""
         print(f"{t.id:<4} {t.category:<25} {t.difficulty:<25} {t.project:<22} {t.title} {flag_str}")
 

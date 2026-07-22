@@ -166,8 +166,24 @@ The run recorded cache reads but predates cache-write telemetry, so exact
 GPT-5.6 cached billing cannot be reconstructed. TPCA is unaffected; new runs
 record cache reads and writes separately.
 
+GovernanceBench also includes `T28`, a long-horizon incident-command console
+that coordinates a Python API, Go worker, TypeScript/React UI, Playwright user
+journey, JSON Schema, CSS, tests, and architecture documentation. It is reported
+separately from the short-task screen so long-horizon cost cannot be hidden by
+cheap deterministic gates.
+
+Every new raw benchmark artifact now receives a deterministic weakness audit.
+To combine those outcome findings with the normal project governance audit:
+
+```bash
+specsmith audit --project-dir . \
+  --benchmark-results bench-results.json \
+  --report benchmark-project-audit.json
+```
+
 - [Benchmark report](https://specsmith.readthedocs.io/stable/efficiency-benchmark/)
 - [Comparison validity and limitations](https://specsmith.readthedocs.io/stable/model-comparison/)
+- [Long-horizon benchmark and weakness audit](https://specsmith.readthedocs.io/stable/benchmark-audit/)
 
 ## ESDB and evidence
 

@@ -39,6 +39,7 @@ from govern_bench.harness import (  # noqa: E402
     _openai_reasoning_params,
     _run_agent_loop,
     _run_governance_controller,
+    _updated_validator_evidence,
     _updated_verification_evidence,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
@@ -266,7 +267,7 @@ def test_safety_oracles_are_hidden_from_agents() -> None:
         assert task.visible_acceptance_criteria == ""
 
 
-@pytest.mark.parametrize("task_id", ["T1", "T2", "T10", "T11", "T13"])
+@pytest.mark.parametrize("task_id", ["T1", "T2", "T10", "T11", "T13", "T28"])
 def test_default_coding_task_oracle_rejects_clean_noop(tmp_path: Path, task_id: str) -> None:
     task = get_task(task_id)
     project_root = tmp_path / "project"
@@ -276,6 +277,20 @@ def test_default_coding_task_oracle_rejects_clean_noop(tmp_path: Path, task_id: 
     assert oracle_dir.is_dir()
     passed, output = _exec_run_command(project_root, "pytest .governancebench_oracle")
     assert not passed, f"{task_id} clean fixture unexpectedly satisfied its oracle:\n{output}"
+
+
+def test_long_horizon_task_has_polyglot_ui_scope_and_extended_turn_budget() -> None:
+    task = get_task("T28")
+
+    assert task.is_long_horizon
+    assert task.max_turns == 20
+    assert task.enforce_completion_validators
+    assert {"python", "go", "typescript", "json-schema", "css"} <= set(task.languages)
+    assert task.project_subdir == "incident_console"
+    project = _get_project_dir(task.project)
+    assert (project / "backend" / "main.py").is_file()
+    assert (project / "worker" / "main.go").is_file()
+    assert (project / "ui" / "src" / "App.tsx").is_file()
 
 
 def test_standard_task_without_oracle_fails_closed(tmp_path: Path) -> None:
@@ -405,6 +420,26 @@ def test_full_completion_gate_requires_fresh_lint_and_test_evidence() -> None:
     )
     assert (lint_ok, tests_ok) == (True, True)
     assert _completion_gate("SPECSMITH_FULL", task, lint_ok, tests_ok)[0]
+
+
+def test_long_horizon_full_gate_requires_fresh_polyglot_validators() -> None:
+    task = get_task("T28")
+    accepted, instruction = _completion_gate("SPECSMITH_FULL", task, True, True, set())
+    assert not accepted
+    assert "go -C worker test ./..." in instruction
+    assert "python tools/validate_ui.py" in instruction
+
+    evidence: set[str] = set()
+    for command in task.allowed_validator_commands:
+        evidence = _updated_validator_evidence(command, True, evidence)
+    assert _completion_gate("SPECSMITH_FULL", task, True, True, evidence)[0]
+
+    evidence = _updated_validator_evidence(
+        "python tools/validate_ui.py",
+        False,
+        evidence,
+    )
+    assert not _completion_gate("SPECSMITH_FULL", task, True, True, evidence)[0]
 
 
 def test_completion_gate_does_not_advantage_non_full_conditions() -> None:

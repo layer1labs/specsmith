@@ -46,3 +46,16 @@
   input: {}
   expected_behavior: Explicit edits cannot bypass governance and work-item evidence cannot collide across projects
   confidence: 1.0
+- id: TEST-516
+  title: Long-horizon polyglot task and benchmark weakness audit
+  description: >-
+    Tests verify T28 has a 20-turn polyglot UI scope and an evaluator-only oracle
+    that rejects the clean starter; benchmark artifacts automatically produce a
+    deterministic weakness audit; and specsmith audit combines project health with
+    correctness, verification, efficiency, and completeness weaknesses.
+  requirement_id: REQ-490
+  type: integration
+  verification_method: pytest tests/test_benchmark_audit.py tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py
+  input: T28 fixture plus complete, incomplete, and verification-disagreement result artifacts
+  expected_behavior: No-op long-horizon work fails and post-run reports expose actionable weaknesses without an LLM judge
+  confidence: 1.0

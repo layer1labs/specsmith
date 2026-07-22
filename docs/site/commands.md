@@ -36,6 +36,18 @@ specsmith audit --project-dir .
 specsmith checkpoint --project-dir .
 ```
 
+To correlate project health with post-run GovernanceBench weaknesses and write
+one machine-readable report:
+
+```bash
+specsmith audit --project-dir . \
+  --benchmark-results bench-results.json \
+  --report benchmark-project-audit.json
+```
+
+High or critical benchmark weaknesses produce a non-zero exit. See
+[Long-Horizon Benchmark and Weakness Audit](benchmark-audit.md).
+
 ## Preflight
 
 ```bash

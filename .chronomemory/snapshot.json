@@ -1,7 +1,7 @@
 {
-  "seq": 896,
-  "last_hash": "9012aebc01213c67509f00a5d218c8352f71ccb34422803d5bb6a429e7662f49",
-  "ts": "2026-07-13T23:50:02Z",
+  "seq": 1031,
+  "last_hash": "5bdcf2781c44d7cb7dc3a96427d43e9561503fbe816dfcc0914da69d78dd0d99",
+  "ts": "2026-07-22T12:04:37Z",
   "records": [
     {
       "id": "REQ-001",
@@ -1737,11 +1737,11 @@
       "id": "REQ-070",
       "kind": "requirement",
       "status": "active",
-      "label": "Nexus Must Normalize File Paths",
+      "label": "Grace Must Normalize File Paths",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
-        "migrated from requirements.json"
+        "synced from requirements.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -1749,8 +1749,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "REQ-070",
-        "title": "Nexus Must Normalize File Paths",
-        "description": "All file paths supplied to Nexus tools must be normalized to absolute, resolved paths before access.",
+        "version": 1,
+        "title": "Grace Must Normalize File Paths",
+        "description": "All file paths supplied to Grace tools must be normalized to absolute, resolved paths before access.",
         "source": "ARCHITECTURE.md",
         "status": "implemented",
         "test_ids": [
@@ -9994,11 +9995,11 @@
       "id": "TEST-070",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Must Normalize File Paths",
+      "label": "Grace Must Normalize File Paths",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10006,7 +10007,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-070",
-        "title": "Nexus Must Normalize File Paths",
+        "version": 1,
+        "title": "Grace Must Normalize File Paths",
         "description": "normalize_path returns absolute resolved paths.",
         "requirement_id": "REQ-070",
         "type": "unit",
@@ -10020,11 +10022,11 @@
       "id": "TEST-071",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Must Index the Repository",
+      "label": "Grace Must Index the Repository",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10032,7 +10034,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-071",
-        "title": "Nexus Must Index the Repository",
+        "version": 1,
+        "title": "Grace Must Index the Repository",
         "description": "generate_index populates files.json, architecture.md, and conventions.md in .repo-index/.",
         "requirement_id": "REQ-071",
         "type": "unit",
@@ -10046,11 +10049,11 @@
       "id": "TEST-072",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus REPL Must Support Slash Commands",
+      "label": "Grace REPL Must Support Slash Commands",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10058,7 +10061,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-072",
-        "title": "Nexus REPL Must Support Slash Commands",
+        "version": 1,
+        "title": "Grace REPL Must Support Slash Commands",
         "description": "repl.py source defines /plan, /ask, /fix, /test, /commit, /pr, /undo, /context, /exit handlers.",
         "requirement_id": "REQ-072",
         "type": "unit",
@@ -10072,11 +10076,11 @@
       "id": "TEST-073",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Output Contract",
+      "label": "Grace Output Contract",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10084,7 +10088,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-073",
-        "title": "Nexus Output Contract",
+        "version": 1,
+        "title": "Grace Output Contract",
         "description": "Orchestrator.run_task issues an initial message containing the required sections.",
         "requirement_id": "REQ-073",
         "type": "unit",
@@ -10150,11 +10155,11 @@
       "id": "TEST-076",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Tool Executor Registration Must Be Unique",
+      "label": "Grace Tool Executor Registration Must Be Unique",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10162,7 +10167,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-076",
-        "title": "Nexus Tool Executor Registration Must Be Unique",
+        "version": 1,
+        "title": "Grace Tool Executor Registration Must Be Unique",
         "description": "Orchestrator.register_tools calls executor.register_for_execution exactly once per tool.",
         "requirement_id": "REQ-076",
         "type": "unit",
@@ -10488,11 +10494,11 @@
       "id": "TEST-089",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Live l1-nexus Smoke Test Script",
+      "label": "Grace Live Legacy l1-nexus Smoke Test Script",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10500,7 +10506,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-089",
-        "title": "Nexus Live l1-nexus Smoke Test Script",
+        "version": 1,
+        "title": "Grace Live Legacy l1-nexus Smoke Test Script",
         "description": "`scripts/nexus_smoke.py` must expose a `smoke_test(base_url=...)` function that POSTs a chat-completions request and returns a dict with `ok`, `content`, and `latency_ms`. A pytest test must skip unless `NEXUS_LIVE=1` is set; when invoked offline, the script must surface a clear error rather than crash. Static checks must confirm the script exists and exposes the expected callable.",
         "requirement_id": "REQ-089",
         "type": "unit",
@@ -10514,11 +10521,11 @@
       "id": "TEST-090",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Documentation Surfaces Broker, Preflight, and Gated Execution",
+      "label": "Grace Documentation Surfaces Broker, Preflight, and Gated Execution",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10526,8 +10533,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-090",
-        "title": "Nexus Documentation Surfaces Broker, Preflight, and Gated Execution",
-        "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Nexus' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
+        "version": 1,
+        "title": "Grace Documentation Surfaces Broker, Preflight, and Gated Execution",
+        "description": "`ARCHITECTURE.md` and `README.md` must each contain a 'Grace' section that mentions the broker, `specsmith preflight`, the REPL execution gate, and the `/why` toggle; the documentation must not contain literal REQ/TEST/WI tokens outside fenced governance examples.",
         "requirement_id": "REQ-090",
         "type": "unit",
         "verification_method": "pytest",
@@ -10644,11 +10652,11 @@
       "id": "TEST-095",
       "kind": "testcase",
       "status": "active",
-      "label": "Nexus Live Smoke Evidence Captured",
+      "label": "Grace Live Smoke Evidence Captured",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10656,7 +10664,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-095",
-        "title": "Nexus Live Smoke Evidence Captured",
+        "version": 1,
+        "title": "Grace Live Smoke Evidence Captured",
         "description": "`.specsmith/runs/WI-NEXUS-011/logs.txt` must exist and document either a successful live smoke (`ok: true`) or an honest reason the live container could not be reached.",
         "requirement_id": "REQ-095",
         "type": "unit",
@@ -10852,11 +10861,11 @@
       "id": "TEST-103",
       "kind": "testcase",
       "status": "active",
-      "label": "Security Job Passes With pip-audit ignore-vuln",
+      "label": "Security Job Runs a Complete Dependency Audit",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -10864,8 +10873,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-103",
-        "title": "Security Job Passes With pip-audit ignore-vuln",
-        "description": "The CI security job upgrades pip to the latest release, installs `pip-audit`, installs specsmith with its runtime dependencies, then runs `pip-audit --ignore-vuln CVE-2026-3219`. The job exits zero on `develop`.",
+        "version": 1,
+        "title": "Security Job Runs a Complete Dependency Audit",
+        "description": "The CI security job upgrades pip, installs `pip-audit`, installs specsmith with its runtime dependencies, and runs an exception-free `pip-audit`. The job exits zero on `develop`.",
         "requirement_id": "REQ-103",
         "type": "integration",
         "verification_method": "ci",
@@ -11035,11 +11045,11 @@
       "id": "TEST-110",
       "kind": "testcase",
       "status": "active",
-      "label": "End-to-End Nexus Path Reaches Equilibrium",
+      "label": "End-to-End Grace Path Reaches Equilibrium",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -11047,7 +11057,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-110",
-        "title": "End-to-End Nexus Path Reaches Equilibrium",
+        "version": 1,
+        "title": "End-to-End Grace Path Reaches Equilibrium",
         "description": "Driving a `FakeOrchestrator` through `execute_with_governance` with scripted attempt-1 failure and attempt-2 success yields `RunResult.success=True`, ledger gains a preflight + work_proposal entry, and retry strategy is empty.",
         "requirement_id": "REQ-110",
         "type": "integration",
@@ -14341,11 +14352,11 @@
       "id": "TEST-260",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Eval Settings Page Renders",
+      "label": "Eval Settings Page Renders",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14353,8 +14364,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-260",
-        "title": "Kairos Eval Settings Page Renders",
-        "description": "The Kairos Settings > Specsmith > Eval page renders header, description, and CLI hint without errors.",
+        "version": 1,
+        "title": "Eval Settings Page Renders",
+        "description": "The Settings > Specsmith > Eval page renders header, description, and CLI hint without errors.",
         "requirement_id": "REQ-260",
         "type": "integration",
         "verification_method": "manual (Rust UI build required)",
@@ -14367,11 +14379,11 @@
       "id": "TEST-261",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos AI Providers Table Does Not Overflow Long Model Names",
+      "label": "AI Providers Table Does Not Overflow Long Model Names",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14379,8 +14391,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-261",
-        "title": "Kairos AI Providers Table Does Not Overflow Long Model Names",
-        "description": "In the Kairos Agents > Providers table, the model name \"o4-mini-deep-research\" is clipped to its column width (200px) and does not bleed into the Model ID column.",
+        "version": 1,
+        "title": "AI Providers Table Does Not Overflow Long Model Names",
+        "description": "In the Agents > Providers table, the model name \"o4-mini-deep-research\" is clipped to its column width (200px) and does not bleed into the Model ID column.",
         "requirement_id": "REQ-261",
         "type": "integration",
         "verification_method": "manual (Rust UI build + visual inspection)",
@@ -14393,11 +14406,11 @@
       "id": "TEST-262",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos MCP AI Builder Card Generates And Saves Stub",
+      "label": "MCP AI Builder Card Generates And Saves Stub",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14405,8 +14418,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-262",
-        "title": "Kairos MCP AI Builder Card Generates And Saves Stub",
-        "description": "In the Kairos Agents > MCP servers list, the AI Builder card accepts a description, generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json on 'Add to config' click.",
+        "version": 1,
+        "title": "MCP AI Builder Card Generates And Saves Stub",
+        "description": "In the Agents > MCP servers list, the AI Builder card accepts a description, generates a stub via specsmith, displays JSON, and appends to ~/.specsmith/mcp.json on 'Add to config' click.",
         "requirement_id": "REQ-262",
         "type": "integration",
         "verification_method": "manual (Rust UI build required)",
@@ -14861,11 +14875,11 @@
       "id": "TEST-280",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Model Intel Governance Endpoint",
+      "label": "Model Intel Governance Endpoint",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14873,7 +14887,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-280",
-        "title": "Kairos Model Intel Governance Endpoint",
+        "version": 1,
+        "title": "Model Intel Governance Endpoint",
         "description": "The specsmith governance HTTP server (GovernanceHTTPServer) exposes `GET /api/model-intel/scores` returning `{\"scores\": [...]}` and `GET /api/model-intel/recommendations` returning `{\"recommendations\": [...], \"bucket\": \"reasoning\"}`.",
         "requirement_id": "REQ-268",
         "type": "integration",
@@ -14887,11 +14902,11 @@
       "id": "TEST-281",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos AI Providers Bucket Score Section Compiles",
+      "label": "AI Providers Bucket Score Section Compiles",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -14899,8 +14914,9 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-281",
-        "title": "Kairos AI Providers Bucket Score Section Compiles",
-        "description": "The updated `ai_providers_page.rs` in Kairos compiles without errors under `cargo check --package kairos`. The file must contain `model_intel` function call or `bucket_score` field rendering code.",
+        "version": 1,
+        "title": "AI Providers Bucket Score Section Compiles",
+        "description": "The updated `ai_providers_page.py` in specsmith compiles without errors under `python -m py_compile`. The file must contain `model_intel` function call or `bucket_score` field rendering code.",
         "requirement_id": "REQ-281",
         "type": "build",
         "verification_method": "cargo check",
@@ -15798,11 +15814,11 @@
       "id": "TEST-332",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Live DAG Graph Panel",
+      "label": "Live DAG Graph Panel",
       "confidence": 0.85,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -15810,12 +15826,13 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-332",
-        "title": "Kairos Live DAG Graph Panel",
+        "version": 1,
+        "title": "Live DAG Graph Panel",
         "description": "DispatchApp renders a DAG graph panel subscribed to the SSE stream. Nodes are coloured by status. A node click opens a side panel with role, summary, ESDB record ID.",
         "requirement_id": "REQ-332",
         "type": "integration",
         "verification_method": "evaluator",
-        "input": "Kairos DispatchApp with mock SSE events for each NodeStatus variant",
+        "input": "DispatchApp with mock SSE events for each NodeStatus variant",
         "expected_behavior": "Each node rendered in correct colour; side panel opens on click showing node metadata",
         "confidence": 0.85
       }
@@ -15824,11 +15841,11 @@
       "id": "TEST-333",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Gantt Timeline Strip",
+      "label": "Gantt Timeline Strip",
       "confidence": 0.85,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -15836,7 +15853,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-333",
-        "title": "Kairos Gantt Timeline Strip",
+        "version": 1,
+        "title": "Gantt Timeline Strip",
         "description": "GanttStrip renders one row per node with a time-proportional bar. Nodes with overlapping started_at/finished_at ranges show visual concurrency.",
         "requirement_id": "REQ-333",
         "type": "integration",
@@ -15850,11 +15868,11 @@
       "id": "TEST-334",
       "kind": "testcase",
       "status": "active",
-      "label": "Kairos Per-Node Retry and Abort Controls",
+      "label": "Per-Node Retry and Abort Controls",
       "confidence": 0.9,
       "source_type": "observed",
       "evidence": [
-        "migrated from testcases.json"
+        "synced from testcases.json"
       ],
       "epistemic_boundary": [],
       "is_hypothesis": false,
@@ -15862,7 +15880,8 @@
       "recursion_depth": 0,
       "data": {
         "id": "TEST-334",
-        "title": "Kairos Per-Node Retry and Abort Controls",
+        "version": 1,
+        "title": "Per-Node Retry and Abort Controls",
         "description": "ControlsPanel Retry button is enabled for FAILED/BLOCKED nodes and disabled for others. Abort button is enabled only for RUNNING nodes. Clicking calls the correct POST endpoint.",
         "requirement_id": "REQ-334",
         "type": "unit",
@@ -16860,7 +16879,7 @@
       "id": "TEST-370",
       "kind": "testcase",
       "status": "active",
-      "label": "Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt and without pip install",
+      "label": "Scaffolded AGENTS.md template documents automatic migration and doctor verification",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
@@ -16873,11 +16892,11 @@
       "data": {
         "id": "TEST-370",
         "version": 1,
-        "title": "Scaffolded AGENTS.md template uses specsmith migrate run without Y/n prompt and without pip install",
+        "title": "Scaffolded AGENTS.md template documents automatic migration and doctor verification",
         "description": "",
         "requirement_id": "REQ-369",
         "type": "unit",
-        "verification_method": "pytest tests/test_migration_direction.py::test_agents_template_no_pip_install and ::test_agents_template_uses_migrate_run — read src/specsmith/templates/agents.md.j2, assert 'pip install' not present, assert 'specsmith migrate run' present, assert '[Y/n]' not present in migration context",
+        "verification_method": "pytest tests/test_migration_direction.py::test_agents_template_no_pip_install and ::test_agents_template_uses_current_health_check — read src/specsmith/templates/agents.md.j2, assert 'pip install' and legacy migrate commands are absent, assert `specsmith doctor` is present, and assert '[Y/n]' is absent",
         "input": {},
         "expected_behavior": {},
         "confidence": 1.0
@@ -16887,7 +16906,7 @@
       "id": "TEST-371",
       "kind": "testcase",
       "status": "active",
-      "label": "Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt, and upgrade command",
+      "label": "Backward migration is a hard error in run_upgrade, run_migration, and CLI auto-update",
       "confidence": 1.0,
       "source_type": "observed",
       "evidence": [
@@ -16900,11 +16919,11 @@
       "data": {
         "id": "TEST-371",
         "version": 1,
-        "title": "Backward migration is a hard error in run_upgrade, run_migration, CLI auto-prompt, and upgrade command",
+        "title": "Backward migration is a hard error in run_upgrade, run_migration, and CLI auto-update",
         "description": "",
         "requirement_id": "REQ-370",
         "type": "unit",
-        "verification_method": "pytest tests/test_migration_direction.py — four sub-tests cover run_upgrade downgrade_error=True, run_migration ERROR string, upgrade --spec-version older exit 1, and auto-prompt downgrade hard error",
+        "verification_method": "pytest tests/test_migration_direction.py — tests cover run_upgrade downgrade_error=True, run_migration ERROR string, and auto-update downgrade hard error",
         "input": {},
         "expected_behavior": {},
         "confidence": 1.0
@@ -20304,7 +20323,7 @@
       "id": "REQ-423",
       "kind": "requirement",
       "status": "active",
-      "label": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
+      "label": "Governed benchmark claims must be statistically supported",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
@@ -20317,10 +20336,10 @@
       "data": {
         "id": "REQ-423",
         "version": 1,
-        "title": "Governed benchmark agents must achieve 100% pass rate across all tasks and conditions",
-        "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must pass all benchmark tasks including T13 CLI tasks with stdout discipline and T10 route-ordering traps",
+        "title": "Governed benchmark claims must be statistically supported",
+        "description": "GovernanceBench MUST report observed pass rate, confidence intervals, token use, and global cost-of-pass without assuming a stochastic model achieves 100% correctness. Publication claims require complete comparable cells and enough repetitions to distinguish signal from sampling noise. A zero-pass task MUST remain in aggregate cost-of-pass rather than being silently excluded.",
         "source": "docs/requirements/",
-        "status": "planned",
+        "status": "implemented",
         "test_ids": [
           "TEST-433"
         ]
@@ -20356,7 +20375,7 @@
       "id": "REQ-425",
       "kind": "requirement",
       "status": "active",
-      "label": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
+      "label": "Deterministic benchmark governance must fail safely on unclear scope",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
@@ -20369,10 +20388,10 @@
       "data": {
         "id": "REQ-425",
         "version": 1,
-        "title": "Governed agents must autonomously resolve preflight needs_clarification without blocking",
-        "description": "Promoted from WI-B73B339B. The benchmark harness must never deadlock on preflight needs_clarification — governed agents must autonomously resolve missing requirements and always produce a passing implementation",
+        "title": "Deterministic benchmark governance must fail safely on unclear scope",
+        "description": "The benchmark harness MUST run governance outside the model token path against isolated task state. Accepted coding tasks receive only linked requirement, test, confidence, and uncertainty evidence. Ambiguous or destructive tasks MUST short-circuit safely on needs_clarification; the harness MUST never fabricate a requirement, bypass the decision, or prompt a model to implement anyway.",
         "source": "WI-B73B339B",
-        "status": "planned",
+        "status": "implemented",
         "test_ids": [
           "TEST-435"
         ]
@@ -20382,7 +20401,7 @@
       "id": "REQ-426",
       "kind": "requirement",
       "status": "active",
-      "label": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
+      "label": "Benchmark completion budgets must be bounded and model-compatible",
       "confidence": 0.7,
       "source_type": "observed",
       "evidence": [
@@ -20395,10 +20414,10 @@
       "data": {
         "id": "REQ-426",
         "version": 1,
-        "title": "Benchmark harness completion token budget must allow reasoning models to produce tool calls",
-        "description": "max_completion_tokens must be at least 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion truncating tool call output",
+        "title": "Benchmark completion budgets must be bounded and model-compatible",
+        "description": "The harness MUST use each provider's compatible completion-budget parameter, keep a bounded default sufficient for tool calls, cap agent turns and context, and allow explicit environment overrides for diagnostic runs. It MUST NOT grant an unconditional oversized output budget merely because a model can reason.",
         "source": "docs/requirements/",
-        "status": "planned",
+        "status": "implemented",
         "test_ids": [
           "TEST-436"
         ]
@@ -21161,6 +21180,2990 @@
         "source": "GitHub issue #299",
         "status": "planned",
         "test_ids": []
+      }
+    },
+    {
+      "id": "TEST-433",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Governed benchmark agents achieve 100% pass rate across all tasks and conditions",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-433",
+        "version": 1,
+        "title": "Governed benchmark agents achieve 100% pass rate across all tasks and conditions",
+        "description": "All specsmith conditions (LIGHT, FULL, DISPATCH) must achieve 100% pass rate across all benchmark tasks (T1, T2, T6, T7, T10, T11, T13). T13 requires correct stdout discipline (click.echo err=True) and T10 requires correct route ordering.",
+        "requirement_id": "REQ-423",
+        "type": "script",
+        "verification_method": "scripts/govern_bench/run_benchmark.py",
+        "input": "SPECSMITH_LIGHT, SPECSMITH_FULL, SPECSMITH_DISPATCH conditions × all tasks × 3 reps",
+        "expected_behavior": "pass_rate == 1.0 for every (task, condition) pair; zero CoP drift from baseline",
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "TEST-434",
+      "kind": "testcase",
+      "status": "active",
+      "label": "CI CodeQL scan produces zero alerts on every run",
+      "confidence": 0.95,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-434",
+        "version": 1,
+        "title": "CI CodeQL scan produces zero alerts on every run",
+        "description": "The GitHub Actions CodeQL workflow must complete with zero open alerts for the specsmith codebase. This covers py/unreachable-statement, py/import-and-import-from, and py/path-injection patterns documented in AGENTS.md CodeQL Safe Patterns.",
+        "requirement_id": "REQ-424",
+        "type": "build",
+        "verification_method": "gh api repos/specsmith-dev/specsmith/code-scanning/alerts",
+        "input": "GitHub Actions CodeQL workflow run on develop branch",
+        "expected_behavior": "Zero open CodeQL alerts; workflow exits with code 0",
+        "confidence": 0.95
+      }
+    },
+    {
+      "id": "TEST-435",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Governed agent autonomously resolves preflight needs_clarification without blocking",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-435",
+        "version": 1,
+        "title": "Governed agent autonomously resolves preflight needs_clarification without blocking",
+        "description": "When specsmith preflight returns needs_clarification, a governed benchmark agent must add a requirement via 'specsmith req add --title ...' and retry the preflight without human intervention. The agent must never block or deadlock waiting for clarification. Validated by T13 SPECSMITH_LIGHT and SPECSMITH_FULL benchmark conditions.",
+        "requirement_id": "REQ-425",
+        "type": "integration",
+        "verification_method": "scripts/govern_bench/run_benchmark.py (T13 condition)",
+        "input": "T13 benchmark task with SPECSMITH_LIGHT and SPECSMITH_FULL conditions; preflight intentionally returns needs_clarification on first call",
+        "expected_behavior": "Agent adds requirement and retries; task completes with pass_rate == 1.0; no deadlock",
+        "confidence": 0.9
+      }
+    },
+    {
+      "id": "TEST-436",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Harness max_completion_tokens >= 32768 for reasoning models",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-436",
+        "version": 1,
+        "title": "Harness max_completion_tokens >= 32768 for reasoning models",
+        "description": "harness.py must set max_completion_tokens >= 32768 for gpt-5.x and o-series models to prevent reasoning token exhaustion",
+        "requirement_id": "REQ-426",
+        "type": "script",
+        "verification_method": "grep -r 'max_completion_tokens' scripts/govern_bench/harness.py | grep '32768\\|65536'",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-437",
+      "kind": "testcase",
+      "status": "active",
+      "label": "GovernanceBench metrics include Wilson CI and bootstrap CoP confidence intervals",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-437",
+        "version": 1,
+        "title": "GovernanceBench metrics include Wilson CI and bootstrap CoP confidence intervals",
+        "description": "govern_bench/metrics.py must export wilson_ci() and bootstrap_cop_ci() functions that return (lower, upper) tuples",
+        "requirement_id": "REQ-427",
+        "type": "script",
+        "verification_method": "python -c 'from govern_bench.metrics import wilson_ci, bootstrap_cop_ci; print(wilson_ci(8,10), bootstrap_cop_ci([1.0,0.8]))'",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-438",
+      "kind": "testcase",
+      "status": "active",
+      "label": "GovernanceBench tasks.py defines all 27 tasks across expanded project domains",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-438",
+        "version": 1,
+        "title": "GovernanceBench tasks.py defines all 27 tasks across expanded project domains",
+        "description": "tasks.py must define tasks T1-T27 including new domains: data_pipeline, verilog_module, patent_draft, shell_scripts",
+        "requirement_id": "REQ-427",
+        "type": "script",
+        "verification_method": "python -c 'from govern_bench.tasks import TASK_CATALOGUE; assert len(TASK_CATALOGUE) >= 27'",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-439",
+      "kind": "testcase",
+      "status": "active",
+      "label": "gitignore normalizer enforces disjoint allow/deny policy and untracks diverged paths",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-439",
+        "version": 1,
+        "title": "gitignore normalizer enforces disjoint allow/deny policy and untracks diverged paths",
+        "description": "normalize_esdb_gitignore_policy must (a) keep _GIT_TRACKED_POLICY and _GIT_IGNORED_POLICY disjoint, (b) untrack paths in git index that belong to deny list, (c) be idempotent on repeated runs",
+        "requirement_id": "REQ-428",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src python -m pytest tests/test_esdb_enforcement.py -k 'disjoint or idempotent or untrack' -q",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-440",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Multi-provider harness dispatches by provider_name field",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-440",
+        "version": 1,
+        "title": "Multi-provider harness dispatches by provider_name field",
+        "description": "govern_bench/harness.py must export _dispatch_llm or equivalent that routes by provider_name to openai, anthropic, or google providers",
+        "requirement_id": "REQ-427",
+        "type": "script",
+        "verification_method": "python -c 'from govern_bench.harness import _dispatch_llm; print(\"ok\")'",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-441",
+      "kind": "testcase",
+      "status": "active",
+      "label": "GovernanceBench HF leaderboard artifacts exist and are schema-valid",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-441",
+        "version": 1,
+        "title": "GovernanceBench HF leaderboard artifacts exist and are schema-valid",
+        "description": "scripts/govern_bench/leaderboard_schema.json and docs/govern_bench/hf_card.md must exist; schema must contain required leaderboard fields",
+        "requirement_id": "REQ-427",
+        "type": "script",
+        "verification_method": "python -c \"import json,pathlib; s=json.loads(pathlib.Path('scripts/govern_bench/leaderboard_schema.json').read_text()); assert 'properties' in s\"",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-442",
+      "kind": "testcase",
+      "status": "active",
+      "label": "checkpoint ESDB field shows correct backend label and record count",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-442",
+        "version": 1,
+        "title": "checkpoint ESDB field shows correct backend label and record count",
+        "description": "checkpoint --json must include esdb_backend field ('chronomemory', 'sqlite', or 'n/a') and esdb_records/esdb_chain_valid must be None when backend is n/a; SQLite backend must read actual record count from SqliteStore",
+        "requirement_id": "REQ-429",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src python -m specsmith checkpoint --json | python -c \"import json,sys; d=json.load(sys.stdin); assert d['esdb_backend'] in ('chronomemory','sqlite','n/a')\"",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-443",
+      "kind": "testcase",
+      "status": "active",
+      "label": "release tooling edits classify as CHANGE not RELEASE",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-443",
+        "version": 1,
+        "title": "release tooling edits classify as CHANGE not RELEASE",
+        "description": "classify_intent must return CHANGE (not RELEASE) for: fix release.yml, update release pipeline, edit release notes, patch package_dist.ps1, update .github/workflows/release.yml",
+        "requirement_id": "REQ-430",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_nexus.py -k 'classify_intent or release_tooling_patterns' -q",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-444",
+      "kind": "testcase",
+      "status": "active",
+      "label": "release intent with explicit REQ ID accepts and WI allocated for needs_clarification",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-444",
+        "version": 1,
+        "title": "release intent with explicit REQ ID accepts and WI allocated for needs_clarification",
+        "description": "run_preflight with release-intent utterance + [REQ-051] suffix must return accepted; unscoped release must return needs_clarification with --req mentioned in instruction",
+        "requirement_id": "REQ-431",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_nexus.py -k 'release_tooling_edit_with_explicit or release_without_scope' -q",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-445",
+      "kind": "testcase",
+      "status": "active",
+      "label": "preflight --req flag injects REQ IDs into scope and unblocks release tooling",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-445",
+        "version": 1,
+        "title": "preflight --req flag injects REQ IDs into scope and unblocks release tooling",
+        "description": "CLI: specsmith preflight 'update release.yml' --req REQ-051 must return accepted because REQ-051 is injected and picked up by scope-matching",
+        "requirement_id": "REQ-430",
+        "type": "integration",
+        "verification_method": "PYTHONPATH=src python -m specsmith preflight 'update release.yml' --req REQ-051 --json --predict-only | python -c \"import json,sys; d=json.load(sys.stdin); assert d['decision']=='accepted','got '+d['decision']\"",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-446",
+      "kind": "testcase",
+      "status": "active",
+      "label": "check_governance_yaml_content validates YAML file structure and rejects empty/fallback entries",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-446",
+        "version": 1,
+        "title": "check_governance_yaml_content validates YAML file structure and rejects empty/fallback entries",
+        "description": "",
+        "requirement_id": "REQ-432",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_audit_governance.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-447",
+      "kind": "testcase",
+      "status": "active",
+      "label": "sync warns when REQUIREMENTS.md/TESTS.md IDs are absent from YAML source",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-447",
+        "version": 1,
+        "title": "sync warns when REQUIREMENTS.md/TESTS.md IDs are absent from YAML source",
+        "description": "",
+        "requirement_id": "REQ-433",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_sync_reconcile.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-448",
+      "kind": "testcase",
+      "status": "active",
+      "label": "rebuild_workitems.py encodes unicode correctly with ensure_ascii=False",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-448",
+        "version": 1,
+        "title": "rebuild_workitems.py encodes unicode correctly with ensure_ascii=False",
+        "description": "",
+        "requirement_id": "REQ-433",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_sync_reconcile.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-449",
+      "kind": "testcase",
+      "status": "active",
+      "label": "verify_cmd is wired to run_verify; approve_cmd sets human_review_status; files_touched persisted",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-449",
+        "version": 1,
+        "title": "verify_cmd is wired to run_verify; approve_cmd sets human_review_status; files_touched persisted",
+        "description": "",
+        "requirement_id": "REQ-434",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_wi_lifecycle_extended.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-450",
+      "kind": "testcase",
+      "status": "active",
+      "label": "broker infer_scope applies min_score=0.15 threshold and rejects low-confidence scope",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-450",
+        "version": 1,
+        "title": "broker infer_scope applies min_score=0.15 threshold and rejects low-confidence scope",
+        "description": "",
+        "requirement_id": "REQ-435",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_broker_scope.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-451",
+      "kind": "testcase",
+      "status": "active",
+      "label": "flush_session_metrics writes token usage to session_metrics.jsonl after run completion",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-451",
+        "version": 1,
+        "title": "flush_session_metrics writes token usage to session_metrics.jsonl after run completion",
+        "description": "",
+        "requirement_id": "REQ-436",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_metrics_flush.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-452",
+      "kind": "testcase",
+      "status": "active",
+      "label": "check_governance_yaml_content accepts m001 content-blob format (content+kind keys)",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-452",
+        "version": 1,
+        "title": "check_governance_yaml_content accepts m001 content-blob format (content+kind keys)",
+        "description": "",
+        "requirement_id": "REQ-432",
+        "type": "unit",
+        "verification_method": "PYTHONPATH=src pytest tests/test_audit_governance.py::test_check_governance_yaml_content_passes_m001_content_blob",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-453",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Datasource adapter retrieval contract and citation normalization is validated by integration test",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-453",
+        "version": 1,
+        "title": "Datasource adapter retrieval contract and citation normalization is validated by integration test",
+        "description": "",
+        "requirement_id": "REQ-437",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-454",
+      "kind": "testcase",
+      "status": "active",
+      "label": "GUI governance parity with CLI is verified by functional test",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-454",
+        "version": 1,
+        "title": "GUI governance parity with CLI is verified by functional test",
+        "description": "",
+        "requirement_id": "REQ-438",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-455",
+      "kind": "testcase",
+      "status": "active",
+      "label": "IDE integration adapter uniform capability contract is verified by adapter unit tests",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-455",
+        "version": 1,
+        "title": "IDE integration adapter uniform capability contract is verified by adapter unit tests",
+        "description": "",
+        "requirement_id": "REQ-439",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-456",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Plugin management lifecycle install/list/remove/validate is verified by CLI tests",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-456",
+        "version": 1,
+        "title": "Plugin management lifecycle install/list/remove/validate is verified by CLI tests",
+        "description": "",
+        "requirement_id": "REQ-440",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-457",
+      "kind": "testcase",
+      "status": "active",
+      "label": "specsmith plugin CLI list and validate commands verified by CLI integration test",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-457",
+        "version": 1,
+        "title": "specsmith plugin CLI list and validate commands verified by CLI integration test",
+        "description": "",
+        "requirement_id": "REQ-441",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-458",
+      "kind": "testcase",
+      "status": "active",
+      "label": "specsmith pr CLI governed PR creation and status verified by CLI integration test",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-458",
+        "version": 1,
+        "title": "specsmith pr CLI governed PR creation and status verified by CLI integration test",
+        "description": "",
+        "requirement_id": "REQ-442",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-459",
+      "kind": "testcase",
+      "status": "active",
+      "label": "specsmith ps CLI process state listing verified by unit test",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-459",
+        "version": 1,
+        "title": "specsmith ps CLI process state listing verified by unit test",
+        "description": "",
+        "requirement_id": "REQ-443",
+        "type": "manual",
+        "verification_method": "manual review of implementation",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-460",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Warp adapter generates .warp artifacts and detect_terminal flags Warp",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-460",
+        "version": 1,
+        "title": "Warp adapter generates .warp artifacts and detect_terminal flags Warp",
+        "description": "Covered by tests/test_integrations_warp.py and tests/test_terminal_env.py: WarpAdapter.generate() writes .warp/specsmith-mcp.json, .warp/launch_configs/specsmith-governed.yaml, and .agents/skills/SKILL.md; detect_terminal() identifies Warp via TERM_PROGRAM/WARP_* and AgentRunner surfaces it.",
+        "requirement_id": "REQ-444",
+        "type": "unit",
+        "verification_method": "pytest",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-461",
+      "kind": "testcase",
+      "status": "active",
+      "label": "recommend_models/recommend_for_hardware follow detected GPU VRAM tier with fit assessment",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-461",
+        "version": 1,
+        "title": "recommend_models/recommend_for_hardware follow detected GPU VRAM tier with fit assessment",
+        "description": "Covered by tests/test_local_model.py (TestAssessFit, TestRecommendModels, TestRecommendForHardware, TestLocalModelRecommendCLI): recommend_models(vram_gb) selects 7b/14b/32b tiers by VRAM, includes deepseek-coder-v2:16b harder slot, assess_fit returns fits/tight/spills, recommend_for_hardware detects Apple Silicon then NVIDIA, and 'specsmith local-model recommend' emits human + --json output.",
+        "requirement_id": "REQ-445",
+        "type": "unit",
+        "verification_method": "pytest",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-462",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Validate epistemic chat handoff and Zoo-Code export",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-462",
+        "version": 1,
+        "title": "Validate epistemic chat handoff and Zoo-Code export",
+        "description": "Verify extractive source IDs, ESDB persistence, context compaction, and portable Zoo-Code export.",
+        "requirement_id": "REQ-446",
+        "type": "integration",
+        "verification_method": "pytest tests/test_chat_handoff.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-463",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Merge and rebuild canonical ESDB session events",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-463",
+        "version": 1,
+        "title": "Merge and rebuild canonical ESDB session events",
+        "description": "Verify divergent event histories replay without loss or duplicate events and rebuild local SQLite state.",
+        "requirement_id": "REQ-447",
+        "type": "integration",
+        "verification_method": "pytest tests/test_session_store.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-464",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Diagnose Windows launcher shadowing and redirected stderr",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-464",
+        "version": 1,
+        "title": "Diagnose Windows launcher shadowing and redirected stderr",
+        "description": "Verify duplicate executable diagnostics and PowerShell-compatible launcher behavior.",
+        "requirement_id": "REQ-448",
+        "type": "cli",
+        "verification_method": "pytest tests/test_windows_launcher.py tests/test_migrations_skill_shell.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-465",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Offer reachable development-version recovery",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-465",
+        "version": 1,
+        "title": "Offer reachable development-version recovery",
+        "description": "Verify version mismatch diagnostics provide exact pipx recovery guidance without allowing downgrade.",
+        "requirement_id": "REQ-449",
+        "type": "cli",
+        "verification_method": "pytest tests/test_updater.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-466",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Reject non-stable versions from stable release publishing",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-466",
+        "version": 1,
+        "title": "Reject non-stable versions from stable release publishing",
+        "description": "Verify PEP 440 dev prerelease and local versions cannot enter the stable release workflow.",
+        "requirement_id": "REQ-450",
+        "type": "build",
+        "verification_method": "pytest tests/test_release_guard.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-467",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Reject work-item persistence paths outside project root",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-467",
+        "version": 1,
+        "title": "Reject work-item persistence paths outside project root",
+        "description": "Verify normalized work-item state and file paths cannot escape the supplied project root.",
+        "requirement_id": "REQ-451",
+        "type": "unit",
+        "verification_method": "pytest tests/test_wi_lifecycle.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-468",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Render quality report footer without implicit concatenation",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-468",
+        "version": 1,
+        "title": "Render quality report footer without implicit concatenation",
+        "description": "Verify the generated footer retains its expected report content while the renderer remains CodeQL-clean.",
+        "requirement_id": "REQ-452",
+        "type": "unit",
+        "verification_method": "pytest tests/test_quality_report.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-469",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Verify release candidate quality gates",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-469",
+        "version": 1,
+        "title": "Verify release candidate quality gates",
+        "description": "Verify every local and CI release-candidate quality gate passes without lint, type, test, documentation, dependency-security, or governance failures.",
+        "requirement_id": "REQ-453",
+        "type": "build",
+        "verification_method": "ruff check src/ tests/ && ruff format --check src/ tests/ && mypy src/specsmith/ && pytest --cov=specsmith --cov-report=term-missing && mkdocs build --strict && pip-audit && specsmith audit --project-dir .",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-470",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Enforce and configure the single-branch default",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-470",
+        "version": 1,
+        "title": "Enforce and configure the single-branch default",
+        "description": "Verify single-branch is the default, branch creation is refused until an explicit workflow selection, and specsmith can enable GitFlow or another configured strategy.",
+        "requirement_id": "REQ-454",
+        "type": "cli",
+        "verification_method": "pytest tests/test_branch_workflow.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-471",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Preserve canonical ESDB state when saving a governed Git worktree",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-471",
+        "version": 1,
+        "title": "Preserve canonical ESDB state when saving a governed Git worktree",
+        "description": "Verify save normalizes the Git policy, commits no SQLite cache, migration backup, marker, state, or agent migration artifact, and retains the mergeable session event log as canonical source of truth.",
+        "requirement_id": "REQ-447",
+        "type": "integration",
+        "verification_method": "pytest tests/test_esdb_enforcement.py -k save_does_not_commit",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-472",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Base package metadata includes cryptography for ESDB license activation",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-472",
+        "version": 1,
+        "title": "Base package metadata includes cryptography for ESDB license activation",
+        "description": "Verify pyproject.toml lists cryptography in base project dependencies, so a clean pipx install can execute specsmith esdb enable without a manual pipx inject.",
+        "requirement_id": "REQ-366",
+        "type": "unit",
+        "verification_method": "pytest tests/test_esdb_license.py::test_base_install_includes_cryptography_for_license_verification",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-473",
+      "kind": "testcase",
+      "status": "active",
+      "label": "RTD deployment workflow configures canonical repository and main latest branch",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-473",
+        "version": 1,
+        "title": "RTD deployment workflow configures canonical repository and main latest branch",
+        "description": "Verify the RTD deployment workflow updates the RTD project to layer1labs/specsmith on main, synchronizes versions, and fails on rejected project, version, or build API responses.",
+        "requirement_id": "REQ-067",
+        "type": "unit",
+        "verification_method": "pytest tests/test_rtd_deploy_workflow.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "REQ-456",
+      "kind": "requirement",
+      "status": "active",
+      "label": "SpecSmith CLI help is side-effect free",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-456",
+        "version": 1,
+        "title": "SpecSmith CLI help is side-effect free",
+        "description": "Every SpecSmith CLI invocation containing --help MUST return usage without project migration, update checks, ledger writes, ESDB writes, work-item allocation, or project-file creation or modification. Migration remains available only through an explicit operational command.",
+        "source": "GitHub issue #300",
+        "status": "planned",
+        "test_ids": []
+      }
+    },
+    {
+      "id": "TEST-474",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Pipx SpecSmith upgrades return a non-blocking environment-only preflight decision",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-474",
+        "version": 1,
+        "title": "Pipx SpecSmith upgrades return a non-blocking environment-only preflight decision",
+        "description": "Verify pipx-managed local SpecSmith upgrade language returns environment_only, exits successfully, and does not create governance state.",
+        "requirement_id": "REQ-455",
+        "type": "cli",
+        "verification_method": "pytest tests/test_nexus.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-475",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Preflight help does not mutate an outdated project",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-475",
+        "version": 1,
+        "title": "Preflight help does not mutate an outdated project",
+        "description": "Verify specsmith preflight --help leaves an older governed project byte-for-byte unchanged and does not create governance files.",
+        "requirement_id": "REQ-456",
+        "type": "cli",
+        "verification_method": "pytest tests/test_cli.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "LED-5150944C185C",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "57304a968224a8ca6848db6bd6c82d667efd5c761c61c556c0e962475df7aeba",
+        "timestamp": "2026-07-13T23:56:08.231062+00:00"
+      }
+    },
+    {
+      "id": "WI-4EE3E2A6",
+      "kind": "work_item",
+      "status": "active",
+      "label": "Fix #301 under REQ-369 so released wheel metadata, runtime version, and project schema agree; fix #302 under REQ-336 so save resolves and reports the supplied worktree branch; fix #303 under REQ-305 b",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-369",
+        "REQ-336",
+        "REQ-305",
+        "REQ-351",
+        "TEST-305",
+        "TEST-336",
+        "TEST-351",
+        "TEST-370"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-07-13T23:58:31Z",
+        "updated_at": "2026-07-13T23:58:31Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-4EE3E2A6",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-369",
+        "REQ-336",
+        "REQ-305",
+        "REQ-351"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "accepted",
+        "intent": "change",
+        "work_item_id": "WI-4EE3E2A6",
+        "test_case_ids": [
+          "TEST-305",
+          "TEST-336",
+          "TEST-351",
+          "TEST-370"
+        ],
+        "instruction": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.22.1"
+        }
+      }
+    },
+    {
+      "id": "TEST-476",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Release metadata and embedded project schema versions agree",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-476",
+        "version": 1,
+        "title": "Release metadata and embedded project schema versions agree",
+        "description": "Verify pyproject metadata, source fallback, default scaffold schema, and shipped wheel metadata use the same release version.",
+        "requirement_id": "REQ-369",
+        "type": "build",
+        "verification_method": "pytest tests/test_release_version_contract.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-477",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Save falls back to the symbolic branch in the supplied worktree",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-477",
+        "version": 1,
+        "title": "Save falls back to the symbolic branch in the supplied worktree",
+        "description": "Verify save push resolves main from the supplied Git worktree when git branch --show-current returns no value and reports the inspected worktree if no branch exists.",
+        "requirement_id": "REQ-336",
+        "type": "unit",
+        "verification_method": "pytest tests/test_vcs_commands.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "TEST-478",
+      "kind": "testcase",
+      "status": "active",
+      "label": "ESDB migration repairs a verified legacy ChronoMemory WAL chain",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-478",
+        "version": 1,
+        "title": "ESDB migration repairs a verified legacy ChronoMemory WAL chain",
+        "description": "Verify an invalid ChronoStore chain is backed up, compacted, revalidated, and recorded in the migration manifest.",
+        "requirement_id": "REQ-305",
+        "type": "unit",
+        "verification_method": "pytest tests/test_esdb_migrate_wal_repair.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "LED-FEBAF78EA7FC",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "71fb0a17514b368a94e3ea16db15d0e0f6780faad3b030b944076a894929dfe9",
+        "timestamp": "2026-07-14T09:35:52.573379+00:00"
+      }
+    },
+    {
+      "id": "TEST-479",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Governance checkpoint anchor uses ASCII fixed-width rows",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-479",
+        "version": 1,
+        "title": "Governance checkpoint anchor uses ASCII fixed-width rows",
+        "description": "Verify human checkpoint output uses ASCII borders and status words only, with every row the same fixed width.",
+        "requirement_id": "REQ-351",
+        "type": "cli",
+        "verification_method": "pytest tests/test_cli.py",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "LED-85BCF1C4DA6F",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "6f5f68c50ef18586209265c5e12e126f14b6d9d61ce4b789058b8a677daa3ca5",
+        "timestamp": "2026-07-14T11:02:16.856931+00:00"
+      }
+    },
+    {
+      "id": "WI-D99C5834",
+      "kind": "work_item",
+      "status": "active",
+      "label": "Investigate and fix GitHub issue #305, add a regression test, update release documentation and version to 0.22.3, then publish a verified production release [REQ-050 REQ-051]",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-050",
+        "REQ-051",
+        "TEST-050",
+        "TEST-051"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "status": "open",
+        "kind": "feature",
+        "verified": false,
+        "promoted_to_req": "",
+        "blast_radius_estimate": "",
+        "created_at": "2026-07-14T11:03:03Z",
+        "updated_at": "2026-07-14T11:03:03Z",
+        "closed_reason": ""
+      }
+    },
+    {
+      "id": "PF-WI-D99C5834",
+      "kind": "preflight_decision",
+      "status": "active",
+      "label": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [
+        "REQ-050",
+        "REQ-051"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "decision": "accepted",
+        "intent": "change",
+        "work_item_id": "WI-D99C5834",
+        "test_case_ids": [
+          "TEST-050",
+          "TEST-051"
+        ],
+        "instruction": "Change request matched existing governance scope. Proceed under Specsmith verification.",
+        "ai_disclosure": {
+          "governed_by": "specsmith",
+          "governance_gated": true,
+          "provider": "local/heuristic",
+          "model": "deterministic-broker",
+          "spec_version": "0.22.2"
+        }
+      }
+    },
+    {
+      "id": "TEST-480",
+      "kind": "testcase",
+      "status": "active",
+      "label": "Save commits tracked ChronoMemory WAL metric before reporting success",
+      "confidence": 1.0,
+      "source_type": "observed",
+      "evidence": [
+        "synced from testcases.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "TEST-480",
+        "version": 1,
+        "title": "Save commits tracked ChronoMemory WAL metric before reporting success",
+        "description": "Regression coverage for GitHub issue #305: the metrics dual-write must occur before save's commit boundary so events.wal is committed rather than left dirty.",
+        "requirement_id": "REQ-336",
+        "type": "integration",
+        "verification_method": "Run save against a tracked ChronoMemory WAL fixture and assert git status is clean afterward",
+        "input": {},
+        "expected_behavior": {},
+        "confidence": 1.0
+      }
+    },
+    {
+      "id": "MET-S-88F5A7E9",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-88F5A7E9: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-88F5A7E9",
+        "timestamp": "2026-07-15T16:38:06Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-8CFB6374",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-8CFB6374: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-8CFB6374",
+        "timestamp": "2026-07-15T16:55:23Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-D4DD5625",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-D4DD5625: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-D4DD5625",
+        "timestamp": "2026-07-15T16:57:43Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "LED-A0647A637C8C",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "de5ef8470c180ba0fd7201181199eeb0e178d0dfc2e802a1e43aa2442f745a7e",
+        "timestamp": "2026-07-17T19:21:48.483749+00:00"
+      }
+    },
+    {
+      "id": "LED-CB2E3E91CB90",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "edca0a30163f22d189419a27182a5aa5d2154d8e4a43c1e98099a2dfd6e31be1",
+        "timestamp": "2026-07-17T19:28:23.138987+00:00"
+      }
+    },
+    {
+      "id": "MET-S-F29EF093",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-F29EF093: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-F29EF093",
+        "timestamp": "2026-07-17T22:36:11Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-1483A614",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-1483A614: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-1483A614",
+        "timestamp": "2026-07-18T13:49:16Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-C3117EF9",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-C3117EF9: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-C3117EF9",
+        "timestamp": "2026-07-18T13:53:57Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-B0FA458F",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-B0FA458F: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-B0FA458F",
+        "timestamp": "2026-07-18T13:57:05Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-9D0CB571",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-9D0CB571: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-9D0CB571",
+        "timestamp": "2026-07-18T14:06:14Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-46BC1E34",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-46BC1E34: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-46BC1E34",
+        "timestamp": "2026-07-18T14:18:57Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-DCF02C37",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-DCF02C37: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-DCF02C37",
+        "timestamp": "2026-07-18T14:24:54Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "MET-S-9CA32652",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-9CA32652: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-9CA32652",
+        "timestamp": "2026-07-18T14:51:59Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "LED-7C5F3FB3158C",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "870da6e4181e53be582627b97785d526f3f29efccf547b256a665440f21adf7c",
+        "timestamp": "2026-07-18T14:52:13.217014+00:00"
+      }
+    },
+    {
+      "id": "MET-S-481BF693",
+      "kind": "session_metric",
+      "status": "active",
+      "label": "S-481BF693: tokens=0 passed=True",
+      "confidence": 0.8,
+      "source_type": "observed",
+      "evidence": [],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "session_id": "S-481BF693",
+        "timestamp": "2026-07-18T14:53:03Z",
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0.0,
+        "quality_score": 0.0,
+        "passed": true,
+        "rework_turns": 1,
+        "work_item_id": "",
+        "model": "",
+        "command": "save",
+        "notes": "",
+        "tokens_total": 0
+      }
+    },
+    {
+      "id": "LED-C00B6BA87AFD",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "973af1b6969ef1fc2a38c062976c6c0503e463f50f3198cd8c203fe36c1d1d6e",
+        "timestamp": "2026-07-18T15:22:17.194967+00:00"
+      }
+    },
+    {
+      "id": "LED-ABFFE0D23642",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "679c3429dabca98665d623336009d639b5060b4edb0326a153fd130e55f1d19b",
+        "timestamp": "2026-07-18T18:31:30.377198+00:00"
+      }
+    },
+    {
+      "id": "LED-A37077586E79",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "413bdc945b7623ab63b7a2fd0257155590f2464d78965847115dd58e2d33d83a",
+        "timestamp": "2026-07-20T12:21:36.711802+00:00"
+      }
+    },
+    {
+      "id": "LED-F1261DE03A32",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "3fd82427abc7ac4653ccdbf168513c07f83e31cdc2803c82105557dffeccf382",
+        "timestamp": "2026-07-21T11:39:10.454786+00:00"
+      }
+    },
+    {
+      "id": "LED-AEF716C655DC",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "c809051ab40ec806e853a32b458996c12ff3f68611aaf5e6e6ca813220979846",
+        "timestamp": "2026-07-21T23:43:48.817201+00:00"
+      }
+    },
+    {
+      "id": "LED-8A6BC1A07E6E",
+      "kind": "ledger_event",
+      "status": "active",
+      "label": "KILL SWITCH ACTIVATED: emergency stop",
+      "confidence": 0.9,
+      "source_type": "observed",
+      "evidence": [
+        "REG-005"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "description": "KILL SWITCH ACTIVATED: emergency stop",
+        "entry_type": "kill-switch",
+        "author": "specsmith-operator",
+        "reqs": "REG-005",
+        "status": "complete",
+        "epistemic_status": "high",
+        "belief_artifacts": "",
+        "entry_hash": "14171160f0ea6798fa62d97b3d79ca3bd81c3e060cf82f08d03bc6ac54070aba",
+        "timestamp": "2026-07-22T12:04:26.565537+00:00"
+      }
+    },
+    {
+      "id": "REQ-457",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Zoo Code Local-LLM import profile lifecycle",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-457",
+        "version": 1,
+        "title": "Zoo Code Local-LLM import profile lifecycle",
+        "description": "Specsmith MUST generate the current Zoo Code import document for a Local-LLM LiteLLM profile at http://127.0.0.1:4000; map built-in and discovered Specsmith modes to that profile; request prompt caching only when capability metadata confirms support; preserve user-owned profiles and mappings; repair only Specsmith-managed malformed, obsolete, or tampered assets with a backup; never serialize an API key; and generate portable Windows, Linux, and macOS auto-import configuration.",
+        "source": "GitHub issue #331; Zoo Code upstream provider-settings and importExport schemas",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-481",
+          "TEST-482",
+          "TEST-483"
+        ]
+      }
+    },
+    {
+      "id": "REQ-458",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Concurrent-safe MCP project registry",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-458",
+        "version": 1,
+        "title": "Concurrent-safe MCP project registry",
+        "description": "Specsmith MUST atomically read-modify-write the persistent MCP project registry under a bounded process-safe lock so concurrent register, unregister, and prune operations preserve valid unrelated entries on Windows, Linux, and macOS without leaving a partial registry file or lock.",
+        "source": "GitHub issue #316; MCPREG-007 and MCPREG-008",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-484"
+        ]
+      }
+    },
+    {
+      "id": "REQ-459",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Cross-platform wheel smoke validation",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-459",
+        "version": 1,
+        "title": "Cross-platform wheel smoke validation",
+        "description": "Specsmith CI MUST build the candidate wheel and validate a clean wheel installation through public generic initialization, audit, strict validation, sync, fixed-point, and Zoo Code asset generation on Windows, Linux, and macOS using path names containing spaces and Unicode without shell activation or platform-specific console-script paths.",
+        "source": "GitHub issue #330",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-485"
+        ]
+      }
+    },
+    {
+      "id": "REQ-460",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Permissive Zoo Code command default",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-460",
+        "version": 1,
+        "title": "Permissive Zoo Code command default",
+        "description": "Specsmith MUST emit Zoo Code's current globalSettings.allowedCommands setting as exactly [\"*\"] in its managed settings-import asset for new projects; preserve user-owned assets and live user settings; migrate only an untouched, provenance-marked prior default; and document that this intentional permissive execution control is separate from Specsmith governance and unsuitable for untrusted repositories without user restriction.",
+        "source": "GitHub issue #329; Zoo Code global-settings and auto-approval schemas",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-486"
+        ]
+      }
+    },
+    {
+      "id": "REQ-461",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Private Specsmith self-release boundary",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-461",
+        "version": 1,
+        "title": "Private Specsmith self-release boundary",
+        "description": "The installed public Specsmith CLI MUST not expose a release command or instructions capable of publishing, tagging, deploying, or promoting Specsmith itself; generic read-only release readiness verification remains public, while repository-local CI and scripts own self-release operations.",
+        "source": "GitHub issue #318",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-487"
+        ]
+      }
+    },
+    {
+      "id": "REQ-462",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Distinct package and governance metadata versions",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-462",
+        "version": 1,
+        "title": "Distinct package and governance metadata versions",
+        "description": "Specsmith's repository metadata MUST retain a package/project version and a distinct governance schema version; migration uses spec_version, legacy version-only metadata is normalized only for the Specsmith self-project without loss, and release closure verifies package-to-version and candidate-governance-to- spec_version parity independently.",
+        "source": "GitHub issue #319",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-488"
+        ]
+      }
+    },
+    {
+      "id": "REQ-463",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Deterministic managed governance regeneration",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-463",
+        "version": 1,
+        "title": "Deterministic managed governance regeneration",
+        "description": "Candidate governance generation MUST be idempotent: identical managed content performs no write or backup, changed managed content is atomically replaced with backups only under ignored .specsmith/backups/governance, and a repeated upgrade generation pass produces no additional tracked or untracked source files.\n",
+        "source": "GitHub issue #321",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-489"
+        ]
+      }
+    },
+    {
+      "id": "REQ-464",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Private candidate bootstrap and closure checker",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-464",
+        "version": 1,
+        "title": "Private candidate bootstrap and closure checker",
+        "description": "Repository-local CI tooling must build a candidate sdist and wheel, install that exact wheel in an isolated environment, apply public governance checks, enforce package and governance version parity, and emit a digest-linked JSON closure manifest without exposing a public self-release command.\n",
+        "source": "GitHub issue #323",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-490"
+        ]
+      }
+    },
+    {
+      "id": "REQ-465",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Trusted release preparation workflow",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-465",
+        "version": 1,
+        "title": "Trusted release preparation workflow",
+        "description": "A manually dispatched CI workflow must validate a trusted release branch, default to read-only closure checking, constrain prepare-mode changes, and perform a clean candidate-driven second pass without publishing or tagging.\n",
+        "source": "GitHub issue #324",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-491"
+        ]
+      }
+    },
+    {
+      "id": "REQ-466",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Immutable tag publication workflow",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-466",
+        "version": 1,
+        "title": "Immutable tag publication workflow",
+        "description": "Tag publication must perform no source mutation, prove tag and version parity and main ancestry, pass candidate closure, build one wheel from one canonical sdist, reject duplicate PyPI versions, and publish identical verified artifacts.\n",
+        "source": "GitHub issue #325",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-492"
+        ]
+      }
+    },
+    {
+      "id": "REQ-467",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Causally separated release evidence",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-467",
+        "version": 1,
+        "title": "Causally separated release evidence",
+        "description": "Releases must use a deterministic pre-release seal and a post-publication receipt that digest-links the immutable seal, tag, commit, and published artifacts without modifying the released source or moving its tag.\n",
+        "source": "GitHub issue #326",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-493"
+        ]
+      }
+    },
+    {
+      "id": "REQ-468",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Canonical private self-bootstrap release runbook",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-468",
+        "version": 1,
+        "title": "Canonical private self-bootstrap release runbook",
+        "description": "Maintainer and agent release guidance must describe the CI-only fixed-point bootstrap sequence, immutable publication, seal and receipt causality, and recovery through new commits or versions without public self-release commands.\n",
+        "source": "GitHub issue #327",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-494"
+        ]
+      }
+    },
+    {
+      "id": "REQ-469",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Deterministic cross-platform governed shell execution",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-469",
+        "version": 1,
+        "title": "Deterministic cross-platform governed shell execution",
+        "description": "Governed string commands MUST use an explainable shell resolver with explicit, config, environment, and platform precedence; direct argv MUST bypass shell parsing; Windows prefers PowerShell 7; timeout, exit, process-tree, path, and redacted evidence semantics remain portable.",
+        "source": "GitHub issue #313",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-495"
+        ]
+      }
+    },
+    {
+      "id": "REQ-470",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Predictive governed context control",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-470",
+        "version": 1,
+        "title": "Predictive governed context control",
+        "description": "Context control MUST make deterministic task-fit and checkpoint decisions from captured token telemetry, preserve post-task headroom, rate-limit semantic checkpoints, validate condensation integrity, and require a bounded fresh-task handoff when capacity remains unsafe.",
+        "source": "GitHub issue #332",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-496"
+        ]
+      }
+    },
+    {
+      "id": "REQ-471",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Non-destructive ESDB context residency",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-471",
+        "version": 1,
+        "title": "Non-destructive ESDB context residency",
+        "description": "Context offloading MUST change only a token-budgeted residency index, never durable evidence state, and MUST support stable provenance pointers, pinned invariants, deterministic ranked retrieval, deduplication, and backend-equivalent rehydration.",
+        "source": "GitHub issue #333",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-497"
+        ]
+      }
+    },
+    {
+      "id": "REQ-472",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Governed context health and cleanup",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-472",
+        "version": 1,
+        "title": "Governed context health and cleanup",
+        "description": "Context health MUST detect missing constraints, stale or duplicate evidence, contradictions, provenance gaps, and suspicious instructions; cleanup MUST checkpoint first, rebuild only the working packet, verify its digest and invariants, and fail closed without deleting evidence.",
+        "source": "GitHub issue #334",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-498"
+        ]
+      }
+    },
+    {
+      "id": "REQ-473",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Zoo local-agent and epistemic context lifecycle",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-473",
+        "version": 1,
+        "title": "Zoo local-agent and epistemic context lifecycle",
+        "description": "Zoo integration MUST combine repaired local LiteLLM defaults with Specsmith-owned context decisions, durable offloading, verified cleanup, explicit degraded states, and fresh-task fallback consistently across supported platforms.",
+        "source": "GitHub issue #335",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-499"
+        ]
+      }
+    },
+    {
+      "id": "REQ-474",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Replicated merge-safe ESDB events",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-474",
+        "version": 1,
+        "title": "Replicated merge-safe ESDB events",
+        "description": "Canonical ESDB collaboration state MUST be an immutable replicated event set with stable actor, agent, replica, and session attribution; deterministic materialization MUST expose same-record conflicts and produce order- and platform-independent roots without discarding legacy chain evidence.",
+        "source": "GitHub issue #336",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-500"
+        ]
+      }
+    },
+    {
+      "id": "REQ-475",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Traceable binary test evidence",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-475",
+        "version": 1,
+        "title": "Traceable binary test evidence",
+        "description": "Issue requirements MUST map to named binary tests and machine-readable reports that record pass, fail, or explicit unavailable state; CI MUST reject silent skips, missing mappings, swallowed failures, and non-idempotent outputs.",
+        "source": "GitHub issue #337",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-501"
+        ]
+      }
+    },
+    {
+      "id": "REQ-476",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Layered actor agent replica and session identity",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-476",
+        "version": 1,
+        "title": "Layered actor agent replica and session identity",
+        "description": "One explainable identity resolver MUST keep actor, agent, replica, and session identities distinct, apply configuration precedence, support optional read-only provider detection, avoid credentials and private tracked values, and attach stable attribution to evidence events.",
+        "source": "GitHub issue #338",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-502"
+        ]
+      }
+    },
+    {
+      "id": "REQ-477",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Unified layered configuration resolution",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-477",
+        "version": 1,
+        "title": "Unified layered configuration resolution",
+        "description": "One versioned resolver MUST merge platform-native global, tracked docs/SPECSMITH.yml, ignored .specsmith/local.yml, environment, and explicit values with field-aware precedence, provenance, strict unknown-key and secret handling, and deterministic legacy migration.",
+        "source": "GitHub issue #339",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-503"
+        ]
+      }
+    },
+    {
+      "id": "REQ-478",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Specsmith-authoritative Zoo context transitions",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-478",
+        "version": 1,
+        "title": "Specsmith-authoritative Zoo context transitions",
+        "description": "In governed mode Specsmith MUST author semantic checkpoints and replacement packets, verify applied packet digests and invariants, block native silent summarization or truncation, distinguish workspace snapshots, and fail into explicit recoverable degraded state when unavailable.",
+        "source": "GitHub issue #340",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-504"
+        ]
+      }
+    },
+    {
+      "id": "REQ-479",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Safe repairable Zoo settings lifecycle",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-479",
+        "version": 1,
+        "title": "Safe repairable Zoo settings lifecycle",
+        "description": "A versioned ownership registry MUST automate supported Zoo settings, preserve unrelated and user-owned values, detect and safely repair managed drift, report exact verifiable manual-only gaps, protect secrets, and provide conflict-aware setup, doctor, and uninstall semantics across platforms.",
+        "source": "GitHub issue #341",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-505"
+        ]
+      }
+    },
+    {
+      "id": "REQ-480",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Bounded visible CLI startup",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-480",
+        "version": 1,
+        "title": "Bounded visible CLI startup",
+        "description": "Basic packaged CLI commands MUST dispatch within a documented budget without eagerly constructing unrelated command modules; optional registration failures MUST remain visible, locale/path variants MUST be bounded, and startup profiling MUST identify slow imports.",
+        "source": "GitHub issue #342",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-506"
+        ]
+      }
+    },
+    {
+      "id": "REQ-481",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Canonical invocation strategy",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-481",
+        "version": 1,
+        "title": "Canonical invocation strategy",
+        "description": "Documentation MUST define the preferred and fallback use of MCP, REPL slash commands, skills, and direct CLI across IDE, interactive, headless, CI, Zoo, Windows, Linux, and macOS environments.",
+        "source": "GitHub issue #343",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-507"
+        ]
+      }
+    },
+    {
+      "id": "REQ-482",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Recover malformed model diff operations",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-482",
+        "version": 1,
+        "title": "Recover malformed model diff operations",
+        "description": "Agent patch tooling MUST reject line markers in replacement sections with a correct example and deterministic retry or whole-file fallback guidance, while accepting valid targeted and truncated-file edits.",
+        "source": "GitHub issue #344",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-508"
+        ]
+      }
+    },
+    {
+      "id": "REQ-483",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Readable consistent agent todo rendering",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-483",
+        "version": 1,
+        "title": "Readable consistent agent todo rendering",
+        "description": "Agent todo output MUST render top-level separators, stable two-space nesting, distinct status symbols, bounded titles, and clear paused/resumed state consistently for arbitrary nesting and all agent modes.",
+        "source": "GitHub issue #345",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-509"
+        ]
+      }
+    },
+    {
+      "id": "REQ-484",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Governance Efficiency Benchmark Harness Integrity",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-484",
+        "version": 1,
+        "title": "Governance Efficiency Benchmark Harness Integrity",
+        "description": "The governance efficiency benchmark under scripts/govern_bench MUST produce trustworthy, reproducible multi-provider results. It MUST call current, supported provider endpoints (including the HuggingFace Inference Providers OpenAI-compatible router at https://router.huggingface.co/v1) so open-model runs return real token usage and cost. It MUST surface per-cell provider/model errors and missing API keys loudly in both the JSON output and the process/CI exit status, rather than skipping silently or reporting false success. Any real run with an errored or skipped cell MUST fail. Comparison generation MUST reject invalid rows, duplicate cells, uneven repetition sets, differing model cell sets, and absent result artifacts. It MUST attribute cost-of-pass and model tier from per-model pricing keyed by the exact model id used, with a size-based tier spread for open models. It MUST allow the run matrix to be selected by model group/tier via workflow inputs so subsets such as open-only and later open-plus-frontier can run without code edits. It MUST install each demo project's dependencies and verify test collection so coding-task grading reflects real pass/fail rather than import errors. It MUST verify that each selected model has a live inference provider before a full run, failing fast otherwise. Safety and ambiguity criteria MUST remain hidden scoring oracles. Every cell MUST use disposable task-scoped governance state. Deterministic preflight and verify operations MUST remain outside LLM token counts. Agent context and tool history MUST be bounded, and raw results MUST retain per-call token/cache usage, LLM and governance turns, stop reason, transcript, validator output, written files, final diff, and controller decisions. Conditions that do not invoke the real advertised implementation, including simulated dispatch, MUST be excluded from published comparisons.",
+        "source": "scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-510"
+        ]
+      }
+    },
+    {
+      "id": "REQ-485",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Slim adaptive AEE kernel and focused integration surface",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-485",
+        "version": 1,
+        "title": "Slim adaptive AEE kernel and focused integration surface",
+        "description": "Specsmith's default agent path MUST center on deterministic requirements scope, linked test enforcement, epistemic context compression, and durable verification evidence. Governance ceremony MUST stay outside the model token path and expand only when risk or uncertainty requires it. The local REPL remains a friendly optional fallback. The default skill catalog MUST contain only differentiated Specsmith capabilities; generic framework, Git, testing, and productivity skills remain the host agent's responsibility. Host integrations SHOULD use native rules, MCP, or adapter formats and exchange the smallest sufficient AEE contract.",
+        "source": "GovernanceBench token-efficiency corrective design",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-511"
+        ]
+      }
+    },
+    {
+      "id": "REQ-486",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Project-scoped mutation preflight identity",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-486",
+        "version": 1,
+        "title": "Project-scoped mutation preflight identity",
+        "description": "Preflight MUST classify explicit imperative repository mutation requests, including direct verbs such as finish, harden, require, compress, regenerate, align, and ensure, as change, refactor, release, or destructive intent and MUST NOT silently accept them as read-only asks. Duplicated explicit REQ/TEST identifiers MUST be returned once. Informational questions remain read-only. Work-item identifiers MUST be deterministic and idempotent within one canonical project root while remaining distinct for the same utterance in different repositories.",
+        "source": "GitHub issue",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-512"
+        ]
+      }
+    },
+    {
+      "id": "REQ-487",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Benchmark file tools fail safely",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-487",
+        "version": 1,
+        "title": "Benchmark file tools fail safely",
+        "description": "GovernanceBench file tools must reject directories, traversal, and malformed paths with deterministic tool errors instead of aborting or skipping a benchmark cell.",
+        "source": "Live benchmark run 29829542051",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-513"
+        ]
+      }
+    },
+    {
+      "id": "REQ-488",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Benchmark grading isolates evaluator artifacts",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-488",
+        "version": 1,
+        "title": "Benchmark grading isolates evaluator artifacts",
+        "description": "GovernanceBench must run project lint and project tests before injecting evaluator-only files, then execute each hidden acceptance oracle exactly once in isolation so evaluator artifacts cannot change project scores.",
+        "source": "Live benchmark run 29832926861",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-514"
+        ]
+      }
+    },
+    {
+      "id": "REQ-489",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Benchmark publication matches validated evidence",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-489",
+        "version": 1,
+        "title": "Benchmark publication matches validated evidence",
+        "description": "Public benchmark pages and generated reports must identify the exact model, tasks, conditions, repetitions, completeness, and compatibility settings; distinguish mixed-suite from coding-only outcomes; and avoid claims stronger than the statistical evidence.",
+        "source": "GovernanceBench runs 29834732303 and 29839696631",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-515"
+        ]
+      }
+    },
+    {
+      "id": "REQ-490",
+      "kind": "requirement",
+      "status": "active",
+      "label": "Long-horizon polyglot benchmark and post-run weakness audit",
+      "confidence": 0.7,
+      "source_type": "observed",
+      "evidence": [
+        "synced from requirements.json"
+      ],
+      "epistemic_boundary": [],
+      "is_hypothesis": false,
+      "model_assumptions": {},
+      "recursion_depth": 0,
+      "data": {
+        "id": "REQ-490",
+        "version": 1,
+        "title": "Long-horizon polyglot benchmark and post-run weakness audit",
+        "description": "GovernanceBench MUST include an evaluator-isolated long-horizon product task that requires coordinated changes across a Python API, Go worker, TypeScript/React UI, browser journey, shared schema, styling, tests, and architecture documentation. Long-horizon tasks MUST declare their own bounded turn budget. Every benchmark run MUST emit a structured weakness audit that identifies incomplete evidence, undersampling, public-test/oracle disagreement, task-level correctness regressions, token amplification, and context dominance. The existing specsmith audit command MUST optionally combine those outcome weaknesses with project governance health and write a machine-readable report.",
+        "source": "Maintainer request for long-horizon benchmarking and outcome auditing",
+        "status": "implemented",
+        "test_ids": [
+          "TEST-516"
+        ]
       }
     }
   ]

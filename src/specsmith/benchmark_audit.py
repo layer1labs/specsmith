@@ -1,0 +1,388 @@
+"""Post-run weakness analysis for GovernanceBench result artifacts.
+
+This module is intentionally provider-neutral.  It consumes the raw JSON rows
+already emitted by GovernanceBench and turns failures, excess context, and
+verification disagreements into structured evidence instead of another model
+judgement.
+"""
+
+from __future__ import annotations
+
+import json
+from collections import Counter, defaultdict
+from dataclasses import asdict, dataclass, field
+from itertools import product
+from pathlib import Path
+from typing import Any
+
+_REQUIRED_ROW_FIELDS = {
+    "task",
+    "condition",
+    "rep",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "passed",
+    "skipped",
+    "error",
+}
+
+
+@dataclass(slots=True)
+class BenchmarkWeakness:
+    """One reproducible weakness found in benchmark evidence."""
+
+    code: str
+    severity: str
+    title: str
+    evidence: str
+    recommendation: str
+    tasks: list[str] = field(default_factory=list)
+    conditions: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class BenchmarkWeaknessReport:
+    """Structured post-run benchmark audit."""
+
+    source: str
+    dry_run: bool
+    total_rows: int
+    valid_rows: int
+    complete: bool
+    models: list[str]
+    tasks: list[str]
+    conditions: list[str]
+    minimum_repetitions: int
+    condition_metrics: dict[str, dict[str, float | int | None]]
+    weaknesses: list[BenchmarkWeakness]
+
+    @property
+    def high_or_critical(self) -> int:
+        return sum(1 for item in self.weaknesses if item.severity in {"high", "critical"})
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["high_or_critical"] = self.high_or_critical
+        return payload
+
+
+def _as_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _as_float(value: Any) -> float:
+    try:
+        return float(value or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _condition_rollups(
+    rows: list[dict[str, Any]],
+) -> dict[str, dict[str, float | int | None]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[str(row.get("condition") or "unknown")].append(row)
+
+    result: dict[str, dict[str, float | int | None]] = {}
+    for condition, items in sorted(grouped.items()):
+        count = len(items)
+        passed = sum(bool(item.get("passed")) for item in items)
+        mean_input = sum(_as_int(item.get("input_tokens")) for item in items) / count
+        mean_output = sum(_as_int(item.get("output_tokens")) for item in items) / count
+        mean_turns = sum(_as_int(item.get("llm_turns")) for item in items) / count
+        mean_tokens = mean_input + mean_output
+        pass_rate = passed / count
+        result[condition] = {
+            "rows": count,
+            "passed": passed,
+            "pass_rate": round(pass_rate, 6),
+            "mean_input_tokens": round(mean_input, 3),
+            "mean_output_tokens": round(mean_output, 3),
+            "mean_total_tokens": round(mean_tokens, 3),
+            "mean_llm_turns": round(mean_turns, 3),
+            "tokens_per_correct_answer": (round(mean_tokens / pass_rate, 3) if pass_rate else None),
+        }
+    return result
+
+
+def _row_problem(row: dict[str, Any]) -> str | None:
+    missing = sorted(_REQUIRED_ROW_FIELDS - row.keys())
+    if missing:
+        return f"missing fields: {', '.join(missing)}"
+    if not str(row.get("task") or "").strip():
+        return "task must be non-empty"
+    if not str(row.get("condition") or "").strip():
+        return "condition must be non-empty"
+    if not str(row.get("model") or "").strip():
+        return "model must be non-empty"
+    if _as_int(row.get("rep")) < 1:
+        return "rep must be a positive integer"
+    if _as_int(row.get("input_tokens")) < 0 or _as_int(row.get("output_tokens")) < 0:
+        return "token counts must be non-negative"
+    return None
+
+
+def _task_pass_rates(rows: list[dict[str, Any]]) -> dict[tuple[str, str], float]:
+    grouped: dict[tuple[str, str], list[bool]] = defaultdict(list)
+    for row in rows:
+        grouped[(str(row.get("task")), str(row.get("condition")))].append(bool(row.get("passed")))
+    return {key: sum(values) / len(values) for key, values in grouped.items()}
+
+
+def audit_benchmark_rows(
+    rows: list[dict[str, Any]],
+    *,
+    source: str = "memory",
+    dry_run: bool = False,
+) -> BenchmarkWeaknessReport:
+    """Analyze raw benchmark rows and return deterministic weakness evidence."""
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError("Benchmark results must be a JSON list of objects")
+
+    weaknesses: list[BenchmarkWeakness] = []
+    invalid_rows: list[tuple[int, dict[str, Any], str]] = []
+    valid: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        problem = _row_problem(row)
+        if row.get("skipped") or row.get("error"):
+            problem = str(row.get("error") or "row was skipped")
+        if problem:
+            invalid_rows.append((index, row, problem))
+        else:
+            valid.append(row)
+    complete = bool(rows) and not invalid_rows
+
+    if dry_run:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="synthetic_evidence",
+                severity="info",
+                title="Dry-run evidence cannot support product claims",
+                evidence="The artifact was generated without provider calls.",
+                recommendation=(
+                    "Use dry runs only for harness integrity, then run matched live cells."
+                ),
+            )
+        )
+    if invalid_rows or not rows:
+        examples = "; ".join(f"row {index}: {reason}" for index, _row, reason in invalid_rows[:3])
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="incomplete_evidence",
+                severity="critical",
+                title="Benchmark evidence is incomplete",
+                evidence=(
+                    f"{len(invalid_rows)} of {len(rows)} rows were unusable."
+                    + (f" {examples}." if examples else "")
+                ),
+                recommendation=(
+                    "Repair provider or harness failures and rerun the identical cell grid."
+                ),
+            )
+        )
+
+    cell_keys = [
+        (
+            str(row.get("model") or "unknown"),
+            str(row.get("task") or "unknown"),
+            str(row.get("condition") or "unknown"),
+            _as_int(row.get("rep")),
+        )
+        for row in valid
+    ]
+    duplicates = [key for key, count in Counter(cell_keys).items() if count > 1]
+    if duplicates:
+        complete = False
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="duplicate_cells",
+                severity="critical",
+                title="Benchmark contains duplicate model/task/condition repetitions",
+                evidence=f"{len(duplicates)} duplicate cell key(s) were found.",
+                recommendation="Reject the artifact and regenerate one row per requested cell.",
+            )
+        )
+
+    repetition_counts = Counter((model, task, condition) for model, task, condition, _ in cell_keys)
+    models = sorted({str(row["model"]) for row in valid})
+    tasks = sorted({str(row["task"]) for row in valid})
+    conditions = sorted({str(row["condition"]) for row in valid})
+    expected_cells = list(product(models, tasks, conditions))
+    missing_cells = [cell for cell in expected_cells if repetition_counts[cell] == 0]
+    if missing_cells:
+        complete = False
+        preview = ", ".join("/".join(cell) for cell in missing_cells[:3])
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="missing_cells",
+                severity="critical",
+                title="Benchmark comparison grid is incomplete",
+                evidence=(
+                    f"{len(missing_cells)} model/task/condition cell(s) are absent: {preview}."
+                ),
+                recommendation="Rerun every missing cell with the same repetition set.",
+            )
+        )
+    if repetition_counts and len(set(repetition_counts.values())) > 1:
+        complete = False
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="uneven_repetitions",
+                severity="critical",
+                title="Compared cells have uneven repetition counts",
+                evidence=(
+                    f"Observed repetition counts: {sorted(set(repetition_counts.values()))}."
+                ),
+                recommendation="Rerun or filter to one identical repetition set for every cell.",
+            )
+        )
+
+    minimum_reps = min(
+        (repetition_counts[cell] for cell in expected_cells),
+        default=0,
+    )
+    if valid and minimum_reps < 5:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="undersampled",
+                severity="medium",
+                title="Result is diagnostic rather than screening evidence",
+                evidence=(
+                    "The smallest complete model/task/condition cell has "
+                    f"{minimum_reps} repetition(s)."
+                ),
+                recommendation=(
+                    "Use at least five repetitions for screening and ten for release claims."
+                ),
+            )
+        )
+
+    acceptance_gaps = [
+        row
+        for row in valid
+        if row.get("project_tests_passed") is True and row.get("acceptance_oracle_passed") is False
+    ]
+    if acceptance_gaps:
+        tasks = sorted({str(row.get("task")) for row in acceptance_gaps})
+        conditions = sorted({str(row.get("condition")) for row in acceptance_gaps})
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="acceptance_gap",
+                severity="high",
+                title="Public tests passed while the independent oracle failed",
+                evidence=f"{len(acceptance_gaps)} row(s) disagreed on tasks {', '.join(tasks)}.",
+                recommendation=(
+                    "Trace the hidden boundary back to a requirement and add an immutable "
+                    "independent test."
+                ),
+                tasks=tasks,
+                conditions=conditions,
+            )
+        )
+
+    metrics = _condition_rollups(valid)
+    raw = metrics.get("UNGOVERNED")
+    if raw:
+        raw_tpca = _as_float(raw.get("tokens_per_correct_answer"))
+        for condition, item in metrics.items():
+            if not condition.startswith("SPECSMITH"):
+                continue
+            tpca = _as_float(item.get("tokens_per_correct_answer"))
+            if raw_tpca > 0 and tpca > raw_tpca * 1.10:
+                weaknesses.append(
+                    BenchmarkWeakness(
+                        code="token_amplification",
+                        severity="medium",
+                        title=f"{condition} amplifies tokens per correct answer",
+                        evidence=f"TPCA {tpca:.0f} vs ungoverned {raw_tpca:.0f} (>10% overhead).",
+                        recommendation=(
+                            "Remove repeated context or calls before adding prompt instructions."
+                        ),
+                        conditions=[condition, "UNGOVERNED"],
+                    )
+                )
+
+        pass_rates = _task_pass_rates(valid)
+        tasks = sorted({str(row.get("task")) for row in valid})
+        for condition in sorted(c for c in metrics if c.startswith("SPECSMITH")):
+            regressed = [
+                task
+                for task in tasks
+                if (task, condition) in pass_rates
+                and (task, "UNGOVERNED") in pass_rates
+                and pass_rates[(task, condition)] < pass_rates[(task, "UNGOVERNED")]
+            ]
+            if regressed:
+                weaknesses.append(
+                    BenchmarkWeakness(
+                        code="correctness_regression",
+                        severity="high",
+                        title=f"{condition} regresses task-level correctness",
+                        evidence=f"Lower pass rate than ungoverned on {', '.join(regressed)}.",
+                        recommendation=(
+                            "Keep the lighter condition as default and repair each failing "
+                            "boundary before rerun."
+                        ),
+                        tasks=regressed,
+                        conditions=[condition, "UNGOVERNED"],
+                    )
+                )
+
+    for condition, item in metrics.items():
+        mean_input = _as_float(item.get("mean_input_tokens"))
+        mean_output = _as_float(item.get("mean_output_tokens"))
+        if mean_output > 0 and mean_input / mean_output >= 10:
+            weaknesses.append(
+                BenchmarkWeakness(
+                    code="context_dominance",
+                    severity="medium",
+                    title=f"Input history dominates {condition} spend",
+                    evidence=f"Mean input/output ratio is {mean_input / mean_output:.1f}:1.",
+                    recommendation=(
+                        "Use just-in-time retrieval, stable cached prefixes, and compact "
+                        "redundant tool output."
+                    ),
+                    conditions=[condition],
+                )
+            )
+
+    return BenchmarkWeaknessReport(
+        source=source,
+        dry_run=dry_run,
+        total_rows=len(rows),
+        valid_rows=len(valid),
+        complete=complete,
+        models=sorted({str(row.get("model") or "unknown") for row in rows}),
+        tasks=sorted({str(row.get("task") or "unknown") for row in rows}),
+        conditions=sorted({str(row.get("condition") or "unknown") for row in rows}),
+        minimum_repetitions=minimum_reps,
+        condition_metrics=metrics,
+        weaknesses=weaknesses,
+    )
+
+
+def audit_benchmark_file(
+    path: Path,
+    *,
+    dry_run: bool | None = None,
+) -> BenchmarkWeaknessReport:
+    """Load and audit one GovernanceBench JSON artifact."""
+    resolved = path.resolve()
+    rows = json.loads(resolved.read_text(encoding="utf-8"))
+    inferred_dry_run = bool(rows) and all(row.get("dry_run") is True for row in rows)
+    return audit_benchmark_rows(
+        rows,
+        source=str(resolved),
+        dry_run=inferred_dry_run if dry_run is None else dry_run,
+    )
+
+
+def write_benchmark_audit(report: BenchmarkWeaknessReport, path: Path) -> None:
+    """Write a machine-readable weakness report."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report.to_dict(), indent=2, allow_nan=False), encoding="utf-8")

@@ -669,8 +669,28 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     default=".",
     help="Project root directory.",
 )
-def audit(fix: bool, project_dir: str) -> None:
-    """Run drift and health checks (Section 23 + 26)."""
+@click.option(
+    "--benchmark-results",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Also audit a GovernanceBench JSON artifact for outcome weaknesses.",
+)
+@click.option(
+    "--report",
+    "report_path",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="Write the combined project and benchmark audit as JSON.",
+)
+def audit(
+    fix: bool,
+    project_dir: str,
+    benchmark_results: Path | None,
+    report_path: Path | None,
+) -> None:
+    """Run project health checks and optionally audit benchmark outcomes."""
+    import json as _json
+
     from specsmith.auditor import run_audit
     from specsmith.sync import auto_migrate_if_needed
 
@@ -708,15 +728,75 @@ def audit(fix: bool, project_dir: str) -> None:
     if chain_broken:
         console.print("  [yellow]⚠[/yellow] SQLite audit hash chain appears broken.")
 
+    benchmark_report = None
+    if benchmark_results is not None:
+        from specsmith.benchmark_audit import audit_benchmark_file
+
+        benchmark_report = audit_benchmark_file(benchmark_results)
+        console.print("\n[bold]Benchmark outcome weaknesses[/bold]")
+        console.print(
+            f"  {benchmark_report.valid_rows}/{benchmark_report.total_rows} valid rows; "
+            f"minimum repetitions={benchmark_report.minimum_repetitions}; "
+            f"complete={'yes' if benchmark_report.complete else 'no'}"
+        )
+        if benchmark_report.weaknesses:
+            for weakness in benchmark_report.weaknesses:
+                color = {
+                    "critical": "red",
+                    "high": "red",
+                    "medium": "yellow",
+                    "low": "cyan",
+                    "info": "dim",
+                }.get(weakness.severity, "yellow")
+                console.print(
+                    f"  [{color}]! {weakness.severity.upper()} {weakness.code}[/{color}]: "
+                    f"{weakness.title}\n    {weakness.evidence}\n    → {weakness.recommendation}"
+                )
+        else:
+            console.print("  [green]✓[/green] No benchmark weaknesses detected.")
+
+    if report_path is not None:
+        payload = {
+            "project": {
+                "root": str(root),
+                "healthy": report.healthy and not chain_broken,
+                "passed": report.passed,
+                "failed": report.failed,
+                "fixable": report.fixable,
+                "chain_broken": chain_broken,
+                "results": [
+                    {
+                        "name": item.name,
+                        "passed": item.passed,
+                        "message": item.message,
+                        "fixable": item.fixable,
+                        "suppressed": item.suppressed,
+                    }
+                    for item in report.results
+                ],
+            },
+            "benchmark": benchmark_report.to_dict() if benchmark_report is not None else None,
+        }
+        resolved_report = report_path.resolve()
+        resolved_report.parent.mkdir(parents=True, exist_ok=True)
+        resolved_report.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+        console.print(f"\n[green]✓[/green] Audit report written to {resolved_report}")
+
     console.print()
-    if report.healthy:
+    benchmark_failed = bool(benchmark_report and benchmark_report.high_or_critical)
+    if report.healthy and not chain_broken and not benchmark_failed:
         console.print(f"[bold green]Healthy.[/bold green] {report.passed} checks passed.")
     else:
+        benchmark_suffix = (
+            f"; {benchmark_report.high_or_critical} high/critical benchmark weakness(es)"
+            if benchmark_report and benchmark_report.high_or_critical
+            else ""
+        )
         console.print(
             f"[bold red]{report.failed} issue(s)[/bold red] found "
-            f"({report.fixable} fixable). {report.passed} checks passed.",
+            f"({report.fixable} fixable). {report.passed} checks passed{benchmark_suffix}.",
         )
-        if fix:
+        if fix and not report.healthy:
             from specsmith.auditor import run_auto_fix
 
             fixed = run_auto_fix(root, report)

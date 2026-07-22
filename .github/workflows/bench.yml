@@ -106,12 +106,12 @@ jobs:
             fi
           done
 
-      - name: Dry-run benchmark — OpenAI (T6, T7, T10, T11, T13)
+      - name: Dry-run benchmark — OpenAI (core + long horizon)
         env:
           BENCH_DRY_RUN: "1"
         run: |
           python scripts/govern_bench/run_bench.py \
-            --task T6 --task T7 --task T10 --task T11 --task T13 \
+            --task T6 --task T7 --task T10 --task T11 --task T13 --task T28 \
             --provider openai --model gpt-4o-mini \
             --reps 2 \
             --output /tmp/bench-smoke-openai.md \
@@ -135,8 +135,10 @@ jobs:
           path: |
             /tmp/bench-smoke-openai.md
             /tmp/bench-smoke-openai.json
+            /tmp/bench-smoke-openai.audit.json
             /tmp/bench-smoke-hf.md
             /tmp/bench-smoke-hf.json
+            /tmp/bench-smoke-hf.audit.json
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -313,6 +315,7 @@ jobs:
           path: |
             bench-report-${{ matrix.label }}.md
             bench-results-${{ matrix.label }}.json
+            bench-results-${{ matrix.label }}.audit.json
           retention-days: 30
           if-no-files-found: ignore
 

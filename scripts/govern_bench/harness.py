@@ -151,6 +151,11 @@ def _json_loads_maybe(raw: Any) -> Any:
 PROJECT_DIR_MAP: dict[str, str] = {
     "agentic-todo-api": "todo_api",
     "agentic-cli-tool": "cli_tool",
+    "agentic-data-pipeline": "data_pipeline",
+    "agentic-verilog-module": "verilog_module",
+    "agentic-shell-scripts": "shell_scripts",
+    "agentic-patent-draft": "patent_draft",
+    "agentic-incident-console": "incident_console",
 }
 
 
@@ -1356,13 +1361,28 @@ def _updated_verification_evidence(
     return lint_verified, tests_verified
 
 
+def _updated_validator_evidence(
+    command: str,
+    succeeded: bool,
+    validator_verified: set[str],
+) -> set[str]:
+    """Return fresh task-validator evidence after one allowed command."""
+    updated = set(validator_verified)
+    if succeeded:
+        updated.add(command)
+    else:
+        updated.discard(command)
+    return updated
+
+
 def _completion_gate(
     condition_id: str,
     task: BenchTask,
     lint_verified: bool,
     tests_verified: bool,
+    validator_verified: set[str] | None = None,
 ) -> tuple[bool, str]:
-    """Require fresh lint and test evidence before FULL may finish coding."""
+    """Require fresh task-relevant verification before FULL may finish coding."""
     if condition_id != "SPECSMITH_FULL" or task.is_safety_task or task.is_clarification_task:
         return True, "Task marked complete."
     missing = []
@@ -1370,6 +1390,11 @@ def _completion_gate(
         missing.append("ruff check .")
     if not tests_verified:
         missing.append("pytest")
+    if task.enforce_completion_validators:
+        verified = validator_verified or set()
+        missing.extend(
+            command for command in _validator_commands_for_task(task) if command not in verified
+        )
     if not missing:
         return True, "Verification evidence accepted; task marked complete."
     return (
@@ -1423,7 +1448,9 @@ def run_task(
     provider_key, provider_client = _build_provider_client(provider, base_url=base_url)
 
     _specsmith_dir = specsmith_dir or _SPECSMITH_DIR
-    _max_turns = max_turns or int(os.environ.get("BENCH_MAX_TURNS", MAX_TURNS_DEFAULT))
+    _max_turns = (
+        max_turns or task.max_turns or int(os.environ.get("BENCH_MAX_TURNS", MAX_TURNS_DEFAULT))
+    )
 
     # ── Setup: copy demo project to a temp directory ──────────────────────
     source_dir = _get_project_dir(task.project)
@@ -1530,6 +1557,7 @@ def _run_agent_loop(
     call_usage: list[dict] = []
     lint_verified = False
     tests_verified = False
+    validator_verified: set[str] = set()
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -1614,6 +1642,7 @@ def _run_agent_loop(
                 )
                 lint_verified = False
                 tests_verified = False
+                validator_verified.clear()
 
             elif fn_name == "list_files":
                 out = _exec_list_files(project_root, args.get("directory", "."))
@@ -1634,6 +1663,11 @@ def _run_agent_loop(
                 cmd = args.get("command", "")
                 ok, out = _exec_run_validator(project_root, task, cmd)
                 rework_turns += 1
+                validator_verified = _updated_validator_evidence(
+                    cmd,
+                    ok,
+                    validator_verified,
+                )
                 if not ok:
                     out = f"FAILED:\n{out}"
 
@@ -1652,6 +1686,7 @@ def _run_agent_loop(
                     task,
                     lint_verified,
                     tests_verified,
+                    validator_verified,
                 )
                 if not finished and condition.id == "SPECSMITH_FULL":
                     governance_turns += 1
@@ -1689,6 +1724,8 @@ def _run_agent_loop(
 
     lint_out = ""
     test_out = ""
+    project_tests_passed: bool | None = None
+    acceptance_oracle_passed: bool | None = None
     if task.scoring_override and task.scoring_override.get("method") == "clarification_count":
         # T6 special scoring
         quality_score, judge_rationale = _score_clarification_task(messages, files_written)
@@ -1715,6 +1752,8 @@ def _run_agent_loop(
         test_out = f"$ project tests\n{project_test_out}\n\n$ acceptance oracle\n{oracle_out}"
         lint_passed = lint_ok
         tests_passed = project_test_ok and oracle_ok
+        project_tests_passed = project_test_ok
+        acceptance_oracle_passed = oracle_ok
 
         # Quick quality heuristic (no LLM judge by default to save cost)
         # Real judge: set BENCH_JUDGE_MODEL to enable
@@ -1780,6 +1819,8 @@ def _run_agent_loop(
         api_cost_usd=api_cost,
         lint_passed=lint_passed,
         tests_passed=tests_passed,
+        project_tests_passed=project_tests_passed,
+        acceptance_oracle_passed=acceptance_oracle_passed,
         quality_score=quality_score,
         judge_rationale=judge_rationale,
         rework_turns=rework_turns,

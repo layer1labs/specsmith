@@ -83,6 +83,7 @@ nav:
   - Benchmarks:
     - Governance Efficiency: efficiency-benchmark.md
     - Model Comparison: model-comparison.md
+    - Long-Horizon & Weakness Audit: benchmark-audit.md
 
 markdown_extensions:
   - tables

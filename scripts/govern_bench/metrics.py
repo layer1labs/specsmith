@@ -280,6 +280,8 @@ class RunResult:
     # Quality
     lint_passed: bool = False
     tests_passed: bool = False
+    project_tests_passed: bool | None = None
+    acceptance_oracle_passed: bool | None = None
     quality_score: float = 0.0  # 0.0-1.0 from LLM judge
     judge_rationale: str = ""
 

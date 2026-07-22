@@ -38,6 +38,8 @@ Task suites:
 
 - Core suite: `T1`–`T13` (currently available)
 - Multi-domain suites: `T14`–`T27` (available; empirical coverage depends on the run)
+- Long-horizon polyglot UI slice: `T28` (available with evaluator-only oracle;
+  report separately until repeated evidence exists)
 
 ## Metrics
 
@@ -77,6 +79,8 @@ HF export structure:
 
 - `leaderboard.json`: aggregate leaderboard rows (schema-validated)
 - `bench-results-*.json`: per-run detailed results
+- `bench-results-*.audit.json`: deterministic completeness, correctness,
+  verification-gap, and efficiency weaknesses
 - `report.md`: human-readable benchmark report
 
 Each leaderboard row corresponds to one `(model, scaffold, task_suite)` slice.

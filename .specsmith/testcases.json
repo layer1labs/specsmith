@@ -4706,8 +4706,8 @@
   {
     "id": "TEST-438",
     "version": 1,
-    "title": "GovernanceBench tasks.py defines all 27 tasks across expanded project domains",
-    "description": "tasks.py must define tasks T1-T27 including new domains: data_pipeline, verilog_module, patent_draft, shell_scripts",
+    "title": "GovernanceBench tasks.py defines at least 28 tasks across expanded project domains",
+    "description": "tasks.py must define tasks T1-T28 including data_pipeline, verilog_module, patent_draft, shell_scripts, and the long-horizon polyglot UI project",
     "requirement_id": "REQ-427",
     "type": "script",
     "verification_method": "python -c 'from govern_bench.tasks import TASK_CATALOGUE; assert len(TASK_CATALOGUE) >= 27'",
@@ -5637,6 +5637,18 @@
     "verification_method": "Unit tests render selected non-contiguous task IDs and assert the report lists the exact IDs instead of an inferred contiguous range.",
     "input": {},
     "expected_behavior": {},
+    "confidence": 1.0
+  },
+  {
+    "id": "TEST-516",
+    "version": 1,
+    "title": "Long-horizon polyglot task and benchmark weakness audit",
+    "description": "Tests verify T28 has a 20-turn polyglot UI scope and an evaluator-only oracle that rejects the clean starter; benchmark artifacts automatically produce a deterministic weakness audit; and specsmith audit combines project health with correctness, verification, efficiency, and completeness weaknesses.",
+    "requirement_id": "REQ-490",
+    "type": "integration",
+    "verification_method": "pytest tests/test_benchmark_audit.py tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py",
+    "input": "T28 fixture plus complete, incomplete, and verification-disagreement result artifacts",
+    "expected_behavior": "No-op long-horizon work fails and post-run reports expose actionable weaknesses without an LLM judge",
     "confidence": 1.0
   }
 ]

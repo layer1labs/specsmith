@@ -3,9 +3,8 @@
 GovernanceBench measures how governance/scaffolding changes **cost, quality, and safety**
 across coding-agent workflows.
 
-> Status: the 2026-07-18 GPT-4o-mini run is complete and published with
-> limitations. The paired Qwen run is incomplete and excluded from comparative
-> claims. See `docs/site/efficiency-benchmark.md`.
+> Status: the current repeated GPT-5.6 Sol screen and all excluded-run
+> provenance are published in `docs/site/efficiency-benchmark.md`.
 
 ---
 
@@ -26,6 +25,14 @@ python -m govern_bench.run_bench --task T6 --task T7 --dry-run
 
 # Real benchmark run (provider/model wiring required)
 python -m govern_bench.run_bench --reps 5 --model claude-sonnet-4-5
+
+# Long-horizon product slice; raw JSON automatically creates results.audit.json
+python -m govern_bench.run_bench --task T28 --reps 1 \
+  --json-output results.json --output long-horizon.md
+
+# Correlate product weaknesses with project governance health
+specsmith audit --project-dir . --benchmark-results results.json \
+  --report combined-audit.json
 ```
 
 ---
@@ -67,6 +74,7 @@ code-only benchmarks.
 | Core suite | `T1`–`T13` | `todo_api`, `cli_tool` | Available |
 | Wave 1 expansion | `T14`–`T22` | `todo_api`, `data_pipeline`, `verilog_module`, `patent_draft` | Definitions available; hidden oracles pending |
 | Shell hardening suite | `T23`–`T27` | `shell_scripts` | Definitions available; hidden oracles pending |
+| Long-horizon product | `T28` | Python API, Go worker, React UI, Playwright, shared schema | Available with hidden oracle |
 | Wave 2 expansion | TBD | `ee_schematic`, `business_requirements`, `regulatory_doc`, `fpga_constraints` | Planned |
 
 Task availability does not imply empirical coverage. Claims must identify the exact
@@ -79,10 +87,16 @@ closed; clean fixtures and no-op responses cannot count as correct.
 Project Ruff and pytest checks run before injection; the oracle then runs once
 in its own pytest invocation and is removed before diff construction.
 
+T28 declares a 20-turn task-specific ceiling. Other tasks keep the normal
+bounded turn budget. Long-horizon results must be shown separately from the core
+screen before any aggregate claim is made.
+
 For standard coding tasks, `SPECSMITH_FULL` also blocks the agent's `done`
 request until both `ruff check .` and `pytest` have passed after its latest
-file write. A failed check sends the agent back through a repair turn; those
-turns and tokens remain part of the measured cost. Other conditions do not
+file write. T28 additionally requires fresh Go-test and deterministic UI-validator
+evidence, so a Python-only implementation cannot declare success. A failed check
+sends the agent back through a repair turn; those turns and tokens remain part of
+the measured cost. Other conditions do not
 receive this completion gate. Hidden acceptance tests remain evaluator-only
 and run after the agent stops, so the gate cannot reveal the benchmark answer.
 
@@ -203,6 +217,8 @@ failures or zero-cost observations.
 Coding cells additionally require all three gates: clean lint, project tests,
 and the evaluator-only acceptance oracle. Pytest and Ruff caches are disabled so
 validation artifacts do not pollute diffs or scope metrics.
+Raw rows record project-test and hidden-oracle outcomes separately, preventing
+the weakness audit from confusing a lint failure with an acceptance-boundary miss.
 
 ---
 

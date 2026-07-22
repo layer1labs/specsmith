@@ -54,7 +54,7 @@ if str(_HERE) not in sys.path:
 from govern_bench.conditions import CONDITION_MAP, CONDITIONS  # noqa: E402
 from govern_bench.metrics import BenchReport, RunResult  # noqa: E402
 from govern_bench.report import write_report  # noqa: E402
-from govern_bench.tasks import load_all_tasks  # noqa: E402
+from govern_bench.tasks import BenchTask, load_all_tasks  # noqa: E402
 
 
 def incomplete_real_run(*, dry_run: bool, skipped: int, errored: int) -> bool:
@@ -142,6 +142,15 @@ def _parse_args() -> argparse.Namespace:
         metavar="PATH",
         help="Write raw RunResult data as JSON to this path",
     )
+    parser.add_argument(
+        "--audit-output",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Write the post-run weakness audit as JSON. Default: "
+            "<json-output>.audit.json or <output>.audit.json."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -157,6 +166,8 @@ def _list_all() -> None:
             flags.append("[CLARIFY]")
         if t.scope_discipline_metric:
             flags.append("[SCOPE]")
+        if t.is_long_horizon:
+            flags.append("[LONG]")
         flag_str = " ".join(flags)
         print(f"  {t.id:4}  {t.title}  {flag_str}")
         print(f"        category={t.category}  project={t.project}  risk={t.regression_risk}")
@@ -248,11 +259,73 @@ def _make_dummy_run(task_id: str, condition_id: str, rep: int, model: str) -> Ru
         api_cost_usd=cost,
         lint_passed=passed,
         tests_passed=passed,
+        project_tests_passed=passed,
+        acceptance_oracle_passed=passed,
         quality_score=quality,
         rework_turns=1 if passed else rng.randint(2, 4),
         governance_turns=overhead // 500,
         wall_clock_s=rng.uniform(15.0, 90.0),
     )
+
+
+def _result_rows(
+    report: BenchReport,
+    provider: str,
+    tasks: list[BenchTask] | None = None,
+    *,
+    dry_run: bool = False,
+) -> list[dict[str, object]]:
+    """Return the complete raw row shape used by persistence and weakness audits."""
+    task_map = {task.id: task for task in (tasks or [])}
+    return [
+        {
+            "task": r.task_id,
+            "condition": r.condition_id,
+            "rep": r.rep,
+            "model": r.model,
+            "provider": provider,
+            "dry_run": dry_run,
+            "horizon": task_map[r.task_id].horizon if r.task_id in task_map else "standard",
+            "task_max_turns": task_map[r.task_id].max_turns if r.task_id in task_map else None,
+            "languages": task_map[r.task_id].languages if r.task_id in task_map else [],
+            "input_tokens": r.input_tokens,
+            "output_tokens": r.output_tokens,
+            "cached_input_tokens": r.cached_input_tokens,
+            "cache_write_tokens": r.cache_write_tokens,
+            "tokens": r.total_tokens,
+            "cost_usd": round(r.api_cost_usd, 6),
+            "passed": r.passed,
+            "quality": round(r.quality_score, 3),
+            "rework_turns": r.rework_turns,
+            "governance_turns": r.governance_turns,
+            "llm_turns": r.llm_turns,
+            "wall_clock_s": round(r.wall_clock_s, 3),
+            "stop_reason": r.stop_reason,
+            "lint_passed": r.lint_passed,
+            "tests_passed": r.tests_passed,
+            "project_tests_passed": r.project_tests_passed,
+            "acceptance_oracle_passed": r.acceptance_oracle_passed,
+            "files_written": r.files_written,
+            "final_diff": r.final_diff,
+            "lint_output": r.lint_output,
+            "test_output": r.test_output,
+            "call_usage": r.call_usage,
+            "agent_transcript": r.agent_transcript,
+            "governance_decision": r.governance_decision,
+            "verify_result": r.verify_result,
+            "skipped": r.skipped,
+            "error": r.error,
+        }
+        for r in report.runs
+    ]
+
+
+def _default_audit_path(args: argparse.Namespace) -> Path:
+    """Return a deterministic audit path without overwriting the main report."""
+    if args.audit_output:
+        return Path(args.audit_output)
+    basis = Path(args.json_output) if args.json_output else Path(args.output)
+    return basis.with_suffix(".audit.json")
 
 
 def main() -> int:
@@ -346,47 +419,27 @@ def main() -> int:
                 print(f"  → {status}  tokens={result.total_tokens}  cost={cost_str}")
                 report.runs.append(result)
 
+    rows = _result_rows(report, args.provider, tasks, dry_run=args.dry_run)
+
     # Write JSON output if requested
     if args.json_output:
         json_path = Path(args.json_output)
         json_path.parent.mkdir(parents=True, exist_ok=True)
-        rows = [
-            {
-                "task": r.task_id,
-                "condition": r.condition_id,
-                "rep": r.rep,
-                "model": r.model,
-                "provider": args.provider,
-                "input_tokens": r.input_tokens,
-                "output_tokens": r.output_tokens,
-                "cached_input_tokens": r.cached_input_tokens,
-                "cache_write_tokens": r.cache_write_tokens,
-                "tokens": r.total_tokens,
-                "cost_usd": round(r.api_cost_usd, 6),
-                "passed": r.passed,
-                "quality": round(r.quality_score, 3),
-                "rework_turns": r.rework_turns,
-                "governance_turns": r.governance_turns,
-                "llm_turns": r.llm_turns,
-                "wall_clock_s": round(r.wall_clock_s, 3),
-                "stop_reason": r.stop_reason,
-                "lint_passed": r.lint_passed,
-                "tests_passed": r.tests_passed,
-                "files_written": r.files_written,
-                "final_diff": r.final_diff,
-                "lint_output": r.lint_output,
-                "test_output": r.test_output,
-                "call_usage": r.call_usage,
-                "agent_transcript": r.agent_transcript,
-                "governance_decision": r.governance_decision,
-                "verify_result": r.verify_result,
-                "skipped": r.skipped,
-                "error": r.error,
-            }
-            for r in report.runs
-        ]
         json_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
         print(f"Raw JSON written to {json_path}")
+
+    from specsmith.benchmark_audit import audit_benchmark_rows, write_benchmark_audit
+
+    audit_path = _default_audit_path(args)
+    weakness_report = audit_benchmark_rows(
+        rows,
+        source=str(Path(args.json_output).resolve()) if args.json_output else "in-memory",
+        dry_run=args.dry_run,
+    )
+    write_benchmark_audit(weakness_report, audit_path)
+    print(
+        f"Weakness audit written to {audit_path} ({weakness_report.high_or_critical} high/critical)"
+    )
 
     # Write Markdown report
     output_path = Path(args.output)
