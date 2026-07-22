@@ -36,8 +36,15 @@ def _has_empty_state(app: str) -> bool:
 
 def _has_architecture_record(architecture: str) -> bool:
     architecture = architecture.casefold()
+    concepts = (
+        ("python", "fastapi", "flask", "django", "starlette"),
+        ("go", "golang"),
+        ("react",),
+        ("schema",),
+        ("flow",),
+    )
     return len(architecture.split()) >= 100 and all(
-        term in architecture for term in ("python", "go", "react", "schema", "flow")
+        any(term in architecture for term in alternatives) for alternatives in concepts
     )
 
 
