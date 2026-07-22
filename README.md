@@ -183,6 +183,11 @@ weaknesses. One 127k FULL outlier was independent verification catching an
 acceptance gap and successfully forcing another repair; its full cost remains
 in the result. See [run 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095).
 
+The corrected managed Hugging Face Qwen3.6 diagnostic did not converge:
+Cursor and FULL both failed the T28 oracle at the 20-turn ceiling, using 230.8k
+and 236.9k tokens. Its TPCA is therefore infinite, and it was not advanced to
+five repetitions. See [run 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036).
+
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:
 

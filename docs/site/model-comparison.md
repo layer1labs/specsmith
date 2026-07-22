@@ -8,6 +8,7 @@
 | [Route/model diagnostic 29834732303](https://github.com/layer1labs/specsmith/actions/runs/29834732303) | GPT-5.6 Sol, GPT-4o-mini, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
 | [T28 long-horizon diagnostic 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611) | GPT-5.6 Sol, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
 | [T28 long-horizon screen 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095) | GPT-5.6 Sol | 5 | Complete Cursor/FULL screening evidence |
+| [Corrected Qwen T28 diagnostic 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036) | Qwen3.6-35B-A3B | 1 | Complete diagnostic; zero correct cells |
 
 The first two runs used the same seven tasks and four conditions: raw, Cursor
 rules, Specsmith LIGHT, and Specsmith FULL. The T28 diagnostic used only its
@@ -53,11 +54,13 @@ in the prior screen after epistemic-history compaction, but one bounded
 independent-verification repair raised its current mean. The audit found no
 remaining structured weakness.
 
-The older Qwen3.6-35B-A3B diagnostic reached the 20-turn ceiling in every
-raw/LIGHT/FULL condition without passing the hidden oracle. Its FULL cell used
-122.3k tokens, but TPCA remains undefined because correctness was zero. The
-open-weight lane should test the corrected compact harness and a stronger
-tool-serving route before increasing the global turn cap.
+The corrected compact-harness Qwen3.6-35B-A3B diagnostic still reached the
+20-turn ceiling in both Cursor and FULL without passing the hidden oracle. The
+cells used 230.8k and 236.9k tokens, but TPCA remains undefined because
+correctness was zero. Its trace repeatedly reread broad project context and
+wrote components serially. The open-weight lane needs a stronger tool-serving
+model or explicit milestone-decomposition experiment before any repeated run;
+the global turn cap should not be raised to conceal non-convergence.
 
 ## Qwen FP8 and base variants
 

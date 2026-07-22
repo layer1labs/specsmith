@@ -66,6 +66,12 @@ successful repair; it is retained in TPCA and cost/pass. See the
 [long-horizon benchmark and weakness audit](benchmark-audit.md) for rep-level
 evidence and limitations.
 
+The same corrected harness was probed through the managed Hugging Face
+Qwen3.6-35B-A3B route in
+[run 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036).
+Both Cursor and FULL failed at the 20-turn ceiling (230.8k and 236.9k tokens),
+so neither has finite TPCA. The valid but incorrect diagnostic was not repeated.
+
 ## Where the tokens went
 
 Output was nearly flat across conditions; accumulated input history explains

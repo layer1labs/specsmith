@@ -39,6 +39,15 @@ final scoring, context-dominance threshold, or turn-budget exhaustion. Earlier
 one-repetition raw/LIGHT/FULL and managed-Qwen runs remain diagnostic
 provenance, not current comparison evidence.
 
+The latest managed Hugging Face Qwen3.6-35B-A3B diagnostic is
+[run 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036).
+Its route, billing, and tool-call probes passed, but both Cursor and FULL
+reached 20 turns without passing T28. They used 230.8k and 236.9k tokens,
+respectively, so both have infinite TPCA. The audit raised high-severity
+`turn_budget_exhausted` and `acceptance_gap` findings plus context dominance.
+The trace shows repeated broad reads and serial component writes; no repeated
+screen was authorized for zero-correctness cells.
+
 ## Why a separate long-horizon slice
 
 Short repair tasks reveal scope discipline and boundary mistakes, but they do

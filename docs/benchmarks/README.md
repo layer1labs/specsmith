@@ -45,6 +45,9 @@ See the [current executable results](../site/efficiency-benchmark.md) and the
   repetitions for GPT-5.6 Sol. Both passed 5/5; Cursor used 56.3k TPCA and
   FULL 71.4k. The audit reported no weaknesses, so the result is publishable
   screening evidence but not a Specsmith token-superiority claim.
+- Corrected managed Qwen diagnostic: run `29944111036`, T28 Cursor/FULL, one
+  repetition. Both reached 20 turns without passing; TPCA is infinite and the
+  audit reports turn exhaustion, acceptance gaps, and context dominance.
 - Incomplete, cancelled, provider-error, and artifact-error attempts are
   diagnostic provenance only. They must not populate a comparison table.
 

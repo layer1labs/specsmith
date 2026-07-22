@@ -11,6 +11,10 @@ Specsmith FULL both passed 5/5; TPCA was 56.3k and 71.4k respectively. The
 deterministic audit was clean. Five repetitions support screening, not a
 universal superiority claim.
 
+Managed Qwen3.6-35B-A3B run `29944111036` is diagnostic-only: both T28 cells
+failed at the 20-turn ceiling, so the open-weight lane has no finite TPCA and
+must not be repeated or ranked as a cost win.
+
 ---
 
 ## Quick Start
