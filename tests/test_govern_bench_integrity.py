@@ -33,6 +33,7 @@ from govern_bench.harness import (  # noqa: E402
     _build_tools,
     _call_openai_provider,
     _compact_completed_tool_exchange,
+    _compact_superseded_read_history,
     _completion_gate,
     _copy_project_fixture,
     _exec_list_files,
@@ -146,6 +147,57 @@ def test_completed_write_compaction_keeps_tool_history_schema_valid() -> None:
     assert "main.py" in history[2]["content"]
     assert "requested_bytes=22" in history[2]["content"]
     assert "content_bytes" not in str(history)
+
+
+def test_superseded_read_compaction_preserves_other_tool_linkage() -> None:
+    messages = [
+        {"role": "system", "content": "stable prefix"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "read-old",
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "arguments": '{"path":"./src/app.py"}',
+                    },
+                },
+                {
+                    "id": "read-keep",
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "arguments": '{"path":"README.md"}',
+                    },
+                },
+                {
+                    "id": "lint-keep",
+                    "type": "function",
+                    "function": {
+                        "name": "run_command",
+                        "arguments": '{"command":"ruff check ."}',
+                    },
+                },
+            ],
+        },
+        {"role": "tool", "tool_call_id": "read-old", "content": "OBSOLETE_SECRET"},
+        {"role": "tool", "tool_call_id": "read-keep", "content": "README body"},
+        {"role": "tool", "tool_call_id": "lint-keep", "content": "All checks passed"},
+    ]
+
+    compacted = _compact_superseded_read_history(messages, ["src\\app.py"])
+    serialized = str(compacted)
+
+    assert "OBSOLETE_SECRET" not in serialized
+    assert "read-old" not in serialized
+    assert "README body" in serialized
+    assert "All checks passed" in serialized
+    assert [call["id"] for call in compacted[1]["tool_calls"]] == [
+        "read-keep",
+        "lint-keep",
+    ]
 
 
 def test_gpt56_openai_call_uses_stable_cache_key_and_records_cache_usage(
@@ -739,6 +791,77 @@ def test_agent_loop_replays_compact_valid_history_after_write(
     assert "VERY_SECRET_PROVIDER_BODY" not in provider_histories[1]
     assert "Completed write_file state summary" in provider_histories[1]
     assert "content_bytes" not in provider_histories[1]
+
+
+def test_agent_loop_drops_superseded_reads_after_successful_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    (project / "notes.txt").write_text("OBSOLETE_READ_BODY\n", encoding="utf-8")
+    responses = iter(
+        [
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[
+                        NormalizedToolCall(
+                            id="read-old",
+                            name="read_file",
+                            arguments='{"path":"notes.txt"}',
+                        )
+                    ]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[
+                        NormalizedToolCall(
+                            id="write-new",
+                            name="write_file",
+                            arguments='{"path":"notes.txt","content":"CURRENT_BODY\\n"}',
+                        )
+                    ]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(content="stop"),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+        ]
+    )
+    provider_histories: list[str] = []
+
+    def fake_call(**kwargs: object) -> NormalizedLLMResponse:
+        provider_histories.append(repr(kwargs["messages"]))  # type: ignore[index]
+        return next(responses)
+
+    monkeypatch.setattr(harness_module, "_call_llm", fake_call)
+    monkeypatch.setattr(
+        harness_module,
+        "_run_standard_validation",
+        lambda *_args: (True, "", True, "", False, "hidden failure"),
+    )
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("UNGOVERNED"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=3,
+    )
+
+    assert result.stop_reason == "text_response"
+    assert "OBSOLETE_READ_BODY" in provider_histories[1]
+    assert "OBSOLETE_READ_BODY" not in provider_histories[2]
+    assert "read-old" not in provider_histories[2]
+    assert "Completed write_file state summary" in provider_histories[2]
 
 
 def test_agent_loop_stops_repeated_single_file_write_loop(

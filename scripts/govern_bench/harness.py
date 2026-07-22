@@ -539,6 +539,60 @@ def _compact_completed_tool_exchange(
     return history
 
 
+def _normalized_history_path(path: object) -> str:
+    """Normalize an agent path for content-free history invalidation."""
+    return str(path or "").replace("\\", "/").removeprefix("./").casefold()
+
+
+def _compact_superseded_read_history(
+    messages: list[dict[str, Any]],
+    written_paths: list[str],
+) -> list[dict[str, Any]]:
+    """Drop complete historical reads whose exact files were replaced.
+
+    Assistant tool-call and tool-result pairs are removed together so the
+    remaining Chat history stays protocol-valid. Unsuperseded reads and every
+    non-read tool exchange remain untouched.
+    """
+    targets = {_normalized_history_path(path) for path in written_paths if path}
+    if not targets:
+        return messages
+
+    superseded_ids: set[str] = set()
+    compacted: list[dict[str, Any]] = []
+    for message in messages:
+        if message.get("role") == "assistant" and message.get("tool_calls"):
+            retained_calls = []
+            for call in message["tool_calls"]:
+                function = call.get("function") if isinstance(call, dict) else None
+                function = function if isinstance(function, dict) else {}
+                parsed = _json_loads_maybe(str(function.get("arguments") or ""))
+                args = parsed if isinstance(parsed, dict) else {}
+                if (
+                    function.get("name") == "read_file"
+                    and _normalized_history_path(args.get("path")) in targets
+                ):
+                    superseded_ids.add(str(call.get("id") or ""))
+                    continue
+                retained_calls.append(call)
+
+            if retained_calls:
+                retained = dict(message)
+                retained["tool_calls"] = retained_calls
+                compacted.append(retained)
+            elif message.get("content"):
+                compacted.append({"role": "assistant", "content": message["content"]})
+            continue
+
+        if (
+            message.get("role") == "tool"
+            and str(message.get("tool_call_id") or "") in superseded_ids
+        ):
+            continue
+        compacted.append(message)
+    return compacted
+
+
 def _compact_tool_result(value: Any) -> str:
     text = str(value)
     if len(text) <= MAX_TOOL_RESULT_CHARS:
@@ -1801,6 +1855,7 @@ def _run_agent_loop(
             break
 
         tool_results: list[dict] = []
+        successful_write_paths: list[str] = []
         finished = False
         validation_failed = False
         for tc in msg.tool_calls:
@@ -1817,6 +1872,7 @@ def _run_agent_loop(
                     project_root, args.get("path", ""), args.get("content", ""), files_written
                 )
                 if out.startswith("OK:"):
+                    successful_write_paths.append(str(args.get("path") or ""))
                     lint_verified = False
                     tests_verified = False
                     validator_verified.clear()
@@ -1951,6 +2007,8 @@ def _run_agent_loop(
                 }
             )
 
+        if successful_write_paths:
+            messages = _compact_superseded_read_history(messages, successful_write_paths)
         messages.extend(
             _compact_completed_tool_exchange(assistant_message, msg.tool_calls, tool_results)
         )

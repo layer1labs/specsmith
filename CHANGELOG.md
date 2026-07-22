@@ -21,6 +21,8 @@ consolidated into the next published release.
 - The FULL benchmark controller now keeps internal governance storage outside
   model-visible file context and runs missing linked validators when the model
   calls `done`, preserving fresh evidence while removing validator-only LLM turns.
+  Successful writes also retire superseded full-file reads from valid provider
+  history so obsolete source versions do not dominate later input tokens.
 
 ### Fixed
 - CI now runs an exception-free dependency audit; the obsolete CVE-2026-3219
