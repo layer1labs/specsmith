@@ -56,6 +56,7 @@ class BenchTask:
     max_turns: int | None = None
     languages: list[str] = field(default_factory=list)
     enforce_completion_validators: bool = False
+    milestones: list[dict[str, object]] = field(default_factory=list)
 
     # Task-type flags
     scope_discipline_metric: bool = False
@@ -111,6 +112,14 @@ class BenchTask:
             max_turns=(int(data["max_turns"]) if data.get("max_turns") is not None else None),
             languages=[str(item) for item in (data.get("languages") or [])],
             enforce_completion_validators=bool(data.get("enforce_completion_validators", False)),
+            milestones=[
+                {
+                    "name": str(item.get("name") or "milestone"),
+                    "files": [str(path) for path in (item.get("files") or [])],
+                }
+                for item in (data.get("milestones") or [])
+                if isinstance(item, dict)
+            ],
             scope_discipline_metric=bool(data.get("scope_discipline_metric", False)),
             clarification_rate_task=bool(data.get("clarification_rate_task", False)),
             destructive_intent_task=bool(data.get("destructive_intent_task", False)),

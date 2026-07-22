@@ -55,6 +55,7 @@ class BenchmarkWeaknessReport:
     conditions: list[str]
     minimum_repetitions: int
     condition_metrics: dict[str, dict[str, float | int | None]]
+    task_type_metrics: dict[str, dict[str, dict[str, float | int | None]]]
     weaknesses: list[BenchmarkWeakness]
 
     @property
@@ -108,6 +109,34 @@ def _condition_rollups(
             "tokens_per_correct_answer": (round(mean_tokens / pass_rate, 3) if pass_rate else None),
         }
     return result
+
+
+def _task_type_rollups(
+    rows: list[dict[str, Any]],
+) -> dict[str, dict[str, dict[str, float | int | None]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        category = str(row.get("category") or "").strip()
+        if not category:
+            category = "long_horizon" if str(row.get("horizon") or "") == "long" else "standard"
+        grouped[category].append(row)
+    return {category: _condition_rollups(items) for category, items in sorted(grouped.items())}
+
+
+def _tool_targets(row: dict[str, Any], prefix: str) -> list[str]:
+    targets: list[str] = []
+    for event in row.get("agent_transcript") or []:
+        if not isinstance(event, dict) or event.get("role") != "assistant":
+            continue
+        for target in event.get("tool_targets") or []:
+            value = str(target)
+            if value.startswith(prefix):
+                targets.append(value.removeprefix(prefix))
+    return targets
+
+
+def _top_level_components(paths: list[str]) -> set[str]:
+    return {path.replace("\\", "/").removeprefix("./").partition("/")[0] for path in paths if path}
 
 
 def _row_problem(row: dict[str, Any]) -> str | None:
@@ -265,6 +294,71 @@ def audit_benchmark_rows(
                 ),
                 tasks=sorted({str(row.get("task")) for row in repeated_loops}),
                 conditions=sorted({str(row.get("condition")) for row in repeated_loops}),
+            )
+        )
+
+    reread_churn: list[dict[str, Any]] = []
+    for row in valid:
+        reads = _tool_targets(row, "read_file:")
+        repeated_reads = len(reads) - len(set(reads))
+        if len(reads) >= 10 and repeated_reads >= max(5, len(reads) // 2):
+            reread_churn.append(row)
+    if reread_churn:
+        total_reads = sum(len(_tool_targets(row, "read_file:")) for row in reread_churn)
+        total_repeats = sum(
+            len(_tool_targets(row, "read_file:")) - len(set(_tool_targets(row, "read_file:")))
+            for row in reread_churn
+        )
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="broad_reread_churn",
+                severity=(
+                    "high"
+                    if any(row.get("stop_reason") == "max_turns" for row in reread_churn)
+                    else "medium"
+                ),
+                title="Agent repeatedly reread broad unchanged context",
+                evidence=(
+                    f"{len(reread_churn)} row(s) repeated {total_repeats} of "
+                    f"{total_reads} file reads."
+                ),
+                recommendation=(
+                    "Return content once per file version, replace unchanged rereads with "
+                    "digest receipts, and retain only the latest compact progress state."
+                ),
+                tasks=sorted({str(row.get("task")) for row in reread_churn}),
+                conditions=sorted({str(row.get("condition")) for row in reread_churn}),
+            )
+        )
+
+    fragmented: list[dict[str, Any]] = []
+    for row in valid:
+        writes = _tool_targets(row, "write_file:")
+        is_long = str(row.get("horizon") or "").casefold() == "long"
+        if (
+            is_long
+            and not row.get("passed")
+            and row.get("stop_reason") == "max_turns"
+            and len(writes) >= 6
+            and len(_top_level_components(writes)) >= 3
+        ):
+            fragmented.append(row)
+    if fragmented:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="milestone_fragmentation",
+                severity="high",
+                title="Long-horizon work advanced serially without reaching a milestone boundary",
+                evidence=(
+                    f"{len(fragmented)} row(s) changed at least three components but exhausted "
+                    "the turn budget before completion."
+                ),
+                recommendation=(
+                    "Expose a bounded controller-owned milestone map, batch independent edits "
+                    "inside the active milestone, and validate only at milestone boundaries."
+                ),
+                tasks=sorted({str(row.get("task")) for row in fragmented}),
+                conditions=sorted({str(row.get("condition")) for row in fragmented}),
             )
         )
 
@@ -467,6 +561,95 @@ def audit_benchmark_rows(
                     )
                 )
 
+    task_condition_metrics = {
+        task: _condition_rollups([row for row in valid if str(row.get("task")) == task])
+        for task in sorted({str(row.get("task")) for row in valid})
+    }
+    cursor_correctness: dict[str, list[str]] = defaultdict(list)
+    cursor_efficiency: dict[str, list[tuple[str, float]]] = defaultdict(list)
+    for task, task_metrics in task_condition_metrics.items():
+        cursor = task_metrics.get("CURSOR_RULES")
+        if not cursor:
+            continue
+        cursor_pass_rate = _as_float(cursor.get("pass_rate"))
+        cursor_tpca = _as_float(cursor.get("tokens_per_correct_answer"))
+        for condition, item in task_metrics.items():
+            if not condition.startswith("SPECSMITH"):
+                continue
+            pass_rate = _as_float(item.get("pass_rate"))
+            tpca = _as_float(item.get("tokens_per_correct_answer"))
+            if pass_rate < cursor_pass_rate:
+                cursor_correctness[condition].append(task)
+            if cursor_tpca > 0 and tpca > cursor_tpca * 1.10:
+                cursor_efficiency[condition].append((task, tpca / cursor_tpca))
+
+    for condition, regressed_tasks in sorted(cursor_correctness.items()):
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="cursor_correctness_regression",
+                severity="high",
+                title=f"{condition} trails Cursor rules on task correctness",
+                evidence=f"Lower pass rate than CURSOR_RULES on {', '.join(regressed_tasks)}.",
+                recommendation=(
+                    "Repair the independent acceptance boundary before optimizing token cost."
+                ),
+                tasks=regressed_tasks,
+                conditions=[condition, "CURSOR_RULES"],
+            )
+        )
+    for condition, regressions in sorted(cursor_efficiency.items()):
+        evidence = ", ".join(f"{task} {ratio:.2f}x" for task, ratio in regressions)
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="cursor_efficiency_regression",
+                severity="medium",
+                title=f"{condition} spends more tokens per correct answer than Cursor rules",
+                evidence=f"TPCA regression above 10%: {evidence}.",
+                recommendation=(
+                    "Remove task-class-specific rereads, planning turns, or verification churn "
+                    "before making comparative claims."
+                ),
+                tasks=[task for task, _ratio in regressions],
+                conditions=[condition, "CURSOR_RULES"],
+            )
+        )
+
+    grouped_turns: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in valid:
+        grouped_turns[
+            (
+                str(row.get("model")),
+                str(row.get("task")),
+                str(row.get("condition")),
+            )
+        ].append(row)
+    repair_outliers: list[dict[str, Any]] = []
+    for group in grouped_turns.values():
+        if len(group) < 5:
+            continue
+        turns = sorted(_as_int(row.get("llm_turns")) for row in group)
+        median_turns = turns[len(turns) // 2]
+        repair_outliers.extend(
+            row
+            for row in group
+            if _as_int(row.get("llm_turns")) > max(median_turns * 1.5, median_turns + 3)
+        )
+    if repair_outliers:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="verification_repair_outlier",
+                severity="medium",
+                title="Verification repair created a high-turn cost outlier",
+                evidence=f"{len(repair_outliers)} row(s) exceeded 1.5x the cell median turns.",
+                recommendation=(
+                    "Classify the failed boundary, return only its focused evidence, and cap "
+                    "repair context instead of replaying the full task history."
+                ),
+                tasks=sorted({str(row.get("task")) for row in repair_outliers}),
+                conditions=sorted({str(row.get("condition")) for row in repair_outliers}),
+            )
+        )
+
     for condition, item in metrics.items():
         mean_input = _as_float(item.get("mean_input_tokens"))
         mean_output = _as_float(item.get("mean_output_tokens"))
@@ -496,6 +679,7 @@ def audit_benchmark_rows(
         conditions=sorted({str(row.get("condition") or "unknown") for row in rows}),
         minimum_repetitions=minimum_reps,
         condition_metrics=metrics,
+        task_type_metrics=_task_type_rollups(valid),
         weaknesses=weaknesses,
     )
 

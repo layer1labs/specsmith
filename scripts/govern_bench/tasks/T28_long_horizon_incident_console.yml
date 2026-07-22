@@ -14,6 +14,25 @@ languages:
   - typescript
   - json-schema
   - css
+milestones:
+  - name: shared contract and API
+    files:
+      - contracts/incident.schema.json
+      - backend/main.py
+      - tests/test_backend.py
+  - name: worker boundary
+    files:
+      - worker/main.go
+      - worker/main_test.go
+  - name: interactive UI journey
+    files:
+      - ui/src/api.ts
+      - ui/src/App.tsx
+      - ui/src/styles.css
+      - ui/tests/incident-console.spec.ts
+  - name: architecture evidence
+    files:
+      - docs/architecture.md
 estimated_tokens_ungoverned: 32000
 estimated_tokens_specsmith_full: 28000
 

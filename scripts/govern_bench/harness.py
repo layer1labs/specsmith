@@ -478,6 +478,56 @@ def _aee_evidence_contract(decision: dict[str, Any]) -> str:
     )
 
 
+def _milestone_contract(task: BenchTask) -> str:
+    """Render bounded controller-owned milestones only for long-horizon work."""
+    if not task.is_long_horizon or not task.milestones:
+        return ""
+    lines = ["AEE milestone map (controller-owned; no separate planning turn):"]
+    for index, milestone in enumerate(task.milestones, start=1):
+        name = str(milestone.get("name") or f"milestone {index}")
+        files = [str(path) for path in (milestone.get("files") or [])]
+        lines.append(f"{index}. {name}: {', '.join(files)}")
+    lines.append(
+        "Finish one milestone coherently, batch independent tool calls, and do not reread "
+        "unchanged files. The controller reports the next incomplete milestone when needed."
+    )
+    return "\n".join(lines)
+
+
+def _milestone_progress(task: BenchTask, files_written: list[str]) -> str:
+    """Return the next incomplete milestone without exposing evaluator evidence."""
+    written = {_normalized_history_path(path) for path in files_written}
+    for index, milestone in enumerate(task.milestones, start=1):
+        name = str(milestone.get("name") or f"milestone {index}")
+        files = [str(path) for path in (milestone.get("files") or [])]
+        remaining = [path for path in files if _normalized_history_path(path) not in written]
+        if remaining:
+            return (
+                f"Active milestone {index}/{len(task.milestones)} ({name}); remaining: "
+                + ", ".join(remaining)
+            )
+    return "All declared milestone files have implementation evidence; call done for validation."
+
+
+_ADAPTIVE_PROGRESS_PREFIX = "[Specsmith adaptive progress]"
+
+
+def _replace_adaptive_progress_message(
+    messages: list[dict[str, Any]], content: str
+) -> list[dict[str, Any]]:
+    """Keep only the latest compact progress message in provider history."""
+    compacted = [
+        message
+        for message in messages
+        if not (
+            message.get("role") == "user"
+            and str(message.get("content") or "").startswith(_ADAPTIVE_PROGRESS_PREFIX)
+        )
+    ]
+    compacted.append({"role": "user", "content": f"{_ADAPTIVE_PROGRESS_PREFIX} {content}"})
+    return compacted
+
+
 def _compact_completed_tool_exchange(
     assistant_message: dict[str, Any],
     tool_calls: list[NormalizedToolCall],
@@ -703,6 +753,31 @@ def _exec_read_file(project_root: Path, path: str) -> str:
     if len(content) > MAX_FILE_BYTES:
         content = content[:MAX_FILE_BYTES] + f"\n... [truncated at {MAX_FILE_BYTES} bytes]"
     return content
+
+
+def _exec_read_file_with_evidence(
+    project_root: Path,
+    path: str,
+    read_evidence: dict[str, tuple[str, int]],
+    *,
+    turn: int,
+    compress_unchanged: bool,
+) -> tuple[str, bool]:
+    """Read a file once per version and suppress unchanged epistemic churn."""
+    content = _exec_read_file(project_root, path)
+    if content.startswith("ERROR:"):
+        return content, False
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+    key = _normalized_history_path(path)
+    prior = read_evidence.get(key)
+    if compress_unchanged and prior and prior[0] == digest:
+        return (
+            f"UNCHANGED: {path} matches the prior read from turn {prior[1]} "
+            f"(sha256={digest}). Reuse that evidence and continue implementation.",
+            True,
+        )
+    read_evidence[key] = (digest, turn)
+    return content, False
 
 
 def _exec_write_file(project_root: Path, path: str, content: str, files_written: list[str]) -> str:
@@ -1729,6 +1804,9 @@ def _run_agent_loop(
             )
         contract = _aee_evidence_contract(governance_decision)
         system_prompt = f"{system_prompt.rstrip()}\n\n{contract}" if system_prompt else contract
+        milestone_contract = _milestone_contract(task)
+        if condition.id == "SPECSMITH_FULL" and milestone_contract:
+            system_prompt = f"{system_prompt.rstrip()}\n\n{milestone_contract}"
 
     # Preload a bounded task-relevant context; the agent can read more on demand.
     file_listing = _exec_list_files(project_root)
@@ -1763,6 +1841,7 @@ def _run_agent_loop(
     verification_retries = 0
     last_single_write_target = ""
     repeated_write_streak = 0
+    read_evidence: dict[str, tuple[str, int]] = {}
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -1856,6 +1935,7 @@ def _run_agent_loop(
 
         tool_results: list[dict] = []
         successful_write_paths: list[str] = []
+        suppressed_unchanged_reads: list[str] = []
         finished = False
         validation_failed = False
         for tc in msg.tool_calls:
@@ -1865,7 +1945,16 @@ def _run_agent_loop(
 
             # ── Execute tool ──────────────────────────────────────────────
             if fn_name == "read_file":
-                out = _exec_read_file(project_root, args.get("path", ""))
+                path = str(args.get("path") or "")
+                out, suppressed = _exec_read_file_with_evidence(
+                    project_root,
+                    path,
+                    read_evidence,
+                    turn=turn + 1,
+                    compress_unchanged=condition.id == "SPECSMITH_FULL",
+                )
+                if suppressed:
+                    suppressed_unchanged_reads.append(path)
 
             elif fn_name == "write_file":
                 out = _exec_write_file(
@@ -2017,8 +2106,27 @@ def _run_agent_loop(
                 "turn": turn + 1,
                 "role": "tool",
                 "results": [r["content"][:100] for r in tool_results],
+                "suppressed_unchanged_reads": suppressed_unchanged_reads,
             }
         )
+
+        if suppressed_unchanged_reads and task.is_long_horizon:
+            progress = (
+                f"Suppressed {len(suppressed_unchanged_reads)} unchanged reread(s). "
+                f"{_milestone_progress(task, files_written)}"
+            )
+            messages = _replace_adaptive_progress_message(messages, progress)
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "epistemic_compression": {
+                        "suppressed_reads": len(suppressed_unchanged_reads),
+                        "paths": suppressed_unchanged_reads,
+                        "progress": _milestone_progress(task, files_written),
+                    },
+                }
+            )
 
         if validation_failed:
             rework_turns += 1

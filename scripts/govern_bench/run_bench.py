@@ -286,6 +286,7 @@ def _result_rows(
             "provider": provider,
             "dry_run": dry_run,
             "horizon": task_map[r.task_id].horizon if r.task_id in task_map else "standard",
+            "category": task_map[r.task_id].category if r.task_id in task_map else "unknown",
             "task_max_turns": task_map[r.task_id].max_turns if r.task_id in task_map else None,
             "languages": task_map[r.task_id].languages if r.task_id in task_map else [],
             "input_tokens": r.input_tokens,

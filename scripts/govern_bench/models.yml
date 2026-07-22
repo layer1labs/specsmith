@@ -44,6 +44,23 @@ models:
     group: open
     tier: open-xl
 
+  # ── Qwen agentic-coding candidates (HF-routed, tool-capable) ───────────
+  # Run as a focused experiment with: groups=open-qwen
+  - label: qwen3-coder-next
+    provider: huggingface
+    # HF lists Novita as a managed tool-capable route. Qwen's model card
+    # requires the qwen3_coder tool parser when self-hosting with vLLM/SGLang.
+    model: Qwen/Qwen3-Coder-Next:novita
+    group: open-qwen
+    tier: open-large
+  - label: qwen3-coder-480b
+    provider: huggingface
+    # Larger active capacity and structured-output support make this the
+    # high-capability control for the lower-cost Coder-Next experiment.
+    model: Qwen/Qwen3-Coder-480B-A35B-Instruct:novita
+    group: open-qwen
+    tier: open-xl
+
   # ── Open models via a direct OpenAI-compatible provider (no HF credits) ─
   # Same four tiers as `open`, but provider=openai-compat so a full run never
   # touches the HuggingFace Inference Providers credit pool. Default model ids
