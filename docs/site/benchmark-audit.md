@@ -6,6 +6,41 @@ Playwright browser journey, JSON Schema, CSS, public tests, and architecture
 documentation. It is a separate long-horizon slice, not another cheap task in
 the mixed-suite average.
 
+## Latest corrected diagnostic
+
+[GitHub Actions run 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611)
+executed commit `678bcaeace81b684c20d2054ed9bd03eced3c239` on 2026-07-22.
+It contains one complete repetition per model and condition, so it validates
+the harness and exposes optimization signals but does **not** establish a
+statistically supported advantage.
+
+| Model | Condition | Correct | Tokens | Cost | Turns | Stop |
+|---|---|---:|---:|---:|---:|---|
+| GPT-5.6 Sol | Ungoverned | Yes | 107,474 | $0.342409 | 17 | done |
+| GPT-5.6 Sol | Specsmith LIGHT | Yes | 112,474 | $0.308803 | 20 | done |
+| GPT-5.6 Sol | Specsmith FULL | Yes | 25,907 | $0.241963 | 5 | done |
+| Qwen3.6-35B-A3B | Ungoverned | No | 128,893 | $0.044209 | 20 | max turns |
+| Qwen3.6-35B-A3B | Specsmith LIGHT | No | 141,230 | $0.057750 | 20 | max turns |
+| Qwen3.6-35B-A3B | Specsmith FULL | No | 122,302 | $0.045886 | 20 | max turns |
+
+For GPT-5.6 Sol, FULL used 75.9% fewer tokens, 29.3% lower estimated cost, and
+70.6% fewer turns than the correct ungoverned cell. LIGHT amplified tokens by
+4.7% even though cached-input pricing made its estimated cost lower. Qwen has
+no finite tokens-per-correct-answer value because no condition was correct;
+its lower dollar cost is therefore not an efficiency win.
+
+The deterministic audit reported no high or critical weakness for the GPT
+artifact. It reported two for Qwen: turn-budget exhaustion and an acceptance
+gap. Both artifacts were undersampled and context-dominated, and repeated tool
+targets were visible in their traces. Earlier 2026-07-22 attempts exposed
+artifact-glob and semantic-oracle defects; those runs remain diagnostic
+provenance and are not included here. The corrected run followed regression
+fixes for both defects.
+
+The next valid claim gate is a matched five-repetition T28 screen. A direct
+Cursor-rules comparison must run in the same grid; this n=1 raw/LIGHT/FULL run
+cannot show that Specsmith outperforms Cursor on long-horizon work.
+
 ## Why a separate long-horizon slice
 
 Short repair tasks reveal scope discipline and boundary mistakes, but they do

@@ -172,6 +172,14 @@ journey, JSON Schema, CSS, tests, and architecture documentation. It is reported
 separately from the short-task screen so long-horizon cost cannot be hidden by
 cheap deterministic gates.
 
+A corrected one-repetition T28 diagnostic on GPT-5.6 Sol passed in all three
+conditions. FULL used 25.9k tokens and $0.242 in 5 turns, versus 107.5k tokens
+and $0.342 in 17 turns ungoverned—a 75.9% token reduction and 29.3% cost
+reduction for this run. LIGHT used 112.5k tokens. The matched Qwen3.6 managed
+route reached the 20-turn ceiling without a correct answer in any condition.
+These are diagnostic results, not superiority claims; the long-horizon report
+links the replayable artifact and states the required repetition thresholds.
+
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:
 

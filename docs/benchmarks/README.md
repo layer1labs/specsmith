@@ -38,6 +38,9 @@ See the [current executable results](../site/efficiency-benchmark.md) and the
 - Model/route diagnostic: run `29834732303`, the same matched task/condition
   grid, one repetition for GPT-5.6 Sol, GPT-4o-mini, and
   Qwen3.6-35B-A3B.
+- Corrected long-horizon diagnostic: run `29930247611`, T28 raw/LIGHT/FULL,
+  one repetition for GPT-5.6 Sol and Qwen3.6-35B-A3B. GPT passed all three;
+  Qwen reached the bounded turn ceiling in all three. This is diagnostic only.
 - Incomplete, cancelled, provider-error, and artifact-error attempts are
   diagnostic provenance only. They must not populate a comparison table.
 

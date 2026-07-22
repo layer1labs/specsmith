@@ -46,6 +46,23 @@ reconstructed after the fact. This does not change raw token counts, pass rates,
 or TPCA. The corrected harness records cache reads and writes independently and
 uses the model's cached-input and cache-write rates for future reports.
 
+## Long-horizon diagnostic
+
+The separate T28 polyglot product slice was rerun after fixing artifact replay
+and semantic-oracle false negatives. In corrected
+[run 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611),
+GPT-5.6 Sol produced a correct result in raw, LIGHT, and FULL. FULL used 25.9k
+tokens in 5 turns versus raw's 107.5k in 17 turns, a 75.9% reduction for this
+single repetition. LIGHT used 112.5k tokens. The managed Qwen3.6-35B-A3B route
+failed all three conditions at the 20-turn ceiling, so it has no finite TPCA.
+
+This is a complete diagnostic, not screening evidence. It is excluded from the
+seven-task aggregate above and cannot support a superiority claim until a
+matched five-repetition screen—including Cursor rules for a Cursor
+comparison—passes the same hidden oracle. See the
+[long-horizon benchmark and weakness audit](benchmark-audit.md) for exact
+tokens, costs, stops, and audit findings.
+
 ## Where the tokens went
 
 Output was nearly flat across conditions; accumulated input history explains

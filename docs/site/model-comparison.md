@@ -6,9 +6,11 @@
 |---|---|---:|---|
 | [Frontier screen 29839696631](https://github.com/layer1labs/specsmith/actions/runs/29839696631) | `gpt-5.6-sol` | 5 | Complete screening evidence |
 | [Route/model diagnostic 29834732303](https://github.com/layer1labs/specsmith/actions/runs/29834732303) | GPT-5.6 Sol, GPT-4o-mini, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
+| [T28 long-horizon diagnostic 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611) | GPT-5.6 Sol, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
 
-All runs used the same seven tasks and the same four conditions: raw,
-Cursor rules, Specsmith LIGHT, and Specsmith FULL. GPT-5.6 Sol used Chat
+The first two runs used the same seven tasks and four conditions: raw, Cursor
+rules, Specsmith LIGHT, and Specsmith FULL. The T28 diagnostic used only its
+long-horizon task and raw/LIGHT/FULL conditions. GPT-5.6 Sol used Chat
 Completions with `reasoning_effort=none` for function-tool compatibility,
 uniformly across conditions.
 
@@ -40,6 +42,21 @@ billing records; TPCA is the primary cross-provider comparison.
 
 The diagnostics demonstrate that governance lift is model-dependent. They do
 not justify combining n=1 model rows into a cross-model ranking.
+
+## Long-horizon model behavior
+
+On corrected T28 evidence, GPT-5.6 Sol passed raw, LIGHT, and FULL. FULL used
+25.9k tokens and 5 turns versus 107.5k and 17 for raw. Qwen3.6-35B-A3B reached
+the 20-turn ceiling in every condition without passing the hidden acceptance
+oracle. Its FULL cell used 122.3k tokens, but tokens per correct answer remains
+undefined because correctness was zero.
+
+The trace-level distinction matters more than model price: GPT FULL converged
+after independent verification, while Qwen continued serial tool work until
+the bounded horizon ended. The open-weight lane should therefore test
+milestone decomposition or a stronger tool-serving route rather than globally
+raising T28's turn cap. These n=1 observations guide experiments; they do not
+rank models or prove a Specsmith advantage.
 
 ## Qwen FP8 and base variants
 
