@@ -3,17 +3,15 @@
 GovernanceBench measures how governance/scaffolding changes **cost, quality, and safety**
 across coding-agent workflows.
 
-> Status: the current repeated GPT-5.6 Sol screen and all excluded-run
-> provenance are published in `docs/site/efficiency-benchmark.md`.
+> Status: the current GPT-5.6 Sol screen is split across complete matched runs
+> `29963772623` and `29963515885` at commit `f474bb6`. Across eight tasks and
+> five repetitions per cell, Cursor rules passed 34/40 at 33.8k TPCA;
+> Specsmith FULL passed 40/40 at 9.0k TPCA.
 
-The current T28 screen is GitHub Actions run `29942515095`: Cursor rules and
-Specsmith FULL both passed 5/5; TPCA was 56.3k and 71.4k respectively. The
-deterministic audit was clean. Five repetitions support screening, not a
-universal superiority claim.
-
-Managed Qwen3.6-35B-A3B run `29944111036` is diagnostic-only: both T28 cells
-failed at the 20-turn ceiling, so the open-weight lane has no finite TPCA and
-must not be repeated or ranked as a cost win.
+Managed Qwen run `29962883256` is diagnostic-only. Qwen3.6/DeepInfra passed one
+of three FULL cells; Qwen3-Coder-Next and Qwen3-Coder-480B/Novita passed none.
+The next paid Qwen experiment is the earned Qwen3.6 rerun with adaptive
+composite file tools, not an n=5 promotion or a larger turn budget.
 
 ---
 
@@ -89,8 +87,8 @@ code-only benchmarks.
 Task availability does not imply empirical coverage. Claims must identify the exact
 tasks included in the matched run.
 
-The publication-eligible default suite is `T1`, `T2`, `T6`, `T7`, `T10`,
-`T11`, and `T13`. Its coding tasks have evaluator-only acceptance tests that
+The current publication-eligible screen is `T1`, `T2`, `T6`, `T7`, `T10`,
+`T11`, `T13`, and `T28`. Its coding tasks have evaluator-only acceptance tests that
 are injected after the agent stops. A standard task without an oracle fails
 closed; clean fixtures and no-op responses cannot count as correct.
 Project Ruff and pytest checks run before injection; the oracle then runs once
@@ -105,7 +103,10 @@ request until both `ruff check .` and `pytest` have passed after its latest
 file write. T28 additionally requires fresh Go-test and deterministic UI-validator
 evidence, so a Python-only implementation cannot declare success. A failed check
 sends the agent back through a repair turn; those turns and tokens remain part of
-the measured cost. Other conditions do not
+the measured cost. FULL may apply one Ruff default-safe-fix pass before returning
+a lint-only failure; unsafe fixes are never enabled. After two one-action turns,
+FULL replaces scalar file tools with bounded composite reads/writes so serial
+serving routes can batch one active boundary. Other conditions do not
 receive this completion gate. Hidden acceptance tests remain evaluator-only
 and run after the agent stops, so the gate cannot reveal the benchmark answer.
 
@@ -120,6 +121,8 @@ GovernanceBench is designed for multi-provider runs and tier-to-tier comparisons
 - **OpenAI**: `gpt-4o-mini`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`
 - **Anthropic**: `claude-haiku-4-5`, `claude-sonnet-4-5`, `claude-opus-4-5`
 - **Google**: `gemini-3.5-flash`, `gemini-3.1-pro`
+- **Qwen diagnostics**: `Qwen3.6-35B-A3B:deepinfra`,
+  `Qwen3-Coder-Next:novita`, `Qwen3-Coder-480B-A35B-Instruct:novita`
 - **OpenAI-compatible endpoints** (vLLM/Ollama/proxy): open-source model hosting
 
 ### Model tier framing (examples)

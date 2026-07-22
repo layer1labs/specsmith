@@ -1,96 +1,98 @@
 # Governance Efficiency Model Comparison
 
-## Current evidence levels
+## Evidence levels
 
-| Evidence | Models | Repetitions | Status |
+| Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
-| [Frontier screen 29839696631](https://github.com/layer1labs/specsmith/actions/runs/29839696631) | `gpt-5.6-sol` | 5 | Complete screening evidence |
-| [Route/model diagnostic 29834732303](https://github.com/layer1labs/specsmith/actions/runs/29834732303) | GPT-5.6 Sol, GPT-4o-mini, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
-| [T28 long-horizon diagnostic 29930247611](https://github.com/layer1labs/specsmith/actions/runs/29930247611) | GPT-5.6 Sol, Qwen3.6-35B-A3B | 1 | Complete diagnostic evidence only |
-| [T28 long-horizon screen 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095) | GPT-5.6 Sol | 5 | Complete Cursor/FULL screening evidence |
-| [Corrected Qwen T28 diagnostic 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036) | Qwen3.6-35B-A3B | 1 | Complete diagnostic; zero correct cells |
+| [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
+| [29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256) | Qwen3.6-35B-A3B, Qwen3-Coder-Next, Qwen3-Coder-480B-A35B | 1 | Managed-route diagnostic only |
+| `29839696631`, `29942515095` | GPT-5.6 Sol | 5 | Superseded historical screens |
+| `29944111036` | Qwen3.6-35B-A3B / Scaleway | 1 | Superseded route diagnostic |
 
-The first two runs used the same seven tasks and four conditions: raw, Cursor
-rules, Specsmith LIGHT, and Specsmith FULL. The T28 diagnostic used only its
-long-horizon task and raw/LIGHT/FULL conditions. GPT-5.6 Sol used Chat
-Completions with `reasoning_effort=none` for function-tool compatibility,
-uniformly across conditions.
+Results are never combined across incompatible commits, task grids, routes, or
+repetition sets. GPT-5.6 uses Chat Completions with `reasoning_effort=none` for
+function-tool compatibility in every condition.
 
-## Five-repetition frontier result
+## Current frontier screen
 
-| Condition | Pass rate | TPCA | Conservative list cost/pass |
-|---|---:|---:|---:|
-| Specsmith FULL | 91% | 21.7k | $0.1508 |
-| Specsmith LIGHT | 94% | 21.8k | $0.1502 |
-| Ungoverned | 86% | 25.4k | $0.1724 |
-| Cursor rules | 83% | 32.3k | $0.2124 |
+| Condition | Correct | Tokens/correct | Cost | Mean turns |
+|---|---:|---:|---:|---:|
+| Cursor rules | 34/40 | 33.8k | $5.1779 | 6.38 |
+| Specsmith FULL | 40/40 | 9.0k | $3.3110 | 3.40 |
 
-These mixed-suite point estimates favor Specsmith, but confidence intervals
-overlap. Coding-only correctness favored raw GPT-5.6 Sol: raw passed 25/25,
-Cursor 24/25, LIGHT 23/25, and FULL 22/25. See the
-[full benchmark report](efficiency-benchmark.md) for the task-level explanation.
+The matched point estimate favors FULL on correctness, TPCA, measured cost,
+turns, and wall time across all eight versioned task types. The result is a
+comparison with the repository's Cursor-style rules condition; it is not a
+claim about every interactive feature or future version of the commercial
+Cursor product.
 
-The historical dollar estimates omit cached-input discounts because the run did
-not capture GPT-5.6 cache-write tokens. They are retained for provenance, not as
-billing records; TPCA is the primary cross-provider comparison.
+## Managed Qwen findings
 
-## Diagnostic model behavior
+| Route | Cursor correct | FULL correct | FULL TPCA | Serving observation |
+|---|---:|---:|---:|---|
+| `Qwen/Qwen3.6-35B-A3B:deepinfra` | 2/3 | 1/3 | 186.8k | best managed candidate; T2 benefited strongly, T11/T28 remained serial and slow |
+| `Qwen/Qwen3-Coder-Next:novita` | 2/3 | 0/3 | undefined | lower FULL history on T28, but no correct FULL cell |
+| `Qwen/Qwen3-Coder-480B-A35B-Instruct:novita` | 0/3 | 0/3 | undefined | larger active capacity did not repair tool-loop behavior |
 
-| Model | Main observation |
-|---|---|
-| `gpt-5.6-sol` | Strongest overall correctness and the only model advanced to n=5 screening. |
-| `gpt-4o-mini` | FULL improved n=1 correctness over raw, but Cursor had lower TPCA; useful as a degradation test, not a frontier proxy. |
-| `Qwen/Qwen3.6-35B-A3B:scaleway` | Complete but slow and weak on coding cells; retain as a separate open-weight lane. |
+These n=1 rows diagnose serving/model interaction; they do not rank the models.
+Qwen3.6/DeepInfra took 35m23s for six cells, versus about six minutes for each
+Novita model job. A low list price is therefore not a low task cost when action
+turns and latency multiply.
 
-The diagnostics demonstrate that governance lift is model-dependent. They do
-not justify combining n=1 model rows into a cross-model ranking.
+The strongest positive Qwen receipt was T2: Qwen3.6 FULL passed in 19.3k tokens
+and four turns, while Cursor passed in 65.6k tokens and ten turns. T11 exposed
+the opposite boundary: Cursor passed, while FULL exhausted 12 turns after
+serial reads and an unrelated-defect detour. All T28 cells failed.
 
-## Long-horizon model behavior
+## Which Qwen to test next
 
-The current GPT-5.6 Sol T28 screen passed 5/5 under both Cursor rules and FULL.
-Cursor used 56.3k tokens/correct and FULL used 71.4k, so the repeated result
-does not show a Specsmith token-efficiency advantage. FULL improved from 84.6k
-in the prior screen after epistemic-history compaction, but one bounded
-independent-verification repair raised its current mean. The audit found no
-remaining structured weakness.
+The next managed experiment is `Qwen/Qwen3.6-35B-A3B:deepinfra` with the
+adaptive composite tool surface. It earned that rerun through one correct,
+efficient FULL cell and complete tool/usage receipts. The two Novita routes do
+not warrant repeated paid runs until their serving behavior changes.
 
-The corrected compact-harness Qwen3.6-35B-A3B diagnostic still reached the
-20-turn ceiling in both Cursor and FULL without passing the hidden oracle. The
-cells used 230.8k and 236.9k tokens, but TPCA remains undefined because
-correctness was zero. Its trace repeatedly reread broad project context and
-wrote components serially. The open-weight lane needs a stronger tool-serving
-model or explicit milestone-decomposition experiment before any repeated run;
-the global turn cap should not be raised to conceal non-convergence.
+For a stronger open-weight tool-serving experiment, prefer one of these lanes:
 
-## Qwen FP8 and base variants
+1. **Qwen-native managed agent:** Qwen Code or Qwen-Agent with a current coder
+   endpoint such as `qwen3-coder-plus`, keeping provider and scaffold metadata.
+2. **Self-hosted coder:** Qwen3-Coder-Next through vLLM/SGLang with automatic
+   tool choice and the `qwen3_coder` parser required by its model card.
+3. **Capacity control:** Qwen3-Coder-480B-A35B only after the same native parser
+   is proven; the Novita result shows that parameter count alone is not enough.
 
-`Qwen/Qwen3.6-35B-A3B:scaleway` is the current managed, tool-capable Hugging
-Face route. `Qwen/Qwen3.6-35B-A3B-FP8` has no managed Inference Provider mapping
-at the time of this run. FP8 or base-model testing therefore belongs in a
-self-hosted vLLM/compatible lane with its own hardware, quantization, and
-serving metadata; mixing it into the managed API table would confound model and
-infrastructure effects.
+[Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next) is attractive
+because it is an 80B-total/3B-active coding-agent model with a 256K context and
+explicit long-horizon/tool recovery training. The larger
+[Qwen3-Coder-480B-A35B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct)
+is a useful capacity control, not the default recommendation.
+[Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B) remains the best
+managed-HF candidate measured here.
+
+## FP8 and base variants
+
+The Qwen3.6 FP8 repository was not mapped to a managed Hugging Face Inference
+Provider during the probe. Test it only in a separately labelled self-hosted
+lane with exact hardware, quantization, runtime, parser, and sampling metadata.
+A base model is not the preferred tool agent without post-training or an agent
+scaffold; compare it as a scientific control, not as the expected winner.
 
 ## Recommended comparison set
 
-- Frontier efficacy: GPT-5.6 Sol.
-- Cost/degradation: a current smaller OpenAI model, with no assumption that it
-  represents frontier behavior.
-- Open-weight portability: Qwen3.6 in a separately timed managed or self-hosted
-  lane.
-- Framework breadth: run all twelve scaffolding conditions only after the core
-  raw/Cursor/LIGHT/FULL screen is stable at ten repetitions.
+- GPT-5.6 Sol: frontier efficacy and current repeated anchor.
+- A current smaller OpenAI model: degradation and price sensitivity, never as a
+  proxy for frontier behavior.
+- Qwen3.6/DeepInfra: managed open-weight portability after adaptive tools.
+- Qwen3-Coder-Next/native parser: self-hosted or Qwen-native tool-serving lane.
 
-Future reports must use complete identical cell sets and state their evidence
-level. Five repetitions support screening observations; ten are required for a
-release-quality claim.
+Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
+before a release-quality statistical claim. Preserve raw token, cost, latency,
+sampling, parser, and provider receipts so a serving change is not mistaken for
+a model-quality change.
 
-## Route and failure provenance
+## Failure provenance
 
-Provider and harness failures are reported separately from model quality. Runs
-`29826896259`, `29827597006`, `29827805536`, and `29829542051` were invalidated
-by unavailable routing, request compatibility, or artifact errors. Run
-`29832926861` was cancelled before the Qwen lane completed. None contributes a
-leaderboard row or denominator. This distinction matters especially for hosted
-open-weight models, where routing and serving latency can otherwise be mistaken
-for model capability.
+Unavailable routing, incompatible function-tool settings, cancelled jobs,
+provider errors, and incomplete artifacts remain in provenance but never enter
+a leaderboard denominator. This is especially important for open-weight models:
+the model checkpoint, chat template, tool parser, quantization, and host can each
+change the result.

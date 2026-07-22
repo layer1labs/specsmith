@@ -75,7 +75,13 @@ SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat", "huggin
 # chat/completions for these models; the router multiplexes live third-party
 # inference providers and returns real token usage. Auth via HF_TOKEN.
 _HF_INFERENCE_BASE_URL = "https://router.huggingface.co/v1"
-RUN_COMMAND_ALLOWLIST = ("ruff check .", "pytest", "ruff check . && pytest")
+RUN_COMMAND_ALLOWLIST = (
+    "ruff check .",
+    "ruff check . --fix",
+    "pytest",
+    "ruff check . && pytest",
+)
+MAX_COMPOSITE_FILE_OPS = 12
 
 
 @dataclass(slots=True)
@@ -369,6 +375,60 @@ _BASE_TOOLS: list[dict] = [
     },
 ]
 
+_COMPOSITE_FILE_TOOLS: list[dict] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_files",
+            "description": (
+                "Read several independent project files in one tool call. Prefer this over "
+                "serial read_file calls; include every currently relevant path, at most 12."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "maxItems": MAX_COMPOSITE_FILE_OPS,
+                    }
+                },
+                "required": ["paths"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_files",
+            "description": (
+                "Write several independent complete project files in one tool call. Prefer "
+                "this over serial write_file calls; batch one coherent milestone, at most 12."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": MAX_COMPOSITE_FILE_OPS,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "path": {"type": "string"},
+                                "content": {"type": "string"},
+                            },
+                            "required": ["path", "content"],
+                        },
+                    }
+                },
+                "required": ["files"],
+            },
+        },
+    },
+]
+
 
 def _validator_commands_for_task(task: BenchTask) -> list[str]:
     commands = list(getattr(task, "allowed_validator_commands", []) or [])
@@ -437,12 +497,26 @@ def _build_active_tools(
     task: BenchTask,
     *,
     diagnostics_required: bool = False,
+    composite_files: bool = False,
 ) -> list[dict]:
     """Expose the smallest sufficient tool surface for accepted AEE work."""
     tools = _build_tools(condition_id, task)
+    if condition_id == "SPECSMITH_FULL" and composite_files:
+        tools = [
+            *_COMPOSITE_FILE_TOOLS,
+            *[
+                tool
+                for tool in tools
+                if tool["function"]["name"] not in {"read_file", "write_file"}
+            ],
+        ]
     if condition_id != "SPECSMITH_FULL" or diagnostics_required:
         return tools
-    initial_names = {"read_file", "write_file", "done"}
+    initial_names = (
+        {"read_files", "write_files", "done"}
+        if composite_files
+        else {"read_file", "write_file", "done"}
+    )
     return [tool for tool in tools if tool["function"]["name"] in initial_names]
 
 
@@ -596,6 +670,21 @@ def _looks_like_nonterminal_narration(content: str) -> bool:
         "i will now ",
     )
     return any(marker in normalized for marker in markers)
+
+
+_SERIAL_ACTION_TOOLS = frozenset(
+    {"read_file", "write_file", "list_files", "run_command", "run_validator"}
+)
+
+
+def _updated_serialized_action_count(
+    prior: int,
+    tool_calls: list[NormalizedToolCall],
+) -> int:
+    """Count action turns where a route emits only one executable operation."""
+    if len(tool_calls) == 1 and tool_calls[0].name in _SERIAL_ACTION_TOOLS:
+        return prior + 1
+    return prior
 
 
 def _compact_completed_tool_exchange(
@@ -878,6 +967,60 @@ def _exec_write_file(project_root: Path, path: str, content: str, files_written:
     return f"OK: wrote {len(content)} bytes to {path}"
 
 
+def _exec_read_files_with_evidence(
+    project_root: Path,
+    paths: Any,
+    read_evidence: dict[str, tuple[str, int]],
+    *,
+    turn: int,
+    compress_unchanged: bool,
+) -> tuple[str, list[str]]:
+    """Execute one bounded composite read while retaining per-file receipts."""
+    if not isinstance(paths, list) or not paths:
+        return "ERROR: paths must be a non-empty array", []
+    if len(paths) > MAX_COMPOSITE_FILE_OPS:
+        return f"ERROR: at most {MAX_COMPOSITE_FILE_OPS} files may be read at once", []
+    chunks: list[str] = []
+    suppressed: list[str] = []
+    for raw_path in paths:
+        path = str(raw_path or "")
+        output, was_suppressed = _exec_read_file_with_evidence(
+            project_root,
+            path,
+            read_evidence,
+            turn=turn,
+            compress_unchanged=compress_unchanged,
+        )
+        chunks.append(f"## {path}\n{output}")
+        if was_suppressed:
+            suppressed.append(path)
+    return "\n\n".join(chunks), suppressed
+
+
+def _exec_write_files(
+    project_root: Path,
+    files: Any,
+    files_written: list[str],
+) -> tuple[str, list[str]]:
+    """Execute one bounded composite write without weakening file boundaries."""
+    if not isinstance(files, list) or not files:
+        return "ERROR: files must be a non-empty array", []
+    if len(files) > MAX_COMPOSITE_FILE_OPS:
+        return f"ERROR: at most {MAX_COMPOSITE_FILE_OPS} files may be written at once", []
+    outputs: list[str] = []
+    successful: list[str] = []
+    for item in files:
+        if not isinstance(item, dict):
+            outputs.append("ERROR: each files item must contain path and content")
+            continue
+        path = str(item.get("path") or "")
+        output = _exec_write_file(project_root, path, item.get("content"), files_written)
+        outputs.append(output)
+        if output.startswith("OK:"):
+            successful.append(path)
+    return "\n".join(outputs), successful
+
+
 def _exec_list_files(project_root: Path, directory: str = ".") -> str:
     base, error = _resolve_project_path(project_root, directory)
     if base is None:
@@ -922,8 +1065,13 @@ def _exec_run_command(project_root: Path, command: str) -> tuple[bool, str]:
         test_ok, test_out = _exec_run_command(project_root, "pytest")
         return test_ok, f"ruff OK\n\npytest:\n{test_out}"
     try:
-        if command == "ruff check .":
-            args = [sys.executable, "-m", "ruff", "check", "--no-cache", "."]
+        if command in {"ruff check .", "ruff check . --fix"}:
+            args = [sys.executable, "-m", "ruff", "check", "--no-cache"]
+            if command.endswith(" --fix"):
+                # Ruff applies only fixes it classifies as safe unless
+                # --unsafe-fixes is explicitly requested (it never is here).
+                args.append("--fix")
+            args.append(".")
         elif command == "pytest .governancebench_oracle":
             args = [
                 sys.executable,
@@ -1114,6 +1262,14 @@ def _tool_call_target(tool_call: NormalizedToolCall) -> str:
     args = parsed if isinstance(parsed, dict) else {}
     if tool_call.name in {"read_file", "write_file"}:
         target = str(args.get("path") or "")
+    elif tool_call.name == "read_files":
+        target = ",".join(str(path) for path in (args.get("paths") or [])[:MAX_COMPOSITE_FILE_OPS])
+    elif tool_call.name == "write_files":
+        target = ",".join(
+            str(item.get("path") or "")
+            for item in (args.get("files") or [])[:MAX_COMPOSITE_FILE_OPS]
+            if isinstance(item, dict)
+        )
     elif tool_call.name in {"run_command", "run_validator"}:
         target = str(args.get("command") or "")
     elif tool_call.name == "list_files":
@@ -1716,6 +1872,8 @@ def _run_missing_completion_validators(
     lint_verified: bool,
     tests_verified: bool,
     validator_verified: set[str],
+    *,
+    repair_receipts: list[str] | None = None,
 ) -> tuple[bool, bool, set[str], list[str]]:
     """Run missing FULL completion checks without consuming another LLM turn."""
     failures: list[str] = []
@@ -1724,6 +1882,19 @@ def _run_missing_completion_validators(
         if already_verified:
             continue
         succeeded, output = _exec_run_command(project_root, command)
+        if command == "ruff check ." and not succeeded:
+            # AEE may repair only Ruff's default safe-fix set. This is bounded
+            # to one controller pass and never consults evaluator-only tests.
+            _fix_succeeded, fix_output = _exec_run_command(
+                project_root,
+                "ruff check . --fix",
+            )
+            succeeded, output = _exec_run_command(project_root, command)
+            if succeeded and repair_receipts is not None:
+                repair_receipts.append(
+                    "Ruff default safe fixes applied before completion validation: "
+                    + _compact_tool_result(fix_output)
+                )
         lint_verified, tests_verified = _updated_verification_evidence(
             command,
             succeeded,
@@ -1834,6 +2005,8 @@ def _run_agent_loop(
     from govern_bench.metrics import RunResult, estimate_cost
 
     del specsmith_dir  # governance state is isolated inside project_root
+    diagnostics_required = False
+    composite_files = False
     tools = _build_active_tools(condition.id, task)
     visible_criteria = task.visible_acceptance_criteria
     system_prompt = condition.render_prompt(
@@ -1913,6 +2086,7 @@ def _run_agent_loop(
     empty_response_retries = 0
     text_continuation_retries = 0
     verification_retries = 0
+    serialized_action_count = 0
     last_single_write_target = ""
     repeated_write_streak = 0
     read_evidence: dict[str, tuple[str, int]] = {}
@@ -2054,12 +2228,34 @@ def _run_agent_loop(
                 if suppressed:
                     suppressed_unchanged_reads.append(path)
 
+            elif fn_name == "read_files":
+                out, suppressed_paths = _exec_read_files_with_evidence(
+                    project_root,
+                    args.get("paths"),
+                    read_evidence,
+                    turn=turn + 1,
+                    compress_unchanged=condition.id == "SPECSMITH_FULL",
+                )
+                suppressed_unchanged_reads.extend(suppressed_paths)
+
             elif fn_name == "write_file":
                 out = _exec_write_file(
                     project_root, args.get("path", ""), args.get("content", ""), files_written
                 )
                 if out.startswith("OK:"):
                     successful_write_paths.append(str(args.get("path") or ""))
+                    lint_verified = False
+                    tests_verified = False
+                    validator_verified.clear()
+
+            elif fn_name == "write_files":
+                out, batch_write_paths = _exec_write_files(
+                    project_root,
+                    args.get("files"),
+                    files_written,
+                )
+                if batch_write_paths:
+                    successful_write_paths.extend(batch_write_paths)
                     lint_verified = False
                     tests_verified = False
                     validator_verified.clear()
@@ -2109,6 +2305,7 @@ def _run_agent_loop(
                     validator_verified,
                 )
                 completion_failures: list[str] = []
+                repair_receipts: list[str] = []
                 if (
                     not finished
                     and condition.id == "SPECSMITH_FULL"
@@ -2126,7 +2323,16 @@ def _run_agent_loop(
                         lint_verified,
                         tests_verified,
                         validator_verified,
+                        repair_receipts=repair_receipts,
                     )
+                    if repair_receipts:
+                        agent_transcript.append(
+                            {
+                                "turn": turn + 1,
+                                "role": "controller",
+                                "deterministic_repairs": repair_receipts,
+                            }
+                        )
                     finished, out = _completion_gate(
                         condition.id,
                         task,
@@ -2237,10 +2443,51 @@ def _run_agent_loop(
 
         if validation_failed:
             rework_turns += 1
+            diagnostics_required = True
             tools = _build_active_tools(
                 condition.id,
                 task,
                 diagnostics_required=True,
+                composite_files=composite_files,
+            )
+
+        serialized_action_count = _updated_serialized_action_count(
+            serialized_action_count,
+            msg.tool_calls,
+        )
+        if (
+            condition.id == "SPECSMITH_FULL"
+            and serialized_action_count >= 2
+            and not composite_files
+        ):
+            composite_files = True
+            tools = _build_active_tools(
+                condition.id,
+                task,
+                diagnostics_required=diagnostics_required,
+                composite_files=True,
+            )
+            progress_detail = (
+                _milestone_progress(task, files_written)
+                if task.is_long_horizon
+                else _scope_progress(task, files_written)
+            )
+            adaptive_instruction = (
+                f"{progress_detail} This serving route emitted one action per turn twice; "
+                "the controller replaced scalar file tools with read_files/write_files. "
+                "Batch every independent path for the active boundary in one call."
+            )
+            messages = _replace_adaptive_progress_message(messages, adaptive_instruction)
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "adaptive_tool_surface": {
+                        "reason": "serialized_action_turns",
+                        "count": serialized_action_count,
+                        "tools": ["read_files", "write_files"],
+                    },
+                }
             )
 
         current_single_write = (

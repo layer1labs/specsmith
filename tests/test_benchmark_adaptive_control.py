@@ -11,16 +11,22 @@ _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
 if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
+from govern_bench import harness as harness_module  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
+    NormalizedToolCall,
     _build_active_tools,
     _exec_read_file_with_evidence,
+    _exec_read_files_with_evidence,
+    _exec_write_files,
     _looks_like_nonterminal_narration,
     _milestone_contract,
     _milestone_progress,
     _openai_sampling_params,
     _replace_adaptive_progress_message,
+    _run_missing_completion_validators,
     _scope_contract,
     _scope_progress,
+    _updated_serialized_action_count,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.select_models import load_registry, select  # noqa: E402
@@ -91,6 +97,82 @@ def test_accepted_aee_work_starts_with_minimal_tools_and_bounded_scope() -> None
     assert "app/main.py" in _scope_contract(task)
     assert "tests/test_main.py" in _scope_progress(task, ["app/main.py"])
     assert "call done" in _scope_progress(task, task.expected_files_changed)
+
+
+def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) -> None:
+    task = get_task("T28")
+    scalar_calls = [NormalizedToolCall(id="1", name="read_file", arguments="{}")]
+    count = _updated_serialized_action_count(0, scalar_calls)
+    count = _updated_serialized_action_count(
+        count,
+        [NormalizedToolCall(id="2", name="read_files", arguments="{}")],
+    )
+    count = _updated_serialized_action_count(count, scalar_calls)
+    assert count == 2
+
+    names = [
+        tool["function"]["name"]
+        for tool in _build_active_tools(
+            "SPECSMITH_FULL",
+            task,
+            composite_files=True,
+        )
+    ]
+    assert names == ["read_files", "write_files", "done"]
+
+    written: list[str] = []
+    output, successful = _exec_write_files(
+        tmp_path,
+        [
+            {"path": "one.py", "content": "ONE = 1\n"},
+            {"path": "two.py", "content": "TWO = 2\n"},
+        ],
+        written,
+    )
+    assert successful == ["one.py", "two.py"]
+    assert written == successful
+    assert output.count("OK:") == 2
+
+    content, suppressed = _exec_read_files_with_evidence(
+        tmp_path,
+        successful,
+        {},
+        turn=3,
+        compress_unchanged=True,
+    )
+    assert "## one.py" in content and "## two.py" in content
+    assert suppressed == []
+
+
+def test_full_completion_applies_one_bounded_ruff_safe_fix(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    lint_results = iter([(False, "fixable lint"), (True, "clean")])
+
+    def fake_command(_root: Path, command: str) -> tuple[bool, str]:
+        calls.append(command)
+        if command == "ruff check .":
+            return next(lint_results)
+        if command == "ruff check . --fix":
+            return True, "Fixed 1 error."
+        return True, "passed"
+
+    monkeypatch.setattr(harness_module, "_exec_run_command", fake_command)
+    receipts: list[str] = []
+    lint_ok, tests_ok, _validators, failures = _run_missing_completion_validators(
+        tmp_path,
+        get_task("T2"),
+        False,
+        False,
+        set(),
+        repair_receipts=receipts,
+    )
+
+    assert lint_ok and tests_ok and failures == []
+    assert calls == ["ruff check .", "ruff check . --fix", "ruff check .", "pytest"]
+    assert receipts and "safe fixes" in receipts[0]
 
 
 def test_qwen_sampling_uses_official_model_specific_defaults(

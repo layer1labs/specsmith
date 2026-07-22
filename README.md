@@ -138,55 +138,36 @@ the [`examples/policies`](examples/policies) directory.
 
 ## Governance efficiency benchmark
 
-The latest complete screen uses GPT-5.6 Sol across seven tasks, four matched
-conditions, and five repetitions per cell (140/140 valid cells).
+The current matched GPT-5.6 Sol screen covers eight task types—feature, bug,
+API, schema, CLI, ambiguity, destructive safety, and the polyglot `T28`
+long-horizon product—under Cursor rules and Specsmith FULL. Each cell has five
+repetitions (80 valid rows) at commit `f474bb6`.
 
-| Condition | Pass rate | Tokens/correct | Conservative list cost/pass |
-|---|---:|---:|---:|
-| Ungoverned | 86% | 25.4k | $0.1724 |
-| Cursor rules | 83% | 32.3k | $0.2124 |
-| Specsmith LIGHT | 94% | 21.8k | $0.1502 |
-| Specsmith FULL | 91% | 21.7k | $0.1508 |
+| Condition | Correct | Total tokens | Tokens/correct | Cost | Mean turns |
+|---|---:|---:|---:|---:|---:|
+| Cursor rules | 34/40 | 1,148,565 | 33,781 | $5.1779 | 6.38 |
+| Specsmith FULL | 40/40 | 360,662 | 9,017 | $3.3110 | 3.40 |
 
-These are mixed governance-and-coding point estimates; confidence intervals
-overlap. Coding-only correctness favored raw GPT-5.6 Sol, while Specsmith's
-aggregate benefit came from deterministic ambiguity/safety gates and lower
-token use than Cursor rules. The result reinforces the lean direction: focus on
-linked independent tests, requirements, and compact epistemic context—not more
-generic skills or prompt ceremony.
+On this versioned suite, FULL achieved six more correct results, 73.3% lower
+tokens per correct answer, 36.1% lower measured cost, and 17.4% lower wall time.
+Every individual task type preserved or improved correctness and token use.
+`T28` improved from the superseded 71.4k FULL result to 20.6k tokens/correct,
+versus Cursor's 57.3k, while both remained 5/5 correct.
 
-Only complete matched runs are published. Earlier provider, compatibility, and
-artifact failures are retained as diagnostic provenance but excluded from the
-table. From this release onward, task-level TPCA and correctness regressions are
-treated as product signals: benchmark failures become linked requirements and
-tests before another efficiency claim is made.
+The receipts are split into two complete, non-overlapping matched workflows:
+[T1/T6/T7/T13 run 29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623)
+and [T2/T10/T11/T28 run 29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885).
+The result is evidence for this model, task set, prompts, and commit—not a claim
+that every repository or model will behave identically.
 
-The historical dollar column prices all input tokens at the list input rate.
-The run recorded cache reads but predates cache-write telemetry, so exact
-GPT-5.6 cached billing cannot be reconstructed. TPCA is unaffected; new runs
-record cache reads and writes separately.
-
-GovernanceBench also includes `T28`, a long-horizon incident-command console
-that coordinates a Python API, Go worker, TypeScript/React UI, Playwright user
-journey, JSON Schema, CSS, tests, and architecture documentation. It is reported
-separately from the short-task screen so long-horizon cost cannot be hidden by
-cheap deterministic gates.
-
-The latest matched T28 screen used GPT-5.6 Sol, Cursor rules, Specsmith FULL,
-and five repetitions per condition. Both conditions passed 5/5 hidden oracles.
-Cursor used 56.3k tokens/correct and $0.3187/pass; FULL used 71.4k and $0.3813.
-This does **not** establish a Specsmith token-efficiency advantage: FULL was
-26.7% higher in TPCA. It does show measurable progress from the preceding
-84.6k FULL screen after controller-owned validation and protocol-valid
-superseded-read compaction. The deterministic post-run audit reported no
-weaknesses. One 127k FULL outlier was independent verification catching an
-acceptance gap and successfully forcing another repair; its full cost remains
-in the result. See [run 29942515095](https://github.com/layer1labs/specsmith/actions/runs/29942515095).
-
-The corrected managed Hugging Face Qwen3.6 diagnostic did not converge:
-Cursor and FULL both failed the T28 oracle at the 20-turn ceiling, using 230.8k
-and 236.9k tokens. Its TPCA is therefore infinite, and it was not advanced to
-five repetitions. See [run 29944111036](https://github.com/layer1labs/specsmith/actions/runs/29944111036).
+The latest managed Hugging Face Qwen diagnostic remains below the publication
+bar. In [run 29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256),
+Qwen3.6-35B-A3B on DeepInfra was the only useful candidate: FULL passed T2 in
+19.3k tokens versus Cursor's 65.6k, but failed T11 and T28. Qwen3-Coder-Next
+and Qwen3-Coder-480B-A35B on Novita produced no correct FULL cells. These are
+one-repetition diagnostics, not leaderboard claims. Their traces motivated an
+adaptive composite file-tool surface, bounded safe lint repair, and a focused
+Qwen3.6 rerun; model size alone did not fix serial tool use.
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:

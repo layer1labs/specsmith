@@ -146,12 +146,26 @@ Do not publish comparative claims when intervals overlap substantially without c
   and `pytest` after its latest write before accepting `done`. Failed checks
   trigger measured repair turns. Do not apply this gate to comparison
   conditions, and never expose the hidden oracle during repair.
+- The FULL controller may run one Ruff default-safe-fix pass after a failed
+  lint check, then must rerun lint and tests. Record the repair receipt. Never
+  enable unsafe fixes and never use evaluator output to select a repair.
+- Start accepted FULL work with the smallest sufficient tool surface. Expand
+  diagnostics only after a validator failure. If two action turns contain a
+  single executable operation, replace scalar file tools with bounded
+  composite reads/writes and record the adaptation in the transcript.
+- Long-horizon milestone maps and requirement-linked change boundaries are
+  versioned task metadata, not evaluator evidence. Report only the next
+  incomplete boundary and replace stale progress messages.
 - Disable pytest and Ruff caches during grading so generated cache files do not
   contaminate diffs, scope measurements, or subsequent validation.
 - Record model identifiers, provider, run timestamp, and benchmark commit SHA.
 - Record model-specific compatibility parameters. GPT-5.6 Chat Completions
   runs use `reasoning_effort=none` because that is the function-tool mode
   supported by the provider; every condition for that model uses the same mode.
+- Unless an experiment overrides them, use model-card sampling defaults for
+  Qwen routes: Coder Next `temperature=1.0, top_p=0.95`; Coder 480B-A35B
+  `0.7/0.8`; Qwen3.6 coding `0.6/0.95`. Record the exact hosted route because
+  parser, template, quantization, and latency are part of the result.
 - Preserve raw benchmark output JSON for auditability.
 
 ## 8) Limitations

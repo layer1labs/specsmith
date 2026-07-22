@@ -11,16 +11,22 @@ consolidated into the next published release.
 ## [Unreleased]
 
 ### Added
-- Complete five-repetition GPT-5.6 Sol governance-efficiency screening and
-  matched GPT-4o-mini/Qwen3.6 diagnostics with exact model-route evidence.
-- Publish a separate five-repetition GPT-5.6 Sol T28 long-horizon
-  Cursor/FULL screen with rep-level costs and a clean deterministic weakness
-  audit, without claiming token superiority where the result does not show it.
+- Complete an eight-task, five-repetition GPT-5.6 Sol Cursor/FULL screen:
+  FULL passed 40/40 versus Cursor rules 34/40 while reducing tokens per correct
+  answer by 73.3%. Publish exact workflow, commit, task, cost, turn, and
+  long-horizon receipts.
+- Add managed Hugging Face diagnostics for Qwen3.6/DeepInfra,
+  Qwen3-Coder-Next/Novita, and Qwen3-Coder-480B-A35B/Novita, with official
+  model-specific sampling controls and exact route pricing.
 
 ### Changed
 - Benchmark documentation now separates mixed-suite gains from coding-only
   outcomes and treats tokens per correct answer as the provider-neutral primary
   metric.
+- FULL now begins with only accepted-work tools, reports requirement-linked
+  change boundaries and long-horizon milestones, suppresses unchanged rereads,
+  adapts serial serving routes to bounded composite file operations, and may
+  apply one Ruff default-safe repair before deterministic revalidation.
 - The FULL benchmark controller now keeps internal governance storage outside
   model-visible file context and runs missing linked validators when the model
   calls `done`, preserving fresh evidence while removing validator-only LLM turns.
