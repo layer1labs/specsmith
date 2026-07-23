@@ -55,13 +55,14 @@ task_prompt: |
 
   Go worker:
   - implement exported NormalizeAlert(raw []byte) (Incident, error) in worker/main.go
+  - preserve the starter package main boundary and prefer the existing standard library
   - accept alert JSON with title, service, and severity
   - reject missing fields and invalid severity
   - emit the shared incident field names with status=open
 
   TypeScript/React UI:
   - load and display incidents from /api/incidents
-  - filter by severity and status without discarding the other filter
+  - safely compose severity and status query parameters without discarding either filter
   - show loading, empty, and error states
   - provide an accessible acknowledge action and refresh state after success
   - add a Playwright user-flow test covering load, filter, and acknowledge
@@ -75,7 +76,9 @@ task_prompt: |
 acceptance_criteria: |
   - [ ] Python create/list/filter/ack behavior matches the shared contract
   - [ ] Go NormalizeAlert validates input and emits the same field names/enums
+  - [ ] Go worker preserves the starter package main boundary
   - [ ] React UI has accessible loading/error/empty/list/filter/acknowledge flows
+  - [ ] UI safely composes severity and status query parameters
   - [ ] Playwright covers the primary browser user journey
   - [ ] JSON Schema, API, worker, and UI agree on incident fields and enums
   - [ ] Architecture documentation explains the end-to-end data flow

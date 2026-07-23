@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,10 @@ def main() -> int:
         return 1
     if not _allows_null(schema["properties"]["acknowledged_at"]):
         print("Schema acknowledged_at must allow null")
+        return 1
+    worker = (root / "worker" / "main.go").read_text(encoding="utf-8")
+    if re.search(r"(?m)^\s*package\s+main\s*$", worker) is None:
+        print("worker/main.go must preserve the starter package main boundary")
         return 1
     print("Shared incident contract checks passed")
     return 0

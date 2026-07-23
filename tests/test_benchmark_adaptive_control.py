@@ -14,6 +14,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from govern_bench import harness as harness_module  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
     NormalizedToolCall,
+    _active_boundary_has_current_evidence,
     _active_tool_names,
     _build_active_tools,
     _build_focused_repair_tools,
@@ -24,6 +25,7 @@ from govern_bench.harness import (  # noqa: E402
     _looks_like_nonterminal_narration,
     _milestone_contract,
     _milestone_progress,
+    _next_incomplete_boundary_paths,
     _openai_sampling_params,
     _read_paths_from_calls,
     _record_written_evidence,
@@ -65,6 +67,29 @@ def test_unchanged_file_reads_return_digest_receipts_until_content_changes(
     assert "VALUE = 1" not in repeated
     assert changed == "VALUE = 2\n"
     assert not changed_suppressed
+
+
+def test_missing_file_reads_are_versioned_absence_evidence(tmp_path: Path) -> None:
+    evidence: dict[str, tuple[str, int]] = {}
+    first, first_suppressed = _exec_read_file_with_evidence(
+        tmp_path,
+        "new_test.py",
+        evidence,
+        turn=2,
+        compress_unchanged=True,
+    )
+    repeated, repeated_suppressed = _exec_read_file_with_evidence(
+        tmp_path,
+        "new_test.py",
+        evidence,
+        turn=3,
+        compress_unchanged=True,
+    )
+
+    assert first.startswith("ERROR: file not found:")
+    assert not first_suppressed
+    assert repeated_suppressed
+    assert "remains absent" in repeated
 
 
 def test_successful_model_writes_become_known_evidence(tmp_path: Path) -> None:
@@ -113,6 +138,38 @@ def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> 
             "backend/main.py",
             "tests/test_backend.py",
         ],
+    )
+    worker_paths = ["worker/main.go", "worker/main_test.go"]
+    assert (
+        _next_incomplete_boundary_paths(
+            task,
+            [
+                "contracts/incident.schema.json",
+                "backend/main.py",
+                "tests/test_backend.py",
+            ],
+        )
+        == worker_paths
+    )
+    evidence = {path: ("digest", 1) for path in worker_paths}
+    assert _active_boundary_has_current_evidence(
+        task,
+        [
+            "contracts/incident.schema.json",
+            "backend/main.py",
+            "tests/test_backend.py",
+        ],
+        evidence,
+    )
+    evidence.pop("worker/main_test.go")
+    assert not _active_boundary_has_current_evidence(
+        task,
+        [
+            "contracts/incident.schema.json",
+            "backend/main.py",
+            "tests/test_backend.py",
+        ],
+        evidence,
     )
 
     messages = _replace_adaptive_progress_message([], "first")

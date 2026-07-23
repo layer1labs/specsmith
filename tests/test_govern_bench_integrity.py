@@ -801,6 +801,83 @@ def test_t28_visible_contract_validator_rejects_incomplete_starter(tmp_path: Pat
     assert "acknowledged_at" in output
 
 
+def test_t28_visible_contract_validator_preserves_worker_package(tmp_path: Path) -> None:
+    task = get_task("T28")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    fields = {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "service": {"type": "string"},
+        "severity": {"type": "string", "enum": ["low", "medium", "high", "critical"]},
+        "status": {"type": "string", "enum": ["open", "acknowledged"]},
+        "created_at": {"type": "string"},
+        "acknowledged_at": {"type": ["string", "null"]},
+    }
+    (project / "contracts" / "incident.schema.json").write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "properties": fields,
+                "required": list(fields),
+                "additionalProperties": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    worker = project / "worker" / "main.go"
+    worker.write_text(
+        worker.read_text(encoding="utf-8").replace("package main", "package worker", 1),
+        encoding="utf-8",
+    )
+
+    passed, output = _exec_run_validator(
+        project,
+        task,
+        "python tools/validate_contract.py",
+    )
+
+    assert not passed
+    assert "preserve the starter package main boundary" in output
+
+
+def test_t28_visible_ui_validator_requires_safe_composed_query(tmp_path: Path) -> None:
+    task = get_task("T28")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    (project / "ui" / "src" / "App.tsx").write_text(
+        "loading error severity status acknowledge incidents.length === 0 no incidents",
+        encoding="utf-8",
+    )
+    api = project / "ui" / "src" / "api.ts"
+    api.write_text(
+        "fetch('/api/incidents?severity=' + severity + '&status=' + status)", encoding="utf-8"
+    )
+    (project / "ui" / "tests" / "incident-console.spec.ts").write_text(
+        "test('flow', async ({ page }) => page.getByRole('button'))",
+        encoding="utf-8",
+    )
+
+    passed, output = _exec_run_validator(
+        project,
+        task,
+        "python tools/validate_ui.py",
+    )
+    assert not passed
+    assert "safely compose severity and status" in output
+
+    api.write_text(
+        "const params = new URLSearchParams(); fetch('/api/incidents?' + params.toString())",
+        encoding="utf-8",
+    )
+    passed, output = _exec_run_validator(
+        project,
+        task,
+        "python tools/validate_ui.py",
+    )
+    assert passed, output
+
+
 def test_full_controller_runs_only_missing_completion_validators(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -754,6 +754,38 @@ def _scope_progress(task: BenchTask, files_written: list[str]) -> str:
     return "All requirement-linked boundaries have write evidence; call done for validation."
 
 
+def _next_incomplete_boundary_paths(task: BenchTask, files_written: list[str]) -> list[str]:
+    """Return only the active requirement boundary, never the entire repository."""
+    written = {_normalized_history_path(path) for path in files_written}
+    if task.is_long_horizon and task.milestones:
+        for milestone in task.milestones:
+            remaining = [
+                str(path)
+                for path in (milestone.get("files") or [])
+                if _normalized_history_path(path) not in written
+            ]
+            if remaining:
+                return remaining
+        return []
+    return [
+        str(path)
+        for path in task.expected_files_changed
+        if _normalized_history_path(path) not in written
+    ]
+
+
+def _active_boundary_has_current_evidence(
+    task: BenchTask,
+    files_written: list[str],
+    read_evidence: dict[str, tuple[str, int]],
+) -> bool:
+    """Return whether every path in the next bounded change set is already known."""
+    remaining = _next_incomplete_boundary_paths(task, files_written)
+    return bool(remaining) and all(
+        _normalized_history_path(path) in read_evidence for path in remaining
+    )
+
+
 _ADAPTIVE_PROGRESS_PREFIX = "[Specsmith adaptive progress]"
 
 
@@ -1060,10 +1092,21 @@ def _exec_read_file_with_evidence(
 ) -> tuple[str, bool]:
     """Read a file once per version and suppress unchanged epistemic churn."""
     content = _exec_read_file(project_root, path)
+    key = _normalized_history_path(path)
+    if content.startswith("ERROR: file not found:"):
+        digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+        prior = read_evidence.get(key)
+        if compress_unchanged and prior and prior[0] == digest:
+            return (
+                f"UNCHANGED: {path} remains absent as recorded on turn {prior[1]} "
+                f"(sha256={digest}). Create it if the active boundary requires it.",
+                True,
+            )
+        read_evidence[key] = (digest, turn)
+        return content, False
     if content.startswith("ERROR:"):
         return content, False
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
-    key = _normalized_history_path(path)
     prior = read_evidence.get(key)
     if compress_unchanged and prior and prior[0] == digest:
         return (
@@ -2722,15 +2765,41 @@ def _run_agent_loop(
                 }
             )
 
-        if successful_write_paths and read_tools_suspended and not active_repair_focus:
-            read_tools_suspended = False
+        if successful_write_paths and not active_repair_focus:
             unchanged_read_only_streak = 0
-            tools = _build_active_tools(
+            base_tools = _build_active_tools(
                 condition.id,
                 task,
                 diagnostics_required=diagnostics_required,
                 composite_files=composite_files,
             )
+            if _active_boundary_has_current_evidence(task, files_written, read_evidence):
+                read_tools_suspended = True
+                tools = _without_read_tools(base_tools)
+                progress_detail = (
+                    _milestone_progress(task, files_written)
+                    if task.is_long_horizon
+                    else _scope_progress(task, files_written)
+                )
+                known_boundary = (
+                    "Every path in the next requirement boundary already has current "
+                    "evidence. Read tools remain suspended; implement from that evidence. "
+                    f"{progress_detail}"
+                )
+                messages = _replace_adaptive_progress_message(messages, known_boundary)
+                agent_transcript.append(
+                    {
+                        "turn": turn + 1,
+                        "role": "controller",
+                        "adaptive_tool_surface": {
+                            "reason": "next_boundary_already_known",
+                            "removed_tools": sorted(_READ_TOOL_NAMES),
+                        },
+                    }
+                )
+            else:
+                read_tools_suspended = False
+                tools = base_tools
 
         if (
             condition.id == "SPECSMITH_FULL"

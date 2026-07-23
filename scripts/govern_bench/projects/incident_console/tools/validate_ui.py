@@ -27,6 +27,10 @@ def main() -> int:
     if "/api/incidents" not in api:
         print("api.ts does not call /api/incidents")
         return 1
+    folded_api = api.casefold()
+    if "urlsearchparams" not in folded_api and "encodeuricomponent" not in folded_api:
+        print("api.ts must safely compose severity and status query parameters")
+        return 1
     if "test.skip" in browser_test or "getbyrole" not in browser_test.casefold():
         print("Playwright flow is skipped or lacks accessible role selectors")
         return 1
