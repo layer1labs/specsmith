@@ -119,8 +119,23 @@ validator:
   shell: auto
   commands:
     - "go -C worker test ./..."
+    - "python tools/validate_contract.py"
     - "python tools/validate_ui.py"
+  boundaries:
+    "go -C worker test ./...":
+      - worker/main.go
+      - worker/main_test.go
+    "python tools/validate_contract.py":
+      - contracts/incident.schema.json
+      - backend/main.py
+      - worker/main.go
+      - ui/src/api.ts
+    "python tools/validate_ui.py":
+      - ui/src/App.tsx
+      - ui/src/api.ts
+      - ui/tests/incident-console.spec.ts
   allowed_patterns:
     - "^pytest( .*)?$"
     - "^go -C worker test( .*)?$"
+    - "^python tools/validate_contract.py$"
     - "^python tools/validate_ui.py$"

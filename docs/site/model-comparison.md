@@ -5,6 +5,7 @@
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
 | [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
+| [29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911) | Qwen3.6-35B-A3B / DeepInfra | 1 | Adaptive managed-route diagnostic |
 | [29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256) | Qwen3.6-35B-A3B, Qwen3-Coder-Next, Qwen3-Coder-480B-A35B | 1 | Managed-route diagnostic only |
 | `29839696631`, `29942515095` | GPT-5.6 Sol | 5 | Superseded historical screens |
 | `29944111036` | Qwen3.6-35B-A3B / Scaleway | 1 | Superseded route diagnostic |
@@ -44,12 +45,21 @@ and four turns, while Cursor passed in 65.6k tokens and ten turns. T11 exposed
 the opposite boundary: Cursor passed, while FULL exhausted 12 turns after
 serial reads and an unrelated-defect detour. All T28 cells failed.
 
+The adaptive Qwen3.6 rerun changed that diagnostic from Cursor 2/3 and FULL
+1/3 to Cursor 1/3 and FULL 2/3; stochastic n=1 results must not be combined as
+replicates. Within the new run, FULL used 201,485 tokens (100.7k TPCA) versus
+Cursor's 358,653 tokens (358.7k TPCA). FULL T11 passed in six turns after one
+composite two-file write. T28 remained incorrect at the 20-turn boundary despite
+all public checks passing, exposing a contract-validator and repair-direction
+gap rather than evidence that more turns or a larger model would solve it.
+
 ## Which Qwen to test next
 
-The next managed experiment is `Qwen/Qwen3.6-35B-A3B:deepinfra` with the
-adaptive composite tool surface. It earned that rerun through one correct,
-efficient FULL cell and complete tool/usage receipts. The two Novita routes do
-not warrant repeated paid runs until their serving behavior changes.
+The next managed experiment is one T28-only Cursor/FULL diagnostic with
+`Qwen/Qwen3.6-35B-A3B:deepinfra` after the visible shared-contract validator and
+focused repair boundaries. It tests the observed failure directly at two paid
+cells. The two Novita routes do not warrant repeated paid runs until their
+serving behavior changes.
 
 For a stronger open-weight tool-serving experiment, prefer one of these lanes:
 

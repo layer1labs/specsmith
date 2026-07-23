@@ -18,6 +18,8 @@ consolidated into the next published release.
 - Add managed Hugging Face diagnostics for Qwen3.6/DeepInfra,
   Qwen3-Coder-Next/Novita, and Qwen3-Coder-480B-A35B/Novita, with official
   model-specific sampling controls and exact route pricing.
+- Add a visible T28 shared-contract validator and versioned validator-to-file
+  repair boundaries while preserving the independent hidden acceptance oracle.
 
 ### Changed
 - Benchmark documentation now separates mixed-suite gains from coding-only
@@ -27,6 +29,9 @@ consolidated into the next published release.
   change boundaries and long-horizon milestones, suppresses unchanged rereads,
   adapts serial serving routes to bounded composite file operations, and may
   apply one Ruff default-safe repair before deterministic revalidation.
+- Publish adaptive Qwen3.6 run `29966620911`: FULL improved from 1/3 to 2/3
+  correct and reduced diagnostic TPCA by 46.1%; the remaining T28 disagreement
+  now drives a focused two-cell contract-repair experiment.
 - The FULL benchmark controller now keeps internal governance storage outside
   model-visible file context and runs missing linked validators when the model
   calls `done`, preserving fresh evidence while removing validator-only LLM turns.

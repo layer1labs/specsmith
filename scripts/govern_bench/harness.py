@@ -450,6 +450,37 @@ def _validator_patterns_for_task(task: BenchTask) -> list[str]:
     return [str(p).strip() for p in patterns if str(p).strip()]
 
 
+def _validator_boundaries_for_task(task: BenchTask, command: str) -> list[str]:
+    """Return visible requirement boundaries linked to one public validator."""
+    validator = getattr(task, "validator", None)
+    if not isinstance(validator, dict):
+        return []
+    boundaries = validator.get("boundaries") or {}
+    if not isinstance(boundaries, dict):
+        return []
+    paths = boundaries.get(command) or []
+    return [str(path) for path in paths if str(path).strip()] if isinstance(paths, list) else []
+
+
+def _focused_validator_repair_progress(task: BenchTask, failures: list[str]) -> str:
+    """Map public validator failures to compact, versioned repair boundaries."""
+    focus: list[str] = []
+    for command in _validator_commands_for_task(task):
+        if not any(failure.startswith(f"{command} FAILED:") for failure in failures):
+            continue
+        paths = _validator_boundaries_for_task(task, command)
+        if paths:
+            focus.append(f"{command} -> {', '.join(paths)}")
+    if not focus:
+        return ""
+    return (
+        "Public validator repair boundary: "
+        + "; ".join(focus)
+        + ". The failure output is authoritative. Edit these requirement-linked files now; "
+        "do not reread validator implementation or unrelated project files."
+    )
+
+
 def _build_run_validator_tool(task: BenchTask) -> dict | None:
     commands = _validator_commands_for_task(task)
     patterns = _validator_patterns_for_task(task)
@@ -502,18 +533,14 @@ def _build_active_tools(
     """Expose the smallest sufficient tool surface for accepted AEE work."""
     tools = _build_tools(condition_id, task)
     if condition_id == "SPECSMITH_FULL" and composite_files:
-        tools = [
-            *_COMPOSITE_FILE_TOOLS,
-            *[
-                tool
-                for tool in tools
-                if tool["function"]["name"] not in {"read_file", "write_file"}
-            ],
-        ]
+        # Keep scalar tools schema-valid for earlier conversation turns while
+        # adding a bounded composite path. Some OpenAI-compatible routes keep
+        # selecting a previously advertised scalar tool after a tool refresh.
+        tools = [*_COMPOSITE_FILE_TOOLS, *tools]
     if condition_id != "SPECSMITH_FULL" or diagnostics_required:
         return tools
     initial_names = (
-        {"read_files", "write_files", "done"}
+        {"read_files", "write_files", "read_file", "write_file", "done"}
         if composite_files
         else {"read_file", "write_file", "done"}
     )
@@ -2090,6 +2117,7 @@ def _run_agent_loop(
     last_single_write_target = ""
     repeated_write_streak = 0
     read_evidence: dict[str, tuple[str, int]] = {}
+    active_repair_focus = ""
     stop_reason = "max_turns"
 
     for turn in range(max_turns):
@@ -2342,11 +2370,17 @@ def _run_agent_loop(
                     )
                     if completion_failures:
                         validation_failed = True
+                        active_repair_focus = _focused_validator_repair_progress(
+                            task,
+                            completion_failures,
+                        )
                         out = (
                             "Completion blocked by deterministic validation. Repair these "
                             "failures, then call done again; the controller will rerun only "
                             "missing checks.\n\n" + "\n\n".join(completion_failures)
                         )
+                    elif finished:
+                        active_repair_focus = ""
                 if not finished and condition.id == "SPECSMITH_FULL":
                     governance_turns += 1
                 elif (
@@ -2441,6 +2475,22 @@ def _run_agent_loop(
                 }
             )
 
+        if condition.id == "SPECSMITH_FULL" and active_repair_focus:
+            focus = active_repair_focus
+            if suppressed_unchanged_reads:
+                focus += (
+                    f" Suppressed {len(suppressed_unchanged_reads)} unchanged reread(s); "
+                    "reuse the existing evidence and make the repair."
+                )
+            messages = _replace_adaptive_progress_message(messages, focus)
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "focused_repair": focus,
+                }
+            )
+
         if validation_failed:
             rework_turns += 1
             diagnostics_required = True
@@ -2474,7 +2524,7 @@ def _run_agent_loop(
             )
             adaptive_instruction = (
                 f"{progress_detail} This serving route emitted one action per turn twice; "
-                "the controller replaced scalar file tools with read_files/write_files. "
+                "the controller added read_files/write_files while retaining scalar tools. "
                 "Batch every independent path for the active boundary in one call."
             )
             messages = _replace_adaptive_progress_message(messages, adaptive_instruction)

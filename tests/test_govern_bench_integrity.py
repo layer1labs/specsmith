@@ -39,6 +39,7 @@ from govern_bench.harness import (  # noqa: E402
     _exec_list_files,
     _exec_read_file,
     _exec_run_command,
+    _exec_run_validator,
     _exec_write_file,
     _get_project_dir,
     _install_acceptance_oracle,
@@ -637,6 +638,7 @@ def test_long_horizon_full_gate_requires_fresh_polyglot_validators() -> None:
     accepted, instruction = _completion_gate("SPECSMITH_FULL", task, True, True, set())
     assert not accepted
     assert "go -C worker test ./..." in instruction
+    assert "python tools/validate_contract.py" in instruction
     assert "python tools/validate_ui.py" in instruction
 
     evidence: set[str] = set()
@@ -650,6 +652,22 @@ def test_long_horizon_full_gate_requires_fresh_polyglot_validators() -> None:
         evidence,
     )
     assert not _completion_gate("SPECSMITH_FULL", task, True, True, evidence)[0]
+
+
+def test_t28_visible_contract_validator_rejects_incomplete_starter(tmp_path: Path) -> None:
+    task = get_task("T28")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+
+    passed, output = _exec_run_validator(
+        project,
+        task,
+        "python tools/validate_contract.py",
+    )
+
+    assert not passed
+    assert "Schema properties missing" in output
+    assert "acknowledged_at" in output
 
 
 def test_full_controller_runs_only_missing_completion_validators(

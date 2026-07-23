@@ -18,6 +18,7 @@ from govern_bench.harness import (  # noqa: E402
     _exec_read_file_with_evidence,
     _exec_read_files_with_evidence,
     _exec_write_files,
+    _focused_validator_repair_progress,
     _looks_like_nonterminal_narration,
     _milestone_contract,
     _milestone_progress,
@@ -118,7 +119,7 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
             composite_files=True,
         )
     ]
-    assert names == ["read_files", "write_files", "done"]
+    assert names == ["read_files", "write_files", "read_file", "write_file", "done"]
 
     written: list[str] = []
     output, successful = _exec_write_files(
@@ -142,6 +143,17 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
     )
     assert "## one.py" in content and "## two.py" in content
     assert suppressed == []
+
+    focus = _focused_validator_repair_progress(
+        task,
+        [
+            "python tools/validate_contract.py FAILED:\nmissing field",
+            "python tools/validate_ui.py FAILED:\nmissing role selector",
+        ],
+    )
+    assert "contracts/incident.schema.json" in focus
+    assert "ui/tests/incident-console.spec.ts" in focus
+    assert "do not reread validator" in focus
 
 
 def test_full_completion_applies_one_bounded_ruff_safe_fix(

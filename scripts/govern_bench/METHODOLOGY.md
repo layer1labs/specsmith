@@ -151,11 +151,15 @@ Do not publish comparative claims when intervals overlap substantially without c
   enable unsafe fixes and never use evaluator output to select a repair.
 - Start accepted FULL work with the smallest sufficient tool surface. Expand
   diagnostics only after a validator failure. If two action turns contain a
-  single executable operation, replace scalar file tools with bounded
-  composite reads/writes and record the adaptation in the transcript.
+  single executable operation, add bounded composite reads/writes and record
+  the adaptation in the transcript. Keep earlier scalar schemas valid because
+  some compatible routes select historically advertised tools after refresh.
 - Long-horizon milestone maps and requirement-linked change boundaries are
   versioned task metadata, not evaluator evidence. Report only the next
   incomplete boundary and replace stale progress messages.
+- Public task-specific validators may declare versioned repair boundaries.
+  After a failure, report the authoritative failure plus only its linked files;
+  suppress unchanged validator rereads. Keep hidden-oracle failures isolated.
 - Disable pytest and Ruff caches during grading so generated cache files do not
   contaminate diffs, scope measurements, or subsequent validation.
 - Record model identifiers, provider, run timestamp, and benchmark commit SHA.

@@ -160,14 +160,18 @@ and [T2/T10/T11/T28 run 29963515885](https://github.com/layer1labs/specsmith/act
 The result is evidence for this model, task set, prompts, and commit—not a claim
 that every repository or model will behave identically.
 
-The latest managed Hugging Face Qwen diagnostic remains below the publication
-bar. In [run 29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256),
-Qwen3.6-35B-A3B on DeepInfra was the only useful candidate: FULL passed T2 in
-19.3k tokens versus Cursor's 65.6k, but failed T11 and T28. Qwen3-Coder-Next
-and Qwen3-Coder-480B-A35B on Novita produced no correct FULL cells. These are
-one-repetition diagnostics, not leaderboard claims. Their traces motivated an
-adaptive composite file-tool surface, bounded safe lint repair, and a focused
-Qwen3.6 rerun; model size alone did not fix serial tool use.
+The managed Hugging Face Qwen evidence remains diagnostic, not publication
+quality. The initial [three-route run 29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256)
+showed that model size alone did not fix serial tool use: Qwen3.6-35B-A3B on
+DeepInfra passed one of three FULL cells, while the two Novita coder routes
+passed none. After adaptive composite file tools, bounded lint repair, and
+milestone guidance, [Qwen3.6 rerun 29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911)
+improved FULL from 1/3 to 2/3 and reduced its tokens per correct answer from
+186.8k to 100.7k. T28 still failed: public checks passed, but the hidden oracle
+found an incomplete shared schema and non-semantic browser selectors. The next
+experiment makes those public contract failures deterministic and maps each
+failed validator to a small repair boundary; all Qwen figures are n=1 and are
+not leaderboard claims.
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:

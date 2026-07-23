@@ -61,11 +61,12 @@ The improvement came from making governance smaller and more deterministic:
 - tool surfaces expand only after a validation failure.
 
 The next adaptive layer observes serving behavior rather than model branding.
-After two one-action turns, FULL replaces scalar reads and writes with bounded
-`read_files`/`write_files` operations (maximum 12 paths) and asks the route to
-batch the active boundary. Completion may also run one Ruff default-safe-fix
-pass before revalidation. The hidden oracle is unchanged and never supplies
-repair content.
+After two one-action turns, FULL adds bounded `read_files`/`write_files`
+operations (maximum 12 paths) and asks the route to batch the active boundary.
+Scalar definitions remain available because some OpenAI-compatible routes keep
+selecting a tool advertised earlier in the conversation. Completion may also
+run one Ruff default-safe-fix pass before revalidation. The hidden oracle is
+unchanged and never supplies repair content.
 
 ## Qwen route diagnostic
 
@@ -79,9 +80,25 @@ receipts only; none was advanced to n=5.
 | `Qwen/Qwen3-Coder-Next:novita` | 2/3 | 0/3 | Lower FULL tokens on T28, but serial repair and an acceptance gap prevented correctness |
 | `Qwen/Qwen3-Coder-480B-A35B-Instruct:novita` | 0/3 | 0/3 | Larger active capacity did not overcome serial actions or incomplete T28 boundaries |
 
-The evidence rejects “use the largest Qwen” as the next move. The useful managed
-follow-up is Qwen3.6/DeepInfra with adaptive composite tools. A stronger
-infrastructure experiment is Qwen3-Coder-Next behind its native
+The evidence rejects “use the largest Qwen” as the next move. A focused
+[Qwen3.6/DeepInfra adaptive rerun 29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911)
+then produced these n=1 results on the same T2/T11/T28 task set:
+
+| Condition | Correct | Total tokens | Tokens/correct | Main finding |
+|---|---:|---:|---:|---|
+| Cursor rules | 1/3 | 358,653 | 358,653 | T11 passed; T2 and T28 failed |
+| Specsmith FULL | 2/3 | 201,485 | 100,743 | T2/T11 passed; T28 failed |
+
+Relative to the first Qwen3.6 diagnostic, adaptive FULL improved from 1/3 to
+2/3 and reduced TPCA by 46.1%. T11 is the clearest causal trace: after two
+scalar turns, the route used one composite write for the implementation and
+test and passed in six turns. T28 wrote every declared file and passed its
+public project checks, but the hidden oracle rejected an omitted required schema
+field and generic Playwright locators. This public-test/oracle disagreement
+motivated a visible contract validator and validator-to-file repair boundaries;
+it did not justify a larger turn cap or n=5 promotion.
+
+A stronger infrastructure experiment is Qwen3-Coder-Next behind its native
 `qwen3_coder` parser in vLLM/SGLang or Qwen Code/Qwen-Agent, where multi-step
 tool semantics are part of the serving stack. The official model cards are
 [Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B),

@@ -8,10 +8,12 @@ across coding-agent workflows.
 > five repetitions per cell, Cursor rules passed 34/40 at 33.8k TPCA;
 > Specsmith FULL passed 40/40 at 9.0k TPCA.
 
-Managed Qwen run `29962883256` is diagnostic-only. Qwen3.6/DeepInfra passed one
-of three FULL cells; Qwen3-Coder-Next and Qwen3-Coder-480B/Novita passed none.
-The next paid Qwen experiment is the earned Qwen3.6 rerun with adaptive
-composite file tools, not an n=5 promotion or a larger turn budget.
+Managed Qwen runs are diagnostic-only. Initial run `29962883256` found one of
+three correct Qwen3.6/DeepInfra FULL cells and no correct Novita coder FULL cell.
+Adaptive rerun `29966620911` improved Qwen3.6 FULL to 2/3 and reduced TPCA from
+186.8k to 100.7k, but T28 still exposed a public-validator/oracle disagreement.
+The next paid experiment is T28-only after visible contract and focused repair
+boundaries, not an n=5 promotion or a larger turn budget.
 
 ---
 
@@ -100,13 +102,15 @@ screen before any aggregate claim is made.
 
 For standard coding tasks, `SPECSMITH_FULL` also blocks the agent's `done`
 request until both `ruff check .` and `pytest` have passed after its latest
-file write. T28 additionally requires fresh Go-test and deterministic UI-validator
-evidence, so a Python-only implementation cannot declare success. A failed check
+file write. T28 additionally requires fresh Go-test, shared-contract, and
+deterministic UI-validator evidence, so a Python-only implementation cannot declare success. A failed check
 sends the agent back through a repair turn; those turns and tokens remain part of
 the measured cost. FULL may apply one Ruff default-safe-fix pass before returning
 a lint-only failure; unsafe fixes are never enabled. After two one-action turns,
-FULL replaces scalar file tools with bounded composite reads/writes so serial
-serving routes can batch one active boundary. Other conditions do not
+FULL adds bounded composite reads/writes so serial serving routes can batch one
+active boundary while earlier scalar schemas remain valid. Failed task-specific
+validators point to versioned repair files and discourage unchanged validator
+rereads. Other conditions do not
 receive this completion gate. Hidden acceptance tests remain evaluator-only
 and run after the agent stops, so the gate cannot reveal the benchmark answer.
 

@@ -43,12 +43,22 @@ failed, so none has finite TPCA and none was promoted to a repeated screen.
 | Qwen3-Coder-Next / Novita | fail | fail | 68.1k | lower input history, incomplete cross-boundary validation |
 | Qwen3-Coder-480B-A35B / Novita | fail | fail | 55.4k | model size did not prevent milestone fragmentation |
 
-The next experiment changes action shape, not the turn cap: after two
-one-action turns, Specsmith exposes bounded composite reads/writes and tells the
-route to batch the active milestone. Qwen3.6/DeepInfra is the managed route to
-rerun because it also produced a correct 19.3k-token FULL T2 cell. A native
-Qwen serving lane should use the model's `qwen3_coder` tool parser or Qwen's
-agent scaffold before comparing model sizes again.
+The follow-up changed action shape, not the turn cap. In
+[workflow 29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911),
+Qwen3.6/DeepInfra FULL passed T2 and T11 (2/3) at 100.7k TPCA versus Cursor's
+T11-only 1/3 at 358.7k TPCA. FULL T28 still failed after 133.7k tokens and 20
+turns. Its public validators passed, but the hidden oracle scored 3/5 because
+the shared schema did not require `acknowledged_at` and the browser test did not
+use semantic role locators. The trace also showed repeated reads of the public
+UI validator after its failure instead of an edit.
+
+The controller now keeps scalar tools valid while adding composite operations,
+adds a visible deterministic shared-contract validator, and maps each failed
+public validator to versioned requirement-linked files. The repair instruction
+explicitly makes failure output authoritative and suppresses unchanged validator
+rereads. The hidden oracle remains isolated. A native Qwen serving lane should
+still use the model's `qwen3_coder` tool parser or Qwen's agent scaffold before
+comparing model sizes again.
 
 ## Completion and oracle boundaries
 
