@@ -160,25 +160,26 @@ and [T2/T10/T11/T28 run 29963515885](https://github.com/layer1labs/specsmith/act
 The result is evidence for this model, task set, prompts, and commit—not a claim
 that every repository or model will behave identically.
 
-The managed Hugging Face Qwen evidence remains diagnostic, not publication
-quality. The initial [three-route run 29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256)
-showed that model size alone did not fix serial tool use: Qwen3.6-35B-A3B on
-DeepInfra passed one of three FULL cells, while the two Novita coder routes
-passed none. After adaptive composite file tools, bounded lint repair, and
-milestone guidance, [Qwen3.6 rerun 29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911)
-improved FULL from 1/3 to 2/3 and reduced its tokens per correct answer from
-186.8k to 100.7k. T28 still failed: public checks passed, but the hidden oracle
-found an incomplete shared schema and non-semantic browser selectors. The next
-experiment made those public contract failures deterministic and mapped each
-failed validator to a small repair boundary. In
-[T28 run 29969671380](https://github.com/layer1labs/specsmith/actions/runs/29969671380),
-FULL implemented all ten files and passed the hidden oracle 5/5, but still
-failed after 203.2k tokens and 891 seconds: one safe-fixable Ruff import-order
-error remained after the last write, and the route spent its last six turns on
-rereads instead of repair. Cursor also failed at 183.1k tokens. All Qwen figures
-are n=1 diagnostics, not leaderboard claims; the next earned Qwen experiment is
-Coder-Next with its native `qwen3_coder` tool parser, not another managed-route
-repetition.
+Managed Hugging Face Qwen evidence remains diagnostic, not publication quality.
+The best recent Qwen3.6/DeepInfra T28 cell,
+[run 30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286),
+was correct but used 180,895 tokens and all 20 turns. Trace-driven read and
+repair controls then reduced one cell to 136,360 tokens
+([run 30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699)),
+but that stochastic sample failed the independent oracle. The final
+[run 30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354)
+passed the hidden oracle 5/5 yet failed its self-authored public tests and Ruff
+after 151,666 tokens. These n=1 cells are not combined or promoted.
+
+The managed Qwen3-Coder-Next route also failed admission: one T28 request
+returned HTTP 400 before a model action
+([run 30007255204](https://github.com/layer1labs/specsmith/actions/runs/30007255204)),
+and its T2 control wrote no files in 58,149 tokens
+([run 30007554143](https://github.com/layer1labs/specsmith/actions/runs/30007554143)).
+That route did not demonstrate the model's native `qwen3_coder` parser. The
+current evidence therefore supports GPT-5.6 Sol plus Specsmith FULL as the
+efficient reliable configuration on this suite; a new Qwen comparison must
+change the serving/tool protocol before it earns another paid repetition.
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 To combine those outcome findings with the normal project governance audit:

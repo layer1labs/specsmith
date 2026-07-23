@@ -5,6 +5,8 @@
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
 | [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
+| [30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286), [30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699), [30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354) | Qwen3.6-35B-A3B / DeepInfra | 1 each | Trace-driven T28 diagnostics; never combined |
+| [30007255204](https://github.com/layer1labs/specsmith/actions/runs/30007255204), [30007554143](https://github.com/layer1labs/specsmith/actions/runs/30007554143) | Qwen3-Coder-Next / Novita | 1 each | Provider/tool-route admission failures |
 | [29969671380](https://github.com/layer1labs/specsmith/actions/runs/29969671380) | Qwen3.6-35B-A3B / DeepInfra | 1 | T28 contract-repair diagnostic |
 | [29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911) | Qwen3.6-35B-A3B / DeepInfra | 1 | Adaptive managed-route diagnostic |
 | [29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256) | Qwen3.6-35B-A3B, Qwen3-Coder-Next, Qwen3-Coder-480B-A35B | 1 | Managed-route diagnostic only |
@@ -61,14 +63,29 @@ implemented every declared file, and passed the hidden oracle 5/5, but one Ruff
 visible contract and milestone decomposition therefore improved substantive
 coverage but did not make this serving route efficient or reliable.
 
+## July 23 admission decision
+
+| Workflow | Correct | Tokens | Public evidence | Independent evidence |
+|---|---:|---:|---|---|
+| [30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286) | yes | 180,895 | passed | hidden oracle 5/5 |
+| [30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699) | no | 136,360 | passed | hidden oracle failed |
+| [30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354) | no | 151,666 | self-authored tests and Ruff failed | hidden oracle 5/5 |
+
+The token controls materially reduced some traces but did not produce repeatable
+correctness. All three used 20 turns. The one correct cell was 8.8× GPT-5.6 Sol
+FULL's current 20.6k T28 TPCA, so managed Qwen3.6 is rejected for an n=5 screen.
+The Qwen3-Coder-Next/Novita experiments also failed admission: `30007255204`
+returned HTTP 400 before the first action, while `30007554143` wrote no files in
+58,149 tokens. Neither demonstrates the native parser.
+
 ## Which Qwen to test next
 
-No further managed Qwen3.6 repetition is earned. The next experiment must change
+No further managed Qwen repetition is earned. The next experiment must change
 the serving/tool protocol: Qwen3-Coder-Next behind the native `qwen3_coder`
 parser, with one T28 FULL cell as the admission test. It advances to a matched
 Cursor/FULL n=5 screen only after that cell is correct and materially better on
 tokens and wall time. The Novita OpenAI-compatible route is not a substitute for
-this experiment because its earlier trace did not demonstrate native multi-tool
+this experiment because its trace did not demonstrate native multi-tool
 semantics.
 
 For a stronger open-weight tool-serving experiment, prefer one of these lanes:

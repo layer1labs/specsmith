@@ -8,19 +8,19 @@ across coding-agent workflows.
 > five repetitions per cell, Cursor rules passed 34/40 at 33.8k TPCA;
 > Specsmith FULL passed 40/40 at 9.0k TPCA.
 
-Managed Qwen runs are diagnostic-only. Initial run `29962883256` found one of
-three correct Qwen3.6/DeepInfra FULL cells and no correct Novita coder FULL cell.
-Adaptive rerun `29966620911` improved Qwen3.6 FULL to 2/3 and reduced TPCA from
-186.8k to 100.7k, but T28 still exposed a public-validator/oracle disagreement.
-T28 run `29969671380` repaired the hidden acceptance gap (FULL 5/5 oracle) but
-both cells failed; FULL used 203.2k tokens and 891.3s before ending on a Ruff
-`I001` and repeated rereads. It does not earn another managed-route repetition.
-The next admission test is one Qwen3-Coder-Next FULL cell behind its native
-`qwen3_coder` parser, not an n=5 promotion or a larger turn budget.
+Managed Qwen runs are diagnostic-only. The current Qwen3.6/DeepInfra T28
+sequence produced one correct 180,895-token cell (`30010219286`), one
+136,360-token oracle failure (`30011743699`), and one 151,666-token cell whose
+hidden oracle passed but public tests and Ruff failed (`30013020354`). Each used
+all 20 turns; stochastic n=1 cells are never combined as repetitions.
+Qwen3-Coder-Next/Novita also failed admission (`30007255204` provider HTTP 400;
+`30007554143` no files written in its T2 control). No managed Qwen route earns
+an n=5 promotion. The next Qwen test must use a native `qwen3_coder` tool parser
+or a Qwen-native agent surface, not a larger turn budget.
 Live tool probes allow 60 seconds for high-latency managed routes but still fail
 closed before the benchmark matrix starts on auth, billing, timeout, or tool errors.
 
-For the earned native Qwen admission test, serve `Qwen/Qwen3-Coder-Next` with
+For a future native Qwen admission test, serve `Qwen/Qwen3-Coder-Next` with
 vLLM `--enable-auto-tool-choice --tool-call-parser qwen3_coder`, point
 `BENCH_OPENAI_BASE_URL` at its `/v1` endpoint, and run only T28/FULL at one
 repetition. Preserve parser, runtime, revision, quantization, hardware, and

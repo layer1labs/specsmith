@@ -61,13 +61,24 @@ still use the model's `qwen3_coder` tool parser or Qwen's agent scaffold before
 comparing model sizes again.
 
 The targeted [T28 follow-up 29969671380](https://github.com/layer1labs/specsmith/actions/runs/29969671380)
-confirmed that the contract visibility worked but the managed route remained
-inefficient. FULL passed the hidden oracle 5/5 after implementing all ten declared
-files, versus Cursor's 4/5, but neither cell was correct. FULL consumed 203.2k
-tokens and 891.3 seconds, then exhausted turns with one Ruff `I001` after its
-last write. Turns 15–20 repeatedly requested unchanged Go/UI files despite the
-focused repair instruction. The benchmark audit therefore classifies the next
-move as a serving/tool-policy experiment, not more milestones or a larger cap.
+confirmed that contract visibility worked but the managed route remained
+inefficient. Later runs separated scaffold defects from route reliability:
+
+- `30010219286` was correct at 180,895 tokens, but exhausted 20 turns and
+  repeated 26 of 48 reads.
+- `30011743699` reduced tokens to 136,360 after digest and repair controls, but
+  failed the independent oracle.
+- `30013020354` passed the oracle 5/5, yet its own tests coupled to a nonexistent
+  private `_data` attribute and still failed after 151,666 tokens and 20 turns.
+
+The resulting controller records model-owned writes and known absence as
+epistemic evidence, withholds already-known reads at the next milestone, and
+returns repair writes directly to deterministic validation. The public T28
+contract now also enforces the starter Go package and safely composed UI query
+parameters. These changes close observed governance gaps without changing the
+turn cap or hidden oracle. The remaining finding is route/model reliability:
+managed Qwen3.6 is not promoted, and the next Qwen test must change the native
+tool-serving protocol.
 
 The final scorer now reruns public task validators before installing the hidden
 oracle, applies at most one FULL default-safe Ruff repair, and executes the

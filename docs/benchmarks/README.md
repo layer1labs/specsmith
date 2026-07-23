@@ -33,21 +33,27 @@ See the [current executable results](../site/efficiency-benchmark.md) and the
 
 ## Current validated evidence
 
-- Frontier screening: GitHub Actions run `29839696631`, GPT-5.6 Sol, seven
-  exact tasks, four conditions, five repetitions, 140/140 valid cells.
+- Current frontier screen: GPT-5.6 Sol runs `29963772623` and `29963515885`,
+  eight exact task types, Cursor rules/FULL, and five repetitions per cell.
+  FULL passed 40/40 at 9.0k TPCA; Cursor rules passed 34/40 at 33.8k TPCA.
 - Model/route diagnostic: run `29834732303`, the same matched task/condition
   grid, one repetition for GPT-5.6 Sol, GPT-4o-mini, and
   Qwen3.6-35B-A3B.
 - Corrected long-horizon diagnostic: run `29930247611`, T28 raw/LIGHT/FULL,
   one repetition for GPT-5.6 Sol and Qwen3.6-35B-A3B. GPT passed all three;
   Qwen reached the bounded turn ceiling in all three. This is diagnostic only.
-- Current long-horizon screen: run `29942515095`, T28 Cursor/FULL, five
-  repetitions for GPT-5.6 Sol. Both passed 5/5; Cursor used 56.3k TPCA and
-  FULL 71.4k. The audit reported no weaknesses, so the result is publishable
-  screening evidence but not a Specsmith token-superiority claim.
+- Current long-horizon screen: run `29963515885`, T28 Cursor/FULL, five
+  repetitions for GPT-5.6 Sol. Both passed 5/5; Cursor used 57.3k TPCA and
+  FULL 20.6k.
 - Corrected managed Qwen diagnostic: run `29944111036`, T28 Cursor/FULL, one
   repetition. Both reached 20 turns without passing; TPCA is infinite and the
   audit reports turn exhaustion, acceptance gaps, and context dominance.
+- July 23 Qwen admission diagnostics: Qwen3.6/DeepInfra T28 FULL runs
+  `30010219286`, `30011743699`, and `30013020354` were respectively correct at
+  180.9k tokens, oracle-failing at 136.4k, and public-test-failing at 151.7k.
+  All used 20 turns and remain separate n=1 cells. Qwen3-Coder-Next/Novita runs
+  `30007255204` and `30007554143` failed provider/tool admission and are not
+  native-parser evidence.
 - Incomplete, cancelled, provider-error, and artifact-error attempts are
   diagnostic provenance only. They must not populate a comparison table.
 

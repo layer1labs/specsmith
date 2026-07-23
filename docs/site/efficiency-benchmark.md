@@ -107,19 +107,33 @@ did not produce a correct cell:
 | Cursor rules | 0/1 | 183,061 | 354.5s | project tests passed; hidden oracle 4/5 |
 | Specsmith FULL | 0/1 | 203,217 | 891.3s | project tests 10/10 and hidden oracle 5/5; final Ruff `I001` remained |
 
-The visible contract validator repaired the former acceptance gap: FULL's schema,
-API, worker, UI, public tests, and architecture were complete enough for the
-independent oracle. It did not repair the route's action policy. After a
-three-file repair at turn 14, Qwen reread unchanged repair files through turn 20
-instead of calling `done` or fixing the remaining import order. The harness now
-applies the same bounded default-safe Ruff pass before final scoring and keeps
-the hidden oracle strictly post-loop and single-run. This result does not earn
-another managed Qwen3.6 repetition: its tokens, latency, and reliability are all
-below the release bar.
+The visible contract validator repaired the former acceptance gap, but the
+route's action policy remained inefficient. July 23 trace-driven experiments
+then tested progressively stricter controller behavior:
 
-A stronger infrastructure experiment is Qwen3-Coder-Next behind its native
-`qwen3_coder` parser in vLLM/SGLang or Qwen Code/Qwen-Agent, where multi-step
-tool semantics are part of the serving stack. The official model cards are
+| Workflow | Route / cell | Correct | Tokens | Turns | Evidence |
+|---|---|---:|---:|---:|---|
+| [30007255204](https://github.com/layer1labs/specsmith/actions/runs/30007255204) | Coder-Next/Novita, T28 FULL | no result | — | 0 | provider HTTP 400 before a model action |
+| [30007554143](https://github.com/layer1labs/specsmith/actions/runs/30007554143) | Coder-Next/Novita, T2 FULL | no | 58,149 | 12 | no files written; route did not follow the advertised tool surface |
+| [30009178814](https://github.com/layer1labs/specsmith/actions/runs/30009178814) | Qwen3.6/DeepInfra, T28 FULL | no | 107,749 | 20 | only five boundaries written; broad reread churn |
+| [30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286) | Qwen3.6/DeepInfra, T28 FULL | yes | 180,895 | 20 | all ten files, clean public checks, hidden oracle 5/5 |
+| [30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699) | Qwen3.6/DeepInfra, T28 FULL | no | 136,360 | 20 | 24.6% fewer tokens than the correct cell, but independent oracle failed |
+| [30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354) | Qwen3.6/DeepInfra, T28 FULL | no | 151,666 | 20 | hidden oracle 5/5; self-authored public tests and Ruff failed |
+
+The sequence isolated and fixed real scaffold weaknesses: completed writes now
+become digest evidence, known file absence is versioned, reads are suspended
+when the next declared boundary is already known, repair writes return directly
+to controller validation, and public T28 validators cover Go package and query
+composition boundaries. Those changes reduced redundant context without
+weakening the hidden oracle. They did not make the managed model reliable: only
+one of three recent Qwen3.6 cells was correct, all reached the turn ceiling, and
+the correct cell used 8.8× GPT-5.6 Sol FULL's 20.6k T28 TPCA.
+
+No managed Qwen result is promoted to n=5. A stronger infrastructure experiment
+is Qwen3-Coder-Next behind its native `qwen3_coder` parser in vLLM/SGLang or
+Qwen Code/Qwen-Agent, where multi-step tool semantics are part of the serving
+stack. The Novita runs are managed OpenAI-compatible route evidence, not native
+parser evidence. The official model cards are
 [Qwen3.6-35B-A3B](https://huggingface.co/Qwen/Qwen3.6-35B-A3B),
 [Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next), and
 [Qwen3-Coder-480B-A35B-Instruct](https://huggingface.co/Qwen/Qwen3-Coder-480B-A35B-Instruct).

@@ -35,6 +35,15 @@ consolidated into the next published release.
 - Publish Qwen3.6 T28 run `29969671380`: the visible contract repaired FULL's
   hidden-oracle result to 5/5, but both cells remained incorrect and FULL spent
   203.2k tokens plus 891.3 seconds before repeated rereads exhausted the cap.
+- Publish the July 23 Qwen admission sequence: one correct Qwen3.6 T28 cell at
+  180.9k tokens (`30010219286`), a 136.4k oracle-failing cell
+  (`30011743699`), and a 151.7k cell with a 5/5 hidden oracle but failing
+  self-authored public tests (`30013020354`). Quarantine all as n=1 diagnostics.
+- Benchmark read control now records successful writes and known file absence,
+  suspends reads when the next declared boundary already has current evidence,
+  and returns immediately to controller-owned validation after a focused repair.
+- T28's public contract now requires the starter Go package boundary, safe
+  composed UI query parameters, and validator coverage for both requirements.
 - The FULL benchmark controller now keeps internal governance storage outside
   model-visible file context and runs missing linked validators when the model
   calls `done`, preserving fresh evidence while removing validator-only LLM turns.
@@ -71,6 +80,10 @@ consolidated into the next published release.
   This removes file bodies without teaching models to imitate content-less writes.
 - Generated reports list exact non-contiguous task IDs instead of inventing a
   contiguous range.
+- Managed Qwen3-Coder-Next failures now remain explicit provenance: run
+  `30007255204` failed at the provider boundary and run `30007554143` consumed
+  58.1k tokens without writing a file; neither is treated as native-parser
+  evidence or a model ranking.
 
 ## [0.25.0] - 2026-07-20
 
