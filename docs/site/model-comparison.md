@@ -5,6 +5,7 @@
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
 | [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
+| [29969671380](https://github.com/layer1labs/specsmith/actions/runs/29969671380) | Qwen3.6-35B-A3B / DeepInfra | 1 | T28 contract-repair diagnostic |
 | [29966620911](https://github.com/layer1labs/specsmith/actions/runs/29966620911) | Qwen3.6-35B-A3B / DeepInfra | 1 | Adaptive managed-route diagnostic |
 | [29962883256](https://github.com/layer1labs/specsmith/actions/runs/29962883256) | Qwen3.6-35B-A3B, Qwen3-Coder-Next, Qwen3-Coder-480B-A35B | 1 | Managed-route diagnostic only |
 | `29839696631`, `29942515095` | GPT-5.6 Sol | 5 | Superseded historical screens |
@@ -53,13 +54,22 @@ composite two-file write. T28 remained incorrect at the 20-turn boundary despite
 all public checks passing, exposing a contract-validator and repair-direction
 gap rather than evidence that more turns or a larger model would solve it.
 
+The contract-repair T28 run then failed both conditions. Cursor used 183.1k
+tokens and passed 4/5 hidden checks. FULL used 203.2k tokens over 891.3 seconds,
+implemented every declared file, and passed the hidden oracle 5/5, but one Ruff
+`I001` remained after the last write. Turns 15–20 were unchanged rereads. The
+visible contract and milestone decomposition therefore improved substantive
+coverage but did not make this serving route efficient or reliable.
+
 ## Which Qwen to test next
 
-The next managed experiment is one T28-only Cursor/FULL diagnostic with
-`Qwen/Qwen3.6-35B-A3B:deepinfra` after the visible shared-contract validator and
-focused repair boundaries. It tests the observed failure directly at two paid
-cells. The two Novita routes do not warrant repeated paid runs until their
-serving behavior changes.
+No further managed Qwen3.6 repetition is earned. The next experiment must change
+the serving/tool protocol: Qwen3-Coder-Next behind the native `qwen3_coder`
+parser, with one T28 FULL cell as the admission test. It advances to a matched
+Cursor/FULL n=5 screen only after that cell is correct and materially better on
+tokens and wall time. The Novita OpenAI-compatible route is not a substitute for
+this experiment because its earlier trace did not demonstrate native multi-tool
+semantics.
 
 For a stronger open-weight tool-serving experiment, prefer one of these lanes:
 
@@ -69,6 +79,30 @@ For a stronger open-weight tool-serving experiment, prefer one of these lanes:
    tool choice and the `qwen3_coder` parser required by its model card.
 3. **Capacity control:** Qwen3-Coder-480B-A35B only after the same native parser
    is proven; the Novita result shows that parameter count alone is not enough.
+
+The self-hosted admission experiment is intentionally one cell:
+
+```bash
+vllm serve Qwen/Qwen3-Coder-Next \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen3_coder
+
+export BENCH_OPENAI_BASE_URL=http://127.0.0.1:8000/v1
+export BENCH_OPENAI_COMPAT_API_KEY=local
+export PYTHONPATH=scripts
+python -m govern_bench.run_bench \
+  --provider openai-compat \
+  --model Qwen/Qwen3-Coder-Next \
+  --task T28 \
+  --condition SPECSMITH_FULL \
+  --reps 1 \
+  --json-output qwen-coder-next-native-t28.json
+```
+
+Record the runtime, parser, model revision, quantization, hardware, sampling,
+and endpoint metadata with the artifact. Without those fields, the result is a
+generic OpenAI-compatible route test rather than evidence about native Qwen tool
+serving.
 
 [Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next) is attractive
 because it is an 80B-total/3B-active coding-agent model with a 256K context and

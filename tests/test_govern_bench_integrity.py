@@ -545,6 +545,45 @@ def test_standard_validation_isolates_hidden_oracle(
     assert not oracle_dir.exists()
 
 
+def test_long_horizon_final_validation_runs_public_boundaries_before_oracle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    task = get_task("T28")
+    oracle_dir = tmp_path / ".governancebench_oracle"
+    events: list[str] = []
+
+    def fake_command(_root: Path, command: str) -> tuple[bool, str]:
+        events.append(command)
+        return True, command
+
+    def fake_validator(_root: Path, _task: object, command: str) -> tuple[bool, str]:
+        assert not oracle_dir.exists()
+        events.append(command)
+        return True, command
+
+    def fake_install(_task: object, _root: Path) -> Path:
+        events.append("install")
+        oracle_dir.mkdir()
+        return oracle_dir
+
+    monkeypatch.setattr(harness_module, "_exec_run_command", fake_command)
+    monkeypatch.setattr(harness_module, "_exec_run_validator", fake_validator)
+    monkeypatch.setattr(harness_module, "_install_acceptance_oracle", fake_install)
+
+    result = harness_module._run_standard_validation(task, tmp_path)
+
+    assert result[0] and result[2] and result[4]
+    assert events == [
+        "ruff check .",
+        "pytest",
+        *task.allowed_validator_commands,
+        "install",
+        "pytest .governancebench_oracle",
+    ]
+    assert not oracle_dir.exists()
+
+
 def test_project_diff_excludes_evaluator_and_cache_artifacts(tmp_path: Path) -> None:
     source = tmp_path / "source"
     project = tmp_path / "project"
@@ -925,7 +964,7 @@ def test_agent_loop_stops_repeated_single_file_write_loop(
     assert any(event.get("repeated_tool_target") for event in result.agent_transcript)
 
 
-def test_full_agent_loop_retries_until_independent_equilibrium(
+def test_full_agent_loop_uses_public_equilibrium_and_runs_hidden_oracle_once(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -934,26 +973,33 @@ def test_full_agent_loop_retries_until_independent_equilibrium(
     task = get_task("T1")
     project = tmp_path / "project"
     _copy_project_fixture(_get_project_dir(task.project), project)
-    responses = iter(
-        [
-            NormalizedLLMResponse(
-                message=NormalizedAssistantMessage(
-                    tool_calls=[NormalizedToolCall(id=f"done-{index}", name="done", arguments="{}")]
-                ),
-                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
-            )
-            for index in (1, 2)
-        ]
+    response = NormalizedLLMResponse(
+        message=NormalizedAssistantMessage(
+            tool_calls=[NormalizedToolCall(id="done-1", name="done", arguments="{}")]
+        ),
+        usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
     )
-    validations = iter(
-        [
-            (True, "", True, "", False, "hidden failure"),
-            (True, "", True, "", True, ""),
-            (True, "", True, "", True, ""),
-        ]
-    )
-    monkeypatch.setattr(harness_module, "_call_llm", lambda **_kwargs: next(responses))
+    validation_calls = 0
+    final_repair_checks = 0
+
+    def fake_standard_validation(*_args: object) -> tuple[bool, str, bool, str, bool, str]:
+        nonlocal validation_calls
+        validation_calls += 1
+        return True, "", True, "", True, ""
+
+    def fake_final_repair(*_args: object, **kwargs: object) -> tuple[bool, str, str]:
+        nonlocal final_repair_checks
+        final_repair_checks += 1
+        assert kwargs["phase"] == "final scoring"
+        return True, "", ""
+
+    monkeypatch.setattr(harness_module, "_call_llm", lambda **_kwargs: response)
     monkeypatch.setattr(harness_module, "_completion_gate", lambda *_args: (True, "done"))
+    monkeypatch.setattr(
+        harness_module,
+        "_run_missing_completion_validators",
+        lambda *_args, **_kwargs: (True, True, set(), []),
+    )
     monkeypatch.setattr(
         harness_module,
         "_run_governance_controller",
@@ -964,17 +1010,20 @@ def test_full_agent_loop_retries_until_independent_equilibrium(
             "test_case_ids": ["TEST-BENCH-001"],
         },
     )
+    monkeypatch.setattr(harness_module, "_run_standard_validation", fake_standard_validation)
     monkeypatch.setattr(
-        harness_module, "_run_standard_validation", lambda *_args: next(validations)
+        harness_module,
+        "_run_ruff_with_bounded_safe_fix",
+        fake_final_repair,
     )
 
     def fake_verify(*, test_results: dict, **_kwargs) -> dict:
-        equilibrium = test_results["failed"] == 0
+        assert test_results == {"passed": 1, "failed": 0}
         return {
-            "equilibrium": equilibrium,
-            "confidence": 0.85 if equilibrium else 0.4,
+            "equilibrium": True,
+            "confidence": 0.85,
             "retry_budget": 3,
-            "retry_strategy": "" if equilibrium else "fix_tests",
+            "retry_strategy": "",
         }
 
     monkeypatch.setattr(governance_logic, "run_verify", fake_verify)
@@ -987,17 +1036,19 @@ def test_full_agent_loop_retries_until_independent_equilibrium(
         condition=get_condition("SPECSMITH_FULL"),
         project_root=project,
         specsmith_dir=tmp_path,
-        max_turns=4,
+        max_turns=2,
     )
 
     verification_events = [
         event["verify"] for event in result.agent_transcript if "verify" in event
     ]
-    assert [event["equilibrium"] for event in verification_events] == [False, True]
+    assert [event["equilibrium"] for event in verification_events] == [True]
     assert result.verify_result["equilibrium"] is True
     assert result.stop_reason == "done"
-    assert result.llm_turns == 2
-    assert result.rework_turns == 2
+    assert result.llm_turns == 1
+    assert result.rework_turns == 1
+    assert validation_calls == 1
+    assert final_repair_checks == 1
 
 
 def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:

@@ -140,15 +140,19 @@ Do not publish comparative claims when intervals overlap substantially without c
 - Start runs from clean project fixtures/worktrees.
 - Inject evaluator-only acceptance tests only after the agent finishes. A
   standard coding task without a hidden oracle is not scoreable and must fail
-  closed. Run project lint and project tests before injection, then run the
-  independent oracle exactly once in isolation. Passing requires all three.
+  closed. Run project lint, project tests, and task-specific public validators
+  before injection, then run the independent oracle exactly once in isolation.
+  Passing requires every applicable check.
 - For standard coding tasks, require `SPECSMITH_FULL` to pass `ruff check .`
   and `pytest` after its latest write before accepting `done`. Failed checks
   trigger measured repair turns. Do not apply this gate to comparison
   conditions, and never expose the hidden oracle during repair.
 - The FULL controller may run one Ruff default-safe-fix pass after a failed
-  lint check, then must rerun lint and tests. Record the repair receipt. Never
-  enable unsafe fixes and never use evaluator output to select a repair.
+  completion check and once before final scoring after later writes. It must
+  rerun lint, record the repair receipt, never enable unsafe fixes, and never
+  use evaluator output to select a repair.
+- Agent-loop equilibrium uses public completion evidence only. Never install or
+  run the hidden oracle inside the model loop; it cannot trigger a repair turn.
 - Start accepted FULL work with the smallest sufficient tool surface. Expand
   diagnostics only after a validator failure. If two action turns contain a
   single executable operation, add bounded composite reads/writes and record

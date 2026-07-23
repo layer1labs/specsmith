@@ -32,6 +32,9 @@ consolidated into the next published release.
 - Publish adaptive Qwen3.6 run `29966620911`: FULL improved from 1/3 to 2/3
   correct and reduced diagnostic TPCA by 46.1%; the remaining T28 disagreement
   now drives a focused two-cell contract-repair experiment.
+- Publish Qwen3.6 T28 run `29969671380`: the visible contract repaired FULL's
+  hidden-oracle result to 5/5, but both cells remained incorrect and FULL spent
+  203.2k tokens plus 891.3 seconds before repeated rereads exhausted the cap.
 - The FULL benchmark controller now keeps internal governance storage outside
   model-visible file context and runs missing linked validators when the model
   calls `done`, preserving fresh evidence while removing validator-only LLM turns.
@@ -39,6 +42,10 @@ consolidated into the next published release.
   history so obsolete source versions do not dominate later input tokens.
 
 ### Fixed
+- Run public task validators before final evaluator injection, keep equilibrium
+  decisions on public evidence only, and execute the hidden oracle exactly once
+  after the agent stops. FULL may apply one recorded default-safe Ruff repair
+  before final scoring without consuming another model turn.
 - Allow slow managed tool routes up to 60 seconds for the tiny fail-closed live
   compatibility probe, preventing the measured Qwen latency from being mistaken
   for an unavailable endpoint.

@@ -12,10 +12,19 @@ Managed Qwen runs are diagnostic-only. Initial run `29962883256` found one of
 three correct Qwen3.6/DeepInfra FULL cells and no correct Novita coder FULL cell.
 Adaptive rerun `29966620911` improved Qwen3.6 FULL to 2/3 and reduced TPCA from
 186.8k to 100.7k, but T28 still exposed a public-validator/oracle disagreement.
-The next paid experiment is T28-only after visible contract and focused repair
-boundaries, not an n=5 promotion or a larger turn budget.
+T28 run `29969671380` repaired the hidden acceptance gap (FULL 5/5 oracle) but
+both cells failed; FULL used 203.2k tokens and 891.3s before ending on a Ruff
+`I001` and repeated rereads. It does not earn another managed-route repetition.
+The next admission test is one Qwen3-Coder-Next FULL cell behind its native
+`qwen3_coder` parser, not an n=5 promotion or a larger turn budget.
 Live tool probes allow 60 seconds for high-latency managed routes but still fail
 closed before the benchmark matrix starts on auth, billing, timeout, or tool errors.
+
+For the earned native Qwen admission test, serve `Qwen/Qwen3-Coder-Next` with
+vLLM `--enable-auto-tool-choice --tool-call-parser qwen3_coder`, point
+`BENCH_OPENAI_BASE_URL` at its `/v1` endpoint, and run only T28/FULL at one
+repetition. Preserve parser, runtime, revision, quantization, hardware, and
+sampling metadata; promote only a correct cell.
 
 ---
 
@@ -114,7 +123,9 @@ active boundary while earlier scalar schemas remain valid. Failed task-specific
 validators point to versioned repair files and discourage unchanged validator
 rereads. Other conditions do not
 receive this completion gate. Hidden acceptance tests remain evaluator-only
-and run after the agent stops, so the gate cannot reveal the benchmark answer.
+and run exactly once after the agent stops, so the gate cannot reveal the
+benchmark answer. Final scoring reruns public task validators first and may
+apply one FULL default-safe Ruff repair without another LLM turn.
 
 ---
 

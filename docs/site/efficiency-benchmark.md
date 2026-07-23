@@ -65,8 +65,9 @@ After two one-action turns, FULL adds bounded `read_files`/`write_files`
 operations (maximum 12 paths) and asks the route to batch the active boundary.
 Scalar definitions remain available because some OpenAI-compatible routes keep
 selecting a tool advertised earlier in the conversation. Completion may also
-run one Ruff default-safe-fix pass before revalidation. The hidden oracle is
-unchanged and never supplies repair content.
+run one Ruff default-safe-fix pass before completion or final scoring. Public
+task validators run before the hidden oracle, which is executed exactly once
+after the agent stops and never supplies repair content.
 
 ## Qwen route diagnostic
 
@@ -97,6 +98,24 @@ public project checks, but the hidden oracle rejected an omitted required schema
 field and generic Playwright locators. This public-test/oracle disagreement
 motivated a visible contract validator and validator-to-file repair boundaries;
 it did not justify a larger turn cap or n=5 promotion.
+
+The focused [T28 contract-repair run 29969671380](https://github.com/layer1labs/specsmith/actions/runs/29969671380)
+did not produce a correct cell:
+
+| Condition | Correct | Tokens | Wall time | Final evidence |
+|---|---:|---:|---:|---|
+| Cursor rules | 0/1 | 183,061 | 354.5s | project tests passed; hidden oracle 4/5 |
+| Specsmith FULL | 0/1 | 203,217 | 891.3s | project tests 10/10 and hidden oracle 5/5; final Ruff `I001` remained |
+
+The visible contract validator repaired the former acceptance gap: FULL's schema,
+API, worker, UI, public tests, and architecture were complete enough for the
+independent oracle. It did not repair the route's action policy. After a
+three-file repair at turn 14, Qwen reread unchanged repair files through turn 20
+instead of calling `done` or fixing the remaining import order. The harness now
+applies the same bounded default-safe Ruff pass before final scoring and keeps
+the hidden oracle strictly post-loop and single-run. This result does not earn
+another managed Qwen3.6 repetition: its tokens, latency, and reliability are all
+below the release bar.
 
 A stronger infrastructure experiment is Qwen3-Coder-Next behind its native
 `qwen3_coder` parser in vLLM/SGLang or Qwen Code/Qwen-Agent, where multi-step

@@ -1908,20 +1908,15 @@ def _run_missing_completion_validators(
         already_verified = lint_verified if command == "ruff check ." else tests_verified
         if already_verified:
             continue
-        succeeded, output = _exec_run_command(project_root, command)
-        if command == "ruff check ." and not succeeded:
-            # AEE may repair only Ruff's default safe-fix set. This is bounded
-            # to one controller pass and never consults evaluator-only tests.
-            _fix_succeeded, fix_output = _exec_run_command(
+        if command == "ruff check .":
+            succeeded, output, repair_receipt = _run_ruff_with_bounded_safe_fix(
                 project_root,
-                "ruff check . --fix",
+                phase="completion validation",
             )
+            if repair_receipt and repair_receipts is not None:
+                repair_receipts.append(repair_receipt)
+        else:
             succeeded, output = _exec_run_command(project_root, command)
-            if succeeded and repair_receipts is not None:
-                repair_receipts.append(
-                    "Ruff default safe fixes applied before completion validation: "
-                    + _compact_tool_result(fix_output)
-                )
         lint_verified, tests_verified = _updated_verification_evidence(
             command,
             succeeded,
@@ -1947,6 +1942,25 @@ def _run_missing_completion_validators(
     return lint_verified, tests_verified, validator_verified, failures
 
 
+def _run_ruff_with_bounded_safe_fix(
+    project_root: Path,
+    *,
+    phase: str,
+) -> tuple[bool, str, str]:
+    """Run Ruff and at most one default-safe repair pass, never unsafe fixes."""
+    succeeded, output = _exec_run_command(project_root, "ruff check .")
+    if succeeded:
+        return succeeded, output, ""
+    _fix_succeeded, fix_output = _exec_run_command(project_root, "ruff check . --fix")
+    succeeded, output = _exec_run_command(project_root, "ruff check .")
+    receipt = ""
+    if succeeded:
+        receipt = f"Ruff default safe fixes applied before {phase}: " + _compact_tool_result(
+            fix_output
+        )
+    return succeeded, output, receipt
+
+
 def _run_standard_validation(
     task: BenchTask,
     project_root: Path,
@@ -1954,6 +1968,14 @@ def _run_standard_validation(
     """Grade project checks first, then run the hidden oracle in isolation."""
     lint_ok, lint_out = _exec_run_command(project_root, "ruff check .")
     project_test_ok, project_test_out = _exec_run_command(project_root, "pytest")
+    public_validator_output: list[str] = []
+    if task.enforce_completion_validators:
+        for command in _validator_commands_for_task(task):
+            validator_ok, validator_out = _exec_run_validator(project_root, task, command)
+            project_test_ok = project_test_ok and validator_ok
+            public_validator_output.append(f"$ {command}\n{validator_out}")
+    if public_validator_output:
+        project_test_out += "\n\n" + "\n\n".join(public_validator_output)
 
     oracle_dir = _install_acceptance_oracle(task, project_root)
     try:
@@ -2391,14 +2413,14 @@ def _run_agent_loop(
                 ):
                     from specsmith.governance_logic import run_verify
 
-                    lint_ok, _lint_out, project_ok, _project_out, oracle_ok, _oracle_out = (
-                        _run_standard_validation(task, project_root)
-                    )
+                    # Equilibrium is based only on the public evidence accepted
+                    # by the completion gate. The hidden oracle is installed and
+                    # executed exactly once after the agent loop has stopped.
                     verify_result = run_verify(
                         files_changed=files_written,
                         test_results={
-                            "passed": int(lint_ok and project_ok and oracle_ok),
-                            "failed": int(not (lint_ok and project_ok and oracle_ok)),
+                            "passed": 1,
+                            "failed": 0,
                         },
                         project_dir=project_root,
                         work_item_id=str(governance_decision.get("work_item_id") or ""),
@@ -2603,6 +2625,20 @@ def _run_agent_loop(
     else:
         # Standard coding tasks: validate the project before installing any
         # evaluator files, then run the hidden oracle exactly once in isolation.
+        if condition.id == "SPECSMITH_FULL":
+            _final_lint_ok, _final_lint_out, final_repair_receipt = _run_ruff_with_bounded_safe_fix(
+                project_root,
+                phase="final scoring",
+            )
+            if final_repair_receipt:
+                governance_turns += 1
+                agent_transcript.append(
+                    {
+                        "turn": llm_turns,
+                        "role": "controller",
+                        "final_deterministic_repair": final_repair_receipt,
+                    }
+                )
         (
             lint_ok,
             lint_out,
