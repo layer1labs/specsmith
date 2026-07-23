@@ -298,3 +298,11 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `63dbf4ef2ff4bb44...`
+
+## 2026-07-23T10:10 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `9a5c6d85003efc88...`
