@@ -130,6 +130,12 @@ specsmith audit \
 ```
 
 High or critical benchmark weaknesses make the combined audit exit non-zero.
+The JSON audit also includes `next_experiment`: a deterministic action,
+readiness flag, rationale, evidence codes, and the exact task/condition slice.
+It rejects incomplete artifacts, repairs correctness before cost, optimizes a
+measured efficiency regression, advances a clean diagnostic to five
+repetitions, and advances a clean screen to ten. This closes the feedback loop
+without asking another model to judge its own work.
 
 | Weakness | Meaning | First response |
 |---|---|---|

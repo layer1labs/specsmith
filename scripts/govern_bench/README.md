@@ -55,6 +55,11 @@ specsmith audit --project-dir . --benchmark-results results.json \
   --report combined-audit.json
 ```
 
+Each raw-result audit contains a deterministic `next_experiment` decision.
+Only `repeat_screen` advances an n=1 diagnostic to five repetitions; correctness
+or efficiency findings select a focused repair/optimization rerun, and malformed
+or synthetic evidence is rejected.
+
 ---
 
 ## Benchmark Scope

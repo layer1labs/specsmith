@@ -5643,7 +5643,7 @@
     "id": "TEST-516",
     "version": 1,
     "title": "Long-horizon polyglot task and benchmark weakness audit",
-    "description": "Tests verify T28 has a 20-turn polyglot UI scope and an evaluator-only oracle that rejects the clean starter; benchmark artifacts automatically produce a deterministic weakness audit; and specsmith audit combines project health with correctness, verification, efficiency, and completeness weaknesses.",
+    "description": "Tests verify T28 has a 20-turn polyglot UI scope and an evaluator-only oracle that rejects the clean starter; benchmark artifacts automatically produce a deterministic weakness audit; and specsmith audit combines project health with correctness, verification, efficiency, and completeness weaknesses. The audit selects a machine-readable reject, repair, optimize, repeat, or publish action from the same evidence.",
     "requirement_id": "REQ-490",
     "type": "integration",
     "verification_method": "pytest tests/test_benchmark_audit.py tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py",

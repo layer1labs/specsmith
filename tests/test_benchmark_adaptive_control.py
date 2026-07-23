@@ -462,3 +462,26 @@ def test_qwen_agentic_coding_candidates_have_hf_routes_pricing_and_tiers() -> No
     assert estimate_cost("Qwen/Qwen3.6-35B-A3B:deepinfra", 1_000_000, 1_000_000) == pytest.approx(
         1.10
     )
+
+
+def test_open_frontier_candidates_have_verified_routes_pricing_and_tiers() -> None:
+    registry = load_registry(_SCRIPTS_DIR / "govern_bench" / "models.yml")
+    candidates = select(registry, groups={"open-frontier"})
+
+    assert {candidate["label"] for candidate in candidates} == {
+        "kimi-k2.7-code",
+        "glm-5.2",
+        "deepseek-v4-pro",
+        "minimax-m3",
+    }
+    assert all(candidate["provider"] == "huggingface" for candidate in candidates)
+    expected_costs = {
+        "moonshotai/Kimi-K2.7-Code:deepinfra": 4.24,
+        "zai-org/GLM-5.2:deepinfra": 3.93,
+        "deepseek-ai/DeepSeek-V4-Pro:novita": 4.80,
+        "MiniMaxAI/MiniMax-M3:novita": 1.50,
+    }
+    for candidate in candidates:
+        model = candidate["model"]
+        assert estimate_cost(model, 1_000_000, 1_000_000) == pytest.approx(expected_costs[model])
+        assert model_tier(model) == "open-xl"

@@ -174,6 +174,10 @@ Do not publish comparative claims when intervals overlap substantially without c
   Qwen routes: Coder Next `temperature=1.0, top_p=0.95`; Coder 480B-A35B
   `0.7/0.8`; Qwen3.6 coding `0.6/0.95`. Record the exact hosted route because
   parser, template, quantization, and latency are part of the result.
+- Current open-frontier admissions use their published coding/agent defaults:
+  Kimi K2.7 Code and MiniMax-M3 `temperature=1.0, top_p=0.95`; GLM-5.2
+  and DeepSeek-V4 Pro `1.0/1.0`. Provider routes remain pinned and priced
+  separately.
 - Preserve raw benchmark output JSON for auditability.
 
 ## 8) Limitations

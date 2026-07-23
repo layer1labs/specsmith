@@ -235,6 +235,10 @@ def _openai_sampling_params(model: str) -> dict[str, float]:
         return {"temperature": 0.7, "top_p": 0.8}
     if "qwen3.6" in model_id:
         return {"temperature": 0.6, "top_p": 0.95}
+    if "kimi-k2.7-code" in model_id or "minimax-m3" in model_id:
+        return {"temperature": 1.0, "top_p": 0.95}
+    if "glm-5.2" in model_id or "deepseek-v4-pro" in model_id:
+        return {"temperature": 1.0, "top_p": 1.0}
     return {"temperature": 0.2}
 
 

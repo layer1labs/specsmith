@@ -198,6 +198,74 @@ def test_file_audit_infers_dry_run_provenance(tmp_path: Path) -> None:
 
     assert report.dry_run
     assert report.weaknesses[0].code == "synthetic_evidence"
+    assert report.next_experiment.action == "reject_artifact"
+    assert not report.next_experiment.ready_for_repetition
+
+
+def test_audit_selects_next_experiment_from_measured_evidence() -> None:
+    correct_diagnostic = audit_benchmark_rows(
+        [
+            _row(
+                condition="CURSOR_RULES",
+                passed=True,
+                input_tokens=2_000,
+                output_tokens=300,
+            ),
+            _row(
+                condition="SPECSMITH_FULL",
+                passed=True,
+                input_tokens=1_000,
+                output_tokens=300,
+            ),
+        ]
+    )
+    assert correct_diagnostic.next_experiment.action == "repeat_screen"
+    assert correct_diagnostic.next_experiment.ready_for_repetition
+
+    cursor_only_scope = _row(
+        condition="CURSOR_RULES",
+        passed=True,
+        input_tokens=2_000,
+        output_tokens=300,
+    )
+    cursor_only_scope["expected_files_changed"] = ["expected.py"]
+    cursor_only_scope["files_written"] = ["extra.py"]
+    governed_clean = _row(
+        condition="SPECSMITH_FULL",
+        passed=True,
+        input_tokens=1_000,
+        output_tokens=300,
+    )
+    baseline_weakness = audit_benchmark_rows([cursor_only_scope, governed_clean])
+    assert baseline_weakness.next_experiment.action == "repeat_screen"
+
+    correctness_failure = audit_benchmark_rows(
+        [
+            _row(condition="CURSOR_RULES", passed=True, input_tokens=1_000),
+            _row(condition="SPECSMITH_FULL", passed=False, input_tokens=1_000),
+        ]
+    )
+    assert correctness_failure.next_experiment.action == "repair_and_rerun"
+    assert "cursor_correctness_regression" in correctness_failure.next_experiment.evidence_codes
+
+    inefficient = audit_benchmark_rows(
+        [
+            _row(
+                condition="CURSOR_RULES",
+                passed=True,
+                input_tokens=1_000,
+                output_tokens=300,
+            ),
+            _row(
+                condition="SPECSMITH_FULL",
+                passed=True,
+                input_tokens=2_000,
+                output_tokens=300,
+            ),
+        ]
+    )
+    assert inefficient.next_experiment.action == "optimize_and_rerun"
+    assert "cursor_efficiency_regression" in inefficient.next_experiment.evidence_codes
 
 
 def test_specsmith_audit_writes_combined_project_and_benchmark_report(tmp_path: Path) -> None:
@@ -230,6 +298,7 @@ def test_specsmith_audit_writes_combined_project_and_benchmark_report(tmp_path: 
     assert result.exit_code == 1
     assert "Benchmark outcome weaknesses" in result.output
     assert "acceptance_gap" in result.output
+    assert "Next experiment: repair_and_rerun" in result.output
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["project"]["healthy"] is False
     assert payload["benchmark"]["high_or_critical"] == 2

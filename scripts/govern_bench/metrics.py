@@ -98,6 +98,14 @@ MODEL_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "qwen/qwen3-coder-next": (0.20, 1.50),
     "Qwen/Qwen3-Coder-480B-A35B-Instruct": (0.38, 1.55),
     "qwen/qwen3-coder-480b-a35b-instruct": (0.38, 1.55),
+    "moonshotai/Kimi-K2.7-Code": (0.74, 3.50),
+    "moonshotai/kimi-k2.7-code": (0.74, 3.50),
+    "zai-org/GLM-5.2": (0.93, 3.00),
+    "zai-org/glm-5.2": (0.93, 3.00),
+    "deepseek-ai/DeepSeek-V4-Pro": (1.60, 3.20),
+    "deepseek-ai/deepseek-v4-pro": (1.60, 3.20),
+    "MiniMaxAI/MiniMax-M3": (0.30, 1.20),
+    "minimaxai/minimax-m3": (0.30, 1.20),
     "meta-llama/Llama-3.3-70B-Instruct": (0.60, 0.70),
     "meta-llama/llama-3.3-70b-instruct": (0.60, 0.70),
     "openai/gpt-oss-120b": (0.15, 0.60),
@@ -123,6 +131,10 @@ MODEL_CACHE_WRITE_MULTIPLIER: dict[str, float] = {
 MODEL_ROUTE_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "Qwen/Qwen3.6-35B-A3B:deepinfra": (0.15, 0.95),
     "Qwen/Qwen3.6-35B-A3B:scaleway": (0.285, 1.71),
+    "moonshotai/Kimi-K2.7-Code:deepinfra": (0.74, 3.50),
+    "zai-org/GLM-5.2:deepinfra": (0.93, 3.00),
+    "deepseek-ai/DeepSeek-V4-Pro:novita": (1.60, 3.20),
+    "MiniMaxAI/MiniMax-M3:novita": (0.30, 1.20),
 }
 
 # Backwards-compatible alias — keep old key format working
@@ -157,11 +169,24 @@ _MODEL_TIER_OVERRIDES: dict[str, str] = {
     "qwen/qwen3.6-35b-a3b": "open-mid",
     "qwen/qwen3-coder-next": "open-large",
     "qwen/qwen3-coder-480b-a35b-instruct": "open-xl",
+    "moonshotai/kimi-k2.7-code": "open-xl",
+    "zai-org/glm-5.2": "open-xl",
+    "deepseek-ai/deepseek-v4-pro": "open-xl",
+    "minimaxai/minimax-m3": "open-xl",
     "meta-llama/llama-3.3-70b-instruct": "open-large",
     "openai/gpt-oss-120b": "open-xl",
 }
 
-_OPEN_SOURCE_MARKERS = ("llama", "qwen", "deepseek", "mistral", "gpt-oss")
+_OPEN_SOURCE_MARKERS = (
+    "llama",
+    "qwen",
+    "deepseek",
+    "kimi",
+    "minimax",
+    "mistral",
+    "glm",
+    "gpt-oss",
+)
 
 
 def strip_provider_route(model: str) -> str:

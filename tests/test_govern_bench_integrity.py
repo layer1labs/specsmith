@@ -423,6 +423,8 @@ def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
     regular = _chat_probe_payload("gpt-4o-mini")
     reasoning = _chat_probe_payload("gpt-5.6-sol")
     qwen = _chat_probe_payload("Qwen/Qwen3-Coder-Next:novita")
+    kimi = _chat_probe_payload("moonshotai/Kimi-K2.7-Code:deepinfra")
+    glm = _chat_probe_payload("zai-org/GLM-5.2:deepinfra")
     assert regular["max_tokens"] == 32
     assert regular["temperature"] == 0.2
     assert reasoning["max_completion_tokens"] == 32
@@ -430,6 +432,8 @@ def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
     assert "temperature" not in reasoning
     assert qwen["temperature"] == 1.0
     assert qwen["top_p"] == 0.95
+    assert (kimi["temperature"], kimi["top_p"]) == (1.0, 0.95)
+    assert (glm["temperature"], glm["top_p"]) == (1.0, 1.0)
     assert regular["tools"][0]["function"]["name"] == "ping"
 
 

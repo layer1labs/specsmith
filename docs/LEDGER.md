@@ -306,3 +306,25 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `9a5c6d85003efc88...`
+
+## 2026-07-23T16:53 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `923a53d1662cf797...`
+
+## 2026-07-23T16:54 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `69e12f053cee97c3...`
+
+## 2026-07-23T17:19 — wi_archive WI-65AA2312B9E5: Read-only experiment authorization completed; implementation governed by WI-2A04F862351F with TEST-510 and TEST-516.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `917a5d0429b3e8cf...`

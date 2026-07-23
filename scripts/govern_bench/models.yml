@@ -69,6 +69,35 @@ models:
     group: open-qwen
     tier: open-mid
 
+  # ── Current open frontier coding/agent candidates ─────────────────────
+  # Probe all routes first with: groups=open-frontier, probe_only=true.
+  # Paid diagnostics start at one matched T28 repetition and advance only
+  # when the deterministic weakness audit returns repeat_screen.
+  - label: kimi-k2.7-code
+    provider: huggingface
+    # Lowest-priced live HF route with tools + structured output on 2026-07-23.
+    model: moonshotai/Kimi-K2.7-Code:deepinfra
+    group: open-frontier
+    tier: open-xl
+  - label: glm-5.2
+    provider: huggingface
+    # One-million-token route with tools + structured output.
+    model: zai-org/GLM-5.2:deepinfra
+    group: open-frontier
+    tier: open-xl
+  - label: deepseek-v4-pro
+    provider: huggingface
+    # DeepInfra did not advertise tools; pin the live tool-capable Novita route.
+    model: deepseek-ai/DeepSeek-V4-Pro:novita
+    group: open-frontier
+    tier: open-xl
+  - label: minimax-m3
+    provider: huggingface
+    # Current low-cost long-horizon candidate with a one-million-token route.
+    model: MiniMaxAI/MiniMax-M3:novita
+    group: open-frontier
+    tier: open-xl
+
   # ── Open models via a direct OpenAI-compatible provider (no HF credits) ─
   # Same four tiers as `open`, but provider=openai-compat so a full run never
   # touches the HuggingFace Inference Providers credit pool. Default model ids

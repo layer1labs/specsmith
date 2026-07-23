@@ -444,6 +444,10 @@ def main() -> int:
     print(
         f"Weakness audit written to {audit_path} ({weakness_report.high_or_critical} high/critical)"
     )
+    print(
+        f"Next experiment: {weakness_report.next_experiment.action} — "
+        f"{weakness_report.next_experiment.rationale}"
+    )
 
     # Write Markdown report
     output_path = Path(args.output)

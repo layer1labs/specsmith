@@ -754,6 +754,8 @@ def audit(
                 )
         else:
             console.print("  [green]✓[/green] No benchmark weaknesses detected.")
+        decision = benchmark_report.next_experiment
+        console.print(f"  [bold]Next experiment:[/bold] {decision.action} — {decision.rationale}")
 
     if report_path is not None:
         payload = {

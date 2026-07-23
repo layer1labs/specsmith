@@ -145,6 +145,28 @@ scaffold; compare it as a scientific control, not as the expected winner.
 - Qwen3.6/DeepInfra: managed open-weight portability after adaptive tools.
 - Qwen3-Coder-Next/native parser: self-hosted or Qwen-native tool-serving lane.
 
+## Open-frontier admission queue
+
+Four additional current checkpoints are registered in the `open-frontier`
+group. Their routes were selected from live Hugging Face router metadata on
+2026-07-23; the workflow still requires a paid tool-call probe before any
+benchmark cell:
+
+| Candidate | Pinned route | Router price / 1M input-output | Why it is useful |
+|---|---|---:|---|
+| [Kimi K2.7 Code](https://huggingface.co/moonshotai/Kimi-K2.7-Code) | DeepInfra | $0.74 / $3.50 | code-specialized 262K agent with explicit tool-oriented evaluation settings |
+| [GLM-5.2](https://huggingface.co/zai-org/GLM-5.2) | DeepInfra | $0.93 / $3.00 | one-million-token long-horizon coding control |
+| [DeepSeek-V4 Pro](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro) | Novita | $1.60 / $3.20 | 49B-active million-token reasoning/coding control |
+| [MiniMax-M3](https://huggingface.co/MiniMaxAI/MiniMax-M3) | Novita | $0.30 / $1.20 | inexpensive one-million-token long-horizon challenger |
+
+The next paid open-model experiment is GLM-5.2 on T28 FULL at n=1, because it
+changes both model family and tool-serving implementation while directly
+targeting the serial long-horizon failure seen with managed Qwen. Kimi K2.7
+Code is the code-specialized follow-up; MiniMax-M3 is the cost challenger; and
+DeepSeek-V4 Pro is the higher-active-capacity control. Probe failure rejects a
+route before the matrix. A correct diagnostic must also beat the current Sol
+FULL T28 token envelope before earning a matched n=5 screen.
+
 Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
 before a release-quality statistical claim. Preserve raw token, cost, latency,
 sampling, parser, and provider receipts so a serving change is not mistaken for

@@ -182,6 +182,10 @@ efficient reliable configuration on this suite; a new Qwen comparison must
 change the serving/tool protocol before it earns another paid repetition.
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
+That audit also emits a machine-readable next experiment—reject malformed
+evidence, repair correctness, optimize measured token waste, repeat a clean
+diagnostic to five, or expand a clean screen to ten—without paying a model to
+judge its own work.
 To combine those outcome findings with the normal project governance audit:
 
 ```bash

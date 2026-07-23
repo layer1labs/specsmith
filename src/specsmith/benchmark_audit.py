@@ -42,6 +42,18 @@ class BenchmarkWeakness:
 
 
 @dataclass(slots=True)
+class BenchmarkExperimentDecision:
+    """Deterministic next step selected from measured benchmark evidence."""
+
+    action: str
+    ready_for_repetition: bool
+    rationale: str
+    evidence_codes: list[str] = field(default_factory=list)
+    tasks: list[str] = field(default_factory=list)
+    conditions: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class BenchmarkWeaknessReport:
     """Structured post-run benchmark audit."""
 
@@ -57,6 +69,7 @@ class BenchmarkWeaknessReport:
     condition_metrics: dict[str, dict[str, float | int | None]]
     task_type_metrics: dict[str, dict[str, dict[str, float | int | None]]]
     weaknesses: list[BenchmarkWeakness]
+    next_experiment: BenchmarkExperimentDecision
 
     @property
     def high_or_critical(self) -> int:
@@ -80,6 +93,132 @@ def _as_float(value: Any) -> float:
         return float(value or 0.0)
     except (TypeError, ValueError):
         return 0.0
+
+
+def _next_experiment_decision(
+    weaknesses: list[BenchmarkWeakness],
+    *,
+    complete: bool,
+    dry_run: bool,
+    minimum_repetitions: int,
+    tasks: list[str],
+    conditions: list[str],
+) -> BenchmarkExperimentDecision:
+    """Select the next experiment without spending another model judgement."""
+    codes = {item.code for item in weaknesses}
+
+    def affects_governed_path(item: BenchmarkWeakness) -> bool:
+        return not item.conditions or any(
+            condition.startswith("SPECSMITH") for condition in item.conditions
+        )
+
+    artifact_blockers = {
+        "synthetic_evidence",
+        "incomplete_evidence",
+        "unreplayable_diff",
+        "duplicate_cells",
+        "missing_cells",
+        "uneven_repetitions",
+    }
+    correctness_blockers = {
+        "acceptance_gap",
+        "blank_overwrite_rejected",
+        "correctness_regression",
+        "cursor_correctness_regression",
+        "premature_text_stop",
+        "turn_budget_exhausted",
+        "verification_exhausted",
+    }
+    efficiency_blockers = {
+        "broad_reread_churn",
+        "context_dominance",
+        "cursor_efficiency_regression",
+        "milestone_fragmentation",
+        "repeated_tool_loop",
+        "scope_expansion",
+        "token_amplification",
+        "tool_call_serialization",
+        "verification_repair_outlier",
+    }
+
+    if dry_run or not complete or codes & artifact_blockers:
+        selected = [item for item in weaknesses if item.code in artifact_blockers]
+        rationale = (
+            selected[0].recommendation
+            if selected
+            else "Repair the artifact and rerun the identical matched grid."
+        )
+        return BenchmarkExperimentDecision(
+            action="reject_artifact",
+            ready_for_repetition=False,
+            rationale=rationale,
+            evidence_codes=sorted(codes & artifact_blockers),
+            tasks=tasks,
+            conditions=conditions,
+        )
+
+    correctness = [
+        item
+        for item in weaknesses
+        if item.code in correctness_blockers and affects_governed_path(item)
+    ]
+    if correctness:
+        primary = correctness[0]
+        return BenchmarkExperimentDecision(
+            action="repair_and_rerun",
+            ready_for_repetition=False,
+            rationale=primary.recommendation,
+            evidence_codes=sorted({item.code for item in correctness}),
+            tasks=sorted({task for item in correctness for task in item.tasks}) or tasks,
+            conditions=(
+                sorted({condition for item in correctness for condition in item.conditions})
+                or conditions
+            ),
+        )
+
+    efficiency = [
+        item
+        for item in weaknesses
+        if item.code in efficiency_blockers and affects_governed_path(item)
+    ]
+    if efficiency:
+        primary = efficiency[0]
+        return BenchmarkExperimentDecision(
+            action="optimize_and_rerun",
+            ready_for_repetition=False,
+            rationale=primary.recommendation,
+            evidence_codes=sorted({item.code for item in efficiency}),
+            tasks=sorted({task for item in efficiency for task in item.tasks}) or tasks,
+            conditions=(
+                sorted({condition for item in efficiency for condition in item.conditions})
+                or conditions
+            ),
+        )
+
+    if minimum_repetitions < 5:
+        return BenchmarkExperimentDecision(
+            action="repeat_screen",
+            ready_for_repetition=True,
+            rationale="Correct diagnostic cells earned a matched five-repetition screen.",
+            evidence_codes=["undersampled"] if "undersampled" in codes else [],
+            tasks=tasks,
+            conditions=conditions,
+        )
+    if minimum_repetitions < 10:
+        return BenchmarkExperimentDecision(
+            action="expand_release_sample",
+            ready_for_repetition=True,
+            rationale="Screening passed; expand the identical grid to ten repetitions.",
+            tasks=tasks,
+            conditions=conditions,
+        )
+    return BenchmarkExperimentDecision(
+        action="publish_or_expand",
+        ready_for_repetition=True,
+        rationale="Release-sized evidence has no measured correctness or efficiency blocker.",
+        tasks=tasks,
+        conditions=conditions,
+    )
 
 
 def _condition_rollups(
@@ -774,6 +913,8 @@ def audit_benchmark_rows(
                 )
             )
 
+    report_tasks = sorted({str(row.get("task") or "unknown") for row in rows})
+    report_conditions = sorted({str(row.get("condition") or "unknown") for row in rows})
     return BenchmarkWeaknessReport(
         source=source,
         dry_run=dry_run,
@@ -781,12 +922,20 @@ def audit_benchmark_rows(
         valid_rows=len(valid),
         complete=complete,
         models=sorted({str(row.get("model") or "unknown") for row in rows}),
-        tasks=sorted({str(row.get("task") or "unknown") for row in rows}),
-        conditions=sorted({str(row.get("condition") or "unknown") for row in rows}),
+        tasks=report_tasks,
+        conditions=report_conditions,
         minimum_repetitions=minimum_reps,
         condition_metrics=metrics,
         task_type_metrics=_task_type_rollups(valid),
         weaknesses=weaknesses,
+        next_experiment=_next_experiment_decision(
+            weaknesses,
+            complete=complete,
+            dry_run=dry_run,
+            minimum_repetitions=minimum_reps,
+            tasks=report_tasks,
+            conditions=report_conditions,
+        ),
     )
 
 

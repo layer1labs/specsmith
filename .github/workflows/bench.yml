@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       groups:
-        description: "Model groups to run (comma-separated: open,open-qwen,open-direct,openai,anthropic,google). Default: open."
+        description: "Model groups to run (comma-separated: open,open-qwen,open-frontier,open-direct,openai,anthropic,google). Default: open."
         required: false
         default: "open"
       providers:
@@ -89,6 +89,7 @@ jobs:
         run: |
           python scripts/govern_bench/select_models.py --groups open --pretty
           python scripts/govern_bench/select_models.py --groups open-qwen --pretty
+          python scripts/govern_bench/select_models.py --groups open-frontier --pretty
           python scripts/govern_bench/select_models.py --groups open-direct --pretty
 
       - name: Verify demo-dependency provisioning + test collection

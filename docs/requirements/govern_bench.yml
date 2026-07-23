@@ -71,6 +71,9 @@
     turn budget. Every benchmark run MUST emit a structured weakness audit that
     identifies incomplete evidence, undersampling, public-test/oracle disagreement,
     task-level correctness regressions, token amplification, and context dominance.
+    The audit MUST deterministically select the next experiment from measured
+    completeness, correctness, tokens-per-correct-answer, and trace weaknesses,
+    without spending another judge-model call.
     The existing specsmith audit command MUST optionally combine those outcome
     weaknesses with project governance health and write a machine-readable report.
   source: Maintainer request for long-horizon benchmarking and outcome auditing
