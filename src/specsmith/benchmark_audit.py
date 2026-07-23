@@ -176,6 +176,22 @@ def _next_experiment_decision(
             ),
         )
 
+    frontier_regressions = [
+        item
+        for item in weaknesses
+        if item.code == "frontier_efficiency_regression" and affects_governed_path(item)
+    ]
+    if frontier_regressions:
+        primary = frontier_regressions[0]
+        return BenchmarkExperimentDecision(
+            action="advance_candidate",
+            ready_for_repetition=False,
+            rationale=primary.recommendation,
+            evidence_codes=["frontier_efficiency_regression"],
+            tasks=primary.tasks or tasks,
+            conditions=primary.conditions or conditions,
+        )
+
     efficiency = [
         item
         for item in weaknesses
@@ -333,11 +349,37 @@ def _unreplayable_diff(value: Any) -> bool:
     return False
 
 
+def load_benchmark_reference_envelopes(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Load valid screening anchors; malformed or non-screening entries fail closed."""
+    target = path or Path(__file__).with_name("benchmark_reference_envelopes.json")
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    tasks = payload.get("tasks") if isinstance(payload, dict) else None
+    if not isinstance(tasks, dict):
+        return {}
+    valid: dict[str, dict[str, Any]] = {}
+    for task, envelope in tasks.items():
+        if (
+            isinstance(envelope, dict)
+            and _as_float(envelope.get("tokens_per_correct_answer")) > 0
+            and _as_int(envelope.get("repetitions")) >= 5
+            and str(envelope.get("condition") or "").startswith("SPECSMITH")
+            and bool(envelope.get("model"))
+            and bool(envelope.get("commit"))
+            and str(envelope.get("source") or "").startswith("https://")
+        ):
+            valid[str(task)] = envelope
+    return valid
+
+
 def audit_benchmark_rows(
     rows: list[dict[str, Any]],
     *,
     source: str = "memory",
     dry_run: bool = False,
+    reference_envelopes: dict[str, dict[str, Any]] | None = None,
 ) -> BenchmarkWeaknessReport:
     """Analyze raw benchmark rows and return deterministic weakness evidence."""
     if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
@@ -810,6 +852,44 @@ def audit_benchmark_rows(
         task: _condition_rollups([row for row in valid if str(row.get("task")) == task])
         for task in sorted({str(row.get("task")) for row in valid})
     }
+    for task, envelope in (reference_envelopes or {}).items():
+        condition = str(envelope.get("condition") or "")
+        anchor_model = str(envelope.get("model") or "")
+        anchor_tpca = _as_float(envelope.get("tokens_per_correct_answer"))
+        if not condition.startswith("SPECSMITH") or not anchor_model or anchor_tpca <= 0:
+            continue
+        task_rows = [
+            row
+            for row in valid
+            if str(row.get("task")) == task and str(row.get("condition")) == condition
+        ]
+        for model in sorted({str(row.get("model")) for row in task_rows} - {anchor_model}):
+            candidate = _condition_rollups(
+                [row for row in task_rows if str(row.get("model")) == model]
+            ).get(condition)
+            if not candidate or _as_float(candidate.get("pass_rate")) < 1:
+                continue
+            candidate_tpca = _as_float(candidate.get("tokens_per_correct_answer"))
+            if candidate_tpca > anchor_tpca * 1.10:
+                weaknesses.append(
+                    BenchmarkWeakness(
+                        code="frontier_efficiency_regression",
+                        severity="medium",
+                        title=f"{model} is correct but materially less efficient than the anchor",
+                        evidence=(
+                            f"{task} {condition} TPCA {candidate_tpca:.0f} vs "
+                            f"{anchor_model} {anchor_tpca:.0f} "
+                            f"({candidate_tpca / anchor_tpca:.2f}x)."
+                        ),
+                        recommendation=(
+                            "Do not repeat this cell yet; advance to the next admitted candidate "
+                            "or optimize the measured serving/controller boundary first."
+                        ),
+                        tasks=[task],
+                        conditions=[condition],
+                    )
+                )
+
     cursor_correctness: dict[str, list[str]] = defaultdict(list)
     cursor_efficiency: dict[str, list[tuple[str, float]]] = defaultdict(list)
     for task, task_metrics in task_condition_metrics.items():
@@ -946,12 +1026,18 @@ def audit_benchmark_file(
 ) -> BenchmarkWeaknessReport:
     """Load and audit one GovernanceBench JSON artifact."""
     resolved = path.resolve()
-    rows = json.loads(resolved.read_text(encoding="utf-8"))
+    payload = json.loads(resolved.read_text(encoding="utf-8"))
+    rows = (
+        payload
+        if isinstance(payload, list) and all(isinstance(row, dict) for row in payload)
+        else [{}]
+    )
     inferred_dry_run = bool(rows) and all(row.get("dry_run") is True for row in rows)
     return audit_benchmark_rows(
         rows,
         source=str(resolved),
         dry_run=inferred_dry_run if dry_run is None else dry_run,
+        reference_envelopes=load_benchmark_reference_envelopes(),
     )
 
 

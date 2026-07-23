@@ -467,15 +467,18 @@ def _validator_boundaries_for_task(task: BenchTask, command: str) -> list[str]:
     return [str(path) for path in paths if str(path).strip()] if isinstance(paths, list) else []
 
 
-def _focused_validator_repair_progress(task: BenchTask, failures: list[str]) -> str:
-    """Map public validator failures to compact, versioned repair boundaries."""
-    focus: list[str] = []
+def _focused_validator_repair_boundaries(
+    task: BenchTask,
+    failures: list[str],
+) -> list[tuple[str, list[str]]]:
+    """Map public validator failures to requirement-linked repair paths."""
+    boundaries: list[tuple[str, list[str]]] = []
     for command in _validator_commands_for_task(task):
         if not any(failure.startswith(f"{command} FAILED:") for failure in failures):
             continue
         paths = _validator_boundaries_for_task(task, command)
         if paths:
-            focus.append(f"{command} -> {', '.join(paths)}")
+            boundaries.append((command, paths))
     core_failures = [
         failure
         for failure in failures
@@ -491,7 +494,14 @@ def _focused_validator_repair_progress(task: BenchTask, failures: list[str]) -> 
         if not linked_paths:
             linked_paths = [str(path) for path in task.expected_files_changed]
         if linked_paths:
-            focus.append(f"deterministic project checks -> {', '.join(linked_paths)}")
+            boundaries.append(("deterministic project checks", linked_paths))
+    return boundaries
+
+
+def _focused_validator_repair_progress(task: BenchTask, failures: list[str]) -> str:
+    """Map public validator failures to compact, versioned repair boundaries."""
+    boundaries = _focused_validator_repair_boundaries(task, failures)
+    focus = [f"{source} -> {', '.join(paths)}" for source, paths in boundaries]
     if not focus:
         return ""
     return (
@@ -1136,6 +1146,34 @@ def _record_written_evidence(
             continue
         digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
         read_evidence[_normalized_history_path(path)] = (digest, turn)
+
+
+def _single_repair_context(
+    project_root: Path,
+    task: BenchTask,
+    failures: list[str],
+) -> str:
+    """Return bounded current content when validation identifies one repair file."""
+    paths = list(
+        dict.fromkeys(
+            path
+            for _source, boundary_paths in _focused_validator_repair_boundaries(task, failures)
+            for path in boundary_paths
+        )
+    )
+    if len(paths) != 1:
+        return ""
+    path = paths[0]
+    content = _exec_read_file(project_root, path)
+    if content.startswith("ERROR:"):
+        return ""
+    max_chars = min(MAX_FILE_BYTES, 4_000)
+    if len(content) > max_chars:
+        content = content[:max_chars] + f"\n... [repair context truncated at {max_chars} chars]"
+    return (
+        f"Current content for {path} (controller-provided; do not reread this file):\n"
+        f"```\n{content}\n```"
+    )
 
 
 def _exec_write_file(project_root: Path, path: str, content: str, files_written: list[str]) -> str:
@@ -2441,6 +2479,7 @@ def _run_agent_loop(
         suppressed_unchanged_reads: list[str] = []
         finished = False
         validation_failed = False
+        repair_context_provided = False
         active_tool_names = _active_tool_names(tools)
         for tc in msg.tool_calls:
             fn_name = tc.name
@@ -2583,11 +2622,19 @@ def _run_agent_loop(
                             task,
                             completion_failures,
                         )
+                        repair_context = _single_repair_context(
+                            project_root,
+                            task,
+                            completion_failures,
+                        )
+                        repair_context_provided = bool(repair_context)
                         out = (
                             "Completion blocked by deterministic validation. Repair these "
                             "failures, then call done again; the controller will rerun only "
                             "missing checks.\n\n" + "\n\n".join(completion_failures)
                         )
+                        if repair_context:
+                            out += f"\n\n{repair_context}"
                     elif finished:
                         active_repair_focus = ""
                 if not finished and condition.id == "SPECSMITH_FULL":
@@ -2720,6 +2767,7 @@ def _run_agent_loop(
                     condition.id,
                     task,
                     composite_files=composite_files,
+                    repair_written=repair_context_provided,
                 )
                 if active_repair_focus
                 else _build_active_tools(
@@ -2729,6 +2777,18 @@ def _run_agent_loop(
                     composite_files=composite_files,
                 )
             )
+            if repair_context_provided:
+                read_tools_suspended = True
+                agent_transcript.append(
+                    {
+                        "turn": turn + 1,
+                        "role": "controller",
+                        "adaptive_tool_surface": {
+                            "reason": "single_repair_context_provided",
+                            "removed_tools": sorted(_READ_TOOL_NAMES),
+                        },
+                    }
+                )
 
         serialized_action_count = _updated_serialized_action_count(
             serialized_action_count,

@@ -8,7 +8,11 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from specsmith.benchmark_audit import audit_benchmark_file, audit_benchmark_rows
+from specsmith.benchmark_audit import (
+    audit_benchmark_file,
+    audit_benchmark_rows,
+    load_benchmark_reference_envelopes,
+)
 from specsmith.cli import main
 
 _SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
@@ -90,6 +94,13 @@ def test_audit_fails_closed_on_missing_rows_and_bad_shape(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="JSON list of objects"):
         audit_benchmark_rows(["not-a-row"])  # type: ignore[list-item]
+
+    artifact.write_text(json.dumps({"weaknesses": []}), encoding="utf-8")
+    wrong_document = audit_benchmark_file(artifact)
+    assert not wrong_document.complete
+    assert wrong_document.valid_rows == 0
+    assert wrong_document.weaknesses[0].code == "incomplete_evidence"
+    assert wrong_document.next_experiment.action == "reject_artifact"
 
     malformed_row = audit_benchmark_rows([{}])
     assert not malformed_row.complete
@@ -266,6 +277,49 @@ def test_audit_selects_next_experiment_from_measured_evidence() -> None:
     )
     assert inefficient.next_experiment.action == "optimize_and_rerun"
     assert "cursor_efficiency_regression" in inefficient.next_experiment.evidence_codes
+
+
+def test_frontier_reference_blocks_expensive_candidate_repetition(tmp_path: Path) -> None:
+    references = {
+        "T28": {
+            "condition": "SPECSMITH_FULL",
+            "model": "gpt-5.6-sol",
+            "tokens_per_correct_answer": 32_000,
+            "repetitions": 5,
+            "commit": "anchor-commit",
+            "source": "https://example.invalid/run/1",
+        }
+    }
+    candidate = audit_benchmark_rows(
+        [
+            _row(
+                condition="SPECSMITH_FULL",
+                passed=True,
+                input_tokens=70_000,
+                model="glm-5.2",
+            )
+        ],
+        reference_envelopes=references,
+    )
+    assert candidate.next_experiment.action == "advance_candidate"
+    assert candidate.next_experiment.ready_for_repetition is False
+    assert "frontier_efficiency_regression" in {weakness.code for weakness in candidate.weaknesses}
+
+    stale = tmp_path / "references.json"
+    stale.write_text(
+        json.dumps(
+            {
+                "tasks": {
+                    "T28": {
+                        **references["T28"],
+                        "repetitions": 1,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert load_benchmark_reference_envelopes(stale) == {}
 
 
 def test_specsmith_audit_writes_combined_project_and_benchmark_report(tmp_path: Path) -> None:

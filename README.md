@@ -154,6 +154,13 @@ Every individual task type preserved or improved correctness and token use.
 `T28` improved from the superseded 71.4k FULL result to 20.6k tokens/correct,
 versus Cursor's 57.3k, while both remained 5/5 correct.
 
+A newer T28-only replication at commit `5790d41`
+([run 30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768))
+again passed 5/5 in both conditions. FULL averaged 32.0k tokens/correct versus
+Cursor rules at 69.1k: 53.6% fewer tokens and 26.0% lower measured cost. This
+newer slice is the current T28 reference envelope; it is not recombined with the
+older eight-task aggregate.
+
 The receipts are split into two complete, non-overlapping matched workflows:
 [T1/T6/T7/T13 run 29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623)
 and [T2/T10/T11/T28 run 29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885).
@@ -181,11 +188,19 @@ current evidence therefore supports GPT-5.6 Sol plus Specsmith FULL as the
 efficient reliable configuration on this suite; a new Qwen comparison must
 change the serving/tool protocol before it earns another paid repetition.
 
+The first current open-frontier challenger,
+[GLM-5.2 run 30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234),
+passed T28 and the independent oracle at n=1, but used 72.2k tokens—2.25× the
+Sol+FULL anchor—and is not promoted. Kimi K2.7 Code is the next admitted
+code-specialized diagnostic, followed by MiniMax-M3 as the cost challenger and
+DeepSeek-V4 Pro as the higher-active-capacity control.
+
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 That audit also emits a machine-readable next experiment—reject malformed
 evidence, repair correctness, optimize measured token waste, repeat a clean
 diagnostic to five, or expand a clean screen to ten—without paying a model to
-judge its own work.
+judge its own work. Versioned reference envelopes now stop a correct but
+materially less efficient challenger before five paid repetitions.
 To combine those outcome findings with the normal project governance audit:
 
 ```bash

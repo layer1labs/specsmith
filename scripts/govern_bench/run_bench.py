@@ -432,13 +432,18 @@ def main() -> int:
         json_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
         print(f"Raw JSON written to {json_path}")
 
-    from specsmith.benchmark_audit import audit_benchmark_rows, write_benchmark_audit
+    from specsmith.benchmark_audit import (
+        audit_benchmark_rows,
+        load_benchmark_reference_envelopes,
+        write_benchmark_audit,
+    )
 
     audit_path = _default_audit_path(args)
     weakness_report = audit_benchmark_rows(
         rows,
         source=str(Path(args.json_output).resolve()) if args.json_output else "in-memory",
         dry_run=args.dry_run,
+        reference_envelopes=load_benchmark_reference_envelopes(),
     )
     write_benchmark_audit(weakness_report, audit_path)
     print(

@@ -13,7 +13,9 @@
     spread keyed by the exact model id, expose toggleable model groups via workflow
     inputs, install demo-project dependencies and verify pytest collection, probe
     each selected model for a live provider before a full run, fail partial real
-    runs, and reject incomplete or mismatched comparison artifacts.
+    runs, reject incomplete or mismatched comparison artifacts, and hand a
+    single-file deterministic repair its bounded current content without an
+    avoidable reread turn.
   requirement_id: REQ-484
   type: integration
   verification_method: pytest tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py
@@ -53,8 +55,9 @@
     that rejects the clean starter; benchmark artifacts automatically produce a
     deterministic weakness audit; and specsmith audit combines project health with
     correctness, verification, efficiency, and completeness weaknesses. The audit
-    selects a machine-readable reject, repair, optimize, repeat, or publish action
-    from the same evidence.
+    selects a machine-readable reject, repair, optimize, advance-candidate, repeat,
+    or publish action from the same evidence and validates any frontier envelope
+    before using it.
   requirement_id: REQ-490
   type: integration
   verification_method: pytest tests/test_benchmark_audit.py tests/test_govern_bench_integrity.py tests/test_benchmark_harness.py

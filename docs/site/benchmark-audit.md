@@ -8,28 +8,30 @@ long-horizon cost.
 
 ## Current five-repetition screen
 
-[Workflow 29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885)
-ran commit `f474bb6b772fe71fd7f1b20d585e23b15fec746a` with GPT-5.6 Sol,
+[Workflow 30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768)
+ran commit `5790d41971e027d2abd34973169c10a57e277eaa` with GPT-5.6 Sol,
 Cursor rules, Specsmith FULL, and five matched repetitions. Every T28 cell
 passed project checks and the evaluator-isolated oracle.
 
 | Condition | Correct | Mean tokens | Tokens/correct | Mean turns | Mean wall time |
 |---|---:|---:|---:|---:|---:|
-| Cursor rules | 5/5 | 57.3k | 57.3k | 9.2 | 81.0s |
-| Specsmith FULL | 5/5 | 20.6k | 20.6k | 6.6 | 65.9s |
+| Cursor rules | 5/5 | 69.1k | 69.1k | 10.8 | 88.9s |
+| Specsmith FULL | 5/5 | 32.0k | 32.0k | 11.4 | 86.6s |
 
-With equal observed correctness, FULL used 64.1% fewer tokens per correct
-answer and 18.6% less wall time. This supersedes the earlier `29942515095`
-screen, where FULL used 71.4k tokens/correct. The measured improvement came
-from a requirement-linked change map, milestone progress, a minimal initial
-tool surface, just-in-time reads, and compact replacement of stale context.
+With equal observed correctness, FULL used 53.6% fewer tokens per correct
+answer, 26.0% lower measured provider cost, and 2.6% less wall time. The audit
+found one medium Cursor-only scope-expansion finding and no FULL weakness; its
+next action is `expand_release_sample`. This is the current T28 reference
+envelope. The earlier `29963515885` screen remains part of the versioned
+eight-task aggregate but is not combined with this newer commit.
 
-The current audit found one medium FULL finding and no high/critical FULL
-finding. A successful repetition used 12 turns versus a six-turn median because
-deterministic validation rejected the first backend implementation and forced
-repair. Its 30.1k tokens remain charged to FULL. This is the intended behavior:
-correctness evidence can spend a bounded repair turn, but the benchmark never
-deletes that cost as an outlier.
+Four FULL repetitions needed the same deterministic backend repair and spent
+one turn rereading the single failed file after its prior write body had been
+compacted to a digest. That cost remains charged to this screen. The resulting
+controller improvement now returns bounded current content when exactly one
+requirement-linked file fails and removes read tools for the next turn, enabling
+an immediate repair write. Ambiguous multi-file failures retain the safer
+read-capable path; the next matched experiment must verify the measured saving.
 
 ## Qwen long-horizon diagnostic
 
@@ -134,8 +136,11 @@ The JSON audit also includes `next_experiment`: a deterministic action,
 readiness flag, rationale, evidence codes, and the exact task/condition slice.
 It rejects incomplete artifacts, repairs correctness before cost, optimizes a
 measured efficiency regression, advances a clean diagnostic to five
-repetitions, and advances a clean screen to ten. This closes the feedback loop
-without asking another model to judge its own work.
+repetitions, and advances a clean screen to ten. A versioned, source-linked
+frontier envelope prevents a correct but materially more expensive challenger
+from earning five paid repetitions. Non-row JSON documents fail closed as
+`reject_artifact`. This closes the feedback loop without asking another model
+to judge its own work.
 
 | Weakness | Meaning | First response |
 |---|---|---|

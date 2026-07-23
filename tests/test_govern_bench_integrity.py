@@ -1244,18 +1244,6 @@ def test_full_repair_write_forces_controller_owned_revalidation(
                 message=NormalizedAssistantMessage(
                     tool_calls=[
                         NormalizedToolCall(
-                            id="read-repair",
-                            name="read_file",
-                            arguments='{"path":"app/main.py"}',
-                        )
-                    ]
-                ),
-                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
-            ),
-            NormalizedLLMResponse(
-                message=NormalizedAssistantMessage(
-                    tool_calls=[
-                        NormalizedToolCall(
                             id="write-repair",
                             name="write_file",
                             arguments='{"path":"app/main.py","content":"VALUE = 1\\n"}',
@@ -1273,8 +1261,10 @@ def test_full_repair_write_forces_controller_owned_revalidation(
         ]
     )
     tool_surfaces: list[set[str]] = []
+    message_snapshots: list[str] = []
 
     def fake_call(**kwargs: object) -> NormalizedLLMResponse:
+        message_snapshots.append(json.dumps(kwargs["messages"]))
         tool_surfaces.append(
             {
                 str(tool["function"]["name"])
@@ -1334,15 +1324,21 @@ def test_full_repair_write_forces_controller_owned_revalidation(
         condition=get_condition("SPECSMITH_FULL"),
         project_root=project,
         specsmith_dir=tmp_path,
-        max_turns=4,
+        max_turns=3,
     )
 
     assert result.stop_reason == "done"
-    assert result.llm_turns == 4
-    assert "read_file" in tool_surfaces[2]
-    assert tool_surfaces[3] == {"write_files", "write_file", "done"}, (
+    assert result.llm_turns == 3
+    assert tool_surfaces[1] == {"write_file", "done"}
+    assert "Current content for app/main.py" in message_snapshots[1]
+    assert "do not reread this file" in message_snapshots[1]
+    assert tool_surfaces[2] == {"write_file", "done"}, (
         tool_surfaces,
         result.agent_transcript,
+    )
+    assert any(
+        event.get("adaptive_tool_surface", {}).get("reason") == "single_repair_context_provided"
+        for event in result.agent_transcript
     )
     assert any(
         event.get("adaptive_tool_surface", {}).get("reason") == "repair_write_ready_for_validation"

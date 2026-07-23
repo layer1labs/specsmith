@@ -46,6 +46,21 @@ caught a backend boundary and forced repair; its full 30.1k-token cost remains
 in the aggregate. Cursor findings included one T2 turn-budget exhaustion,
 unchanged reread churn, context dominance, and edits outside declared boundaries.
 
+## Latest T28 replication
+
+[Workflow 30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768)
+is a newer, non-combined T28-only screen at commit `5790d419`. Both conditions
+passed 5/5 and passed the evaluator-isolated oracle.
+
+| Condition | Correct | Tokens/correct | Mean cost | Mean turns | Mean wall time |
+|---|---:|---:|---:|---:|---:|
+| Cursor rules | 5/5 | 69.1k | $0.3568 | 10.8 | 88.9s |
+| Specsmith FULL | 5/5 | 32.0k | $0.2640 | 11.4 | 86.6s |
+
+FULL used 53.6% fewer tokens per correct answer and 26.0% lower measured cost.
+This screen supplies the versioned T28 frontier envelope used to decide whether
+a correct challenger deserves repeated paid runs.
+
 ## What changed the result
 
 The improvement came from making governance smaller and more deterministic:

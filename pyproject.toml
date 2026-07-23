@@ -90,7 +90,7 @@ Issues = "https://github.com/layer1labs/specsmith/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-specsmith = ["templates/**/*.j2", "agent/profiles/*.md"]
+specsmith = ["templates/**/*.j2", "agent/profiles/*.md", "benchmark_reference_envelopes.json"]
 epistemic = ["py.typed"]
 
 [tool.ruff]

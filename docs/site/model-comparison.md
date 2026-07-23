@@ -4,6 +4,8 @@
 
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
+| [30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768) | GPT-5.6 Sol | 5 per T28 condition | Current T28 matched reference envelope |
+| [30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234) | GLM-5.2 / DeepInfra | 1 FULL | Correct diagnostic; 2.25x Sol+FULL TPCA, not promoted |
 | [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
 | [30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286), [30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699), [30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354) | Qwen3.6-35B-A3B / DeepInfra | 1 each | Trace-driven T28 diagnostics; never combined |
 | [30007255204](https://github.com/layer1labs/specsmith/actions/runs/30007255204), [30007554143](https://github.com/layer1labs/specsmith/actions/runs/30007554143) | Qwen3-Coder-Next / Novita | 1 each | Provider/tool-route admission failures |
@@ -159,13 +161,14 @@ benchmark cell:
 | [DeepSeek-V4 Pro](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro) | Novita | $1.60 / $3.20 | 49B-active million-token reasoning/coding control |
 | [MiniMax-M3](https://huggingface.co/MiniMaxAI/MiniMax-M3) | Novita | $0.30 / $1.20 | inexpensive one-million-token long-horizon challenger |
 
-The next paid open-model experiment is GLM-5.2 on T28 FULL at n=1, because it
-changes both model family and tool-serving implementation while directly
-targeting the serial long-horizon failure seen with managed Qwen. Kimi K2.7
-Code is the code-specialized follow-up; MiniMax-M3 is the cost challenger; and
-DeepSeek-V4 Pro is the higher-active-capacity control. Probe failure rejects a
-route before the matrix. A correct diagnostic must also beat the current Sol
-FULL T28 token envelope before earning a matched n=5 screen.
+All four routes passed live tool-call probes in
+[workflow 30045915766](https://github.com/layer1labs/specsmith/actions/runs/30045915766).
+GLM-5.2 then passed T28 FULL and the independent oracle at n=1, but its 72,187
+TPCA was 2.25x the 32,020 Sol+FULL reference. The deterministic audit returns
+`advance_candidate`, not `repeat_screen`. Kimi K2.7 Code is therefore the next
+code-specialized diagnostic; MiniMax-M3 is the cost challenger; and DeepSeek-V4
+Pro is the higher-active-capacity control. A correct diagnostic must also beat
+the current Sol FULL T28 token envelope before earning a matched n=5 screen.
 
 Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
 before a release-quality statistical claim. Preserve raw token, cost, latency,

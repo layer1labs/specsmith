@@ -33,6 +33,8 @@
     transcript, validator output, written files, final diff, and controller
     decisions. Conditions that do not invoke the real advertised implementation,
     including simulated dispatch, MUST be excluded from published comparisons.
+    A deterministic single-file repair handoff SHOULD provide bounded current
+    content and a write-only tool surface so compaction does not force a reread.
   source: scripts/govern_bench benchmark trustworthiness fixes (plan aebed8bd)
   status: implemented
 - id: REQ-485
@@ -73,7 +75,9 @@
     task-level correctness regressions, token amplification, and context dominance.
     The audit MUST deterministically select the next experiment from measured
     completeness, correctness, tokens-per-correct-answer, and trace weaknesses,
-    without spending another judge-model call.
+    without spending another judge-model call. A versioned, source-linked
+    screening envelope MUST prevent a correct challenger that is materially less
+    efficient than the current frontier anchor from earning repeated paid runs.
     The existing specsmith audit command MUST optionally combine those outcome
     weaknesses with project governance health and write a machine-readable report.
   source: Maintainer request for long-horizon benchmarking and outcome auditing
