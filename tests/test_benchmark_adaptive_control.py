@@ -24,11 +24,14 @@ from govern_bench.harness import (  # noqa: E402
     _milestone_contract,
     _milestone_progress,
     _openai_sampling_params,
+    _read_paths_from_calls,
     _replace_adaptive_progress_message,
     _run_missing_completion_validators,
     _scope_contract,
     _scope_progress,
     _updated_serialized_action_count,
+    _updated_unchanged_read_only_streak,
+    _without_read_tools,
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.select_models import load_registry, select  # noqa: E402
@@ -78,8 +81,9 @@ def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> 
     assert "shared contract and API" in contract
     assert "interactive UI journey" in contract
     assert "no separate planning turn" in contract
-    assert "read_files/write_files" in contract
-    assert tools == ["read_files", "write_files", "read_file", "write_file", "done"]
+    assert "read_file calls in one response" in contract
+    assert "existing dependencies and standard libraries" in contract
+    assert tools == ["write_files", "read_file", "write_file", "done"]
     assert "backend/main.py" in _milestone_progress(task, ["contracts/incident.schema.json"])
     assert "worker boundary" in _milestone_progress(
         task,
@@ -107,6 +111,7 @@ def test_accepted_aee_work_starts_with_minimal_tools_and_bounded_scope() -> None
 
     assert initial == ["read_file", "write_file", "done"]
     assert "run_command" not in _active_tool_names(active)
+    assert not (_active_tool_names(_without_read_tools(active)) & {"read_file", "read_files"})
     assert {"list_files", "run_command", "ask_clarification"}.issubset(diagnostic)
     assert "app/main.py" in _scope_contract(task)
     assert "tests/test_main.py" in _scope_progress(task, ["app/main.py"])
@@ -132,7 +137,7 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
             composite_files=True,
         )
     ]
-    assert names == ["read_files", "write_files", "read_file", "write_file", "done"]
+    assert names == ["write_files", "read_file", "write_file", "done"]
 
     written: list[str] = []
     output, successful = _exec_write_files(
@@ -156,6 +161,33 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
     )
     assert "## one.py" in content and "## two.py" in content
     assert suppressed == []
+    assert _read_paths_from_calls(
+        [
+            NormalizedToolCall(
+                id="read-many",
+                name="read_files",
+                arguments='{"paths":["one.py","two.py"]}',
+            )
+        ]
+    ) == ["one.py", "two.py"]
+    repeated_reads = [
+        NormalizedToolCall(
+            id="read-one",
+            name="read_file",
+            arguments='{"path":"one.py"}',
+        )
+    ]
+    assert _updated_unchanged_read_only_streak(0, repeated_reads, ["one.py"]) == 1
+    assert _updated_unchanged_read_only_streak(1, repeated_reads, ["one.py"]) == 2
+    assert _updated_unchanged_read_only_streak(2, repeated_reads, []) == 0
+    assert (
+        _updated_unchanged_read_only_streak(
+            2,
+            [NormalizedToolCall(id="write", name="write_file", arguments="{}")],
+            [],
+        )
+        == 0
+    )
 
     focus = _focused_validator_repair_progress(
         task,
@@ -196,8 +228,14 @@ def test_full_completion_applies_one_bounded_ruff_safe_fix(
     )
 
     assert lint_ok and tests_ok and failures == []
-    assert calls == ["ruff check .", "ruff check . --fix", "ruff check .", "pytest"]
-    assert receipts and "safe fixes" in receipts[0]
+    assert calls == [
+        "ruff check .",
+        "ruff format .",
+        "ruff check . --fix",
+        "ruff check .",
+        "pytest",
+    ]
+    assert receipts and "formatting/default-safe fixes" in receipts[0]
 
 
 def test_qwen_sampling_uses_official_model_specific_defaults(

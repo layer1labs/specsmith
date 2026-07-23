@@ -76,6 +76,7 @@ SUPPORTED_PROVIDERS = ("openai", "anthropic", "google", "openai-compat", "huggin
 # inference providers and returns real token usage. Auth via HF_TOKEN.
 _HF_INFERENCE_BASE_URL = "https://router.huggingface.co/v1"
 RUN_COMMAND_ALLOWLIST = (
+    "ruff format .",
     "ruff check .",
     "ruff check . --fix",
     "pytest",
@@ -540,7 +541,7 @@ def _build_active_tools(
     if condition_id != "SPECSMITH_FULL" or diagnostics_required:
         return tools
     initial_names = (
-        {"read_files", "write_files", "read_file", "write_file", "done"}
+        {"write_files", "read_file", "write_file", "done"}
         if composite_files
         else {"read_file", "write_file", "done"}
     )
@@ -554,6 +555,46 @@ def _active_tool_names(tools: list[dict]) -> set[str]:
         for tool in tools
         if isinstance(tool, dict) and isinstance(tool.get("function"), dict)
     }
+
+
+_READ_TOOL_NAMES = frozenset({"read_file", "read_files"})
+
+
+def _read_paths_from_calls(tool_calls: list[NormalizedToolCall]) -> list[str]:
+    """Return normalized paths when a response contains only file reads."""
+    if not tool_calls or any(call.name not in _READ_TOOL_NAMES for call in tool_calls):
+        return []
+    paths: list[str] = []
+    for call in tool_calls:
+        parsed = _json_loads_maybe(call.arguments)
+        args = parsed if isinstance(parsed, dict) else {}
+        raw_paths = [args.get("path")] if call.name == "read_file" else args.get("paths") or []
+        paths.extend(
+            normalized for path in raw_paths if (normalized := _normalized_history_path(path))
+        )
+    return paths
+
+
+def _without_read_tools(tools: list[dict]) -> list[dict]:
+    """Temporarily remove read tools while retaining every active mutation/gate tool."""
+    return [
+        tool
+        for tool in tools
+        if str(tool.get("function", {}).get("name") or "") not in _READ_TOOL_NAMES
+    ]
+
+
+def _updated_unchanged_read_only_streak(
+    prior: int,
+    tool_calls: list[NormalizedToolCall],
+    suppressed_paths: list[str],
+) -> int:
+    """Count consecutive read-only turns whose every path is unchanged."""
+    read_paths = _read_paths_from_calls(tool_calls)
+    suppressed = {_normalized_history_path(path) for path in suppressed_paths}
+    if read_paths and set(read_paths).issubset(suppressed):
+        return prior + 1
+    return 0
 
 
 def _is_specsmith_condition(condition_id: str) -> bool:
@@ -626,9 +667,10 @@ def _milestone_contract(task: BenchTask) -> str:
         files = [str(path) for path in (milestone.get("files") or [])]
         lines.append(f"{index}. {name}: {', '.join(files)}")
     lines.append(
-        "Finish one milestone coherently. Use read_files/write_files to batch its independent "
-        "paths, and do not reread unchanged files. The controller reports the next incomplete "
-        "milestone when needed."
+        "Finish one milestone coherently. Issue independent read_file calls in one response, "
+        "use write_files for a coherent milestone, and do not reread unchanged files. Prefer "
+        "existing dependencies and standard libraries. The controller reports the next "
+        "incomplete milestone when needed."
     )
     return "\n".join(lines)
 
@@ -1121,7 +1163,9 @@ def _exec_run_command(project_root: Path, command: str) -> tuple[bool, str]:
         test_ok, test_out = _exec_run_command(project_root, "pytest")
         return test_ok, f"ruff OK\n\npytest:\n{test_out}"
     try:
-        if command in {"ruff check .", "ruff check . --fix"}:
+        if command == "ruff format .":
+            args = [sys.executable, "-m", "ruff", "format", "--no-cache", "."]
+        elif command in {"ruff check .", "ruff check . --fix"}:
             args = [sys.executable, "-m", "ruff", "check", "--no-cache"]
             if command.endswith(" --fix"):
                 # Ruff applies only fixes it classifies as safe unless
@@ -1976,16 +2020,17 @@ def _run_ruff_with_bounded_safe_fix(
     *,
     phase: str,
 ) -> tuple[bool, str, str]:
-    """Run Ruff and at most one default-safe repair pass, never unsafe fixes."""
+    """Run Ruff formatting and at most one default-safe fix pass."""
     succeeded, output = _exec_run_command(project_root, "ruff check .")
     if succeeded:
         return succeeded, output, ""
+    _format_succeeded, format_output = _exec_run_command(project_root, "ruff format .")
     _fix_succeeded, fix_output = _exec_run_command(project_root, "ruff check . --fix")
     succeeded, output = _exec_run_command(project_root, "ruff check .")
     receipt = ""
     if succeeded:
-        receipt = f"Ruff default safe fixes applied before {phase}: " + _compact_tool_result(
-            fix_output
+        receipt = f"Ruff formatting/default-safe fixes applied before {phase}: " + (
+            _compact_tool_result(f"{format_output}\n{fix_output}")
         )
     return succeeded, output, receipt
 
@@ -2171,6 +2216,8 @@ def _run_agent_loop(
     serialized_action_count = 0
     last_single_write_target = ""
     repeated_write_streak = 0
+    unchanged_read_only_streak = 0
+    read_tools_suspended = False
     read_evidence: dict[str, tuple[str, int]] = {}
     active_repair_focus = ""
     stop_reason = "max_turns"
@@ -2555,6 +2602,8 @@ def _run_agent_loop(
         if validation_failed:
             rework_turns += 1
             diagnostics_required = True
+            read_tools_suspended = False
+            unchanged_read_only_streak = 0
             tools = _build_active_tools(
                 condition.id,
                 task,
@@ -2585,8 +2634,8 @@ def _run_agent_loop(
             )
             adaptive_instruction = (
                 f"{progress_detail} This serving route emitted one action per turn twice; "
-                "the controller added read_files/write_files while retaining scalar tools. "
-                "Batch every independent path for the active boundary in one call."
+                "the controller added write_files while retaining scalar tools. Batch the "
+                "active boundary's independent writes in one call."
             )
             messages = _replace_adaptive_progress_message(messages, adaptive_instruction)
             agent_transcript.append(
@@ -2596,10 +2645,58 @@ def _run_agent_loop(
                     "adaptive_tool_surface": {
                         "reason": "serialized_action_turns",
                         "count": serialized_action_count,
-                        "tools": ["read_files", "write_files"],
+                        "tools": ["write_files"],
                     },
                 }
             )
+
+        if successful_write_paths and read_tools_suspended:
+            read_tools_suspended = False
+            unchanged_read_only_streak = 0
+            tools = _build_active_tools(
+                condition.id,
+                task,
+                diagnostics_required=diagnostics_required,
+                composite_files=composite_files,
+            )
+
+        unchanged_read_only_streak = _updated_unchanged_read_only_streak(
+            unchanged_read_only_streak,
+            msg.tool_calls,
+            suppressed_unchanged_reads,
+        )
+
+        if (
+            condition.id == "SPECSMITH_FULL"
+            and unchanged_read_only_streak >= 2
+            and not read_tools_suspended
+            and not validation_failed
+        ):
+            read_tools_suspended = True
+            tools = _without_read_tools(tools)
+            progress_detail = (
+                _milestone_progress(task, files_written)
+                if task.is_long_horizon
+                else _scope_progress(task, files_written)
+            )
+            recovery = (
+                "Two consecutive read-only turns returned only unchanged evidence. "
+                "Read tools are temporarily suspended; reuse the evidence already in context "
+                f"and write the next incomplete boundary. {progress_detail}"
+            )
+            messages = _replace_adaptive_progress_message(messages, recovery)
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "adaptive_tool_surface": {
+                        "reason": "unchanged_read_loop",
+                        "count": unchanged_read_only_streak,
+                        "removed_tools": sorted(_READ_TOOL_NAMES),
+                    },
+                }
+            )
+            rework_turns += 1
 
         current_single_write = (
             tc_targets[0]
