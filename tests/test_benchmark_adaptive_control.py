@@ -14,6 +14,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
 from govern_bench import harness as harness_module  # noqa: E402
 from govern_bench.harness import (  # noqa: E402
     NormalizedToolCall,
+    _active_tool_names,
     _build_active_tools,
     _exec_read_file_with_evidence,
     _exec_read_files_with_evidence,
@@ -64,11 +65,21 @@ def test_unchanged_file_reads_return_digest_receipts_until_content_changes(
 def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> None:
     task = get_task("T28")
     contract = _milestone_contract(task)
+    tools = [
+        tool["function"]["name"]
+        for tool in _build_active_tools(
+            "SPECSMITH_FULL",
+            task,
+            composite_files=task.is_long_horizon,
+        )
+    ]
 
     assert len(task.milestones) == 4
     assert "shared contract and API" in contract
     assert "interactive UI journey" in contract
     assert "no separate planning turn" in contract
+    assert "read_files/write_files" in contract
+    assert tools == ["read_files", "write_files", "read_file", "write_file", "done"]
     assert "backend/main.py" in _milestone_progress(task, ["contracts/incident.schema.json"])
     assert "worker boundary" in _milestone_progress(
         task,
@@ -87,13 +98,15 @@ def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> 
 
 def test_accepted_aee_work_starts_with_minimal_tools_and_bounded_scope() -> None:
     task = get_task("T1")
-    initial = [tool["function"]["name"] for tool in _build_active_tools("SPECSMITH_FULL", task)]
+    active = _build_active_tools("SPECSMITH_FULL", task)
+    initial = [tool["function"]["name"] for tool in active]
     diagnostic = [
         tool["function"]["name"]
         for tool in _build_active_tools("SPECSMITH_FULL", task, diagnostics_required=True)
     ]
 
     assert initial == ["read_file", "write_file", "done"]
+    assert "run_command" not in _active_tool_names(active)
     assert {"list_files", "run_command", "ask_clarification"}.issubset(diagnostic)
     assert "app/main.py" in _scope_contract(task)
     assert "tests/test_main.py" in _scope_progress(task, ["app/main.py"])

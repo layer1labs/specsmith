@@ -276,3 +276,17 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `5d3011219633540e...`
+
+## 2026-07-23T08:26 — KILL SWITCH ACTIVATED: emergency stop
+- **Author**: specsmith-operator
+- **Type**: kill-switch
+- **REQs affected**: REG-005
+- **Status**: complete
+- **Epistemic status**: high
+- **Chain hash**: `7ee11506201f1f07...`
+
+## 2026-07-23T08:56 — wi_archive WI-F6172A943F6F: Completed read-only benchmark workflow dispatch and artifact analysis; no implementation change or test obligation.
+- **Author**: specsmith
+- **Type**: wi_archive
+- **Status**: complete
+- **Chain hash**: `13164f9c2f0e8932...`

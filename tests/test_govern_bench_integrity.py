@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import json
 import runpy
 import sys
 import urllib.error
@@ -151,6 +152,46 @@ def test_completed_write_compaction_keeps_tool_history_schema_valid() -> None:
     assert "content_bytes" not in str(history)
 
 
+def test_completed_composite_write_history_omits_every_file_body() -> None:
+    bodies = ("FIRST_PRIVATE_BODY\n", "SECOND_PRIVATE_BODY\n")
+    arguments = json.dumps(
+        {
+            "files": [
+                {"path": "one.py", "content": bodies[0]},
+                {"path": "two.py", "content": bodies[1]},
+            ]
+        }
+    )
+    assistant = {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "id": "write-many",
+                "type": "function",
+                "function": {"name": "write_files", "arguments": arguments},
+            }
+        ],
+    }
+    calls = [NormalizedToolCall(id="write-many", name="write_files", arguments=arguments)]
+    results = [
+        {
+            "role": "tool",
+            "tool_call_id": "write-many",
+            "content": "OK: wrote 19 bytes\nOK: wrote 20 bytes",
+        }
+    ]
+
+    history = _compact_completed_tool_exchange(assistant, calls, results)
+    serialized = str(history)
+
+    assert all(body.strip() not in serialized for body in bodies)
+    assert "one.py" in serialized and "two.py" in serialized
+    assert "requested_bytes=19" in serialized
+    assert "requested_bytes=20" in serialized
+    assert "write_files" not in serialized
+
+
 def test_superseded_read_compaction_preserves_other_tool_linkage() -> None:
     messages = [
         {"role": "system", "content": "stable prefix"},
@@ -200,6 +241,51 @@ def test_superseded_read_compaction_preserves_other_tool_linkage() -> None:
         "read-keep",
         "lint-keep",
     ]
+
+
+def test_fully_superseded_composite_read_is_removed_but_partial_read_remains() -> None:
+    messages = [
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "read-all-replaced",
+                    "type": "function",
+                    "function": {
+                        "name": "read_files",
+                        "arguments": '{"paths":["one.py","two.py"]}',
+                    },
+                },
+                {
+                    "id": "read-partial",
+                    "type": "function",
+                    "function": {
+                        "name": "read_files",
+                        "arguments": '{"paths":["two.py","README.md"]}',
+                    },
+                },
+            ],
+        },
+        {
+            "role": "tool",
+            "tool_call_id": "read-all-replaced",
+            "content": "OBSOLETE_COMPOSITE_CONTENT",
+        },
+        {
+            "role": "tool",
+            "tool_call_id": "read-partial",
+            "content": "MIXED_CURRENT_CONTENT",
+        },
+    ]
+
+    compacted = _compact_superseded_read_history(messages, ["one.py", "two.py"])
+    serialized = str(compacted)
+
+    assert "OBSOLETE_COMPOSITE_CONTENT" not in serialized
+    assert "read-all-replaced" not in serialized
+    assert "MIXED_CURRENT_CONTENT" in serialized
+    assert compacted[0]["tool_calls"][0]["id"] == "read-partial"
 
 
 def test_gpt56_openai_call_uses_stable_cache_key_and_records_cache_usage(
@@ -336,11 +422,14 @@ def test_live_probe_requires_credential_without_network() -> None:
 def test_probe_payload_matches_reasoning_and_tool_surfaces() -> None:
     regular = _chat_probe_payload("gpt-4o-mini")
     reasoning = _chat_probe_payload("gpt-5.6-sol")
+    qwen = _chat_probe_payload("Qwen/Qwen3-Coder-Next:novita")
     assert regular["max_tokens"] == 32
-    assert regular["temperature"] == 0
+    assert regular["temperature"] == 0.2
     assert reasoning["max_completion_tokens"] == 32
     assert reasoning["reasoning_effort"] == "none"
     assert "temperature" not in reasoning
+    assert qwen["temperature"] == 1.0
+    assert qwen["top_p"] == 0.95
     assert regular["tools"][0]["function"]["name"] == "ping"
 
 
@@ -652,7 +741,9 @@ def test_governance_tools_do_not_change_agent_capabilities() -> None:
 def test_full_prompt_delegates_initial_validation_to_controller() -> None:
     prompt = get_condition("SPECSMITH_FULL").system_prompt_template
 
-    assert "do not call run_command or run_validator before done" in prompt
+    assert "validation is controller-owned" in prompt
+    assert "run_command" not in prompt
+    assert "run_validator" not in prompt
     assert "Repair any failures" in prompt
 
 

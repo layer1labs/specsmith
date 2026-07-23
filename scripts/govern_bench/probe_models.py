@@ -183,16 +183,23 @@ def _chat_probe_payload(model_id: str) -> dict:
             }
         ],
         "tool_choice": "auto",
-        "temperature": 0,
     }
     lowered = model_id.lower()
     if lowered.startswith(("gpt-5", "o1", "o3", "o4")):
         payload["max_completion_tokens"] = 32
-        payload.pop("temperature", None)
         if lowered.startswith("gpt-5.6"):
             payload["reasoning_effort"] = "none"
     else:
         payload["max_tokens"] = 32
+        bare_model = lowered.split(":", 1)[0]
+        if "qwen3-coder-next" in bare_model:
+            payload.update(temperature=1.0, top_p=0.95)
+        elif "qwen3-coder-480b" in bare_model:
+            payload.update(temperature=0.7, top_p=0.8)
+        elif "qwen3.6" in bare_model:
+            payload.update(temperature=0.6, top_p=0.95)
+        else:
+            payload["temperature"] = 0.2
     return payload
 
 

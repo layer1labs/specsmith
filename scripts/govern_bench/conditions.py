@@ -354,9 +354,9 @@ CONDITIONS: list[Condition] = [
             Add focused tests for changed behavior and relevant boundaries.
             Call done when the implementation and focused tests are ready. The deterministic
             completion gate runs every missing linked validator without another model turn;
-            do not call run_command or run_validator before done. Repair any failures the
-            gate returns, then call done again. Run a validator directly only when the gate's
-            failure output is insufficient to diagnose the repair.
+            validation is controller-owned until then. Repair any failures the gate returns,
+            then call done again. Request a direct diagnostic only when the gate's failure
+            output is insufficient to diagnose the repair.
         """),
         overhead_turns=0,  # preflight/verify are deterministic controller operations
         tags=["specsmith", "full-governance", "primary"],

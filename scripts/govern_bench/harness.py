@@ -547,6 +547,15 @@ def _build_active_tools(
     return [tool for tool in tools if tool["function"]["name"] in initial_names]
 
 
+def _active_tool_names(tools: list[dict]) -> set[str]:
+    """Return the executable names advertised for the current controller phase."""
+    return {
+        str(tool.get("function", {}).get("name") or "")
+        for tool in tools
+        if isinstance(tool, dict) and isinstance(tool.get("function"), dict)
+    }
+
+
 def _is_specsmith_condition(condition_id: str) -> bool:
     return condition_id in {"SPECSMITH_LIGHT", "SPECSMITH_FULL"}
 
@@ -617,8 +626,9 @@ def _milestone_contract(task: BenchTask) -> str:
         files = [str(path) for path in (milestone.get("files") or [])]
         lines.append(f"{index}. {name}: {', '.join(files)}")
     lines.append(
-        "Finish one milestone coherently, batch independent tool calls, and do not reread "
-        "unchanged files. The controller reports the next incomplete milestone when needed."
+        "Finish one milestone coherently. Use read_files/write_files to batch its independent "
+        "paths, and do not reread unchanged files. The controller reports the next incomplete "
+        "milestone when needed."
     )
     return "\n".join(lines)
 
@@ -728,7 +738,7 @@ def _compact_completed_tool_exchange(
 
     for call, serialized in zip(tool_calls, serialized_calls, strict=True):
         result = results_by_id.get(call.id)
-        if call.name != "write_file":
+        if call.name not in {"write_file", "write_files"}:
             retained_calls.append(serialized)
             if result is not None:
                 retained_results.append(result)
@@ -736,15 +746,23 @@ def _compact_completed_tool_exchange(
 
         parsed = _json_loads_maybe(call.arguments)
         args = parsed if isinstance(parsed, dict) else {}
-        path = str(args.get("path") or "(missing path)")
-        content = args.get("content")
-        body = content if isinstance(content, str) else ""
-        digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
         outcome = str((result or {}).get("content") or "no tool result").replace("\n", " ")
-        write_summaries.append(
-            f"- {json.dumps(path)}: {outcome[:240]} "
-            f"(requested_bytes={len(body.encode('utf-8'))}, sha256={digest})"
+        file_args = (
+            [args]
+            if call.name == "write_file"
+            else [item for item in (args.get("files") or []) if isinstance(item, dict)]
         )
+        if not file_args:
+            file_args = [{"path": "(missing path)", "content": ""}]
+        for item in file_args:
+            path = str(item.get("path") or "(missing path)")
+            content = item.get("content")
+            body = content if isinstance(content, str) else ""
+            digest = hashlib.sha256(body.encode("utf-8")).hexdigest()[:16]
+            write_summaries.append(
+                f"- {json.dumps(path)}: {outcome[:240]} "
+                f"(requested_bytes={len(body.encode('utf-8'))}, sha256={digest})"
+            )
 
     history: list[dict[str, Any]] = []
     assistant_content = assistant_message.get("content")
@@ -767,8 +785,8 @@ def _compact_completed_tool_exchange(
                 "content": (
                     "Completed write_file state summary. File bodies were omitted from "
                     "history; files on disk are authoritative. Use read_file before repairing "
-                    "an existing file, and send the complete replacement body in "
-                    "write_file.content.\n" + "\n".join(write_summaries)
+                    "an existing file, and send complete replacement bodies when repairing.\n"
+                    + "\n".join(write_summaries)
                 ),
             }
         )
@@ -804,10 +822,21 @@ def _compact_superseded_read_history(
                 function = function if isinstance(function, dict) else {}
                 parsed = _json_loads_maybe(str(function.get("arguments") or ""))
                 args = parsed if isinstance(parsed, dict) else {}
-                if (
-                    function.get("name") == "read_file"
-                    and _normalized_history_path(args.get("path")) in targets
-                ):
+                name = function.get("name")
+                scalar_superseded = (
+                    name == "read_file" and _normalized_history_path(args.get("path")) in targets
+                )
+                composite_paths = (
+                    {
+                        _normalized_history_path(path)
+                        for path in (args.get("paths") or [])
+                        if _normalized_history_path(path)
+                    }
+                    if name == "read_files"
+                    else set()
+                )
+                composite_superseded = bool(composite_paths) and composite_paths.issubset(targets)
+                if scalar_superseded or composite_superseded:
                     superseded_ids.add(str(call.get("id") or ""))
                     continue
                 retained_calls.append(call)
@@ -2055,8 +2084,12 @@ def _run_agent_loop(
 
     del specsmith_dir  # governance state is isolated inside project_root
     diagnostics_required = False
-    composite_files = False
-    tools = _build_active_tools(condition.id, task)
+    composite_files = condition.id == "SPECSMITH_FULL" and task.is_long_horizon
+    tools = _build_active_tools(
+        condition.id,
+        task,
+        composite_files=composite_files,
+    )
     visible_criteria = task.visible_acceptance_criteria
     system_prompt = condition.render_prompt(
         task_description=task.task_prompt,
@@ -2260,13 +2293,19 @@ def _run_agent_loop(
         suppressed_unchanged_reads: list[str] = []
         finished = False
         validation_failed = False
+        active_tool_names = _active_tool_names(tools)
         for tc in msg.tool_calls:
             fn_name = tc.name
             args_raw = _json_loads_maybe(tc.arguments)
             args = args_raw if isinstance(args_raw, dict) else {}
 
             # ── Execute tool ──────────────────────────────────────────────
-            if fn_name == "read_file":
+            if fn_name not in active_tool_names:
+                out = (
+                    f"ERROR: tool {fn_name!r} is not available in the current phase. "
+                    f"Use one of: {', '.join(sorted(active_tool_names))}."
+                )
+            elif fn_name == "read_file":
                 path = str(args.get("path") or "")
                 out, suppressed = _exec_read_file_with_evidence(
                     project_root,

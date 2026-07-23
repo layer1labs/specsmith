@@ -888,7 +888,7 @@
     differentiated Specsmith skills.
   requirement_id: REQ-485
   type: integration
-  verification_method: pytest tests/test_govern_bench_integrity.py tests/test_agent_runner.py
+  verification_method: pytest tests/test_govern_bench_integrity.py tests/test_agent_runner_ready.py
     tests/test_skill_marketplace.py
   input: {}
   expected_behavior: Core AEE controls remain effective while token-amplifying ceremony

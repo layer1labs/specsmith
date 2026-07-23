@@ -5586,7 +5586,7 @@
     "description": "Tests verify hidden benchmark oracles, isolated controller decisions, bounded context and history, complete diagnostics, automatic REPL history compression, a concise evidence-first Grace prompt, and a default catalog limited to the 12 differentiated Specsmith skills.",
     "requirement_id": "REQ-485",
     "type": "integration",
-    "verification_method": "pytest tests/test_govern_bench_integrity.py tests/test_agent_runner.py tests/test_skill_marketplace.py",
+    "verification_method": "pytest tests/test_govern_bench_integrity.py tests/test_agent_runner_ready.py tests/test_skill_marketplace.py",
     "input": {},
     "expected_behavior": "Core AEE controls remain effective while token-amplifying ceremony and generic skills are absent",
     "confidence": 1.0
