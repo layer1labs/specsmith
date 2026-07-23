@@ -53,6 +53,7 @@ from govern_bench.harness import (  # noqa: E402
 )
 from govern_bench.metrics import estimate_cost, model_tier  # noqa: E402
 from govern_bench.probe_models import (  # noqa: E402
+    DEFAULT_PROBE_TIMEOUT_SECONDS,
     _chat_probe_payload,
     _http_error_message,
     _probe_chat_endpoint,
@@ -1039,3 +1040,7 @@ def test_reasoning_completion_budget_is_bounded(monkeypatch: pytest.MonkeyPatch)
 def test_report_lists_non_contiguous_task_ids_exactly() -> None:
     tasks = [get_task(task_id) for task_id in ("T1", "T2", "T6", "T7", "T10", "T11", "T13")]
     assert _task_list_label(tasks) == "T1, T2, T6, T7, T10, T11, T13"
+
+
+def test_live_probe_timeout_allows_measured_tool_route_latency() -> None:
+    assert DEFAULT_PROBE_TIMEOUT_SECONDS == 60.0

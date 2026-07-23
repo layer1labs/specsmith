@@ -14,6 +14,8 @@ Adaptive rerun `29966620911` improved Qwen3.6 FULL to 2/3 and reduced TPCA from
 186.8k to 100.7k, but T28 still exposed a public-validator/oracle disagreement.
 The next paid experiment is T28-only after visible contract and focused repair
 boundaries, not an n=5 promotion or a larger turn budget.
+Live tool probes allow 60 seconds for high-latency managed routes but still fail
+closed before the benchmark matrix starts on auth, billing, timeout, or tool errors.
 
 ---
 

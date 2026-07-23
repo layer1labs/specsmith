@@ -43,6 +43,7 @@ _HF_CHAT_URL = "https://router.huggingface.co/v1/chat/completions"
 _OPENAI_MODEL_URL = "https://api.openai.com/v1/models/"
 _OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
 _HF_PROVIDER = "huggingface"
+DEFAULT_PROBE_TIMEOUT_SECONDS = 60.0
 
 
 def _http_error_message(exc: urllib.error.HTTPError) -> str:
@@ -286,7 +287,15 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--groups")
     parser.add_argument("--providers")
     parser.add_argument("--tiers")
-    parser.add_argument("--timeout", type=float, default=20.0)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_PROBE_TIMEOUT_SECONDS,
+        help=(
+            "per-request timeout in seconds; defaults to 60 for slow tool-capable "
+            "routes while retaining fail-closed probe behavior"
+        ),
+    )
     parser.add_argument(
         "--live-call",
         action="store_true",

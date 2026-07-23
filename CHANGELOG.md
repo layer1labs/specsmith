@@ -39,6 +39,9 @@ consolidated into the next published release.
   history so obsolete source versions do not dominate later input tokens.
 
 ### Fixed
+- Allow slow managed tool routes up to 60 seconds for the tiny fail-closed live
+  compatibility probe, preventing the measured Qwen latency from being mistaken
+  for an unavailable endpoint.
 - CI now runs an exception-free dependency audit; the obsolete CVE-2026-3219
   suppression was removed and a regression test prevents ignored-vulnerability
   flags from returning.
