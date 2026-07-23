@@ -472,6 +472,22 @@ def _focused_validator_repair_progress(task: BenchTask, failures: list[str]) -> 
         paths = _validator_boundaries_for_task(task, command)
         if paths:
             focus.append(f"{command} -> {', '.join(paths)}")
+    core_failures = [
+        failure
+        for failure in failures
+        if failure.startswith(("ruff check . FAILED:", "pytest FAILED:"))
+    ]
+    if core_failures:
+        normalized_failures = "\n".join(core_failures).replace("\\", "/").casefold()
+        linked_paths = [
+            str(path)
+            for path in task.expected_files_changed
+            if _normalized_history_path(path) in normalized_failures
+        ]
+        if not linked_paths:
+            linked_paths = [str(path) for path in task.expected_files_changed]
+        if linked_paths:
+            focus.append(f"deterministic project checks -> {', '.join(linked_paths)}")
     if not focus:
         return ""
     return (
@@ -582,6 +598,28 @@ def _without_read_tools(tools: list[dict]) -> list[dict]:
         for tool in tools
         if str(tool.get("function", {}).get("name") or "") not in _READ_TOOL_NAMES
     ]
+
+
+def _build_focused_repair_tools(
+    condition_id: str,
+    task: BenchTask,
+    *,
+    composite_files: bool,
+    repair_written: bool = False,
+) -> list[dict]:
+    """Expose only evidence needed for one controller-identified repair.
+
+    The controller owns validation, so public validator commands and broad
+    discovery tools add no evidence here. After a repair write, even reads are
+    suspended: the next useful action is ``done``, which reruns missing checks.
+    """
+    tools = _build_active_tools(
+        condition_id,
+        task,
+        diagnostics_required=False,
+        composite_files=composite_files,
+    )
+    return _without_read_tools(tools) if repair_written else tools
 
 
 def _updated_unchanged_read_only_streak(
@@ -1035,6 +1073,22 @@ def _exec_read_file_with_evidence(
         )
     read_evidence[key] = (digest, turn)
     return content, False
+
+
+def _record_written_evidence(
+    project_root: Path,
+    paths: list[str],
+    read_evidence: dict[str, tuple[str, int]],
+    *,
+    turn: int,
+) -> None:
+    """Treat a successful model write as known evidence for that file version."""
+    for path in paths:
+        content = _exec_read_file(project_root, path)
+        if content.startswith("ERROR:"):
+            continue
+        digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+        read_evidence[_normalized_history_path(path)] = (digest, turn)
 
 
 def _exec_write_file(project_root: Path, path: str, content: str, files_written: list[str]) -> str:
@@ -2543,6 +2597,12 @@ def _run_agent_loop(
             )
 
         if successful_write_paths:
+            _record_written_evidence(
+                project_root,
+                successful_write_paths,
+                read_evidence,
+                turn=turn + 1,
+            )
             messages = _compact_superseded_read_history(messages, successful_write_paths)
         messages.extend(
             _compact_completed_tool_exchange(assistant_message, msg.tool_calls, tool_results)
@@ -2604,11 +2664,23 @@ def _run_agent_loop(
             diagnostics_required = True
             read_tools_suspended = False
             unchanged_read_only_streak = 0
-            tools = _build_active_tools(
-                condition.id,
-                task,
-                diagnostics_required=True,
-                composite_files=composite_files,
+            # Deterministic formatters may have changed a model-authored file.
+            # Permit one fresh read of the controller-identified repair boundary,
+            # but keep validation commands controller-owned.
+            read_evidence.clear()
+            tools = (
+                _build_focused_repair_tools(
+                    condition.id,
+                    task,
+                    composite_files=composite_files,
+                )
+                if active_repair_focus
+                else _build_active_tools(
+                    condition.id,
+                    task,
+                    diagnostics_required=True,
+                    composite_files=composite_files,
+                )
             )
 
         serialized_action_count = _updated_serialized_action_count(
@@ -2650,7 +2722,7 @@ def _run_agent_loop(
                 }
             )
 
-        if successful_write_paths and read_tools_suspended:
+        if successful_write_paths and read_tools_suspended and not active_repair_focus:
             read_tools_suspended = False
             unchanged_read_only_streak = 0
             tools = _build_active_tools(
@@ -2658,6 +2730,38 @@ def _run_agent_loop(
                 task,
                 diagnostics_required=diagnostics_required,
                 composite_files=composite_files,
+            )
+
+        if (
+            condition.id == "SPECSMITH_FULL"
+            and active_repair_focus
+            and successful_write_paths
+            and not validation_failed
+        ):
+            diagnostics_required = False
+            read_tools_suspended = True
+            unchanged_read_only_streak = 0
+            tools = _build_focused_repair_tools(
+                condition.id,
+                task,
+                composite_files=composite_files,
+                repair_written=True,
+            )
+            repair_ready = (
+                "Repair write accepted. Read and diagnostic tools are suspended because "
+                "the controller already owns the failing checks; call done now to rerun "
+                "only missing validation."
+            )
+            messages = _replace_adaptive_progress_message(messages, repair_ready)
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "adaptive_tool_surface": {
+                        "reason": "repair_write_ready_for_validation",
+                        "removed_tools": sorted(_READ_TOOL_NAMES),
+                    },
+                }
             )
 
         unchanged_read_only_streak = _updated_unchanged_read_only_streak(
@@ -2668,7 +2772,7 @@ def _run_agent_loop(
 
         if (
             condition.id == "SPECSMITH_FULL"
-            and unchanged_read_only_streak >= 2
+            and unchanged_read_only_streak >= 1
             and not read_tools_suspended
             and not validation_failed
         ):
@@ -2680,7 +2784,7 @@ def _run_agent_loop(
                 else _scope_progress(task, files_written)
             )
             recovery = (
-                "Two consecutive read-only turns returned only unchanged evidence. "
+                "A read-only turn returned only unchanged evidence. "
                 "Read tools are temporarily suspended; reuse the evidence already in context "
                 f"and write the next incomplete boundary. {progress_detail}"
             )

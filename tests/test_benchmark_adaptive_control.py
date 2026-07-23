@@ -16,6 +16,7 @@ from govern_bench.harness import (  # noqa: E402
     NormalizedToolCall,
     _active_tool_names,
     _build_active_tools,
+    _build_focused_repair_tools,
     _exec_read_file_with_evidence,
     _exec_read_files_with_evidence,
     _exec_write_files,
@@ -25,6 +26,7 @@ from govern_bench.harness import (  # noqa: E402
     _milestone_progress,
     _openai_sampling_params,
     _read_paths_from_calls,
+    _record_written_evidence,
     _replace_adaptive_progress_message,
     _run_missing_completion_validators,
     _scope_contract,
@@ -63,6 +65,25 @@ def test_unchanged_file_reads_return_digest_receipts_until_content_changes(
     assert "VALUE = 1" not in repeated
     assert changed == "VALUE = 2\n"
     assert not changed_suppressed
+
+
+def test_successful_model_writes_become_known_evidence(tmp_path: Path) -> None:
+    path = tmp_path / "component.py"
+    path.write_text("VALUE = 2\n", encoding="utf-8")
+    evidence: dict[str, tuple[str, int]] = {}
+
+    _record_written_evidence(tmp_path, ["component.py"], evidence, turn=4)
+    repeated, suppressed = _exec_read_file_with_evidence(
+        tmp_path,
+        "component.py",
+        evidence,
+        turn=5,
+        compress_unchanged=True,
+    )
+
+    assert suppressed
+    assert "prior read from turn 4" in repeated
+    assert "VALUE = 2" not in repeated
 
 
 def test_long_horizon_milestones_are_bounded_and_progress_replaces_history() -> None:
@@ -112,6 +133,15 @@ def test_accepted_aee_work_starts_with_minimal_tools_and_bounded_scope() -> None
     assert initial == ["read_file", "write_file", "done"]
     assert "run_command" not in _active_tool_names(active)
     assert not (_active_tool_names(_without_read_tools(active)) & {"read_file", "read_files"})
+    repair_names = _active_tool_names(
+        _build_focused_repair_tools(
+            "SPECSMITH_FULL",
+            task,
+            composite_files=True,
+            repair_written=True,
+        )
+    )
+    assert repair_names == {"write_files", "write_file", "done"}
     assert {"list_files", "run_command", "ask_clarification"}.issubset(diagnostic)
     assert "app/main.py" in _scope_contract(task)
     assert "tests/test_main.py" in _scope_progress(task, ["app/main.py"])
@@ -192,11 +222,13 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
     focus = _focused_validator_repair_progress(
         task,
         [
+            "ruff check . FAILED:\nui/src/App.tsx:20:1 lint failure",
             "python tools/validate_contract.py FAILED:\nmissing field",
             "python tools/validate_ui.py FAILED:\nmissing role selector",
         ],
     )
     assert "contracts/incident.schema.json" in focus
+    assert "ui/src/App.tsx" in focus
     assert "ui/tests/incident-console.spec.ts" in focus
     assert "do not reread validator" in focus
 

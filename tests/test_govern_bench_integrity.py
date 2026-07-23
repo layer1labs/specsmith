@@ -1142,6 +1142,133 @@ def test_full_agent_loop_uses_public_equilibrium_and_runs_hidden_oracle_once(
     assert final_repair_checks == 1
 
 
+def test_full_repair_write_forces_controller_owned_revalidation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import specsmith.governance_logic as governance_logic
+
+    task = get_task("T1")
+    project = tmp_path / "project"
+    _copy_project_fixture(_get_project_dir(task.project), project)
+    responses = iter(
+        [
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[NormalizedToolCall(id="done-1", name="done", arguments="{}")]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[
+                        NormalizedToolCall(
+                            id="read-repair",
+                            name="read_file",
+                            arguments='{"path":"app/main.py"}',
+                        )
+                    ]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[
+                        NormalizedToolCall(
+                            id="write-repair",
+                            name="write_file",
+                            arguments='{"path":"app/main.py","content":"VALUE = 1\\n"}',
+                        )
+                    ]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+            NormalizedLLMResponse(
+                message=NormalizedAssistantMessage(
+                    tool_calls=[NormalizedToolCall(id="done-2", name="done", arguments="{}")]
+                ),
+                usage=NormalizedUsage(prompt_tokens=10, completion_tokens=1),
+            ),
+        ]
+    )
+    tool_surfaces: list[set[str]] = []
+
+    def fake_call(**kwargs: object) -> NormalizedLLMResponse:
+        tool_surfaces.append(
+            {
+                str(tool["function"]["name"])
+                for tool in kwargs["tools"]  # type: ignore[index, union-attr]
+            }
+        )
+        return next(responses)
+
+    completion_checks = iter(
+        [
+            (False, True, set(), ["ruff check . FAILED:\nrepair app/main.py"]),
+            (True, True, set(), []),
+        ]
+    )
+    monkeypatch.setattr(harness_module, "_call_llm", fake_call)
+    monkeypatch.setattr(
+        harness_module,
+        "_run_missing_completion_validators",
+        lambda *_args, **_kwargs: next(completion_checks),
+    )
+    monkeypatch.setattr(
+        harness_module,
+        "_run_governance_controller",
+        lambda *_args: {
+            "decision": "accepted",
+            "work_item_id": "WI-TEST",
+            "requirement_ids": ["REQ-BENCH-001"],
+            "test_case_ids": ["TEST-BENCH-001"],
+        },
+    )
+    monkeypatch.setattr(
+        harness_module,
+        "_run_ruff_with_bounded_safe_fix",
+        lambda *_args, **_kwargs: (True, "", ""),
+    )
+    monkeypatch.setattr(
+        harness_module,
+        "_run_standard_validation",
+        lambda *_args: (True, "", True, "", True, ""),
+    )
+    monkeypatch.setattr(
+        governance_logic,
+        "run_verify",
+        lambda **_kwargs: {
+            "equilibrium": True,
+            "confidence": 0.85,
+            "retry_budget": 3,
+            "retry_strategy": "",
+        },
+    )
+
+    result = _run_agent_loop(
+        provider="openai",
+        client=object(),
+        model="test-model",
+        task=task,
+        condition=get_condition("SPECSMITH_FULL"),
+        project_root=project,
+        specsmith_dir=tmp_path,
+        max_turns=4,
+    )
+
+    assert result.stop_reason == "done"
+    assert result.llm_turns == 4
+    assert "read_file" in tool_surfaces[2]
+    assert tool_surfaces[3] == {"write_files", "write_file", "done"}, (
+        tool_surfaces,
+        result.agent_transcript,
+    )
+    assert any(
+        event.get("adaptive_tool_surface", {}).get("reason") == "repair_write_ready_for_validation"
+        for event in result.agent_transcript
+    )
+
+
 def test_isolated_controller_accepts_scoped_task(tmp_path: Path) -> None:
     result = _run_governance_controller(get_task("T1"), tmp_path)
     assert result["decision"] == "accepted"
