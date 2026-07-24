@@ -40,7 +40,9 @@ models:
     tier: open-large
   - label: gpt-oss-120b
     provider: huggingface
-    model: openai/gpt-oss-120b
+    # DeepInfra is the lowest-priced live HF route advertising tool support;
+    # pin it so repeated admissions do not silently change serving stacks.
+    model: openai/gpt-oss-120b:deepinfra
     group: open
     tier: open-xl
 

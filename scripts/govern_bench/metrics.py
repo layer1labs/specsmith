@@ -135,6 +135,7 @@ MODEL_ROUTE_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "zai-org/GLM-5.2:deepinfra": (0.93, 3.00),
     "deepseek-ai/DeepSeek-V4-Pro:novita": (1.60, 3.20),
     "MiniMaxAI/MiniMax-M3:novita": (0.30, 1.20),
+    "openai/gpt-oss-120b:deepinfra": (0.037, 0.17),
 }
 
 # Backwards-compatible alias — keep old key format working
