@@ -826,7 +826,7 @@ def _replace_adaptive_progress_message(
 
 def _looks_like_nonterminal_narration(content: str) -> bool:
     """Detect provider narration that promises another action but omits its tool call."""
-    normalized = " ".join(content.casefold().split())
+    normalized = " ".join(content.casefold().replace("`", "").split())
     markers = (
         "let me ",
         "now i'll ",
@@ -834,8 +834,11 @@ def _looks_like_nonterminal_narration(content: str) -> bool:
         "next i'll ",
         "next i will ",
         "i need to ",
+        "i'll write ",
+        "i will write ",
         "i'll now ",
         "i will now ",
+        "writing milestone",
         "calling done",
         "call done now",
         "ready to call done",

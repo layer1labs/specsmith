@@ -364,9 +364,13 @@ def test_open_model_sampling_uses_official_model_specific_defaults(
     [
         ("Let me update the tests next.", True),
         ("Now I'll run the validator.", True),
+        ("I'll write the UI boundary files for milestone 3.", True),
+        ("I have enough evidence. Writing milestone 2 now.", True),
         ("All four milestones have implementation evidence. Calling done.", True),
+        ("All four milestones are written. Calling `done` for validation.", True),
         ("The repair is ready to call done now.", True),
         ("The implementation and tests are complete.", False),
+        ("The files were written and validated.", False),
     ],
 )
 def test_nonterminal_narration_detection_is_narrow(content: str, expected: bool) -> None:
