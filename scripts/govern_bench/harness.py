@@ -841,6 +841,34 @@ def _looks_like_nonterminal_narration(content: str) -> bool:
     return any(marker in normalized for marker in markers)
 
 
+def _serialized_done_tool_call(
+    content: str,
+    task: BenchTask,
+    files_written: list[str],
+    *,
+    turn: int,
+) -> NormalizedToolCall | None:
+    """Recover an exact ``done`` payload emitted as text after scoped work."""
+    payload = _json_loads_maybe(content)
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"explanation", "refused"}
+        or not isinstance(payload.get("explanation"), str)
+        or not payload["explanation"].strip()
+        or payload.get("refused") is not False
+    ):
+        return None
+    expected = {_normalized_history_path(path) for path in task.expected_files_changed}
+    written = {_normalized_history_path(path) for path in files_written}
+    if not expected or not expected.issubset(written):
+        return None
+    return NormalizedToolCall(
+        id=f"serialized-done-{turn}",
+        name="done",
+        arguments=json.dumps(payload, separators=(",", ":")),
+    )
+
+
 _SERIAL_ACTION_TOOLS = frozenset(
     {"read_file", "write_file", "list_files", "run_command", "run_validator"}
 )
@@ -2417,6 +2445,17 @@ def _run_agent_loop(
         )
 
         msg = response.message
+        serialized_done_recovered = False
+        if not msg.tool_calls and condition.id == "SPECSMITH_FULL":
+            serialized_done = _serialized_done_tool_call(
+                msg.content,
+                task,
+                files_written,
+                turn=turn + 1,
+            )
+            if serialized_done is not None:
+                msg = NormalizedAssistantMessage(content="", tool_calls=[serialized_done])
+                serialized_done_recovered = True
         assistant_message = _normalized_message_to_openai_dict(msg)
         tc_names = [tc.name for tc in msg.tool_calls]
         tc_targets = [_tool_call_target(tc) for tc in msg.tool_calls]
@@ -2433,6 +2472,15 @@ def _run_agent_loop(
                 "content": msg.content,
             }
         )
+        if serialized_done_recovered:
+            agent_transcript.append(
+                {
+                    "turn": turn + 1,
+                    "role": "controller",
+                    "serialized_done_recovered": True,
+                    "reason": "exact_done_schema_after_complete_write_scope",
+                }
+            )
 
         if not msg.tool_calls:
             messages.append(assistant_message)

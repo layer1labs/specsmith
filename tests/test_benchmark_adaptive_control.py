@@ -33,6 +33,7 @@ from govern_bench.harness import (  # noqa: E402
     _run_missing_completion_validators,
     _scope_contract,
     _scope_progress,
+    _serialized_done_tool_call,
     _updated_serialized_action_count,
     _updated_unchanged_read_only_streak,
     _without_read_tools,
@@ -362,6 +363,37 @@ def test_qwen_sampling_uses_official_model_specific_defaults(
 )
 def test_nonterminal_narration_detection_is_narrow(content: str, expected: bool) -> None:
     assert _looks_like_nonterminal_narration(content) is expected
+
+
+def test_serialized_done_recovery_requires_exact_schema_and_complete_scope() -> None:
+    task = get_task("T28")
+    complete_scope = list(task.expected_files_changed)
+    payload = '{"explanation":"All requirement-linked work is complete.","refused":false}'
+
+    recovered = _serialized_done_tool_call(payload, task, complete_scope, turn=17)
+
+    assert recovered is not None
+    assert recovered.id == "serialized-done-17"
+    assert recovered.name == "done"
+    assert _serialized_done_tool_call(payload, task, complete_scope[:-1], turn=17) is None
+    assert (
+        _serialized_done_tool_call(
+            '{"explanation":"done","refused":false,"extra":true}',
+            task,
+            complete_scope,
+            turn=17,
+        )
+        is None
+    )
+    assert (
+        _serialized_done_tool_call(
+            '{"explanation":"done","refused":true}',
+            task,
+            complete_scope,
+            turn=17,
+        )
+        is None
+    )
 
 
 def _audit_row(*, condition: str, passed: bool, transcript: list[dict] | None = None) -> dict:
