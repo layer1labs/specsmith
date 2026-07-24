@@ -94,6 +94,20 @@ models:
     model: deepseek-ai/DeepSeek-V4-Pro:novita
     group: open-frontier
     tier: open-xl
+  - label: deepseek-v4-flash
+    provider: huggingface
+    # DeepInfra advertises tools + structured output at the lowest current
+    # managed-route price. This is the low-cost family control for V4 Pro.
+    model: deepseek-ai/DeepSeek-V4-Flash:deepinfra
+    group: open-frontier
+    tier: open-xl
+  - label: nemotron-3-ultra
+    provider: huggingface
+    # The BF16 repository is the exact checkpoint exposed by DeepInfra with
+    # tools + structured output. The local NVFP4 checkpoint is not substituted.
+    model: nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16:deepinfra
+    group: open-frontier
+    tier: open-xl
   - label: minimax-m3
     provider: huggingface
     # Current low-cost long-horizon candidate with a one-million-token route.

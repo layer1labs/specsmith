@@ -329,7 +329,7 @@ def test_full_completion_applies_one_bounded_ruff_safe_fix(
     assert receipts and "formatting/default-safe fixes" in receipts[0]
 
 
-def test_qwen_sampling_uses_official_model_specific_defaults(
+def test_open_model_sampling_uses_official_model_specific_defaults(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("BENCH_TEMPERATURE", raising=False)
@@ -344,6 +344,14 @@ def test_qwen_sampling_uses_official_model_specific_defaults(
     }
     assert _openai_sampling_params("Qwen/Qwen3.6-35B-A3B:deepinfra") == {
         "temperature": 0.6,
+        "top_p": 0.95,
+    }
+    assert _openai_sampling_params("deepseek-ai/DeepSeek-V4-Flash:deepinfra") == {
+        "temperature": 1.0,
+        "top_p": 1.0,
+    }
+    assert _openai_sampling_params("nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16:deepinfra") == {
+        "temperature": 1.0,
         "top_p": 0.95,
     }
 
@@ -534,6 +542,8 @@ def test_open_frontier_candidates_have_verified_routes_pricing_and_tiers() -> No
         "kimi-k2.7-code",
         "glm-5.2",
         "deepseek-v4-pro",
+        "deepseek-v4-flash",
+        "nemotron-3-ultra",
         "minimax-m3",
     }
     assert all(candidate["provider"] == "huggingface" for candidate in candidates)
@@ -541,6 +551,8 @@ def test_open_frontier_candidates_have_verified_routes_pricing_and_tiers() -> No
         "moonshotai/Kimi-K2.7-Code:deepinfra": 4.24,
         "zai-org/GLM-5.2:deepinfra": 3.93,
         "deepseek-ai/DeepSeek-V4-Pro:novita": 4.80,
+        "deepseek-ai/DeepSeek-V4-Flash:deepinfra": 0.27,
+        "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16:deepinfra": 6.00,
         "MiniMaxAI/MiniMax-M3:novita": 1.50,
     }
     for candidate in candidates:
