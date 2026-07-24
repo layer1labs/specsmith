@@ -222,9 +222,10 @@ def test_serialized_routes_receive_bounded_composite_file_tools(tmp_path: Path) 
             "SPECSMITH_FULL",
             task,
             composite_files=True,
+            composite_reads=True,
         )
     ]
-    assert names == ["write_files", "read_file", "write_file", "done"]
+    assert names == ["read_files", "write_files", "read_file", "write_file", "done"]
 
     written: list[str] = []
     output, successful = _exec_write_files(

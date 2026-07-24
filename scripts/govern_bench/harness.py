@@ -560,21 +560,22 @@ def _build_active_tools(
     *,
     diagnostics_required: bool = False,
     composite_files: bool = False,
+    composite_reads: bool = False,
 ) -> list[dict]:
     """Expose the smallest sufficient tool surface for accepted AEE work."""
     tools = _build_tools(condition_id, task)
-    if condition_id == "SPECSMITH_FULL" and composite_files:
+    if condition_id == "SPECSMITH_FULL" and (composite_files or composite_reads):
         # Keep scalar tools schema-valid for earlier conversation turns while
         # adding a bounded composite path. Some OpenAI-compatible routes keep
         # selecting a previously advertised scalar tool after a tool refresh.
         tools = [*_COMPOSITE_FILE_TOOLS, *tools]
     if condition_id != "SPECSMITH_FULL" or diagnostics_required:
         return tools
-    initial_names = (
-        {"write_files", "read_file", "write_file", "done"}
-        if composite_files
-        else {"read_file", "write_file", "done"}
-    )
+    initial_names = {"read_file", "write_file", "done"}
+    if composite_files:
+        initial_names.add("write_files")
+    if composite_reads:
+        initial_names.add("read_files")
     return [tool for tool in tools if tool["function"]["name"] in initial_names]
 
 
@@ -619,6 +620,7 @@ def _build_focused_repair_tools(
     task: BenchTask,
     *,
     composite_files: bool,
+    composite_reads: bool = False,
     repair_written: bool = False,
 ) -> list[dict]:
     """Expose only evidence needed for one controller-identified repair.
@@ -632,6 +634,7 @@ def _build_focused_repair_tools(
         task,
         diagnostics_required=False,
         composite_files=composite_files,
+        composite_reads=composite_reads,
     )
     return _without_read_tools(tools) if repair_written else tools
 
@@ -2272,10 +2275,12 @@ def _run_agent_loop(
     del specsmith_dir  # governance state is isolated inside project_root
     diagnostics_required = False
     composite_files = condition.id == "SPECSMITH_FULL" and task.is_long_horizon
+    composite_reads = False
     tools = _build_active_tools(
         condition.id,
         task,
         composite_files=composite_files,
+        composite_reads=composite_reads,
     )
     visible_criteria = task.visible_acceptance_criteria
     system_prompt = condition.render_prompt(
@@ -2770,6 +2775,7 @@ def _run_agent_loop(
                     condition.id,
                     task,
                     composite_files=composite_files,
+                    composite_reads=composite_reads,
                     repair_written=repair_context_provided,
                 )
                 if active_repair_focus
@@ -2778,6 +2784,7 @@ def _run_agent_loop(
                     task,
                     diagnostics_required=True,
                     composite_files=composite_files,
+                    composite_reads=composite_reads,
                 )
             )
             if repair_context_provided:
@@ -2800,14 +2807,16 @@ def _run_agent_loop(
         if (
             condition.id == "SPECSMITH_FULL"
             and serialized_action_count >= 2
-            and not composite_files
+            and not composite_reads
         ):
             composite_files = True
+            composite_reads = True
             tools = _build_active_tools(
                 condition.id,
                 task,
                 diagnostics_required=diagnostics_required,
                 composite_files=True,
+                composite_reads=True,
             )
             progress_detail = (
                 _milestone_progress(task, files_written)
@@ -2816,8 +2825,8 @@ def _run_agent_loop(
             )
             adaptive_instruction = (
                 f"{progress_detail} This serving route emitted one action per turn twice; "
-                "the controller added write_files while retaining scalar tools. Batch the "
-                "active boundary's independent writes in one call."
+                "the controller added bounded read_files/write_files while retaining scalar "
+                "tools. Batch the active boundary's independent reads or writes in one call."
             )
             messages = _replace_adaptive_progress_message(messages, adaptive_instruction)
             agent_transcript.append(
@@ -2827,7 +2836,7 @@ def _run_agent_loop(
                     "adaptive_tool_surface": {
                         "reason": "serialized_action_turns",
                         "count": serialized_action_count,
-                        "tools": ["write_files"],
+                        "tools": ["read_files", "write_files"],
                     },
                 }
             )
@@ -2839,6 +2848,7 @@ def _run_agent_loop(
                 task,
                 diagnostics_required=diagnostics_required,
                 composite_files=composite_files,
+                composite_reads=composite_reads,
             )
             if _active_boundary_has_current_evidence(task, files_written, read_evidence):
                 read_tools_suspended = True
@@ -2881,6 +2891,7 @@ def _run_agent_loop(
                 condition.id,
                 task,
                 composite_files=composite_files,
+                composite_reads=composite_reads,
                 repair_written=True,
             )
             repair_ready = (
