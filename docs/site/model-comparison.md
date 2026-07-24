@@ -7,6 +7,9 @@
 | [30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102) | GPT-5.6 Sol | 5 T28 FULL | Final learning commit: 5/5, 26.5k TPCA, no audit weakness |
 | [30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453) | DeepSeek-V4 Pro + GLM-5.2 | 1 T28 FULL each | Both correct after targeted repairs; 84.4k and 73.6k TPCA, not promoted |
 | [30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259) | Seven managed frontier routes | 1 per T28 condition | Admission/trace screen; only Kimi and Qwen FULL passed |
+| [30092473534](https://github.com/layer1labs/specsmith/actions/runs/30092473534) | Kimi K2.7 Code / DeepInfra | requested 5 per condition | Rejected incomplete artifact; eight router 504 cells |
+| [30096516180](https://github.com/layer1labs/specsmith/actions/runs/30096516180) | Kimi K2.7 Code / Together | live probe | Account-level HTTP 403; no benchmark cell |
+| [30096796977](https://github.com/layer1labs/specsmith/actions/runs/30096796977) | Kimi K2.7 Code / Novita | 1 per T28 condition | Cursor failed at 108.1k; FULL passed at 43.0k |
 | [30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017) | GPT-5.6 Sol | 5 T28 FULL | Superseded optimized envelope: 5/5, 28.3k TPCA |
 | [30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768) | GPT-5.6 Sol | 5 per T28 condition | Current matched Cursor/FULL comparator |
 | [30076208564](https://github.com/layer1labs/specsmith/actions/runs/30076208564) | DeepSeek-V4 Pro / Novita | 1 FULL | Correct diagnostic; 47.9k TPCA, not promoted |
@@ -163,7 +166,7 @@ The matched n=1 results in workflow `30091184259` are diagnostic:
 
 | Candidate | Cursor result | FULL result | Audit decision |
 |---|---:|---:|---|
-| Kimi K2.7 Code / DeepInfra | fail, 42,319 | pass, 24,021 | repeat screen |
+| Kimi K2.7 Code / DeepInfra | fail, 42,319 | pass, 24,021 | confirm route before repetition |
 | Qwen3.6-35B-A3B / DeepInfra | fail, 163,904 | pass, 62,060 | advance candidate; above envelope |
 | DeepSeek-V4 Pro / Novita | fail, 21,095 | fail, 74,923 | repair explicit completion narration |
 | GLM-5.2 / DeepInfra | fail, 196,733 | fail, 24,619 | repair explicit milestone narration |
@@ -184,6 +187,15 @@ is Qwen3-Coder-Next with the native `qwen3_coder` parser. The local 12 GB RTX
 4070 cannot host the 80B checkpoint, and this repository has no configured
 OpenAI-compatible endpoint secret/URL for an external native deployment, so a
 managed Novita rerun would not test the requested parser.
+
+Kimi route confirmation also completed. DeepInfra returned router HTML 504
+responses in eight requested n=5 cells, Together failed its live probe with
+HTTP 403, and Novita completed a matched n=1 screen. On Novita, Cursor Rules
+failed after 108,137 tokens and 20 turns; FULL passed after 43,015 tokens and
+10 turns. That is a substantial within-route governance improvement, but the
+correct FULL cell still costs 1.62× the latest 26,499-token Sol envelope. The
+audit therefore blocks n=5 rather than treating provider fallback as a reason
+to waive the efficiency gate.
 
 ## Historical open-frontier admissions
 
@@ -209,7 +221,7 @@ All four initial routes passed live tool-call probes in
 | MiniMax-M3 retry | no | 24,093 | 4 | $0.0151 | 128.1s | empty-response stop |
 
 The three correct diagnostics passed the independent oracle, but even DeepSeek
-used 69% more tokens than the new 28,314-token Sol+FULL envelope. The MiniMax
+used 69% more tokens than the then-current 28,314-token Sol+FULL envelope. The MiniMax
 failures led to bounded narration recovery and fail-closed `governed_failure`
 admission logic; they are not low-cost successes.
 
@@ -242,15 +254,14 @@ The next managed admissions should remain one-cell diagnostics:
 1. **Qwen3-Coder-Next with its native `qwen3_coder` parser** — provision a
    multi-GPU or hosted OpenAI-compatible endpoint and begin with one T28 FULL
    cell; do not substitute the managed Novita route.
-2. **Kimi matched replication** — use the final learning commit and preserve
-   Cursor/FULL pairs; only a complete n=5 artifact can challenge Sol.
-3. **Release-quality confirmation** — expand the winning unchanged grid to
+2. **Release-quality confirmation** — expand the winning unchanged Sol grid to
    n=10 only after the n=5 comparison is complete.
 
-GPT-OSS receives no further managed-route repetitions. A new attempt would need
-a native Harmony-capable serving stack and starts again at n=1. Every candidate
-must beat the current Sol FULL T28 token envelope before earning a matched n=5
-screen.
+Kimi, GPT-OSS, GLM, DeepSeek, MiniMax, Flash, and Nemotron receive no further
+managed-route repetitions on the measured configurations. A new attempt must
+change a demonstrated serving or controller boundary and starts again at n=1.
+Every candidate must beat the current Sol FULL T28 token envelope before
+earning a matched n=5 screen.
 
 Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
 before a release-quality statistical claim. Preserve raw token, cost, latency,

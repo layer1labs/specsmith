@@ -77,8 +77,9 @@ one repair file, then removed redundant read tools. Four of five earlier runs
 spent a separate turn rereading that file; every comparable repair in the new
 screen wrote immediately. TPCA fell 11.6%, input tokens 14.3%, turns 10.5%, and
 measured cost 4.6%. Wall time increased in this sample, so no latency
-improvement is claimed. The new 28,314-token result is the versioned frontier
-envelope used to decide whether a challenger deserves repeated paid runs.
+improvement is claimed. The 28,314-token result became the versioned frontier
+envelope at that commit and is retained here as the predecessor to the July 24
+learning replay.
 
 ## July 24 learning replay
 
@@ -103,7 +104,7 @@ showed why older candidates should be repeated selectively:
 
 | Managed route | Cursor | Specsmith FULL | Decision |
 |---|---:|---:|---|
-| Kimi K2.7 Code / DeepInfra | fail / 42.3k | pass / 24.0k | advanced to matched n=5 |
+| Kimi K2.7 Code / DeepInfra | fail / 42.3k | pass / 24.0k | route confirmation required |
 | Qwen3.6-35B-A3B / DeepInfra | fail / 163.9k | pass / 62.1k | governance gain, but 2.19× old Sol envelope |
 | DeepSeek-V4 Pro / Novita | fail / 21.1k | fail / 74.9k | explicit completion narration repair |
 | GLM-5.2 / DeepInfra | fail / 196.7k | fail / 24.6k | explicit milestone narration repair |
@@ -118,6 +119,25 @@ remain diagnostic-only: the audit selects `advance_candidate`, not repetition,
 because they are 2.6× and 2.98× the prior Sol envelope. MiniMax's additional
 20,382-token attempt wrote no files after two empty continuations, so a native
 tool-protocol or route change is required before another paid run.
+
+Kimi's route confirmation separated model behavior from provider reliability.
+The DeepInfra n=5 workflow
+[30092473534](https://github.com/layer1labs/specsmith/actions/runs/30092473534)
+returned router 504 pages for eight cells and was rejected as incomplete
+evidence. Together then returned an account-level 403 during
+[live probe 30096516180](https://github.com/layer1labs/specsmith/actions/runs/30096516180).
+The exact Novita fallback completed one matched cell in
+[workflow 30096796977](https://github.com/layer1labs/specsmith/actions/runs/30096796977):
+
+| Kimi K2.7 Code / Novita | Correct | Tokens | Turns | Cost | Decision |
+|---|---:|---:|---:|---:|---|
+| Cursor Rules | no | 108,137 | 20 | $0.1129 | turn budget exhausted |
+| Specsmith FULL | yes | 43,015 | 10 | $0.0735 | 60.2% fewer tokens, but above frontier |
+
+FULL made Kimi correct while Cursor Rules failed, but 43,015 TPCA is 1.62× the
+current 26,499-token Sol frontier. The deterministic envelope therefore blocks
+an n=5 Kimi run. The earlier 24,021-token DeepInfra observation remains a valid
+n=1 diagnostic, not evidence that can be pooled across providers or commits.
 
 ## What changed the result
 

@@ -78,6 +78,17 @@ confirmed the repairs: GLM passed at 73,618 tokens and DeepSeek Pro at 84,409.
 Their audits found no high/critical weakness but blocked n=5 because their TPCA
 was 2.6× and 2.98× the then-current Sol envelope.
 
+Kimi then tested the provider-fallback boundary. DeepInfra's requested n=5
+[workflow 30092473534](https://github.com/layer1labs/specsmith/actions/runs/30092473534)
+produced eight router 504 cells, so the incomplete artifact was rejected rather
+than scored. Together failed a live probe with HTTP 403. Novita completed one
+matched diagnostic in
+[workflow 30096796977](https://github.com/layer1labs/specsmith/actions/runs/30096796977):
+Cursor Rules failed at 108,137 tokens and 20 turns; FULL passed at 43,015 tokens
+and 10 turns. Its audit reports Cursor turn-budget exhaustion and FULL reread
+churn. Although governance cut tokens by 60.2% and recovered correctness, the
+FULL result remains 1.62× the latest Sol envelope and does not earn n=5.
+
 ## Feedback-loop example
 
 Four GPT-OSS-120B diagnostics show how the audit drives bounded changes without

@@ -213,8 +213,14 @@ Final-commit confirmations made GLM-5.2 correct at 73.6k and DeepSeek-V4 Pro
 correct at 84.4k
 ([run 30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453)).
 Their deterministic audits reject n=5 promotion because each is more than
-2.5× the Sol envelope. Kimi is the only managed challenger advanced to a
-matched n=5 screen.
+2.5× the Sol envelope. Kimi's DeepInfra n=5 attempt was rejected after eight
+router 504 cells; Together returned an account-level 403 during its live probe.
+A one-repetition Novita fallback
+([run 30096796977](https://github.com/layer1labs/specsmith/actions/runs/30096796977))
+completed: Cursor Rules failed at 108.1k tokens and 20 turns, while FULL passed
+at 43.0k tokens, 10 turns, and $0.0735. This demonstrates a large governance
+gain on Kimi but remains 1.62× the current 26.5k Sol envelope, so its audit
+correctly blocks an n=5 repeat.
 The GPT-OSS-120B DeepInfra route then failed continuation immediately after a
 valid tool call
 ([run 30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490));
