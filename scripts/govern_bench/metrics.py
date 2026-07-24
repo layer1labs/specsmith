@@ -137,6 +137,7 @@ MODEL_ROUTE_PRICING_PER_1M: dict[str, tuple[float, float]] = {
     "Qwen/Qwen3.6-35B-A3B:scaleway": (0.285, 1.71),
     "moonshotai/Kimi-K2.7-Code:deepinfra": (0.74, 3.50),
     "moonshotai/Kimi-K2.7-Code:together": (0.95, 4.00),
+    "moonshotai/Kimi-K2.7-Code:novita": (0.95, 4.00),
     "zai-org/GLM-5.2:deepinfra": (0.93, 3.00),
     "deepseek-ai/DeepSeek-V4-Pro:novita": (1.60, 3.20),
     "deepseek-ai/DeepSeek-V4-Flash:deepinfra": (0.09, 0.18),

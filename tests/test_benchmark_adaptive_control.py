@@ -584,6 +584,7 @@ def test_open_frontier_candidates_have_verified_routes_pricing_and_tiers() -> No
     expected_costs = {
         "moonshotai/Kimi-K2.7-Code:deepinfra": 4.24,
         "moonshotai/Kimi-K2.7-Code:together": 4.95,
+        "moonshotai/Kimi-K2.7-Code:novita": 4.95,
         "zai-org/GLM-5.2:deepinfra": 3.93,
         "deepseek-ai/DeepSeek-V4-Pro:novita": 4.80,
         "deepseek-ai/DeepSeek-V4-Flash:deepinfra": 0.27,
