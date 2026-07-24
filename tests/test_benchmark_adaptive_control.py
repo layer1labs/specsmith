@@ -446,6 +446,33 @@ def test_audit_exposes_tool_serialization_text_stops_and_scope_expansion() -> No
     assert {"premature_text_stop", "tool_call_serialization", "scope_expansion"} <= codes
 
 
+def test_audit_identifies_provider_tool_continuation_failure() -> None:
+    failed = _audit_row(condition="SPECSMITH_FULL", passed=False)
+    failed.update(
+        {
+            "stop_reason": "empty_response",
+            "agent_transcript": [
+                {
+                    "role": "assistant",
+                    "tool_calls": ["read_file"],
+                    "tool_targets": ["read_file:contracts/incident.schema.json"],
+                    "content": "",
+                },
+                {"role": "assistant", "tool_calls": [], "tool_targets": [], "content": ""},
+                {"role": "assistant", "tool_calls": [], "tool_targets": [], "content": ""},
+            ],
+        }
+    )
+
+    report = audit_benchmark_rows([failed])
+    weaknesses = {item.code: item for item in report.weaknesses}
+
+    assert "tool_continuation_failure" in weaknesses
+    assert "model-native tool protocol" in weaknesses["tool_continuation_failure"].recommendation
+    assert report.next_experiment.action == "repair_and_rerun"
+    assert "tool_continuation_failure" in report.next_experiment.evidence_codes
+
+
 def test_qwen_agentic_coding_candidates_have_hf_routes_pricing_and_tiers() -> None:
     registry = load_registry(_SCRIPTS_DIR / "govern_bench" / "models.yml")
     candidates = select(registry, groups={"open-qwen"})

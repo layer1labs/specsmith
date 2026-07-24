@@ -127,6 +127,7 @@ def _next_experiment_decision(
         "cursor_correctness_regression",
         "governed_failure",
         "premature_text_stop",
+        "tool_continuation_failure",
         "turn_budget_exhausted",
         "verification_exhausted",
     }
@@ -301,6 +302,28 @@ def _assistant_tool_counts(row: dict[str, Any]) -> list[int]:
         if isinstance(calls, list) and calls:
             counts.append(len(calls))
     return counts
+
+
+def _failed_after_tool_result(row: dict[str, Any]) -> bool:
+    """Detect a route that cannot resume after its first valid tool exchange."""
+    if row.get("stop_reason") != "empty_response":
+        return False
+    assistant_events = [
+        event
+        for event in row.get("agent_transcript") or []
+        if isinstance(event, dict) and event.get("role") == "assistant"
+    ]
+    if len(assistant_events) < 3:
+        return False
+    had_tool_call = any(
+        event.get("tool_calls") or event.get("tool_targets") for event in assistant_events
+    )
+    empty_tail = assistant_events[-2:]
+    return had_tool_call and all(
+        not (event.get("tool_calls") or event.get("tool_targets"))
+        and not str(event.get("content") or "").strip()
+        for event in empty_tail
+    )
 
 
 def _normalized_path(value: Any) -> str:
@@ -484,6 +507,28 @@ def audit_benchmark_rows(
                 ),
                 tasks=sorted({str(row.get("task")) for row in premature_text_stops}),
                 conditions=sorted({str(row.get("condition")) for row in premature_text_stops}),
+            )
+        )
+
+    continuation_failures = [
+        row for row in valid if not row.get("passed") and _failed_after_tool_result(row)
+    ]
+    if continuation_failures:
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="tool_continuation_failure",
+                severity="high",
+                title="Serving route could not continue after a valid tool result",
+                evidence=(
+                    f"{len(continuation_failures)} failed row(s) issued a tool call, then "
+                    "returned two empty assistant continuations."
+                ),
+                recommendation=(
+                    "Verify the model-native tool protocol and response format, then change only "
+                    "the serving route and rerun the identical diagnostic once."
+                ),
+                tasks=sorted({str(row.get("task")) for row in continuation_failures}),
+                conditions=sorted({str(row.get("condition")) for row in continuation_failures}),
             )
         )
 
