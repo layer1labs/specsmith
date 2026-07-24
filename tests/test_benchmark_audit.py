@@ -61,7 +61,7 @@ def test_audit_finds_acceptance_correctness_token_and_context_weaknesses() -> No
     codes = {item.code for item in report.weaknesses}
 
     assert report.complete
-    assert report.high_or_critical == 2
+    assert report.high_or_critical == 3
     assert report.condition_metrics["SPECSMITH_FULL"]["tokens_per_correct_answer"] == 4_200
     assert {
         "undersampled",
@@ -278,6 +278,19 @@ def test_audit_selects_next_experiment_from_measured_evidence() -> None:
     assert inefficient.next_experiment.action == "optimize_and_rerun"
     assert "cursor_efficiency_regression" in inefficient.next_experiment.evidence_codes
 
+    standalone_failure = audit_benchmark_rows(
+        [
+            _row(
+                condition="SPECSMITH_FULL",
+                passed=False,
+                input_tokens=1_000,
+                model="open-model",
+            )
+        ]
+    )
+    assert standalone_failure.next_experiment.action == "repair_and_rerun"
+    assert "governed_failure" in standalone_failure.next_experiment.evidence_codes
+
 
 def test_frontier_reference_blocks_expensive_candidate_repetition(tmp_path: Path) -> None:
     references = {
@@ -355,4 +368,4 @@ def test_specsmith_audit_writes_combined_project_and_benchmark_report(tmp_path: 
     assert "Next experiment: repair_and_rerun" in result.output
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["project"]["healthy"] is False
-    assert payload["benchmark"]["high_or_critical"] == 2
+    assert payload["benchmark"]["high_or_critical"] == 3

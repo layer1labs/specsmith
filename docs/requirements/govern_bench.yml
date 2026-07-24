@@ -71,8 +71,9 @@
     TypeScript/React UI, browser journey, shared schema, styling, tests, and
     architecture documentation. Long-horizon tasks MUST declare their own bounded
     turn budget. Every benchmark run MUST emit a structured weakness audit that
-    identifies incomplete evidence, undersampling, public-test/oracle disagreement,
-    task-level correctness regressions, token amplification, and context dominance.
+    identifies incomplete evidence, undersampling, any failed governed cell,
+    public-test/oracle disagreement, task-level correctness regressions, token
+    amplification, and context dominance.
     The audit MUST deterministically select the next experiment from measured
     completeness, correctness, tokens-per-correct-answer, and trace weaknesses,
     without spending another judge-model call. A versioned, source-linked

@@ -125,6 +125,7 @@ def _next_experiment_decision(
         "blank_overwrite_rejected",
         "correctness_regression",
         "cursor_correctness_regression",
+        "governed_failure",
         "premature_text_stop",
         "turn_budget_exhausted",
         "verification_exhausted",
@@ -794,6 +795,36 @@ def audit_benchmark_rows(
                 recommendation=(
                     "Trace the hidden boundary back to a requirement and add an immutable "
                     "independent test."
+                ),
+                tasks=tasks,
+                conditions=conditions,
+            )
+        )
+
+    governed_failures = [
+        row
+        for row in valid
+        if str(row.get("condition") or "").startswith("SPECSMITH") and row.get("passed") is False
+    ]
+    if governed_failures:
+        tasks = sorted({str(row.get("task")) for row in governed_failures})
+        conditions = sorted({str(row.get("condition")) for row in governed_failures})
+        stop_reasons = sorted(
+            {str(row.get("stop_reason")) for row in governed_failures if row.get("stop_reason")}
+        )
+        weaknesses.append(
+            BenchmarkWeakness(
+                code="governed_failure",
+                severity="high",
+                title="Governed benchmark cell failed correctness",
+                evidence=(
+                    f"{len(governed_failures)} failed governed row(s) on {', '.join(tasks)}"
+                    + (f"; stop reasons: {', '.join(stop_reasons)}." if stop_reasons else ".")
+                ),
+                recommendation=(
+                    "Inspect the governed stop reason and failed public boundary, repair the "
+                    "smallest implicated controller or model-serving behavior, then rerun the "
+                    "identical diagnostic before any repetition."
                 ),
                 tasks=tasks,
                 conditions=conditions,

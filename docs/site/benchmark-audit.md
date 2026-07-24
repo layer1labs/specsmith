@@ -152,6 +152,7 @@ to judge its own work.
 | `milestone_fragmentation` | Several components changed without a completed boundary. | Stage the active milestone and batch independent files. |
 | `premature_text_stop` | Narration stopped before a terminal action. | Permit one bounded continuation, then fail closed. |
 | `acceptance_gap` | Public checks pass but the hidden oracle fails. | Add an immutable independent boundary test. |
+| `governed_failure` | A Specsmith cell failed, even without a baseline row. | Repair the measured stop reason before repetition. |
 | `scope_expansion` | Writes exceed declared requirement boundaries. | Verify necessity or constrain retrieval/edits. |
 | `cursor_correctness_regression` | FULL passes less often on a task. | Repair correctness before claiming efficiency. |
 | `cursor_efficiency_regression` | FULL TPCA exceeds Cursor by more than 10%. | Remove rereads, planning, or validator churn. |
