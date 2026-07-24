@@ -358,3 +358,9 @@
 - **Status**: complete
 - **Epistemic status**: high
 - **Chain hash**: `78edbc2190d8fd82...`
+
+## 2026-07-24T08:34 — wi_close WI-FFCC57146BB1: Workflow 30092609859 completed with 5/5 correct T28 FULL repetitions and a causal baseline receipt
+- **Author**: specsmith
+- **Type**: wi_close
+- **Status**: complete
+- **Chain hash**: `9cda2bda8c16939a...`

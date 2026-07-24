@@ -58,7 +58,7 @@ task_prompt: |
   - preserve the starter package main boundary and prefer the existing standard library
   - accept alert JSON with title, service, and severity
   - reject missing fields and invalid severity
-  - emit the shared incident field names with status=open
+  - emit the shared incident field names with status=open plus non-empty id and created_at defaults
 
   TypeScript/React UI:
   - load and display incidents from /api/incidents
@@ -75,7 +75,7 @@ task_prompt: |
 
 acceptance_criteria: |
   - [ ] Python create/list/filter/ack behavior matches the shared contract
-  - [ ] Go NormalizeAlert validates input and emits the same field names/enums
+  - [ ] Go NormalizeAlert validates input and emits the same field names/enums plus non-empty id and created_at defaults
   - [ ] Go worker preserves the starter package main boundary
   - [ ] React UI has accessible loading/error/empty/list/filter/acknowledge flows
   - [ ] UI safely composes severity and status query parameters

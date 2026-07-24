@@ -846,6 +846,19 @@ def _looks_like_nonterminal_narration(content: str) -> bool:
     return any(marker in normalized for marker in markers)
 
 
+def _can_recover_nonterminal_narration(
+    content: str,
+    *,
+    recovery_count: int,
+    files_written: list[str],
+    write_count_at_last_recovery: int,
+) -> bool:
+    """Allow one initial narration repair and one more only after write progress."""
+    if not _looks_like_nonterminal_narration(content) or recovery_count >= 2:
+        return False
+    return recovery_count == 0 or len(files_written) > write_count_at_last_recovery
+
+
 def _serialized_done_tool_call(
     content: str,
     task: BenchTask,
@@ -2392,6 +2405,7 @@ def _run_agent_loop(
     validator_verified: set[str] = set()
     empty_response_retries = 0
     text_continuation_retries = 0
+    text_continuation_write_count = 0
     verification_retries = 0
     serialized_action_count = 0
     last_single_write_target = ""
@@ -2509,11 +2523,16 @@ def _run_agent_loop(
             if (
                 content
                 and condition.id == "SPECSMITH_FULL"
-                and _looks_like_nonterminal_narration(content)
-                and text_continuation_retries < 1
+                and _can_recover_nonterminal_narration(
+                    content,
+                    recovery_count=text_continuation_retries,
+                    files_written=files_written,
+                    write_count_at_last_recovery=text_continuation_write_count,
+                )
                 and turn + 1 < max_turns
             ):
                 text_continuation_retries += 1
+                text_continuation_write_count = len(files_written)
                 rework_turns += 1
                 recovery = (
                     "The response described a future action but issued no tool call. "

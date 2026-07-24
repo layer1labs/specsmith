@@ -18,6 +18,7 @@ from govern_bench.harness import (  # noqa: E402
     _active_tool_names,
     _build_active_tools,
     _build_focused_repair_tools,
+    _can_recover_nonterminal_narration,
     _exec_read_file_with_evidence,
     _exec_read_files_with_evidence,
     _exec_write_files,
@@ -375,6 +376,35 @@ def test_open_model_sampling_uses_official_model_specific_defaults(
 )
 def test_nonterminal_narration_detection_is_narrow(content: str, expected: bool) -> None:
     assert _looks_like_nonterminal_narration(content) is expected
+
+
+def test_second_narration_recovery_requires_new_write_scope_progress() -> None:
+    narration = "Now milestone 3. I'll write all four UI files."
+
+    assert _can_recover_nonterminal_narration(
+        narration,
+        recovery_count=0,
+        files_written=[],
+        write_count_at_last_recovery=0,
+    )
+    assert not _can_recover_nonterminal_narration(
+        narration,
+        recovery_count=1,
+        files_written=[],
+        write_count_at_last_recovery=0,
+    )
+    assert _can_recover_nonterminal_narration(
+        narration,
+        recovery_count=1,
+        files_written=["backend/main.py"],
+        write_count_at_last_recovery=0,
+    )
+    assert not _can_recover_nonterminal_narration(
+        narration,
+        recovery_count=2,
+        files_written=["backend/main.py", "worker/main.go"],
+        write_count_at_last_recovery=1,
+    )
 
 
 def test_serialized_done_recovery_requires_exact_schema_and_complete_scope() -> None:

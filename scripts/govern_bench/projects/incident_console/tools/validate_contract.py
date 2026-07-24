@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +31,41 @@ def _allows_null(node: dict[str, Any]) -> bool:
         for key in ("anyOf", "oneOf")
         for option in (node.get(key) or [])
     )
+
+
+def _validate_worker_defaults(root: Path) -> tuple[bool, str]:
+    go = shutil.which("go")
+    if go is None:
+        return True, "Go unavailable; worker runtime check deferred"
+    worker = root / "worker"
+    public_test = worker / "t28_public_contract_test.go"
+    public_test.write_text(
+        """package main
+
+import "testing"
+
+func TestT28PublicNormalizeAlertDefaults(t *testing.T) {
+    got, err := NormalizeAlert([]byte(`{"title":"CPU hot","service":"edge","severity":"high"}`))
+    if err != nil { t.Fatalf("valid alert rejected: %v", err) }
+    if got.Status != "open" || got.ID == "" || got.CreatedAt == "" {
+        t.Fatalf("missing required id, created_at, or status defaults: %#v", got)
+    }
+}
+""",
+        encoding="utf-8",
+    )
+    try:
+        result = subprocess.run(
+            [go, "test", "./..."],
+            cwd=worker,
+            capture_output=True,
+            text=True,
+            timeout=45,
+            check=False,
+        )
+    finally:
+        public_test.unlink(missing_ok=True)
+    return result.returncode == 0, result.stdout + result.stderr
 
 
 def main() -> int:
@@ -61,6 +98,11 @@ def main() -> int:
     worker = (root / "worker" / "main.go").read_text(encoding="utf-8")
     if re.search(r"(?m)^\s*package\s+main\s*$", worker) is None:
         print("worker/main.go must preserve the starter package main boundary")
+        return 1
+    worker_ok, worker_output = _validate_worker_defaults(root)
+    if not worker_ok:
+        print("Worker shared-contract validation failed:")
+        print(worker_output.rstrip())
         return 1
     print("Shared incident contract checks passed")
     return 0

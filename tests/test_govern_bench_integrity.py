@@ -845,6 +845,40 @@ def test_t28_visible_contract_validator_preserves_worker_package(tmp_path: Path)
     assert "preserve the starter package main boundary" in output
 
 
+def test_t28_visible_contract_validator_requires_worker_defaults(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    validator_path = (
+        _SCRIPTS_DIR
+        / "govern_bench"
+        / "projects"
+        / "incident_console"
+        / "tools"
+        / "validate_contract.py"
+    )
+    validator = runpy.run_path(str(validator_path))
+    validate_worker = validator["_validate_worker_defaults"]
+    worker = tmp_path / "worker"
+    worker.mkdir()
+    captured: dict[str, str] = {}
+
+    def fake_run(*_args: object, cwd: Path, **_kwargs: object) -> SimpleNamespace:
+        public_test = cwd / "t28_public_contract_test.go"
+        captured["source"] = public_test.read_text(encoding="utf-8")
+        return SimpleNamespace(returncode=1, stdout="missing defaults", stderr="")
+
+    monkeypatch.setattr(validate_worker.__globals__["shutil"], "which", lambda _name: "go")
+    monkeypatch.setattr(validate_worker.__globals__["subprocess"], "run", fake_run)
+
+    passed, output = validate_worker(tmp_path)
+
+    assert not passed
+    assert output == "missing defaults"
+    assert 'got.Status != "open" || got.ID == "" || got.CreatedAt == ""' in captured["source"]
+    assert not (worker / "t28_public_contract_test.go").exists()
+
+
 def test_t28_visible_ui_validator_requires_safe_composed_query(tmp_path: Path) -> None:
     task = get_task("T28")
     project = tmp_path / "project"
