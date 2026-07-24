@@ -354,6 +354,8 @@ def test_qwen_sampling_uses_official_model_specific_defaults(
     [
         ("Let me update the tests next.", True),
         ("Now I'll run the validator.", True),
+        ("All four milestones have implementation evidence. Calling done.", True),
+        ("The repair is ready to call done now.", True),
         ("The implementation and tests are complete.", False),
     ],
 )

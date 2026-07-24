@@ -831,6 +831,9 @@ def _looks_like_nonterminal_narration(content: str) -> bool:
         "i need to ",
         "i'll now ",
         "i will now ",
+        "calling done",
+        "call done now",
+        "ready to call done",
     )
     return any(marker in normalized for marker in markers)
 
