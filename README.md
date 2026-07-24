@@ -170,9 +170,16 @@ The July 24 learning replay at commit `708d47b`
 ([run 30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102))
 again passed 5/5 and reduced TPCA to 26.5k, mean turns to 9.8, and measured
 cost per correct run to $0.2414. This is 6.4% fewer tokens than the 28.3k
-screen, with a 60% first-pass rate and no audit weakness. It is the current
-T28 Sol frontier envelope; FULL-only confirmations are not recombined with the
-older matched grid.
+screen, with a 60% first-pass rate and no audit weakness.
+
+The unchanged release-quality n=10 confirmation at commit `b327b8d`
+([run 30099279843](https://github.com/layer1labs/specsmith/actions/runs/30099279843))
+passed 10/10 with no audit weakness and averaged 30.3k TPCA, 10.3 turns,
+$0.2767, and 85.8 seconds. Its larger-sample TPCA is 14.4% above the favorable
+n=5 point estimate, 7.1% above the preceding focused n=5 screen, and 5.3% below
+the 32.0k matched n=5 screen. The 30.3k release-sized result is the current
+machine-readable T28 Sol envelope; these FULL-only screens are not recombined
+with the older matched Cursor grid.
 
 The receipts are split into two complete, non-overlapping matched workflows:
 [T1/T6/T7/T13 run 29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623)
@@ -219,8 +226,9 @@ A one-repetition Novita fallback
 ([run 30096796977](https://github.com/layer1labs/specsmith/actions/runs/30096796977))
 completed: Cursor Rules failed at 108.1k tokens and 20 turns, while FULL passed
 at 43.0k tokens, 10 turns, and $0.0735. This demonstrates a large governance
-gain on Kimi but remains 1.62× the current 26.5k Sol envelope, so its audit
-correctly blocks an n=5 repeat.
+gain on Kimi but was 1.62× the then-current 26.5k n=5 Sol envelope, so its
+audit correctly blocked an n=5 repeat. Against the later release-sized 30.3k
+envelope, Kimi remains 1.42× higher.
 The GPT-OSS-120B DeepInfra route then failed continuation immediately after a
 valid tool call
 ([run 30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490));

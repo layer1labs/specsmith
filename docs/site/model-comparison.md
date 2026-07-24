@@ -4,6 +4,7 @@
 
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
+| [30099279843](https://github.com/layer1labs/specsmith/actions/runs/30099279843) | GPT-5.6 Sol | 10 T28 FULL | Release-quality control: 10/10, 30.3k TPCA, no audit weakness |
 | [30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102) | GPT-5.6 Sol | 5 T28 FULL | Final learning commit: 5/5, 26.5k TPCA, no audit weakness |
 | [30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453) | DeepSeek-V4 Pro + GLM-5.2 | 1 T28 FULL each | Both correct after targeted repairs; 84.4k and 73.6k TPCA, not promoted |
 | [30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259) | Seven managed frontier routes | 1 per T28 condition | Admission/trace screen; only Kimi and Qwen FULL passed |
@@ -193,9 +194,9 @@ responses in eight requested n=5 cells, Together failed its live probe with
 HTTP 403, and Novita completed a matched n=1 screen. On Novita, Cursor Rules
 failed after 108,137 tokens and 20 turns; FULL passed after 43,015 tokens and
 10 turns. That is a substantial within-route governance improvement, but the
-correct FULL cell still costs 1.62× the latest 26,499-token Sol envelope. The
-audit therefore blocks n=5 rather than treating provider fallback as a reason
-to waive the efficiency gate.
+correct FULL cell costs 1.62× the 26,499-token n=5 point estimate and 1.42× the
+release-sized 30,317-token Sol envelope. The audit therefore blocks n=5 rather
+than treating provider fallback as a reason to waive the efficiency gate.
 
 ## Historical open-frontier admissions
 
@@ -254,19 +255,19 @@ The next managed admissions should remain one-cell diagnostics:
 1. **Qwen3-Coder-Next with its native `qwen3_coder` parser** — provision a
    multi-GPU or hosted OpenAI-compatible endpoint and begin with one T28 FULL
    cell; do not substitute the managed Novita route.
-2. **Release-quality confirmation** — expand the winning unchanged Sol grid to
-   n=10 only after the n=5 comparison is complete.
-
 Kimi, GPT-OSS, GLM, DeepSeek, MiniMax, Flash, and Nemotron receive no further
 managed-route repetitions on the measured configurations. A new attempt must
 change a demonstrated serving or controller boundary and starts again at n=1.
 Every candidate must beat the current Sol FULL T28 token envelope before
 earning a matched n=5 screen.
 
-Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
-before a release-quality statistical claim. Preserve raw token, cost, latency,
-sampling, parser, and provider receipts so a serving change is not mistaken for
-a model-quality change.
+The Sol n=10 release-quality confirmation is complete in workflow `30099279843`.
+Promote a route from n=1 to n=5 only after it produces correct cells and use
+n=10 before a release-quality statistical claim. Repeat an older candidate only
+when a controller, validator, prompt contract, parser, or serving route changed;
+otherwise the deterministic envelope should stop the paid run. Preserve raw
+token, cost, latency, sampling, parser, and provider receipts so a serving
+change is not mistaken for a model-quality change.
 
 ## Failure provenance
 

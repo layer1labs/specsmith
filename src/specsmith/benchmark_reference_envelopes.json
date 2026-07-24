@@ -4,10 +4,10 @@
     "T28": {
       "condition": "SPECSMITH_FULL",
       "model": "gpt-5.6-sol",
-      "tokens_per_correct_answer": 26498.6,
-      "repetitions": 5,
-      "commit": "708d47b25fe1ba48739c277659b17129158b7e3d",
-      "source": "https://github.com/layer1labs/specsmith/actions/runs/30093712102"
+      "tokens_per_correct_answer": 30316.8,
+      "repetitions": 10,
+      "commit": "b327b8df4e9fb3be170c40a698747ca8527ee653",
+      "source": "https://github.com/layer1labs/specsmith/actions/runs/30099279843"
     }
   }
 }

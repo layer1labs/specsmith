@@ -335,15 +335,15 @@ def test_frontier_reference_blocks_expensive_candidate_repetition(tmp_path: Path
     assert load_benchmark_reference_envelopes(stale) == {}
 
 
-def test_shipped_frontier_reference_tracks_latest_sol_screen() -> None:
+def test_shipped_frontier_reference_tracks_release_quality_sol_screen() -> None:
     reference = load_benchmark_reference_envelopes()["T28"]
 
     assert reference["condition"] == "SPECSMITH_FULL"
     assert reference["model"] == "gpt-5.6-sol"
-    assert reference["tokens_per_correct_answer"] == pytest.approx(26_498.6)
-    assert reference["repetitions"] == 5
-    assert reference["commit"] == "708d47b25fe1ba48739c277659b17129158b7e3d"
-    assert reference["source"].endswith("/actions/runs/30093712102")
+    assert reference["tokens_per_correct_answer"] == pytest.approx(30_316.8)
+    assert reference["repetitions"] == 10
+    assert reference["commit"] == "b327b8df4e9fb3be170c40a698747ca8527ee653"
+    assert reference["source"].endswith("/actions/runs/30099279843")
 
 
 def test_specsmith_audit_writes_combined_project_and_benchmark_report(tmp_path: Path) -> None:

@@ -60,6 +60,15 @@ at commit `708d47b` passed every public and independent check.
 | Focused handoff | 5/5 | 28,314 | 21,725 | 10.2 | $0.2519 |
 | Final learning replay | 5/5 | 26,499 | 20,204 | 9.8 | $0.2414 |
 
+The unchanged release-quality screen
+[30099279843](https://github.com/layer1labs/specsmith/actions/runs/30099279843)
+then passed 10/10 at 30,316.8 TPCA, 23,634 mean input tokens, 10.3 turns,
+$0.2767 mean cost, and 85.8 seconds. Its audit found no weakness and selected
+`publish_or_expand`. The larger-sample mean is 14.4% above the n=5 learning
+point estimate, with an observed 23,316–36,108 range and approximate 95%
+t-interval of 27,573–33,061. The release-sized result therefore replaces the
+smaller point estimate as the machine-readable frontier envelope.
+
 The measured weaknesses that produced the final revision came from open-model
 traces, not another judge call:
 
@@ -87,7 +96,7 @@ matched diagnostic in
 Cursor Rules failed at 108,137 tokens and 20 turns; FULL passed at 43,015 tokens
 and 10 turns. Its audit reports Cursor turn-budget exhaustion and FULL reread
 churn. Although governance cut tokens by 60.2% and recovered correctness, the
-FULL result remains 1.62× the latest Sol envelope and does not earn n=5.
+FULL result is 1.42× the release-sized Sol envelope and does not earn n=5.
 
 ## Feedback-loop example
 

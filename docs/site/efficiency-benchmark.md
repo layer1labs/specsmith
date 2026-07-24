@@ -98,6 +98,25 @@ The final replay reduced TPCA by 6.4%, input tokens by 7.0%, measured cost by
 4.2%, and turns by 3.9%, with no audit weakness. These are same-task point
 estimates from separate complete screens, not pooled repetitions.
 
+## Release-quality Sol confirmation
+
+[Workflow 30099279843](https://github.com/layer1labs/specsmith/actions/runs/30099279843)
+ran the unchanged Sol FULL controller at n=10 on commit `b327b8d`. All ten cells
+passed the public validators and isolated oracle. The deterministic audit found
+no weakness and selected `publish_or_expand`.
+
+| Sol FULL screen | Correct | TPCA | Mean input | Mean output | Mean cost | Mean turns | Mean wall time | First pass |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Final learning n=5 | 5/5 | 26,499 | 20,204 | 6,294 | $0.2414 | 9.8 | — | 60% |
+| Release-quality n=10 | 10/10 | 30,317 | 23,634 | 6,683 | $0.2767 | 10.3 | 85.8s | 20% |
+
+The larger sample is 14.4% above the favorable n=5 point estimate and 7.1%
+above the preceding 28,314-token n=5 screen, but remains 5.3% below the 32,020
+matched n=5 screen. Its observed range was 23,316–36,108 tokens; the mean's
+95% t-interval is approximately 27,573–33,061. The evidence therefore supports
+100% observed correctness and a robust 30,316.8-token release envelope, not a
+claim that the n=5 efficiency reduction was statistically settled.
+
 The preceding seven-route n=1 admission
 [workflow 30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259)
 showed why older candidates should be repeated selectively:
@@ -134,10 +153,11 @@ The exact Novita fallback completed one matched cell in
 | Cursor Rules | no | 108,137 | 20 | $0.1129 | turn budget exhausted |
 | Specsmith FULL | yes | 43,015 | 10 | $0.0735 | 60.2% fewer tokens, but above frontier |
 
-FULL made Kimi correct while Cursor Rules failed, but 43,015 TPCA is 1.62× the
-current 26,499-token Sol frontier. The deterministic envelope therefore blocks
-an n=5 Kimi run. The earlier 24,021-token DeepInfra observation remains a valid
-n=1 diagnostic, not evidence that can be pooled across providers or commits.
+FULL made Kimi correct while Cursor Rules failed. Its 43,015 TPCA is 1.62× the
+then-current 26,499-token n=5 frontier and 1.42× the later 30,317-token
+release-sized Sol envelope. Either comparison blocks an n=5 Kimi run. The
+earlier 24,021-token DeepInfra observation remains a valid n=1 diagnostic, not
+evidence that can be pooled across providers or commits.
 
 ## What changed the result
 
