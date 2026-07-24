@@ -4,8 +4,13 @@
 
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
-| [30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768) | GPT-5.6 Sol | 5 per T28 condition | Current T28 matched reference envelope |
-| [30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234) | GLM-5.2 / DeepInfra | 1 FULL | Correct diagnostic; 2.25x Sol+FULL TPCA, not promoted |
+| [30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017) | GPT-5.6 Sol | 5 T28 FULL | Current optimized T28 frontier envelope: 5/5, 28.3k TPCA |
+| [30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768) | GPT-5.6 Sol | 5 per T28 condition | Current matched Cursor/FULL comparator |
+| [30076208564](https://github.com/layer1labs/specsmith/actions/runs/30076208564) | DeepSeek-V4 Pro / Novita | 1 FULL | Correct diagnostic; 47.9k TPCA, not promoted |
+| [30074528288](https://github.com/layer1labs/specsmith/actions/runs/30074528288) | Kimi K2.7 Code / DeepInfra | 1 FULL | Correct diagnostic; 101.7k TPCA, not promoted |
+| [30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234) | GLM-5.2 / DeepInfra | 1 FULL | Correct diagnostic; 72.2k TPCA, not promoted |
+| [30075176235](https://github.com/layer1labs/specsmith/actions/runs/30075176235), [30075720489](https://github.com/layer1labs/specsmith/actions/runs/30075720489) | MiniMax-M3 / Novita | 1 each | Two failed diagnostics; text-only then empty-response stops |
+| [30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490), [30077459159](https://github.com/layer1labs/specsmith/actions/runs/30077459159), [30077929145](https://github.com/layer1labs/specsmith/actions/runs/30077929145), [30078601832](https://github.com/layer1labs/specsmith/actions/runs/30078601832) | GPT-OSS-120B / DeepInfra then Novita | 1 each | Four failed provider, serialization, and completion-protocol diagnostics; rejected |
 | [29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623) + [29963515885](https://github.com/layer1labs/specsmith/actions/runs/29963515885) | GPT-5.6 Sol | 5 per task/condition | Current eight-task matched screen |
 | [30010219286](https://github.com/layer1labs/specsmith/actions/runs/30010219286), [30011743699](https://github.com/layer1labs/specsmith/actions/runs/30011743699), [30013020354](https://github.com/layer1labs/specsmith/actions/runs/30013020354) | Qwen3.6-35B-A3B / DeepInfra | 1 each | Trace-driven T28 diagnostics; never combined |
 | [30007255204](https://github.com/layer1labs/specsmith/actions/runs/30007255204), [30007554143](https://github.com/layer1labs/specsmith/actions/runs/30007554143) | Qwen3-Coder-Next / Novita | 1 each | Provider/tool-route admission failures |
@@ -147,12 +152,10 @@ scaffold; compare it as a scientific control, not as the expected winner.
 - Qwen3.6/DeepInfra: managed open-weight portability after adaptive tools.
 - Qwen3-Coder-Next/native parser: self-hosted or Qwen-native tool-serving lane.
 
-## Open-frontier admission queue
+## Open-frontier admission results
 
-Four additional current checkpoints are registered in the `open-frontier`
-group. Their routes were selected from live Hugging Face router metadata on
-2026-07-23; the workflow still requires a paid tool-call probe before any
-benchmark cell:
+Four current checkpoints were admitted through live route probes and one T28
+FULL diagnostic each:
 
 | Candidate | Pinned route | Router price / 1M input-output | Why it is useful |
 |---|---|---:|---|
@@ -161,14 +164,60 @@ benchmark cell:
 | [DeepSeek-V4 Pro](https://huggingface.co/deepseek-ai/DeepSeek-V4-Pro) | Novita | $1.60 / $3.20 | 49B-active million-token reasoning/coding control |
 | [MiniMax-M3](https://huggingface.co/MiniMaxAI/MiniMax-M3) | Novita | $0.30 / $1.20 | inexpensive one-million-token long-horizon challenger |
 
-All four routes passed live tool-call probes in
+All four initial routes passed live tool-call probes in
 [workflow 30045915766](https://github.com/layer1labs/specsmith/actions/runs/30045915766).
-GLM-5.2 then passed T28 FULL and the independent oracle at n=1, but its 72,187
-TPCA was 2.25x the 32,020 Sol+FULL reference. The deterministic audit returns
-`advance_candidate`, not `repeat_screen`. Kimi K2.7 Code is therefore the next
-code-specialized diagnostic; MiniMax-M3 is the cost challenger; and DeepSeek-V4
-Pro is the higher-active-capacity control. A correct diagnostic must also beat
-the current Sol FULL T28 token envelope before earning a matched n=5 screen.
+
+| Candidate | Correct | Tokens | Turns | Cost | Wall time | Decision |
+|---|---:|---:|---:|---:|---:|---|
+| DeepSeek-V4 Pro | yes | 47,855 | 7 | $0.1013 | 286.9s | strongest open challenger; above Sol envelope |
+| GLM-5.2 | yes | 72,187 | 11 | $0.1015 | 376.6s | above Sol envelope |
+| Kimi K2.7 Code | yes | 101,713 | 15 | $0.1326 | 552.8s | above Sol envelope |
+| MiniMax-M3 | no | 53,196 | 8 | $0.0301 | 235.6s | text-only stop |
+| MiniMax-M3 retry | no | 24,093 | 4 | $0.0151 | 128.1s | empty-response stop |
+
+The three correct diagnostics passed the independent oracle, but even DeepSeek
+used 69% more tokens than the new 28,314-token Sol+FULL envelope. The MiniMax
+failures led to bounded narration recovery and fail-closed `governed_failure`
+admission logic; they are not low-cost successes.
+
+GPT-OSS-120B provided a useful provider control. DeepInfra called one file tool,
+then emitted two empty continuations in
+[run 30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490).
+The audit now labels this `tool_continuation_failure`. Novita resumed correctly
+in [run 30077459159](https://github.com/layer1labs/specsmith/actions/runs/30077459159),
+but emitted one action per turn, exhausted all 20 turns at 55,023 tokens, and
+failed correctness. That trace exposed an adaptive-controller defect:
+pre-enabled composite writes suppressed the later composite-read upgrade.
+Composite read and write state are now independent, so a serialized route gains
+bounded `read_files` after two scalar turns without enlarging Sol's initial tool
+surface. The resulting
+[run 30077929145](https://github.com/layer1labs/specsmith/actions/runs/30077929145)
+fell to 44,692 tokens and 17 turns—18.8% fewer tokens and three fewer turns—but
+the provider serialized exact `done` arguments as plain JSON after all declared
+files were written. Exact-schema recovery is now permitted only after complete
+write-scope evidence; deterministic public and independent checks still decide
+correctness. The confirmation
+[run 30078601832](https://github.com/layer1labs/specsmith/actions/runs/30078601832)
+did not reach complete write scope, so recovery correctly did not activate; it
+exhausted 20 turns at 49,339 tokens. The managed GPT-OSS model/route pair is
+rejected.
+
+## Next candidate queue
+
+The next managed admissions should remain one-cell diagnostics:
+
+1. **DeepSeek-V4 Flash / DeepInfra** — a low-price million-context control from
+   the same family as the strongest open result.
+2. **NVIDIA Nemotron 3 Ultra 550B A55B / DeepInfra** — a high-active-capacity
+   tool-serving control that tests whether capability, not governance, is the
+   remaining limit.
+3. **Qwen3-Coder-Next with its native `qwen3_coder` parser** — the highest-value
+   self-hosted protocol experiment; do not repeat the managed Novita route.
+
+GPT-OSS receives no further managed-route repetitions. A new attempt would need
+a native Harmony-capable serving stack and starts again at n=1. Every candidate
+must beat the current Sol FULL T28 token envelope before earning a matched n=5
+screen.
 
 Promote a route from n=1 to n=5 only after it produces correct cells. Use n=10
 before a release-quality statistical claim. Preserve raw token, cost, latency,

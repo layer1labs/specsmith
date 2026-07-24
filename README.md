@@ -154,12 +154,18 @@ Every individual task type preserved or improved correctness and token use.
 `T28` improved from the superseded 71.4k FULL result to 20.6k tokens/correct,
 versus Cursor's 57.3k, while both remained 5/5 correct.
 
-A newer T28-only replication at commit `5790d41`
+A T28-only matched replication at commit `5790d41`
 ([run 30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768))
 again passed 5/5 in both conditions. FULL averaged 32.0k tokens/correct versus
-Cursor rules at 69.1k: 53.6% fewer tokens and 26.0% lower measured cost. This
-newer slice is the current T28 reference envelope; it is not recombined with the
-older eight-task aggregate.
+Cursor rules at 69.1k: 53.6% fewer tokens and 26.0% lower measured cost.
+
+The next FULL-only n=5 confirmation at commit `3d86308`
+([run 30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017))
+also passed every public and independent check. A focused repair-context handoff
+reduced mean TPCA to 28.3k, mean turns from 11.4 to 10.2, and mean measured cost
+from $0.2640 to $0.2519. That is 11.6% fewer tokens for the same model and task
+without weakening correctness. This is the current T28 frontier envelope; the
+FULL-only confirmation is not recombined with the older matched grid.
 
 The receipts are split into two complete, non-overlapping matched workflows:
 [T1/T6/T7/T13 run 29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623)
@@ -188,12 +194,32 @@ current evidence therefore supports GPT-5.6 Sol plus Specsmith FULL as the
 efficient reliable configuration on this suite; a new Qwen comparison must
 change the serving/tool protocol before it earns another paid repetition.
 
-The first current open-frontier challenger,
-[GLM-5.2 run 30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234),
-passed T28 and the independent oracle at n=1, but used 72.2k tokens—2.25× the
-Sol+FULL anchor—and is not promoted. Kimi K2.7 Code is the next admitted
-code-specialized diagnostic, followed by MiniMax-M3 as the cost challenger and
-DeepSeek-V4 Pro as the higher-active-capacity control.
+The current open-frontier admissions are complete at n=1. DeepSeek-V4 Pro was
+the strongest correct challenger at 47.9k tokens and seven turns
+([run 30076208564](https://github.com/layer1labs/specsmith/actions/runs/30076208564));
+GLM-5.2 used 72.2k
+([run 30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234));
+and Kimi K2.7 Code used 101.7k
+([run 30074528288](https://github.com/layer1labs/specsmith/actions/runs/30074528288)).
+All three passed the independent oracle but exceeded the current Sol+FULL
+envelope, so none earned n=5. MiniMax-M3 failed two diagnostics through distinct
+text-only and empty-response stops
+([runs 30075176235](https://github.com/layer1labs/specsmith/actions/runs/30075176235)
+and [30075720489](https://github.com/layer1labs/specsmith/actions/runs/30075720489)).
+The GPT-OSS-120B DeepInfra route then failed continuation immediately after a
+valid tool call
+([run 30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490));
+the controlled Novita route repair worked but serialized all 20 actions and
+failed correctness
+([run 30077459159](https://github.com/layer1labs/specsmith/actions/runs/30077459159)).
+Separating composite-read state reduced the follow-up to 44.7k tokens and 17
+turns, but the provider emitted the final `done` arguments as plain JSON text
+([run 30077929145](https://github.com/layer1labs/specsmith/actions/runs/30077929145)).
+The exact-completion confirmation then failed to reach complete write scope and
+exhausted 20 turns at 49.3k tokens
+([run 30078601832](https://github.com/layer1labs/specsmith/actions/runs/30078601832)).
+The managed GPT-OSS model/route pair is rejected; no larger sample or turn cap
+is warranted.
 
 Every new raw benchmark artifact now receives a deterministic weakness audit.
 That audit also emits a machine-readable next experiment—reject malformed
@@ -201,6 +227,10 @@ evidence, repair correctness, optimize measured token waste, repeat a clean
 diagnostic to five, or expand a clean screen to ten—without paying a model to
 judge its own work. Versioned reference envelopes now stop a correct but
 materially less efficient challenger before five paid repetitions.
+The audit also distinguishes a native tool-continuation failure from ordinary
+model incorrectness, so provider/protocol repairs remain one-variable
+experiments.
+
 To combine those outcome findings with the normal project governance audit:
 
 ```bash

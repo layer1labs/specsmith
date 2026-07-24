@@ -6,7 +6,7 @@ tests, and architecture documentation. Its result is reported separately as
 well as in the eight-task suite so cheap governance gates cannot hide
 long-horizon cost.
 
-## Current five-repetition screen
+## Matched five-repetition screen
 
 [Workflow 30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768)
 ran commit `5790d41971e027d2abd34973169c10a57e277eaa` with GPT-5.6 Sol,
@@ -21,9 +21,9 @@ passed project checks and the evaluator-isolated oracle.
 With equal observed correctness, FULL used 53.6% fewer tokens per correct
 answer, 26.0% lower measured provider cost, and 2.6% less wall time. The audit
 found one medium Cursor-only scope-expansion finding and no FULL weakness; its
-next action is `expand_release_sample`. This is the current T28 reference
-envelope. The earlier `29963515885` screen remains part of the versioned
-eight-task aggregate but is not combined with this newer commit.
+next action is `expand_release_sample`. The earlier `29963515885` screen remains
+part of the versioned eight-task aggregate but is not combined with this newer
+commit.
 
 Four FULL repetitions needed the same deterministic backend repair and spent
 one turn rereading the single failed file after its prior write body had been
@@ -31,7 +31,41 @@ compacted to a digest. That cost remains charged to this screen. The resulting
 controller improvement now returns bounded current content when exactly one
 requirement-linked file fails and removes read tools for the next turn, enabling
 an immediate repair write. Ambiguous multi-file failures retain the safer
-read-capable path; the next matched experiment must verify the measured saving.
+read-capable path.
+
+## Current optimized Sol envelope
+
+[Workflow 30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017)
+verified that change at n=5 on commit `3d86308`. Every FULL cell passed public
+checks and the isolated oracle.
+
+| FULL screen | Correct | TPCA | Mean input | Mean turns | Mean cost |
+|---|---:|---:|---:|---:|---:|
+| Before focused handoff | 5/5 | 32,020 | 25,356 | 11.4 | $0.2640 |
+| Focused handoff | 5/5 | 28,314 | 21,725 | 10.2 | $0.2519 |
+
+The same-model reduction is 11.6% TPCA, 14.3% input tokens, 10.5% turns, and
+4.6% measured cost. All three new repair traces skipped the former reread and
+wrote the focused file immediately. The audit found no weakness and selected
+`expand_release_sample`; 28,314 TPCA is now the versioned T28 frontier envelope.
+
+## Feedback-loop example
+
+Four GPT-OSS-120B diagnostics show how the audit drives bounded changes without
+turning failures into a leaderboard win:
+
+| Workflow | Smallest changed boundary | Result |
+|---|---|---|
+| [30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490) | DeepInfra provider route | one valid tool call, then two empty continuations |
+| [30077459159](https://github.com/layer1labs/specsmith/actions/runs/30077459159) | Novita provider route only | continuation worked; 20 serialized actions exposed an adaptive-state bug |
+| [30077929145](https://github.com/layer1labs/specsmith/actions/runs/30077929145) | composite-read state separated from writes | 44,692 tokens and 17 turns, but `done` arguments arrived as text |
+| [30078601832](https://github.com/layer1labs/specsmith/actions/runs/30078601832) | exact-schema completion recovery | stochastic trace never completed scope; 49,339 tokens, 20 turns, failed |
+
+The first trace created `tool_continuation_failure`; the second led to
+independent read/write adaptation; the third led to a narrow completion guard
+that still requires complete write evidence and unchanged validators. The
+fourth did not reproduce the prerequisite and was rejected. No further managed
+GPT-OSS repetition or larger turn budget is justified.
 
 ## Qwen long-horizon diagnostic
 
@@ -151,6 +185,7 @@ to judge its own work.
 | `broad_reread_churn` | Unchanged files dominate reads. | Replace bodies with version receipts and active evidence. |
 | `milestone_fragmentation` | Several components changed without a completed boundary. | Stage the active milestone and batch independent files. |
 | `premature_text_stop` | Narration stopped before a terminal action. | Permit one bounded continuation, then fail closed. |
+| `tool_continuation_failure` | A route calls a tool, then emits two empty continuations. | Verify the native protocol, change only the serving route, and rerun once. |
 | `acceptance_gap` | Public checks pass but the hidden oracle fails. | Add an immutable independent boundary test. |
 | `governed_failure` | A Specsmith cell failed, even without a baseline row. | Repair the measured stop reason before repetition. |
 | `scope_expansion` | Writes exceed declared requirement boundaries. | Verify necessity or constrain retrieval/edits. |

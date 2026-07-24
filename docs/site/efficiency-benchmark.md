@@ -58,8 +58,27 @@ passed 5/5 and passed the evaluator-isolated oracle.
 | Specsmith FULL | 5/5 | 32.0k | $0.2640 | 11.4 | 86.6s |
 
 FULL used 53.6% fewer tokens per correct answer and 26.0% lower measured cost.
-This screen supplies the versioned T28 frontier envelope used to decide whether
-a correct challenger deserves repeated paid runs.
+This matched screen remains the direct Cursor-rules comparison.
+
+## Latest Sol governance optimization
+
+[Workflow 30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017)
+ran a FULL-only five-repetition confirmation at commit `3d86308`. All five
+cells passed the public checks and evaluator-isolated oracle, with no audit
+weakness:
+
+| FULL version | Correct | Tokens/correct | Mean input | Mean cost | Mean turns | Mean wall time |
+|---|---:|---:|---:|---:|---:|---:|
+| Prior matched screen | 5/5 | 32.0k | 25.4k | $0.2640 | 11.4 | 86.6s |
+| Focused repair handoff | 5/5 | 28.3k | 21.7k | $0.2519 | 10.2 | 97.1s |
+
+The controller supplied bounded current content when one validator identified
+one repair file, then removed redundant read tools. Four of five earlier runs
+spent a separate turn rereading that file; every comparable repair in the new
+screen wrote immediately. TPCA fell 11.6%, input tokens 14.3%, turns 10.5%, and
+measured cost 4.6%. Wall time increased in this sample, so no latency
+improvement is claimed. The new 28,314-token result is the versioned frontier
+envelope used to decide whether a challenger deserves repeated paid runs.
 
 ## What changed the result
 
