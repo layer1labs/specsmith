@@ -33,7 +33,7 @@ requirement-linked file fails and removes read tools for the next turn, enabling
 an immediate repair write. Ambiguous multi-file failures retain the safer
 read-capable path.
 
-## Current optimized Sol envelope
+## Prior optimized Sol envelope
 
 [Workflow 30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017)
 verified that change at n=5 on commit `3d86308`. Every FULL cell passed public
@@ -47,7 +47,36 @@ checks and the isolated oracle.
 The same-model reduction is 11.6% TPCA, 14.3% input tokens, 10.5% turns, and
 4.6% measured cost. All three new repair traces skipped the former reread and
 wrote the focused file immediately. The audit found no weakness and selected
-`expand_release_sample`; 28,314 TPCA is now the versioned T28 frontier envelope.
+`expand_release_sample`; 28,314 TPCA became the versioned T28 frontier envelope.
+
+## July 24 feedback replay
+
+The final n=5 Sol screen
+[30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102)
+at commit `708d47b` passed every public and independent check.
+
+| FULL screen | Correct | TPCA | Mean input | Mean turns | Mean cost |
+|---|---:|---:|---:|---:|---:|
+| Focused handoff | 5/5 | 28,314 | 21,725 | 10.2 | $0.2519 |
+| Final learning replay | 5/5 | 26,499 | 20,204 | 9.8 | $0.2414 |
+
+The measured weaknesses that produced the final revision came from open-model
+traces, not another judge call:
+
+- GLM narrated two explicit milestone writes. One recovery produced real files,
+  so a second is allowed only after new expected-file write progress and the
+  total remains capped at two.
+- DeepSeek Pro passed public checks but the isolated oracle found a missing Go
+  `id` default. The requirement now states non-empty `id` and `created_at`
+  defaults and a controller-owned public validator enforces them without
+  changing or exposing the oracle.
+- MiniMax returned empty assistant continuations. The controller continued to
+  fail closed; empty text is never converted into a fabricated action.
+
+[Workflow 30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453)
+confirmed the repairs: GLM passed at 73,618 tokens and DeepSeek Pro at 84,409.
+Their audits found no high/critical weakness but blocked n=5 because their TPCA
+was 2.6× and 2.98× the then-current Sol envelope.
 
 ## Feedback-loop example
 
@@ -184,7 +213,7 @@ to judge its own work.
 | `tool_call_serialization` | The route repeatedly emits one action per turn. | Use a compatible parser or bounded composite tools. |
 | `broad_reread_churn` | Unchanged files dominate reads. | Replace bodies with version receipts and active evidence. |
 | `milestone_fragmentation` | Several components changed without a completed boundary. | Stage the active milestone and batch independent files. |
-| `premature_text_stop` | Narration stopped before a terminal action. | Permit one bounded continuation, then fail closed. |
+| `premature_text_stop` | Narration stopped before a terminal action. | Permit one continuation; a second requires new write progress, then fail closed. |
 | `tool_continuation_failure` | A route calls a tool, then emits two empty continuations. | Verify the native protocol, change only the serving route, and rerun once. |
 | `acceptance_gap` | Public checks pass but the hidden oracle fails. | Add an immutable independent boundary test. |
 | `governed_failure` | A Specsmith cell failed, even without a baseline row. | Repair the measured stop reason before repetition. |

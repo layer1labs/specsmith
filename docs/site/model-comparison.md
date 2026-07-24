@@ -4,7 +4,10 @@
 
 | Evidence | Model/routes | Repetitions | Treatment |
 |---|---|---:|---|
-| [30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017) | GPT-5.6 Sol | 5 T28 FULL | Current optimized T28 frontier envelope: 5/5, 28.3k TPCA |
+| [30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102) | GPT-5.6 Sol | 5 T28 FULL | Final learning commit: 5/5, 26.5k TPCA, no audit weakness |
+| [30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453) | DeepSeek-V4 Pro + GLM-5.2 | 1 T28 FULL each | Both correct after targeted repairs; 84.4k and 73.6k TPCA, not promoted |
+| [30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259) | Seven managed frontier routes | 1 per T28 condition | Admission/trace screen; only Kimi and Qwen FULL passed |
+| [30077217017](https://github.com/layer1labs/specsmith/actions/runs/30077217017) | GPT-5.6 Sol | 5 T28 FULL | Superseded optimized envelope: 5/5, 28.3k TPCA |
 | [30045327768](https://github.com/layer1labs/specsmith/actions/runs/30045327768) | GPT-5.6 Sol | 5 per T28 condition | Current matched Cursor/FULL comparator |
 | [30076208564](https://github.com/layer1labs/specsmith/actions/runs/30076208564) | DeepSeek-V4 Pro / Novita | 1 FULL | Correct diagnostic; 47.9k TPCA, not promoted |
 | [30074528288](https://github.com/layer1labs/specsmith/actions/runs/30074528288) | Kimi K2.7 Code / DeepInfra | 1 FULL | Correct diagnostic; 101.7k TPCA, not promoted |
@@ -152,7 +155,37 @@ scaffold; compare it as a scientific control, not as the expected winner.
 - Qwen3.6/DeepInfra: managed open-weight portability after adaptive tools.
 - Qwen3-Coder-Next/native parser: self-hosted or Qwen-native tool-serving lane.
 
-## Open-frontier admission results
+## July 24 open-frontier replay
+
+All seven exact routes passed metadata and paid tool-call probes in
+[workflow 30091129732](https://github.com/layer1labs/specsmith/actions/runs/30091129732).
+The matched n=1 results in workflow `30091184259` are diagnostic:
+
+| Candidate | Cursor result | FULL result | Audit decision |
+|---|---:|---:|---|
+| Kimi K2.7 Code / DeepInfra | fail, 42,319 | pass, 24,021 | repeat screen |
+| Qwen3.6-35B-A3B / DeepInfra | fail, 163,904 | pass, 62,060 | advance candidate; above envelope |
+| DeepSeek-V4 Pro / Novita | fail, 21,095 | fail, 74,923 | repair explicit completion narration |
+| GLM-5.2 / DeepInfra | fail, 196,733 | fail, 24,619 | repair explicit milestone narration |
+| MiniMax-M3 / Novita | fail, 26,275 | fail, 56,054 | repair provider/tool continuation |
+| DeepSeek-V4 Flash / DeepInfra | fail, 87,207 | fail, 130,057 | rejected at turn ceiling |
+| Nemotron 3 Ultra / DeepInfra | fail, 141,608 | fail, 119,407 | rejected repeated-tool loop |
+
+Specsmith materially improved the Qwen3.6 outcome, but 62.1k TPCA was still
+2.19× the old Sol envelope and therefore did not earn n=5. The final targeted
+repair run made GLM and DeepSeek Pro correct, but their 73.6k and 84.4k TPCA
+also failed the efficiency envelope. MiniMax's post-repair trace wrote no files
+and ended after two empty continuations; further repetition requires a new
+native tool protocol or serving route.
+
+DeepSeek V4 Flash and Nemotron completed the previous next-candidate queue and
+are rejected on their measured routes. The remaining infrastructure experiment
+is Qwen3-Coder-Next with the native `qwen3_coder` parser. The local 12 GB RTX
+4070 cannot host the 80B checkpoint, and this repository has no configured
+OpenAI-compatible endpoint secret/URL for an external native deployment, so a
+managed Novita rerun would not test the requested parser.
+
+## Historical open-frontier admissions
 
 Four current checkpoints were admitted through live route probes and one T28
 FULL diagnostic each:
@@ -202,17 +235,17 @@ did not reach complete write scope, so recovery correctly did not activate; it
 exhausted 20 turns at 49,339 tokens. The managed GPT-OSS model/route pair is
 rejected.
 
-## Next candidate queue
+## Next infrastructure queue
 
 The next managed admissions should remain one-cell diagnostics:
 
-1. **DeepSeek-V4 Flash / DeepInfra** — a low-price million-context control from
-   the same family as the strongest open result.
-2. **NVIDIA Nemotron 3 Ultra 550B A55B / DeepInfra** — a high-active-capacity
-   tool-serving control that tests whether capability, not governance, is the
-   remaining limit.
-3. **Qwen3-Coder-Next with its native `qwen3_coder` parser** — the highest-value
-   self-hosted protocol experiment; do not repeat the managed Novita route.
+1. **Qwen3-Coder-Next with its native `qwen3_coder` parser** — provision a
+   multi-GPU or hosted OpenAI-compatible endpoint and begin with one T28 FULL
+   cell; do not substitute the managed Novita route.
+2. **Kimi matched replication** — use the final learning commit and preserve
+   Cursor/FULL pairs; only a complete n=5 artifact can challenge Sol.
+3. **Release-quality confirmation** — expand the winning unchanged grid to
+   n=10 only after the n=5 comparison is complete.
 
 GPT-OSS receives no further managed-route repetitions. A new attempt would need
 a native Harmony-capable serving stack and starts again at n=1. Every candidate

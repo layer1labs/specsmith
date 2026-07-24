@@ -80,6 +80,45 @@ measured cost 4.6%. Wall time increased in this sample, so no latency
 improvement is claimed. The new 28,314-token result is the versioned frontier
 envelope used to decide whether a challenger deserves repeated paid runs.
 
+## July 24 learning replay
+
+[Workflow 30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102)
+repeated Sol FULL at n=5 on final learning commit `708d47b`. The task now makes
+the Go worker's non-empty `id` and `created_at` defaults explicit and validates
+them publicly; an explicit future-action narration may receive a second
+continuation only after the first recovery produced new expected-file writes.
+
+| FULL version | Correct | TPCA | Mean input | Mean cost | Mean turns | First pass |
+|---|---:|---:|---:|---:|---:|---:|
+| Focused repair handoff | 5/5 | 28,314 | 21,725 | $0.2519 | 10.2 | 40% |
+| Final learning replay | 5/5 | 26,499 | 20,204 | $0.2414 | 9.8 | 60% |
+
+The final replay reduced TPCA by 6.4%, input tokens by 7.0%, measured cost by
+4.2%, and turns by 3.9%, with no audit weakness. These are same-task point
+estimates from separate complete screens, not pooled repetitions.
+
+The preceding seven-route n=1 admission
+[workflow 30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259)
+showed why older candidates should be repeated selectively:
+
+| Managed route | Cursor | Specsmith FULL | Decision |
+|---|---:|---:|---|
+| Kimi K2.7 Code / DeepInfra | fail / 42.3k | pass / 24.0k | advanced to matched n=5 |
+| Qwen3.6-35B-A3B / DeepInfra | fail / 163.9k | pass / 62.1k | governance gain, but 2.19× old Sol envelope |
+| DeepSeek-V4 Pro / Novita | fail / 21.1k | fail / 74.9k | explicit completion narration repair |
+| GLM-5.2 / DeepInfra | fail / 196.7k | fail / 24.6k | explicit milestone narration repair |
+| MiniMax-M3 / Novita | fail / 26.3k | fail / 56.1k | empty/tool-continuation failure |
+| DeepSeek-V4 Flash / DeepInfra | fail / 87.2k | fail / 130.1k | turn exhaustion; rejected |
+| Nemotron 3 Ultra / DeepInfra | fail / 141.6k | fail / 119.4k | repeated tool loop; rejected |
+
+The final-commit targeted confirmation
+[workflow 30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453)
+made GLM correct at 73,618 tokens and DeepSeek Pro correct at 84,409. Both
+remain diagnostic-only: the audit selects `advance_candidate`, not repetition,
+because they are 2.6× and 2.98× the prior Sol envelope. MiniMax's additional
+20,382-token attempt wrote no files after two empty continuations, so a native
+tool-protocol or route change is required before another paid run.
+
 ## What changed the result
 
 The improvement came from making governance smaller and more deterministic:
@@ -187,8 +226,10 @@ would confound model quality, quantization, parser, and serving hardware.
    regression test.
 4. Change the smallest implicated controller or context boundary; do not raise
    turn caps or weaken the oracle.
-5. Rerun affected cells, then the complete matched slice. Advance to n=5 only
-   after diagnostic correctness; use n=10 for release-quality statistical claims.
+5. Rerun only cells whose serving, prompt, validator, or controller path changed.
+6. Rerun the complete matched slice after the last causal change. Advance to
+   n=5 only after diagnostic correctness; use n=10 for release-quality
+   statistical claims.
 
 ## Integrity and limitations
 

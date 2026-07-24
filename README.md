@@ -164,8 +164,15 @@ The next FULL-only n=5 confirmation at commit `3d86308`
 also passed every public and independent check. A focused repair-context handoff
 reduced mean TPCA to 28.3k, mean turns from 11.4 to 10.2, and mean measured cost
 from $0.2640 to $0.2519. That is 11.6% fewer tokens for the same model and task
-without weakening correctness. This is the current T28 frontier envelope; the
-FULL-only confirmation is not recombined with the older matched grid.
+without weakening correctness.
+
+The July 24 learning replay at commit `708d47b`
+([run 30093712102](https://github.com/layer1labs/specsmith/actions/runs/30093712102))
+again passed 5/5 and reduced TPCA to 26.5k, mean turns to 9.8, and measured
+cost per correct run to $0.2414. This is 6.4% fewer tokens than the 28.3k
+screen, with a 60% first-pass rate and no audit weakness. It is the current
+T28 Sol frontier envelope; FULL-only confirmations are not recombined with the
+older matched grid.
 
 The receipts are split into two complete, non-overlapping matched workflows:
 [T1/T6/T7/T13 run 29963772623](https://github.com/layer1labs/specsmith/actions/runs/29963772623)
@@ -194,18 +201,20 @@ current evidence therefore supports GPT-5.6 Sol plus Specsmith FULL as the
 efficient reliable configuration on this suite; a new Qwen comparison must
 change the serving/tool protocol before it earns another paid repetition.
 
-The current open-frontier admissions are complete at n=1. DeepSeek-V4 Pro was
-the strongest correct challenger at 47.9k tokens and seven turns
-([run 30076208564](https://github.com/layer1labs/specsmith/actions/runs/30076208564));
-GLM-5.2 used 72.2k
-([run 30045980234](https://github.com/layer1labs/specsmith/actions/runs/30045980234));
-and Kimi K2.7 Code used 101.7k
-([run 30074528288](https://github.com/layer1labs/specsmith/actions/runs/30074528288)).
-All three passed the independent oracle but exceeded the current Sol+FULL
-envelope, so none earned n=5. MiniMax-M3 failed two diagnostics through distinct
-text-only and empty-response stops
-([runs 30075176235](https://github.com/layer1labs/specsmith/actions/runs/30075176235)
-and [30075720489](https://github.com/layer1labs/specsmith/actions/runs/30075720489)).
+The July 24 open-frontier replay probed seven exact hosted routes and ran one
+matched T28 diagnostic per model in
+[workflow 30091184259](https://github.com/layer1labs/specsmith/actions/runs/30091184259).
+Specsmith FULL turned Qwen3.6/DeepInfra from a 163.9k-token Cursor failure into
+a correct 62.1k-token result, and Kimi K2.7 Code from a 42.3k-token Cursor
+failure into a correct 24.0k-token result. DeepSeek-V4 Flash and Nemotron 3
+Ultra failed both conditions; MiniMax again failed through empty continuation.
+Narration and public-contract traces then produced two bounded repairs.
+Final-commit confirmations made GLM-5.2 correct at 73.6k and DeepSeek-V4 Pro
+correct at 84.4k
+([run 30093614453](https://github.com/layer1labs/specsmith/actions/runs/30093614453)).
+Their deterministic audits reject n=5 promotion because each is more than
+2.5× the Sol envelope. Kimi is the only managed challenger advanced to a
+matched n=5 screen.
 The GPT-OSS-120B DeepInfra route then failed continuation immediately after a
 valid tool call
 ([run 30077072490](https://github.com/layer1labs/specsmith/actions/runs/30077072490));

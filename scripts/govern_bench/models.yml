@@ -78,8 +78,9 @@ models:
   # when the deterministic weakness audit returns repeat_screen.
   - label: kimi-k2.7-code
     provider: huggingface
-    # Lowest-priced live HF route with tools + structured output on 2026-07-23.
-    model: moonshotai/Kimi-K2.7-Code:deepinfra
+    # DeepInfra returned repeated router-level 504s in n=5 run 30092473534.
+    # Together is the current fastest HF route with tools + structured output.
+    model: moonshotai/Kimi-K2.7-Code:together
     group: open-frontier
     tier: open-xl
   - label: glm-5.2
