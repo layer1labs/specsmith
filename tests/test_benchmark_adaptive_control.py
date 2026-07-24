@@ -497,12 +497,10 @@ def test_gpt_oss_admission_uses_pinned_tool_route_and_exact_pricing() -> None:
         {
             "label": "gpt-oss-120b",
             "provider": "huggingface",
-            "model": "openai/gpt-oss-120b:deepinfra",
+            "model": "openai/gpt-oss-120b:novita",
             "group": "open",
             "tier": "open-xl",
         }
     ]
-    assert estimate_cost("openai/gpt-oss-120b:deepinfra", 1_000_000, 1_000_000) == pytest.approx(
-        0.207
-    )
-    assert model_tier("openai/gpt-oss-120b:deepinfra") == "open-xl"
+    assert estimate_cost("openai/gpt-oss-120b:novita", 1_000_000, 1_000_000) == pytest.approx(0.30)
+    assert model_tier("openai/gpt-oss-120b:novita") == "open-xl"

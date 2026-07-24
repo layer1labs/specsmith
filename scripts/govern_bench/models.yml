@@ -40,9 +40,10 @@ models:
     tier: open-large
   - label: gpt-oss-120b
     provider: huggingface
-    # DeepInfra is the lowest-priced live HF route advertising tool support;
-    # pin it so repeated admissions do not silently change serving stacks.
-    model: openai/gpt-oss-120b:deepinfra
+    # DeepInfra emitted empty continuations after a valid tool call in governed
+    # run 30077072490. Novita advertises tools + structured output; pin the
+    # one-variable repair so repeated admissions do not change serving stacks.
+    model: openai/gpt-oss-120b:novita
     group: open
     tier: open-xl
 
